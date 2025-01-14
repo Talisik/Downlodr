@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="UTF-8" />
-    <title>Hello World!</title>
-
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy">
+    <link href="./src/index.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>Downlodr</title>
   </head>
   <body>
-    <h1>💖 Hello World!</h1>
-    <p>Welcome to your Electron application.</p>
-    <script type="module" src="/src/renderer.ts"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/renderer.tsx"></script>
   </body>
 </html>

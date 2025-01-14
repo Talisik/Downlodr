@@ -1,7 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* body */
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
-    Arial, sans-serif;
-  margin: auto;
-  max-width: 38rem;
-  padding: 2rem;
+  font-family: Roboto;
+  font-size: 14px;
+  font-weight: 600;
 }
+
+/* end of body*
+
+/* custom scroll bar */
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;  /* Width of the scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;  /* Track background */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;  /* Scrollbar color */
+  border-radius: 4px;  /* Rounded corners */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #666;  /* Darker on hover */
+}
+
+/* Hide scrollbar buttons */
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* end of custom scroll bar */
+/* Draggable */
+
+.drag-area {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* end of draggable*/
+
+/*Navigation*/
+
+.nav-link {
+  @apply block w-4/5 text-left px-3 py-2 rounded flex flex-row;
+  font-family: Roboto;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+  text-align: left;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
+}
+
+.nav-link.active {
+  @apply bg-gray-700;
+}
+
+.nav-link:not(.active):hover {
+  @apply bg-gray-100;
+}
+
+/*Navigation end*/
