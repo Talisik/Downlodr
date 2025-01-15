@@ -5,19 +5,19 @@ import { FiDownload, FiClock } from 'react-icons/fi';
 import { AiOutlineCheck } from 'react-icons/ai';
 import { BiLayer } from 'react-icons/bi';
 import { BsTag } from 'react-icons/bs';
-import { CiFolderOn } from "react-icons/ci";
+import { CiFolderOn } from 'react-icons/ci';
 
 const Navigation = ({ className }: { className?: string }) => {
-    const [openSections, setOpenSections] = useState({
+  const [openSections, setOpenSections] = useState({
     status: true,
     category: true,
-    tag: true
+    tag: true,
   });
 
   const toggleSection = (section: keyof typeof openSections) => {
-    setOpenSections(prev => ({
+    setOpenSections((prev) => ({
       ...prev,
-      [section]: !prev[section]
+      [section]: !prev[section],
     }));
   };
 
@@ -26,18 +26,22 @@ const Navigation = ({ className }: { className?: string }) => {
       <div className="p-2 space-y-2 ml-2">
         {/* Status Section */}
         <div>
-          <button 
-            onClick={() => toggleSection('status')} 
+          <button
+            onClick={() => toggleSection('status')}
             className="w-full flex items-center p-2 hover:bg-gray-200 rounded"
           >
-            {openSections.status ? <HiChevronDown size={18} /> : <HiChevronRight size={18} />}
-            <span className="ml-2 text-sm">Status</span>
+            {openSections.status ? (
+              <HiChevronDown size={18} />
+            ) : (
+              <HiChevronRight size={18} />
+            )}
+            <span className="ml-2 text-sm font-semibold">Status</span>
           </button>
-          
+
           {openSections.status && (
             <div className="ml-4 space-y-1">
               <NavLink to="/all" className="nav-link">
-              <CiFolderOn className="text-gray-600 text-lg flex-shrink-0"/>
+                <CiFolderOn className="text-gray-600 text-lg flex-shrink-0" />
                 <span className="ml-2 ">All</span>
               </NavLink>
               <NavLink to="/downloading" className="nav-link">
@@ -58,14 +62,18 @@ const Navigation = ({ className }: { className?: string }) => {
 
         {/* Category Section */}
         <div>
-          <button 
-            onClick={() => toggleSection('category')} 
+          <button
+            onClick={() => toggleSection('category')}
             className="w-full flex items-center p-2 hover:bg-gray-200 rounded"
           >
-            {openSections.category ? <HiChevronDown size={18} /> : <HiChevronRight size={18} />}
-            <span className="ml-2 text-sm">Category</span>
+            {openSections.category ? (
+              <HiChevronDown size={18} />
+            ) : (
+              <HiChevronRight size={18} />
+            )}
+            <span className="ml-2 text-sm font-semibold">Category</span>
           </button>
-          
+
           {openSections.category && (
             <div className="ml-4 space-y-1">
               <NavLink to="/category/all" className="nav-link">
@@ -86,14 +94,18 @@ const Navigation = ({ className }: { className?: string }) => {
 
         {/* Tag Section */}
         <div>
-          <button 
-            onClick={() => toggleSection('tag')} 
+          <button
+            onClick={() => toggleSection('tag')}
             className="w-full flex items-center p-2 hover:bg-gray-200 rounded"
           >
-            {openSections.tag ? <HiChevronDown size={18} /> : <HiChevronRight size={18} />}
-            <span className="ml-2 text-sm">Tag</span>
+            {openSections.tag ? (
+              <HiChevronDown size={18} />
+            ) : (
+              <HiChevronRight size={18} />
+            )}
+            <span className="ml-2 text-sm font-semibold">Tag</span>
           </button>
-          
+
           {openSections.tag && (
             <div className="ml-4 space-y-1">
               <NavLink to="/tags/all" className="nav-link">

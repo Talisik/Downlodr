@@ -58,6 +58,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.4.0",
-    "react-router-dom": "^7.1.1"
+    "react-router-dom": "^7.1.1",
+    "yt-dlp-helper": "https://x-token-auth:ATCTT3xFfGN0aai6a2HGXTJW6CWXqLhBk5vfHpij4Os2gmIex7kwMzc_7XZbal4HeB6AMVFXfScbWkg0QyXhrovJqrVVL0nBxoDu8Ery_jME3Sun6RU9pTA1g3PvYpcUfhN60r90JtfqSj5ZniLEDBfKSJxn5Ps-GJdr7gV1epm2oTpKIXn8N-8=C4687B75@bitbucket.org/metawhale/yt-dlp-helper.git",
+    "zustand": "^5.0.3"
   }
 }

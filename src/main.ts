@@ -26,7 +26,7 @@ const createWindow = () => {
       // devTools: false,
     },
   });
-  
+
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
     // Only open DevTools in development
@@ -39,24 +39,22 @@ const createWindow = () => {
 
   // MAIN FUNCTIONS FOR TITLE BAR
 
-ipcMain.on('close-btn', () => {
-  mainWindow.close();
-});
+  ipcMain.on('close-btn', () => {
+    mainWindow.close();
+  });
 
-ipcMain.on('minimize-btn', () => {
-  mainWindow.minimize();
-});
+  ipcMain.on('minimize-btn', () => {
+    mainWindow.minimize();
+  });
 
-ipcMain.on('maximize-btn', () => {
-  if (mainWindow.isMaximized()) {
-    mainWindow.unmaximize();
-  } else {
-    mainWindow.maximize();
-  }
-});
-
+  ipcMain.on('maximize-btn', () => {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  });
 };
-
 
 app.on('ready', createWindow);
 
@@ -64,17 +62,17 @@ app.on('ready', createWindow);
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
-if (process.platform !== 'darwin') {
-  app.quit();
-}
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });
 
 app.on('activate', () => {
-// On OS X it's common to re-create a window in the app when the
-// dock icon is clicked and there are no other windows open.
-if (BrowserWindow.getAllWindows().length === 0) {
-  createWindow();
-}
+  // On OS X it's common to re-create a window in the app when the
+  // dock icon is clicked and there are no other windows open.
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
 });
 
 // In this file you can include the rest of your app's specific main process
