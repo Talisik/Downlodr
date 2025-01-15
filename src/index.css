@@ -1,8 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* body */
+  /* body */
 
 body {
   font-family: Roboto;
@@ -16,10 +15,12 @@ body {
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 7px;  /* Width of the scrollbar */
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
   background: transparent;  /* Track background */
+  margin-bottom: 5px;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -63,7 +64,7 @@ body {
 }
 
 .nav-link.active {
-  @apply bg-gray-700;
+  @apply bg-gray-100;
 }
 
 .nav-link:not(.active):hover {
@@ -71,3 +72,10 @@ body {
 }
 
 /*Navigation end*/
+
+
+/* buttons */
+
+.primary-custom-btn{
+  @apply bg-primary text-white hover:bg-gray-100 rounded-md flex gap-2 text-sm
+}

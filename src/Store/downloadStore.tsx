@@ -67,3 +67,23 @@ interface HistoryDownloads {
   location: string;
   status: string;
 }
+
+interface DownloadStore {
+  downloads: Downloading[];
+  addDownload: (download: Downloading) => void;
+  updateDownload: (id: string, data: Partial<Downloading>) => void;
+}
+
+const useDownloadStore = create<DownloadStore>((set) => ({
+  downloads: [],
+  addDownload: (download) =>
+    set((state) => ({ downloads: [...state.downloads, download] })),
+  updateDownload: (id, data) =>
+    set((state) => ({
+      downloads: state.downloads.map((d) =>
+        d.id === id ? { ...d, ...data } : d,
+      ),
+    })),
+}));
+
+export default useDownloadStore;

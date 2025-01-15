@@ -35,3 +35,63 @@ function uuidv4() {
     ).toString(16),
   );
 }
+
+contextBridge.exposeInMainWorld('ytdlp', {
+  getPlaylistInfo: async (url: string) => {
+    return await ipcRenderer.invoke('ytdlp:playlist:info', url);
+  },
+
+  getInfo: async (url: string) => {
+    try {
+      const info = await ipcRenderer.invoke('ytdlp:info', url);
+      return info;
+    } catch {
+      console.log('error');
+    }
+  },
+
+  killController: (id: any) => ipcRenderer.invoke('kill-controller', id),
+
+  stop: async (id: any) => {
+    return await ipcRenderer.invoke('ytdlp:stop', id);
+  },
+
+  selectDownloadDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
+
+  download(args: object, callback: (result: object) => void) {
+    const id = uuidv4();
+    const channel = `ytdlp:download:status:${id}`;
+    const controllerChannel = `ytdlp:controller:${id}`;
+
+    async function startDownload() {
+      try {
+        ipcRenderer.invoke('ytdlp:download', id, args);
+        // Listen for controller ID from the main process
+        ipcRenderer.on(controllerChannel, (event, data) => {
+          console.log('Received controller data:', data);
+          callback({
+            type: 'controller',
+            downloadId: data.downloadId,
+            controllerId: data.controllerId,
+          });
+        });
+        ipcRenderer.on(channel, (event, chunk) => {
+          callback(chunk);
+          if (chunk.data.status === 'finished') {
+            console.log('Preload done');
+            ipcRenderer.removeAllListeners(channel);
+          }
+        });
+      } catch (error) {
+        console.error('Error during download:');
+      }
+    }
+
+    startDownload().catch(console.error);
+    return id;
+  },
+});
+
+contextBridge.exposeInMainWorld('electronDevTools', {
+  toggle: () => ipcRenderer.send('toggle-dev-tools'),
+});

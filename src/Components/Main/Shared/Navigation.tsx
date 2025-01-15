@@ -40,7 +40,7 @@ const Navigation = ({ className }: { className?: string }) => {
 
           {openSections.status && (
             <div className="ml-4 space-y-1">
-              <NavLink to="/all" className="nav-link">
+              <NavLink to="/allDownloads" className="nav-link">
                 <CiFolderOn className="text-gray-600 text-lg flex-shrink-0" />
                 <span className="ml-2 ">All</span>
               </NavLink>

@@ -26,8 +26,6 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   const [videoId, setVideoId] = useState('');
 
   // Download Data
-  const [UrlInfo, setUrlInfo] = useState<object | null>(null);
-  const [UrlTitle, setUrlTitle] = useState<string | null>(null);
   const [UrlThumbnail, setUrlThumbnail] = useState('');
   const [urlExtractorKey, setUrlExtractorKey] = useState<string>('');
 
@@ -42,7 +40,38 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
   //Store
 
-  // Extract YouTube video ID from URL
+  const resetDownloadModal = () => {
+    // Reset Download Submission Data
+    setDownloadLink('');
+    setDownloadLocation('C:\\');
+    setFileName('');
+    setDownloadFormat('MP4 1080');
+    setDownloadFormatID('');
+    setDownloadAudioFormat('MP4 1080');
+    setDownloadAudioFormatID('');
+    setVideoId('');
+
+    // Reset Download Data
+    setUrlThumbnail('');
+    setUrlExtractorKey('');
+
+    // Reset Validation Data
+    setIsLoading(false);
+    setIsDownloading(false);
+    setIsValidUrl(false);
+
+    // Reset Misc
+    setAvailableFormats([]);
+    setDownloadStart(false);
+  };
+
+  // You can call this function when closing the modal
+  const handleClose = () => {
+    resetDownloadModal();
+    onClose();
+  };
+
+  // First useEffect for video ID extraction
   useEffect(() => {
     const extractVideoId = (url: string) => {
       const regExp =
@@ -57,8 +86,266 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
   }, [downloadUrl]);
 
+  // Second useEffect for video info fetching
+  useEffect(() => {
+    if (downloadUrl) {
+      const fetchVideoInfo = async () => {
+        setIsLoading(true);
+        try {
+          const info = await (window as any).ytdlp.getInfo(downloadUrl);
+          const folderPath = await window.downlodrFunctions.getDownloadFolder();
+
+          // Update state with fetched info
+          setUrlExtractorKey(info.data.extractor_key);
+          setFileName(info.data.title);
+          setUrlThumbnail(info.data.thumbnail);
+          setDownloadLocation(folderPath);
+
+          const formatsArray = info.data.formats || [];
+          const formatMap = new Map();
+          const seenCombinations = new Set();
+
+          // Process formats based on extractor key
+          if (info.data.extractor_key === 'Youtube') {
+            formatMap.clear();
+
+            formatsArray.forEach((format: any) => {
+              const resolution = format.resolution;
+              const formatId = format.format_id;
+              let video_ext = format.video_ext;
+              const url = format.url;
+              const format_note = format.format_note;
+
+              if (
+                !resolution ||
+                !video_ext ||
+                video_ext === 'none' ||
+                !url ||
+                !url.startsWith('https://rr')
+              )
+                return;
+
+              if (video_ext === 'webm') video_ext = 'mkv';
+
+              const combinationKey = `${video_ext}-${format_note}`;
+
+              if (!seenCombinations.has(combinationKey)) {
+                seenCombinations.add(combinationKey);
+                const urlFormat: UrlFormat = {
+                  formatDisplayName: `${format_note}`,
+                  formatID: formatId,
+                  formatExtension: video_ext,
+                };
+                formatMap.set(formatId, urlFormat);
+              }
+            });
+
+            // Add audio-only formats
+            const audioOnlyFormat = formatsArray.find(
+              (format: any) =>
+                format.vcodec === 'none' &&
+                format.format.includes('audio only (medium)'),
+            );
+
+            if (audioOnlyFormat) {
+              const mp3Format: UrlFormat = {
+                formatDisplayName: 'Audio Only (MP3)',
+                formatID: audioOnlyFormat.format_id,
+                formatExtension: 'mp3',
+              };
+              formatMap.set('audio-mp3', mp3Format);
+            }
+
+            // Convert map to array and set available formats
+            const formats = Array.from(formatMap.values());
+            setAvailableFormats(formats);
+
+            // Set default format if available
+            if (formats.length > 0) {
+              setDownloadFormat(formats[0].formatDisplayName);
+              setDownloadFormatID(formats[0].formatID);
+            }
+          }
+          // Daily Motion
+          else if (info.data.extractor_key === 'Dailymotion') {
+            console.log('Processing Dailymotion formats:', formatsArray);
+            formatMap.clear();
+            seenCombinations.clear();
+
+            formatsArray.forEach((format: any) => {
+              const resolution = format.resolution;
+              const formatId = format.format_id;
+              const video_ext = format.ext;
+              const url = format.url;
+              const format_note = format.format || resolution || formatId;
+
+              if (!video_ext || !url) {
+                console.log('Skipping format due to missing fields:', formatId);
+                return;
+              }
+
+              const combinationKey = `${video_ext}-${resolution}`;
+
+              if (!seenCombinations.has(combinationKey)) {
+                seenCombinations.add(combinationKey);
+                const urlFormat: UrlFormat = {
+                  formatDisplayName: `${format_note}`,
+                  formatID: formatId,
+                  formatExtension: video_ext,
+                };
+                formatMap.set(formatId, urlFormat);
+              }
+            });
+
+            // Add audio-only option
+            const mp3Format: UrlFormat = {
+              formatDisplayName: 'Audio Only (MP3)',
+              formatID: '0',
+              formatExtension: 'mp3',
+            };
+            formatMap.set('audio-mp3', mp3Format);
+
+            // Convert map to array and set available formats
+            const formats = Array.from(formatMap.values());
+            setAvailableFormats(formats);
+
+            // Set default format if available
+            if (formats.length > 0) {
+              setDownloadFormat(formats[0].formatDisplayName);
+              setDownloadFormatID(formats[0].formatID);
+            }
+          } else if (
+            info.data.extractor_key === 'Vimeo' ||
+            info.data.extractor_key === 'BiliBili' ||
+            info.data.extractor_key === 'CNN'
+          ) {
+            console.log('Processing Other formats');
+            formatMap.clear();
+            seenCombinations.clear();
+
+            // Find audio-only format
+            const audioOnlyFormat = formatsArray.find(
+              (format: any) =>
+                format.resolution === 'audio only' ||
+                format.vcodec === 'none' ||
+                (format.format &&
+                  format.format.toLowerCase().includes('audio only')),
+            );
+
+            const audioFormatId = audioOnlyFormat
+              ? audioOnlyFormat.format_id
+              : '0';
+
+            formatsArray.forEach((format: any) => {
+              const resolution = format.resolution || format.format_id;
+              const formatId = format.format_id;
+              const video_ext = format.ext;
+              const url = format.url;
+              const format_note = format.format_note || resolution || formatId;
+
+              if (!video_ext || !url || format_note.includes('DASH')) {
+                console.log('Skipping format due to missing fields:', formatId);
+                return;
+              }
+
+              const combinationKey = `${video_ext}-${resolution}`;
+
+              if (!seenCombinations.has(combinationKey)) {
+                seenCombinations.add(combinationKey);
+                const urlFormat: UrlFormat = {
+                  formatDisplayName: `${resolution}`,
+                  formatID: `${audioFormatId}+${formatId}`,
+                  formatExtension: video_ext,
+                };
+                formatMap.set(formatId, urlFormat);
+              }
+            });
+
+            // Add audio-only option
+            const mp3Format: UrlFormat = {
+              formatDisplayName: 'Audio Only (MP3)',
+              formatID: '0',
+              formatExtension: 'mp3',
+            };
+            formatMap.set('audio-mp3', mp3Format);
+
+            // Convert map to array and set available formats
+            const formats = Array.from(formatMap.values());
+            setAvailableFormats(formats);
+
+            // Set default format if available
+            if (formats.length > 0) {
+              setDownloadFormat(formats[0].formatDisplayName);
+              setDownloadFormatID(formats[0].formatID);
+            }
+          } else {
+            // Generic handler for other platforms
+            console.log('Processing Other formats');
+            formatMap.clear();
+            seenCombinations.clear();
+
+            formatsArray.forEach((format: any) => {
+              const resolution = format.resolution || format.format_id;
+              const formatId = format.format_id;
+              const video_ext = format.ext;
+              const url = format.url;
+              const format_note = format.format_note || resolution || formatId;
+
+              if (!video_ext || !url) {
+                console.log('Skipping format due to missing fields:', formatId);
+                return;
+              }
+
+              const combinationKey = `${video_ext}-${resolution}`;
+
+              if (!seenCombinations.has(combinationKey)) {
+                seenCombinations.add(combinationKey);
+                const urlFormat: UrlFormat = {
+                  formatDisplayName: `${format_note}`,
+                  formatID: formatId,
+                  formatExtension: video_ext,
+                };
+                formatMap.set(formatId, urlFormat);
+              }
+            });
+
+            // Add audio-only option
+            const mp3Format: UrlFormat = {
+              formatDisplayName: 'Audio Only (MP3)',
+              formatID: '0',
+              formatExtension: 'mp3',
+            };
+            formatMap.set('audio-mp3', mp3Format);
+
+            // Convert map to array and set available formats
+            const formats = Array.from(formatMap.values());
+            setAvailableFormats(formats);
+
+            // Set default format if available
+            if (formats.length > 0) {
+              setDownloadFormat(formats[0].formatDisplayName);
+              setDownloadFormatID(formats[0].formatID);
+            }
+          }
+
+          setIsValidUrl(true);
+        } catch (error) {
+          console.error('Error fetching video info:', error);
+          setIsValidUrl(false);
+          // You might want to add error handling UI here
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchVideoInfo();
+    }
+  }, [downloadUrl]);
+
+  // Move the conditional return after all hooks
   if (!isOpen) return null;
 
+  // Return the JSX
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
       <div
@@ -71,7 +358,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">New Download</h2>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-500 hover:text-gray-700"
             >
               <IoMdClose size={16} />
@@ -158,7 +445,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
               </button>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="px-4 py-2 border rounded-md hover:bg-gray-50"
               >
                 Cancel

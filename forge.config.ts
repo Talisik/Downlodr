@@ -18,14 +18,14 @@ const config: ForgeConfig = {
     // macOS PKG installer
     new MakerPKG({
       identity: null, // Set to null for development, add your Apple Developer ID for production
-     /*signing: {
+      /*signing: {
         identity: null, // Same as above
         "entitlements": null,
         "entitlements-inherit": null,
         "gatekeeper-assess": false,
       },*/
     }),
-    
+
     // Windows NSIS installer
     new MakerNSIS({
       async getAppBuilderConfig() {
@@ -44,7 +44,7 @@ const config: ForgeConfig = {
         };
       },
     }),
-    
+
     // Cross-platform ZIP packages
     new MakerZIP({}, ['darwin', 'win32', 'linux']),
   ],
