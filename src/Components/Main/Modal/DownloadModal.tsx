@@ -2,110 +2,79 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { IoMdClose } from 'react-icons/io';
+import useDownloadStore from '../../../Store/downloadStore';
+import GetEmbedUrl from '../../..//DataFunctions/EmbedVideo';
 
 interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-interface UrlFormat {
-  formatDisplayName: string;
-  formatID: string;
-  formatExtension: string;
-}
-
 const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   // Download Submission Data
-  const [downloadUrl, setDownloadLink] = useState('');
-  const [downloadLocation, setDownloadLocation] = useState('');
-  const [downloadName, setFileName] = useState('');
-  const [downloadFormat, setDownloadFormat] = useState('MP4 1080');
-  const [downloadFormatID, setDownloadFormatID] = useState('');
-  const [downloadAudioFormat, setDownloadAudioFormat] = useState('MP4 1080');
-  const [downloadAudioFormatID, setDownloadAudioFormatID] = useState('');
-  const [videoId, setVideoId] = useState('');
+  const [videoUrl, setVideoUrl] = useState<string>(''); //video url
+  const [downloadFolder, setDownloadFolder] = useState<string>(''); //dpwnload destination folder
+  const [downloadName, setDownloadName] = useState<string>(''); //download name
+  const [downloadVideoExt, setdownloadVideoExt] = useState<string>('mp4'); //download extension
+  const [downloadVideoFormatId, setdownloadVideoExtID] = useState<string>(''); //download quality
+  const [selectedFormatValue, setSelectedFormatValue] = useState('');
 
-  // Download Data
-  const [UrlThumbnail, setUrlThumbnail] = useState('');
-  const [urlExtractorKey, setUrlExtractorKey] = useState<string>('');
+  // Misc
+  const [videoInfo, setVideoInfo] = useState<object | null>(null); //info regarding video
+  const [availableFormats, setAvailableFormats] = useState([]); //format and resolution from video info
+  const [videoSource, setVideoSource] = useState(''); //displays embed link
+  const [selectedFormatDisplay, setSelectedFormatDisplay] =
+    useState('Select Format'); //chosen audio, video and quality format
 
-  //Validation Data
+  // Validation
+  const [isVideoReady, setIsVideoReady] = useState<boolean>(false); //is for checking embed
   const [isLoading, setIsLoading] = useState<boolean>(false); //loadings screen
   const [isDownloading, setIsDownloading] = useState<boolean>(false); //loadings screen
   const [isValidUrl, setIsValidUrl] = useState<boolean>(false); //checks if url is correct
+  const [downloadStart, setDownloadStart] = useState<boolean>(false); //for setting for downloads
+  const [extractorKey, setExtractorKey] = useState<string>(''); //checks download site source
 
-  //Misc
-  const [availableFormats, setAvailableFormats] = useState<UrlFormat[]>([]); //format and resolution from video info
-  const [downloadStart, setDownloadStart] = useState<boolean>(false);
+  // Embed URL
+  const [embedUrl, setEmbedUrl] = useState<string>(''); //embed video url
+  const [thumbnailUrl, setThumbnailUrl] = useState(''); //embed image url
 
   //Store
+  const { addDownload, setDownload } = useDownloadStore(); //download store
 
-  const resetDownloadModal = () => {
-    // Reset Download Submission Data
-    setDownloadLink('');
-    setDownloadLocation('C:\\');
-    setFileName('');
-    setDownloadFormat('MP4 1080');
-    setDownloadFormatID('');
-    setDownloadAudioFormat('MP4 1080');
-    setDownloadAudioFormatID('');
-    setVideoId('');
+  // eslint-disable-next-line prettier/prettier
 
-    // Reset Download Data
-    setUrlThumbnail('');
-    setUrlExtractorKey('');
+  // FUNCTIONS:
 
-    // Reset Validation Data
-    setIsLoading(false);
-    setIsDownloading(false);
-    setIsValidUrl(false);
-
-    // Reset Misc
-    setAvailableFormats([]);
-    setDownloadStart(false);
-  };
-
-  // You can call this function when closing the modal
-  const handleClose = () => {
-    resetDownloadModal();
-    onClose();
-  };
-
-  // First useEffect for video ID extraction
+  // for automatically fetching url information
   useEffect(() => {
-    const extractVideoId = (url: string) => {
-      const regExp =
-        /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-      const match = url.match(regExp);
-      return match && match[2].length === 11 ? match[2] : null;
-    };
-
-    if (downloadUrl) {
-      const id = extractVideoId(downloadUrl);
-      setVideoId(id || '');
-    }
-  }, [downloadUrl]);
-
-  // Second useEffect for video info fetching
-  useEffect(() => {
-    if (downloadUrl) {
+    if (videoUrl) {
+      setEmbedUrl(GetEmbedUrl(videoUrl));
       const fetchVideoInfo = async () => {
+        console.log('Fetching video info...');
         setIsLoading(true);
         try {
-          const info = await (window as any).ytdlp.getInfo(downloadUrl);
+          const info = await (window as any).ytdlp.getInfo(videoUrl);
           const folderPath = await window.downlodrFunctions.getDownloadFolder();
 
-          // Update state with fetched info
-          setUrlExtractorKey(info.data.extractor_key);
-          setFileName(info.data.title);
-          setUrlThumbnail(info.data.thumbnail);
-          setDownloadLocation(folderPath);
+          console.log('Video info fetched:', info);
+          setVideoInfo(info);
+          setExtractorKey(info.data.extractor_key);
+          setDownloadName(info.data.title);
+          setThumbnailUrl(info.data.thumbnail);
+          const videoSourceUrl = ['Instagram', 'twitch', 'CNN'].includes(
+            extractorKey,
+          )
+            ? info.data.url
+            : GetEmbedUrl(videoUrl);
+          setVideoSource(videoSourceUrl);
+          setDownloadFolder(folderPath);
+          setSelectedFormatDisplay('Select Format');
+          setdownloadVideoExt('mp4');
 
           const formatsArray = info.data.formats || [];
           const formatMap = new Map();
           const seenCombinations = new Set();
 
-          // Process formats based on extractor key
           if (info.data.extractor_key === 'Youtube') {
             formatMap.clear();
 
@@ -116,59 +85,75 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
               const url = format.url;
               const format_note = format.format_note;
 
+              // Skip if missing required fields or URL doesn't match pattern
               if (
                 !resolution ||
                 !video_ext ||
-                video_ext === 'none' ||
+                !(video_ext != 'none') ||
                 !url ||
                 !url.startsWith('https://rr')
               )
                 return;
 
-              if (video_ext === 'webm') video_ext = 'mkv';
+              if (video_ext == 'webm') {
+                video_ext = 'mkv';
+              }
 
+              // Create a unique key for the combination
               const combinationKey = `${video_ext}-${format_note}`;
 
+              // Only add if we haven't seen this combination before
               if (!seenCombinations.has(combinationKey)) {
                 seenCombinations.add(combinationKey);
-                const urlFormat: UrlFormat = {
-                  formatDisplayName: `${format_note}`,
-                  formatID: formatId,
-                  formatExtension: video_ext,
-                };
-                formatMap.set(formatId, urlFormat);
+                formatMap.set(formatId, { formatId, video_ext, format_note });
               }
             });
-
-            // Add audio-only formats
+            // Add audio-only formats with specific criteria
             const audioOnlyFormat = formatsArray.find(
               (format: any) =>
                 format.vcodec === 'none' &&
                 format.format.includes('audio only (medium)'),
             );
 
-            if (audioOnlyFormat) {
-              const mp3Format: UrlFormat = {
-                formatDisplayName: 'Audio Only (MP3)',
-                formatID: audioOnlyFormat.format_id,
-                formatExtension: 'mp3',
-              };
-              formatMap.set('audio-mp3', mp3Format);
-            }
+            const audioOptions = audioOnlyFormat
+              ? [
+                  {
+                    value: `audio-${audioOnlyFormat.format_id}-${audioOnlyFormat.audio_ext}`,
+                    label: `Audio Only (${audioOnlyFormat.audio_ext}) - ${
+                      audioOnlyFormat.format_note || audioOnlyFormat.ext
+                    }`,
+                    formatId: audioOnlyFormat.format_id,
+                    fileExtension: audioOnlyFormat.audio_ext,
+                  },
+                  {
+                    value: `audio-${audioOnlyFormat.format_id}-mp3`,
+                    label: `Audio Only (mp3) - ${
+                      audioOnlyFormat.format_note || audioOnlyFormat.ext
+                    }`,
+                    formatId: audioOnlyFormat.format_id,
+                    fileExtension: 'mp3',
+                  },
+                ]
+              : [];
 
-            // Convert map to array and set available formats
-            const formats = Array.from(formatMap.values());
-            setAvailableFormats(formats);
-
-            // Set default format if available
-            if (formats.length > 0) {
-              setDownloadFormat(formats[0].formatDisplayName);
-              setDownloadFormatID(formats[0].formatID);
-            }
-          }
-          // Daily Motion
+            // Create options for each resolution in mp4, m4a, and webm
+            const formatOptions = Array.from(formatMap.entries())
+              .flatMap(([resolution, formatInfo]) => [
+                {
+                  value: `${formatInfo.video_ext}-${resolution}`,
+                  label: `${formatInfo.video_ext} - ${formatInfo.format_note}`,
+                  formatId: `${audioOptions[0].formatId}+${formatInfo.formatId}`,
+                  fileExtension: `${formatInfo.video_ext}`,
+                },
+              ])
+              .reverse(); // Reverse the array to invert the order
+            setdownloadVideoExtID(formatOptions[0].formatId);
+            setAvailableFormats([...formatOptions, ...audioOptions]);
+          } // end of Youtube if
           else if (info.data.extractor_key === 'Dailymotion') {
             console.log('Processing Dailymotion formats:', formatsArray);
+
+            // Clear existing formats
             formatMap.clear();
             seenCombinations.clear();
 
@@ -179,51 +164,84 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
               const url = format.url;
               const format_note = format.format || resolution || formatId;
 
+              // Skip if missing required fields
               if (!video_ext || !url) {
                 console.log('Skipping format due to missing fields:', formatId);
                 return;
               }
 
+              // Create a unique key for the combination
               const combinationKey = `${video_ext}-${resolution}`;
 
+              // Only add if we haven't seen this combination before
               if (!seenCombinations.has(combinationKey)) {
                 seenCombinations.add(combinationKey);
-                const urlFormat: UrlFormat = {
-                  formatDisplayName: `${format_note}`,
-                  formatID: formatId,
-                  formatExtension: video_ext,
-                };
-                formatMap.set(formatId, urlFormat);
+                formatMap.set(formatId, {
+                  formatId,
+                  video_ext,
+                  format_note,
+                  resolution,
+                });
+                console.log('Added format:', {
+                  formatId,
+                  video_ext,
+                  format_note,
+                  resolution,
+                });
               }
             });
 
-            // Add audio-only option
-            const mp3Format: UrlFormat = {
-              formatDisplayName: 'Audio Only (MP3)',
-              formatID: '0',
-              formatExtension: 'mp3',
-            };
-            formatMap.set('audio-mp3', mp3Format);
+            const audioOptions = [
+              {
+                value: `audio-0-mp3`,
+                label: `Audio Only (mp3)`,
+                formatId: '0',
+                fileExtension: 'mp3',
+              },
+            ];
 
-            // Convert map to array and set available formats
-            const formats = Array.from(formatMap.values());
-            setAvailableFormats(formats);
+            // Create options for each resolution in mp4, m4a, and webm
+            const formatOptions = Array.from(formatMap.entries())
+              .flatMap(([_, formatInfo]) => [
+                {
+                  value: `mkv-${formatInfo.resolution}`,
+                  label: `mkv - ${formatInfo.resolution}`,
+                  formatId: formatInfo.formatId,
+                  fileExtension: 'mkv',
+                },
+                {
+                  value: `${formatInfo.video_ext}-${formatInfo.resolution}`,
+                  label: `${formatInfo.video_ext} - ${formatInfo.resolution}`,
+                  formatId: formatInfo.formatId,
+                  fileExtension: formatInfo.video_ext,
+                },
+              ])
+              .reverse();
 
-            // Set default format if available
-            if (formats.length > 0) {
-              setDownloadFormat(formats[0].formatDisplayName);
-              setDownloadFormatID(formats[0].formatID);
+            if (formatOptions.length > 0) {
+              setdownloadVideoExtID(formatOptions[0].formatId);
+              setAvailableFormats([...formatOptions, ...audioOptions]);
+              // Ensure dropdown is closed when new formats are set
+              // Set a default format display
+              setSelectedFormatDisplay(formatOptions[0].label);
+            } else {
+              console.warn('No valid formats found for Dailymotion video');
+              // Set some default values when no formats are found
+              setAvailableFormats([]);
+              setSelectedFormatDisplay('No formats available');
             }
           } else if (
             info.data.extractor_key === 'Vimeo' ||
             info.data.extractor_key === 'BiliBili' ||
             info.data.extractor_key === 'CNN'
           ) {
-            console.log('Processing Other formats');
+            console.log('Processing Other formats:');
+
+            // Clear existing formats
             formatMap.clear();
             seenCombinations.clear();
 
-            // Find audio-only format
+            // Find the first audio-only format at the start of your format processing
             const audioOnlyFormat = formatsArray.find(
               (format: any) =>
                 format.resolution === 'audio only' ||
@@ -241,46 +259,68 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
               const formatId = format.format_id;
               const video_ext = format.ext;
               const url = format.url;
-              const format_note = format.format_note || resolution || formatId;
+              const format_noteU = format.format_note || resolution || formatId;
 
-              if (!video_ext || !url || format_note.includes('DASH')) {
+              const containsDash = format_noteU.includes('DASH');
+
+              // Skip if missing required fields
+              if (!video_ext || !url || containsDash) {
                 console.log('Skipping format due to missing fields:', formatId);
                 return;
               }
 
+              // Create a unique key for the combination
               const combinationKey = `${video_ext}-${resolution}`;
 
+              // Only add if we haven't seen this combination before
               if (!seenCombinations.has(combinationKey)) {
                 seenCombinations.add(combinationKey);
-                const urlFormat: UrlFormat = {
-                  formatDisplayName: `${resolution}`,
-                  formatID: `${audioFormatId}+${formatId}`,
-                  formatExtension: video_ext,
-                };
-                formatMap.set(formatId, urlFormat);
+                formatMap.set(formatId, {
+                  formatId,
+                  video_ext,
+                  format,
+                  resolution,
+                });
               }
             });
 
-            // Add audio-only option
-            const mp3Format: UrlFormat = {
-              formatDisplayName: 'Audio Only (MP3)',
-              formatID: '0',
-              formatExtension: 'mp3',
-            };
-            formatMap.set('audio-mp3', mp3Format);
+            const audioOptions = [
+              {
+                value: `audio-0-mp3`,
+                label: `Audio Only (mp3)`,
+                formatId: '0',
+                fileExtension: 'mp3',
+              },
+            ];
 
-            // Convert map to array and set available formats
-            const formats = Array.from(formatMap.values());
-            setAvailableFormats(formats);
+            // Create options for each resolution in mp4, m4a, and webm
+            const formatOptions = Array.from(formatMap.entries())
+              .flatMap(([_, formatInfo]) => [
+                {
+                  value: `${formatInfo.video_ext}-${formatInfo.resolution}`,
+                  label: `${formatInfo.video_ext} - ${formatInfo.resolution}`,
+                  formatId: `${audioFormatId}+${formatInfo.formatId}`, // formatId: `hls-fastly_skyfire-audio-high-English+${formatInfo.formatId}`,
+                  fileExtension: formatInfo.video_ext,
+                },
+              ])
+              .reverse();
 
-            // Set default format if available
-            if (formats.length > 0) {
-              setDownloadFormat(formats[0].formatDisplayName);
-              setDownloadFormatID(formats[0].formatID);
+            if (formatOptions.length > 0) {
+              setdownloadVideoExtID(formatOptions[0].formatId);
+              setAvailableFormats([...formatOptions, ...audioOptions]);
+              // Ensure dropdown is closed when new formats are set
+              // Set a default format display
+              setSelectedFormatDisplay(formatOptions[0].label);
+            } else {
+              console.warn('No valid formats found for d video');
+              // Set some default values when no formats are found
+              setAvailableFormats([]);
+              setSelectedFormatDisplay('No formats available');
             }
           } else {
-            // Generic handler for other platforms
-            console.log('Processing Other formats');
+            console.log('Processing Other formats:');
+
+            // Clear existing formats
             formatMap.clear();
             seenCombinations.clear();
 
@@ -289,81 +329,252 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
               const formatId = format.format_id;
               const video_ext = format.ext;
               const url = format.url;
-              const format_note = format.format_note || resolution || formatId;
+              const format_noteU = format.format_note || resolution || formatId;
 
-              if (!video_ext || !url) {
+              const containsDash = format_noteU.includes('DASH');
+
+              // Skip if missing required fields
+              if (!video_ext || !url || containsDash) {
                 console.log('Skipping format due to missing fields:', formatId);
                 return;
               }
 
+              // Create a unique key for the combination
               const combinationKey = `${video_ext}-${resolution}`;
 
+              // Only add if we haven't seen this combination before
               if (!seenCombinations.has(combinationKey)) {
                 seenCombinations.add(combinationKey);
-                const urlFormat: UrlFormat = {
-                  formatDisplayName: `${format_note}`,
-                  formatID: formatId,
-                  formatExtension: video_ext,
-                };
-                formatMap.set(formatId, urlFormat);
+                formatMap.set(formatId, {
+                  formatId,
+                  video_ext,
+                  format,
+                  resolution,
+                });
               }
             });
 
-            // Add audio-only option
-            const mp3Format: UrlFormat = {
-              formatDisplayName: 'Audio Only (MP3)',
-              formatID: '0',
-              formatExtension: 'mp3',
-            };
-            formatMap.set('audio-mp3', mp3Format);
+            const audioOptions = [
+              {
+                value: `audio-0-mp3`,
+                label: `Audio Only (mp3)`,
+                formatId: '0',
+                fileExtension: 'mp3',
+              },
+            ];
 
-            // Convert map to array and set available formats
-            const formats = Array.from(formatMap.values());
-            setAvailableFormats(formats);
+            // Create options for each resolution in mp4, m4a, and webm
+            const formatOptions = Array.from(formatMap.entries())
+              .flatMap(([_, formatInfo]) => [
+                {
+                  value: `mkv-${formatInfo.resolution}`,
+                  label: `mkv - ${formatInfo.resolution}`,
+                  formatId: formatInfo.formatId,
+                  fileExtension: 'mkv',
+                },
+                {
+                  value: `${formatInfo.video_ext}-${formatInfo.resolution}`,
+                  label: `${formatInfo.video_ext} - ${formatInfo.resolution}`,
+                  formatId: formatInfo.formatId, // formatId: `hls-fastly_skyfire-audio-high-English+${formatInfo.formatId}`,
+                  fileExtension: formatInfo.video_ext,
+                },
+              ])
+              .reverse();
 
-            // Set default format if available
-            if (formats.length > 0) {
-              setDownloadFormat(formats[0].formatDisplayName);
-              setDownloadFormatID(formats[0].formatID);
+            if (formatOptions.length > 0) {
+              setdownloadVideoExtID(formatOptions[0].formatId);
+              setAvailableFormats([...formatOptions, ...audioOptions]);
+              // Ensure dropdown is closed when new formats are set
+              // Set a default format display
+              setSelectedFormatDisplay(formatOptions[0].label);
+            } else {
+              console.warn('No valid formats found for d video');
+              // Set some default values when no formats are found
+              setAvailableFormats([]);
+              setSelectedFormatDisplay('No formats available');
             }
           }
-
-          setIsValidUrl(true);
+          // console.log(formatOptions);
         } catch (error) {
-          console.error('Error fetching video info:', error);
-          setIsValidUrl(false);
-          // You might want to add error handling UI here
+          console.log('Error', error);
         } finally {
+          console.log('Finished fetching video info.');
           setIsLoading(false);
         }
       };
-
       fetchVideoInfo();
     }
-  }, [downloadUrl]);
+  }, [videoUrl]);
 
+  // Checks if the user is online
+  useEffect(() => {
+    const handleOffline = () => {
+      onClose(); // Close the modal
+    };
+    window.addEventListener('offline', handleOffline);
+    // Cleanup the event listener on component unmount
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Reset all values
+  const resetModal = () => {
+    setVideoUrl('');
+    setDownloadFolder('');
+    setDownloadName('');
+    setdownloadVideoExt('mp4');
+    setIsVideoReady(false);
+    setIsValidUrl(false);
+    setSelectedFormatValue('Select Format');
+    setSelectedFormatDisplay('Select Format');
+    setExtractorKey('');
+  };
+
+  // Remove invalid characters from download name
+  const removeInvalidChar = (filename: string) => {
+    const invalidChars = /[<>:"/\\|?*]+/g;
+    let sanitized = filename.replace(invalidChars, '_').trim();
+    sanitized = sanitized.replace(/^\s+|\s+$/g, '');
+    sanitized = sanitized.substring(0, 255);
+    return sanitized;
+  };
+
+  // checks if file location is correct
+  const isValidPath = async (path: string): Promise<boolean> => {
+    // Check for undefined or empty path
+    if (!path || path.includes('undefined')) {
+      console.log('undefined path');
+      return false;
+    }
+    try {
+      // Call the validatePath method from the preload script
+      const isValid = await window.downlodrFunctions.validatePath(path);
+      return isValid;
+    } catch (error) {
+      console.error('Error validating path:', error);
+      return false;
+    }
+  };
+
+  // automatically adjust name for duplicate names
+  const getUniqueFileName = async (
+    basePath: string,
+    fileName: string,
+    extension: string,
+  ): Promise<string> => {
+    let counter = 1;
+    let finalName = fileName;
+
+    // Check if file exists with extension
+    while (
+      await window.downlodrFunctions.fileExists(
+        basePath + finalName + '.' + extension,
+      )
+    ) {
+      finalName = `${fileName}[${counter}]`;
+      counter++;
+    }
+    console.log('finalName: ');
+    console.log(finalName);
+    return finalName;
+  };
+
+  // Download Name
+  const handleDownload = async () => {
+    const validName = removeInvalidChar(downloadName);
+    setIsDownloading(true);
+    try {
+      const info = await (window as any).ytdlp.getInfo(videoUrl);
+      const defaultPath = await window.downlodrFunctions.getDownloadFolder();
+      const validFolderPath = (await isValidPath(downloadFolder))
+        ? downloadFolder
+        : defaultPath;
+
+      if (validFolderPath === defaultPath) {
+        console.log('error path');
+      }
+
+      let uniqueFileName = await getUniqueFileName(
+        validFolderPath,
+        validName,
+        downloadVideoExt,
+      );
+      const finalName = `${uniqueFileName}.${downloadVideoExt}`;
+
+      setVideoInfo(info);
+      const isAudioOnly = selectedFormatDisplay.startsWith('Audio');
+
+      // Set download parameters based on the file type
+      let audioExt = isAudioOnly ? downloadVideoExt : '';
+      let audioQualityId = isAudioOnly ? '0' : '';
+      let videoExt = isAudioOnly ? '' : downloadVideoExt;
+      let videoQualityID = isAudioOnly ? '' : downloadVideoFormatId;
+
+      if (extractorKey !== 'Youtube') {
+        uniqueFileName = finalName;
+        const isAudioOnly = selectedFormatDisplay.startsWith('Audio');
+        audioExt = isAudioOnly ? downloadVideoExt : '';
+        audioQualityId = isAudioOnly ? '0' : '';
+        videoExt = isAudioOnly ? '' : '';
+        videoQualityID = isAudioOnly ? '' : `${downloadVideoFormatId}`;
+      }
+
+      addDownload(
+        videoUrl, // videoUrl
+        finalName, // name
+        uniqueFileName, // downloadName
+        0, // size
+        '', // speed (empty initially)
+        '', // timeLeft (empty initially)
+        new Date().toISOString(), // DateAdded
+        0, // progress (starts at 0)
+        validFolderPath, // location
+        'downloading', // status
+        videoExt, // ext
+        videoQualityID, // formatId
+        audioExt, // audioExt
+        audioQualityId, // audioFormatId
+      );
+
+      resetModal();
+      onClose();
+    } catch (error) {
+      console.log('Error');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Cancel button
+  const handleCancel = () => {
+    resetModal(); // Reset the state
+    onClose(); // Close the modal
+  };
+
+  // Find location
   const handleDirectory = async () => {
     const path = await window.ytdlp.selectDownloadDirectory();
-    setDownloadLocation(path);
+    setDownloadFolder(path);
   };
+
   // Move the conditional return after all hooks
   if (!isOpen) return null;
 
-  // Return the JSX
   return (
     <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center h-full">
       <div
         className={`bg-white rounded-lg pt-6 pr-6 pl-6 pb-4 ${
-          downloadUrl && videoId
+          videoUrl && isValidUrl
             ? 'w-4/5 max-w-[1000px] flex gap-6'
             : 'w-full max-w-xl'
         }`}
       >
-        <div className={downloadUrl && videoId ? 'flex-1' : 'w-full'}>
+        <div className={videoUrl && isValidUrl ? 'flex-1' : 'w-full'}>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">New Download</h2>
             <button
-              onClick={handleClose}
+              onClick={handleCancel}
               className="text-gray-500 hover:text-gray-700"
             >
               <IoMdClose size={16} />
@@ -374,7 +585,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             {/* Left side - Form */}
             <form
               onSubmit={(e) => e.preventDefault()}
-              className={downloadUrl && videoId ? 'w-2/3' : 'flex-1'}
+              className={videoUrl && isValidUrl ? 'w-2/3' : 'flex-1'}
             >
               <div className="space-y-4">
                 <div>
@@ -383,8 +594,8 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                     <input
                       type="text"
                       placeholder="Paste link here"
-                      value={downloadUrl}
-                      onChange={(e) => setDownloadLink(e.target.value)}
+                      value={videoUrl}
+                      onChange={(e) => setVideoUrl(e.target.value)}
                       className="flex-1 border rounded-md px-3 py-2"
                     />
                   </div>
@@ -395,7 +606,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      value={downloadLocation}
+                      value={downloadFolder}
                       onClick={handleDirectory}
                       placeholder="Download Destination Folder"
                       className="flex-1 border rounded-md px-3 py-2"
@@ -410,7 +621,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                       type="text"
                       placeholder="Name"
                       value={downloadName}
-                      onChange={(e) => setFileName(e.target.value)}
+                      onChange={(e) => setDownloadName(e.target.value)}
                       className="w-full border rounded-md px-3 py-2"
                     />
                   </div>
@@ -418,27 +629,25 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                   <div className="flex-1">
                     <label className="block">Select Format</label>
                     <select
-                      value={downloadFormat}
+                      value={selectedFormatValue}
                       onChange={(e) => {
-                        setDownloadFormat(e.target.value);
                         const selectedFormat = availableFormats.find(
-                          (format) =>
-                            format.formatDisplayName === e.target.value,
+                          (format) => format.value === e.target.value,
                         );
                         if (selectedFormat) {
-                          setDownloadFormatID(selectedFormat.formatID);
+                          setSelectedFormatValue(selectedFormat.value);
+                          setdownloadVideoExt(selectedFormat.fileExtension);
+                          setSelectedFormatDisplay(selectedFormat.label);
+                          setdownloadVideoExtID(selectedFormat.formatId);
                         }
                       }}
                       className="w-full border rounded-md px-3 py-2"
                     >
+                      <option value="">Select Format</option>
                       {availableFormats.length > 0 ? (
                         availableFormats.map((format) => (
-                          <option
-                            key={format.formatID}
-                            value={format.formatDisplayName}
-                          >
-                            {format.formatDisplayName} ({format.formatExtension}
-                            )
+                          <option key={format.value} value={format.value}>
+                            {format.label}
                           </option>
                         ))
                       ) : (
@@ -451,13 +660,13 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             </form>
 
             {/* Right side - Video Preview */}
-            {downloadUrl && videoId && (
+            {videoUrl && isValidUrl && (
               <div className="w-2/3 flex items-center">
                 <div className="aspect-video rounded-lg overflow-hidden w-full">
                   <iframe
                     width="100%"
                     height="100%"
-                    src={`https://www.youtube.com/embed/${videoId}`}
+                    src={videoSource}
                     title="YouTube video preview"
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -473,12 +682,13 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             <button
               type="submit"
               className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary"
+              onClick={handleDownload}
             >
               Download
             </button>
             <button
               type="button"
-              onClick={handleClose}
+              onClick={handleCancel}
               className="px-2 py-2 border rounded-md hover:bg-gray-50"
             >
               Cancel

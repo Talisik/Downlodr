@@ -11,41 +11,12 @@ function uuidv4() {
   );
 }
 
-interface ForDownload {
-  id: string;
-  displayName: string;
-  downloadName: string;
-  ext: string;
-  location: string;
-  status: 'downloading' | 'finished' | 'failed' | 'cancelled' | 'To Download';
-  downloadStart: boolean;
-  videoUrl: string;
-  formatId: string;
-  audioFormat: string;
-  audioQuality: string;
-}
-
-interface Downloading {
+// Base interface for all download types
+interface BaseDownload {
   id: string;
   videoUrl: string;
   name: string;
   downloadName: string;
-  size: number;
-  speed: string;
-  timeLeft: string;
-  DateAdded: string;
-  ext: string;
-  progress: number;
-  location: string;
-  status: 'downloading' | 'finished' | 'failed' | 'cancelled' | 'initializing';
-  formatId: string;
-  controllerId: string;
-}
-
-interface FinishedDownloads {
-  id: string;
-  videoUrl: string;
-  name: string;
   size: number;
   speed: string;
   timeLeft: string;
@@ -53,18 +24,28 @@ interface FinishedDownloads {
   progress: number;
   location: string;
   status: string;
+  ext: string;
 }
 
-interface HistoryDownloads {
-  id: string;
-  videoUrl: string;
-  name: string;
-  size: number;
-  speed: string;
-  timeLeft: string;
-  DateAdded: string;
-  progress: number;
-  location: string;
+interface ForDownload extends BaseDownload {
+  status: 'To Download';
+  downloadStart: boolean;
+  formatId: string;
+  audioExt: string;
+  audioFormatId: string;
+}
+
+interface Downloading extends BaseDownload {
+  status: 'downloading' | 'finished' | 'failed' | 'cancelled' | 'initializing';
+  formatId: string;
+  controllerId: string;
+}
+
+interface FinishedDownloads extends BaseDownload {
+  status: string;
+}
+
+interface HistoryDownloads extends BaseDownload {
   status: string;
 }
 
@@ -74,34 +55,42 @@ interface DownloadStore {
   historyDownloads: HistoryDownloads[];
   forDownloads: ForDownload[];
 
-  checkFinishedDownloads: () => void; // New function
+  checkFinishedDownloads: () => void;
   updateDownload: (id: string, result: any) => void;
 
   addDownload: (
     videoUrl: string,
     name: string,
     downloadName: string,
-    size: string,
-    location: string,
-    ext: string,
+    size: number,
+    speed: string,
+    timeLeft: string,
     DateAdded: string,
+    progress: number,
+    location: string,
+    status: string,
+    ext: string,
     formatId: string,
-    audioFormat: string,
-    audioQuality: string,
+    audioExt: string,
+    audioFormatId: string,
   ) => void;
 
   setDownload: (
     videoUrl: string,
     name: string,
     downloadName: string,
-    size: string,
-    location: string,
+    size: number,
+    speed: string,
+    timeLeft: string,
     DateAdded: string,
+    progress: number,
+    location: string,
+    status: string,
     ext: string,
     formatId: string,
     downloadStart: boolean,
-    audioFormat: string,
-    audioQuality: string,
+    audioExt: string,
+    audioFormatId: string,
   ) => void;
 }
 
@@ -204,7 +193,7 @@ const useDownloadStore = create<DownloadStore>()(
       },
 
       updateDownload: (id, result) => {
-        if (!result || !result.data) return; // Skip update if result or result.data is undefined
+        if (!result || !result.data) return;
         set((state) => ({
           downloading: state.downloading.map((downloading) =>
             downloading.id === id
@@ -215,12 +204,11 @@ const useDownloadStore = create<DownloadStore>()(
                   timeLeft: result.data._eta_str || '',
                   size: parseFloat(result.data.total_bytes) || downloading.size,
                   status: result.data.status || downloading.status,
-                  controllerId: result.controllerId ?? downloading.controllerId, // Keep existing controllerId if undefined
+                  controllerId: result.controllerId ?? downloading.controllerId,
                 }
               : downloading,
           ),
         }));
-        // Check for finished downloads after updating
         get().checkFinishedDownloads();
       },
 
@@ -228,13 +216,17 @@ const useDownloadStore = create<DownloadStore>()(
         videoUrl,
         name,
         downloadName,
-        _size,
-        location,
-        ext,
+        size,
+        speed,
+        timeLeft,
         DateAdded,
-        format_id,
-        audioFormat,
-        audioQuality,
+        progress,
+        location,
+        status,
+        ext,
+        formatId,
+        audioExt,
+        audioFormatId,
       ) => {
         if (!location || !downloadName) {
           console.error('Invalid path parameters:', { location, downloadName });
@@ -247,10 +239,10 @@ const useDownloadStore = create<DownloadStore>()(
             location,
             downloadName,
           ),
-          videoFormat: format_id,
+          videoFormat: formatId,
           remuxVideo: ext,
-          audioFormat: audioFormat,
-          audioQuality: audioQuality,
+          audioExt: audioExt,
+          audioFormatId: audioFormatId,
         };
 
         const downloadId = (window as any).ytdlp.download(
@@ -294,16 +286,16 @@ const useDownloadStore = create<DownloadStore>()(
               id: downloadId,
               videoUrl,
               name,
-              downloadName: downloadName,
-              size: 0,
-              speed: '',
-              timeLeft: '',
+              downloadName,
+              size,
+              speed,
+              timeLeft,
               DateAdded,
-              progress: 0,
+              progress,
               location,
-              ext: ext,
               status: 'downloading',
-              formatId: format_id,
+              ext,
+              formatId,
               controllerId: '---',
             },
           ],
@@ -314,14 +306,18 @@ const useDownloadStore = create<DownloadStore>()(
         videoUrl,
         name,
         downloadName,
-        _size,
-        location,
+        size,
+        speed,
+        timeLeft,
         DateAdded,
+        progress,
+        location,
+        status,
         ext,
-        format_id,
+        formatId,
         downloadStart,
-        audioFormat,
-        audioQuality,
+        audioExt,
+        audioFormatId,
       ) => {
         if (!location || !downloadName) {
           console.error('Invalid path parameters:', { location, downloadName });
@@ -336,20 +332,19 @@ const useDownloadStore = create<DownloadStore>()(
               id: downloadId,
               videoUrl,
               name,
-              downloadName: downloadName,
-              size: 0,
-              speed: '',
-              timeLeft: '',
+              downloadName,
+              size,
+              speed,
+              timeLeft,
               DateAdded,
-              progress: 0,
+              progress,
               location,
-              ext,
               status: 'To Download',
+              ext,
               downloadStart,
-              formatId: format_id,
-              audioFormat: audioFormat,
-              audioQuality: audioQuality,
-              displayName: name, // Added missing property
+              formatId,
+              audioExt,
+              audioFormatId,
             },
           ],
         }));
@@ -386,7 +381,7 @@ const useDownloadStore = create<DownloadStore>()(
       //End of store
     }),
     {
-      name: 'download-store',
+      name: 'downlodr-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ historyDownloads: state.historyDownloads }),
     },
