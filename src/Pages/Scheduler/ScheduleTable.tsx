@@ -1,4 +1,5 @@
 import React from 'react';
+import { HiChevronUpDown } from 'react-icons/hi2';
 
 interface Schedule {
   name: string;
@@ -55,12 +56,12 @@ const ScheduleTable = () => {
       <table className="w-full">
         <thead>
           <tr className="border-b">
-            <th className="p-4 text-left">Schedule Name</th>
-            <th className="p-4 text-left">Channels</th>
-            <th className="p-4 text-left">Frequencies</th>
-            <th className="p-4 text-left">Format</th>
-            <th className="p-4 text-left">Location</th>
-            <th className="p-4 text-left">Actions</th>
+            <th className="p-2 text-left font-semibold">Schedule Name</th>
+            <th className="p-2 text-left font-semibold">Channels</th>
+            <th className="p-2 text-left font-semibold">Frequencies</th>
+            <th className="p-2 text-left font-semibold">Format</th>
+            <th className="p-2 text-left font-semibold">Location</th>
+            <th className="p-2 text-left font-semibold">Actions</th>
           </tr>
         </thead>
       </table>

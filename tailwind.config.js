@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 /** @type {import('tailwindcss').Config} */
 import { colors } from 'tailwindcss/defaultTheme';
 
@@ -16,6 +17,8 @@ module.exports = {
       padding: '2rem',
       screens: {
         '2xl': '1400px',
+        'xs': '475px',
+        'sm': '640px',
       },
     },
     extend: {
@@ -38,6 +41,8 @@ module.exports = {
         // Add your custom colors here
         titleBar: '#FEF9F4',
         primary: '#F45513',
+        secondary: '#202020',
+        divider: '#D1D5DB',
         tabs: '#fef9f4',
       },
     },

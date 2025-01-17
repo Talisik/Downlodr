@@ -33,10 +33,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       <div className={`${className} flex items-center justify-between`}>
         <div className="flex items-center h-full px-4 space-x-2">
           <button
-            onClick={() => setDownloadModalOpen(true)}
-            className="primary-custom-btn px-[10px] py-[8px]"
+            className="primary-custom-btn px-[6px] py-[8px] sm:px-[8px] sm:py-[8px] mr-2 sm:mr-4 flex items-center gap-1 sm:gap-2 text-sm sm:text-sm whitespace-nowrap"
+            onClick={() => {
+              setDownloadModalOpen(true);
+            }}
           >
-            <GoDownload size={16} /> Add URL
+            <GoDownload size={12} className="sm:w-[14px] sm:h-[14px]" />
+            <span className="hidden sm:inline">Add URL</span>
+            <span className="sm:hidden"> Add URL</span>
           </button>
           <button className="hover:bg-gray-100 px-3 py-1 rounded flex gap-1 font-semibold">
             {' '}

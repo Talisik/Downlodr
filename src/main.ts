@@ -21,7 +21,7 @@ const createWindow = () => {
     frame: false,
     // icon: '256x256', //    icon: './src/Assets/appLogo/png 256x256',
     autoHideMenuBar: true,
-    minWidth: 500, // Add minimum width
+    minWidth: 550, // Add minimum width
     minHeight: 400, // Add minimum height
     webPreferences: {
       contextIsolation: true,

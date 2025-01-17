@@ -17,7 +17,7 @@ interface UrlFormat {
 const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   // Download Submission Data
   const [downloadUrl, setDownloadLink] = useState('');
-  const [downloadLocation, setDownloadLocation] = useState('C:\\');
+  const [downloadLocation, setDownloadLocation] = useState('');
   const [downloadName, setFileName] = useState('');
   const [downloadFormat, setDownloadFormat] = useState('MP4 1080');
   const [downloadFormatID, setDownloadFormatID] = useState('');
@@ -342,18 +342,23 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
   }, [downloadUrl]);
 
+  const handleDirectory = async () => {
+    const path = await window.ytdlp.selectDownloadDirectory();
+    setDownloadLocation(path);
+  };
   // Move the conditional return after all hooks
   if (!isOpen) return null;
 
   // Return the JSX
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center h-full">
       <div
-        className={`bg-white rounded-lg p-6 w-full ${
-          downloadUrl && videoId ? 'max-w-[900px] flex gap-6' : 'max-w-lg'
+        className={`bg-white rounded-lg pt-6 pr-6 pl-6 pb-4 ${
+          downloadUrl && videoId
+            ? 'w-4/5 max-w-[1000px] flex gap-6'
+            : 'w-full max-w-xl'
         }`}
       >
-        {/* Left side - Form */}
         <div className={downloadUrl && videoId ? 'flex-1' : 'w-full'}>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">New Download</h2>
@@ -365,111 +370,121 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             </button>
           </div>
 
-          <form onSubmit={(e) => e.preventDefault()}>
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-2">Download link</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Paste link here"
-                    value={downloadUrl}
-                    onChange={(e) => setDownloadLink(e.target.value)}
-                    className="flex-1 border rounded-md px-3 py-2"
-                  />
+          <div className="flex gap-6">
+            {/* Left side - Form */}
+            <form
+              onSubmit={(e) => e.preventDefault()}
+              className={downloadUrl && videoId ? 'w-2/3' : 'flex-1'}
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="block">Download link</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Paste link here"
+                      value={downloadUrl}
+                      onChange={(e) => setDownloadLink(e.target.value)}
+                      className="flex-1 border rounded-md px-3 py-2"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block">Save file to</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={downloadLocation}
+                      onClick={handleDirectory}
+                      placeholder="Download Destination Folder"
+                      className="flex-1 border rounded-md px-3 py-2"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block">Name</label>
+                    <input
+                      type="text"
+                      placeholder="Name"
+                      value={downloadName}
+                      onChange={(e) => setFileName(e.target.value)}
+                      className="w-full border rounded-md px-3 py-2"
+                    />
+                  </div>
+
+                  <div className="flex-1">
+                    <label className="block">Select Format</label>
+                    <select
+                      value={downloadFormat}
+                      onChange={(e) => {
+                        setDownloadFormat(e.target.value);
+                        const selectedFormat = availableFormats.find(
+                          (format) =>
+                            format.formatDisplayName === e.target.value,
+                        );
+                        if (selectedFormat) {
+                          setDownloadFormatID(selectedFormat.formatID);
+                        }
+                      }}
+                      className="w-full border rounded-md px-3 py-2"
+                    >
+                      {availableFormats.length > 0 ? (
+                        availableFormats.map((format) => (
+                          <option
+                            key={format.formatID}
+                            value={format.formatDisplayName}
+                          >
+                            {format.formatDisplayName} ({format.formatExtension}
+                            )
+                          </option>
+                        ))
+                      ) : (
+                        <option value="">No formats available</option>
+                      )}
+                    </select>
+                  </div>
                 </div>
               </div>
+            </form>
 
-              <div>
-                <label className="block mb-2">Save file to</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={downloadLocation}
-                    onChange={(e) => setDownloadLocation(e.target.value)}
-                    className="flex-1 border rounded-md px-3 py-2"
-                  />
+            {/* Right side - Video Preview */}
+            {downloadUrl && videoId && (
+              <div className="w-2/3 flex items-center">
+                <div className="aspect-video rounded-lg overflow-hidden w-full">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    title="YouTube video preview"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
                 </div>
               </div>
-
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block mb-2">Name</label>
-                  <input
-                    type="text"
-                    placeholder="Name"
-                    value={downloadName}
-                    onChange={(e) => setFileName(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-
-                <div className="flex-1">
-                  <label className="block mb-2">Select Format</label>
-                  <select
-                    value={downloadFormat}
-                    onChange={(e) => {
-                      setDownloadFormat(e.target.value);
-                      const selectedFormat = availableFormats.find(
-                        (format) => format.formatDisplayName === e.target.value,
-                      );
-                      if (selectedFormat) {
-                        setDownloadFormatID(selectedFormat.formatID);
-                      }
-                    }}
-                    className="w-full border rounded-md px-3 py-2"
-                  >
-                    {availableFormats.length > 0 ? (
-                      availableFormats.map((format) => (
-                        <option
-                          key={format.formatID}
-                          value={format.formatDisplayName}
-                        >
-                          {format.formatDisplayName} ({format.formatExtension})
-                        </option>
-                      ))
-                    ) : (
-                      <option value="">No formats available</option>
-                    )}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                type="submit"
-                className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600"
-              >
-                Download
-              </button>
-              <button
-                type="button"
-                onClick={handleClose}
-                className="px-4 py-2 border rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Right side - Video Preview */}
-        {downloadUrl && videoId && (
-          <div className="flex-1">
-            <div className="aspect-video rounded-lg overflow-hidden">
-              <iframe
-                width="100%"
-                height="100%"
-                src={`https://www.youtube.com/embed/${videoId}`}
-                title="YouTube video preview"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
-            </div>
+            )}
           </div>
-        )}
+          <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider" />
+
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary"
+            >
+              Download
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-2 py-2 border rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

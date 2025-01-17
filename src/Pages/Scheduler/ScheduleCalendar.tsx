@@ -102,69 +102,70 @@ const ScheduleCalendar = () => {
   };
 
   return (
-    <div className="w-full p-4 bg-white">
-      {/* Month Navigation */}
-      <div className="flex justify-between items-center mb-4">
-        <button
-          onClick={handlePrevMonth}
-          className={`px-4 py-2 rounded hover:bg-gray-100 ${
-            isBefore(subMonths(currentDate, 1), minDate)
-              ? 'opacity-50 cursor-not-allowed'
-              : ''
-          }`}
-          disabled={isBefore(subMonths(currentDate, 1), minDate)}
-        >
-          Previous
-        </button>
-        <h2 className="text-xl font-semibold">
-          {format(currentDate, 'MMMM yyyy')}
-        </h2>
-        <button
-          onClick={handleNextMonth}
-          className={`px-4 py-2 rounded hover:bg-gray-100 ${
-            isAfter(addMonths(currentDate, 1), maxDate)
-              ? 'opacity-50 cursor-not-allowed'
-              : ''
-          }`}
-          disabled={isAfter(addMonths(currentDate, 1), maxDate)}
-        >
-          Next
-        </button>
-      </div>
-
-      <div className="grid grid-cols-7 gap-1">
-        {['Sun', 'Mon', 'Tues', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-          <div key={day} className="p-2 text-center font-semibold border-b">
-            {day}
-          </div>
-        ))}
-
-        {days.map((day: any) => (
-          <div
-            key={day.toString()}
-            className={`min-h-[120px] p-2 border ${
-              !isSameMonth(day, currentDate) ? 'bg-gray-50' : ''
+    <div className="w-full h-full overflow-x-auto">
+      <div className="min-w-[600px] p-4 bg-white">
+        {/* Month Navigation */}
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={handlePrevMonth}
+            className={`px-4 py-2 rounded hover:bg-gray-100 ${
+              isBefore(subMonths(currentDate, 1), minDate)
+                ? 'opacity-50 cursor-not-allowed'
+                : ''
             }`}
+            disabled={isBefore(subMonths(currentDate, 1), minDate)}
           >
-            <div className="text-sm mb-1">{format(day, 'd')}</div>
-            <div className="space-y-1">
-              {getSchedulesForDay(day).map((schedule) => (
-                <div
-                  key={schedule.id}
-                  className={`${getScheduleColor(
-                    schedule.type,
-                  )} p-1 rounded text-xs border`}
-                >
-                  <div className="font-medium">{schedule.name}</div>
-                  <div>{schedule.time}</div>
-                  {schedule.frequency && (
-                    <div className="text-gray-500">{schedule.frequency}</div>
-                  )}
-                </div>
-              ))}
+            Previous
+          </button>
+          <h2 className="text-xl font-semibold">
+            {format(currentDate, 'MMMM yyyy')}
+          </h2>
+          <button
+            onClick={handleNextMonth}
+            className={`px-4 py-2 rounded hover:bg-gray-100 ${
+              isAfter(addMonths(currentDate, 1), maxDate)
+                ? 'opacity-50 cursor-not-allowed'
+                : ''
+            }`}
+            disabled={isAfter(addMonths(currentDate, 1), maxDate)}
+          >
+            Next
+          </button>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1">
+          {['Sun', 'Mon', 'Tues', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+            <div key={day} className="p-2 text-center font-semibold border-b">
+              {day}
             </div>
-          </div>
-        ))}
+          ))}
+          {days.map((day: any) => (
+            <div
+              key={day.toString()}
+              className={`min-h-[120px] p-2 border ${
+                !isSameMonth(day, currentDate) ? 'bg-gray-50' : ''
+              }`}
+            >
+              <div className="text-sm mb-1">{format(day, 'd')}</div>
+              <div className="space-y-1">
+                {getSchedulesForDay(day).map((schedule) => (
+                  <div
+                    key={schedule.id}
+                    className={`${getScheduleColor(
+                      schedule.type,
+                    )} p-1 rounded text-xs border`}
+                  >
+                    <div className="font-medium">{schedule.name}</div>
+                    <div>{schedule.time}</div>
+                    {schedule.frequency && (
+                      <div className="text-gray-500">{schedule.frequency}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
