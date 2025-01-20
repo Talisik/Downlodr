@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import useDownloadStore from '../../../Store/downloadStore';
 import GetEmbedUrl from '../../..//DataFunctions/EmbedVideo';
-
+import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
 interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -546,6 +546,39 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleUrl = (url: string) => {
+    setVideoUrl(url);
+    setIsValidUrl(false);
+
+    const urlPattern = new RegExp(
+      '^(https?:\\/\\/)?' + // protocol
+        '(' +
+        // Standard domain names
+        '((([a-zA-Z\\d]([a-zA-Z\\d-]*[a-zA-Z\\d])*)\\.)+[a-zA-Z]{2,}|' +
+        // IP (v4) address
+        '((\\d{1,3}\\.){3}\\d{1,3}))' +
+        // Port and path (adjusted to explicitly allow @ symbol for TikTok usernames)
+        '(\\:\\d+)?(\\/[-a-zA-Z\\d%_.~+@]*)*' +
+        // Query string
+        '(\\?[;&a-zA-Z\\d%_.~+@=-]*)?' +
+        // Fragment
+        '(\\#[-a-zA-Z\\d_]*)?' +
+        ')$',
+      'i',
+    );
+
+    if (!urlPattern.test(url)) {
+      return false;
+    }
+    try {
+      new URL(url);
+      setIsValidUrl(true);
+      setIsVideoReady(false); // Reset video ready state when a new URL is entered
+    } catch (err) {
+      return false;
+    }
+  };
+
   // Cancel button
   const handleCancel = () => {
     resetModal(); // Reset the state
@@ -595,7 +628,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                       type="text"
                       placeholder="Paste link here"
                       value={videoUrl}
-                      onChange={(e) => setVideoUrl(e.target.value)}
+                      onChange={(e) => handleUrl(e.target.value)}
                       className="flex-1 border rounded-md px-3 py-2"
                     />
                   </div>

@@ -1,11 +1,13 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
-import { App } from './App';
+import App from './App';
+// Create root element
+const container = document.createElement('div');
+document.body.appendChild(container);
 
-const rootElement = document.getElementById('root');
-if (!rootElement) throw new Error('Failed to find the root element');
-const root = createRoot(rootElement);
+// Create root and render
+const root = createRoot(container);
 root.render(
   <React.StrictMode>
     <App />

@@ -26,6 +26,8 @@ const createWindow = () => {
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
+      webSecurity: true,
+      nodeIntegration: true,
       // devTools: false,
     },
   });
@@ -56,6 +58,11 @@ const createWindow = () => {
     } else {
       mainWindow.maximize();
     }
+  });
+
+  // Add this to handle file protocol security
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    event.preventDefault();
   });
 };
 

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './Layout/MainLayout';
 import Downloading from './Pages/Downloading';
 import AllDownloads from './Pages/AllDownloads';
@@ -6,7 +6,8 @@ import History from './Pages/History';
 import CompletedDownloads from './Pages/CompletedDownloads';
 import ScheduleTable from './Pages/Scheduler/ScheduleTable';
 import ScheduleCalendar from './Pages/Scheduler/ScheduleCalendar';
-export const App = () => {
+
+const App = () => {
   return (
     <Router>
       <Routes>
@@ -23,3 +24,5 @@ export const App = () => {
     </Router>
   );
 };
+
+export default App;

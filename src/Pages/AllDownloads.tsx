@@ -130,7 +130,27 @@ const AllDownloads = () => {
               <td className="p-2">
                 <div className="flex items-center">
                   <span className="text-sm text-gray-600">
-                    {download.status}
+                    {download.status === 'cancelled' ||
+                    download.status === 'initializing' ||
+                    download.status === 'finished' ? (
+                      <span>{download.status}</span>
+                    ) : (
+                      <>
+                        {download.progress}%
+                        <div className="w-48 bg-gray-200 rounded-full h-2.5 mt-1">
+                          <div
+                            className={`h-2.5 rounded-full transition-all duration-300 ${
+                              download.progress === 0
+                                ? 'bg-gray-400'
+                                : download.progress === 100
+                                ? 'bg-green-500'
+                                : 'bg-orange-500'
+                            }`}
+                            style={{ width: `${download.progress}%` }}
+                          ></div>
+                        </div>
+                      </>
+                    )}{' '}
                   </span>
                 </div>
               </td>
