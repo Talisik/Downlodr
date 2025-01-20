@@ -429,6 +429,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     setSelectedFormatValue('Select Format');
     setSelectedFormatDisplay('Select Format');
     setExtractorKey('');
+    setIsLoading(false);
   };
 
   // Remove invalid characters from download name
@@ -614,119 +615,155 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             </button>
           </div>
 
-          <div className="flex gap-6">
-            {/* Left side - Form */}
-            <form
-              onSubmit={(e) => e.preventDefault()}
-              className={videoUrl && isValidUrl ? 'w-2/3' : 'flex-1'}
-            >
-              <div className="space-y-4">
-                <div>
-                  <label className="block">Download link</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Paste link here"
-                      value={videoUrl}
-                      onChange={(e) => handleUrl(e.target.value)}
-                      className="flex-1 border rounded-md px-3 py-2"
-                    />
-                  </div>
-                </div>
+          {isDownloading ? (
+            // Skeleton that matches modal content size
+            <div className="w-full h-[250px] flex items-center justify-center">
+              <Skeleton className="w-full h-full" />
+            </div>
+          ) : (
+            // Original content
+            <>
+              <div className="flex gap-6">
+                {/* Left side - Form */}
+                <form
+                  onSubmit={(e) => e.preventDefault()}
+                  className={videoUrl && isValidUrl ? 'w-2/3' : 'flex-1'}
+                >
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block">Download link</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Paste link here"
+                          disabled={isLoading}
+                          value={videoUrl}
+                          onChange={(e) => handleUrl(e.target.value)}
+                          className="flex-1 border rounded-md px-3 py-2"
+                        />
+                      </div>
+                    </div>
 
-                <div>
-                  <label className="block">Save file to</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={downloadFolder}
-                      onClick={handleDirectory}
-                      placeholder="Download Destination Folder"
-                      className="flex-1 border rounded-md px-3 py-2"
-                    />
-                  </div>
-                </div>
+                    <div>
+                      <label className="block">Save file to</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          disabled={isLoading}
+                          value={downloadFolder}
+                          onClick={handleDirectory}
+                          placeholder="Download Destination Folder"
+                          className="flex-1 border rounded-md px-3 py-2"
+                        />
+                      </div>
+                    </div>
 
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block">Name</label>
-                    <input
-                      type="text"
-                      placeholder="Name"
-                      value={downloadName}
-                      onChange={(e) => setDownloadName(e.target.value)}
-                      className="w-full border rounded-md px-3 py-2"
-                    />
-                  </div>
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <label className="block">Name</label>
+                        <input
+                          type="text"
+                          placeholder="Name"
+                          disabled={isLoading}
+                          value={downloadName}
+                          onChange={(e) => setDownloadName(e.target.value)}
+                          className="w-full border rounded-md px-3 py-2"
+                        />
+                      </div>
 
-                  <div className="flex-1">
-                    <label className="block">Select Format</label>
-                    <select
-                      value={selectedFormatValue}
-                      onChange={(e) => {
-                        const selectedFormat = availableFormats.find(
-                          (format) => format.value === e.target.value,
-                        );
-                        if (selectedFormat) {
-                          setSelectedFormatValue(selectedFormat.value);
-                          setdownloadVideoExt(selectedFormat.fileExtension);
-                          setSelectedFormatDisplay(selectedFormat.label);
-                          setdownloadVideoExtID(selectedFormat.formatId);
-                        }
-                      }}
-                      className="w-full border rounded-md px-3 py-2"
-                    >
-                      <option value="">Select Format</option>
-                      {availableFormats.length > 0 ? (
-                        availableFormats.map((format) => (
-                          <option key={format.value} value={format.value}>
-                            {format.label}
-                          </option>
-                        ))
+                      <div className="flex-1">
+                        <label className="block">Select Format</label>
+                        <select
+                          value={selectedFormatValue}
+                          disabled={isLoading}
+                          onChange={(e) => {
+                            const selectedFormat = availableFormats.find(
+                              (format) => format.value === e.target.value,
+                            );
+                            if (selectedFormat) {
+                              setSelectedFormatValue(selectedFormat.value);
+                              setdownloadVideoExt(selectedFormat.fileExtension);
+                              setSelectedFormatDisplay(selectedFormat.label);
+                              setdownloadVideoExtID(selectedFormat.formatId);
+                            }
+                          }}
+                          className="w-full border rounded-md px-3 py-2"
+                        >
+                          <option value="">Select Format</option>
+                          {availableFormats.length > 0 ? (
+                            availableFormats.map((format) => (
+                              <option key={format.value} value={format.value}>
+                                {format.label}
+                              </option>
+                            ))
+                          ) : (
+                            <option value="">No formats available</option>
+                          )}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+
+                {/* Right side - Video Preview */}
+                {videoUrl && isValidUrl && (
+                  <div className="w-2/3 flex items-center">
+                    <div className="aspect-video rounded-lg overflow-hidden w-full">
+                      {isLoading ? (
+                        <div className="w-full h-full bg-gray-200 animate-pulse">
+                          <div className="flex items-center justify-center h-full">
+                            <svg
+                              className="w-12 h-12 text-gray-300"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                              />
+                            </svg>
+                          </div>
+                        </div>
                       ) : (
-                        <option value="">No formats available</option>
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          src={videoSource}
+                          title="YouTube video preview"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        ></iframe>
                       )}
-                    </select>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
-            </form>
+              <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider" />
 
-            {/* Right side - Video Preview */}
-            {videoUrl && isValidUrl && (
-              <div className="w-2/3 flex items-center">
-                <div className="aspect-video rounded-lg overflow-hidden w-full">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    src={videoSource}
-                    title="YouTube video preview"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
-                </div>
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary"
+                  onClick={handleDownload}
+                >
+                  Download
+                </button>
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={handleCancel}
+                  className="px-2 py-2 border rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
               </div>
-            )}
-          </div>
-          <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider" />
-
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary"
-              onClick={handleDownload}
-            >
-              Download
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-2 py-2 border rounded-md hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>

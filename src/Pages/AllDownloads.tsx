@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import useDownloadStore from '../Store/downloadStore';
+import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -32,13 +33,118 @@ const AllDownloads = () => {
   const history = useDownloadStore((state) => state.historyDownloads);
   const downloading = useDownloadStore((state) => state.downloading);
   const forDownloads = useDownloadStore((state) => state.forDownloads);
+  const deleteDownload = useDownloadStore((state) => state.deleteDownload);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [contextMenu, setContextMenu] = useState<{
+    downloadId: string | null;
+    x: number;
+    y: number;
+    downloadLocation?: string;
+    controllerId?: string;
+  }>({ downloadId: null, x: 0, y: 0 });
 
   // Combine downloads from downloading and history
   const allDownloads = [...downloading, ...history, ...forDownloads].filter(
     (download, index, self) =>
       index === self.findIndex((d) => d.id === download.id),
   );
+
+  // Add handlers for context menu
+  const handleContextMenu = (
+    e: React.MouseEvent,
+    downloadId: string,
+    downloadLocation: string,
+    controllerId?: string,
+  ) => {
+    e.preventDefault();
+    setContextMenu({
+      downloadId,
+      x: e.clientX,
+      y: e.clientY,
+      downloadLocation,
+      controllerId,
+    });
+  };
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setContextMenu({ downloadId: null, x: 0, y: 0 });
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  // Add these handlers for the menu actions
+  const handlePause = (
+    downloadId: string,
+    downloadLocation?: string,
+    controllerId?: string,
+  ) => {
+    console.log(
+      'Pausing:',
+      downloadId,
+      'at:',
+      downloadLocation,
+      'controller:',
+      controllerId,
+    );
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  const handleStop = (
+    downloadId: string,
+    downloadLocation?: string,
+    controllerId?: string,
+  ) => {
+    console.log(
+      'Stopping:',
+      downloadId,
+      'at:',
+      downloadLocation,
+      'controller:',
+      controllerId,
+    );
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  const handleForceStart = (
+    downloadId: string,
+    downloadLocation?: string,
+    controllerId?: string,
+  ) => {
+    console.log(
+      'Force starting:',
+      downloadId,
+      'at:',
+      downloadLocation,
+      'controller:',
+      controllerId,
+    );
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  const handleRemove = async (
+    downloadLocation?: string,
+    downloadId?: string,
+    controllerId?: string,
+  ) => {
+    if (!downloadLocation || !downloadId) return;
+    try {
+      const success = await window.downlodrFunctions.deleteFile(
+        downloadLocation,
+      );
+      if (success) {
+        deleteDownload(downloadId);
+        console.log('File moved to trash successfully');
+      } else {
+        console.log('Could not delete');
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+    }
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
 
   const handleCheckboxChange = (downloadId: string) => {
     setSelectedRows((prev) => {
@@ -112,7 +218,18 @@ const AllDownloads = () => {
         </thead>
         <tbody>
           {allDownloads.map((download) => (
-            <tr key={download.id} className="border-b hover:bg-gray-50">
+            <tr
+              key={download.id}
+              className="border-b hover:bg-gray-50"
+              onContextMenu={(e) =>
+                handleContextMenu(
+                  e,
+                  download.id,
+                  `${download.location}${download.name}`,
+                  download.controllerId || null, // If controllerId is not present, pass null
+                )
+              }
+            >
               <td className="p-2">
                 <input
                   type="checkbox"
@@ -176,6 +293,21 @@ const AllDownloads = () => {
         <div className="mt-2 text-sm text-gray-600">
           Selected: {selectedRows.length} items
         </div>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu.downloadId && (
+        <DownloadContextMenu
+          downloadId={contextMenu.downloadId}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          downloadLocation={contextMenu.downloadLocation}
+          controllerId={contextMenu.controllerId}
+          onClose={() => setContextMenu({ downloadId: null, x: 0, y: 0 })}
+          onPause={handlePause}
+          onStop={handleStop}
+          onForceStart={handleForceStart}
+          onRemove={handleRemove}
+        />
       )}
     </div>
   );

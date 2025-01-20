@@ -25,6 +25,7 @@ interface BaseDownload {
   location: string;
   status: string;
   ext: string;
+  controllerId?: string;
 }
 
 interface ForDownload extends BaseDownload {
@@ -38,7 +39,6 @@ interface ForDownload extends BaseDownload {
 interface Downloading extends BaseDownload {
   status: 'downloading' | 'finished' | 'failed' | 'cancelled' | 'initializing';
   formatId: string;
-  controllerId: string;
 }
 
 interface FinishedDownloads extends BaseDownload {
@@ -92,6 +92,8 @@ interface DownloadStore {
     audioExt: string,
     audioFormatId: string,
   ) => void;
+
+  deleteDownload: (id: string) => void;
 }
 
 const useDownloadStore = create<DownloadStore>()(
@@ -351,14 +353,34 @@ const useDownloadStore = create<DownloadStore>()(
       },
 
       deleteDownload: (id: string) => {
-        set((state) => ({
-          finishedDownloads: state.finishedDownloads.filter(
-            (download) => download.id !== id,
-          ),
-          historyDownloads: state.historyDownloads.filter(
-            (download) => download.id !== id,
-          ),
-        }));
+        set((state) => {
+          // Check which collection contains the id and only filter that one
+          if (state.downloading.some((d) => d.id === id)) {
+            return {
+              downloading: state.downloading.filter((d) => d.id !== id),
+            };
+          }
+          if (state.finishedDownloads.some((d) => d.id === id)) {
+            return {
+              finishedDownloads: state.finishedDownloads.filter(
+                (d) => d.id !== id,
+              ),
+            };
+          }
+          if (state.historyDownloads.some((d) => d.id === id)) {
+            return {
+              historyDownloads: state.historyDownloads.filter(
+                (d) => d.id !== id,
+              ),
+            };
+          }
+          if (state.forDownloads.some((d) => d.id === id)) {
+            return {
+              forDownloads: state.forDownloads.filter((d) => d.id !== id),
+            };
+          }
+          return state;
+        });
       },
 
       setDownloadingToCancelled: () => {

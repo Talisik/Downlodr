@@ -1,11 +1,77 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { IoMdCheckmark } from 'react-icons/io';
 import useDownloadStore from '../Store/downloadStore';
 import { HiChevronUpDown } from 'react-icons/hi2';
+import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
 
 const Downloading = () => {
   const downloading = useDownloadStore((state) => state.downloading);
+  const deleteDownload = useDownloadStore((state) => state.deleteDownload);
+  const [contextMenu, setContextMenu] = useState<{
+    downloadId: string | null;
+    x: number;
+    y: number;
+    downloadLocation?: string;
+  }>({ downloadId: null, x: 0, y: 0 });
+
+  // Add handlers for context menu
+  const handleContextMenu = (
+    e: React.MouseEvent,
+    downloadId: string,
+    downloadLocation: string,
+  ) => {
+    e.preventDefault();
+    setContextMenu({
+      downloadId,
+      x: e.clientX,
+      y: e.clientY,
+      downloadLocation,
+    });
+  };
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setContextMenu({ downloadId: null, x: 0, y: 0 });
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  // Add handlers for menu actions
+  const handlePause = (downloadId: string, downloadLocation: string) => {
+    console.log(downloadLocation);
+    // Implement pause logic
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  const handleStop = (downloadId: string) => {
+    // Implement stop logic
+    console.log(downloadId);
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  const handleForceStart = (downloadId: string) => {
+    // Implement force start logic
+    console.log(downloadId);
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  const handleRemove = async (videoFile: any, id: any) => {
+    try {
+      const success = await window.downlodrFunctions.deleteFile(videoFile);
+      if (success) {
+        deleteDownload(id);
+        console.log('File moved to trash successfully');
+      } else {
+        console.log('Could not delete');
+      }
+    } catch (error) {
+      console.error('Error deleting file:');
+    }
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
 
   const formatRelativeTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -81,7 +147,17 @@ const Downloading = () => {
         </thead>
         <tbody>
           {downloading.map((download) => (
-            <tr key={download.id} className="border-b hover:bg-gray-50">
+            <tr
+              key={download.id}
+              className="border-b hover:bg-gray-50"
+              onContextMenu={(e) =>
+                handleContextMenu(
+                  e,
+                  download.id,
+                  `${download.location}${download.downloadName}`,
+                )
+              }
+            >
               <td className="p-2  pl-5">{download.name}</td>
               <td className="p-2">
                 {download.size
@@ -132,6 +208,20 @@ const Downloading = () => {
           ))}
         </tbody>
       </table>
+
+      {/* Context Menu */}
+      {contextMenu.downloadId && (
+        <DownloadContextMenu
+          downloadId={contextMenu.downloadId}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          downloadLocation={contextMenu.downloadLocation}
+          onClose={() => setContextMenu({ downloadId: null, x: 0, y: 0 })}
+          onPause={handlePause}
+          onStop={handleStop}
+          onForceStart={handleForceStart}
+          onRemove={handleRemove}
+        />
+      )}
     </div>
   );
 };

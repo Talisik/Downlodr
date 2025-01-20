@@ -2,12 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { FaRegClock } from 'react-icons/fa6';
 import SchedulerModal from '../Modal/SchedulerModal';
+import DownloadModal from '../Modal/DownloadModal';
 
 const DropdownBar = ({ className }: { className?: string }) => {
   const [activeMenu, setActiveMenu] = useState<'file' | 'task' | null>(null);
   const [isSchedulerModalOpen, setSchedulerModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
 
   const isSchedulePage = ['/scheduleTable', '/scheduleCalendar'].includes(
     location.pathname,
@@ -44,7 +46,13 @@ const DropdownBar = ({ className }: { className?: string }) => {
           </button>
           {activeMenu === 'file' && (
             <div className="absolute left-0 mt-1 w-48 bg-white border rounded-md shadow-lg py-1 z-50">
-              <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 font-semibold">
+              <button
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 font-semibold"
+                onClick={() => {
+                  setDownloadModalOpen(true);
+                  setActiveMenu(null);
+                }}
+              >
                 <span>+ New Download</span>
               </button>
               <button
@@ -112,6 +120,11 @@ const DropdownBar = ({ className }: { className?: string }) => {
       <SchedulerModal
         isOpen={isSchedulerModalOpen}
         onClose={() => setSchedulerModalOpen(false)}
+      />
+
+      <DownloadModal
+        isOpen={isDownloadModalOpen}
+        onClose={() => setDownloadModalOpen(false)}
       />
     </div>
   );
