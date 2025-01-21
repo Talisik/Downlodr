@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import useDownloadStore from '../Store/downloadStore';
 import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
+import ExpandedDownloadDetails from '../Components/SubComponents/custom/ExpandedDownloadDetail';
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -46,6 +47,7 @@ const AllDownloads = () => {
   const [selectedDownloadId, setSelectedDownloadId] = useState<string | null>(
     null,
   );
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
   // Combine downloads from downloading and history
   const allDownloads = [...downloading, ...history, ...forDownloads].filter(
@@ -179,6 +181,10 @@ const AllDownloads = () => {
     setSelectedDownloadId(null);
   };
 
+  const handleRowClick = (downloadId: string) => {
+    setExpandedRowId(expandedRowId === downloadId ? null : downloadId);
+  };
+
   return (
     <div className="w-full pb-5">
       <table className="w-full">
@@ -233,68 +239,75 @@ const AllDownloads = () => {
         </thead>
         <tbody>
           {allDownloads.map((download) => (
-            <tr
-              key={download.id}
-              className={`border-b hover:bg-gray-50 ${
-                selectedDownloadId === download.id ? 'bg-blue-50' : ''
-              }`}
-              onContextMenu={(e) => handleContextMenu(e, download)}
-            >
-              <td className="p-2">
-                <input
-                  type="checkbox"
-                  className="rounded border-gray-300"
-                  checked={selectedRows.includes(download.id)}
-                  onChange={() => handleCheckboxChange(download.id)}
-                />
-              </td>
-              <td className="p-2">{download.name}</td>
-              <td className="p-2">
-                {download.size
-                  ? `${(download.size / 1048576).toFixed(2)} MB`
-                  : 'Pending'}
-              </td>
-              <td className="p-2">
-                <div className="flex items-center">
-                  <span className="text-sm text-gray-600">
-                    {download.status === 'cancelled' ||
-                    download.status === 'initializing' ||
-                    download.status === 'finished' ? (
-                      <span>{download.status}</span>
-                    ) : (
-                      <>
-                        {download.progress}%
-                        <div className="w-48 bg-gray-200 rounded-full h-2.5 mt-1">
-                          <div
-                            className={`h-2.5 rounded-full transition-all duration-300 ${
-                              download.progress === 0
-                                ? 'bg-gray-400'
-                                : download.progress === 100
-                                ? 'bg-green-500'
-                                : 'bg-orange-500'
-                            }`}
-                            style={{ width: `${download.progress}%` }}
-                          ></div>
-                        </div>
-                      </>
-                    )}{' '}
-                  </span>
-                </div>
-              </td>
-              <td className="p-2">{download.speed || '-'}</td>
-              <td className="p-2">{download.timeLeft}</td>
-              <td className="p-2">{formatRelativeTime(download.DateAdded)}</td>
-              <td className="p-2">
-                <a
-                  href={download.videoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline"
-                >
-                  Source
-                </a>
-              </td>
-            </tr>
+            <React.Fragment key={download.id}>
+              <tr
+                className={`border-b hover:bg-gray-50 cursor-pointer ${
+                  selectedDownloadId === download.id ? 'bg-blue-50' : ''
+                }`}
+                onContextMenu={(e) => handleContextMenu(e, download)}
+                onClick={() => handleRowClick(download.id)}
+              >
+                <td className="p-2">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300"
+                    checked={selectedRows.includes(download.id)}
+                    onChange={() => handleCheckboxChange(download.id)}
+                  />
+                </td>
+                <td className="p-2">{download.name}</td>
+                <td className="p-2">
+                  {download.size
+                    ? `${(download.size / 1048576).toFixed(2)} MB`
+                    : 'Pending'}
+                </td>
+                <td className="p-2">
+                  <div className="flex items-center">
+                    <span className="text-sm text-gray-600">
+                      {download.status === 'cancelled' ||
+                      download.status === 'initializing' ||
+                      download.status === 'finished' ? (
+                        <span>{download.status}</span>
+                      ) : (
+                        <>
+                          {download.progress}%
+                          <div className="w-48 bg-gray-200 rounded-full h-2.5 mt-1">
+                            <div
+                              className={`h-2.5 rounded-full transition-all duration-300 ${
+                                download.progress === 0
+                                  ? 'bg-gray-400'
+                                  : download.progress === 100
+                                  ? 'bg-green-500'
+                                  : 'bg-orange-500'
+                              }`}
+                              style={{ width: `${download.progress}%` }}
+                            ></div>
+                          </div>
+                        </>
+                      )}{' '}
+                    </span>
+                  </div>
+                </td>
+                <td className="p-2">{download.speed || '-'}</td>
+                <td className="p-2">{download.timeLeft}</td>
+                <td className="p-2">
+                  {formatRelativeTime(download.DateAdded)}
+                </td>
+                <td className="p-2">
+                  <a
+                    href={download.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    Source
+                  </a>
+                </td>
+              </tr>
+              {expandedRowId === download.id && (
+                <ExpandedDownloadDetails download={download} />
+              )}
+            </React.Fragment>
           ))}
         </tbody>
       </table>

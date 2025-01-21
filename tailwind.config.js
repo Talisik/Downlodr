@@ -44,6 +44,7 @@ module.exports = {
         secondary: '#202020',
         divider: '#D1D5DB',
         tabs: '#fef9f4',
+        lightGray: '#EDEDED',
       },
     },
   },
