@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import useDownloadStore from '../Store/downloadStore';
@@ -42,6 +43,9 @@ const AllDownloads = () => {
     downloadLocation?: string;
     controllerId?: string;
   }>({ downloadId: null, x: 0, y: 0 });
+  const [selectedDownloadId, setSelectedDownloadId] = useState<string | null>(
+    null,
+  );
 
   // Combine downloads from downloading and history
   const allDownloads = [...downloading, ...history, ...forDownloads].filter(
@@ -49,33 +53,31 @@ const AllDownloads = () => {
       index === self.findIndex((d) => d.id === download.id),
   );
 
-  // Add handlers for context menu
-  const handleContextMenu = (
-    e: React.MouseEvent,
-    downloadId: string,
-    downloadLocation: string,
-    controllerId?: string,
-  ) => {
-    e.preventDefault();
-    setContextMenu({
-      downloadId,
-      x: e.clientX,
-      y: e.clientY,
-      downloadLocation,
-      controllerId,
-    });
-  };
-
-  // Close context menu when clicking outside
+  // Close Menu and clear selected download when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       setContextMenu({ downloadId: null, x: 0, y: 0 });
+      setSelectedDownloadId(null);
     };
+
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Add these handlers for the menu actions
+  const handleContextMenu = (event: React.MouseEvent, allDownloads: any) => {
+    event.preventDefault();
+    event.stopPropagation(); // Prevent the click outside handler from firing immediately
+    setContextMenu({
+      downloadId: allDownloads.id,
+      x: event.clientX,
+      y: event.clientY,
+      downloadLocation: `${allDownloads.location}${allDownloads.name}`,
+      controllerId: allDownloads.controllerId,
+    });
+    setSelectedDownloadId(allDownloads.id);
+  };
+
+  //Context Menu actons
   const handlePause = (
     downloadId: string,
     downloadLocation?: string,
@@ -134,6 +136,7 @@ const AllDownloads = () => {
   const handleRemove = async (
     downloadLocation?: string,
     downloadId?: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     controllerId?: string,
   ) => {
     if (!downloadLocation || !downloadId) return;
@@ -171,6 +174,11 @@ const AllDownloads = () => {
     }
   };
 
+  const handleCloseContextMenu = () => {
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+    setSelectedDownloadId(null);
+  };
+
   return (
     <div className="w-full pb-5">
       <table className="w-full">
@@ -184,38 +192,38 @@ const AllDownloads = () => {
                 onChange={handleSelectAll}
               />
             </th>
-            <th className="w-1/4 p-2 font-semibold">Schedule: </th>
+            <th className="w-1/5 p-2 font-semibold">Schedule: </th>
             <th className="w-20 p-2 font-semibold">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center">
                 Size
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-1/4 p-2 font-semibold">
+            <th className="w-1/6 p-2 font-semibold">
               <div className="flex items-center">
                 Status
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-24 p-2 font-semibold">
+            <th className="w-22 p-2 font-semibold">
               <div className="flex items-center">
                 Speed
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-24 p-2 font-semibold">
+            <th className="w-26 p-2 font-semibold">
               <div className="flex items-center">
                 Time Left
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-32 p-2 font-semibold">
+            <th className="w-26 p-2 font-semibold">
               <div className="flex items-center">
                 Date Added
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-24 p-2 font-semibold">
+            <th className="w-20 p-2 font-semibold">
               <div className="flex items-center">
                 Source
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
@@ -227,15 +235,10 @@ const AllDownloads = () => {
           {allDownloads.map((download) => (
             <tr
               key={download.id}
-              className="border-b hover:bg-gray-50"
-              onContextMenu={(e) =>
-                handleContextMenu(
-                  e,
-                  download.id,
-                  `${download.location}${download.name}`,
-                  download.controllerId || null, // If controllerId is not present, pass null
-                )
-              }
+              className={`border-b hover:bg-gray-50 ${
+                selectedDownloadId === download.id ? 'bg-blue-50' : ''
+              }`}
+              onContextMenu={(e) => handleContextMenu(e, download)}
             >
               <td className="p-2">
                 <input
@@ -305,11 +308,12 @@ const AllDownloads = () => {
       {/* Context Menu */}
       {contextMenu.downloadId && (
         <DownloadContextMenu
+          data-context-menu
           downloadId={contextMenu.downloadId}
           position={{ x: contextMenu.x, y: contextMenu.y }}
           downloadLocation={contextMenu.downloadLocation}
           controllerId={contextMenu.controllerId}
-          onClose={() => setContextMenu({ downloadId: null, x: 0, y: 0 })}
+          onClose={handleCloseContextMenu}
           onPause={handlePause}
           onStop={handleStop}
           onForceStart={handleForceStart}

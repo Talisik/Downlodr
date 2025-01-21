@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
-import { IoMdCheckmark } from 'react-icons/io';
+// import { IoMdCheckmark } from 'react-icons/io';
 import useDownloadStore from '../Store/downloadStore';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
@@ -13,63 +13,51 @@ const Downloading = () => {
     x: number;
     y: number;
     downloadLocation?: string;
+    controllerId?: string;
   }>({ downloadId: null, x: 0, y: 0 });
+  const [selectedDownloadId, setSelectedDownloadId] = useState<string | null>(
+    null,
+  );
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
 
-  // Add handlers for context menu
-  const handleContextMenu = (
-    e: React.MouseEvent,
-    downloadId: string,
-    downloadLocation: string,
-  ) => {
-    e.preventDefault();
-    setContextMenu({
-      downloadId,
-      x: e.clientX,
-      y: e.clientY,
-      downloadLocation,
-    });
-  };
-
-  // Close context menu when clicking outside
+  // Close Menu and clear selected download when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       setContextMenu({ downloadId: null, x: 0, y: 0 });
+      setSelectedDownloadId(null);
     };
+
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Add handlers for menu actions
-  const handlePause = (downloadId: string, downloadLocation: string) => {
-    console.log(downloadLocation);
-    // Implement pause logic
-    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  const handleContextMenu = (event: React.MouseEvent, downloading: any) => {
+    event.preventDefault();
+    event.stopPropagation(); // Prevent the click outside handler from firing immediately
+    setContextMenu({
+      downloadId: downloading.id,
+      x: event.clientX,
+      y: event.clientY,
+      downloadLocation: `${downloading.location}${downloading.name}`,
+      controllerId: downloading.controllerId,
+    });
+    setSelectedDownloadId(downloading.id);
   };
 
-  const handleStop = (downloadId: string) => {
-    // Implement stop logic
-    console.log(downloadId);
-    setContextMenu({ downloadId: null, x: 0, y: 0 });
-  };
-
-  const handleForceStart = (downloadId: string) => {
-    // Implement force start logic
-    console.log(downloadId);
-    setContextMenu({ downloadId: null, x: 0, y: 0 });
-  };
-
-  const handleRemove = async (videoFile: any, id: any) => {
-    try {
-      const success = await window.downlodrFunctions.deleteFile(videoFile);
-      if (success) {
-        deleteDownload(id);
-        console.log('File moved to trash successfully');
-      } else {
-        console.log('Could not delete');
-      }
-    } catch (error) {
-      console.error('Error deleting file:');
-    }
+  //Context Menu actons
+  const handlePause = (
+    downloadId: string,
+    downloadLocation?: string,
+    controllerId?: string,
+  ) => {
+    console.log(
+      'Pausing:',
+      downloadId,
+      'at:',
+      downloadLocation,
+      'controller:',
+      controllerId,
+    );
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
@@ -78,6 +66,84 @@ const Downloading = () => {
       window.downlodrFunctions.openVideo(downloadLocation);
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  const handleStop = (
+    downloadId: string,
+    downloadLocation?: string,
+    controllerId?: string,
+  ) => {
+    console.log(
+      'Stopping:',
+      downloadId,
+      'at:',
+      downloadLocation,
+      'controller:',
+      controllerId,
+    );
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  const handleForceStart = (
+    downloadId: string,
+    downloadLocation?: string,
+    controllerId?: string,
+  ) => {
+    console.log(
+      'Force starting:',
+      downloadId,
+      'at:',
+      downloadLocation,
+      'controller:',
+      controllerId,
+    );
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  const handleRemove = async (
+    downloadLocation?: string,
+    downloadId?: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    controllerId?: string,
+  ) => {
+    if (!downloadLocation || !downloadId) return;
+    try {
+      const success = await window.downlodrFunctions.deleteFile(
+        downloadLocation,
+      );
+      if (success) {
+        deleteDownload(downloadId);
+        console.log('File moved to trash successfully');
+      } else {
+        console.log('Could not delete');
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+    }
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  const handleCheckboxChange = (downloadId: string) => {
+    setSelectedRows((prev) => {
+      if (prev.includes(downloadId)) {
+        return prev.filter((id) => id !== downloadId);
+      } else {
+        return [...prev, downloadId];
+      }
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedRows.length === downloading.length) {
+      setSelectedRows([]);
+    } else {
+      setSelectedRows(downloading.map((download) => download.id));
+    }
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+    setSelectedDownloadId(null);
   };
 
   const formatRelativeTime = (dateString: string) => {
@@ -113,38 +179,46 @@ const Downloading = () => {
       <table className="w-full">
         <thead>
           <tr className="border-b text-left">
-            <th className="w-1/4 p-2 font-semibold pl-5">Schedule: </th>
+            <th className="w-8 p-2">
+              <input
+                type="checkbox"
+                className="rounded border-gray-300"
+                checked={selectedRows.length === downloading.length}
+                onChange={handleSelectAll}
+              />
+            </th>
+            <th className="w-1/5 p-2 font-semibold">Schedule: </th>
             <th className="w-20 p-2 font-semibold">
               <div className="flex items-center">
                 Size
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-1/4 p-2 font-semibold">
+            <th className="w-1/6 p-2 font-semibold">
               <div className="flex items-center">
                 Status
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-24 p-2 font-semibold">
+            <th className="w-22 p-2 font-semibold">
               <div className="flex items-center">
                 Speed
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-24 p-2 font-semibold">
+            <th className="w-26 p-2 font-semibold">
               <div className="flex items-center">
                 Time Left
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-32 p-2 font-semibold">
+            <th className="w-26 p-2 font-semibold">
               <div className="flex items-center">
                 Date Added
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-24 p-2 font-semibold">
+            <th className="w-20 p-2 font-semibold">
               <div className="flex items-center">
                 Source
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
@@ -156,15 +230,19 @@ const Downloading = () => {
           {downloading.map((download) => (
             <tr
               key={download.id}
-              className="border-b hover:bg-gray-50"
-              onContextMenu={(e) =>
-                handleContextMenu(
-                  e,
-                  download.id,
-                  `${download.location}${download.downloadName}`,
-                )
-              }
+              className={`border-b hover:bg-gray-50 ${
+                selectedDownloadId === download.id ? 'bg-blue-50' : ''
+              }`}
+              onContextMenu={(e) => handleContextMenu(e, download)}
             >
+              <td className="p-2">
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300"
+                  checked={selectedRows.includes(download.id)}
+                  onChange={() => handleCheckboxChange(download.id)}
+                />
+              </td>
               <td className="p-2  pl-5">{download.name}</td>
               <td className="p-2">
                 {download.size
@@ -216,13 +294,22 @@ const Downloading = () => {
         </tbody>
       </table>
 
+      {/* Optional: Display selected count */}
+      {selectedRows.length > 0 && (
+        <div className="mt-2 text-sm text-gray-600">
+          Selected: {selectedRows.length} items
+        </div>
+      )}
+
       {/* Context Menu */}
       {contextMenu.downloadId && (
         <DownloadContextMenu
+          data-context-menu
           downloadId={contextMenu.downloadId}
           position={{ x: contextMenu.x, y: contextMenu.y }}
           downloadLocation={contextMenu.downloadLocation}
-          onClose={() => setContextMenu({ downloadId: null, x: 0, y: 0 })}
+          controllerId={contextMenu.controllerId}
+          onClose={handleCloseContextMenu}
           onPause={handlePause}
           onStop={handleStop}
           onForceStart={handleForceStart}

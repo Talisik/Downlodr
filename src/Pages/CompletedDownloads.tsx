@@ -37,38 +37,38 @@ const CompletedDownloads = () => {
       <table className="w-full">
         <thead>
           <tr className="border-b text-left">
-            <th className="w-1/4 p-2 pl-5 font-semibold">Schedule: </th>
+            <th className="pl-4 w-1/5 p-2 font-semibold">Schedule: </th>
             <th className="w-20 p-2 font-semibold">
               <div className="flex items-center">
                 Size
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-1/4 p-2 font-semibold">
+            <th className="w-1/6 p-2 font-semibold">
               <div className="flex items-center">
                 Status
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-24 p-2 font-semibold">
+            <th className="w-22 p-2 font-semibold">
               <div className="flex items-center">
                 Speed
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-24 p-2 font-semibold">
+            <th className="w-26 p-2 font-semibold">
               <div className="flex items-center">
                 Time Left
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-32 p-2 font-semibold">
+            <th className="w-26 p-2 font-semibold">
               <div className="flex items-center">
                 Date Added
                 <HiChevronUpDown size={14} className="flex-shrink-0" />
               </div>
             </th>
-            <th className="w-24 p-2 font-semibold">
+            <th className="w-20 p-2 font-semibold">
               <div className="flex items-center">
                 Source
                 <HiChevronUpDown size={14} className="flex-shrink-0" />

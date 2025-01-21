@@ -41,8 +41,34 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   onRemove,
   onViewDownload,
 }) => {
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (menuRef.current) {
+      const menuRect = menuRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+
+      let { x, y } = position;
+
+      // Adjust vertical position if menu overflows bottom
+      if (y + menuRect.height > viewportHeight) {
+        y = Math.max(0, viewportHeight - menuRect.height);
+      }
+
+      // Adjust horizontal position if menu overflows right
+      if (x + menuRect.width > viewportWidth) {
+        x = Math.max(0, viewportWidth - menuRect.width);
+      }
+
+      menuRef.current.style.left = `${x}px`;
+      menuRef.current.style.top = `${y}px`;
+    }
+  }, [position]);
+
   return (
     <div
+      ref={menuRef}
       className="fixed bg-white border rounded-md shadow-lg py-1 z-50"
       style={{
         left: `${position.x}px`,
