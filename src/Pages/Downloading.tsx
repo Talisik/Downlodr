@@ -73,6 +73,13 @@ const Downloading = () => {
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
+  const handleViewDownload = (downloadLocation?: string) => {
+    if (downloadLocation) {
+      window.downlodrFunctions.openVideo(downloadLocation);
+    }
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
   const formatRelativeTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -220,6 +227,7 @@ const Downloading = () => {
           onStop={handleStop}
           onForceStart={handleForceStart}
           onRemove={handleRemove}
+          onViewDownload={handleViewDownload}
         />
       )}
     </div>

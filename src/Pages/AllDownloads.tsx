@@ -92,6 +92,13 @@ const AllDownloads = () => {
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
+  const handleViewDownload = (downloadLocation?: string) => {
+    if (downloadLocation) {
+      window.downlodrFunctions.openVideo(downloadLocation);
+    }
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
   const handleStop = (
     downloadId: string,
     downloadLocation?: string,
@@ -307,6 +314,7 @@ const AllDownloads = () => {
           onStop={handleStop}
           onForceStart={handleForceStart}
           onRemove={handleRemove}
+          onViewDownload={handleViewDownload}
         />
       )}
     </div>

@@ -26,6 +26,7 @@ interface DownloadContextMenuProps {
     id?: string,
     controllerId?: string,
   ) => void;
+  onViewDownload: (downloadLocation?: string) => void;
 }
 
 const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
@@ -38,6 +39,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   onStop,
   onForceStart,
   onRemove,
+  onViewDownload,
 }) => {
   return (
     <div
@@ -47,6 +49,15 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         top: `${position.y}px`,
       }}
     >
+      <button
+        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+        onClick={() => {
+          onViewDownload(downloadLocation);
+          onClose();
+        }}
+      >
+        <span>👁️ View Download</span>
+      </button>
       <button
         className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
         onClick={() => {
