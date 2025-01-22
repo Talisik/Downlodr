@@ -6,7 +6,8 @@ import History from './Pages/History';
 import CompletedDownloads from './Pages/CompletedDownloads';
 import ScheduleTable from './Pages/Scheduler/ScheduleTable';
 import ScheduleCalendar from './Pages/Scheduler/ScheduleCalendar';
-import NotFound from './Pages/NotFound';
+import NotFound from './Pages/SubPages/NotFound';
+import CategoryPage from './Pages/SubPages/CategoryPage';
 
 const App = () => {
   return (
@@ -20,6 +21,7 @@ const App = () => {
           <Route path="/history" element={<History />} />
           <Route path="/scheduleTable" element={<ScheduleTable />} />
           <Route path="/scheduleCalendar" element={<ScheduleCalendar />} />
+          <Route path="/category/:categoryId" element={<CategoryPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

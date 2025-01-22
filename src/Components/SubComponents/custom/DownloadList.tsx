@@ -1,0 +1,179 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { LuDownload } from 'react-icons/lu';
+import useDownloadStore, { BaseDownload } from '../../../Store/downloadStore';
+import DownloadContextMenu from './DownloadContextMenu';
+
+interface DownloadListProps {
+  downloads: BaseDownload[];
+}
+
+const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
+  const [contextMenu, setContextMenu] = useState<{
+    downloadId: string;
+    x: number;
+    y: number;
+    downloadLocation?: string;
+    controllerId?: string;
+  } | null>(null);
+  const [selectedDownloadId, setSelectedDownloadId] = useState<string | null>(
+    null,
+  );
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const addTag = useDownloadStore((state) => state.addTag);
+  const removeTag = useDownloadStore((state) => state.removeTag);
+  const addCategory = useDownloadStore((state) => state.addCategory);
+  const removeCategory = useDownloadStore((state) => state.removeCategory);
+  const deleteDownload = useDownloadStore((state) => state.deleteDownload);
+  const availableTags = useDownloadStore((state) => state.availableTags);
+  const availableCategories = useDownloadStore(
+    (state) => state.availableCategories,
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (listRef.current && !listRef.current.contains(event.target as Node)) {
+        setContextMenu(null);
+        setSelectedDownloadId(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const handleContextMenu = (
+    event: React.MouseEvent,
+    download: BaseDownload,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    setContextMenu({
+      downloadId: download.id,
+      x: event.clientX,
+      y: event.clientY,
+      downloadLocation: `${download.location}${download.name}`,
+      controllerId: download.controllerId,
+    });
+    setSelectedDownloadId(download.id);
+  };
+
+  const handleRemove = async (
+    downloadLocation?: string,
+    downloadId?: string,
+  ) => {
+    if (!downloadLocation || !downloadId) return;
+    try {
+      const success = await window.downlodrFunctions.deleteFile(
+        downloadLocation,
+      );
+      if (success) {
+        deleteDownload(downloadId);
+        setContextMenu(null);
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+    }
+  };
+
+  const handleViewDownload = (downloadLocation?: string) => {
+    if (downloadLocation) {
+      window.downlodrFunctions.openVideo(downloadLocation);
+    }
+    setContextMenu(null);
+  };
+
+  return (
+    <div ref={listRef} className="overflow-x-auto">
+      <table className="min-w-full table-auto">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="p-2 text-left">Name</th>
+            <th className="p-2 text-left">Size</th>
+            <th className="p-2 text-left">Status</th>
+            <th className="p-2 text-left">Tags</th>
+            <th className="p-2 text-left">Categories</th>
+          </tr>
+        </thead>
+        <tbody>
+          {downloads.map((download) => (
+            <tr
+              key={download.id}
+              className={`border-b hover:bg-gray-50 cursor-pointer ${
+                selectedDownloadId === download.id ? 'bg-blue-50' : ''
+              }`}
+              onContextMenu={(e) => handleContextMenu(e, download)}
+              onClick={() =>
+                handleViewDownload(`${download.location}${download.name}`)
+              }
+            >
+              <td className="p-2 flex items-center gap-2">
+                <LuDownload className="text-blue-500" />
+                {download.name}
+              </td>
+              <td className="p-2">{download.size}</td>
+              <td className="p-2">{download.status}</td>
+              <td className="p-2">
+                <div className="flex flex-wrap gap-1">
+                  {download.tags?.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </td>
+              <td className="p-2">
+                <div className="flex flex-wrap gap-1">
+                  {download.category?.map((category) => (
+                    <span
+                      key={category}
+                      className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded-full"
+                    >
+                      {category}
+                    </span>
+                  ))}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {contextMenu && (
+        <DownloadContextMenu
+          downloadId={contextMenu.downloadId}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          onClose={() => setContextMenu(null)}
+          onPause={() => void 0}
+          onStop={() => void 0}
+          onForceStart={() => void 0}
+          onRemove={() =>
+            handleRemove(contextMenu.downloadLocation, contextMenu.downloadId)
+          }
+          onViewDownload={() =>
+            handleViewDownload(contextMenu.downloadLocation)
+          }
+          onAddTag={addTag}
+          onRemoveTag={removeTag}
+          currentTags={
+            downloads.find((d) => d.id === contextMenu.downloadId)?.tags || []
+          }
+          availableTags={availableTags}
+          onAddCategory={addCategory}
+          onRemoveCategory={removeCategory}
+          currentCategories={
+            downloads.find((d) => d.id === contextMenu.downloadId)?.category ||
+            []
+          }
+          availableCategories={availableCategories}
+        />
+      )}
+    </div>
+  );
+};
+
+export default DownloadList;

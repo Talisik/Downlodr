@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { HiChevronDown, HiChevronRight } from 'react-icons/hi';
 import { FiDownload, FiClock } from 'react-icons/fi';
@@ -6,6 +6,8 @@ import { AiOutlineCheck } from 'react-icons/ai';
 import { BiLayer } from 'react-icons/bi';
 import { BsTag } from 'react-icons/bs';
 import { CiFolderOn } from 'react-icons/ci';
+import useDownloadStore from '../../../Store/downloadStore';
+import CategoryContextMenu from '../../SubComponents/custom/CategoryContextMenu';
 
 const Navigation = ({ className }: { className?: string }) => {
   const [openSections, setOpenSections] = useState({
@@ -13,6 +15,17 @@ const Navigation = ({ className }: { className?: string }) => {
     category: true,
     tag: true,
   });
+  const [contextMenu, setContextMenu] = useState<{
+    category: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const navRef = useRef<HTMLDivElement>(null);
+  const availableCategories = useDownloadStore(
+    (state) => state.availableCategories,
+  );
+  const renameCategory = useDownloadStore((state) => state.renameCategory);
+  const deleteCategory = useDownloadStore((state) => state.deleteCategory);
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({
@@ -21,8 +34,31 @@ const Navigation = ({ className }: { className?: string }) => {
     }));
   };
 
+  const handleCategoryContextMenu = (e: React.MouseEvent, category: string) => {
+    e.preventDefault();
+    setContextMenu({
+      category,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setContextMenu(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   return (
-    <nav className={`${className} border-solid border-r-2 border-gray-200`}>
+    <nav
+      ref={navRef}
+      className={`${className} border-solid border-r-2 border-gray-200`}
+    >
       <div className="p-2 space-y-2 ml-2">
         {/* Status Section */}
         <div>
@@ -84,10 +120,17 @@ const Navigation = ({ className }: { className?: string }) => {
                 <BiLayer className="text-blue-500 text-lg flex-shrink-0" />
                 <span className="ml-2">Uncategorized</span>
               </NavLink>
-              <NavLink to="/category/1" className="nav-link">
-                <BiLayer className="text-yellow-500 text-lg flex-shrink-0" />
-                <span className="ml-2">Category 1</span>
-              </NavLink>
+              {availableCategories.map((category) => (
+                <NavLink
+                  key={category}
+                  to={`/category/${encodeURIComponent(category)}`}
+                  className="nav-link"
+                  onContextMenu={(e) => handleCategoryContextMenu(e, category)}
+                >
+                  <BiLayer className="text-yellow-500 text-lg flex-shrink-0" />
+                  <span className="ml-2">{category}</span>
+                </NavLink>
+              ))}
             </div>
           )}
         </div>
@@ -120,6 +163,16 @@ const Navigation = ({ className }: { className?: string }) => {
           )}
         </div>
       </div>
+
+      {contextMenu && (
+        <CategoryContextMenu
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          categoryName={contextMenu.category}
+          onClose={() => setContextMenu(null)}
+          onRename={renameCategory}
+          onDelete={deleteCategory}
+        />
+      )}
     </nav>
   );
 };

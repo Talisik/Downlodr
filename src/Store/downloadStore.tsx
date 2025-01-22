@@ -12,7 +12,7 @@ function uuidv4() {
 }
 
 // Base interface for all download types
-interface BaseDownload {
+export interface BaseDownload {
   id: string;
   videoUrl: string;
   name: string;
@@ -104,6 +104,9 @@ interface DownloadStore {
 
   addCategory: (downloadId: string, category: string) => void;
   removeCategory: (downloadId: string, category: string) => void;
+
+  renameCategory: (oldName: string, newName: string) => void;
+  deleteCategory: (category: string) => void;
 }
 
 const useDownloadStore = create<DownloadStore>()(
@@ -138,7 +141,7 @@ const useDownloadStore = create<DownloadStore>()(
                 ),
               }));
 
-              // Set up a periodic check for this specific download
+              // check for this specific download
               const checkInterval = setInterval(async () => {
                 const fileExists = await window.downlodrFunctions.fileExists(
                   filePath,
@@ -521,6 +524,52 @@ const useDownloadStore = create<DownloadStore>()(
           };
         });
       },
+
+      renameCategory: (oldName: string, newName: string) =>
+        set((state) => {
+          const updateDownloads = <T extends BaseDownload>(
+            downloads: T[],
+          ): T[] =>
+            downloads.map((download) => ({
+              ...download,
+              category: download.category?.map((cat) =>
+                cat === oldName ? newName : cat,
+              ),
+            }));
+
+          return {
+            ...state,
+            availableCategories: state.availableCategories.map((cat) =>
+              cat === oldName ? newName : cat,
+            ),
+            downloading: updateDownloads(state.downloading),
+            finishedDownloads: updateDownloads(state.finishedDownloads),
+            historyDownloads: updateDownloads(state.historyDownloads),
+            forDownloads: updateDownloads(state.forDownloads),
+          };
+        }),
+
+      deleteCategory: (category: string) =>
+        set((state) => {
+          const updateDownloads = <T extends BaseDownload>(
+            downloads: T[],
+          ): T[] =>
+            downloads.map((download) => ({
+              ...download,
+              category: download.category?.filter((cat) => cat !== category),
+            }));
+
+          return {
+            ...state,
+            availableCategories: state.availableCategories.filter(
+              (cat) => cat !== category,
+            ),
+            downloading: updateDownloads(state.downloading),
+            finishedDownloads: updateDownloads(state.finishedDownloads),
+            historyDownloads: updateDownloads(state.historyDownloads),
+            forDownloads: updateDownloads(state.forDownloads),
+          };
+        }),
 
       //End of store
     }),
