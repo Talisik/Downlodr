@@ -26,6 +26,8 @@ interface BaseDownload {
   status: string;
   ext: string;
   controllerId?: string;
+  tags: string[];
+  category: string[];
 }
 
 interface ForDownload extends BaseDownload {
@@ -54,6 +56,8 @@ interface DownloadStore {
   finishedDownloads: FinishedDownloads[];
   historyDownloads: HistoryDownloads[];
   forDownloads: ForDownload[];
+  availableTags: string[];
+  availableCategories: string[];
 
   checkFinishedDownloads: () => void;
   updateDownload: (id: string, result: any) => void;
@@ -94,6 +98,12 @@ interface DownloadStore {
   ) => void;
 
   deleteDownload: (id: string) => void;
+
+  addTag: (downloadId: string, tag: string) => void;
+  removeTag: (downloadId: string, tag: string) => void;
+
+  addCategory: (downloadId: string, category: string) => void;
+  removeCategory: (downloadId: string, category: string) => void;
 }
 
 const useDownloadStore = create<DownloadStore>()(
@@ -103,6 +113,8 @@ const useDownloadStore = create<DownloadStore>()(
       downloading: [],
       finishedDownloads: [],
       historyDownloads: [],
+      availableTags: [],
+      availableCategories: [],
 
       checkFinishedDownloads: async () => {
         const currentDownloads = get().downloading;
@@ -299,6 +311,8 @@ const useDownloadStore = create<DownloadStore>()(
               ext,
               formatId,
               controllerId: '---',
+              tags: [],
+              category: [],
             },
           ],
         }));
@@ -347,6 +361,8 @@ const useDownloadStore = create<DownloadStore>()(
               formatId,
               audioExt,
               audioFormatId,
+              tags: [],
+              category: [],
             },
           ],
         }));
@@ -400,12 +416,122 @@ const useDownloadStore = create<DownloadStore>()(
         }));
       },
 
+      addTag: (downloadId: string, tag: string) => {
+        set((state) => {
+          const updateDownloadTags = <T extends BaseDownload>(
+            downloads: T[],
+          ): T[] => {
+            return downloads.map((download) =>
+              download.id === downloadId
+                ? { ...download, tags: [...(download.tags || []), tag] }
+                : download,
+            );
+          };
+
+          return {
+            ...state,
+            availableTags: state.availableTags.includes(tag)
+              ? state.availableTags
+              : [...state.availableTags, tag],
+            downloading: updateDownloadTags(state.downloading),
+            finishedDownloads: updateDownloadTags(state.finishedDownloads),
+            historyDownloads: updateDownloadTags(state.historyDownloads),
+            forDownloads: updateDownloadTags(state.forDownloads),
+          };
+        });
+      },
+
+      removeTag: (downloadId: string, tag: string) => {
+        set((state) => {
+          const updateDownloadTags = <T extends BaseDownload>(
+            downloads: T[],
+          ): T[] => {
+            return downloads.map((download) =>
+              download.id === downloadId
+                ? { ...download, tags: download.tags.filter((t) => t !== tag) }
+                : download,
+            );
+          };
+
+          return {
+            ...state,
+            downloading: updateDownloadTags(state.downloading),
+            finishedDownloads: updateDownloadTags(state.finishedDownloads),
+            historyDownloads: updateDownloadTags(state.historyDownloads),
+            forDownloads: updateDownloadTags(state.forDownloads),
+          };
+        });
+      },
+
+      addCategory: (downloadId: string, category: string) => {
+        set((state) => {
+          const updateDownloadCategories = <T extends BaseDownload>(
+            downloads: T[],
+          ): T[] => {
+            return downloads.map((download) =>
+              download.id === downloadId
+                ? {
+                    ...download,
+                    category: [...(download.category || []), category],
+                  }
+                : download,
+            );
+          };
+
+          return {
+            ...state,
+            availableCategories: state.availableCategories.includes(category)
+              ? state.availableCategories
+              : [...state.availableCategories, category],
+            downloading: updateDownloadCategories(state.downloading),
+            finishedDownloads: updateDownloadCategories(
+              state.finishedDownloads,
+            ),
+            historyDownloads: updateDownloadCategories(state.historyDownloads),
+            forDownloads: updateDownloadCategories(state.forDownloads),
+          };
+        });
+      },
+
+      removeCategory: (downloadId: string, category: string) => {
+        set((state) => {
+          const updateDownloadCategories = <T extends BaseDownload>(
+            downloads: T[],
+          ): T[] => {
+            return downloads.map((download) =>
+              download.id === downloadId
+                ? {
+                    ...download,
+                    category: (download.category || []).filter(
+                      (c) => c !== category,
+                    ),
+                  }
+                : download,
+            );
+          };
+
+          return {
+            ...state,
+            downloading: updateDownloadCategories(state.downloading),
+            finishedDownloads: updateDownloadCategories(
+              state.finishedDownloads,
+            ),
+            historyDownloads: updateDownloadCategories(state.historyDownloads),
+            forDownloads: updateDownloadCategories(state.forDownloads),
+          };
+        });
+      },
+
       //End of store
     }),
     {
       name: 'downlodr-storage',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ historyDownloads: state.historyDownloads }),
+      partialize: (state) => ({
+        historyDownloads: state.historyDownloads,
+        availableTags: state.availableTags,
+        availableCategories: state.availableCategories,
+      }),
     },
   ),
 );

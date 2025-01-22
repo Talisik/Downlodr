@@ -1,4 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
+import TagMenu from './TagsMenu';
+import CategoryMenu from './CategoryMenu';
+import { IoPauseCircleOutline, IoOptionsOutline } from 'react-icons/io5';
+import { LiaFileVideoSolid, LiaTagsSolid } from 'react-icons/lia';
+import { HiOutlineStopCircle } from 'react-icons/hi2';
+import { BiRightArrow } from 'react-icons/bi';
+import { LuTrash } from 'react-icons/lu';
+import { GoChevronRight } from 'react-icons/go';
 
 interface DownloadContextMenuProps {
   downloadId: string;
@@ -27,6 +35,14 @@ interface DownloadContextMenuProps {
     controllerId?: string,
   ) => void;
   onViewDownload: (downloadLocation?: string) => void;
+  onAddTag: (downloadId: string, tag: string) => void;
+  onRemoveTag: (downloadId: string, tag: string) => void;
+  currentTags: string[];
+  availableTags: string[]; // All tags used in the system
+  onAddCategory: (downloadId: string, category: string) => void;
+  onRemoveCategory: (downloadId: string, category: string) => void;
+  currentCategories: string[];
+  availableCategories: string[];
 }
 
 const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
@@ -40,8 +56,25 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   onForceStart,
   onRemove,
   onViewDownload,
+  onAddTag,
+  onRemoveTag,
+  currentTags = [],
+  availableTags = [],
+  onAddCategory,
+  onRemoveCategory,
+  currentCategories = [],
+  availableCategories = [],
 }) => {
   const menuRef = React.useRef<HTMLDivElement>(null);
+  const tagMenuRef = React.useRef<HTMLDivElement>(null);
+  const categoryMenuRef = React.useRef<HTMLDivElement>(null);
+  const [showTagMenu, setShowTagMenu] = useState(false);
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const [tagMenuPosition, setTagMenuPosition] = useState<
+    'right' | 'left' | 'top'
+  >('right');
+  const [newTag, setNewTag] = useState('');
+  const [newCategory, setNewCategory] = useState('');
 
   React.useEffect(() => {
     if (menuRef.current) {
@@ -66,6 +99,57 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     }
   }, [position]);
 
+  React.useEffect(() => {
+    if (showTagMenu && tagMenuRef.current && menuRef.current) {
+      const tagMenu = tagMenuRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+
+      if (tagMenu.right > viewportWidth) {
+        setTagMenuPosition('left');
+      }
+
+      if (tagMenu.bottom > viewportHeight) {
+        setTagMenuPosition('top');
+      }
+    }
+  }, [showTagMenu]);
+
+  const getTagMenuPositionClass = () => {
+    switch (tagMenuPosition) {
+      case 'left':
+        return 'right-full top-0 ml-[-1px]';
+      case 'top':
+        return 'left-full bottom-0 ml-1';
+      default:
+        return 'left-full top-0 ml-1';
+    }
+  };
+
+  const handleTagClick = (tag: string) => {
+    console.log('Tag clicked:', tag);
+    console.log('Current tags:', currentTags);
+    if (currentTags.includes(tag)) {
+      onRemoveTag(downloadId, tag);
+    } else {
+      onAddTag(downloadId, tag);
+    }
+  };
+
+  // Function to handle opening tag menu
+  const handleTagMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowCategoryMenu(false); // Close category menu
+    setShowTagMenu(!showTagMenu);
+  };
+
+  // Function to handle opening category menu
+  const handleCategoryMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowTagMenu(false); // Close tag menu
+    setShowCategoryMenu(!showCategoryMenu);
+  };
+
   return (
     <div
       ref={menuRef}
@@ -82,7 +166,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           onClose();
         }}
       >
-        <span>👁️ View Download</span>
+        <span className="flex items-center space-x-2">
+          <LiaFileVideoSolid size={20} />
+          <span>View Download</span>
+        </span>{' '}
       </button>
       <button
         className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
@@ -91,7 +178,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           onClose();
         }}
       >
-        <span>⏸️ Pause</span>
+        <span className="flex items-center space-x-2">
+          <IoPauseCircleOutline size={20} />
+          <span>Pause</span>
+        </span>
       </button>
       <button
         className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
@@ -100,7 +190,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           onClose();
         }}
       >
-        <span>⏹️ Stop</span>
+        <span className="flex items-center space-x-2">
+          <HiOutlineStopCircle size={20} />
+          <span>Stop</span>
+        </span>{' '}
       </button>
       <button
         className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
@@ -109,7 +202,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           onClose();
         }}
       >
-        <span>⏩ Force Start</span>
+        <span className="flex items-center space-x-2">
+          <BiRightArrow size={18} />
+          <span>Force Start</span>
+        </span>{' '}
       </button>
       <button
         className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
@@ -118,18 +214,68 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           onClose();
         }}
       >
-        <span>🗑️ Remove</span>
+        <span className="flex items-center space-x-2">
+          <LuTrash size={16} />
+          <span>Remove</span>
+        </span>{' '}
       </button>
+      <div className="relative">
+        <button
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+          onClick={handleTagMenuClick}
+        >
+          <span className="flex items-center space-x-2">
+            <LiaTagsSolid size={20} />
+            <span>Tags</span>
+          </span>{' '}
+          <span className="ml-auto">
+            {' '}
+            <GoChevronRight size={20} />
+          </span>
+        </button>
+
+        {showTagMenu && (
+          <TagMenu
+            downloadId={downloadId}
+            onAddTag={onAddTag}
+            onRemoveTag={onRemoveTag}
+            currentTags={currentTags}
+            availableTags={availableTags}
+            menuPositionClass={getTagMenuPositionClass()}
+          />
+        )}
+      </div>
+      <div className="relative">
+        <button
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+          onClick={handleCategoryMenuClick}
+        >
+          <span className="flex items-center space-x-2">
+            <LiaTagsSolid size={20} />
+            <span>Category</span>
+          </span>{' '}
+          <span className="ml-auto">
+            {' '}
+            <GoChevronRight size={20} />
+          </span>
+        </button>
+
+        {showCategoryMenu && (
+          <CategoryMenu
+            downloadId={downloadId}
+            onAddCategory={onAddCategory}
+            onRemoveCategory={onRemoveCategory}
+            currentCategories={currentCategories}
+            availableCategories={availableCategories}
+            menuPositionClass={getTagMenuPositionClass()}
+          />
+        )}
+      </div>
       <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2">
-        <span>📁 Category</span>
-        <span className="ml-auto">▶</span>
-      </button>
-      <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2">
-        <span>🏷️ Tags</span>
-        <span className="ml-auto">▶</span>
-      </button>
-      <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2">
-        <span>⚙️ Download Options</span>
+        <span className="flex items-center space-x-2">
+          <IoOptionsOutline size={20} />
+          <span>Download Option</span>
+        </span>{' '}
       </button>
     </div>
   );

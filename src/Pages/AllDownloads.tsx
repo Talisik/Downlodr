@@ -36,6 +36,14 @@ const AllDownloads = () => {
   const downloading = useDownloadStore((state) => state.downloading);
   const forDownloads = useDownloadStore((state) => state.forDownloads);
   const deleteDownload = useDownloadStore((state) => state.deleteDownload);
+  const availableTags = useDownloadStore((state) => state.availableTags);
+  const addTag = useDownloadStore((state) => state.addTag);
+  const removeTag = useDownloadStore((state) => state.removeTag);
+  const availableCategories = useDownloadStore(
+    (state) => state.availableCategories,
+  );
+  const addCategory = useDownloadStore((state) => state.addCategory);
+  const removeCategory = useDownloadStore((state) => state.removeCategory);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{
     downloadId: string | null;
@@ -185,6 +193,17 @@ const AllDownloads = () => {
     setExpandedRowId(expandedRowId === downloadId ? null : downloadId);
   };
 
+  // Find current tags for the selected download
+  const getCurrentTags = (downloadId: string) => {
+    const download = allDownloads.find((d) => d.id === downloadId);
+    return download?.tags || [];
+  };
+
+  const getCurrentCategories = (downloadId: string) => {
+    const download = allDownloads.find((d) => d.id === downloadId);
+    return download?.category || [];
+  };
+
   return (
     <div className="w-full pb-5">
       <table className="w-full">
@@ -332,6 +351,14 @@ const AllDownloads = () => {
           onForceStart={handleForceStart}
           onRemove={handleRemove}
           onViewDownload={handleViewDownload}
+          onAddTag={addTag}
+          onRemoveTag={removeTag}
+          currentTags={getCurrentTags(contextMenu.downloadId)}
+          availableTags={availableTags}
+          onAddCategory={addCategory}
+          onRemoveCategory={removeCategory}
+          currentCategories={getCurrentCategories(contextMenu.downloadId)}
+          availableCategories={availableCategories}
         />
       )}
     </div>
