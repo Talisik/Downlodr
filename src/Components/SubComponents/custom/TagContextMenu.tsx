@@ -1,23 +1,23 @@
 import React from 'react';
 import { MdEdit, MdDelete } from 'react-icons/md';
 
-interface CategoryContextMenuProps {
+interface TagContextMenuProps {
   position: { x: number; y: number };
-  categoryName: string;
+  tagName: string;
   onClose: () => void;
   onRename: (oldName: string, newName: string) => void;
-  onDelete: (category: string) => void;
+  onDelete: (tag: string) => void;
 }
 
-const CategoryContextMenu: React.FC<CategoryContextMenuProps> = ({
+const TagContextMenu: React.FC<TagContextMenuProps> = ({
   position,
-  categoryName,
+  tagName,
   onClose,
   onRename,
   onDelete,
 }) => {
   const [isRenaming, setIsRenaming] = React.useState(false);
-  const [newName, setNewName] = React.useState(categoryName);
+  const [newName, setNewName] = React.useState(tagName);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -27,8 +27,8 @@ const CategoryContextMenu: React.FC<CategoryContextMenuProps> = ({
   }, [isRenaming]);
 
   const handleRename = () => {
-    if (newName.trim() && newName !== categoryName) {
-      onRename(categoryName, newName.trim());
+    if (newName.trim() && newName !== tagName) {
+      onRename(tagName, newName.trim());
     }
     setIsRenaming(false);
     onClose();
@@ -73,7 +73,7 @@ const CategoryContextMenu: React.FC<CategoryContextMenuProps> = ({
           </button>
           <button
             onClick={() => {
-              onDelete(categoryName);
+              onDelete(tagName);
               onClose();
             }}
             className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
@@ -87,4 +87,4 @@ const CategoryContextMenu: React.FC<CategoryContextMenuProps> = ({
   );
 };
 
-export default CategoryContextMenu;
+export default TagContextMenu;

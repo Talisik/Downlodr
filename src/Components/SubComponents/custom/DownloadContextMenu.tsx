@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import TagMenu from './TagsMenu';
 import CategoryMenu from './CategoryMenu';
-import { IoPauseCircleOutline, IoOptionsOutline } from 'react-icons/io5';
+import { IoPauseCircleOutline } from 'react-icons/io5';
 import { LiaFileVideoSolid, LiaTagsSolid } from 'react-icons/lia';
 import { HiOutlineStopCircle } from 'react-icons/hi2';
 import { BiRightArrow } from 'react-icons/bi';
@@ -271,12 +271,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           />
         )}
       </div>
-      <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700">
-        <span className="flex items-center space-x-2">
-          <IoOptionsOutline size={20} />
-          <span>Download Option</span>
-        </span>{' '}
-      </button>
     </div>
   );
 };

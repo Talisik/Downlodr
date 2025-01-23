@@ -8,6 +8,7 @@ import { BsTag } from 'react-icons/bs';
 import { CiFolderOn } from 'react-icons/ci';
 import useDownloadStore from '../../../Store/downloadStore';
 import CategoryContextMenu from '../../SubComponents/custom/CategoryContextMenu';
+import TagContextMenu from '../../SubComponents/custom/TagContextMenu';
 
 const Navigation = ({ className }: { className?: string }) => {
   const [openSections, setOpenSections] = useState({
@@ -20,12 +21,20 @@ const Navigation = ({ className }: { className?: string }) => {
     x: number;
     y: number;
   } | null>(null);
+  const [tagContextMenu, setTagContextMenu] = useState<{
+    tag: string;
+    x: number;
+    y: number;
+  } | null>(null);
   const navRef = useRef<HTMLElement>(null);
   const availableCategories = useDownloadStore(
     (state) => state.availableCategories,
   );
   const renameCategory = useDownloadStore((state) => state.renameCategory);
   const deleteCategory = useDownloadStore((state) => state.deleteCategory);
+  const availableTags = useDownloadStore((state) => state.availableTags);
+  const renameTag = useDownloadStore((state) => state.renameTag);
+  const deleteTag = useDownloadStore((state) => state.deleteTag);
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({
@@ -43,10 +52,20 @@ const Navigation = ({ className }: { className?: string }) => {
     });
   };
 
+  const handleTagContextMenu = (e: React.MouseEvent, tag: string) => {
+    e.preventDefault();
+    setTagContextMenu({
+      tag,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(event.target as Node)) {
         setContextMenu(null);
+        setTagContextMenu(null);
       }
     };
 
@@ -187,6 +206,24 @@ const Navigation = ({ className }: { className?: string }) => {
                 <BsTag className="text-blue-500 text-lg flex-shrink-0" />
                 <span className="ml-2">Untagged</span>
               </NavLink>
+              {availableTags.map((tag) => (
+                <NavLink
+                  key={tag}
+                  to={`/tags/${encodeURIComponent(tag)}`}
+                  className="nav-link"
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setTagContextMenu({
+                      tag,
+                      x: e.clientX,
+                      y: e.clientY,
+                    });
+                  }}
+                >
+                  <BsTag className="text-yellow-500 text-lg flex-shrink-0" />
+                  <span className="ml-2">{tag}</span>
+                </NavLink>
+              ))}
             </div>
           )}
         </div>
@@ -199,6 +236,22 @@ const Navigation = ({ className }: { className?: string }) => {
           onClose={() => setContextMenu(null)}
           onRename={renameCategory}
           onDelete={deleteCategory}
+        />
+      )}
+
+      {tagContextMenu && (
+        <TagContextMenu
+          position={{ x: tagContextMenu.x, y: tagContextMenu.y }}
+          tagName={tagContextMenu.tag}
+          onClose={() => setTagContextMenu(null)}
+          onRename={(oldName, newName) => {
+            renameTag(oldName, newName);
+            setTagContextMenu(null);
+          }}
+          onDelete={(tag) => {
+            deleteTag(tag);
+            setTagContextMenu(null);
+          }}
         />
       )}
     </nav>

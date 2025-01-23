@@ -98,6 +98,7 @@ interface DownloadStore {
   ) => void;
 
   deleteDownload: (id: string) => void;
+  deleteDownloading: (id: string) => void;
 
   addTag: (downloadId: string, tag: string) => void;
   removeTag: (downloadId: string, tag: string) => void;
@@ -107,6 +108,9 @@ interface DownloadStore {
 
   renameCategory: (oldName: string, newName: string) => void;
   deleteCategory: (category: string) => void;
+
+  renameTag: (oldName: string, newName: string) => void;
+  deleteTag: (tag: string) => void;
 }
 
 const useDownloadStore = create<DownloadStore>()(
@@ -564,6 +568,50 @@ const useDownloadStore = create<DownloadStore>()(
             availableCategories: state.availableCategories.filter(
               (cat) => cat !== category,
             ),
+            downloading: updateDownloads(state.downloading),
+            finishedDownloads: updateDownloads(state.finishedDownloads),
+            historyDownloads: updateDownloads(state.historyDownloads),
+            forDownloads: updateDownloads(state.forDownloads),
+          };
+        }),
+
+      renameTag: (oldName: string, newName: string) =>
+        set((state) => {
+          const updateDownloads = <T extends BaseDownload>(
+            downloads: T[],
+          ): T[] =>
+            downloads.map((download) => ({
+              ...download,
+              tags: download.tags?.map((tag) =>
+                tag === oldName ? newName : tag,
+              ),
+            }));
+
+          return {
+            ...state,
+            availableTags: state.availableTags.map((tag) =>
+              tag === oldName ? newName : tag,
+            ),
+            downloading: updateDownloads(state.downloading),
+            finishedDownloads: updateDownloads(state.finishedDownloads),
+            historyDownloads: updateDownloads(state.historyDownloads),
+            forDownloads: updateDownloads(state.forDownloads),
+          };
+        }),
+
+      deleteTag: (tag: string) =>
+        set((state) => {
+          const updateDownloads = <T extends BaseDownload>(
+            downloads: T[],
+          ): T[] =>
+            downloads.map((download) => ({
+              ...download,
+              tags: download.tags?.filter((t) => t !== tag),
+            }));
+
+          return {
+            ...state,
+            availableTags: state.availableTags.filter((t) => t !== tag),
             downloading: updateDownloads(state.downloading),
             finishedDownloads: updateDownloads(state.finishedDownloads),
             historyDownloads: updateDownloads(state.historyDownloads),

@@ -116,6 +116,44 @@ const AllDownloads = () => {
     downloadLocation?: string,
     controllerId?: string,
   ) => {
+    console.log('Stopping all downloads');
+    const { downloading, deleteDownloading } = useDownloadStore.getState();
+
+    if (downloading && downloading.length > 0) {
+      downloading.forEach(async (download) => {
+        console.log(`Attempting to stop download: ${download.id}`);
+
+        if (download.controllerId) {
+          try {
+            const success = await window.ytdlp.killController(
+              download.controllerId,
+            );
+            if (success) {
+              deleteDownloading(download.id);
+              console.log(
+                `Controller with ID ${download.controllerId} has been terminated.`,
+              );
+            } else {
+              console.log(
+                `Failed to terminate controller with ID ${download.controllerId}.`,
+              );
+              // setCurrentDownloadId(download.id);
+            }
+          } catch (error) {
+            console.error('Error invoking kill-controller:', error);
+          }
+        } else {
+          console.error(`Controller ID not found for download ${download.id}`);
+        }
+      });
+
+      // Clear selected downloads after stopping all
+      // setSelectedDownloading([]);
+    } else {
+      console.log('Error deleting');
+    }
+    // setSelectedDownloading([]);
+
     console.log(
       'Stopping:',
       downloadId,

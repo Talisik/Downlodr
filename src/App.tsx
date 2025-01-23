@@ -9,6 +9,7 @@ import ScheduleTable from './Pages/Scheduler/ScheduleTable';
 import ScheduleCalendar from './Pages/Scheduler/ScheduleCalendar';
 import NotFound from './Pages/SubPages/NotFound';
 import CategoryPage from './Pages/SubPages/CategoryPage';
+import TagPage from './Pages/SubPages/TagsPage';
 
 const App = () => {
   return (
@@ -16,7 +17,7 @@ const App = () => {
       <Router>
         <Routes>
           <Route path="/" element={<MainLayout />}>
-            <Route index element={<Downloading />} />
+            <Route index element={<AllDownloads />} />
             <Route path="/downloading" element={<Downloading />} />
             <Route path="/allDownloads" element={<AllDownloads />} />
             <Route path="/completed" element={<CompletedDownloads />} />
@@ -24,6 +25,7 @@ const App = () => {
             <Route path="/scheduleTable" element={<ScheduleTable />} />
             <Route path="/scheduleCalendar" element={<ScheduleCalendar />} />
             <Route path="/category/:categoryId" element={<CategoryPage />} />
+            <Route path="/tags/:tagId" element={<TagPage />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

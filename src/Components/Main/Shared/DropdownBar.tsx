@@ -100,7 +100,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
           className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
           onClick={() => window.electronDevTools.toggle()}
         >
-          Browser
+          Console
         </button>
 
         <button className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold">
