@@ -43,14 +43,14 @@ const TagMenu: React.FC<TagMenuProps> = ({
   return (
     <div
       ref={menuRef}
-      className={`absolute bg-white border rounded-md shadow-lg py-1 min-w-[180px] z-50 ${menuPositionClass}`}
+      className={`absolute bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 min-w-[180px] z-50 ${menuPositionClass} dark:border-gray-700`}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="m-2 px-4 py-2 flex flex-row border rounded">
-        <GoPlus size={22} className="ml-[-10px] mr-2" />
+      <div className="m-2 px-4 py-2 flex flex-row border rounded dark:border-gray-700">
+        <GoPlus size={22} className="ml-[-10px] mr-2 dark:text-gray-200" />
         <input
           type="text"
-          placeholder="Add New Tag..."
+          placeholder="Add new tag..."
           value={newTag}
           onChange={(e) => setNewTag(e.target.value)}
           onKeyDown={(e) => {
@@ -59,16 +59,16 @@ const TagMenu: React.FC<TagMenuProps> = ({
               setNewTag('');
             }
           }}
-          className="w-full outline-none"
+          className="w-full outline-none dark:bg-darkMode dark:text-gray-200"
         />
       </div>
-      <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider" />
+      <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider dark:border-gray-700" />
 
       <div className="max-h-48 overflow-y-auto">
         {availableTags.map((tag) => (
           <button
             key={tag}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 dark:text-gray-200"
             onClick={(e) => {
               e.stopPropagation();
               if (currentTags.includes(tag)) {
@@ -78,7 +78,9 @@ const TagMenu: React.FC<TagMenuProps> = ({
               }
             }}
           >
-            <span>{currentTags.includes(tag) ? '✓' : ''}</span>
+            <span className="dark:text-gray-200">
+              {currentTags.includes(tag) ? '✓' : ''}
+            </span>
             <span>{tag}</span>
           </button>
         ))}

@@ -10,6 +10,7 @@ import {
   TabsTrigger,
 } from '../../SubComponents/shadcn/components/ui/tabs';
 import { RiTable3, RiCalendarLine } from 'react-icons/ri';
+import SchedulerModal from '../Modal/SchedulerModal';
 
 interface TaskBarProps {
   className?: string;
@@ -17,6 +18,7 @@ interface TaskBarProps {
 
 const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [isSchedulerModalOpen, setSchedulerModalOpen] = useState(false);
   const location = useLocation();
 
   const isSchedulePage = ['/scheduleTable', '/scheduleCalendar'].includes(
@@ -42,15 +44,15 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             <span className="hidden sm:inline">Add URL</span>
             <span className="sm:hidden"> Add URL</span>
           </button>
-          <button className="hover:bg-gray-100 px-3 py-1 rounded flex gap-1 font-semibold">
+          <button className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200">
             {' '}
             <VscPlayCircle size={18} className="mt-[0.9px]" /> Play
           </button>
-          <button className="hover:bg-gray-100 px-3 py-1 rounded flex gap-1 font-semibold">
+          <button className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200">
             {' '}
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
           </button>
-          <button className="hover:bg-gray-100 px-3 py-1 rounded flex gap-1 font-semibold">
+          <button className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200">
             {' '}
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
           </button>
@@ -58,13 +60,21 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         {/* Right side button */}
         {isSchedulePage && (
           <Tabs defaultValue={defaultTab} className="w-[100px]">
-            <TabsList>
-              <TabsTrigger value="table" asChild>
+            <TabsList className="dark:bg-gray-700">
+              <TabsTrigger
+                value="table"
+                asChild
+                className="dark:data-[state=active]:bg-gray-600 dark:text-gray-200"
+              >
                 <NavLink to="/scheduleTable" className="w-full">
                   <RiTable3 size={18} />
                 </NavLink>
               </TabsTrigger>
-              <TabsTrigger value="calendar" asChild>
+              <TabsTrigger
+                value="calendar"
+                asChild
+                className="dark:data-[state=active]:bg-gray-600 dark:text-gray-200"
+              >
                 <NavLink to="/scheduleCalendar" className="w-full">
                   <RiCalendarLine size={18} />
                 </NavLink>
@@ -74,6 +84,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         )}
       </div>
 
+      <SchedulerModal
+        isOpen={isSchedulerModalOpen}
+        onClose={() => setSchedulerModalOpen(false)}
+      />
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setDownloadModalOpen(false)}

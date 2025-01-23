@@ -62,15 +62,17 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center h-full">
-      <div className="bg-white rounded-lg pt-6 pr-6 pl-6 pb-4 max-w-xl w-full mx-4">
+    <div className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full">
+      <div className="bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 max-w-xl w-full mx-4">
         {/* Left side - Form */}
         <div className="w-full">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold">Create New Schedule</h2>
+            <h2 className="text-xl font-semibold dark:text-gray-200">
+              Create New Schedule
+            </h2>
             <button
               onClick={handleClose}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
               <IoMdClose size={16} />
             </button>
@@ -80,25 +82,27 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
             {/* Schedule Name */}
             <div className="space-y-4">
               <div>
-                <label className="block mb-2">Schedule Name</label>
+                <label className="block mb-2 dark:text-gray-200">
+                  Schedule Name
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     placeholder="e.g Tech Daily News"
                     value={scheduleName}
                     onChange={(e) => setScheduleName(e.target.value)}
-                    className="flex-1 border rounded-md px-3 py-2"
+                    className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none border-transparent"
                   />
                 </div>
               </div>
               {/* End of Schedule Name */}
-              {/* Uploud Button */}
+              {/* Upload Button */}
               <div className="space-y-4 flex justify-end">
                 <div className="flex gap-3">
                   <a
                     href="https://www.w3schools.com/"
                     target="_blank"
-                    className="mt-2 text-xs underline underline-offset-2 text-primary"
+                    className="mt-2 text-xs underline underline-offset-2 text-primary dark:text-primary"
                   >
                     CSV Format
                   </a>
@@ -110,22 +114,22 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
                   </button>
                 </div>
               </div>
-              {/* End of Uploud Button */}
+              {/* End of Upload Button */}
               {/* Schedule Name */}
               <div className="flex gap-4 pt-4">
                 <div className="flex-1">
-                  <label className="block mb-2">Name</label>
+                  <label className="block mb-2 dark:text-gray-200">Name</label>
                   <input
                     type="text"
                     placeholder="Name"
                     value={channelUrls}
                     onChange={(e) => setChannelUrls(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2"
+                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none border-transparent"
                   />
                 </div>
 
                 <div className="">
-                  <label className="block mb-2">Day</label>
+                  <label className="block mb-2 dark:text-gray-200">Day</label>
                   <select
                     value={scheduleDay}
                     onChange={(e) => {
@@ -137,17 +141,23 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
                         setScheduleDayVal(selectedDay.dayVal);
                       }
                     }}
-                    className="w-full border rounded-md px-3 py-2"
+                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none border-transparent [&>option]:dark:bg-darkMode"
                   >
                     {dayOptions.map((day) => (
-                      <option key={day.dayVal} value={day.dayDisplayName}>
+                      <option
+                        key={day.dayVal}
+                        value={day.dayDisplayName}
+                        className="dark:bg-darkMode dark:text-gray-200"
+                      >
                         {day.dayDisplayName}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className="">
-                  <label className="block mb-2">Check Frequency</label>
+                  <label className="block mb-2 dark:text-gray-200">
+                    Check Frequency
+                  </label>
                   <select
                     value={scheduleFrequency}
                     onChange={(e) => {
@@ -160,12 +170,13 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
                         setScheduleDayVal(selectedFrequency.frequencyVal);
                       }
                     }}
-                    className="w-full border rounded-md px-3 py-2"
+                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none border-transparent [&>option]:dark:bg-darkMode"
                   >
                     {frequencyOptions.map((frequency) => (
                       <option
                         key={frequency.frequencyVal}
                         value={frequency.frequencyDisplayName}
+                        className="dark:bg-darkMode dark:text-gray-200"
                       >
                         {frequency.frequencyDisplayName}
                       </option>
@@ -177,18 +188,18 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
               {/* Download Location Name */}
               <div className="flex gap-4 pt-4">
                 <div className="flex-1">
-                  <label className="block mb-2">Name</label>
+                  <label className="block mb-2 dark:text-gray-200">Name</label>
                   <input
                     type="text"
                     placeholder="Name"
                     value={channelUrls}
                     onChange={(e) => setChannelUrls(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2"
+                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none border-transparent"
                   />
                 </div>
 
                 <div className="">
-                  <label className="block mb-2">Day</label>
+                  <label className="block mb-2 dark:text-gray-200">Day</label>
                   <select
                     value={scheduleDay}
                     onChange={(e) => {
@@ -200,10 +211,14 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
                         setScheduleDayVal(selectedDay.dayVal);
                       }
                     }}
-                    className="w-full border rounded-md px-3 py-2"
+                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none border-transparent [&>option]:dark:bg-darkMode"
                   >
                     {dayOptions.map((day) => (
-                      <option key={day.dayVal} value={day.dayDisplayName}>
+                      <option
+                        key={day.dayVal}
+                        value={day.dayDisplayName}
+                        className="dark:bg-darkMode dark:text-gray-200"
+                      >
                         {day.dayDisplayName}
                       </option>
                     ))}
@@ -216,8 +231,7 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Button commands */}
-
-        <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider" />
+        <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
 
         <div className="flex gap-3">
           <button
@@ -229,7 +243,7 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
           <button
             type="button"
             onClick={handleClose}
-            className="px-2 py-2 border rounded-md hover:bg-gray-50"
+            className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
           >
             Cancel
           </button>

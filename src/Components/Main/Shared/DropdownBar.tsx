@@ -37,17 +37,19 @@ const DropdownBar = ({ className }: { className?: string }) => {
       <div className="flex items-center gap-4">
         <div className="relative">
           <button
-            className={`px-2 py-1 hover:bg-gray-100 rounded font-semibold ${
-              activeMenu === 'file' ? 'bg-gray-100 font-semibold' : ''
+            className={`px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold ${
+              activeMenu === 'file'
+                ? 'bg-gray-100 dark:bg-gray-700 font-semibold'
+                : ''
             }`}
             onClick={() => setActiveMenu(activeMenu === 'file' ? null : 'file')}
           >
             File
           </button>
           {activeMenu === 'file' && (
-            <div className="absolute left-0 mt-1 w-48 bg-white border rounded-md shadow-lg py-1 z-50">
+            <div className="absolute left-0 mt-1 w-48 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 font-semibold"
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200"
                 onClick={() => {
                   setDownloadModalOpen(true);
                   setActiveMenu(null);
@@ -56,7 +58,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
                 <span>+ New Download</span>
               </button>
               <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 font-semibold"
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200"
                 onClick={() => window.downlodrFunctions.closeApp()}
               >
                 <span>K Exit</span>
@@ -67,39 +69,41 @@ const DropdownBar = ({ className }: { className?: string }) => {
 
         <div className="relative">
           <button
-            className={`px-2 py-1 hover:bg-gray-100 rounded font-semibold${
-              activeMenu === 'task' ? 'bg-gray-100 font-semibold' : ''
+            className={`px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold ${
+              activeMenu === 'task'
+                ? 'bg-gray-100 dark:bg-gray-700 font-semibold'
+                : ''
             }`}
             onClick={() => setActiveMenu(activeMenu === 'task' ? null : 'task')}
           >
             Task
           </button>
           {activeMenu === 'task' && (
-            <div className="absolute left-0 mt-1 w-48 bg-white border rounded-md shadow-lg py-1 z-50">
-              <button className="w-full text-left px-4 py-2 hover:bg-gray-100 font-semibold">
+            <div className="absolute left-0 mt-1 w-48 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+              <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold dark:text-gray-200">
                 Start All
               </button>
-              <button className="w-full text-left px-4 py-2 hover:bg-gray-100 font-semibold">
+              <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold dark:text-gray-200">
                 Stop All
               </button>
             </div>
           )}
         </div>
 
-        <button className="px-2 py-1 hover:bg-gray-100 rounded">
+        <button className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
           <NavLink to="/scheduleTable" className={'scheduler font-semibold'}>
             <span className="ml-2">Scheduler</span>
           </NavLink>{' '}
         </button>
 
         <button
-          className="px-2 py-1 hover:bg-gray-100 rounded font-semibold"
+          className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
           onClick={() => window.electronDevTools.toggle()}
         >
           Browser
         </button>
 
-        <button className="px-2 py-1 hover:bg-gray-100 rounded font-semibold">
+        <button className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold">
           Settings
         </button>
       </div>

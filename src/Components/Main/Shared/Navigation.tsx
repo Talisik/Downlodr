@@ -20,7 +20,7 @@ const Navigation = ({ className }: { className?: string }) => {
     x: number;
     y: number;
   } | null>(null);
-  const navRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
   const availableCategories = useDownloadStore(
     (state) => state.availableCategories,
   );
@@ -57,14 +57,14 @@ const Navigation = ({ className }: { className?: string }) => {
   return (
     <nav
       ref={navRef}
-      className={`${className} border-solid border-r-2 border-gray-200`}
+      className={`${className} border-solid border-r-2 border-gray-200 dark:border-gray-700`}
     >
       <div className="p-2 space-y-2 ml-2">
         {/* Status Section */}
         <div>
           <button
             onClick={() => toggleSection('status')}
-            className="w-full flex items-center p-2 hover:bg-gray-200 rounded"
+            className="w-full flex items-center p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded dark:text-gray-200"
           >
             {openSections.status ? (
               <HiChevronDown size={18} />
@@ -76,19 +76,47 @@ const Navigation = ({ className }: { className?: string }) => {
 
           {openSections.status && (
             <div className="ml-4 space-y-1">
-              <NavLink to="/allDownloads" className="nav-link">
-                <CiFolderOn className="text-gray-600 text-lg flex-shrink-0" />
-                <span className="ml-2 ">All</span>
+              <NavLink
+                to="/allDownloads"
+                className={({ isActive }) =>
+                  `nav-link ${
+                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                }
+              >
+                <CiFolderOn className="text-gray-600 dark:text-gray-400 text-lg flex-shrink-0" />
+                <span className="ml-2">All</span>
               </NavLink>
-              <NavLink to="/downloading" className="nav-link">
+              <NavLink
+                to="/downloading"
+                className={({ isActive }) =>
+                  `nav-link ${
+                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                }
+              >
                 <FiDownload className="text-blue-500 text-lg flex-shrink-0" />
                 <span className="ml-2">Downloading</span>
               </NavLink>
-              <NavLink to="/completed" className="nav-link">
+              <NavLink
+                to="/completed"
+                className={({ isActive }) =>
+                  `nav-link ${
+                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                }
+              >
                 <AiOutlineCheck className="text-green-500 text-lg flex-shrink-0" />
                 <span className="ml-2">Completed</span>
               </NavLink>
-              <NavLink to="/history" className="nav-link">
+              <NavLink
+                to="/history"
+                className={({ isActive }) =>
+                  `nav-link ${
+                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                }
+              >
                 <FiClock className="text-yellow-500 text-lg flex-shrink-0" />
                 <span className="ml-2">History</span>
               </NavLink>
@@ -100,7 +128,7 @@ const Navigation = ({ className }: { className?: string }) => {
         <div>
           <button
             onClick={() => toggleSection('category')}
-            className="w-full flex items-center p-2 hover:bg-gray-200 rounded"
+            className="w-full flex items-center p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded dark:text-gray-200"
           >
             {openSections.category ? (
               <HiChevronDown size={18} />
@@ -139,7 +167,7 @@ const Navigation = ({ className }: { className?: string }) => {
         <div>
           <button
             onClick={() => toggleSection('tag')}
-            className="w-full flex items-center p-2 hover:bg-gray-200 rounded"
+            className="w-full flex items-center p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded dark:text-gray-200"
           >
             {openSections.tag ? (
               <HiChevronDown size={18} />

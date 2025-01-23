@@ -72,13 +72,13 @@ const ScheduleCalendar = () => {
   const getScheduleColor = (type: Schedule['type']) => {
     switch (type) {
       case 'Tech Reviews':
-        return 'bg-blue-100';
+        return 'bg-blue-100 dark:bg-blue-200';
       case 'Cooking Channel':
-        return 'bg-pink-100';
+        return 'bg-pink-100 dark:bg-pink-200';
       case 'Gaming News':
-        return 'bg-green-100';
+        return 'bg-green-100 dark:bg-green-200';
       default:
-        return 'bg-gray-100';
+        return 'bg-gray-100 dark:bg-gray-200';
     }
   };
 
@@ -103,28 +103,28 @@ const ScheduleCalendar = () => {
 
   return (
     <div className="w-full h-full overflow-x-auto">
-      <div className="min-w-[600px] p-4 bg-white">
+      <div className="min-w-[600px] p-4 bg-white dark:bg-darkMode">
         {/* Month Navigation */}
         <div className="flex justify-between items-center mb-4">
           <button
             onClick={handlePrevMonth}
-            className={`px-4 py-2 rounded hover:bg-gray-100 ${
+            className={`px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 ${
               isBefore(subMonths(currentDate, 1), minDate)
-                ? 'opacity-50 cursor-not-allowed'
+                ? 'opacity-50 cursor-not-allowed dark:opacity-30'
                 : ''
             }`}
             disabled={isBefore(subMonths(currentDate, 1), minDate)}
           >
             Previous
           </button>
-          <h2 className="text-xl font-semibold">
+          <h2 className="text-xl font-semibold dark:text-gray-200">
             {format(currentDate, 'MMMM yyyy')}
           </h2>
           <button
             onClick={handleNextMonth}
-            className={`px-4 py-2 rounded hover:bg-gray-100 ${
+            className={`px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 ${
               isAfter(addMonths(currentDate, 1), maxDate)
-                ? 'opacity-50 cursor-not-allowed'
+                ? 'opacity-50 cursor-not-allowed dark:opacity-30'
                 : ''
             }`}
             disabled={isAfter(addMonths(currentDate, 1), maxDate)}
@@ -135,30 +135,41 @@ const ScheduleCalendar = () => {
 
         <div className="grid grid-cols-7 gap-1">
           {['Sun', 'Mon', 'Tues', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="p-2 text-center font-semibold border-b">
+            <div
+              key={day}
+              className="p-2 text-center font-semibold border-b dark:border-gray-700 dark:text-gray-200"
+            >
               {day}
             </div>
           ))}
           {days.map((day: any) => (
             <div
               key={day.toString()}
-              className={`min-h-[120px] p-2 border ${
-                !isSameMonth(day, currentDate) ? 'bg-gray-50' : ''
+              className={`min-h-[120px] p-2 border dark:border-gray-700 ${
+                !isSameMonth(day, currentDate)
+                  ? 'bg-gray-50 dark:bg-gray-800'
+                  : 'dark:bg-gray-900'
               }`}
             >
-              <div className="text-sm mb-1">{format(day, 'd')}</div>
+              <div className="text-sm mb-1 dark:text-gray-200">
+                {format(day, 'd')}
+              </div>
               <div className="space-y-1">
                 {getSchedulesForDay(day).map((schedule) => (
                   <div
                     key={schedule.id}
                     className={`${getScheduleColor(
                       schedule.type,
-                    )} p-1 rounded text-xs border`}
+                    )} p-1 rounded text-xs border dark:border-gray-700`}
                   >
-                    <div className="font-medium">{schedule.name}</div>
-                    <div>{schedule.time}</div>
+                    <div className="font-medium dark:text-gray-800">
+                      {schedule.name}
+                    </div>
+                    <div className="dark:text-gray-700">{schedule.time}</div>
                     {schedule.frequency && (
-                      <div className="text-gray-500">{schedule.frequency}</div>
+                      <div className="text-gray-500 dark:text-gray-600">
+                        {schedule.frequency}
+                      </div>
                     )}
                   </div>
                 ))}

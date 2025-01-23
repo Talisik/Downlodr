@@ -1,31 +1,37 @@
 import React from 'react';
 import { IoMdClose, IoMdRemove } from 'react-icons/io';
-import { MdOutlineWbSunny } from 'react-icons/md';
-import downlodrLogo from '../../../Assets/Logo/Downlodr-Logo.svg';
+import downlodrLogoLight from '../../../Assets/Logo/Downlodr-Logo.svg';
+import downlodrLogoDark from '../../../Assets/Logo/Downlodr-LogoDark.svg';
+import { ModeToggle } from '../../../Components/SubComponents/custom/ModeToggle';
+import { useTheme } from '../../../Components/ThemeProvider';
 
 interface TitleBarProps {
   className?: string;
 }
 
 const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
+  const { theme } = useTheme();
+
   return (
     <div className={className}>
       <div className="flex justify-between items-center h-full px-4">
         {/* Title */}
         <div className="text-sm flex-1 drag-area">
-          <img src={downlodrLogo} alt="Downlodr" className="h-5" />
+          <img
+            src={theme === 'dark' ? downlodrLogoDark : downlodrLogoLight}
+            alt="Downlodr"
+            className="h-5"
+          />
         </div>
 
         {/* Buttons */}
         <div className="flex space-x-4 no-drag">
           {/*Dark Mode/Light Mode */}
-          <button className="hover:bg-gray-100 p-1">
-            <MdOutlineWbSunny size={16} />
-          </button>
+          <ModeToggle />
 
           {/* Minimize Button */}
           <button
-            className="hover:bg-gray-100 p-1"
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
             onClick={() => window.downlodrFunctions.minimizeApp()}
           >
             <IoMdRemove size={16} />
@@ -33,7 +39,7 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
 
           {/* Close Button */}
           <button
-            className="hover:bg-gray-100 p-1"
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
             onClick={() => window.downlodrFunctions.closeApp()}
           >
             <IoMdClose size={16} />

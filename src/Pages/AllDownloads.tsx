@@ -208,50 +208,70 @@ const AllDownloads = () => {
     <div className="w-full pb-5">
       <table className="w-full">
         <thead>
-          <tr className="border-b text-left">
+          <tr className="border-b text-left dark:border-gray-700">
             <th className="w-8 p-2">
               <input
                 type="checkbox"
-                className="rounded border-gray-300"
+                className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                 checked={selectedRows.length === allDownloads.length}
                 onChange={handleSelectAll}
               />
             </th>
-            <th className="w-1/5 p-2 font-semibold">Schedule: </th>
+            <th className="w-1/5 p-2 font-semibold dark:text-gray-200">
+              Schedule:{' '}
+            </th>
             <th className="w-20 p-2 font-semibold">
-              <div className="flex items-center">
+              <div className="flex items-center dark:text-gray-200">
                 Size
-                <HiChevronUpDown size={14} className="flex-shrink-0" />
+                <HiChevronUpDown
+                  size={14}
+                  className="flex-shrink-0 dark:text-gray-400"
+                />
               </div>
             </th>
             <th className="w-1/6 p-2 font-semibold">
-              <div className="flex items-center">
+              <div className="flex items-center dark:text-gray-200">
                 Status
-                <HiChevronUpDown size={14} className="flex-shrink-0" />
+                <HiChevronUpDown
+                  size={14}
+                  className="flex-shrink-0 dark:text-gray-400"
+                />
               </div>
             </th>
             <th className="w-22 p-2 font-semibold">
-              <div className="flex items-center">
+              <div className="flex items-center dark:text-gray-200">
                 Speed
-                <HiChevronUpDown size={14} className="flex-shrink-0" />
+                <HiChevronUpDown
+                  size={14}
+                  className="flex-shrink-0 dark:text-gray-400"
+                />
               </div>
             </th>
             <th className="w-26 p-2 font-semibold">
-              <div className="flex items-center">
+              <div className="flex items-center dark:text-gray-200">
                 Time Left
-                <HiChevronUpDown size={14} className="flex-shrink-0" />
+                <HiChevronUpDown
+                  size={14}
+                  className="flex-shrink-0 dark:text-gray-400"
+                />
               </div>
             </th>
             <th className="w-26 p-2 font-semibold">
-              <div className="flex items-center">
+              <div className="flex items-center dark:text-gray-200">
                 Date Added
-                <HiChevronUpDown size={14} className="flex-shrink-0" />
+                <HiChevronUpDown
+                  size={14}
+                  className="flex-shrink-0 dark:text-gray-400"
+                />
               </div>
             </th>
             <th className="w-20 p-2 font-semibold">
-              <div className="flex items-center">
+              <div className="flex items-center dark:text-gray-200">
                 Source
-                <HiChevronUpDown size={14} className="flex-shrink-0" />
+                <HiChevronUpDown
+                  size={14}
+                  className="flex-shrink-0 dark:text-gray-400"
+                />
               </div>
             </th>
           </tr>
@@ -260,8 +280,10 @@ const AllDownloads = () => {
           {allDownloads.map((download) => (
             <React.Fragment key={download.id}>
               <tr
-                className={`border-b hover:bg-gray-50 cursor-pointer ${
-                  selectedDownloadId === download.id ? 'bg-blue-50' : ''
+                className={`border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 cursor-pointer ${
+                  selectedDownloadId === download.id
+                    ? 'bg-blue-50 dark:bg-gray-600'
+                    : 'dark:bg-darkMode'
                 }`}
                 onContextMenu={(e) => handleContextMenu(e, download)}
                 onClick={() => handleRowClick(download.id)}
@@ -269,20 +291,20 @@ const AllDownloads = () => {
                 <td className="p-2">
                   <input
                     type="checkbox"
-                    className="rounded border-gray-300"
+                    className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                     checked={selectedRows.includes(download.id)}
                     onChange={() => handleCheckboxChange(download.id)}
                   />
                 </td>
-                <td className="p-2">{download.name}</td>
-                <td className="p-2">
+                <td className="p-2 dark:text-gray-200">{download.name}</td>
+                <td className="p-2 dark:text-gray-200">
                   {download.size
                     ? `${(download.size / 1048576).toFixed(2)} MB`
                     : 'Pending'}
                 </td>
                 <td className="p-2">
                   <div className="flex items-center">
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">
                       {download.status === 'cancelled' ||
                       download.status === 'initializing' ||
                       download.status === 'finished' ? (
@@ -290,11 +312,11 @@ const AllDownloads = () => {
                       ) : (
                         <>
                           {download.progress}%
-                          <div className="w-48 bg-gray-200 rounded-full h-2.5 mt-1">
+                          <div className="w-48 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-1">
                             <div
                               className={`h-2.5 rounded-full transition-all duration-300 ${
                                 download.progress === 0
-                                  ? 'bg-gray-400'
+                                  ? 'bg-gray-400 dark:bg-gray-600'
                                   : download.progress === 100
                                   ? 'bg-green-500'
                                   : 'bg-orange-500'
@@ -307,9 +329,11 @@ const AllDownloads = () => {
                     </span>
                   </div>
                 </td>
-                <td className="p-2">{download.speed || '-'}</td>
-                <td className="p-2">{download.timeLeft}</td>
-                <td className="p-2">
+                <td className="p-2 dark:text-gray-200">
+                  {download.speed || '-'}
+                </td>
+                <td className="p-2 dark:text-gray-200">{download.timeLeft}</td>
+                <td className="p-2 dark:text-gray-200">
                   {formatRelativeTime(download.DateAdded)}
                 </td>
                 <td className="p-2">
@@ -317,7 +341,7 @@ const AllDownloads = () => {
                     href={download.videoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline"
+                    className="text-blue-500 hover:underline dark:text-blue-400"
                   >
                     Source
                   </a>
@@ -332,7 +356,7 @@ const AllDownloads = () => {
       </table>
       {/* Optional: Display selected count */}
       {selectedRows.length > 0 && (
-        <div className="mt-2 text-sm text-gray-600">
+        <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
           Selected: {selectedRows.length} items
         </div>
       )}

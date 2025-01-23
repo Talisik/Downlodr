@@ -289,6 +289,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
         remuxVideo: args.ext,
         audioFormat: args.audioFormat,
         audioQuality: args.audioQuality,
+        // limitRate: '50k',
       },
     });
 

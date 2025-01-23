@@ -88,38 +88,40 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     <div ref={listRef} className="overflow-x-auto">
       <table className="min-w-full table-auto">
         <thead>
-          <tr className="bg-gray-100">
-            <th className="p-2 text-left">Name</th>
-            <th className="p-2 text-left">Size</th>
-            <th className="p-2 text-left">Status</th>
-            <th className="p-2 text-left">Tags</th>
-            <th className="p-2 text-left">Categories</th>
+          <tr className="bg-gray-100 dark:bg-gray-700">
+            <th className="p-2 text-left dark:text-gray-200">Name</th>
+            <th className="p-2 text-left dark:text-gray-200">Size</th>
+            <th className="p-2 text-left dark:text-gray-200">Status</th>
+            <th className="p-2 text-left dark:text-gray-200">Tags</th>
+            <th className="p-2 text-left dark:text-gray-200">Categories</th>
           </tr>
         </thead>
         <tbody>
           {downloads.map((download) => (
             <tr
               key={download.id}
-              className={`border-b hover:bg-gray-50 cursor-pointer ${
-                selectedDownloadId === download.id ? 'bg-blue-50' : ''
+              className={`border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${
+                selectedDownloadId === download.id
+                  ? 'bg-blue-50 dark:bg-gray-600'
+                  : 'dark:bg-darkMode'
               }`}
               onContextMenu={(e) => handleContextMenu(e, download)}
               onClick={() =>
                 handleViewDownload(`${download.location}${download.name}`)
               }
             >
-              <td className="p-2 flex items-center gap-2">
+              <td className="p-2 flex items-center gap-2 dark:text-gray-200">
                 <LuDownload className="text-blue-500" />
                 {download.name}
               </td>
-              <td className="p-2">{download.size}</td>
-              <td className="p-2">{download.status}</td>
+              <td className="p-2 dark:text-gray-200">{download.size}</td>
+              <td className="p-2 dark:text-gray-200">{download.status}</td>
               <td className="p-2">
                 <div className="flex flex-wrap gap-1">
                   {download.tags?.map((tag) => (
                     <span
                       key={tag}
-                      className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full"
+                      className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-full"
                     >
                       {tag}
                     </span>
@@ -131,7 +133,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                   {download.category?.map((category) => (
                     <span
                       key={category}
-                      className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded-full"
+                      className="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-200 rounded-full"
                     >
                       {category}
                     </span>

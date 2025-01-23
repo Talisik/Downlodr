@@ -3,7 +3,7 @@
 import { colors } from 'tailwindcss/defaultTheme';
 
 module.exports = {
-  darkMode: ['class'],
+  darkMode: 'class',
   content: [
     './pages/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
@@ -39,12 +39,21 @@ module.exports = {
       colors: {
         ...colors, // Spread the default colors
         // Add your custom colors here
-        titleBar: '#FEF9F4',
+        titleBar: {
+          DEFAULT: '#FEF9F4',
+          dark: '#16161E',
+        },
+        body:{
+          DEFAULT: '#fff',
+          dark: '#16161E',
+        },
         primary: '#F45513',
         secondary: '#202020',
         divider: '#D1D5DB',
         tabs: '#fef9f4',
         lightGray: '#EDEDED',
+        darkMode: '#16161E',
+        inputDarkMode: '#FEF9F426',
       },
     },
   },

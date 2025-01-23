@@ -36,12 +36,17 @@ const CompletedDownloads = () => {
     <div className="w-full pb-5">
       <table className="w-full">
         <thead>
-          <tr className="border-b text-left">
-            <th className="pl-4 w-1/5 p-2 font-semibold">Schedule: </th>
+          <tr className="border-b text-left dark:border-gray-700">
+            <th className="pl-4 w-1/5 p-2 font-semibold dark:text-gray-200">
+              Schedule:{' '}
+            </th>
             <th className="w-20 p-2 font-semibold">
-              <div className="flex items-center">
+              <div className="flex items-center dark:text-gray-200">
                 Size
-                <HiChevronUpDown size={14} className="flex-shrink-0" />
+                <HiChevronUpDown
+                  size={14}
+                  className="flex-shrink-0 dark:text-gray-400"
+                />
               </div>
             </th>
             <th className="w-1/6 p-2 font-semibold">
@@ -78,29 +83,36 @@ const CompletedDownloads = () => {
         </thead>
         <tbody>
           {finished.map((download) => (
-            <tr key={download.id} className="border-b hover:bg-gray-50">
-              <td className="p-2  pl-5">{download.name}</td>
-              <td className="p-2">
+            <tr
+              key={download.id}
+              className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-darkMode"
+            >
+              <td className="p-2 pl-5 dark:text-gray-200">{download.name}</td>
+              <td className="p-2 dark:text-gray-200">
                 {download.size
                   ? `${(download.size / 1048576).toFixed(2)} MB`
                   : 'Pending'}
               </td>
               <td className="p-2">
                 <div className="flex items-center">
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
                     {download.status}
                   </span>
                 </div>
               </td>
-              <td className="p-2">{download.speed || '-'}</td>
-              <td className="p-2">{download.timeLeft}</td>
-              <td className="p-2">{formatRelativeTime(download.DateAdded)}</td>
+              <td className="p-2 dark:text-gray-200">
+                {download.speed || '-'}
+              </td>
+              <td className="p-2 dark:text-gray-200">{download.timeLeft}</td>
+              <td className="p-2 dark:text-gray-200">
+                {formatRelativeTime(download.DateAdded)}
+              </td>
               <td className="p-2">
                 <a
                   href={download.videoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline"
+                  className="text-blue-500 hover:underline dark:text-blue-400"
                 >
                   Source
                 </a>

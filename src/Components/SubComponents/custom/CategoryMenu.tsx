@@ -43,11 +43,11 @@ const CategoryMenu: React.FC<CategoryMenuProps> = ({
   return (
     <div
       ref={menuRef}
-      className={`absolute bg-white border rounded-md shadow-lg py-1 min-w-[180px] z-50 ${menuPositionClass}`}
+      className={`absolute bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 min-w-[180px] z-50 ${menuPositionClass} dark:border-gray-700`}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="m-2 px-4 py-2 flex flex-row border rounded">
-        <GoPlus size={22} className="ml-[-10px] mr-2" />
+      <div className="m-2 px-4 py-2 flex flex-row border rounded dark:border-gray-700">
+        <GoPlus size={22} className="ml-[-10px] mr-2 dark:text-gray-200" />
 
         <input
           type="text"
@@ -60,16 +60,16 @@ const CategoryMenu: React.FC<CategoryMenuProps> = ({
               setNewCategory('');
             }
           }}
-          className="w-full outline-none"
+          className="w-full outline-none dark:bg-darkMode dark:text-gray-200"
         />
       </div>
-      <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider" />
+      <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider dark:border-gray-700" />
 
       <div className="max-h-48 overflow-y-auto">
         {availableCategories.map((category) => (
           <button
             key={category}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 dark:text-gray-200"
             onClick={(e) => {
               e.stopPropagation();
               if (currentCategories.includes(category)) {
@@ -79,7 +79,9 @@ const CategoryMenu: React.FC<CategoryMenuProps> = ({
               }
             }}
           >
-            <span>{currentCategories.includes(category) ? '✓' : ''}</span>
+            <span className="dark:text-gray-200">
+              {currentCategories.includes(category) ? '✓' : ''}
+            </span>
             <span>{category}</span>
           </button>
         ))}

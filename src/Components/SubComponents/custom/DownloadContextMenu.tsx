@@ -67,14 +67,14 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 }) => {
   const menuRef = React.useRef<HTMLDivElement>(null);
   const tagMenuRef = React.useRef<HTMLDivElement>(null);
-  const categoryMenuRef = React.useRef<HTMLDivElement>(null);
+  // const categoryMenuRef = React.useRef<HTMLDivElement>(null);
   const [showTagMenu, setShowTagMenu] = useState(false);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [tagMenuPosition, setTagMenuPosition] = useState<
     'right' | 'left' | 'top'
   >('right');
-  const [newTag, setNewTag] = useState('');
-  const [newCategory, setNewCategory] = useState('');
+  // const [newTag, setNewTag] = useState('');
+  // const [newCategory, setNewCategory] = useState('');
 
   React.useEffect(() => {
     if (menuRef.current) {
@@ -126,7 +126,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     }
   };
 
-  const handleTagClick = (tag: string) => {
+  /* const handleTagClick = (tag: string) => {
     console.log('Tag clicked:', tag);
     console.log('Current tags:', currentTags);
     if (currentTags.includes(tag)) {
@@ -134,7 +134,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     } else {
       onAddTag(downloadId, tag);
     }
-  };
+  };*/
 
   // Function to handle opening tag menu
   const handleTagMenuClick = (e: React.MouseEvent) => {
@@ -153,14 +153,14 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   return (
     <div
       ref={menuRef}
-      className="fixed bg-white border rounded-md shadow-lg py-1 z-50"
+      className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 z-50 dark:border-gray-700"
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
       }}
     >
       <button
-        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
         onClick={() => {
           onViewDownload(downloadLocation);
           onClose();
@@ -172,7 +172,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         </span>{' '}
       </button>
       <button
-        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
         onClick={() => {
           onPause(downloadId, downloadLocation, controllerId);
           onClose();
@@ -184,7 +184,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         </span>
       </button>
       <button
-        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
         onClick={() => {
           onStop(downloadId, downloadLocation, controllerId);
           onClose();
@@ -196,7 +196,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         </span>{' '}
       </button>
       <button
-        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
         onClick={() => {
           onForceStart(downloadId, downloadLocation, controllerId);
           onClose();
@@ -208,7 +208,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         </span>{' '}
       </button>
       <button
-        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
         onClick={() => {
           onRemove(downloadLocation, downloadId, controllerId);
           onClose();
@@ -221,7 +221,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       </button>
       <div className="relative">
         <button
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
           onClick={handleTagMenuClick}
         >
           <span className="flex items-center space-x-2">
@@ -247,7 +247,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       </div>
       <div className="relative">
         <button
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
           onClick={handleCategoryMenuClick}
         >
           <span className="flex items-center space-x-2">
@@ -271,7 +271,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           />
         )}
       </div>
-      <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2">
+      <button className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700">
         <span className="flex items-center space-x-2">
           <IoOptionsOutline size={20} />
           <span>Download Option</span>

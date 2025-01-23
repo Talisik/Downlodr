@@ -65,6 +65,8 @@ body {
 
 .nav-link.active {
   @apply bg-gray-100;
+  @apply dark:bg-gray-700;
+
 }
 
 .scheduler.active {
@@ -73,6 +75,7 @@ body {
 
 .nav-link:not(.active):hover {
   @apply bg-gray-100;
+  @apply dark:bg-gray-700;
 }
 
 /*Navigation end*/
@@ -81,9 +84,10 @@ body {
 /* buttons */
 
 .primary-custom-btn{
-  @apply bg-primary text-white hover:bg-gray-100 rounded-md flex gap-2 text-sm
+  @apply bg-primary text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex gap-2 text-sm
 }
 
 .primary-custom-btn:hover{
-  @apply bg-black
+  @apply bg-black  dark:bg-gray-100;
+
 }
