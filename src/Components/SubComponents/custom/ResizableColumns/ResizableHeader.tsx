@@ -32,7 +32,7 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
         className="absolute right-0 top-0 h-full w-4 cursor-col-resize hover:bg-blue-500/20 group -mr-2"
         onMouseDown={onResizeStart}
       >
-        <div className="absolute right-[6px] top-0 h-full w-[2px] bg-gray-300 group-hover:bg-blue-500" />
+        <div className="absolute right-[6px] top-0 h-full w-[2px] bg-gray-300 dark:bg-gray-700 group-hover:bg-blue-500" />
       </div>
     </th>
   );

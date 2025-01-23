@@ -522,20 +522,21 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       }
 
       addDownload(
-        videoUrl, // videoUrl
-        finalName, // name
-        uniqueFileName, // downloadName
-        0, // size
-        '', // speed (empty initially)
-        '', // timeLeft (empty initially)
-        new Date().toISOString(), // DateAdded
-        0, // progress (starts at 0)
-        validFolderPath, // location
-        'downloading', // status
-        videoExt, // ext
-        videoQualityID, // formatId
-        audioExt, // audioExt
-        audioQualityId, // audioFormatId
+        videoUrl,
+        finalName,
+        uniqueFileName,
+        0,
+        '',
+        '',
+        new Date().toISOString(),
+        0,
+        validFolderPath,
+        'downloading',
+        videoExt,
+        videoQualityID,
+        audioExt,
+        audioQualityId,
+        extractorKey,
       );
 
       resetModal();

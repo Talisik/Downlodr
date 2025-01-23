@@ -28,6 +28,7 @@ export interface BaseDownload {
   controllerId?: string;
   tags: string[];
   category: string[];
+  extractorKey: string;
 }
 
 interface ForDownload extends BaseDownload {
@@ -77,6 +78,7 @@ interface DownloadStore {
     formatId: string,
     audioExt: string,
     audioFormatId: string,
+    extractorKey: string,
   ) => void;
 
   setDownload: (
@@ -248,6 +250,7 @@ const useDownloadStore = create<DownloadStore>()(
         formatId,
         audioExt,
         audioFormatId,
+        extractorKey,
       ) => {
         if (!location || !downloadName) {
           console.error('Invalid path parameters:', { location, downloadName });
@@ -320,6 +323,7 @@ const useDownloadStore = create<DownloadStore>()(
               controllerId: '---',
               tags: [],
               category: [],
+              extractorKey,
             },
           ],
         }));
@@ -370,40 +374,19 @@ const useDownloadStore = create<DownloadStore>()(
               audioFormatId,
               tags: [],
               category: [],
+              extractorKey: '',
             },
           ],
         }));
       },
 
       deleteDownload: (id: string) => {
-        set((state) => {
-          // Check which collection contains the id and only filter that one
-          if (state.downloading.some((d) => d.id === id)) {
-            return {
-              downloading: state.downloading.filter((d) => d.id !== id),
-            };
-          }
-          if (state.finishedDownloads.some((d) => d.id === id)) {
-            return {
-              finishedDownloads: state.finishedDownloads.filter(
-                (d) => d.id !== id,
-              ),
-            };
-          }
-          if (state.historyDownloads.some((d) => d.id === id)) {
-            return {
-              historyDownloads: state.historyDownloads.filter(
-                (d) => d.id !== id,
-              ),
-            };
-          }
-          if (state.forDownloads.some((d) => d.id === id)) {
-            return {
-              forDownloads: state.forDownloads.filter((d) => d.id !== id),
-            };
-          }
-          return state;
-        });
+        set((state) => ({
+          downloading: state.downloading.filter((d) => d.id !== id),
+          finishedDownloads: state.finishedDownloads.filter((d) => d.id !== id),
+          historyDownloads: state.historyDownloads.filter((d) => d.id !== id),
+          forDownloads: state.forDownloads.filter((d) => d.id !== id),
+        }));
       },
 
       setDownloadingToCancelled: () => {
