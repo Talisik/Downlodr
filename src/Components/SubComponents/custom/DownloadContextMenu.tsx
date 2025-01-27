@@ -13,11 +13,13 @@ interface DownloadContextMenuProps {
   position: { x: number; y: number };
   downloadLocation?: string;
   controllerId?: string;
+  downloadStatus?: string;
   onClose: () => void;
   onPause: (
     id: string,
     downloadLocation?: string,
     controllerId?: string,
+    downloadStatus?: string,
   ) => void;
   onStop: (
     id: string,
@@ -50,6 +52,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   position,
   downloadLocation,
   controllerId,
+  downloadStatus,
   onClose,
   onPause,
   onStop,
@@ -174,13 +177,13 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       <button
         className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
         onClick={() => {
-          onPause(downloadId, downloadLocation, controllerId);
+          onPause(downloadId, downloadLocation, controllerId, downloadStatus);
           onClose();
         }}
       >
         <span className="flex items-center space-x-2">
           <IoPauseCircleOutline size={20} />
-          <span>Pause</span>
+          <span>{downloadStatus === 'paused' ? 'Start' : 'Pause'}</span>
         </span>
       </button>
       <button

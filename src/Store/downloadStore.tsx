@@ -48,6 +48,10 @@ interface Downloading extends BaseDownload {
     | 'initializing'
     | 'paused';
   formatId: string;
+  backupExt?: string;
+  backupFormatId?: string;
+  backupAudioExt?: string;
+  backupAudioFormatId?: string;
 }
 
 interface FinishedDownloads extends BaseDownload {
@@ -119,6 +123,17 @@ interface DownloadStore {
 
   renameTag: (oldName: string, newName: string) => void;
   deleteTag: (tag: string) => void;
+
+  updateDownloadStatus: (
+    id: string,
+    status:
+      | 'downloading'
+      | 'finished'
+      | 'failed'
+      | 'cancelled'
+      | 'initializing'
+      | 'paused',
+  ) => void;
 }
 
 const useDownloadStore = create<DownloadStore>()(
@@ -223,6 +238,7 @@ const useDownloadStore = create<DownloadStore>()(
 
       updateDownload: (id, result) => {
         if (!result || !result.data) return;
+
         set((state) => ({
           downloading: state.downloading.map((downloading) =>
             downloading.id === id
@@ -326,6 +342,10 @@ const useDownloadStore = create<DownloadStore>()(
               status: 'downloading',
               ext,
               formatId,
+              backupExt: ext,
+              backupFormatId: formatId,
+              backupAudioExt: audioExt,
+              backupAudioFormatId: audioFormatId,
               controllerId: '---',
               tags: [],
               category: [],
@@ -607,6 +627,35 @@ const useDownloadStore = create<DownloadStore>()(
             forDownloads: updateDownloads(state.forDownloads),
           };
         }),
+
+      updateDownloadStatus: (
+        id: string,
+        status:
+          | 'downloading'
+          | 'finished'
+          | 'failed'
+          | 'cancelled'
+          | 'initializing'
+          | 'paused',
+      ) => {
+        console.log('Updating status for id:', id, 'to:', status);
+        console.log('Current downloads:', get().downloading);
+
+        set((state) => {
+          const newState = {
+            ...state,
+            downloading: state.downloading.map((download) => {
+              if (download.id === id) {
+                console.log('Found matching download, updating status');
+                return { ...download, status };
+              }
+              return download;
+            }),
+          };
+          console.log('New state downloads:', newState.downloading);
+          return newState;
+        });
+      },
 
       //End of store
     }),

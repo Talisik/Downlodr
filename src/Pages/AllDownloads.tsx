@@ -54,6 +54,7 @@ const AllDownloads = () => {
     y: number;
     downloadLocation?: string;
     controllerId?: string;
+    downloadStatus?: string;
   }>({ downloadId: null, x: 0, y: 0 });
   const [selectedDownloadId, setSelectedDownloadId] = useState<string | null>(
     null,
@@ -94,25 +95,58 @@ const AllDownloads = () => {
       x: event.clientX,
       y: event.clientY,
       downloadLocation: `${allDownloads.location}${allDownloads.name}`,
+      downloadStatus: allDownloads.status,
       controllerId: allDownloads.controllerId,
     });
     setSelectedDownloadId(allDownloads.id);
   };
 
   //Context Menu actons
-  const handlePause = (
-    downloadId: string,
-    downloadLocation?: string,
-    controllerId?: string,
-  ) => {
-    console.log(
-      'Pausing:',
-      downloadId,
-      'at:',
-      downloadLocation,
-      'controller:',
-      controllerId,
-    );
+  const handlePause = (downloadId: string, downloadLocation?: string) => {
+    // Get fresh state each time
+    const { downloading, deleteDownloading } = useDownloadStore.getState();
+    const currentDownload = downloading.find((d) => d.id === downloadId);
+    const { updateDownloadStatus } = useDownloadStore.getState();
+    updateDownloadStatus(downloadId, 'paused');
+    console.log('Current download:', currentDownload); // Debug current download state
+
+    if (currentDownload?.status === 'paused') {
+      const { addDownload } = useDownloadStore.getState();
+      addDownload(
+        currentDownload.videoUrl,
+        currentDownload.name,
+        currentDownload.downloadName,
+        currentDownload.size,
+        currentDownload.speed,
+        currentDownload.timeLeft,
+        new Date().toISOString(),
+        currentDownload.progress,
+        currentDownload.location,
+        'downloading',
+        currentDownload.backupExt,
+        currentDownload.backupFormatId,
+        currentDownload.backupAudioExt,
+        currentDownload.backupAudioFormatId,
+        currentDownload.extractorKey,
+      );
+      deleteDownloading(downloadId);
+    } else if (currentDownload?.controllerId) {
+      try {
+        window.ytdlp
+          .killController(currentDownload.controllerId)
+          .then((success) => {
+            if (success) {
+              setTimeout(() => {
+                updateDownloadStatus(downloadId, 'paused');
+                console.log('Status updated to paused after delay'); // Debug log
+              }, 1200); // 2000ms = 2 seconds
+            }
+          });
+      } catch (error) {
+        console.error('Error in pause:', error);
+      }
+    }
+
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
@@ -355,6 +389,7 @@ const AllDownloads = () => {
                     <span className="text-sm text-gray-600 dark:text-gray-300">
                       {download.status === 'cancelled' ||
                       download.status === 'initializing' ||
+                      download.status === 'paused' ||
                       download.status === 'finished' ? (
                         <span>{download.status}</span>
                       ) : (
@@ -421,6 +456,7 @@ const AllDownloads = () => {
           position={{ x: contextMenu.x, y: contextMenu.y }}
           downloadLocation={contextMenu.downloadLocation}
           controllerId={contextMenu.controllerId}
+          downloadStatus={contextMenu.downloadStatus}
           onClose={handleCloseContextMenu}
           onPause={handlePause}
           onStop={handleStop}
