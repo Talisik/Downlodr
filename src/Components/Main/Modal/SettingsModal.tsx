@@ -16,22 +16,35 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     updateDefaultLocation,
     updateDefaultDownloadSpeed,
     updateMaxUploadNum,
+    updatePermitConnectionLimit,
     updateMaxDownloadNum,
+    updateDefaultDownloadSpeedBit,
   } = useMainStore();
   // Form submission
   const [biteUnit, setBiteUnit] = useState('');
-  const [biteUnitVal, setBiteUnitVal] = useState('kb');
+  const [biteUnitVal, setBiteUnitVal] = useState(
+    settings.defaultDownloadSpeedBit,
+  );
   const [downloadLocation, setDownloadLocation] = useState(
     settings.defaultLocation,
   );
   const [biteVal, setbiteVal] = useState(settings.defaultDownloadSpeed);
   const [maxDownload, setMaxDownload] = useState(settings.maxDownloadNum);
   const [maxUpload, setmaxUpload] = useState(settings.maxUploadNum);
-  const [isConnectionLimitEnabled, setIsConnectionLimitEnabled] =
-    useState(false);
+  const [isConnectionLimitEnabled, setIsConnectionLimitEnabled] = useState(
+    settings.permitConnectionLimit,
+  );
 
   const resetSettingsModal = () => {
-    console.log('Hello');
+    // Reset all state values to their original store values
+    const initialBiteOption = getInitialBiteOption();
+    setBiteUnit(initialBiteOption);
+    setBiteUnitVal(settings.defaultDownloadSpeedBit);
+    setDownloadLocation(settings.defaultLocation);
+    setbiteVal(settings.defaultDownloadSpeed);
+    setMaxDownload(settings.maxDownloadNum);
+    setmaxUpload(settings.maxUploadNum);
+    setIsConnectionLimitEnabled(settings.permitConnectionLimit);
   };
 
   // checks if file location is correct
@@ -64,19 +77,35 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   };
 
   const biteOptions = [
-    { biteDisplayName: 'Kilo byte (KB)', biteUnitVal: 'kb' },
-    { biteDisplayName: 'Mega byte (MB)', biteUnitVal: 'mb' },
-    { biteDisplayName: 'Giga byte (GB)', biteUnitVal: 'gb' },
+    { biteDisplayName: 'Kilo byte (KB)', biteUnitVal: 'K' },
+    { biteDisplayName: 'Mega byte (MB)', biteUnitVal: 'M' },
+    { biteDisplayName: 'Giga byte (GB)', biteUnitVal: 'G' },
   ];
+
+  // Find the initial bite option based on the stored unit value
+  const getInitialBiteOption = () => {
+    const option = biteOptions.find(
+      (bite) => bite.biteUnitVal === settings.defaultDownloadSpeedBit,
+    );
+    return option ? option.biteDisplayName : 'Kilo byte (KB)';
+  };
+
+  useEffect(() => {
+    // Update the biteUnit whenever the store value changes
+    setBiteUnit(getInitialBiteOption());
+    setBiteUnitVal(settings.defaultDownloadSpeedBit);
+  }, [settings.defaultDownloadSpeedBit]);
 
   // Modify handleSubmit to consider the checkbox
   const handleSubmit = () => {
     updateDefaultLocation(downloadLocation);
     updateDefaultDownloadSpeed(biteVal);
+    updateDefaultDownloadSpeedBit(biteUnitVal);
+    updatePermitConnectionLimit(isConnectionLimitEnabled);
     // Only update connection limits if enabled, otherwise set to default of 5
     updateMaxUploadNum(isConnectionLimitEnabled ? maxUpload : 5);
     updateMaxDownloadNum(isConnectionLimitEnabled ? maxDownload : 5);
-    handleClose();
+    onClose();
   };
 
   // Move conditional return here, after hooks but before render
@@ -137,14 +166,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       value={biteUnit}
                       onChange={(e) => {
                         setBiteUnit(e.target.value);
-                        const selectedbite = biteOptions.find(
+                        const selectedBite = biteOptions.find(
                           (bite) => bite.biteDisplayName === e.target.value,
                         );
-                        if (selectedbite) {
-                          setBiteUnitVal(selectedbite.biteUnitVal);
+                        if (selectedBite) {
+                          setBiteUnitVal(selectedBite.biteUnitVal);
                         }
                       }}
-                      className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none   [&>option]:dark:bg-darkMode"
+                      className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none [&>option]:dark:bg-darkMode"
                     >
                       {biteOptions.map((bite) => (
                         <option

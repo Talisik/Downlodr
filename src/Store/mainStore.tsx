@@ -4,6 +4,8 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 interface DownloadSettings {
   defaultLocation: string;
   defaultDownloadSpeed: number;
+  defaultDownloadSpeedBit: string;
+  permitConnectionLimit: boolean;
   maxUploadNum: number;
   maxDownloadNum: number;
 }
@@ -12,6 +14,8 @@ interface MainStore {
   settings: DownloadSettings;
   updateDefaultLocation: (location: string) => void;
   updateDefaultDownloadSpeed: (speed: number) => void;
+  updateDefaultDownloadSpeedBit: (speedBit: string) => void;
+  updatePermitConnectionLimit: (isPermit: boolean) => void;
   updateMaxUploadNum: (speed: number) => void;
   updateMaxDownloadNum: (count: number) => void;
 }
@@ -22,6 +26,8 @@ export const useMainStore = create<MainStore>()(
       settings: {
         defaultLocation: '', // Start with empty string
         defaultDownloadSpeed: 0,
+        defaultDownloadSpeedBit: 'kb',
+        permitConnectionLimit: false,
         maxUploadNum: 5,
         maxDownloadNum: 5,
       },
@@ -34,6 +40,16 @@ export const useMainStore = create<MainStore>()(
       updateDefaultDownloadSpeed: (speed: number) =>
         set((state) => ({
           settings: { ...state.settings, defaultDownloadSpeed: speed },
+        })),
+
+      updateDefaultDownloadSpeedBit: (speedBit: string) =>
+        set((state) => ({
+          settings: { ...state.settings, defaultDownloadSpeedBit: speedBit },
+        })),
+
+      updatePermitConnectionLimit: (isPermit: boolean) =>
+        set((state) => ({
+          settings: { ...state.settings, permitConnectionLimit: isPermit },
         })),
 
       updateMaxUploadNum: (speed: number) =>
