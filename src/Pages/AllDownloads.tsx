@@ -107,8 +107,6 @@ const AllDownloads = () => {
     const { downloading, deleteDownloading } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
     const { updateDownloadStatus } = useDownloadStore.getState();
-    updateDownloadStatus(downloadId, 'paused');
-    console.log('Current download:', currentDownload); // Debug current download state
 
     if (currentDownload?.status === 'paused') {
       const { addDownload } = useDownloadStore.getState();
@@ -142,6 +140,7 @@ const AllDownloads = () => {
               }, 1200); // 2000ms = 2 seconds
             }
           });
+        updateDownloadStatus(downloadId, 'paused');
       } catch (error) {
         console.error('Error in pause:', error);
       }

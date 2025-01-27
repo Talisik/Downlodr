@@ -249,6 +249,7 @@ const useDownloadStore = create<DownloadStore>()(
                   timeLeft: result.data._eta_str || '',
                   size: parseFloat(result.data.total_bytes) || downloading.size,
                   status: result.data.status || downloading.status,
+
                   controllerId: result.controllerId ?? downloading.controllerId,
                 }
               : downloading,
