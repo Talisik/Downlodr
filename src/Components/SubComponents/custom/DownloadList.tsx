@@ -30,6 +30,10 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     (state) => state.availableCategories,
   );
 
+  const uniqueDownloads = [
+    ...new Map(downloads.map((item) => [item.id, item])).values(),
+  ];
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (listRef.current && !listRef.current.contains(event.target as Node)) {
@@ -88,7 +92,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     <div ref={listRef} className="overflow-x-auto">
       <table className="min-w-full table-auto">
         <thead>
-          <tr className="bg-gray-100 dark:bg-gray-700">
+          <tr className="bg-gray-100 dark:bg-darkModeCompliment">
             <th className="p-2 text-left dark:text-gray-200">Name</th>
             <th className="p-2 text-left dark:text-gray-200">Size</th>
             <th className="p-2 text-left dark:text-gray-200">Status</th>
@@ -97,7 +101,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           </tr>
         </thead>
         <tbody>
-          {downloads.map((download) => (
+          {uniqueDownloads.map((download) => (
             <tr
               key={download.id}
               className={`border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${

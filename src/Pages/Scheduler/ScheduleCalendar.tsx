@@ -147,8 +147,8 @@ const ScheduleCalendar = () => {
               key={day.toString()}
               className={`min-h-[120px] p-2 border dark:border-gray-700 ${
                 !isSameMonth(day, currentDate)
-                  ? 'bg-gray-50 dark:bg-gray-800'
-                  : 'dark:bg-gray-900'
+                  ? 'bg-gray-50 dark:bg-darkModeCompliment'
+                  : 'dark:bg-darkModeCompliment'
               }`}
             >
               <div className="text-sm mb-1 dark:text-gray-200">

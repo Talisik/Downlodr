@@ -83,7 +83,7 @@ const Navigation = ({ className }: { className?: string }) => {
         <div>
           <button
             onClick={() => toggleSection('status')}
-            className="w-full flex items-center p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded dark:text-gray-200"
+            className="w-full flex items-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
           >
             {openSections.status ? (
               <HiChevronDown size={18} />
@@ -147,7 +147,7 @@ const Navigation = ({ className }: { className?: string }) => {
         <div>
           <button
             onClick={() => toggleSection('category')}
-            className="w-full flex items-center p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded dark:text-gray-200"
+            className="w-full flex items-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
           >
             {openSections.category ? (
               <HiChevronDown size={18} />
@@ -175,7 +175,7 @@ const Navigation = ({ className }: { className?: string }) => {
                   onContextMenu={(e) => handleCategoryContextMenu(e, category)}
                 >
                   <BiLayer className="text-yellow-500 text-lg flex-shrink-0" />
-                  <span className="ml-2">{category}</span>
+                  <span className="ml-2 truncate">{category}</span>
                 </NavLink>
               ))}
             </div>
@@ -186,7 +186,7 @@ const Navigation = ({ className }: { className?: string }) => {
         <div>
           <button
             onClick={() => toggleSection('tag')}
-            className="w-full flex items-center p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded dark:text-gray-200"
+            className="w-full flex items-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
           >
             {openSections.tag ? (
               <HiChevronDown size={18} />
@@ -221,7 +221,7 @@ const Navigation = ({ className }: { className?: string }) => {
                   }}
                 >
                   <BsTag className="text-yellow-500 text-lg flex-shrink-0" />
-                  <span className="ml-2">{tag}</span>
+                  <span className="ml-2 truncate">{tag}</span>
                 </NavLink>
               ))}
             </div>

@@ -75,7 +75,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       <div className={`${className} flex items-center justify-between`}>
         <div className="flex items-center h-full px-4 space-x-2">
           <button
-            className="primary-custom-btn px-[6px] py-[8px] sm:px-[8px] sm:py-[8px] mr-2 sm:mr-4 flex items-center gap-1 sm:gap-2 text-sm sm:text-sm whitespace-nowrap"
+            className="primary-custom-btn px-[6px] py-[8px] sm:px-[8px] sm:py-[8px] mr-2 sm:mr-4 flex items-center gap-1 sm:gap-2 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
             onClick={() => {
               setDownloadModalOpen(true);
             }}

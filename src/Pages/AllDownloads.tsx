@@ -6,6 +6,8 @@ import DownloadContextMenu from '../Components/SubComponents/custom/DownloadCont
 import ExpandedDownloadDetails from '../Components/SubComponents/custom/ExpandedDownloadDetail';
 import { useResizableColumns } from '../Components/SubComponents/custom/ResizableColumns/useResizableColumns';
 import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
+import { AnimatedCircularProgressBar } from '../Components/SubComponents/custom/RadialProgress';
+
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -59,12 +61,12 @@ const AllDownloads = () => {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
   const { columns, startResizing } = useResizableColumns([
-    { id: 'name', width: 300, minWidth: 150 },
-    { id: 'size', width: 100, minWidth: 80 },
-    { id: 'status', width: 200, minWidth: 150 },
-    { id: 'speed', width: 100, minWidth: 80 },
-    { id: 'timeLeft', width: 100, minWidth: 80 },
-    { id: 'dateAdded', width: 150, minWidth: 120 },
+    { id: 'name', width: 150, minWidth: 150 },
+    { id: 'size', width: 80, minWidth: 80 },
+    { id: 'status', width: 80, minWidth: 80 },
+    { id: 'speed', width: 80, minWidth: 80 },
+    { id: 'timeLeft', width: 90, minWidth: 80 },
+    { id: 'dateAdded', width: 100, minWidth: 100 },
   ]);
 
   // Combine downloads from downloading and history
@@ -278,7 +280,7 @@ const AllDownloads = () => {
               Size
             </ResizableHeader>
             <ResizableHeader
-              width={columns[2].width}
+              width={columns[1].width}
               onResizeStart={(e) => startResizing('status', e.clientX)}
             >
               Status
@@ -356,21 +358,14 @@ const AllDownloads = () => {
                       download.status === 'finished' ? (
                         <span>{download.status}</span>
                       ) : (
-                        <>
-                          {download.progress}%
-                          <div className="w-48 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-1">
-                            <div
-                              className={`h-2.5 rounded-full transition-all duration-300 ${
-                                download.progress === 0
-                                  ? 'bg-gray-400 dark:bg-gray-600'
-                                  : download.progress === 100
-                                  ? 'bg-green-500'
-                                  : 'bg-orange-500'
-                              }`}
-                              style={{ width: `${download.progress}%` }}
-                            ></div>
-                          </div>
-                        </>
+                        <AnimatedCircularProgressBar
+                          max={100}
+                          min={0}
+                          value={download.progress} // any number between min and max
+                          gaugePrimaryColor="#4CAF50" // primary color for the progress
+                          gaugeSecondaryColor="#EEEEEE" // background color of the gauge
+                          className="m-2" // optional
+                        />
                       )}{' '}
                     </span>
                   </div>
@@ -394,7 +389,14 @@ const AllDownloads = () => {
                   {formatRelativeTime(download.DateAdded)}
                 </td>
                 <td className="w-20 p-2 dark:text-gray-200">
-                  {download.extractorKey}
+                  <a
+                    href={download.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline dark:text-blue-400"
+                  >
+                    {download.extractorKey}
+                  </a>{' '}
                 </td>
               </tr>
               {expandedRowId === download.id && (

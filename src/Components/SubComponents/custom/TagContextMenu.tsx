@@ -18,7 +18,37 @@ const TagContextMenu: React.FC<TagContextMenuProps> = ({
 }) => {
   const [isRenaming, setIsRenaming] = React.useState(false);
   const [newName, setNewName] = React.useState(tagName);
+  const [adjustedPosition, setAdjustedPosition] = React.useState(position);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const menu = menuRef.current;
+    if (!menu) return;
+
+    const rect = menu.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let adjustedX = position.x;
+    let adjustedY = position.y;
+
+    // Adjust horizontal position if menu would overflow
+    if (position.x + rect.width > viewportWidth) {
+      adjustedX = viewportWidth - rect.width - 10;
+    }
+
+    // Adjust vertical position if menu would overflow
+    if (position.y + rect.height > viewportHeight) {
+      adjustedY = viewportHeight - rect.height - 10;
+    }
+
+    // Ensure menu doesn't go beyond left or top edges
+    adjustedX = Math.max(10, adjustedX);
+    adjustedY = Math.max(10, adjustedY);
+
+    setAdjustedPosition({ x: adjustedX, y: adjustedY });
+  }, [position]);
 
   React.useEffect(() => {
     if (isRenaming && inputRef.current) {
@@ -36,8 +66,12 @@ const TagContextMenu: React.FC<TagContextMenuProps> = ({
 
   return (
     <div
+      ref={menuRef}
       className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 z-50 dark:border-gray-700"
-      style={{ left: `${position.x}px`, top: `${position.y}px` }}
+      style={{
+        left: `${adjustedPosition.x}px`,
+        top: `${adjustedPosition.y}px`,
+      }}
       onClick={(e) => e.stopPropagation()}
     >
       {isRenaming ? (

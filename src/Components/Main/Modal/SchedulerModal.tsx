@@ -15,8 +15,13 @@ interface ScheduleDay {
 }
 
 interface ScheduleFrequency {
-  dayDisplayName: string;
-  dayVal: string;
+  frequencyDisplayName: string;
+  frequency: string;
+}
+
+interface Format {
+  formatDisplayName: string;
+  format: string;
 }
 
 const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
@@ -25,11 +30,43 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
   const [scheduleDay, setScheduleDay] = useState('');
   const [scheduleDayVal, setScheduleDayVal] = useState('');
   const [channelUrls, setChannelUrls] = useState('');
+  const [downloadLocation, setDownloadLocation] = useState('');
+  const [downloadFomat, setDownloadFomat] = useState('');
 
   const [scheduleFrequency, setScheduleFrequency] = useState('');
   const [scheduleFrequencVal, setScheduleFrequencVal] = useState('');
+  const [downloadSubtitles, setDownloadSubtitles] = useState(false);
+  const [downloadThumbnail, setDownloadThumbnail] = useState(false);
+  const [downloadDescription, setDownloadDescription] = useState(false);
+
   const resetSchedulerModal = () => {
     // reset everything
+    setDownloadSubtitles(false);
+    setDownloadThumbnail(false);
+    setDownloadDescription(false);
+  };
+
+  // checks if file location is correct
+  const isValidPath = async (path: string): Promise<boolean> => {
+    // Check for undefined or empty path
+    if (!path || path.includes('undefined')) {
+      console.log('undefined path');
+      return false;
+    }
+    try {
+      // Call the validatePath method from the preload script
+      const isValid = await window.downlodrFunctions.validatePath(path);
+      return isValid;
+    } catch (error) {
+      console.error('Error validating path:', error);
+      return false;
+    }
+  };
+
+  // Find location
+  const handleDirectory = async () => {
+    const path = await window.ytdlp.selectDownloadDirectory();
+    setDownloadLocation(path);
   };
 
   // Close Modal
@@ -58,6 +95,11 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
     { frequencyDisplayName: '10:00am', frequencyVal: '7' },
   ];
 
+  const formatOptions = [
+    { dayDisplayName: 'Default video', formatVal: '1' },
+    { dayDisplayName: 'Default audio', formatVal: '2' },
+  ];
+
   // Move conditional return here, after hooks but before render
   if (!isOpen) return null;
 
@@ -80,7 +122,7 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
 
           <form onSubmit={(e) => e.preventDefault()}>
             {/* Schedule Name */}
-            <div className="space-y-4">
+            <div className="space-y-2">
               <div>
                 <label className="block mb-2 dark:text-gray-200">
                   Schedule Name
@@ -91,13 +133,13 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
                     placeholder="e.g Tech Daily News"
                     value={scheduleName}
                     onChange={(e) => setScheduleName(e.target.value)}
-                    className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none border-transparent"
+                    className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none  "
                   />
                 </div>
               </div>
               {/* End of Schedule Name */}
               {/* Upload Button */}
-              <div className="space-y-4 flex justify-end">
+              <div className="space-y-2 flex justify-end">
                 <div className="flex gap-3">
                   <a
                     href="https://www.w3schools.com/"
@@ -115,16 +157,18 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
               {/* End of Upload Button */}
-              {/* Schedule Name */}
-              <div className="flex gap-4 pt-4">
+              {/* URL Name */}
+              <div className="flex gap-4 pt-2">
                 <div className="flex-1">
-                  <label className="block mb-2 dark:text-gray-200">Name</label>
+                  <label className="block mb-2 dark:text-gray-200">
+                    Channel URL
+                  </label>
                   <input
                     type="text"
                     placeholder="Name"
                     value={channelUrls}
                     onChange={(e) => setChannelUrls(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none border-transparent"
+                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none  "
                   />
                 </div>
 
@@ -141,7 +185,7 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
                         setScheduleDayVal(selectedDay.dayVal);
                       }
                     }}
-                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none border-transparent [&>option]:dark:bg-darkMode"
+                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none   [&>option]:dark:bg-darkMode"
                   >
                     {dayOptions.map((day) => (
                       <option
@@ -170,7 +214,7 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
                         setScheduleDayVal(selectedFrequency.frequencyVal);
                       }
                     }}
-                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none border-transparent [&>option]:dark:bg-darkMode"
+                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none   [&>option]:dark:bg-darkMode"
                   >
                     {frequencyOptions.map((frequency) => (
                       <option
@@ -188,41 +232,87 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
               {/* Download Location Name */}
               <div className="flex gap-4 pt-4">
                 <div className="flex-1">
-                  <label className="block mb-2 dark:text-gray-200">Name</label>
+                  <label className="block mb-2 dark:text-gray-200">
+                    Download Location
+                  </label>
                   <input
                     type="text"
-                    placeholder="Name"
-                    value={channelUrls}
-                    onChange={(e) => setChannelUrls(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none border-transparent"
+                    placeholder="Download Location"
+                    value={downloadLocation}
+                    onClick={handleDirectory}
+                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none  "
+                    readOnly
                   />
                 </div>
 
                 <div className="">
-                  <label className="block mb-2 dark:text-gray-200">Day</label>
+                  <label className="block mb-2 dark:text-gray-200">
+                    Format
+                  </label>
                   <select
-                    value={scheduleDay}
+                    value={downloadFomat}
                     onChange={(e) => {
-                      setScheduleDay(e.target.value);
-                      const selectedDay = dayOptions.find(
-                        (day) => day.dayDisplayName === e.target.value,
+                      setDownloadFomat(e.target.value);
+                      const selectedFormat = formatOptions.find(
+                        (format) => format.dayDisplayName === e.target.value,
                       );
-                      if (selectedDay) {
-                        setScheduleDayVal(selectedDay.dayVal);
+                      if (selectedFormat) {
+                        setScheduleDayVal(selectedFormat.formatVal);
                       }
                     }}
-                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none border-transparent [&>option]:dark:bg-darkMode"
+                    className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none   [&>option]:dark:bg-darkMode"
                   >
-                    {dayOptions.map((day) => (
+                    {formatOptions.map((format) => (
                       <option
-                        key={day.dayVal}
-                        value={day.dayDisplayName}
+                        key={format.formatVal}
+                        value={format.dayDisplayName}
                         className="dark:bg-darkMode dark:text-gray-200"
                       >
-                        {day.dayDisplayName}
+                        {format.dayDisplayName}
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+              {/* End of Download Location Name */}
+              {/* Checkboxes*/}
+              <div className="flex-1">
+                <div className="flex flex-row justify-between items-center  mt-6 text-xs">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={downloadSubtitles}
+                      onChange={(e) => setDownloadSubtitles(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm dark:text-gray-200">
+                      Download Subtitles
+                    </span>
+                  </label>
+
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={downloadThumbnail}
+                      onChange={(e) => setDownloadThumbnail(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm dark:text-gray-200">
+                      Download Thumbnail
+                    </span>
+                  </label>
+
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={downloadDescription}
+                      onChange={(e) => setDownloadDescription(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm dark:text-gray-200">
+                      Create Channel Subfolders
+                    </span>
+                  </label>
                 </div>
               </div>
               {/* End of Download Location Name */}
@@ -236,7 +326,7 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
         <div className="flex gap-3">
           <button
             type="submit"
-            className="bg-primary text-white px-2 py-2 rounded-md hover:bg-orange-600"
+            className="bg-primary text-white px-2 py-2 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
           >
             Schedule
           </button>

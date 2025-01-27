@@ -53,6 +53,7 @@ module.exports = {
         tabs: '#fef9f4',
         lightGray: '#EDEDED',
         darkMode: '#16161E',
+        darkModeCompliment: '#21212d',
         inputDarkMode: '#FEF9F426',
       },
     },

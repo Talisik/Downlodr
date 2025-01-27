@@ -8,12 +8,12 @@ const CompletedDownloads = () => {
   const finished = useDownloadStore((state) => state.finishedDownloads);
 
   const { columns, startResizing } = useResizableColumns([
-    { id: 'name', width: 300, minWidth: 150 },
-    { id: 'size', width: 100, minWidth: 80 },
-    { id: 'status', width: 200, minWidth: 150 },
-    { id: 'speed', width: 100, minWidth: 80 },
-    { id: 'timeLeft', width: 100, minWidth: 80 },
-    { id: 'dateAdded', width: 150, minWidth: 120 },
+    { id: 'name', width: 150, minWidth: 150 },
+    { id: 'size', width: 80, minWidth: 80 },
+    { id: 'status', width: 80, minWidth: 80 },
+    { id: 'speed', width: 80, minWidth: 80 },
+    { id: 'timeLeft', width: 90, minWidth: 80 },
+    { id: 'dateAdded', width: 100, minWidth: 100 },
   ]);
 
   const formatRelativeTime = (dateString: string) => {
@@ -148,7 +148,7 @@ const CompletedDownloads = () => {
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:underline dark:text-blue-400"
                 >
-                  Source
+                  {download.extractorKey}
                 </a>
               </td>
             </tr>

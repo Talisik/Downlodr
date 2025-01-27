@@ -26,7 +26,7 @@ export function ModeToggle() {
     <div className="relative" ref={dropdownRef}>
       <Button
         variant="ghost"
-        className="hover:bg-transparent hover:opacity-100 active:opacity-100"
+        className="hover:bg-gray-100 dark:bg-transparent dark:hover:bg-darkModeCompliment hover:opacity-100 active:bg-transparent focus-none"
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -36,7 +36,7 @@ export function ModeToggle() {
       </Button>
 
       {isOpen && (
-        <div className="fixed right-[inherit] mt-2 w-32 rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 z-[100]">
+        <div className="fixed right-[inherit] mt-2 w-32 rounded-md bg-white dark:bg-darkModeCompliment shadow-lg ring-1 ring-black ring-opacity-5 z-[100]">
           <div className="py-1" role="menu">
             <button
               className="block w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"

@@ -5,6 +5,8 @@ import { IoMdClose } from 'react-icons/io';
 import useDownloadStore from '../../../Store/downloadStore';
 import GetEmbedUrl from '../../..//DataFunctions/EmbedVideo';
 import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
+import { useMainStore } from '../../../Store/mainStore';
+
 interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -41,6 +43,8 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   //Store
   const { addDownload, setDownload } = useDownloadStore(); //download store
 
+  const { settings } = useMainStore();
+
   // eslint-disable-next-line prettier/prettier
 
   // FUNCTIONS:
@@ -54,7 +58,9 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         setIsLoading(true);
         try {
           const info = await (window as any).ytdlp.getInfo(videoUrl);
-          const folderPath = await window.downlodrFunctions.getDownloadFolder();
+          const folderPath =
+            settings.defaultLocation ||
+            (await window.downlodrFunctions.getDownloadFolder());
 
           console.log('Video info fetched:', info);
           setVideoInfo(info);
@@ -119,7 +125,9 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
               ? [
                   {
                     value: `audio-${audioOnlyFormat.format_id}-${audioOnlyFormat.audio_ext}`,
-                    label: `Audio Only (${audioOnlyFormat.audio_ext}) - ${
+                    label: `Audio Only (${
+                      audioOnlyFormat.audio_ext
+                    }) (Bugged Currently fixing) - ${
                       audioOnlyFormat.format_note || audioOnlyFormat.ext
                     }`,
                     formatId: audioOnlyFormat.format_id,
@@ -127,7 +135,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                   },
                   {
                     value: `audio-${audioOnlyFormat.format_id}-mp3`,
-                    label: `Audio Only (mp3) - ${
+                    label: `Audio Only (mp3) (Bugged Currently fixing) - ${
                       audioOnlyFormat.format_note || audioOnlyFormat.ext
                     }`,
                     formatId: audioOnlyFormat.format_id,
@@ -404,7 +412,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       };
       fetchVideoInfo();
     }
-  }, [videoUrl]);
+  }, [videoUrl, settings.defaultLocation]);
 
   // Checks if the user is online
   useEffect(() => {
@@ -597,7 +605,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full">
+    <div className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[9999]">
       <div
         className={`bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 ${
           videoUrl && isValidUrl
@@ -769,7 +777,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90"
+                  className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90 dark:hover:text-black dark:hover:bg-white"
                   onClick={handleDownload}
                 >
                   Download

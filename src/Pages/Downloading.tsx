@@ -6,6 +6,7 @@ import { HiChevronUpDown } from 'react-icons/hi2';
 import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
 import { useResizableColumns } from '../Components/SubComponents/custom/ResizableColumns/useResizableColumns';
 import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
+import { AnimatedCircularProgressBar } from '../Components/SubComponents/custom/RadialProgress';
 
 const Downloading = () => {
   const downloading = useDownloadStore((state) => state.downloading);
@@ -31,12 +32,12 @@ const Downloading = () => {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
 
   const { columns, startResizing } = useResizableColumns([
-    { id: 'name', width: 300, minWidth: 150 },
-    { id: 'size', width: 100, minWidth: 80 },
-    { id: 'status', width: 200, minWidth: 150 },
-    { id: 'speed', width: 100, minWidth: 80 },
-    { id: 'timeLeft', width: 100, minWidth: 80 },
-    { id: 'dateAdded', width: 150, minWidth: 120 },
+    { id: 'name', width: 150, minWidth: 150 },
+    { id: 'size', width: 80, minWidth: 80 },
+    { id: 'status', width: 80, minWidth: 80 },
+    { id: 'speed', width: 80, minWidth: 80 },
+    { id: 'timeLeft', width: 90, minWidth: 80 },
+    { id: 'dateAdded', width: 100, minWidth: 100 },
   ]);
 
   // Find current tags for the selected download
@@ -342,21 +343,14 @@ const Downloading = () => {
                     download.status === 'finished' ? (
                       <span>{download.status}</span>
                     ) : (
-                      <>
-                        {download.progress}%
-                        <div className="w-48 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-1">
-                          <div
-                            className={`h-2.5 rounded-full transition-all duration-300 ${
-                              download.progress === 0
-                                ? 'bg-gray-400 dark:bg-gray-600'
-                                : download.progress === 100
-                                ? 'bg-green-500'
-                                : 'bg-orange-500'
-                            }`}
-                            style={{ width: `${download.progress}%` }}
-                          ></div>
-                        </div>
-                      </>
+                      <AnimatedCircularProgressBar
+                        max={100}
+                        min={0}
+                        value={download.progress} // any number between min and max
+                        gaugePrimaryColor="#4CAF50" // primary color for the progress
+                        gaugeSecondaryColor="#EEEEEE" // background color of the gauge
+                        className="m-2" // optional
+                      />
                     )}
                   </span>
                 </div>
@@ -386,7 +380,7 @@ const Downloading = () => {
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:underline dark:text-blue-400"
                 >
-                  Source
+                  {download.extractorKey}
                 </a>
               </td>
             </tr>

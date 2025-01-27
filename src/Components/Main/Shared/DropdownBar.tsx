@@ -3,10 +3,13 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { FaRegClock } from 'react-icons/fa6';
 import SchedulerModal from '../Modal/SchedulerModal';
 import DownloadModal from '../Modal/DownloadModal';
+import SettingsModal from '../Modal/SettingsModal';
 
 const DropdownBar = ({ className }: { className?: string }) => {
   const [activeMenu, setActiveMenu] = useState<'file' | 'task' | null>(null);
   const [isSchedulerModalOpen, setSchedulerModalOpen] = useState(false);
+  const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
@@ -103,15 +106,25 @@ const DropdownBar = ({ className }: { className?: string }) => {
           Console
         </button>
 
-        <button className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold">
+        <button
+          className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
+          onClick={() => {
+            setSettingsModalOpen(true);
+            setActiveMenu(null);
+          }}
+        >
           Settings
+        </button>
+
+        <button className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold">
+          About
         </button>
       </div>
 
       {/* Right side button */}
       {isSchedulePage && (
         <button
-          className="primary-custom-btn px-[6px] py-[3px] sm:px-[8px] sm:py-[4px] mr-2 sm:mr-4 flex items-center gap-1 sm:gap-2 text-sm sm:text-sm whitespace-nowrap"
+          className="primary-custom-btn px-[6px] py-[3px] sm:px-[8px] sm:py-[4px] mr-2 sm:mr-4 flex items-center gap-1 sm:gap-2 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
           onClick={() => {
             setSchedulerModalOpen(true);
           }}
@@ -124,6 +137,11 @@ const DropdownBar = ({ className }: { className?: string }) => {
       <SchedulerModal
         isOpen={isSchedulerModalOpen}
         onClose={() => setSchedulerModalOpen(false)}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
       />
 
       <DownloadModal
