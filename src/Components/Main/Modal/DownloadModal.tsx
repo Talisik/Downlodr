@@ -125,9 +125,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
               ? [
                   {
                     value: `audio-${audioOnlyFormat.format_id}-${audioOnlyFormat.audio_ext}`,
-                    label: `Audio Only (${
-                      audioOnlyFormat.audio_ext
-                    }) (Bugged Currently fixing) - ${
+                    label: `Audio Only (${audioOnlyFormat.audio_ext}) - ${
                       audioOnlyFormat.format_note || audioOnlyFormat.ext
                     }`,
                     formatId: audioOnlyFormat.format_id,
@@ -135,7 +133,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                   },
                   {
                     value: `audio-${audioOnlyFormat.format_id}-mp3`,
-                    label: `Audio Only (mp3) (Bugged Currently fixing) - ${
+                    label: `Audio Only (mp3) - ${
                       audioOnlyFormat.format_note || audioOnlyFormat.ext
                     }`,
                     formatId: audioOnlyFormat.format_id,
@@ -513,6 +511,9 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
       setVideoInfo(info);
       const isAudioOnly = selectedFormatDisplay.startsWith('Audio');
+      console.log(isAudioOnly);
+      console.log(` ext ${downloadVideoExt}`);
+      console.log(` format ${downloadVideoFormatId}`);
 
       // Set download parameters based on the file type
       let audioExt = isAudioOnly ? downloadVideoExt : '';

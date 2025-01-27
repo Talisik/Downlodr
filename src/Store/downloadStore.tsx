@@ -40,7 +40,13 @@ interface ForDownload extends BaseDownload {
 }
 
 interface Downloading extends BaseDownload {
-  status: 'downloading' | 'finished' | 'failed' | 'cancelled' | 'initializing';
+  status:
+    | 'downloading'
+    | 'finished'
+    | 'failed'
+    | 'cancelled'
+    | 'initializing'
+    | 'paused';
   formatId: string;
 }
 

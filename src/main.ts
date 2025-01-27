@@ -287,9 +287,9 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
         url: args.url,
         output: args.outputFilepath,
         videoFormat: args.videoFormat,
-        remuxVideo: args.ext,
-        audioFormat: args.audioFormat,
-        audioQuality: args.audioQuality,
+        remuxVideo: args.remuxVideo,
+        audioFormat: args.audioExt,
+        audioQuality: args.audioFormatId,
         // limitRate: '50k',
       },
     });

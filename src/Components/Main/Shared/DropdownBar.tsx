@@ -4,6 +4,9 @@ import { FaRegClock } from 'react-icons/fa6';
 import SchedulerModal from '../Modal/SchedulerModal';
 import DownloadModal from '../Modal/DownloadModal';
 import SettingsModal from '../Modal/SettingsModal';
+import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
+import useDownloadStore from '../../../Store/downloadStore';
+import { useMainStore } from '../../../Store/mainStore';
 
 const DropdownBar = ({ className }: { className?: string }) => {
   const [activeMenu, setActiveMenu] = useState<'file' | 'task' | null>(null);
@@ -17,6 +20,28 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const isSchedulePage = ['/scheduleTable', '/scheduleCalendar'].includes(
     location.pathname,
   );
+
+  const { toast } = useToast();
+  const { settings } = useMainStore();
+  const { downloading } = useDownloadStore();
+
+  const handleOpenDownloadModal = () => {
+    // Check if connection limits are enabled
+    if (settings.permitConnectionLimit) {
+      // Check if current downloads are at or above the limit
+      if (downloading.length >= settings.maxDownloadNum) {
+        toast({
+          variant: 'destructive',
+          title: 'Download limit reached',
+          description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete.`,
+        });
+        return;
+      }
+    }
+
+    // If we pass the checks, open the modal
+    setDownloadModalOpen(true);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -54,7 +79,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
               <button
                 className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200"
                 onClick={() => {
-                  setDownloadModalOpen(true);
+                  handleOpenDownloadModal();
                   setActiveMenu(null);
                 }}
               >

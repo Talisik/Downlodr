@@ -48,22 +48,36 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                 `Controller with ID ${download.controllerId} has been terminated.`,
               );
             } else {
-              console.log(
-                `Failed to terminate controller with ID ${download.controllerId}.`,
-              );
+              toast({
+                variant: 'destructive',
+                title: 'Stop Download Error',
+                description: `Could not stop current download with controller ${download.controllerId}`,
+              });
               // setCurrentDownloadId(download.id);
             }
           } catch (error) {
-            console.error('Error invoking kill-controller:', error);
+            toast({
+              variant: 'destructive',
+              title: 'Stop Download Error',
+              description: `Could not stop current download with controller ${download.controllerId}`,
+            });
           }
         } else {
-          console.error(`Controller ID not found for download ${download.id}`);
+          toast({
+            variant: 'destructive',
+            title: 'Stop Download Error',
+            description: `Could not stop current download with controller ${download.controllerId}`,
+          });
         }
       }
       // Clear selected downloads after stopping all
       // setSelectedDownloading([]);
     } else {
-      console.log('Error deleting');
+      toast({
+        variant: 'destructive',
+        title: 'No Downloads Found',
+        description: `No current downloads to delete`,
+      });
     }
     // setSelectedDownloading([]);
   };
