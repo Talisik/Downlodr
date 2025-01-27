@@ -442,7 +442,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
   // Remove invalid characters from download name
   const removeInvalidChar = (filename: string) => {
-    const invalidChars = /[<>:"/\\|?*]+/g;
+    const invalidChars = /[<>:"/\\|?*.]+/g;
     let sanitized = filename.replace(invalidChars, '_').trim();
     sanitized = sanitized.replace(/^\s+|\s+$/g, '');
     sanitized = sanitized.substring(0, 255);

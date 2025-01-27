@@ -240,6 +240,7 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
 function killControllerById(id: any) {
   try {
     const controller = YTDLP.getTerminalFromID(id);
+    // const controller2 = YTDLP.Terminal.fromID(id);
 
     if (controller) {
       controller.kill(); // Call the kill function

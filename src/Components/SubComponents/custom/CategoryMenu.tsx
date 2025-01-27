@@ -40,6 +40,27 @@ const CategoryMenu: React.FC<CategoryMenuProps> = ({
     }
   }, []);
 
+  const handleCategoryClick = (category: string) => {
+    if (currentCategories.includes(category)) {
+      onRemoveCategory(downloadId, category);
+    } else {
+      if (currentCategories.length > 0) {
+        onRemoveCategory(downloadId, currentCategories[0]);
+      }
+      onAddCategory(downloadId, category);
+    }
+  };
+
+  const handleNewCategory = (category: string) => {
+    if (category.trim()) {
+      if (currentCategories.length > 0) {
+        onRemoveCategory(downloadId, currentCategories[0]);
+      }
+      onAddCategory(downloadId, category.trim());
+      setNewCategory('');
+    }
+  };
+
   return (
     <div
       ref={menuRef}
@@ -48,16 +69,14 @@ const CategoryMenu: React.FC<CategoryMenuProps> = ({
     >
       <div className="m-2 px-4 py-2 flex flex-row border rounded dark:border-gray-700">
         <GoPlus size={22} className="ml-[-10px] mr-2 dark:text-gray-200" />
-
         <input
           type="text"
           placeholder="Add new category..."
           value={newCategory}
           onChange={(e) => setNewCategory(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && newCategory.trim()) {
-              onAddCategory(downloadId, newCategory.trim());
-              setNewCategory('');
+            if (e.key === 'Enter') {
+              handleNewCategory(newCategory);
             }
           }}
           className="w-full outline-none dark:bg-darkMode dark:text-gray-200"
@@ -72,11 +91,7 @@ const CategoryMenu: React.FC<CategoryMenuProps> = ({
             className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 dark:text-gray-200"
             onClick={(e) => {
               e.stopPropagation();
-              if (currentCategories.includes(category)) {
-                onRemoveCategory(downloadId, category);
-              } else {
-                onAddCategory(downloadId, category);
-              }
+              handleCategoryClick(category);
             }}
           >
             <span className="dark:text-gray-200">

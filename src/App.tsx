@@ -10,6 +10,7 @@ import ScheduleCalendar from './Pages/Scheduler/ScheduleCalendar';
 import NotFound from './Pages/SubPages/NotFound';
 import CategoryPage from './Pages/SubPages/CategoryPage';
 import TagPage from './Pages/SubPages/TagsPage';
+import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
 
 const App = () => {
   return (
@@ -30,6 +31,7 @@ const App = () => {
           </Route>
         </Routes>
       </Router>
+      <Toaster />
     </ThemeProvider>
   );
 };

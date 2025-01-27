@@ -12,6 +12,8 @@ import {
 import { RiTable3, RiCalendarLine } from 'react-icons/ri';
 import SchedulerModal from '../Modal/SchedulerModal';
 import useDownloadStore from '../../../Store/downloadStore';
+import { useMainStore } from '../../../Store/mainStore';
+import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 
 interface TaskBarProps {
   className?: string;
@@ -21,10 +23,15 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
   const [isSchedulerModalOpen, setSchedulerModalOpen] = useState(false);
   const location = useLocation();
+  const { toast } = useToast();
+
+  // Get the max download limit and current downloads from stores
+  const { settings } = useMainStore();
+  const { downloading } = useDownloadStore();
 
   const handleStopAll = async () => {
     console.log('Stopping all downloads');
-    const { downloading, deleteDownloading } = useDownloadStore.getState();
+    const { deleteDownloading } = useDownloadStore.getState();
 
     if (downloading && downloading.length > 0) {
       for (const download of downloading) {
@@ -70,15 +77,31 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     ? 'calendar'
     : 'table';
 
+  const handleOpenDownloadModal = () => {
+    // Check if connection limits are enabled
+    if (settings.permitConnectionLimit) {
+      // Check if current downloads are at or above the limit
+      if (downloading.length >= settings.maxDownloadNum) {
+        toast({
+          variant: 'destructive',
+          title: 'Download limit reached',
+          description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete.`,
+        });
+        return;
+      }
+    }
+
+    // If we pass the checks, open the modal
+    setDownloadModalOpen(true);
+  };
+
   return (
     <>
       <div className={`${className} flex items-center justify-between`}>
         <div className="flex items-center h-full px-4 space-x-2">
           <button
             className="primary-custom-btn px-[6px] py-[8px] sm:px-[8px] sm:py-[8px] mr-2 sm:mr-4 flex items-center gap-1 sm:gap-2 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
-            onClick={() => {
-              setDownloadModalOpen(true);
-            }}
+            onClick={handleOpenDownloadModal}
           >
             <GoDownload size={12} className="sm:w-[14px] sm:h-[14px]" />
             <span className="hidden sm:inline">Add URL</span>
