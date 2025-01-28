@@ -7,6 +7,7 @@ import DownloadContextMenu from '../Components/SubComponents/custom/DownloadCont
 import { useResizableColumns } from '../Components/SubComponents/custom/ResizableColumns/useResizableColumns';
 import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
 import { AnimatedCircularProgressBar } from '../Components/SubComponents/custom/RadialProgress';
+import { useMainStore } from '../Store/mainStore';
 
 const Downloading = () => {
   const downloading = useDownloadStore((state) => state.downloading);
@@ -29,7 +30,11 @@ const Downloading = () => {
   );
   const addCategory = useDownloadStore((state) => state.addCategory);
   const removeCategory = useDownloadStore((state) => state.removeCategory);
-  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const selectedRows = useMainStore((state) => state.selectedRows);
+  const setSelectedRows = useMainStore((state) => state.setSelectedRows);
+  const setSelectedDownloads = useMainStore(
+    (state) => state.setSelectedDownloads,
+  );
 
   const { columns, startResizing } = useResizableColumns([
     { id: 'name', width: 150, minWidth: 150 },
@@ -230,21 +235,45 @@ const Downloading = () => {
   };
 
   const handleCheckboxChange = (downloadId: string) => {
-    setSelectedRows((prev) => {
-      if (prev.includes(downloadId)) {
-        return prev.filter((id) => id !== downloadId);
-      } else {
-        return [...prev, downloadId];
-      }
+    const newSelected = selectedRows.includes(downloadId)
+      ? selectedRows.filter((id) => id !== downloadId)
+      : [...selectedRows, downloadId];
+
+    // Update both selectedRows and selectedDownloads
+    setSelectedRows(newSelected);
+
+    const selectedDownloadsData = newSelected.map((id) => {
+      const download = downloading.find((d) => d.id === id);
+      return {
+        id,
+        controllerId: download?.controllerId,
+        location: download?.location
+          ? `${download.location}${download.name}`
+          : undefined,
+      };
     });
+    setSelectedDownloads(selectedDownloadsData);
   };
 
   const handleSelectAll = () => {
-    if (selectedRows.length === downloading.length) {
-      setSelectedRows([]);
-    } else {
-      setSelectedRows(downloading.map((download) => download.id));
-    }
+    const newSelected =
+      selectedRows.length === downloading.length
+        ? []
+        : downloading.map((download) => download.id);
+
+    setSelectedRows(newSelected);
+
+    const selectedDownloadsData = newSelected.map((id) => {
+      const download = downloading.find((d) => d.id === id);
+      return {
+        id,
+        controllerId: download?.controllerId,
+        location: download?.location
+          ? `${download.location}${download.name}`
+          : undefined,
+      };
+    });
+    setSelectedDownloads(selectedDownloadsData);
   };
 
   const handleCloseContextMenu = () => {
@@ -363,7 +392,9 @@ const Downloading = () => {
                 style={{ width: columns[0].width }}
                 className="p-2 dark:text-gray-200"
               >
-                <div className="line-clamp-2 break-words">{download.name}</div>
+                <div className="line-clamp-2 break-words" title={download.name}>
+                  {download.name}
+                </div>
               </td>
               <td
                 style={{ width: columns[1].width }}

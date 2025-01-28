@@ -32,6 +32,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const clearSelectedDownloads = useMainStore(
     (state) => state.clearSelectedDownloads,
   );
+  const clearSelectedRows = useMainStore((state) => state.clearSelectedRows);
 
   const handleStopAll = async () => {
     console.log('Stopping all downloads');
@@ -99,6 +100,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     // Store selected downloads in a temporary variable and clear selections immediately
     const downloadsToStop = [...selectedDownloads];
     clearSelectedDownloads();
+    clearSelectedRows();
 
     const { deleteDownloading } = useDownloadStore.getState();
 
@@ -180,7 +182,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             onClick={handleStopSelected}
           >
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
-            {selectedDownloads.length > 0 && ` (${selectedDownloads.length})`}
+            {/*{selectedDownloads.length > 0 && ` (${selectedDownloads.length})`}*/}
           </button>
           <button
             className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"

@@ -257,35 +257,13 @@ const AllDownloads = () => {
   };
 
   const handleCheckboxChange = (downloadId: string) => {
-    setSelectedRows((prev) => {
-      const newSelected = prev.includes(downloadId)
-        ? prev.filter((id) => id !== downloadId)
-        : [...prev, downloadId];
+    const newSelected = selectedRows.includes(downloadId)
+      ? selectedRows.filter((id) => id !== downloadId)
+      : [...selectedRows, downloadId];
 
-      // Update the main store with selected download details
-      const selectedDownloadsData = newSelected.map((id) => {
-        const download = allDownloads.find((d) => d.id === id);
-        return {
-          id,
-          controllerId: download?.controllerId,
-          location: download?.location
-            ? `${download.location}${download.name}`
-            : undefined,
-        };
-      });
-      setSelectedDownloads(selectedDownloadsData);
+    // Update both selectedRows and selectedDownloads
+    setSelectedRows(newSelected);
 
-      return newSelected;
-    });
-  };
-
-  const handleSelectAll = () => {
-    const newSelected =
-      selectedRows.length === allDownloads.length
-        ? []
-        : allDownloads.map((download) => download.id);
-
-    // Update the main store with selected download details
     const selectedDownloadsData = newSelected.map((id) => {
       const download = allDownloads.find((d) => d.id === id);
       return {
@@ -297,8 +275,27 @@ const AllDownloads = () => {
       };
     });
     setSelectedDownloads(selectedDownloadsData);
+  };
+
+  const handleSelectAll = () => {
+    const newSelected =
+      selectedRows.length === allDownloads.length
+        ? []
+        : allDownloads.map((download) => download.id);
 
     setSelectedRows(newSelected);
+
+    const selectedDownloadsData = newSelected.map((id) => {
+      const download = allDownloads.find((d) => d.id === id);
+      return {
+        id,
+        controllerId: download?.controllerId,
+        location: download?.location
+          ? `${download.location}${download.name}`
+          : undefined,
+      };
+    });
+    setSelectedDownloads(selectedDownloadsData);
   };
 
   const handleCloseContextMenu = () => {
@@ -412,7 +409,10 @@ const AllDownloads = () => {
                   style={{ width: columns[0].width }}
                   className="p-2 dark:text-gray-200"
                 >
-                  <div className="line-clamp-2 break-words">
+                  <div
+                    className="line-clamp-2 break-words"
+                    title={download.name}
+                  >
                     {download.name}
                   </div>
                 </td>

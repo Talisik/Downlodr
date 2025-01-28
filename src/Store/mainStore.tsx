@@ -27,6 +27,9 @@ interface MainStore {
   updatePermitConnectionLimit: (isPermit: boolean) => void;
   updateMaxUploadNum: (speed: number) => void;
   updateMaxDownloadNum: (count: number) => void;
+  selectedRows: string[];
+  setSelectedRows: (rows: string[]) => void;
+  clearSelectedRows: () => void;
 }
 
 export const useMainStore = create<MainStore>()(
@@ -74,6 +77,10 @@ export const useMainStore = create<MainStore>()(
         set((state) => ({
           settings: { ...state.settings, maxDownloadNum: count },
         })),
+
+      selectedRows: [] as string[],
+      setSelectedRows: (rows) => set({ selectedRows: rows }),
+      clearSelectedRows: () => set({ selectedRows: [] }),
     }),
     {
       name: 'download-settings-storage',

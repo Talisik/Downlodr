@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import useDownloadStore from '../Store/downloadStore';
@@ -79,6 +80,7 @@ const CompletedDownloads = () => {
   const handleRemove = async (
     downloadLocation?: string,
     downloadId?: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     controllerId?: string,
   ) => {
     if (!downloadLocation || !downloadId) return;
@@ -201,7 +203,9 @@ const CompletedDownloads = () => {
                 style={{ width: columns[0].width }}
                 className="p-2 pl-5 dark:text-gray-200"
               >
-                <div className="line-clamp-2 break-words">{download.name}</div>
+                <div className="line-clamp-2 break-words" title={download.name}>
+                  {download.name}
+                </div>
               </td>
               <td
                 style={{ width: columns[1].width }}
