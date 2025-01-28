@@ -7,6 +7,7 @@ import ExpandedDownloadDetails from '../Components/SubComponents/custom/Expanded
 import { useResizableColumns } from '../Components/SubComponents/custom/ResizableColumns/useResizableColumns';
 import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
 import { AnimatedCircularProgressBar } from '../Components/SubComponents/custom/RadialProgress';
+import { useMainStore } from '../Store/mainStore';
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -60,6 +61,9 @@ const AllDownloads = () => {
     null,
   );
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const setSelectedDownloads = useMainStore(
+    (state) => state.setSelectedDownloads,
+  );
 
   const { columns, startResizing } = useResizableColumns([
     { id: 'name', width: 150, minWidth: 150 },
@@ -254,20 +258,47 @@ const AllDownloads = () => {
 
   const handleCheckboxChange = (downloadId: string) => {
     setSelectedRows((prev) => {
-      if (prev.includes(downloadId)) {
-        return prev.filter((id) => id !== downloadId);
-      } else {
-        return [...prev, downloadId];
-      }
+      const newSelected = prev.includes(downloadId)
+        ? prev.filter((id) => id !== downloadId)
+        : [...prev, downloadId];
+
+      // Update the main store with selected download details
+      const selectedDownloadsData = newSelected.map((id) => {
+        const download = allDownloads.find((d) => d.id === id);
+        return {
+          id,
+          controllerId: download?.controllerId,
+          location: download?.location
+            ? `${download.location}${download.name}`
+            : undefined,
+        };
+      });
+      setSelectedDownloads(selectedDownloadsData);
+
+      return newSelected;
     });
   };
 
   const handleSelectAll = () => {
-    if (selectedRows.length === allDownloads.length) {
-      setSelectedRows([]);
-    } else {
-      setSelectedRows(allDownloads.map((download) => download.id));
-    }
+    const newSelected =
+      selectedRows.length === allDownloads.length
+        ? []
+        : allDownloads.map((download) => download.id);
+
+    // Update the main store with selected download details
+    const selectedDownloadsData = newSelected.map((id) => {
+      const download = allDownloads.find((d) => d.id === id);
+      return {
+        id,
+        controllerId: download?.controllerId,
+        location: download?.location
+          ? `${download.location}${download.name}`
+          : undefined,
+      };
+    });
+    setSelectedDownloads(selectedDownloadsData);
+
+    setSelectedRows(newSelected);
   };
 
   const handleCloseContextMenu = () => {
@@ -450,12 +481,6 @@ const AllDownloads = () => {
           ))}
         </tbody>
       </table>
-      {/* Optional: Display selected count */}
-      {selectedRows.length > 0 && (
-        <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Selected: {selectedRows.length} items
-        </div>
-      )}
 
       {/* Context Menu */}
       {contextMenu.downloadId && (

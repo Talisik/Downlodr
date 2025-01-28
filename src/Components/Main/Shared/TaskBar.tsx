@@ -28,6 +28,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // Get the max download limit and current downloads from stores
   const { settings } = useMainStore();
   const { downloading } = useDownloadStore();
+  const selectedDownloads = useMainStore((state) => state.selectedDownloads);
+  const clearSelectedDownloads = useMainStore(
+    (state) => state.clearSelectedDownloads,
+  );
 
   const handleStopAll = async () => {
     console.log('Stopping all downloads');
@@ -82,6 +86,51 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     // setSelectedDownloading([]);
   };
 
+  const handleStopSelected = async () => {
+    if (selectedDownloads.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'No Downloads Selected',
+        description: 'Please select downloads to stop',
+      });
+      return;
+    }
+
+    // Store selected downloads in a temporary variable and clear selections immediately
+    const downloadsToStop = [...selectedDownloads];
+    clearSelectedDownloads();
+
+    const { deleteDownloading } = useDownloadStore.getState();
+
+    for (const download of downloadsToStop) {
+      if (download.controllerId) {
+        try {
+          const success = await window.ytdlp.killController(
+            download.controllerId,
+          );
+          if (success) {
+            deleteDownloading(download.id);
+            console.log(
+              `Controller with ID ${download.controllerId} has been terminated.`,
+            );
+          } else {
+            toast({
+              variant: 'destructive',
+              title: 'Stop Download Error',
+              description: `Could not stop download with controller ${download.controllerId}`,
+            });
+          }
+        } catch (error) {
+          toast({
+            variant: 'destructive',
+            title: 'Stop Download Error',
+            description: `Error stopping download with controller ${download.controllerId}`,
+          });
+        }
+      }
+    }
+  };
+
   const isSchedulePage = ['/scheduleTable', '/scheduleCalendar'].includes(
     location.pathname,
   );
@@ -125,9 +174,13 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             {' '}
             <VscPlayCircle size={18} className="mt-[0.9px]" /> Play
           </button>
-          <button className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200">
-            {' '}
+
+          <button
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            onClick={handleStopSelected}
+          >
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
+            {selectedDownloads.length > 0 && ` (${selectedDownloads.length})`}
           </button>
           <button
             className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"

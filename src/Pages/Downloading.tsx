@@ -426,14 +426,6 @@ const Downloading = () => {
           ))}
         </tbody>
       </table>
-
-      {/* Selected count */}
-      {selectedRows.length > 0 && (
-        <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Selected: {selectedRows.length} items
-        </div>
-      )}
-
       {/* Context Menu */}
       {contextMenu.downloadId && (
         <DownloadContextMenu

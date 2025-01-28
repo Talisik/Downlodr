@@ -10,8 +10,17 @@ interface DownloadSettings {
   maxDownloadNum: number;
 }
 
+interface SelectedDownload {
+  id: string;
+  controllerId?: string;
+  location?: string;
+}
+
 interface MainStore {
   settings: DownloadSettings;
+  selectedDownloads: SelectedDownload[];
+  setSelectedDownloads: (downloads: SelectedDownload[]) => void;
+  clearSelectedDownloads: () => void;
   updateDefaultLocation: (location: string) => void;
   updateDefaultDownloadSpeed: (speed: number) => void;
   updateDefaultDownloadSpeedBit: (speedBit: string) => void;
@@ -31,6 +40,10 @@ export const useMainStore = create<MainStore>()(
         maxUploadNum: 5,
         maxDownloadNum: 5,
       },
+      selectedDownloads: [] as SelectedDownload[],
+      setSelectedDownloads: (downloads) =>
+        set({ selectedDownloads: downloads }),
+      clearSelectedDownloads: () => set({ selectedDownloads: [] }),
 
       updateDefaultLocation: (location: string) =>
         set((state) => ({
