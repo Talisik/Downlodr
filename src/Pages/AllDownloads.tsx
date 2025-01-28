@@ -102,6 +102,7 @@ const AllDownloads = () => {
   };
 
   //Context Menu actons
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handlePause = (downloadId: string, downloadLocation?: string) => {
     // Get fresh state each time
     const { downloading, deleteDownloading } = useDownloadStore.getState();
@@ -136,8 +137,8 @@ const AllDownloads = () => {
             if (success) {
               setTimeout(() => {
                 updateDownloadStatus(downloadId, 'paused');
-                console.log('Status updated to paused after delay'); // Debug log
-              }, 1200); // 2000ms = 2 seconds
+                console.log('Status updated to paused after delay');
+              }, 1200);
             }
           });
         updateDownloadStatus(downloadId, 'paused');
@@ -163,41 +164,43 @@ const AllDownloads = () => {
   ) => {
     console.log('Stopping all downloads');
     const { downloading, deleteDownloading } = useDownloadStore.getState();
+    const currentDownload = downloading.find((d) => d.id === downloadId);
 
-    if (downloading && downloading.length > 0) {
-      downloading.forEach(async (download) => {
-        console.log(`Attempting to stop download: ${download.id}`);
-
-        if (download.controllerId) {
-          try {
-            const success = await window.ytdlp.killController(
-              download.controllerId,
-            );
-            if (success) {
-              deleteDownloading(download.id);
-              console.log(
-                `Controller with ID ${download.controllerId} has been terminated.`,
-              );
-            } else {
-              console.log(
-                `Failed to terminate controller with ID ${download.controllerId}.`,
-              );
-              // setCurrentDownloadId(download.id);
-            }
-          } catch (error) {
-            console.error('Error invoking kill-controller:', error);
-          }
-        } else {
-          console.error(`Controller ID not found for download ${download.id}`);
-        }
-      });
-
-      // Clear selected downloads after stopping all
-      // setSelectedDownloading([]);
+    if (currentDownload?.status === 'paused') {
+      deleteDownloading(downloadId);
     } else {
-      console.log('Error deleting');
+      if (downloading && downloading.length > 0) {
+        downloading.forEach(async (download) => {
+          console.log(`Attempting to stop download: ${download.id}`);
+
+          if (download.controllerId) {
+            try {
+              const success = await window.ytdlp.killController(
+                download.controllerId,
+              );
+              if (success) {
+                deleteDownloading(download.id);
+                console.log(
+                  `Controller with ID ${download.controllerId} has been terminated.`,
+                );
+              } else {
+                console.log(
+                  `Failed to terminate controller with ID ${download.controllerId}.`,
+                );
+              }
+            } catch (error) {
+              console.error('Error invoking kill-controller:', error);
+            }
+          } else {
+            console.error(
+              `Controller ID not found for download ${download.id}`,
+            );
+          }
+        });
+      } else {
+        console.log('Error deleting');
+      }
     }
-    // setSelectedDownloading([]);
 
     console.log(
       'Stopping:',
@@ -285,6 +288,13 @@ const AllDownloads = () => {
   const getCurrentCategories = (downloadId: string) => {
     const download = allDownloads.find((d) => d.id === downloadId);
     return download?.category || [];
+  };
+
+  const handleViewFolder = (downloadLocation?: string) => {
+    if (downloadLocation) {
+      window.downlodrFunctions.openFolder(downloadLocation);
+    }
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
   return (
@@ -462,6 +472,7 @@ const AllDownloads = () => {
           onForceStart={handleForceStart}
           onRemove={handleRemove}
           onViewDownload={handleViewDownload}
+          onViewFolder={handleViewFolder}
           onAddTag={addTag}
           onRemoveTag={removeTag}
           currentTags={getCurrentTags(contextMenu.downloadId)}

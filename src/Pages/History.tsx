@@ -319,6 +319,12 @@ const History = () => {
             </button>
           )}
           <button
+            onClick={async () => handleGoToFolder(hoveredVideo.location)}
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            Open Folder
+          </button>
+          <button
             onClick={async () =>
               handleDelete(
                 await window.downlodrFunctions.joinDownloadPath(
@@ -331,12 +337,6 @@ const History = () => {
             className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-500"
           >
             Delete
-          </button>
-          <button
-            onClick={async () => handleGoToFolder(hoveredVideo.location)}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
-            Open Folder
           </button>
         </div>
       )}

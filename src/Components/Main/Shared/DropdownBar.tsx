@@ -7,11 +7,13 @@ import SettingsModal from '../Modal/SettingsModal';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
+import AboutModal from '../Modal/AboutModal';
 
 const DropdownBar = ({ className }: { className?: string }) => {
   const [activeMenu, setActiveMenu] = useState<'file' | 'task' | null>(null);
   const [isSchedulerModalOpen, setSchedulerModalOpen] = useState(false);
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [isAboutModalOpen, setAboutModalOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -141,7 +143,13 @@ const DropdownBar = ({ className }: { className?: string }) => {
           Settings
         </button>
 
-        <button className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold">
+        <button
+          className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
+          onClick={() => {
+            setAboutModalOpen(true);
+            setActiveMenu(null);
+          }}
+        >
           About
         </button>
       </div>
@@ -169,6 +177,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
         onClose={() => setSettingsModalOpen(false)}
       />
 
+      <AboutModal
+        isOpen={isAboutModalOpen}
+        onClose={() => setAboutModalOpen(false)}
+      />
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setDownloadModalOpen(false)}

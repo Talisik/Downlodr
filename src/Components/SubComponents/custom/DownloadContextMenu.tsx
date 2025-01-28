@@ -5,7 +5,7 @@ import { IoPauseCircleOutline } from 'react-icons/io5';
 import { LiaFileVideoSolid, LiaTagsSolid } from 'react-icons/lia';
 import { HiOutlineStopCircle } from 'react-icons/hi2';
 import { BiRightArrow } from 'react-icons/bi';
-import { LuTrash } from 'react-icons/lu';
+import { LuTrash, LuFolderOpen } from 'react-icons/lu';
 import { GoChevronRight } from 'react-icons/go';
 
 interface DownloadContextMenuProps {
@@ -45,6 +45,7 @@ interface DownloadContextMenuProps {
   onRemoveCategory: (downloadId: string, category: string) => void;
   currentCategories: string[];
   availableCategories: string[];
+  onViewFolder: (downloadLocation?: string) => void;
 }
 
 const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
@@ -67,6 +68,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   onRemoveCategory,
   currentCategories = [],
   availableCategories = [],
+  onViewFolder,
 }) => {
   const menuRef = React.useRef<HTMLDivElement>(null);
   const tagMenuRef = React.useRef<HTMLDivElement>(null);
@@ -153,6 +155,216 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     setShowCategoryMenu(!showCategoryMenu);
   };
 
+  const renderMenuOptions = () => {
+    const commonOptions = (
+      <>
+        {/* Tags and Categories are always available */}
+        <div className="relative">
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={handleTagMenuClick}
+          >
+            <span className="flex items-center space-x-2">
+              <LiaTagsSolid size={20} />
+              <span>Tags</span>
+            </span>
+            <span className="ml-auto">
+              <GoChevronRight size={20} />
+            </span>
+          </button>
+
+          {showTagMenu && (
+            <TagMenu
+              downloadId={downloadId}
+              onAddTag={onAddTag}
+              onRemoveTag={onRemoveTag}
+              currentTags={currentTags}
+              availableTags={availableTags}
+              menuPositionClass={getTagMenuPositionClass()}
+            />
+          )}
+        </div>
+
+        <div className="relative">
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={handleCategoryMenuClick}
+          >
+            <span className="flex items-center space-x-2">
+              <LiaTagsSolid size={20} />
+              <span>Category</span>
+            </span>
+            <span className="ml-auto">
+              <GoChevronRight size={20} />
+            </span>
+          </button>
+
+          {showCategoryMenu && (
+            <CategoryMenu
+              downloadId={downloadId}
+              onAddCategory={onAddCategory}
+              onRemoveCategory={onRemoveCategory}
+              currentCategories={currentCategories}
+              availableCategories={availableCategories}
+              menuPositionClass={getTagMenuPositionClass()}
+            />
+          )}
+        </div>
+      </>
+    );
+
+    if (downloadStatus === 'finished') {
+      return (
+        <>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              onViewDownload(downloadLocation);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <LiaFileVideoSolid size={20} />
+              <span>View Download</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <LuFolderOpen size={20} />
+              <span>View Folder</span>
+            </span>
+          </button>
+
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              onRemove(downloadLocation, downloadId, controllerId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <LuTrash size={16} />
+              <span>Remove</span>
+            </span>
+          </button>
+          {commonOptions}
+        </>
+      );
+    }
+
+    if (downloadStatus === 'paused') {
+      return (
+        <>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <LuFolderOpen size={20} />
+              <span>View Folder</span>
+            </span>
+          </button>
+
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              onPause(
+                downloadId,
+                downloadLocation,
+                controllerId,
+                downloadStatus,
+              );
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <IoPauseCircleOutline size={20} />
+              <span>Start</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              onStop(downloadId, downloadLocation, controllerId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <HiOutlineStopCircle size={20} />
+              <span>Stop</span>
+            </span>
+          </button>
+          {commonOptions}
+        </>
+      );
+    }
+
+    // Default case (downloading)
+    return (
+      <>
+        <button
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+          onClick={() => {
+            onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+            onClose();
+          }}
+        >
+          <span className="flex items-center space-x-2">
+            <LuFolderOpen size={20} />
+            <span>View Folder</span>
+          </span>
+        </button>
+
+        <button
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+          onClick={() => {
+            onPause(downloadId, downloadLocation, controllerId, downloadStatus);
+            onClose();
+          }}
+        >
+          <span className="flex items-center space-x-2">
+            <IoPauseCircleOutline size={20} />
+            <span>Pause</span>
+          </span>
+        </button>
+        <button
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+          onClick={() => {
+            onStop(downloadId, downloadLocation, controllerId);
+            onClose();
+          }}
+        >
+          <span className="flex items-center space-x-2">
+            <HiOutlineStopCircle size={20} />
+            <span>Stop</span>
+          </span>
+        </button>
+        <button
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+          onClick={() => {
+            onForceStart(downloadId, downloadLocation, controllerId);
+            onClose();
+          }}
+        >
+          <span className="flex items-center space-x-2">
+            <BiRightArrow size={18} />
+            <span>Force Start</span>
+          </span>
+        </button>
+        {commonOptions}
+      </>
+    );
+  };
+
   return (
     <div
       ref={menuRef}
@@ -162,118 +374,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         top: `${position.y}px`,
       }}
     >
-      <button
-        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-        onClick={() => {
-          onViewDownload(downloadLocation);
-          onClose();
-        }}
-      >
-        <span className="flex items-center space-x-2">
-          <LiaFileVideoSolid size={20} />
-          <span>View Download</span>
-        </span>{' '}
-      </button>
-      <button
-        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-        onClick={() => {
-          onPause(downloadId, downloadLocation, controllerId, downloadStatus);
-          onClose();
-        }}
-      >
-        <span className="flex items-center space-x-2">
-          <IoPauseCircleOutline size={20} />
-          <span>{downloadStatus === 'paused' ? 'Start' : 'Pause'}</span>
-        </span>
-      </button>
-      <button
-        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-        onClick={() => {
-          onStop(downloadId, downloadLocation, controllerId);
-          onClose();
-        }}
-      >
-        <span className="flex items-center space-x-2">
-          <HiOutlineStopCircle size={20} />
-          <span>Stop</span>
-        </span>{' '}
-      </button>
-      <button
-        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-        onClick={() => {
-          onForceStart(downloadId, downloadLocation, controllerId);
-          onClose();
-        }}
-      >
-        <span className="flex items-center space-x-2">
-          <BiRightArrow size={18} />
-          <span>Force Start</span>
-        </span>{' '}
-      </button>
-      <button
-        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-        onClick={() => {
-          onRemove(downloadLocation, downloadId, controllerId);
-          onClose();
-        }}
-      >
-        <span className="flex items-center space-x-2">
-          <LuTrash size={16} />
-          <span>Remove</span>
-        </span>{' '}
-      </button>
-      <div className="relative">
-        <button
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-          onClick={handleTagMenuClick}
-        >
-          <span className="flex items-center space-x-2">
-            <LiaTagsSolid size={20} />
-            <span>Tags</span>
-          </span>{' '}
-          <span className="ml-auto">
-            {' '}
-            <GoChevronRight size={20} />
-          </span>
-        </button>
-
-        {showTagMenu && (
-          <TagMenu
-            downloadId={downloadId}
-            onAddTag={onAddTag}
-            onRemoveTag={onRemoveTag}
-            currentTags={currentTags}
-            availableTags={availableTags}
-            menuPositionClass={getTagMenuPositionClass()}
-          />
-        )}
-      </div>
-      <div className="relative">
-        <button
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-          onClick={handleCategoryMenuClick}
-        >
-          <span className="flex items-center space-x-2">
-            <LiaTagsSolid size={20} />
-            <span>Category</span>
-          </span>{' '}
-          <span className="ml-auto">
-            {' '}
-            <GoChevronRight size={20} />
-          </span>
-        </button>
-
-        {showCategoryMenu && (
-          <CategoryMenu
-            downloadId={downloadId}
-            onAddCategory={onAddCategory}
-            onRemoveCategory={onRemoveCategory}
-            currentCategories={currentCategories}
-            availableCategories={availableCategories}
-            menuPositionClass={getTagMenuPositionClass()}
-          />
-        )}
-      </div>
+      {renderMenuOptions()}
     </div>
   );
 };

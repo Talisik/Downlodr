@@ -12,16 +12,23 @@ interface TitleBarProps {
 const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   const { theme } = useTheme();
 
+  const getLogoSrc = () => {
+    if (theme === 'system') {
+      // Check system preference
+      return window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? downlodrLogoDark
+        : downlodrLogoLight;
+    }
+    // Direct theme selection
+    return theme === 'dark' ? downlodrLogoDark : downlodrLogoLight;
+  };
+
   return (
     <div className={className}>
       <div className="flex justify-between items-center h-full px-4">
         {/* Title */}
         <div className="text-sm flex-1 drag-area">
-          <img
-            src={theme === 'dark' ? downlodrLogoDark : downlodrLogoLight}
-            alt="Downlodr"
-            className="h-5"
-          />
+          <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
         </div>
 
         {/* Buttons */}

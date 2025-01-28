@@ -75,25 +75,64 @@ const Downloading = () => {
   };
 
   //Context Menu actons
-  const handlePause = (
-    downloadId: string,
-    downloadLocation?: string,
-    controllerId?: string,
-  ) => {
-    console.log(
-      'Pausing:',
-      downloadId,
-      'at:',
-      downloadLocation,
-      'controller:',
-      controllerId,
-    );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handlePause = (downloadId: string, downloadLocation?: string) => {
+    // Get fresh state each time
+    const { downloading, deleteDownloading } = useDownloadStore.getState();
+    const currentDownload = downloading.find((d) => d.id === downloadId);
+    const { updateDownloadStatus } = useDownloadStore.getState();
+
+    if (currentDownload?.status === 'paused') {
+      const { addDownload } = useDownloadStore.getState();
+      addDownload(
+        currentDownload.videoUrl,
+        currentDownload.name,
+        currentDownload.downloadName,
+        currentDownload.size,
+        currentDownload.speed,
+        currentDownload.timeLeft,
+        new Date().toISOString(),
+        currentDownload.progress,
+        currentDownload.location,
+        'downloading',
+        currentDownload.backupExt,
+        currentDownload.backupFormatId,
+        currentDownload.backupAudioExt,
+        currentDownload.backupAudioFormatId,
+        currentDownload.extractorKey,
+      );
+      deleteDownloading(downloadId);
+    } else if (currentDownload?.controllerId) {
+      try {
+        window.ytdlp
+          .killController(currentDownload.controllerId)
+          .then((success) => {
+            if (success) {
+              setTimeout(() => {
+                updateDownloadStatus(downloadId, 'paused');
+                console.log('Status updated to paused after delay');
+              }, 1200);
+            }
+          });
+        updateDownloadStatus(downloadId, 'paused');
+      } catch (error) {
+        console.error('Error in pause:', error);
+      }
+    }
+
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
   const handleViewDownload = (downloadLocation?: string) => {
     if (downloadLocation) {
       window.downlodrFunctions.openVideo(downloadLocation);
+    }
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  const handleViewFolder = (downloadLocation?: string) => {
+    if (downloadLocation) {
+      window.downlodrFunctions.openFolder(downloadLocation);
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
@@ -105,7 +144,6 @@ const Downloading = () => {
   ) => {
     console.log('Stopping all downloads');
     const { downloading, deleteDownloading } = useDownloadStore.getState();
-
     if (downloading && downloading.length > 0) {
       downloading.forEach(async (download) => {
         console.log(`Attempting to stop download: ${download.id}`);
@@ -340,6 +378,7 @@ const Downloading = () => {
                   <span className="text-sm text-gray-600 dark:text-gray-300">
                     {download.status === 'cancelled' ||
                     download.status === 'initializing' ||
+                    download.status === 'paused' ||
                     download.status === 'finished' ? (
                       <span>{download.status}</span>
                     ) : (
@@ -409,6 +448,7 @@ const Downloading = () => {
           onForceStart={handleForceStart}
           onRemove={handleRemove}
           onViewDownload={handleViewDownload}
+          onViewFolder={handleViewFolder}
           onAddTag={addTag}
           onRemoveTag={removeTag}
           currentTags={getCurrentTags(contextMenu.downloadId)}

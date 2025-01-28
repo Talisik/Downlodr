@@ -1,11 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import useDownloadStore from '../Store/downloadStore';
 import { useResizableColumns } from '../Components/SubComponents/custom/ResizableColumns/useResizableColumns';
 import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
+import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
 
 const CompletedDownloads = () => {
   const finished = useDownloadStore((state) => state.finishedDownloads);
+  const [contextMenu, setContextMenu] = useState<{
+    downloadStatus: string;
+    downloadId: string | null;
+    x: number;
+    y: number;
+    downloadLocation?: string;
+    controllerId?: string;
+  }>({ downloadId: null, x: 0, y: 0, downloadStatus: '' });
+  const availableCategories = useDownloadStore(
+    (state) => state.availableCategories,
+  );
+  const availableTags = useDownloadStore((state) => state.availableTags);
+  const addTag = useDownloadStore((state) => state.addTag);
+  const removeTag = useDownloadStore((state) => state.removeTag);
+  const addCategory = useDownloadStore((state) => state.addCategory);
+  const removeCategory = useDownloadStore((state) => state.removeCategory);
+  const deleteDownload = useDownloadStore((state) => state.deleteDownload);
 
   const { columns, startResizing } = useResizableColumns([
     { id: 'name', width: 150, minWidth: 150 },
@@ -42,6 +60,82 @@ const CompletedDownloads = () => {
     } else {
       return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
     }
+  };
+
+  const handleViewFolder = (downloadLocation?: string) => {
+    if (downloadLocation) {
+      window.downlodrFunctions.openFolder(downloadLocation);
+    }
+    setContextMenu({ downloadId: null, x: 0, y: 0, downloadStatus: '' });
+  };
+
+  const handleViewDownload = (downloadLocation?: string) => {
+    if (downloadLocation) {
+      window.downlodrFunctions.openVideo(downloadLocation);
+    }
+    setContextMenu({ downloadId: null, x: 0, y: 0, downloadStatus: '' });
+  };
+
+  const handleRemove = async (
+    downloadLocation?: string,
+    downloadId?: string,
+    controllerId?: string,
+  ) => {
+    if (!downloadLocation || !downloadId) return;
+    try {
+      const success = await window.downlodrFunctions.deleteFile(
+        downloadLocation,
+      );
+      if (success) {
+        deleteDownload(downloadId);
+        console.log('File moved to trash successfully');
+      } else {
+        console.log('Could not delete');
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+    }
+    setContextMenu({ downloadId: null, x: 0, y: 0, downloadStatus: '' });
+  };
+
+  const handleContextMenu = (event: React.MouseEvent, download: any) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      downloadId: download.id,
+      x: event.clientX,
+      y: event.clientY,
+      downloadLocation: `${download.location}${download.name}`,
+      controllerId: download.controllerId,
+      downloadStatus: download.status,
+    });
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu({ downloadId: null, x: 0, y: 0, downloadStatus: '' });
+  };
+
+  // Get current tags for a download
+  const getCurrentTags = (downloadId: string) => {
+    const download = finished.find((d) => d.id === downloadId);
+    return download?.tags || [];
+  };
+
+  // Get current categories for a download
+  const getCurrentCategories = (downloadId: string) => {
+    const download = finished.find((d) => d.id === downloadId);
+    return download?.category || [];
+  };
+
+  // These functions are required by the context menu but not used in completed downloads
+  const handlePause = () => {
+    // hello
+  };
+  const handleStop = () => {
+    // hello
+  };
+  const handleForceStart = () => {
+    // hello
   };
 
   return (
@@ -101,6 +195,7 @@ const CompletedDownloads = () => {
             <tr
               key={download.id}
               className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-darkMode"
+              onContextMenu={(e) => handleContextMenu(e, download)}
             >
               <td
                 style={{ width: columns[0].width }}
@@ -155,6 +250,32 @@ const CompletedDownloads = () => {
           ))}
         </tbody>
       </table>
+
+      {contextMenu.downloadId && (
+        <DownloadContextMenu
+          data-context-menu
+          downloadId={contextMenu.downloadId}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          downloadLocation={contextMenu.downloadLocation}
+          controllerId={contextMenu.controllerId}
+          downloadStatus={contextMenu.downloadStatus}
+          onClose={handleCloseContextMenu}
+          onPause={handlePause}
+          onStop={handleStop}
+          onForceStart={handleForceStart}
+          onRemove={handleRemove}
+          onViewDownload={handleViewDownload}
+          onViewFolder={handleViewFolder}
+          onAddTag={addTag}
+          onRemoveTag={removeTag}
+          currentTags={getCurrentTags(contextMenu.downloadId)}
+          availableTags={availableTags}
+          onAddCategory={addCategory}
+          onRemoveCategory={removeCategory}
+          currentCategories={getCurrentCategories(contextMenu.downloadId)}
+          availableCategories={availableCategories}
+        />
+      )}
     </div>
   );
 };
