@@ -165,7 +165,7 @@ const AllDownloads = () => {
     console.log('Stopping all downloads');
     const { downloading, deleteDownloading } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
-
+    // Sorry forgot to add commit text for centralized the choices for context menu
     if (currentDownload?.status === 'paused') {
       deleteDownloading(downloadId);
     } else {
