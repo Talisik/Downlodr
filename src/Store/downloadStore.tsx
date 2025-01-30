@@ -89,6 +89,7 @@ interface DownloadStore {
     audioExt: string,
     audioFormatId: string,
     extractorKey: string,
+    limitRate: string,
   ) => void;
 
   setDownload: (
@@ -139,12 +140,12 @@ interface DownloadStore {
 const useDownloadStore = create<DownloadStore>()(
   persist(
     (set, get) => ({
-      forDownloads: [],
-      downloading: [],
-      finishedDownloads: [],
-      historyDownloads: [],
-      availableTags: [],
-      availableCategories: [],
+      forDownloads: [] as ForDownload[],
+      downloading: [] as Downloading[],
+      finishedDownloads: [] as FinishedDownloads[],
+      historyDownloads: [] as HistoryDownloads[],
+      availableTags: [] as string[],
+      availableCategories: [] as string[],
 
       checkFinishedDownloads: async () => {
         const currentDownloads = get().downloading;
@@ -274,11 +275,13 @@ const useDownloadStore = create<DownloadStore>()(
         audioExt,
         audioFormatId,
         extractorKey,
+        limitRate,
       ) => {
         if (!location || !downloadName) {
           console.error('Invalid path parameters:', { location, downloadName });
           return;
         }
+        console.log(`In download store: speed ${limitRate}`);
 
         const args = {
           url: videoUrl,
@@ -290,6 +293,7 @@ const useDownloadStore = create<DownloadStore>()(
           remuxVideo: ext,
           audioExt: audioExt,
           audioFormatId: audioFormatId,
+          limitRate: limitRate,
         };
 
         const downloadId = (window as any).ytdlp.download(

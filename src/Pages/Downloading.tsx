@@ -105,6 +105,7 @@ const Downloading = () => {
         currentDownload.backupAudioExt,
         currentDownload.backupAudioFormatId,
         currentDownload.extractorKey,
+        '',
       );
       deleteDownloading(downloadId);
     } else if (currentDownload?.controllerId) {

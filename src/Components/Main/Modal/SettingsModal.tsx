@@ -148,7 +148,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               {/* URL Name */}
               <div>
                 <label className="block dark:text-gray-200 mt-6 mb-[-2]">
-                  Speed Limit: ({biteVal} {biteUnitVal})
+                  Speed Limit:
+                  {biteVal === 0 ? ` No limit` : ` (${biteVal} ${biteUnitVal})`}
                 </label>
                 <div className="flex gap-4 pt-2 items-center">
                   <div className="flex-1">
@@ -156,7 +157,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       defaultValue={[biteVal]}
                       value={[biteVal]}
                       onValueChange={(value) => setbiteVal(value[0])}
-                      max={100}
+                      max={200}
                       step={1}
                     />
                   </div>

@@ -61,6 +61,7 @@ const createWindow = () => {
   });
 
   // Add this to handle file protocol security
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   mainWindow.webContents.on('will-navigate', (event, url) => {
     event.preventDefault();
   });
@@ -290,7 +291,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
         remuxVideo: args.remuxVideo,
         audioFormat: args.audioExt,
         audioQuality: args.audioFormatId,
-        // limitRate: '50k',
+        limitRate: args.limitRate,
       },
     });
 

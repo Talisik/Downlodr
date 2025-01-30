@@ -88,6 +88,13 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     setContextMenu(null);
   };
 
+  const handleViewFolder = (downloadLocation?: string) => {
+    if (downloadLocation) {
+      window.downlodrFunctions.openFolder(downloadLocation);
+    }
+    setContextMenu(null);
+  };
+
   return (
     <div ref={listRef} className="overflow-x-auto">
       <table className="min-w-full table-auto">
@@ -163,6 +170,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           onViewDownload={() =>
             handleViewDownload(contextMenu.downloadLocation)
           }
+          onViewFolder={() => handleViewFolder(contextMenu.downloadLocation)}
           onAddTag={addTag}
           onRemoveTag={removeTag}
           currentTags={

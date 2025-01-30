@@ -42,8 +42,12 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
   //Store
   const { addDownload, setDownload } = useDownloadStore(); //download store
-
   const { settings } = useMainStore();
+  // Get max download from main store
+  const maxDownload =
+    settings.defaultDownloadSpeed === 0
+      ? ''
+      : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
 
   // eslint-disable-next-line prettier/prettier
 
@@ -54,6 +58,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     if (videoUrl) {
       setEmbedUrl(GetEmbedUrl(videoUrl));
       const fetchVideoInfo = async () => {
+        console.log(maxDownload);
         console.log('Fetching video info...');
         setIsLoading(true);
         try {
@@ -546,6 +551,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         audioExt,
         audioQualityId,
         extractorKey,
+        maxDownload,
       );
 
       resetModal();
