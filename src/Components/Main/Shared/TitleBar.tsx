@@ -1,5 +1,6 @@
 import React from 'react';
-import { IoMdClose, IoMdRemove } from 'react-icons/io';
+import { IoMdClose, IoMdRemove, IoIosBrowsers } from 'react-icons/io';
+import { PiBrowsers } from 'react-icons/pi';
 import downlodrLogoLight from '../../../Assets/Logo/Downlodr-Logo.svg';
 import downlodrLogoDark from '../../../Assets/Logo/Downlodr-LogoDark.svg';
 import { ModeToggle } from '../../../Components/SubComponents/custom/ModeToggle';
@@ -42,6 +43,14 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
             onClick={() => window.downlodrFunctions.minimizeApp()}
           >
             <IoMdRemove size={16} />
+          </button>
+
+          {/* Maximize Button */}
+          <button
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
+            onClick={() => window.downlodrFunctions.maximizeApp()}
+          >
+            <PiBrowsers size={16} />
           </button>
 
           {/* Close Button */}

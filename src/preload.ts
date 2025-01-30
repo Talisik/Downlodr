@@ -8,6 +8,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('downlodrFunctions', {
   invoke: (channel: any, ...args: any) => ipcRenderer.invoke(channel, ...args),
   closeApp: () => ipcRenderer.send('close-btn'),
+  openExternalLink: (link: string) =>
+    ipcRenderer.invoke('openExternalLink', link),
   minimizeApp: () => ipcRenderer.send('minimize-btn'),
   maximizeApp: () => ipcRenderer.send('maximize-btn'),
   openVideo: (filePath: string) => ipcRenderer.invoke('openVideo', filePath),

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
 import { useMainStore } from '../../../Store/mainStore';
@@ -15,7 +15,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     settings,
     updateDefaultLocation,
     updateDefaultDownloadSpeed,
-    updateMaxUploadNum,
+    // updateMaxUploadNum,
     updatePermitConnectionLimit,
     updateMaxDownloadNum,
     updateDefaultDownloadSpeedBit,
@@ -34,6 +34,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [isConnectionLimitEnabled, setIsConnectionLimitEnabled] = useState(
     settings.permitConnectionLimit,
   );
+
+  // Misc
+  const navRef = useRef<HTMLDivElement>(null);
 
   const resetSettingsModal = () => {
     // Reset all state values to their original store values
@@ -76,6 +79,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     onClose();
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
   const biteOptions = [
     { biteDisplayName: 'Kilo byte (KB)', biteUnitVal: 'K' },
     { biteDisplayName: 'Mega byte (MB)', biteUnitVal: 'M' },
@@ -103,7 +120,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     updateDefaultDownloadSpeedBit(biteUnitVal);
     updatePermitConnectionLimit(isConnectionLimitEnabled);
     // Only update connection limits if enabled, otherwise set to default of 5
-    updateMaxUploadNum(isConnectionLimitEnabled ? maxUpload : 5);
+    // updateMaxUploadNum(isConnectionLimitEnabled ? maxUpload : 5);
     updateMaxDownloadNum(isConnectionLimitEnabled ? maxDownload : 5);
     onClose();
   };
@@ -112,7 +129,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[9999]">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[9999]"
+      onClick={(e) => {
+        // Only close if clicking the overlay background
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+    >
       <div className="bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 max-w-xl w-full mx-4">
         {/* Left side - Form */}
         <div className="w-full">
@@ -221,23 +246,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       <select
                         value={maxDownload}
                         onChange={(e) => setMaxDownload(Number(e.target.value))}
-                        className="w-24 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none [&>option]:dark:bg-darkMode"
-                        disabled={!isConnectionLimitEnabled}
-                      >
-                        {[...Array(10)].map((_, index) => (
-                          <option key={index} value={index + 1}>
-                            {index + 1}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex flex-row items-center gap-4 mt-2">
-                      <label className="flex-1 dark:text-gray-200">
-                        Maximum Active Uploads
-                      </label>
-                      <select
-                        value={maxUpload}
-                        onChange={(e) => setmaxUpload(Number(e.target.value))}
                         className="w-24 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none [&>option]:dark:bg-darkMode"
                         disabled={!isConnectionLimitEnabled}
                       >

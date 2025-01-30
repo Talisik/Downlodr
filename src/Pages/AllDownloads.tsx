@@ -450,7 +450,11 @@ const AllDownloads = () => {
                   style={{ width: columns[3].width }}
                   className="p-2 dark:text-gray-200"
                 >
-                  {download.speed || '-'}
+                  {download.status === 'finished' ? (
+                    <span>{download.speed}</span>
+                  ) : (
+                    <span>—</span>
+                  )}{' '}
                 </td>
                 <td
                   style={{ width: columns[4].width }}
@@ -466,10 +470,12 @@ const AllDownloads = () => {
                 </td>
                 <td className="w-20 p-2 dark:text-gray-200">
                   <a
-                    href={download.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline dark:text-blue-400"
+                    onClick={() =>
+                      window.downlodrFunctions.openExternalLink(
+                        download.videoUrl,
+                      )
+                    }
+                    className="text-blue-500 hover:underline dark:text-blue-400 cursor-pointer"
                   >
                     {download.extractorKey}
                   </a>{' '}

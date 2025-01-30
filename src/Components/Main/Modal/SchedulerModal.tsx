@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { FiUpload } from 'react-icons/fi';
 
@@ -39,6 +39,9 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
   const [downloadThumbnail, setDownloadThumbnail] = useState(false);
   const [downloadDescription, setDownloadDescription] = useState(false);
 
+  //Misc
+  const navRef = useRef<HTMLDivElement>(null);
+
   const resetSchedulerModal = () => {
     // reset everything
     setDownloadSubtitles(false);
@@ -75,6 +78,20 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
     onClose();
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
   const dayOptions = [
     { dayDisplayName: 'Monday', dayVal: '1' },
     { dayDisplayName: 'Tuesday', dayVal: '2' },
@@ -104,7 +121,15 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full"
+      onClick={(e) => {
+        // Only close if clicking the overlay background
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+    >
       <div className="bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 max-w-xl w-full mx-4">
         {/* Left side - Form */}
         <div className="w-full">

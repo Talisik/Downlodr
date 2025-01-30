@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
 import { useMainStore } from '../../../Store/mainStore';
@@ -13,6 +13,8 @@ interface AboutModalProps {
 }
 
 const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
+  const navRef = useRef<HTMLDivElement>(null);
+
   const resetAboutModal = () => {
     // hello
   };
@@ -23,12 +25,44 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
     onClose();
   };
 
+  // Open Link
+  const handleLink = async () => {
+    await window.downlodrFunctions.openExternalLink('https://downlodr.com/');
+    onClose();
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
   // Move conditional return here, after hooks but before render
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[9999]">
-      <div className="bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 max-w-md w-full mx-4">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[9999]"
+      onClick={(e) => {
+        // Only close if clicking the overlay background
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+    >
+      <div
+        ref={navRef}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 max-w-md w-full mx-4"
+      >
         {/* Left side - Form */}
         <div className="w-full">
           <div className="flex justify-between items-center mb-4">
@@ -61,8 +95,9 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
               </label>
               <div className="flex gap-1 pt-1 items-start">
                 <a
-                  href="https://www.w3schools.com"
-                  className="text-[11px] text-primary underline"
+                  onClick={() => handleLink()}
+                  className="text-[11px] text-primary underline cursor-pointer hover:text-primary/80"
+                  role="button"
                 >
                   Visit the project website{' '}
                 </a>

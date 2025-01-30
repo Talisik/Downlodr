@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { FaRegClock } from 'react-icons/fa6';
+import { IoIosAdd } from 'react-icons/io';
+import { RxExit } from 'react-icons/rx';
 import SchedulerModal from '../Modal/SchedulerModal';
 import DownloadModal from '../Modal/DownloadModal';
 import SettingsModal from '../Modal/SettingsModal';
@@ -41,23 +43,24 @@ const DropdownBar = ({ className }: { className?: string }) => {
       }
     }
 
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (
+          dropdownRef.current &&
+          !dropdownRef.current.contains(event.target as Node)
+        ) {
+          setActiveMenu(null);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     // If we pass the checks, open the modal
     setDownloadModalOpen(true);
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setActiveMenu(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   return (
     <div
@@ -79,19 +82,21 @@ const DropdownBar = ({ className }: { className?: string }) => {
           {activeMenu === 'file' && (
             <div className="absolute left-0 mt-1 w-48 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200"
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
                 onClick={() => {
                   handleOpenDownloadModal();
                   setActiveMenu(null);
                 }}
               >
-                <span>+ New Download</span>
+                <IoIosAdd size={18} className="mr-[-2px]" />
+                <span>New Download</span>
               </button>
               <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200"
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
                 onClick={() => window.downlodrFunctions.closeApp()}
               >
-                <span>K Exit</span>
+                <RxExit />
+                <span>Exit</span>
               </button>
             </div>
           )}

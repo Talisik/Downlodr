@@ -120,16 +120,8 @@ const History = () => {
   const handleDelete = async (videoFile: any, id: any) => {
     try {
       if (fileExistsMap[id]) {
-        // If file exists, try to delete it from disk
-        const success = await window.downlodrFunctions.deleteFile(videoFile);
-        if (success) {
-          deleteDownload(id);
-          console.log('File moved to trash successfully');
-        } else {
-          setErrorTitle('Deletion Error');
-          setErrorMessage('Failed to send to trash');
-          setErrorVisible(true);
-        }
+        // If file exists, try to delete it from logs
+        deleteDownload(id);
       } else {
         // If file doesn't exist, just remove from history
         deleteDownload(id);
@@ -254,38 +246,44 @@ const History = () => {
                 {date}
               </h4>
               <div className="space-y-2">
-                {(products as any[]).map((product: any) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center space-x-4 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedItems.includes(product.id)}
-                      onChange={() => handleCheckboxChange(product.id)}
-                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-500 dark:text-gray-400 w-20">
-                      {parseISODate(product.DateAdded)}
-                    </span>
-                    <FaYoutube className="text-red-500 text-xl" />
-                    <span
-                      className={`flex-1 truncate ${
-                        fileExistsMap[product.id]
-                          ? 'text-gray-700 dark:text-gray-200'
-                          : 'line-through text-gray-400 dark:text-gray-500'
-                      }`}
+                {(products as any[])
+                  .sort(
+                    (a, b) =>
+                      new Date(b.DateAdded).getTime() -
+                      new Date(a.DateAdded).getTime(),
+                  )
+                  .map((product: any) => (
+                    <div
+                      key={product.id}
+                      className="flex items-center space-x-4 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors"
                     >
-                      {product.name}
-                    </span>
-                    <button
-                      onClick={(event) => handleRowClick(event, product)}
-                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
-                    >
-                      ⋮
-                    </button>
-                  </div>
-                ))}
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.includes(product.id)}
+                        onChange={() => handleCheckboxChange(product.id)}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-500 dark:text-gray-400 w-20">
+                        {parseISODate(product.DateAdded)}
+                      </span>
+                      <FaYoutube className="text-red-500 text-xl" />
+                      <span
+                        className={`flex-1 truncate ${
+                          fileExistsMap[product.id]
+                            ? 'text-gray-700 dark:text-gray-200'
+                            : 'line-through text-gray-400 dark:text-gray-500'
+                        }`}
+                      >
+                        {product.name}
+                      </span>
+                      <button
+                        onClick={(event) => handleRowClick(event, product)}
+                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
+                      >
+                        ⋮
+                      </button>
+                    </div>
+                  ))}
               </div>
             </div>
           ))}

@@ -67,6 +67,11 @@ const createWindow = () => {
   });
 };
 
+ipcMain.on('openExternalLink', (_event, link: string) => {
+  console.log('link received', link);
+  shell.openExternal(link);
+});
+
 // Functions for Download Verification
 
 ipcMain.handle('joinDownloadPath', async (event, downloadPath, fileName) => {
@@ -362,5 +367,15 @@ ipcMain.on('toggle-dev-tools', () => {
     } else {
       win.webContents.openDevTools();
     }
+  }
+});
+
+// Add this handler for external links
+ipcMain.handle('openExternalLink', async (_event, link: string) => {
+  try {
+    await shell.openExternal(link);
+  } catch (error) {
+    console.error('Failed to open external link:', error);
+    throw error;
   }
 });

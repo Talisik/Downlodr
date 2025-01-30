@@ -6,6 +6,7 @@ declare global {
       closeApp: () => void;
       minimizeApp: () => void;
       maximizeApp: () => void;
+      openExternalLink: (link: string) => Promise<void>;
 
       //Downlodr functions
       openVideo: (videoPath: string) => Promise<void>; // Should return a Promise<void> since it's an async operation
