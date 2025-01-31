@@ -65,6 +65,10 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
                 </span>
               </p>
               <p>
+                <span className="font-bold dark:text-gray-200">Status: </span>
+                <span className="dark:text-gray-300">{download.status}</span>
+              </p>
+              <p>
                 <span className="font-bold dark:text-gray-200">
                   Download Speed:{' '}
                 </span>

@@ -130,6 +130,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           });
         }
       }
+      clearSelectedDownloads();
+      clearSelectedRows();
     }
   };
 

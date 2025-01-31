@@ -40,6 +40,9 @@ const AllDownloads = () => {
   const history = useDownloadStore((state) => state.historyDownloads);
   const downloading = useDownloadStore((state) => state.downloading);
   const forDownloads = useDownloadStore((state) => state.forDownloads);
+  const finishedDownloads = useDownloadStore(
+    (state) => state.finishedDownloads,
+  );
   const deleteDownload = useDownloadStore((state) => state.deleteDownload);
   const availableTags = useDownloadStore((state) => state.availableTags);
   const addTag = useDownloadStore((state) => state.addTag);
@@ -76,7 +79,12 @@ const AllDownloads = () => {
   ]);
 
   // Combine downloads from downloading and history
-  const allDownloads = [...downloading, ...history, ...forDownloads].filter(
+  const allDownloads = [
+    ...finishedDownloads,
+    ...downloading,
+    ...history,
+    ...forDownloads,
+  ].filter(
     (download, index, self) =>
       index === self.findIndex((d) => d.id === download.id),
   );
@@ -409,7 +417,9 @@ const AllDownloads = () => {
                   <div className="flex items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-300">
                       {download.status === 'cancelled' ||
+                      download.status === 'to download' ||
                       download.status === 'initializing' ||
+                      download.status === 'getting metadata' ||
                       download.status === 'finished' ? (
                         <span>{download.status}</span>
                       ) : (

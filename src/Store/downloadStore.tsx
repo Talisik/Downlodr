@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { VideoFormatService } from '../DataFunctions/GetDownloadMetaData';
 
 function uuidv4() {
   return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) =>
@@ -32,7 +33,7 @@ export interface BaseDownload {
 }
 
 interface ForDownload extends BaseDownload {
-  status: 'To Download';
+  status: string;
   downloadStart: boolean;
   formatId: string;
   audioExt: string;
@@ -46,6 +47,7 @@ interface Downloading extends BaseDownload {
     | 'failed'
     | 'cancelled'
     | 'initializing'
+    | 'getting metadata'
     | 'paused';
   formatId: string;
   backupExt?: string;
@@ -94,20 +96,8 @@ interface DownloadStore {
 
   setDownload: (
     videoUrl: string,
-    name: string,
-    downloadName: string,
-    size: number,
-    speed: string,
-    timeLeft: string,
-    DateAdded: string,
-    progress: number,
     location: string,
-    status: string,
-    ext: string,
-    formatId: string,
-    downloadStart: boolean,
-    audioExt: string,
-    audioFormatId: string,
+    maxDownload: string,
   ) => void;
 
   deleteDownload: (id: string) => void;
@@ -133,7 +123,14 @@ interface DownloadStore {
       | 'failed'
       | 'cancelled'
       | 'initializing'
+      | 'getting metadata'
       | 'paused',
+  ) => void;
+
+  fetchMetadataInBackground: (
+    downloadId: string,
+    videoUrl: string,
+    downloadFolder: string,
   ) => void;
 }
 
@@ -360,55 +357,99 @@ const useDownloadStore = create<DownloadStore>()(
         }));
       },
 
-      setDownload: async (
-        videoUrl,
-        name,
-        downloadName,
-        size,
-        speed,
-        timeLeft,
-        DateAdded,
-        progress,
-        location,
-        status,
-        ext,
-        formatId,
-        downloadStart,
-        audioExt,
-        audioFormatId,
-      ) => {
-        if (!location || !downloadName) {
-          console.error('Invalid path parameters:', { location, downloadName });
+      setDownload: async (videoUrl, location, limitRate) => {
+        if (!location) {
+          console.error('Invalid path parameters:', { location });
           return;
         }
+
         const downloadId = uuidv4();
+
+        // Add initial entry with minimal info
         set((state) => ({
           ...state,
           forDownloads: [
             ...state.forDownloads,
             {
+              // BaseDownload properties
               id: downloadId,
               videoUrl,
-              name,
-              downloadName,
-              size,
-              speed,
-              timeLeft,
-              DateAdded,
-              progress,
+              name: 'Fetching metadata...',
+              downloadName: '',
+              size: 0,
+              speed: '',
+              timeLeft: '',
+              DateAdded: new Date().toISOString(),
+              progress: 0,
               location,
-              status: 'To Download',
-              ext,
-              downloadStart,
-              formatId,
-              audioExt,
-              audioFormatId,
+              status: 'getting metadata',
+              ext: '',
+              controllerId: undefined,
               tags: [],
               category: [],
               extractorKey: '',
+
+              // ForDownload specific properties
+              downloadStart: false,
+              formatId: '',
+              audioExt: '',
+              audioFormatId: '',
             },
           ],
         }));
+
+        try {
+          // Fetch metadata in background
+          const info = await window.ytdlp.getInfo(videoUrl);
+
+          // Process formats using the service
+          const { formatOptions, defaultFormatId, defaultExt } =
+            await VideoFormatService.processVideoFormats(info);
+
+          // Get default audio format if available
+          const defaultAudioFormat = formatOptions.find((f) =>
+            f.label.includes('Audio Only'),
+          );
+
+          // Update the forDownloads entry with metadata
+          set((state) => ({
+            ...state,
+            forDownloads: state.forDownloads.map((download) =>
+              download.id === downloadId
+                ? {
+                    ...download,
+                    name: info.data.title,
+                    downloadName: info.data.title,
+                    status: 'to download',
+                    ext: defaultExt,
+                    formatId: defaultFormatId,
+                    extractorKey: info.data.extractor_key,
+                    audioExt: defaultAudioFormat?.fileExtension || '',
+                    audioFormatId: defaultAudioFormat?.formatId || '',
+                    downloadStart: false,
+                    formats: formatOptions, // Store available formats for later use
+                  }
+                : download,
+            ),
+          }));
+        } catch (error) {
+          console.error('Error fetching metadata:', error);
+          // Update status to error
+          set((state) => ({
+            ...state,
+            forDownloads: state.forDownloads.map((download) =>
+              download.id === downloadId
+                ? {
+                    ...download,
+                    status: 'metadata_error',
+                    error: 'Failed to fetch video information',
+                  }
+                : download,
+            ),
+          }));
+        }
+
+        return downloadId;
       },
 
       deleteDownload: (id: string) => {
@@ -641,6 +682,7 @@ const useDownloadStore = create<DownloadStore>()(
           | 'failed'
           | 'cancelled'
           | 'initializing'
+          | 'getting metadata'
           | 'paused',
       ) => {
         console.log('Updating status for id:', id, 'to:', status);
@@ -660,6 +702,38 @@ const useDownloadStore = create<DownloadStore>()(
           console.log('New state downloads:', newState.downloading);
           return newState;
         });
+      },
+
+      fetchMetadataInBackground: async (
+        downloadId: string,
+        videoUrl: string,
+        downloadFolder: string,
+      ) => {
+        try {
+          const info = await window.ytdlp.getInfo(videoUrl);
+
+          // Process formats using the service
+          const { formatOptions, defaultFormatId, defaultExt } =
+            await VideoFormatService.processVideoFormats(info);
+
+          // Update download with metadata
+          get().updateDownload(downloadId, {
+            title: info.data.title,
+            formats: formatOptions,
+            extractorKey: info.data.extractor_key,
+            status: 'ready',
+            formatId: defaultFormatId,
+            ext: defaultExt,
+            downloadFolder,
+            thumbnail: info.data.thumbnail,
+          });
+        } catch (error) {
+          console.error('Error fetching metadata:', error);
+          get().updateDownload(downloadId, {
+            status: 'error',
+            error: 'Failed to fetch video information',
+          });
+        }
       },
 
       //End of store

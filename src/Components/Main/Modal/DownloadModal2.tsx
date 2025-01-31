@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import useDownloadStore from '../../../Store/downloadStore';
 import GetEmbedUrl from '../../..//DataFunctions/EmbedVideo';
 import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
 import { useMainStore } from '../../../Store/mainStore';
+import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 
 interface DownloadModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   const [videoSource, setVideoSource] = useState(''); //displays embed link
   const [selectedFormatDisplay, setSelectedFormatDisplay] =
     useState('Select Format'); //chosen audio, video and quality format
+  const navRef = useRef<HTMLDivElement>(null);
 
   // Validation
   const [isVideoReady, setIsVideoReady] = useState<boolean>(false); //is for checking embed
@@ -43,15 +45,13 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   const { addDownload, setDownload } = useDownloadStore(); //download store
   const { settings } = useMainStore();
   // Get max download from main store
-
   const maxDownload =
     settings.defaultDownloadSpeed === 0
       ? ''
       : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
-
   const [downloadFolder, setDownloadFolder] = useState<string>(
     settings.defaultLocation,
-  ); //dpwnload destination folder
+  );
 
   // eslint-disable-next-line prettier/prettier
 
@@ -59,14 +59,17 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
   // for automatically fetching url information
   useEffect(() => {
-    if (videoUrl) {
+    if (isValidUrl) {
       setEmbedUrl(GetEmbedUrl(videoUrl));
       const fetchVideoInfo = async () => {
-        console.log(maxDownload);
         console.log('Fetching video info...');
         setIsLoading(true);
         try {
           const info = await (window as any).ytdlp.getInfo(videoUrl);
+          const folderPath =
+            settings.defaultLocation ||
+            (await window.downlodrFunctions.getDownloadFolder());
+
           console.log('Video info fetched:', info);
           setVideoInfo(info);
           setExtractorKey(info.data.extractor_key);
@@ -416,6 +419,10 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
   }, [videoUrl, settings.defaultLocation]);
 
+  useEffect(() => {
+    setDownloadFolder(settings.defaultLocation);
+  }, [settings.defaultLocation]);
+
   // Checks if the user is online
   useEffect(() => {
     const handleOffline = () => {
@@ -431,7 +438,6 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   // Reset all values
   const resetModal = () => {
     setVideoUrl('');
-    setDownloadFolder('');
     setDownloadName('');
     setdownloadVideoExt('mp4');
     setIsVideoReady(false);
@@ -440,6 +446,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     setSelectedFormatDisplay('Select Format');
     setExtractorKey('');
     setIsLoading(false);
+    setDownloadFolder(settings.defaultLocation);
   };
 
   // Remove invalid characters from download name
@@ -584,16 +591,41 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     );
 
     if (!urlPattern.test(url)) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid URL',
+        description: 'Please enter a valid video URL',
+      });
       return false;
     }
+
     try {
       new URL(url);
       setIsValidUrl(true);
       setIsVideoReady(false); // Reset video ready state when a new URL is entered
     } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid URL Format',
+        description: 'The URL format is not valid',
+      });
       return false;
     }
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        handleCancel();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
 
   // Cancel button
   const handleCancel = () => {
@@ -611,7 +643,16 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[9999]">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[9999]"
+      onClick={(e) => {
+        // Only close if clicking the overlay background
+        if (e.target === e.currentTarget) {
+          handleCancel();
+        }
+      }}
+    >
+      {' '}
       <div
         className={`bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 ${
           videoUrl && isValidUrl
