@@ -242,10 +242,10 @@ const CompletedDownloads = () => {
               </td>
               <td className="w-20 p-2">
                 <a
-                  href={download.videoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline dark:text-blue-400"
+                  onClick={() =>
+                    window.downlodrFunctions.openExternalLink(download.videoUrl)
+                  }
+                  className="text-blue-500 hover:underline dark:text-blue-400 cursor-pointer"
                 >
                   {download.extractorKey}
                 </a>

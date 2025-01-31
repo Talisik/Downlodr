@@ -167,9 +167,12 @@ const SchedulerModal: React.FC<SchedulerModalProps> = ({ isOpen, onClose }) => {
               <div className="space-y-2 flex justify-end">
                 <div className="flex gap-3">
                   <a
-                    href="https://www.w3schools.com/"
-                    target="_blank"
-                    className="mt-2 text-xs underline underline-offset-2 text-primary dark:text-primary"
+                    onClick={() =>
+                      window.downlodrFunctions.openExternalLink(
+                        'https://www.w3schools.com/',
+                      )
+                    }
+                    className="mt-2 text-xs underline underline-offset-2 text-primary dark:text-primary cursor-pointer"
                   >
                     CSV Format
                   </a>

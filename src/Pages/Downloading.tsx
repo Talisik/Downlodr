@@ -410,11 +410,11 @@ const Downloading = () => {
                   <span className="text-sm text-gray-600 dark:text-gray-300">
                     {download.status === 'cancelled' ||
                     download.status === 'initializing' ||
-                    download.status === 'paused' ||
                     download.status === 'finished' ? (
                       <span>{download.status}</span>
                     ) : (
                       <AnimatedCircularProgressBar
+                        status={download.status}
                         max={100}
                         min={0}
                         value={download.progress} // any number between min and max
@@ -446,10 +446,10 @@ const Downloading = () => {
               </td>
               <td className="w-20 p-2">
                 <a
-                  href={download.videoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline dark:text-blue-400"
+                  onClick={() =>
+                    window.downlodrFunctions.openExternalLink(download.videoUrl)
+                  }
+                  className="text-blue-500 hover:underline dark:text-blue-400 cursor-pointer"
                 >
                   {download.extractorKey}
                 </a>

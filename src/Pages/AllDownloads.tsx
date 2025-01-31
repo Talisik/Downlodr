@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';
@@ -167,17 +168,14 @@ const AllDownloads = () => {
     downloadLocation?: string,
     controllerId?: string,
   ) => {
-    console.log('Stopping all downloads');
     const { downloading, deleteDownloading } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
-    // Sorry forgot to add commit text for centralized the choices for context menu
+
     if (currentDownload?.status === 'paused') {
       deleteDownloading(downloadId);
     } else {
       if (downloading && downloading.length > 0) {
         downloading.forEach(async (download) => {
-          console.log(`Attempting to stop download: ${download.id}`);
-
           if (download.controllerId) {
             try {
               const success = await window.ytdlp.killController(
@@ -188,33 +186,15 @@ const AllDownloads = () => {
                 console.log(
                   `Controller with ID ${download.controllerId} has been terminated.`,
                 );
-              } else {
-                console.log(
-                  `Failed to terminate controller with ID ${download.controllerId}.`,
-                );
               }
             } catch (error) {
               console.error('Error invoking kill-controller:', error);
             }
-          } else {
-            console.error(
-              `Controller ID not found for download ${download.id}`,
-            );
           }
         });
-      } else {
-        console.log('Error deleting');
       }
     }
 
-    console.log(
-      'Stopping:',
-      downloadId,
-      'at:',
-      downloadLocation,
-      'controller:',
-      controllerId,
-    );
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
@@ -430,17 +410,16 @@ const AllDownloads = () => {
                     <span className="text-sm text-gray-600 dark:text-gray-300">
                       {download.status === 'cancelled' ||
                       download.status === 'initializing' ||
-                      download.status === 'paused' ||
                       download.status === 'finished' ? (
                         <span>{download.status}</span>
                       ) : (
                         <AnimatedCircularProgressBar
+                          status={download.status}
                           max={100}
                           min={0}
                           value={download.progress} // any number between min and max
                           gaugePrimaryColor="#4CAF50" // primary color for the progress
                           gaugeSecondaryColor="#EEEEEE" // background color of the gauge
-                          className="m-2" // optional
                         />
                       )}{' '}
                     </span>

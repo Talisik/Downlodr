@@ -125,11 +125,11 @@ const DropdownBar = ({ className }: { className?: string }) => {
           )}
         </div>
 
-        <button className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+        {/*  <button className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
           <NavLink to="/scheduleTable" className={'scheduler font-semibold'}>
             <span className="ml-2">Scheduler</span>
           </NavLink>{' '}
-        </button>
+        </button>*/}
 
         <button
           className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
@@ -165,6 +165,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
           className="primary-custom-btn px-[6px] py-[3px] sm:px-[8px] sm:py-[4px] mr-2 sm:mr-4 flex items-center gap-1 sm:gap-2 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
           onClick={() => {
             setSchedulerModalOpen(true);
+            setActiveMenu(null);
           }}
         >
           <FaRegClock size={12} className="sm:w-[14px] sm:h-[14px]" />

@@ -1,6 +1,10 @@
 import { cn } from '../shadcn/lib/utils';
+import { FaPause } from 'react-icons/fa6';
+import { IoPauseSharp } from 'react-icons/io5';
+import { MdPause } from 'react-icons/md';
 
 interface AnimatedCircularProgressBarProps {
+  status: string;
   max: number;
   value: number;
   min: number;
@@ -10,7 +14,8 @@ interface AnimatedCircularProgressBarProps {
 }
 
 export function AnimatedCircularProgressBar({
-  max = 100,
+  status,
+  max = 200,
   min = 0,
   value = 0,
   gaugePrimaryColor,
@@ -101,7 +106,13 @@ export function AnimatedCircularProgressBar({
         data-current-value={currentPercent}
         className="duration-[var(--transition-length)] delay-[var(--delay)] absolute inset-0 m-auto size-fit ease-linear animate-in fade-in m-2"
       >
-        {currentPercent}%
+        {status === 'paused' ? (
+          <span>
+            <MdPause size={20} />
+          </span>
+        ) : (
+          <span>{currentPercent}%</span>
+        )}
       </span>
     </div>
   );

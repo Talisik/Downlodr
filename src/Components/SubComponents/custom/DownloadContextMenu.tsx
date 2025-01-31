@@ -7,6 +7,7 @@ import { HiOutlineStopCircle } from 'react-icons/hi2';
 import { BiRightArrow } from 'react-icons/bi';
 import { LuTrash, LuFolderOpen } from 'react-icons/lu';
 import { GoChevronRight } from 'react-icons/go';
+import { VscDebugStart } from 'react-icons/vsc';
 
 interface DownloadContextMenuProps {
   downloadId: string;
@@ -48,6 +49,44 @@ interface DownloadContextMenuProps {
   onViewFolder: (downloadLocation?: string) => void;
 }
 
+interface ConfirmModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  message: string;
+}
+
+const ConfirmModal: React.FC<ConfirmModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  message,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-darkMode rounded-lg p-6 max-w-sm w-full mx-4">
+        <p className="text-gray-800 dark:text-gray-200 mb-4">{message}</p>
+        <div className="flex justify-end space-x-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   downloadId,
   position,
@@ -78,6 +117,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const [tagMenuPosition, setTagMenuPosition] = useState<
     'right' | 'left' | 'top'
   >('right');
+  const [showStopConfirmation, setShowStopConfirmation] = useState(false);
   // const [newTag, setNewTag] = useState('');
   // const [newCategory, setNewCategory] = useState('');
 
@@ -153,6 +193,12 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     e.stopPropagation();
     setShowTagMenu(false); // Close tag menu
     setShowCategoryMenu(!showCategoryMenu);
+  };
+
+  const handleStopConfirm = () => {
+    onStop(downloadId, downloadLocation, controllerId);
+    setShowStopConfirmation(false);
+    onClose();
   };
 
   const renderMenuOptions = () => {
@@ -287,15 +333,15 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             }}
           >
             <span className="flex items-center space-x-2">
-              <IoPauseCircleOutline size={20} />
+              <VscDebugStart size={20} />
               <span>Start</span>
             </span>
           </button>
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-            onClick={() => {
-              onStop(downloadId, downloadLocation, controllerId);
-              onClose();
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowStopConfirmation(true);
             }}
           >
             <span className="flex items-center space-x-2">
@@ -338,9 +384,9 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         </button>
         <button
           className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-          onClick={() => {
-            onStop(downloadId, downloadLocation, controllerId);
-            onClose();
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowStopConfirmation(true);
           }}
         >
           <span className="flex items-center space-x-2">
@@ -366,16 +412,25 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   };
 
   return (
-    <div
-      ref={menuRef}
-      className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 z-50 dark:border-gray-700"
-      style={{
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-      }}
-    >
-      {renderMenuOptions()}
-    </div>
+    <>
+      <div
+        ref={menuRef}
+        className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 z-50 dark:border-gray-700"
+        style={{
+          left: `${position.x}px`,
+          top: `${position.y}px`,
+        }}
+      >
+        {renderMenuOptions()}
+      </div>
+
+      <ConfirmModal
+        isOpen={showStopConfirmation}
+        onClose={() => setShowStopConfirmation(false)}
+        onConfirm={handleStopConfirm}
+        message="Are you sure you want to stop and remove this download?"
+      />
+    </>
   );
 };
 

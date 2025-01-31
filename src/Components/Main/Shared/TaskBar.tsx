@@ -182,7 +182,9 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             onClick={handleStopSelected}
           >
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
-            {/*{selectedDownloads.length > 0 && ` (${selectedDownloads.length})`}*/}
+            {selectedDownloads.length > 0 &&
+              ` (${selectedDownloads.length})`}{' '}
+            {/* */}
           </button>
           <button
             className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
