@@ -272,17 +272,29 @@ export class VideoFormatService {
     const formatsArray = info.data.formats || [];
     const extractorKey = info.data.extractor_key;
 
+    let processed;
     switch (extractorKey) {
       case 'Youtube':
-        return this.processYoutubeFormats(formatsArray);
+        processed = this.processYoutubeFormats(formatsArray);
+        break;
       case 'Dailymotion':
-        return this.processDailymotionFormats(formatsArray);
+        processed = this.processDailymotionFormats(formatsArray);
+        break;
       case 'Vimeo':
       case 'BiliBili':
       case 'CNN':
-        return this.processVimeoFormats(formatsArray);
+        processed = this.processVimeoFormats(formatsArray);
+        break;
       default:
-        return this.processDefaultFormats(formatsArray);
+        processed = this.processDefaultFormats(formatsArray);
     }
+
+    return {
+      ...processed,
+      formatOptions: [...processed.formatOptions, ...processed.audioOptions],
+      audioOptions: processed.audioOptions,
+      defaultFormatId: processed.defaultFormatId,
+      defaultExt: processed.defaultExt,
+    };
   }
 }

@@ -16,9 +16,18 @@ interface FormatSelectorProps {
     audioFormatId?: string;
     formatId?: string;
   };
+  onFormatSelect: (formatData: {
+    ext: string;
+    formatId: string;
+    audioExt: string;
+    audioFormatId: string;
+  }) => void;
 }
 
-const FormatSelector: React.FC<FormatSelectorProps> = ({ download }) => {
+const FormatSelector: React.FC<FormatSelectorProps> = ({
+  download,
+  onFormatSelect,
+}) => {
   const [selectedFormatValue, setSelectedFormatValue] = useState('');
   const [selectedFormatDisplay, setSelectedFormatDisplay] = useState('Format');
 
@@ -37,18 +46,23 @@ const FormatSelector: React.FC<FormatSelectorProps> = ({ download }) => {
       setSelectedFormatValue(selectedFormat.value);
       setSelectedFormatDisplay(selectedFormat.label);
 
-      // Update download object format properties
-      if (isAudioOnly) {
-        download.audioExt = 'mp3'; // Force mp3 for audio
-        download.audioFormatId = selectedFormat.formatId;
-        download.ext = 'mp3'; // Set the main extension to mp3 for audio
-        download.formatId = '';
-      } else {
-        download.audioExt = '';
-        download.audioFormatId = '';
-        download.ext = selectedFormat.fileExtension;
-        download.formatId = selectedFormat.formatId;
-      }
+      // Prepare format data
+      const formatData = isAudioOnly
+        ? {
+            ext: 'mp3',
+            formatId: '',
+            audioExt: 'mp3',
+            audioFormatId: selectedFormat.formatId,
+          }
+        : {
+            ext: selectedFormat.fileExtension,
+            formatId: selectedFormat.formatId,
+            audioExt: '',
+            audioFormatId: '',
+          };
+
+      // Send format data back to parent
+      onFormatSelect(formatData);
     }
   };
 

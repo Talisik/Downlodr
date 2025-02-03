@@ -437,7 +437,26 @@ const AllDownloads = () => {
                 <td style={{ width: columns[1].width }} className="p-2">
                   <div className="flex items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-300">
-                      <FormatSelector download={download} />
+                      <FormatSelector
+                        download={download}
+                        onFormatSelect={(formatData) => {
+                          const { updateDownload } =
+                            useDownloadStore.getState();
+                          useDownloadStore.setState((state) => ({
+                            forDownloads: state.forDownloads.map((d) =>
+                              d.id === download.id
+                                ? {
+                                    ...d,
+                                    ext: formatData.ext,
+                                    formatId: formatData.formatId,
+                                    audioExt: formatData.audioExt,
+                                    audioFormatId: formatData.audioFormatId,
+                                  }
+                                : d,
+                            ),
+                          }));
+                        }}
+                      />
                     </span>
                   </div>
                 </td>

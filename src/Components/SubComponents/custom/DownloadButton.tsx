@@ -1,12 +1,14 @@
 import React from 'react';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
+import { AnimatedCircularProgressBar } from './RadialProgress';
 
 interface DownloadButtonProps {
   download: {
     id: string;
     location: string;
     name: string;
+    status: string;
     ext: string;
     audioExt: string;
     videoUrl: string;
@@ -28,6 +30,11 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
 
   const handleDownloadClick = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row expansion
+    console.log('IN BUTTON');
+    console.log(download.ext);
+    console.log(download.audioExt);
+    console.log(download.formatId);
+    console.log(download.audioFormatId);
 
     // Process the filename first
     const processedName = await processFileName(
@@ -59,7 +66,14 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
 
   return (
     <button onClick={handleDownloadClick} className="text-left">
-      ready for download
+      <AnimatedCircularProgressBar
+        status={download.status}
+        max={100}
+        min={0}
+        value={download.progress}
+        gaugePrimaryColor="#4CAF50"
+        gaugeSecondaryColor="#EEEEEE"
+      />{' '}
     </button>
   );
 };
