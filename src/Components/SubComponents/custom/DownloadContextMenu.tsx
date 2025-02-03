@@ -354,6 +354,62 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       );
     }
 
+    if (downloadStatus === 'to download') {
+      return (
+        <>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('start download');
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <HiOutlineStopCircle size={20} />
+              <span>Download</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <LuFolderOpen size={20} />
+              <span>View Folder</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('rename');
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <HiOutlineStopCircle size={20} />
+              <span>Rename</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowStopConfirmation(true);
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <HiOutlineStopCircle size={20} />
+              <span>Stop</span>
+            </span>
+          </button>
+          {commonOptions}
+        </>
+      );
+    }
+
     // Default case (downloading)
     return (
       <>

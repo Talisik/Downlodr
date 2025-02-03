@@ -16,7 +16,7 @@ declare const MAIN_WINDOW_VITE_NAME: string;
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 1000,
+    width: 1100,
     height: 600,
     frame: false,
     // icon: '256x256', //    icon: './src/Assets/appLogo/png 256x256',

@@ -21,7 +21,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
 }) => {
   return (
     <tr className="bg-lightGray dark:bg-gray-800 text-xs">
-      <td colSpan={8} className="p-4">
+      <td colSpan={9} className="p-4">
         {/* Progress Bar */}
         <div className="flex flex-row items-center gap-4">
           <p className="font-semibold dark:text-gray-200">Progress</p>

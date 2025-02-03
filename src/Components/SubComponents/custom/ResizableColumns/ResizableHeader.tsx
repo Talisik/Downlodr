@@ -19,7 +19,7 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
       className="relative p-2 font-semibold dark:text-gray-200 select-none"
       style={{ width: `${width}px` }}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-[1px]">
         {children}
         {showSort && (
           <HiChevronUpDown

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';
@@ -9,6 +8,15 @@ import { useResizableColumns } from '../Components/SubComponents/custom/Resizabl
 import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
 import { AnimatedCircularProgressBar } from '../Components/SubComponents/custom/RadialProgress';
 import { useMainStore } from '../Store/mainStore';
+import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
+import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
+
+interface Format {
+  value: string;
+  label: string;
+  fileExtension: string;
+  formatId: string;
+}
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -44,6 +52,7 @@ const AllDownloads = () => {
     (state) => state.finishedDownloads,
   );
   const deleteDownload = useDownloadStore((state) => state.deleteDownload);
+
   const availableTags = useDownloadStore((state) => state.availableTags);
   const addTag = useDownloadStore((state) => state.addTag);
   const removeTag = useDownloadStore((state) => state.removeTag);
@@ -70,8 +79,9 @@ const AllDownloads = () => {
   );
 
   const { columns, startResizing } = useResizableColumns([
-    { id: 'name', width: 150, minWidth: 150 },
-    { id: 'size', width: 80, minWidth: 80 },
+    { id: 'name', width: 120, minWidth: 120 },
+    { id: 'size', width: 60, minWidth: 60 },
+    { id: 'format', width: 80, minWidth: 80 },
     { id: 'status', width: 80, minWidth: 80 },
     { id: 'speed', width: 80, minWidth: 80 },
     { id: 'timeLeft', width: 90, minWidth: 80 },
@@ -80,14 +90,19 @@ const AllDownloads = () => {
 
   // Combine downloads from downloading and history
   const allDownloads = [
-    ...finishedDownloads,
-    ...downloading,
-    ...history,
     ...forDownloads,
-  ].filter(
-    (download, index, self) =>
-      index === self.findIndex((d) => d.id === download.id),
-  );
+    ...downloading,
+    ...finishedDownloads,
+    ...history,
+  ]
+    .filter(
+      (download, index, self) =>
+        index === self.findIndex((d) => d.id === download.id),
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.DateAdded).getTime() - new Date(a.DateAdded).getTime(),
+    ); // Sort by date, newest first
 
   // Close Menu and clear selected download when clicking outside
   useEffect(() => {
@@ -341,6 +356,12 @@ const AllDownloads = () => {
             </ResizableHeader>
             <ResizableHeader
               width={columns[1].width}
+              onResizeStart={(e) => startResizing('format', e.clientX)}
+            >
+              Format
+            </ResizableHeader>
+            <ResizableHeader
+              width={columns[1].width}
               onResizeStart={(e) => startResizing('status', e.clientX)}
             >
               Status
@@ -413,23 +434,31 @@ const AllDownloads = () => {
                     ? `${(download.size / 1048576).toFixed(2)} MB`
                     : 'Pending'}
                 </td>
-                <td style={{ width: columns[2].width }} className="p-2">
+                <td style={{ width: columns[1].width }} className="p-2">
                   <div className="flex items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-300">
+                      <FormatSelector download={download} />
+                    </span>
+                  </div>
+                </td>
+                <td style={{ width: columns[2].width }} className="p-2">
+                  <div className="flex justify-start">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">
                       {download.status === 'cancelled' ||
-                      download.status === 'to download' ||
                       download.status === 'initializing' ||
                       download.status === 'getting metadata' ||
                       download.status === 'finished' ? (
                         <span>{download.status}</span>
+                      ) : download.status === 'to download' ? (
+                        <DownloadButton download={download} />
                       ) : (
                         <AnimatedCircularProgressBar
                           status={download.status}
                           max={100}
                           min={0}
-                          value={download.progress} // any number between min and max
-                          gaugePrimaryColor="#4CAF50" // primary color for the progress
-                          gaugeSecondaryColor="#EEEEEE" // background color of the gauge
+                          value={download.progress}
+                          gaugePrimaryColor="#4CAF50"
+                          gaugeSecondaryColor="#EEEEEE"
                         />
                       )}{' '}
                     </span>

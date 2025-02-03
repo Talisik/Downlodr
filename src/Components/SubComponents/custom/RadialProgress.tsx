@@ -2,6 +2,7 @@ import { cn } from '../shadcn/lib/utils';
 import { FaPause } from 'react-icons/fa6';
 import { IoPauseSharp } from 'react-icons/io5';
 import { MdPause } from 'react-icons/md';
+import { FaPlay } from 'react-icons/fa';
 
 interface AnimatedCircularProgressBarProps {
   status: string;
@@ -110,6 +111,8 @@ export function AnimatedCircularProgressBar({
           <span>
             <MdPause size={20} />
           </span>
+        ) : status === 'to download' ? (
+          <FaPlay />
         ) : (
           <span>{currentPercent}%</span>
         )}

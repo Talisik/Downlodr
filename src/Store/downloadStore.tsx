@@ -30,6 +30,9 @@ export interface BaseDownload {
   tags: string[];
   category: string[];
   extractorKey: string;
+  formatId: string;
+  audioExt: string;
+  audioFormatId: string;
 }
 
 interface ForDownload extends BaseDownload {
@@ -102,6 +105,7 @@ interface DownloadStore {
 
   deleteDownload: (id: string) => void;
   deleteDownloading: (id: string) => void;
+  removeFromForDownloads: (id: string) => void;
 
   addTag: (downloadId: string, tag: string) => void;
   removeTag: (downloadId: string, tag: string) => void;
@@ -352,6 +356,8 @@ const useDownloadStore = create<DownloadStore>()(
               tags: [],
               category: [],
               extractorKey,
+              audioExt: '',
+              audioFormatId: '',
             },
           ],
         }));
@@ -418,8 +424,8 @@ const useDownloadStore = create<DownloadStore>()(
               download.id === downloadId
                 ? {
                     ...download,
-                    name: info.data.title,
-                    downloadName: info.data.title,
+                    name: `${info.data.title}`,
+                    downloadName: `${info.data.title}`,
                     status: 'to download',
                     ext: defaultExt,
                     formatId: defaultFormatId,
