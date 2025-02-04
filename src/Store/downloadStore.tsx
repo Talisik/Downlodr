@@ -131,6 +131,8 @@ interface DownloadStore {
       | 'paused',
   ) => void;
 
+  renameDownload: (downloadId: string, newName: string) => void;
+
   /*  fetchMetadataInBackground: (
     downloadId: string,
     videoUrl: string,
@@ -709,6 +711,22 @@ const useDownloadStore = create<DownloadStore>()(
           };
           console.log('New state downloads:', newState.downloading);
           return newState;
+        });
+      },
+
+      renameDownload: (downloadId: string, newName: string) => {
+        set((state) => {
+          // Update name in all relevant arrays
+          const updateDownloadsArray = (downloads: ForDownload[]) =>
+            downloads.map((download) =>
+              download.id === downloadId
+                ? { ...download, name: newName }
+                : download,
+            );
+
+          return {
+            forDownloads: updateDownloadsArray(state.forDownloads),
+          };
         });
       },
 

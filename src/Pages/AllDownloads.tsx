@@ -80,7 +80,7 @@ const AllDownloads = () => {
   );
 
   const { columns, startResizing } = useResizableColumns([
-    { id: 'name', width: 120, minWidth: 120 },
+    { id: 'name', width: 110, minWidth: 110 },
     { id: 'size', width: 60, minWidth: 60 },
     { id: 'format', width: 80, minWidth: 80 },
     { id: 'status', width: 80, minWidth: 80 },
@@ -192,11 +192,19 @@ const AllDownloads = () => {
     downloadLocation?: string,
     controllerId?: string,
   ) => {
-    const { downloading, deleteDownloading } = useDownloadStore.getState();
+    const {
+      downloading,
+      deleteDownloading,
+      forDownloads,
+      removeFromForDownloads,
+    } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
+    const currentForDownload = forDownloads.find((d) => d.id === downloadId);
 
     if (currentDownload?.status === 'paused') {
       deleteDownloading(downloadId);
+    } else if (currentForDownload?.status === 'to download') {
+      removeFromForDownloads(downloadId);
     } else {
       if (downloading && downloading.length > 0) {
         downloading.forEach(async (download) => {
@@ -350,13 +358,13 @@ const AllDownloads = () => {
               Schedule
             </ResizableHeader>
             <ResizableHeader
-              width={columns[2].width}
+              width={columns[1].width}
               onResizeStart={(e) => startResizing('size', e.clientX)}
             >
               Size
             </ResizableHeader>
             <ResizableHeader
-              width={columns[1].width}
+              width={columns[2].width}
               onResizeStart={(e) => startResizing('format', e.clientX)}
             >
               Format
@@ -435,7 +443,7 @@ const AllDownloads = () => {
                   )}
                 </td>
                 <td
-                  style={{ width: columns[2].width }}
+                  style={{ width: columns[1].width }}
                   className="p-2 dark:text-gray-200"
                 >
                   {download.status === 'getting metadata' ? (
@@ -451,7 +459,7 @@ const AllDownloads = () => {
                     </div>
                   )}
                 </td>
-                <td style={{ width: columns[1].width }} className="p-2">
+                <td style={{ width: columns[2].width }} className="p-2">
                   <div className="flex items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-300">
                       {download.status === 'getting metadata' ? (
@@ -590,6 +598,10 @@ const AllDownloads = () => {
           onRemoveCategory={removeCategory}
           currentCategories={getCurrentCategories(contextMenu.downloadId)}
           availableCategories={availableCategories}
+          downloadName={
+            allDownloads.find((d) => d.id === contextMenu.downloadId)?.name ||
+            ''
+          }
         />
       )}
     </div>
