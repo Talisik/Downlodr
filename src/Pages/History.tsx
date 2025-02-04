@@ -6,7 +6,7 @@ import { FaYoutube } from 'react-icons/fa';
 interface FileExistsMap {
   [key: string]: boolean;
 }
-
+// Pre change of new version
 const History = () => {
   const { historyDownloads, deleteDownload } = useDownloadStore();
   const [products, setProducts] = useState(historyDownloads);
