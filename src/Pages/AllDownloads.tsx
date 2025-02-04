@@ -349,7 +349,7 @@ const AllDownloads = () => {
               Schedule
             </ResizableHeader>
             <ResizableHeader
-              width={columns[1].width}
+              width={columns[2].width}
               onResizeStart={(e) => startResizing('size', e.clientX)}
             >
               Size
@@ -361,25 +361,25 @@ const AllDownloads = () => {
               Format
             </ResizableHeader>
             <ResizableHeader
-              width={columns[1].width}
+              width={columns[3].width}
               onResizeStart={(e) => startResizing('status', e.clientX)}
             >
               Status
             </ResizableHeader>
             <ResizableHeader
-              width={columns[3].width}
+              width={columns[4].width}
               onResizeStart={(e) => startResizing('speed', e.clientX)}
             >
               Speed
             </ResizableHeader>
             <ResizableHeader
-              width={columns[4].width}
+              width={columns[5].width}
               onResizeStart={(e) => startResizing('timeLeft', e.clientX)}
             >
               Time Left
             </ResizableHeader>
             <ResizableHeader
-              width={columns[5].width}
+              width={columns[6].width}
               onResizeStart={(e) => startResizing('dateAdded', e.clientX)}
             >
               Date Added
@@ -427,7 +427,7 @@ const AllDownloads = () => {
                   </div>
                 </td>
                 <td
-                  style={{ width: columns[1].width }}
+                  style={{ width: columns[2].width }}
                   className="p-2 dark:text-gray-200"
                 >
                   {download.size
@@ -442,6 +442,9 @@ const AllDownloads = () => {
                         onFormatSelect={(formatData) => {
                           const { updateDownload } =
                             useDownloadStore.getState();
+                          console.log(formatData.audioExt);
+                          console.log(formatData.audioFormatId);
+
                           useDownloadStore.setState((state) => ({
                             forDownloads: state.forDownloads.map((d) =>
                               d.id === download.id
@@ -460,7 +463,7 @@ const AllDownloads = () => {
                     </span>
                   </div>
                 </td>
-                <td style={{ width: columns[2].width }} className="p-2">
+                <td style={{ width: columns[3].width }} className="p-2">
                   <div className="flex justify-start">
                     <span className="text-sm text-gray-600 dark:text-gray-300">
                       {download.status === 'cancelled' ||
@@ -484,23 +487,27 @@ const AllDownloads = () => {
                   </div>
                 </td>
                 <td
-                  style={{ width: columns[3].width }}
-                  className="p-2 dark:text-gray-200"
-                >
-                  {download.status === 'finished' ? (
-                    <span>{download.speed}</span>
-                  ) : (
-                    <span>—</span>
-                  )}{' '}
-                </td>
-                <td
                   style={{ width: columns[4].width }}
                   className="p-2 dark:text-gray-200"
                 >
-                  {download.timeLeft}
+                  {download.status === 'finished' ? (
+                    <span>—</span>
+                  ) : (
+                    <span>{download.speed}</span>
+                  )}{' '}
                 </td>
                 <td
                   style={{ width: columns[5].width }}
+                  className="p-2 dark:text-gray-200"
+                >
+                  {download.status === 'finished' ? (
+                    <span>—</span>
+                  ) : (
+                    <span>{download.timeLeft}</span>
+                  )}{' '}
+                </td>
+                <td
+                  style={{ width: columns[6].width }}
                   className="p-2 dark:text-gray-200"
                 >
                   {formatRelativeTime(download.DateAdded)}

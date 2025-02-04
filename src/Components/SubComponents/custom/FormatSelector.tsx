@@ -49,9 +49,9 @@ const FormatSelector: React.FC<FormatSelectorProps> = ({
       // Prepare format data
       const formatData = isAudioOnly
         ? {
-            ext: 'mp3',
+            ext: selectedFormat.fileExtension,
             formatId: '',
-            audioExt: 'mp3',
+            audioExt: selectedFormat.fileExtension,
             audioFormatId: selectedFormat.formatId,
           }
         : {
@@ -63,6 +63,16 @@ const FormatSelector: React.FC<FormatSelectorProps> = ({
 
       // Send format data back to parent
       onFormatSelect(formatData);
+    } else {
+      // When no format is selected, keep existing ext and formatId but clear audio fields
+      setSelectedFormatValue('');
+      setSelectedFormatDisplay('Format');
+      onFormatSelect({
+        ext: download.ext || '',
+        formatId: download.formatId || '',
+        audioExt: '',
+        audioFormatId: '',
+      });
     }
   };
 

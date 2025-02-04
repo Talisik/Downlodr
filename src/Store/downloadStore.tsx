@@ -430,8 +430,8 @@ const useDownloadStore = create<DownloadStore>()(
                     ext: defaultExt,
                     formatId: defaultFormatId,
                     extractorKey: info.data.extractor_key,
-                    audioExt: defaultAudioFormat?.fileExtension || '',
-                    audioFormatId: defaultAudioFormat?.formatId || '',
+                    audioExt: '',
+                    audioFormatId: '',
                     downloadStart: false,
                     formats: formatOptions, // Store available formats for later use
                   }
