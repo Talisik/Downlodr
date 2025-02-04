@@ -1,10 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import useDownloadStore from '../../../Store/downloadStore';
-import GetEmbedUrl from '../../..//DataFunctions/EmbedVideo';
-import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 
@@ -14,9 +11,7 @@ interface DownloadModalProps {
 }
 
 const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
-  // Simplified state - remove unnecessary states for initial URL input flow
   const [videoUrl, setVideoUrl] = useState<string>('');
-
   const [isValidUrl, setIsValidUrl] = useState<boolean>(false);
 
   // Store
@@ -30,7 +25,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       ? ''
       : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
 
-  // Simplified URL validation
+  // URL validation
   const handleUrl = (url: string) => {
     setVideoUrl(url);
     setIsValidUrl(false);
@@ -73,15 +68,12 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     resetModal(); // Reset the state
     onClose(); // Close the modal
   };
-  // Simplified download handler - only initiates the background process
+
+  // download handler - only initiates the background process
   const handleDownload = async () => {
     try {
-      // Initialize download with just the essential information
-      setDownload(
-        videoUrl,
-        downloadFolder, // Now correctly passing the location
-        maxDownload,
-      );
+      // Initialize download with just the basic information
+      setDownload(videoUrl, downloadFolder, maxDownload);
 
       // Reset and close modal
       resetModal();
@@ -102,63 +94,14 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // Simplified reset
+  // reset
   const resetModal = () => {
     setVideoUrl('');
     setIsValidUrl(false);
     setDownloadFolder(settings.defaultLocation);
   };
 
-  // Remove invalid characters from download name
-  const removeInvalidChar = (filename: string) => {
-    const invalidChars = /[<>:"/\\|?*.]+/g;
-    let sanitized = filename.replace(invalidChars, '_').trim();
-    sanitized = sanitized.replace(/^\s+|\s+$/g, '');
-    sanitized = sanitized.substring(0, 255);
-    return sanitized;
-  };
-
-  // checks if file location is correct
-  const isValidPath = async (path: string): Promise<boolean> => {
-    // Check for undefined or empty path
-    if (!path || path.includes('undefined')) {
-      console.log('undefined path');
-      return false;
-    }
-    try {
-      // Call the validatePath method from the preload script
-      const isValid = await window.downlodrFunctions.validatePath(path);
-      return isValid;
-    } catch (error) {
-      console.error('Error validating path:', error);
-      return false;
-    }
-  };
-
-  // automatically adjust name for duplicate names
-  const getUniqueFileName = async (
-    basePath: string,
-    fileName: string,
-    extension: string,
-  ): Promise<string> => {
-    let counter = 1;
-    let finalName = fileName;
-
-    // Check if file exists with extension
-    while (
-      await window.downlodrFunctions.fileExists(
-        basePath + finalName + '.' + extension,
-      )
-    ) {
-      finalName = `${fileName}[${counter}]`;
-      counter++;
-    }
-    console.log('finalName: ');
-    console.log(finalName);
-    return finalName;
-  };
-
-  // Find location
+  // set download folder location
   const handleDirectory = async () => {
     const path = await window.ytdlp.selectDownloadDirectory();
     setDownloadFolder(path);
@@ -179,11 +122,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     >
       {' '}
       <div
-        className={`bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 ${
-          videoUrl && isValidUrl
-            ? 'w-4/5 max-w-[1000px] flex gap-6'
-            : 'w-full max-w-xl'
-        }`}
+        className={`bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 w-full max-w-xl`}
       >
         <div className={videoUrl && isValidUrl ? 'flex-1' : 'w-full'}>
           <div className="flex justify-between items-center mb-6">
@@ -199,10 +138,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           <div className="flex gap-6">
-            <form
-              onSubmit={(e) => e.preventDefault()}
-              className={videoUrl && isValidUrl ? 'w-2/3' : 'flex-1'}
-            >
+            <form onSubmit={(e) => e.preventDefault()} className={'w-full'}>
               <div className="space-y-4">
                 <div>
                   <label className="block dark:text-gray-200">

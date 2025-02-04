@@ -10,6 +10,7 @@ import { AnimatedCircularProgressBar } from '../Components/SubComponents/custom/
 import { useMainStore } from '../Store/mainStore';
 import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
 import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
+import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
 
 interface Format {
   value: string;
@@ -419,47 +420,67 @@ const AllDownloads = () => {
                   style={{ width: columns[0].width }}
                   className="p-2 dark:text-gray-200"
                 >
-                  <div
-                    className="line-clamp-2 break-words"
-                    title={download.name}
-                  >
-                    {download.name}
-                  </div>
+                  {download.status === 'getting metadata' ? (
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-[100px] rounded-[3px]" />
+                      <Skeleton className="h-4 w-[120px] rounded-[3px]" />
+                    </div>
+                  ) : (
+                    <div
+                      className="line-clamp-2 break-words"
+                      title={download.name}
+                    >
+                      {download.name}
+                    </div>
+                  )}
                 </td>
                 <td
                   style={{ width: columns[2].width }}
                   className="p-2 dark:text-gray-200"
                 >
-                  {download.size
-                    ? `${(download.size / 1048576).toFixed(2)} MB`
-                    : 'Pending'}
+                  {download.status === 'getting metadata' ? (
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-[50px] rounded-[3px]" />
+                      <Skeleton className="h-4 w-[70px] rounded-[3px]" />
+                    </div>
+                  ) : (
+                    <div className="line-clamp-2 break-words">
+                      {download.size
+                        ? `${(download.size / 1048576).toFixed(2)} MB`
+                        : '—'}{' '}
+                    </div>
+                  )}
                 </td>
                 <td style={{ width: columns[1].width }} className="p-2">
                   <div className="flex items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-300">
-                      <FormatSelector
-                        download={download}
-                        onFormatSelect={(formatData) => {
-                          const { updateDownload } =
-                            useDownloadStore.getState();
-                          console.log(formatData.audioExt);
-                          console.log(formatData.audioFormatId);
+                      {download.status === 'getting metadata' ? (
+                        <div className="space-y-1">
+                          <Skeleton className="h-8 w-[50px] rounded-[3px]" />
+                        </div>
+                      ) : (
+                        <FormatSelector
+                          download={download}
+                          onFormatSelect={(formatData) => {
+                            console.log(formatData.audioExt);
+                            console.log(formatData.audioFormatId);
 
-                          useDownloadStore.setState((state) => ({
-                            forDownloads: state.forDownloads.map((d) =>
-                              d.id === download.id
-                                ? {
-                                    ...d,
-                                    ext: formatData.ext,
-                                    formatId: formatData.formatId,
-                                    audioExt: formatData.audioExt,
-                                    audioFormatId: formatData.audioFormatId,
-                                  }
-                                : d,
-                            ),
-                          }));
-                        }}
-                      />
+                            useDownloadStore.setState((state) => ({
+                              forDownloads: state.forDownloads.map((d) =>
+                                d.id === download.id
+                                  ? {
+                                      ...d,
+                                      ext: formatData.ext,
+                                      formatId: formatData.formatId,
+                                      audioExt: formatData.audioExt,
+                                      audioFormatId: formatData.audioFormatId,
+                                    }
+                                  : d,
+                              ),
+                            }));
+                          }}
+                        />
+                      )}
                     </span>
                   </div>
                 </td>
@@ -490,20 +511,20 @@ const AllDownloads = () => {
                   style={{ width: columns[4].width }}
                   className="p-2 dark:text-gray-200"
                 >
-                  {download.status === 'finished' ? (
-                    <span>—</span>
-                  ) : (
+                  {download.status === 'downloading' ? (
                     <span>{download.speed}</span>
+                  ) : (
+                    <span>—</span>
                   )}{' '}
                 </td>
                 <td
                   style={{ width: columns[5].width }}
                   className="p-2 dark:text-gray-200"
                 >
-                  {download.status === 'finished' ? (
-                    <span>—</span>
-                  ) : (
+                  {download.status === 'downloading' ? (
                     <span>{download.timeLeft}</span>
+                  ) : (
+                    <span>—</span>
                   )}{' '}
                 </td>
                 <td
@@ -513,16 +534,28 @@ const AllDownloads = () => {
                   {formatRelativeTime(download.DateAdded)}
                 </td>
                 <td className="w-20 p-2 dark:text-gray-200">
-                  <a
-                    onClick={() =>
-                      window.downlodrFunctions.openExternalLink(
-                        download.videoUrl,
-                      )
-                    }
-                    className="text-blue-500 hover:underline dark:text-blue-400 cursor-pointer"
-                  >
-                    {download.extractorKey}
-                  </a>{' '}
+                  {download.status === 'getting metadata' ? (
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-[100px] rounded-[3px]" />
+                      <Skeleton className="h-4 w-[120px] rounded-[3px]" />
+                    </div>
+                  ) : (
+                    <div
+                      className="line-clamp-2 break-words"
+                      title={download.name}
+                    >
+                      <a
+                        onClick={() =>
+                          window.downlodrFunctions.openExternalLink(
+                            download.videoUrl,
+                          )
+                        }
+                        className="text-blue-500 hover:underline dark:text-blue-400 cursor-pointer"
+                      >
+                        {download.extractorKey}
+                      </a>{' '}
+                    </div>
+                  )}
                 </td>
               </tr>
               {expandedRowId === download.id && (

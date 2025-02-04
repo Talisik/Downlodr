@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { HiChevronDown, HiChevronRight } from 'react-icons/hi';
-import { FiDownload, FiClock } from 'react-icons/fi';
+import { FiDownload } from 'react-icons/fi';
 import { AiOutlineCheck } from 'react-icons/ai';
 import { BiLayer } from 'react-icons/bi';
 import { BsTag } from 'react-icons/bs';
@@ -52,14 +52,14 @@ const Navigation = ({ className }: { className?: string }) => {
     });
   };
 
-  const handleTagContextMenu = (e: React.MouseEvent, tag: string) => {
+  /*  const handleTagContextMenu = (e: React.MouseEvent, tag: string) => {
     e.preventDefault();
     setTagContextMenu({
       tag,
       x: e.clientX,
       y: e.clientY,
     });
-  };
+  }; */
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -127,17 +127,6 @@ const Navigation = ({ className }: { className?: string }) => {
               >
                 <AiOutlineCheck className="text-green-500 text-lg flex-shrink-0" />
                 <span className="ml-2">Completed</span>
-              </NavLink>
-              <NavLink
-                to="/history"
-                className={({ isActive }) =>
-                  `nav-link ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
-                }
-              >
-                <FiClock className="text-yellow-500 text-lg flex-shrink-0" />
-                <span className="ml-2">History</span>
               </NavLink>
             </div>
           )}

@@ -131,11 +131,11 @@ interface DownloadStore {
       | 'paused',
   ) => void;
 
-  fetchMetadataInBackground: (
+  /*  fetchMetadataInBackground: (
     downloadId: string,
     videoUrl: string,
     downloadFolder: string,
-  ) => void;
+  ) => void;*/
 }
 
 const useDownloadStore = create<DownloadStore>()(
@@ -363,6 +363,7 @@ const useDownloadStore = create<DownloadStore>()(
         }));
       },
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       setDownload: async (videoUrl, location, limitRate) => {
         if (!location) {
           console.error('Invalid path parameters:', { location });
@@ -413,6 +414,7 @@ const useDownloadStore = create<DownloadStore>()(
             await VideoFormatService.processVideoFormats(info);
 
           // Get default audio format if available
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const defaultAudioFormat = formatOptions.find((f) =>
             f.label.includes('Audio Only'),
           );
@@ -710,7 +712,7 @@ const useDownloadStore = create<DownloadStore>()(
         });
       },
 
-      fetchMetadataInBackground: async (
+      /* fetchMetadataInBackground: async (
         downloadId: string,
         videoUrl: string,
         downloadFolder: string,
@@ -740,7 +742,7 @@ const useDownloadStore = create<DownloadStore>()(
             error: 'Failed to fetch video information',
           });
         }
-      },
+      }, */
 
       //End of store
     }),

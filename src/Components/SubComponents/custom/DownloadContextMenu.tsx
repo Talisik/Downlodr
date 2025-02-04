@@ -410,6 +410,68 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       );
     }
 
+    if (downloadStatus === 'downloading') {
+      return (
+        <>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <LuFolderOpen size={20} />
+              <span>View Folder</span>
+            </span>
+          </button>
+
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              onPause(
+                downloadId,
+                downloadLocation,
+                controllerId,
+                downloadStatus,
+              );
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <IoPauseCircleOutline size={20} />
+              <span>Pause</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowStopConfirmation(true);
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <HiOutlineStopCircle size={20} />
+              <span>Stop</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              onForceStart(downloadId, downloadLocation, controllerId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <BiRightArrow size={18} />
+              <span>Force Start</span>
+            </span>
+          </button>
+          {commonOptions}
+        </>
+      );
+    }
+
     // Default case (downloading)
     return (
       <>
@@ -423,43 +485,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <span className="flex items-center space-x-2">
             <LuFolderOpen size={20} />
             <span>View Folder</span>
-          </span>
-        </button>
-
-        <button
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-          onClick={() => {
-            onPause(downloadId, downloadLocation, controllerId, downloadStatus);
-            onClose();
-          }}
-        >
-          <span className="flex items-center space-x-2">
-            <IoPauseCircleOutline size={20} />
-            <span>Pause</span>
-          </span>
-        </button>
-        <button
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowStopConfirmation(true);
-          }}
-        >
-          <span className="flex items-center space-x-2">
-            <HiOutlineStopCircle size={20} />
-            <span>Stop</span>
-          </span>
-        </button>
-        <button
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-          onClick={() => {
-            onForceStart(downloadId, downloadLocation, controllerId);
-            onClose();
-          }}
-        >
-          <span className="flex items-center space-x-2">
-            <BiRightArrow size={18} />
-            <span>Force Start</span>
           </span>
         </button>
         {commonOptions}

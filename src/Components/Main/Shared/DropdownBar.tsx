@@ -157,6 +157,12 @@ const DropdownBar = ({ className }: { className?: string }) => {
         >
           About
         </button>
+        <NavLink
+          to="/history"
+          className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
+        >
+          <span> History</span>
+        </NavLink>
       </div>
 
       {/* Right side button */}
