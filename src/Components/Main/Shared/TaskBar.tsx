@@ -14,6 +14,7 @@ import SchedulerModal from '../Modal/SchedulerModal';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
+import { processFileName } from '../../../DataFunctions/FilterName';
 
 interface TaskBarProps {
   className?: string;
@@ -135,6 +136,58 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     }
   };
 
+  const handlePlaySelected = async () => {
+    if (selectedDownloads.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'No Downloads Selected',
+        description: 'Please select downloads to play',
+      });
+      return;
+    }
+
+    // Store selected downloads in a temporary variable and clear selections immediately
+    const downloadsToPlay = [...selectedDownloads];
+    clearSelectedDownloads();
+    clearSelectedRows();
+
+    const { addDownload, forDownloads, removeFromForDownloads } =
+      useDownloadStore.getState();
+
+    for (const selectedDownload of downloadsToPlay) {
+      // Find the full download information
+      const downloadInfo = forDownloads.find(
+        (d) => d.id === selectedDownload.id,
+      );
+      const processedName = await processFileName(
+        downloadInfo.location,
+        downloadInfo.name,
+        downloadInfo.ext || downloadInfo.audioExt, // Use appropriate extension
+      );
+      if (downloadInfo) {
+        addDownload(
+          downloadInfo.videoUrl,
+          `${processedName}.${downloadInfo.ext}`,
+          `${processedName}.${downloadInfo.ext}`,
+          downloadInfo.size,
+          downloadInfo.speed,
+          downloadInfo.timeLeft,
+          new Date().toISOString(),
+          downloadInfo.progress,
+          downloadInfo.location,
+          'downloading',
+          downloadInfo.ext,
+          downloadInfo.formatId,
+          downloadInfo.audioExt,
+          downloadInfo.audioFormatId,
+          downloadInfo.extractorKey,
+          '',
+        );
+        removeFromForDownloads(selectedDownload.id);
+      }
+    }
+  };
+
   const isSchedulePage = ['/scheduleTable', '/scheduleCalendar'].includes(
     location.pathname,
   );
@@ -174,7 +227,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             <span className="hidden sm:inline">Add URL</span>
             <span className="sm:hidden"> Add URL</span>
           </button>
-          <button className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200">
+          <button
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            onClick={handlePlaySelected}
+          >
             {' '}
             <VscPlayCircle size={18} className="mt-[0.9px]" /> Play
           </button>
@@ -184,8 +240,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             onClick={handleStopSelected}
           >
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
-            {selectedDownloads.length > 0 &&
-              ` (${selectedDownloads.length})`}{' '}
+            {/* {selectedDownloads.length > 0 &&
+              ` (${selectedDownloads.length})`}{' '}*/}
           </button>
           <button
             className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"

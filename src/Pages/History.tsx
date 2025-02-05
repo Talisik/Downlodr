@@ -173,6 +173,32 @@ const History = () => {
       for (const id of selectedItems) {
         const video = products.find((product) => product.id === String(id));
         if (video) {
+          console.log('Selected files deleted successfully');
+          deleteDownload(video.id);
+        } else {
+          failedToDelete.push(video.name);
+        }
+      }
+      if (failedToDelete.length > 0) {
+        setErrorTitle('Deletion Error');
+        setErrorMessage(`Failed to delete: ${failedToDelete.join(', ')}`);
+        setErrorVisible(true);
+      }
+      setSelectedItems([]); // Clear selected items after deletion
+    } catch (error) {
+      console.error('Error deleting selected files:', error);
+      console.log(
+        'An error occurred while trying to delete the selected files',
+      );
+    }
+  };
+
+  /*  const handleDeleteSelected = async () => {
+    const failedToDelete = [];
+    try {
+      for (const id of selectedItems) {
+        const video = products.find((product) => product.id === String(id));
+        if (video) {
           const success = await window.downlodrFunctions.deleteFile(
             await window.downlodrFunctions.joinDownloadPath(
               video.location,
@@ -200,6 +226,8 @@ const History = () => {
       );
     }
   };
+
+  */
 
   /* function parseISODate(isoDateString: any) {
     const dateObject = new Date(isoDateString);
@@ -344,7 +372,7 @@ const History = () => {
                   onClick={() =>
                     window.downlodrFunctions.openExternalLink(product.videoUrl)
                   }
-                  className="text-blue-500 hover:underline dark:text-blue-400 cursor-pointer"
+                  className="hover:underline cursor-pointer"
                 >
                   {product.extractorKey || 'YouTube'}
                 </a>

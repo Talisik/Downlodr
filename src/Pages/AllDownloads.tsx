@@ -558,7 +558,7 @@ const AllDownloads = () => {
                             download.videoUrl,
                           )
                         }
-                        className="text-blue-500 hover:underline dark:text-blue-400 cursor-pointer"
+                        className="hover:underline cursor-pointer"
                       >
                         {download.extractorKey}
                       </a>{' '}

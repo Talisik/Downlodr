@@ -237,6 +237,18 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
+                  {/* First Accordion */}
+                  <AccordionSection
+                    title="Failed to delete video"
+                    content={
+                      <ul className="list-decimal pl-6 space-y-3 dark:text-gray-300 text-sm">
+                        <li>Initializing</li>
+                      </ul>
+                    }
+                  />
+                </div>
+
+                <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
                   {/* Second Accordion */}
                   <AccordionSection
                     title="EPERM Error"
