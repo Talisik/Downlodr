@@ -1,14 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useRef, useState } from 'react';
 import useDownloadStore from '../Store/downloadStore';
-import { FaYoutube } from 'react-icons/fa';
+import { useMainStore } from '../Store/mainStore';
+import { HiChevronUpDown } from 'react-icons/hi2';
+import { createPortal } from 'react-dom';
 
 interface FileExistsMap {
   [key: string]: boolean;
 }
 // Pre change of new version
 const History = () => {
-  const { historyDownloads, deleteDownload } = useDownloadStore();
+  const { historyDownloads, deleteDownload, setDownload } = useDownloadStore();
+  const { settings } = useMainStore();
+
   const [products, setProducts] = useState(historyDownloads);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [allChecked, setAllChecked] = useState(false);
@@ -18,8 +22,15 @@ const History = () => {
   const hideErrorCard = () => {
     setErrorVisible(false);
   };
-
+  const maxDownload =
+    settings.defaultDownloadSpeed === 0
+      ? ''
+      : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
   const [fileExistsMap, setFileExistsMap] = useState<FileExistsMap>({});
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [sortMenuPosition, setSortMenuPosition] = useState({ x: 0, y: 0 });
+  const sortMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkAllFiles = async () => {
@@ -56,11 +67,11 @@ const History = () => {
     const rect = target.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
 
-    // Calculate initial position
-    let left = rect.left + window.scrollX - target.offsetWidth;
+    // Calculate position relative to click position instead of row
+    let left = event.clientX;
 
-    // Check if menu would go beyond right edge (assuming menu width of 160px)
-    const menuWidth = 160; // matches min-w-[160px] from the className
+    // Check if menu would go beyond right edge
+    const menuWidth = 120; // matches max-w-[120px] from the className
     if (left + menuWidth > viewportWidth) {
       left = viewportWidth - menuWidth - 10; // 10px padding from edge
     }
@@ -97,6 +108,7 @@ const History = () => {
     };
   }, []);
 
+  /*
   const OpenVideoButton = async (videoPath: string) => {
     try {
       await window.downlodrFunctions.openVideo(videoPath);
@@ -115,7 +127,7 @@ const History = () => {
     } else {
       console.log(`Failed to open folder: ${response.error}`);
     }
-  };
+  }; */
 
   const handleDelete = async (videoFile: any, id: any) => {
     try {
@@ -189,7 +201,7 @@ const History = () => {
     }
   };
 
-  function parseISODate(isoDateString: any) {
+  /* function parseISODate(isoDateString: any) {
     const dateObject = new Date(isoDateString);
     let hours = dateObject.getHours();
     const minutes = String(dateObject.getMinutes()).padStart(2, '0');
@@ -197,9 +209,9 @@ const History = () => {
     hours = hours % 12 || 12;
     const time = `${hours}:${minutes} ${ampm}`;
     return time;
-  }
+  } */
 
-  const groupedProducts = products.reduce(
+  /* const groupedProducts = products.reduce(
     (acc: { [key: string]: typeof products }, product) => {
       const date = new Date(product.DateAdded).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -214,114 +226,149 @@ const History = () => {
     },
     {},
   );
+*/
+  const handleRedownload = async (video: any) => {
+    setDownload(video.videoUrl, video.location, maxDownload);
+    setHoveredVideo(null);
+  };
+
+  // Add sort function
+  const sortedProducts = [...products].sort((a, b) => {
+    const dateA = new Date(a.DateAdded).getTime();
+    const dateB = new Date(b.DateAdded).getTime();
+    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+  });
+
+  // Handle sort menu click
+  const handleSortClick = (event: React.MouseEvent) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setSortMenuPosition({ x: rect.left, y: rect.bottom });
+    setShowSortMenu(!showSortMenu);
+  };
+
+  // Handle clicking outside sort menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        sortMenuRef.current &&
+        !sortMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowSortMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Render the delete button in a portal
+  const renderDeleteButton = () => {
+    const portalContainer = document.getElementById('taskbar-portal');
+
+    if (portalContainer && selectedItems.length > 0) {
+      return createPortal(
+        <button
+          onClick={handleDeleteSelected}
+          className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors text-sm"
+        >
+          Delete Selected
+        </button>,
+        portalContainer,
+      );
+    }
+    return null;
+  };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="bg-white dark:bg-darkModeCompliment rounded-lg shadow-lg">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <input
-              type="checkbox"
-              className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-              checked={allChecked}
-              onChange={handleAllCheckboxChange}
-            />
-            <h3 className="text-lg font-semibold dark:text-white">All</h3>
-          </div>
-          {selectedItems.length > 0 && (
-            <button
-              onClick={handleDeleteSelected}
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
-            >
-              Delete Selected
-            </button>
-          )}
-        </div>
-
-        {Object.entries(groupedProducts)
-          .sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime())
-          .map(([date, products]) => (
-            <div key={date} className="p-4">
-              <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
-                {date}
-              </h4>
-              <div className="space-y-2">
-                {(products as any[])
-                  .sort(
-                    (a, b) =>
-                      new Date(b.DateAdded).getTime() -
-                      new Date(a.DateAdded).getTime(),
-                  )
-                  .map((product: any) => (
-                    <div
-                      key={product.id}
-                      className="flex items-center space-x-4 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.includes(product.id)}
-                        onChange={() => handleCheckboxChange(product.id)}
-                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-500 dark:text-gray-400 w-20">
-                        {parseISODate(product.DateAdded)}
-                      </span>
-                      <FaYoutube className="text-red-500 text-xl" />
-                      <span
-                        className={`flex-1 truncate ${
-                          fileExistsMap[product.id]
-                            ? 'text-gray-700 dark:text-gray-200'
-                            : 'line-through text-gray-400 dark:text-gray-500'
-                        }`}
-                      >
-                        {product.name}
-                      </span>
-                      <button
-                        onClick={(event) => handleRowClick(event, product)}
-                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
-                      >
-                        ⋮
-                      </button>
-                    </div>
-                  ))}
+    <div className="w-full">
+      {renderDeleteButton()}
+      <table className="w-full">
+        <thead>
+          <tr className="border-b text-left dark:border-gray-700">
+            <th className="w-8 p-2">
+              <input
+                type="checkbox"
+                className="rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                checked={allChecked}
+                onChange={handleAllCheckboxChange}
+              />
+            </th>
+            <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
+              Name
+            </th>
+            <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
+              <div
+                className="flex items-center gap-1 cursor-pointer"
+                onClick={handleSortClick}
+              >
+                Date Added
+                <HiChevronUpDown className="h-4 w-4" />
               </div>
-            </div>
+            </th>
+            <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
+              Source
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {sortedProducts.map((product) => (
+            <tr
+              key={product.id}
+              className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+              onContextMenu={(e) => handleRowClick(e, product)}
+            >
+              <td className="w-8 p-2">
+                <input
+                  type="checkbox"
+                  checked={selectedItems.includes(product.id)}
+                  onChange={() => handleCheckboxChange(product.id)}
+                  className="rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                />
+              </td>
+              <td className="p-2 dark:text-gray-200 w-4/6">
+                <span
+                  className={`${
+                    fileExistsMap[product.id]
+                      ? 'text-gray-700 dark:text-gray-200'
+                      : 'line-through text-gray-400 dark:text-gray-500'
+                  }`}
+                >
+                  {product.name}
+                </span>
+              </td>
+              <td className="p-4 text-gray-500 dark:text-gray-400">
+                {new Date(product.DateAdded).toLocaleDateString()}
+              </td>
+              <td className="p-4">
+                <a
+                  onClick={() =>
+                    window.downlodrFunctions.openExternalLink(product.videoUrl)
+                  }
+                  className="text-blue-500 hover:underline dark:text-blue-400 cursor-pointer"
+                >
+                  {product.extractorKey || 'YouTube'}
+                </a>
+              </td>
+            </tr>
           ))}
-      </div>
+        </tbody>
+      </table>
 
       {hoveredVideo && (
         <div
           ref={miniModalRef}
           style={{
             position: 'absolute',
-            top: `${Math.min(
-              hoveredVideo.position.top,
-              window.innerHeight - 150, // Approximate menu height
-            )}px`,
+            top: hoveredVideo.position.top,
             left: hoveredVideo.position.left,
           }}
           className="bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 min-w-[50px] max-w-[120px] border-2 dark:border-gray-500 border-gray-200"
         >
-          {fileExistsMap[hoveredVideo.id] && (
-            <button
-              onClick={async () =>
-                OpenVideoButton(
-                  await window.downlodrFunctions.joinDownloadPath(
-                    hoveredVideo.location,
-                    hoveredVideo.name,
-                  ),
-                )
-              }
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              View Video
-            </button>
-          )}
           <button
-            onClick={async () => handleGoToFolder(hoveredVideo.location)}
+            onClick={() => handleRedownload(hoveredVideo)}
             className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            Open Folder
+            Redownload video
           </button>
           <button
             onClick={async () =>
@@ -335,7 +382,43 @@ const History = () => {
             }
             className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-500"
           >
-            Delete
+            Remove from History
+          </button>
+        </div>
+      )}
+
+      {/* Sort Menu */}
+      {showSortMenu && (
+        <div
+          ref={sortMenuRef}
+          style={{
+            position: 'absolute',
+            top: sortMenuPosition.y,
+            left: sortMenuPosition.x,
+          }}
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 min-w-[100px] border-2 dark:border-gray-500 border-gray-200 z-50"
+        >
+          <button
+            onClick={() => {
+              setSortOrder('newest');
+              setShowSortMenu(false);
+            }}
+            className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+              sortOrder === 'newest' ? 'bg-gray-100 dark:bg-gray-700' : ''
+            }`}
+          >
+            Newest
+          </button>
+          <button
+            onClick={() => {
+              setSortOrder('oldest');
+              setShowSortMenu(false);
+            }}
+            className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+              sortOrder === 'oldest' ? 'bg-gray-100 dark:bg-gray-700' : ''
+            }`}
+          >
+            Oldest
           </button>
         </div>
       )}

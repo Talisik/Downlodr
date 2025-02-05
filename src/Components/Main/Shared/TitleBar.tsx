@@ -1,10 +1,12 @@
-import React from 'react';
-import { IoMdClose, IoMdRemove, IoIosBrowsers } from 'react-icons/io';
+import React, { useState } from 'react';
+import { IoMdClose, IoMdRemove } from 'react-icons/io';
 import { PiBrowsers } from 'react-icons/pi';
+import { FiHelpCircle } from 'react-icons/fi';
 import downlodrLogoLight from '../../../Assets/Logo/Downlodr-Logo.svg';
 import downlodrLogoDark from '../../../Assets/Logo/Downlodr-LogoDark.svg';
 import { ModeToggle } from '../../../Components/SubComponents/custom/ModeToggle';
 import { useTheme } from '../../../Components/ThemeProvider';
+import HelpModal from '../../Main/Modal/HelpModal';
 
 interface TitleBarProps {
   className?: string;
@@ -12,6 +14,7 @@ interface TitleBarProps {
 
 const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   const { theme } = useTheme();
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   const getLogoSrc = () => {
     if (theme === 'system') {
@@ -25,44 +28,59 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   };
 
   return (
-    <div className={className}>
-      <div className="flex justify-between items-center h-full px-4">
-        {/* Title */}
-        <div className="text-sm flex-1 drag-area">
-          <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
-        </div>
+    <>
+      <div className={className}>
+        <div className="flex justify-between items-center h-full px-4">
+          {/* Title */}
+          <div className="text-sm flex-1 drag-area">
+            <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
+          </div>
 
-        {/* Buttons */}
-        <div className="flex space-x-4 no-drag">
-          {/*Dark Mode/Light Mode */}
-          <ModeToggle />
+          {/* Buttons */}
+          <div className="flex space-x-4 no-drag">
+            {/* Help Button */}
+            <button
+              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
+              onClick={() => setShowHelpModal(true)}
+            >
+              <FiHelpCircle size={16} />
+            </button>
 
-          {/* Minimize Button */}
-          <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
-            onClick={() => window.downlodrFunctions.minimizeApp()}
-          >
-            <IoMdRemove size={16} />
-          </button>
+            {/*Dark Mode/Light Mode */}
+            <ModeToggle />
 
-          {/* Maximize Button */}
-          <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
-            onClick={() => window.downlodrFunctions.maximizeApp()}
-          >
-            <PiBrowsers size={16} />
-          </button>
+            {/* Minimize Button */}
+            <button
+              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
+              onClick={() => window.downlodrFunctions.minimizeApp()}
+            >
+              <IoMdRemove size={16} />
+            </button>
 
-          {/* Close Button */}
-          <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
-            onClick={() => window.downlodrFunctions.closeApp()}
-          >
-            <IoMdClose size={16} />
-          </button>
+            {/* Maximize Button */}
+            <button
+              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
+              onClick={() => window.downlodrFunctions.maximizeApp()}
+            >
+              <PiBrowsers size={16} />
+            </button>
+
+            {/* Close Button */}
+            <button
+              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
+              onClick={() => window.downlodrFunctions.closeApp()}
+            >
+              <IoMdClose size={16} />
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      <HelpModal
+        isOpen={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
+      />
+    </>
   );
 };
 

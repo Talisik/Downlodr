@@ -339,7 +339,7 @@ const AllDownloads = () => {
   };
 
   return (
-    <div className="w-full pb-5">
+    <div className="w-full">
       <table className="w-full">
         <thead>
           <tr className="border-b text-left dark:border-gray-700">
