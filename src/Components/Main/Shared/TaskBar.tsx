@@ -146,25 +146,42 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       return;
     }
 
-    // Store selected downloads in a temporary variable and clear selections immediately
-    const downloadsToPlay = [...selectedDownloads];
+    const { addDownload, forDownloads, removeFromForDownloads, downloading } =
+      useDownloadStore.getState();
+
+    // Filter selected downloads to only include those in forDownloads and remove duplicates
+    const validDownloads = selectedDownloads.filter((download) =>
+      forDownloads.some((fd) => fd.id === download.id),
+    );
+    const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))].map(
+      (id) => validDownloads.find((d) => d.id === id)!,
+    );
+
+    // Clear selections immediately after filtering
     clearSelectedDownloads();
     clearSelectedRows();
 
-    const { addDownload, forDownloads, removeFromForDownloads } =
-      useDownloadStore.getState();
+    if (uniqueDownloads.length > settings.maxDownloadNum) {
+      toast({
+        variant: 'destructive',
+        title: 'Download limit reached',
+        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete.`,
+      });
+      return;
+    }
 
-    for (const selectedDownload of downloadsToPlay) {
-      // Find the full download information
+    for (const selectedDownload of uniqueDownloads) {
       const downloadInfo = forDownloads.find(
         (d) => d.id === selectedDownload.id,
       );
-      const processedName = await processFileName(
-        downloadInfo.location,
-        downloadInfo.name,
-        downloadInfo.ext || downloadInfo.audioExt, // Use appropriate extension
-      );
+
       if (downloadInfo) {
+        const processedName = await processFileName(
+          downloadInfo.location,
+          downloadInfo.name,
+          downloadInfo.ext || downloadInfo.audioExt,
+        );
+
         addDownload(
           downloadInfo.videoUrl,
           `${processedName}.${downloadInfo.ext}`,
@@ -201,7 +218,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     // Check if connection limits are enabled
     if (settings.permitConnectionLimit) {
       // Check if current downloads are at or above the limit
-      if (downloading.length >= settings.maxDownloadNum) {
+      if (downloading.length > settings.maxDownloadNum) {
         toast({
           variant: 'destructive',
           title: 'Download limit reached',
@@ -240,8 +257,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             onClick={handleStopSelected}
           >
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
-            {/* {selectedDownloads.length > 0 &&
-              ` (${selectedDownloads.length})`}{' '}*/}
+            {selectedDownloads.length > 0 &&
+              ` (${selectedDownloads.length})`}{' '}
           </button>
           <button
             className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"

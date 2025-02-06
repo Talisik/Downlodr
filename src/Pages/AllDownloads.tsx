@@ -502,6 +502,24 @@ const AllDownloads = () => {
                         <span>{download.status}</span>
                       ) : download.status === 'to download' ? (
                         <DownloadButton download={download} />
+                      ) : download.status === 'paused' ||
+                        download.status === 'downloading' ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePause(download.id);
+                          }}
+                          className="hover:bg-gray-100 dark:hover:bg-gray-600 p-1 rounded-full"
+                        >
+                          <AnimatedCircularProgressBar
+                            status={download.status}
+                            max={100}
+                            min={0}
+                            value={download.progress}
+                            gaugePrimaryColor="#4CAF50"
+                            gaugeSecondaryColor="#EEEEEE"
+                          />
+                        </button>
                       ) : (
                         <AnimatedCircularProgressBar
                           status={download.status}
@@ -511,7 +529,7 @@ const AllDownloads = () => {
                           gaugePrimaryColor="#4CAF50"
                           gaugeSecondaryColor="#EEEEEE"
                         />
-                      )}{' '}
+                      )}
                     </span>
                   </div>
                 </td>

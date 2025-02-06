@@ -2,7 +2,7 @@
   "name": "downlodr",
   "productName": "Downlodr",
   "version": "2.0.0",
-  "description": "Downlodr is a powerful, user-friendly video downloading solution that supports over 1,800 platforms, including YouTube, Vimeo, and many more. Whether you're an content creator, educator, or enthusiast, Downlodr provides a seamless experience for managing your video downloads.",
+  "description": "Downlodr is a powerful, user-friendly video downloading solution that supports over 1,800 platforms, including YouTube, Vimeo, and many more. Downlodr provides a seamless experience for managing your video downloads.",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
@@ -45,8 +45,8 @@
   },
   "keywords": [],
   "author": {
-    "name": "Mikaela Herrera",
-    "email": "mikaela.herrera@seven-gen.com"
+    "name": "Downlodr Project Team",
+    "email": "downlodr@email.com"
   },
   "license": "MIT",
   "dependencies": {

@@ -1,3 +1,5 @@
+import useDownloadStore from '../Store/downloadStore';
+
 // Remove invalid characters from download name
 const removeInvalidChar = (filename: string) => {
   const invalidChars = /[<>:"/\\|?*.]+/g;
@@ -16,18 +18,35 @@ const processFileName = async (
   // First sanitize the filename
   const sanitizedName = removeInvalidChar(fileName);
 
-  // Then check for uniqueness
   let counter = 1;
   let finalName = sanitizedName;
+  let fileExists = true;
 
-  // Check if file exists with extension
-  while (
-    await window.downlodrFunctions.fileExists(
+  while (fileExists) {
+    // Check physical file existence
+    const physicalFileExists = await window.downlodrFunctions.fileExists(
       `${basePath}${finalName}.${extension}`,
-    )
-  ) {
-    finalName = `${sanitizedName}[${counter}]`;
-    counter++;
+    );
+
+    // Get store data directly from the imported store
+    const store = useDownloadStore.getState();
+
+    // Check if file exists in forDownloads or downloading
+    const pendingFileExists = [
+      ...store.forDownloads,
+      ...store.downloading,
+    ].some(
+      (download) =>
+        download.location === basePath &&
+        download.downloadName === `${finalName}.${extension}`,
+    );
+
+    fileExists = physicalFileExists || pendingFileExists;
+
+    if (fileExists) {
+      finalName = `${sanitizedName}[${counter}]`;
+      counter++;
+    }
   }
 
   console.log('Processed filename:', finalName);
