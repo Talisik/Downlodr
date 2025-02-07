@@ -11,6 +11,9 @@ import { VscDebugStart } from 'react-icons/vsc';
 import useDownloadStore from '../../../Store/downloadStore';
 import { MdDeleteOutline, MdEdit } from 'react-icons/md';
 import { PlayCircle } from 'lucide-react';
+import { processFileName } from '../../../DataFunctions/FilterName';
+import { useMainStore } from '../../../Store/mainStore';
+import { toast } from '../shadcn/hooks/use-toast';
 
 interface DownloadContextMenuProps {
   downloadId: string;
@@ -198,6 +201,9 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
   const renameDownload = useDownloadStore((state) => state.renameDownload);
+  const { settings } = useMainStore();
+  const { downloading, addDownload, removeFromForDownloads, forDownloads } =
+    useDownloadStore();
 
   React.useEffect(() => {
     if (menuRef.current) {
@@ -277,6 +283,54 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const handleRemoveConfirm = () => {
     onRemove(downloadLocation, downloadId, controllerId);
     setShowRemoveConfirmation(false);
+    onClose();
+  };
+
+  const handleStartDownload = async () => {
+    // Find the download information from forDownloads using downloadId
+    const currentDownload = forDownloads.find((d) => d.id === downloadId);
+
+    if (!currentDownload) {
+      console.error('Download not found in forDownloads');
+      return;
+    }
+
+    // Process the filename first
+    const processedName = await processFileName(
+      currentDownload.location,
+      currentDownload.name,
+      currentDownload.ext || currentDownload.audioExt,
+    );
+
+    if (downloading.length >= settings.maxDownloadNum) {
+      toast({
+        variant: 'destructive',
+        title: 'Download limit reached',
+        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete.`,
+      });
+      return;
+    }
+
+    addDownload(
+      currentDownload.videoUrl,
+      `${processedName}.${currentDownload.ext}`, // Use the correct extension
+      `${processedName}.${currentDownload.ext}`, // Use the correct extension
+      currentDownload.size || 0, // Use the actual size if known
+      currentDownload.speed || '0 KB/s', // Use the actual speed if known
+      currentDownload.timeLeft || '0:00:00', // Use the actual time left if known
+      new Date().toISOString(),
+      0, // Progress can be set to 0
+      currentDownload.location,
+      'downloading',
+      currentDownload.ext || 'mp4', // Use the correct extension
+      currentDownload.formatId || '', // Use the actual formatId if known
+      currentDownload.audioExt || '', // Use the actual audioExt if known
+      currentDownload.audioFormatId || '', // Use the actual audioFormatId if known
+      currentDownload.extractorKey || '', // Use the actual extractorKey if known
+      '',
+    );
+
+    removeFromForDownloads(currentDownload.id); // Remove from forDownloads after starting
     onClose();
   };
 
@@ -438,14 +492,11 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         <>
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-            onClick={(e) => {
-              e.stopPropagation();
-              console.log('start download');
-            }}
+            onClick={handleStartDownload}
           >
             <span className="flex items-center space-x-2">
               <PlayCircle size={20} />
-              <span>Download</span>
+              <span>Start</span>
             </span>
           </button>
           <button
@@ -476,12 +527,12 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
             onClick={(e) => {
               e.stopPropagation();
-              setShowStopConfirmation(true);
+              setShowRemoveConfirmation(true);
             }}
           >
             <span className="flex items-center space-x-2">
-              <MdDeleteOutline size={20} />
-              <span>Delete</span>
+              <LuTrash size={16} />
+              <span>Remove</span>
             </span>
           </button>
         </>

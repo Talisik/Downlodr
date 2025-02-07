@@ -12,13 +12,6 @@ import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
 import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
 import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
 
-interface Format {
-  value: string;
-  label: string;
-  fileExtension: string;
-  formatId: string;
-}
-
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -190,7 +183,9 @@ const AllDownloads = () => {
 
   const handleStop = (
     downloadId: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     downloadLocation?: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     controllerId?: string,
   ) => {
     const {

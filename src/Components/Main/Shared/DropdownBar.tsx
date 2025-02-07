@@ -60,7 +60,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
 
     if (
       uniqueDownloads.length > settings.maxDownloadNum ||
-      downloading.length > settings.maxDownloadNum
+      downloading.length >= settings.maxDownloadNum
     ) {
       toast({
         variant: 'destructive',
@@ -310,14 +310,14 @@ const DropdownBar = ({ className }: { className?: string }) => {
             </div>
           )}
         </div>
-
+        {/* 
         <button
           className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
           onClick={() => setShowHelpModal(true)}
         >
           Help
         </button>
-
+*/}
         {/*  <button className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
           <NavLink to="/scheduleTable" className={'scheduler font-semibold'}>
             <span className="ml-2">Scheduler</span>

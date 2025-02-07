@@ -17,6 +17,7 @@ import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import HelpModal from '../Modal/HelpModal';
 import { FiHelpCircle } from 'react-icons/fi';
+import PlaylistModal from '../Modal/PlaylistModal';
 
 interface TaskBarProps {
   className?: string;
@@ -24,6 +25,9 @@ interface TaskBarProps {
 
 const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [isPlaylistDownloadModalOpen, setPlaylistDownloadModalOpen] =
+    useState(false);
+
   const [isSchedulerModalOpen, setSchedulerModalOpen] = useState(false);
   const location = useLocation();
   const { toast } = useToast();
@@ -166,7 +170,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
     if (
       uniqueDownloads.length > settings.maxDownloadNum ||
-      downloading.length > settings.maxDownloadNum
+      downloading.length >= settings.maxDownloadNum
     ) {
       toast({
         variant: 'destructive',
@@ -258,6 +262,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             <VscPlayCircle size={18} className="mt-[0.9px]" /> Start
           </button>
 
+          {/* <button
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            onClick={() => setPlaylistDownloadModalOpen(true)}
+          >
+            {' '}
+            <VscPlayCircle size={18} className="mt-[0.9px]" /> Playlist
+          </button>*/}
+
           <button
             className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={handleStopSelected}
@@ -309,6 +321,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setDownloadModalOpen(false)}
+      />
+      <PlaylistModal
+        isOpen={isPlaylistDownloadModalOpen}
+        onClose={() => setPlaylistDownloadModalOpen(false)}
       />
     </>
   );

@@ -2,6 +2,8 @@ import React from 'react';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
 import { AnimatedCircularProgressBar } from './RadialProgress';
+import { useMainStore } from '../../../Store/mainStore';
+import { toast } from '../shadcn/hooks/use-toast';
 
 interface DownloadButtonProps {
   download: {
@@ -23,19 +25,21 @@ interface DownloadButtonProps {
 }
 
 const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
-  const addDownload = useDownloadStore((state) => state.addDownload);
-  const removeFromForDownloads = useDownloadStore(
-    (state) => state.removeFromForDownloads,
-  );
+  const { settings } = useMainStore();
+  const { downloading, addDownload, removeFromForDownloads } =
+    useDownloadStore();
 
   const handleDownloadClick = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row expansion
-    console.log('IN BUTTON');
-    console.log(download.ext);
-    console.log(download.audioExt);
-    console.log(download.formatId);
-    console.log(download.audioFormatId);
-
+    console.log(downloading.length);
+    if (downloading.length >= settings.maxDownloadNum) {
+      toast({
+        variant: 'destructive',
+        title: 'Download limit reached',
+        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete.`,
+      });
+      return;
+    }
     // Process the filename first
     const processedName = await processFileName(
       download.location,
