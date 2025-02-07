@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { VideoFormatService } from '../DataFunctions/GetDownloadMetaData';
+import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 
 function uuidv4() {
   return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) =>
@@ -444,6 +445,16 @@ const useDownloadStore = create<DownloadStore>()(
           }));
         } catch (error) {
           console.error('Error fetching metadata:', error);
+          toast({
+            variant: 'destructive',
+            title: `Could not find video metadata`,
+            description: 'Please enter a valid video URL',
+          });
+
+          // Access the method correctly
+          const { removeFromForDownloads } = get(); // Get the current state methods
+          removeFromForDownloads(downloadId); // Call the method
+
           // Update status to error
           set((state) => ({
             ...state,

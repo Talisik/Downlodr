@@ -250,6 +250,54 @@ const Downloading = () => {
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
+  const handlePause = (downloadId: string, downloadLocation?: string) => {
+    // Get fresh state each time
+    const { downloading, deleteDownloading } = useDownloadStore.getState();
+    const currentDownload = downloading.find((d) => d.id === downloadId);
+    const { updateDownloadStatus } = useDownloadStore.getState();
+
+    if (currentDownload?.status === 'paused') {
+      const { addDownload } = useDownloadStore.getState();
+      addDownload(
+        currentDownload.videoUrl,
+        currentDownload.name,
+        currentDownload.downloadName,
+        currentDownload.size,
+        currentDownload.speed,
+        currentDownload.timeLeft,
+        new Date().toISOString(),
+        currentDownload.progress,
+        currentDownload.location,
+        'downloading',
+        currentDownload.backupExt,
+        currentDownload.backupFormatId,
+        currentDownload.backupAudioExt,
+        currentDownload.backupAudioFormatId,
+        currentDownload.extractorKey,
+        '',
+      );
+      deleteDownloading(downloadId);
+    } else if (currentDownload?.controllerId) {
+      try {
+        window.ytdlp
+          .killController(currentDownload.controllerId)
+          .then((success) => {
+            if (success) {
+              setTimeout(() => {
+                updateDownloadStatus(downloadId, 'paused');
+                console.log('Status updated to paused after delay');
+              }, 1200);
+            }
+          });
+        updateDownloadStatus(downloadId, 'paused');
+      } catch (error) {
+        console.error('Error in pause:', error);
+      }
+    }
+
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
   return (
     <div className="w-full">
       <table className="w-full">
@@ -414,6 +462,24 @@ const Downloading = () => {
                         <span>{download.status}</span>
                       ) : download.status === 'to download' ? (
                         <DownloadButton download={download} />
+                      ) : download.status === 'paused' ||
+                        download.status === 'downloading' ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePause(download.id);
+                          }}
+                          className="hover:bg-gray-100 dark:hover:bg-gray-600 p-1 rounded-full"
+                        >
+                          <AnimatedCircularProgressBar
+                            status={download.status}
+                            max={100}
+                            min={0}
+                            value={download.progress}
+                            gaugePrimaryColor="#4CAF50"
+                            gaugeSecondaryColor="#EEEEEE"
+                          />
+                        </button>
                       ) : (
                         <AnimatedCircularProgressBar
                           status={download.status}
@@ -423,7 +489,7 @@ const Downloading = () => {
                           gaugePrimaryColor="#4CAF50"
                           gaugeSecondaryColor="#EEEEEE"
                         />
-                      )}{' '}
+                      )}
                     </span>
                   </div>
                 </td>
@@ -511,7 +577,7 @@ const Downloading = () => {
           downloadName={
             Downloading.find((d) => d.id === contextMenu.downloadId)?.name || ''
           }
-          onPause={undefined}
+          onPause={handlePause}
           onForceStart={undefined}
         />
       )}

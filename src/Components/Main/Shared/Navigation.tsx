@@ -13,8 +13,8 @@ import TagContextMenu from '../../SubComponents/custom/TagContextMenu';
 const Navigation = ({ className }: { className?: string }) => {
   const [openSections, setOpenSections] = useState({
     status: true,
-    category: true,
-    tag: true,
+    category: false,
+    tag: false,
   });
   const [contextMenu, setContextMenu] = useState<{
     category: string;

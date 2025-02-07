@@ -43,6 +43,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     );
 
     if (!urlPattern.test(url)) {
+      setIsValidUrl(false);
       toast({
         variant: 'destructive',
         title: 'Invalid URL',
@@ -148,7 +149,6 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                     <input
                       type="text"
                       placeholder="Paste link here"
-                      disabled={isValidUrl}
                       value={videoUrl}
                       onChange={(e) => handleUrl(e.target.value)}
                       className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
@@ -179,9 +179,10 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
           <div className="flex gap-3">
             <button
-              type="submit"
+              type="button"
               className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90 dark:hover:text-black dark:hover:bg-white"
-              onClick={handleDownload}
+              disabled={!isValidUrl}
+              onClick={isValidUrl ? handleDownload : undefined}
             >
               Download
             </button>

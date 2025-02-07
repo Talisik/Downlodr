@@ -9,7 +9,7 @@ import { LuTrash, LuFolderOpen } from 'react-icons/lu';
 import { GoChevronRight } from 'react-icons/go';
 import { VscDebugStart } from 'react-icons/vsc';
 import useDownloadStore from '../../../Store/downloadStore';
-import { MdDeleteOutline, MdEdit } from 'react-icons/md';
+import { MdEdit } from 'react-icons/md';
 import { PlayCircle } from 'lucide-react';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import { useMainStore } from '../../../Store/mainStore';

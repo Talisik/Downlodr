@@ -9,7 +9,7 @@ import MakerNSIS from '@felixrieseberg/electron-forge-maker-nsis';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    //icon: './assets/icon', // Make sure to create an assets folder with your icon
+    icon: './src/Assets/AppLogo/256x256',
     name: 'Downlodr',
     executableName: 'Downlodr',
   },

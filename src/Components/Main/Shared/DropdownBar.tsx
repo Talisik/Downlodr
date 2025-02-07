@@ -17,6 +17,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const [activeMenu, setActiveMenu] = useState<'file' | 'task' | null>(null);
   const [isSchedulerModalOpen, setSchedulerModalOpen] = useState(false);
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
   const [isAboutModalOpen, setAboutModalOpen] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
@@ -24,7 +25,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
-  const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
 
   const isSchedulePage = ['/scheduleTable', '/scheduleCalendar'].includes(
     location.pathname,
@@ -210,19 +210,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
   };
 
   const handleOpenDownloadModal = () => {
-    // Check if connection limits are enabled
-    if (settings.permitConnectionLimit) {
-      // Check if current downloads are at or above the limit
-      if (downloading.length >= settings.maxDownloadNum) {
-        toast({
-          variant: 'destructive',
-          title: 'Download limit reached',
-          description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete.`,
-        });
-        return;
-      }
-    }
-
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
         if (
@@ -264,7 +251,8 @@ const DropdownBar = ({ className }: { className?: string }) => {
               <button
                 className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
                 onClick={() => {
-                  handleOpenDownloadModal();
+                  // handleOpenDownloadModal();
+                  setDownloadModalOpen(true);
                   setActiveMenu(null);
                 }}
               >

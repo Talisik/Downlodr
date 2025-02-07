@@ -15,8 +15,6 @@ import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { processFileName } from '../../../DataFunctions/FilterName';
-import HelpModal from '../Modal/HelpModal';
-import { FiHelpCircle } from 'react-icons/fi';
 import PlaylistModal from '../Modal/PlaylistModal';
 
 interface TaskBarProps {
