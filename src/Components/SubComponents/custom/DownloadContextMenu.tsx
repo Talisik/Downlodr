@@ -9,6 +9,8 @@ import { LuTrash, LuFolderOpen } from 'react-icons/lu';
 import { GoChevronRight } from 'react-icons/go';
 import { VscDebugStart } from 'react-icons/vsc';
 import useDownloadStore from '../../../Store/downloadStore';
+import { MdDeleteOutline, MdEdit } from 'react-icons/md';
+import { PlayCircle } from 'lucide-react';
 
 interface DownloadContextMenuProps {
   downloadId: string;
@@ -442,7 +444,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             }}
           >
             <span className="flex items-center space-x-2">
-              <HiOutlineStopCircle size={20} />
+              <PlayCircle size={20} />
               <span>Download</span>
             </span>
           </button>
@@ -466,7 +468,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             }}
           >
             <span className="flex items-center space-x-2">
-              <HiOutlineStopCircle size={20} />
+              <MdEdit size={20} />
               <span>Rename</span>
             </span>
           </button>
@@ -478,7 +480,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             }}
           >
             <span className="flex items-center space-x-2">
-              <HiOutlineStopCircle size={20} />
+              <MdDeleteOutline size={20} />
               <span>Delete</span>
             </span>
           </button>
@@ -563,7 +565,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             <span>View Folder</span>
           </span>
         </button>
-        {commonOptions}
       </>
     );
   };

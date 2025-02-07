@@ -58,7 +58,12 @@ const Downloading = () => {
   const addCategory = useDownloadStore((state) => state.addCategory);
   const removeCategory = useDownloadStore((state) => state.removeCategory);
 
-  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const selectedRowIds = useMainStore((state) => state.selectedRowIds);
+  const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
+  const setSelectedDownloads = useMainStore(
+    (state) => state.setSelectedDownloads,
+  );
+
   const [contextMenu, setContextMenu] = useState<{
     downloadId: string | null;
     x: number;
@@ -71,9 +76,6 @@ const Downloading = () => {
     null,
   );
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  const setSelectedDownloads = useMainStore(
-    (state) => state.setSelectedDownloads,
-  );
 
   const { columns, startResizing } = useResizableColumns([
     { id: 'name', width: 110, minWidth: 110 },
@@ -182,11 +184,11 @@ const Downloading = () => {
   };
 
   const handleCheckboxChange = (downloadId: string) => {
-    const newSelected = selectedRows.includes(downloadId)
-      ? selectedRows.filter((id) => id !== downloadId)
-      : [...selectedRows, downloadId];
+    const newSelected = selectedRowIds.includes(downloadId)
+      ? selectedRowIds.filter((id) => id !== downloadId)
+      : [...selectedRowIds, downloadId];
 
-    setSelectedRows(newSelected);
+    setSelectedRowIds(newSelected);
 
     const selectedDownloadsData = newSelected.map((id) => {
       const download = Downloading.find((d) => d.id === id);
@@ -203,11 +205,11 @@ const Downloading = () => {
 
   const handleSelectAll = () => {
     const newSelected =
-      selectedRows.length === Downloading.length
+      selectedRowIds.length === Downloading.length
         ? []
         : Downloading.map((download) => download.id);
 
-    setSelectedRows(newSelected);
+    setSelectedRowIds(newSelected);
 
     const selectedDownloadsData = newSelected.map((id) => {
       const download = Downloading.find((d) => d.id === id);
@@ -257,7 +259,7 @@ const Downloading = () => {
               <input
                 type="checkbox"
                 className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
-                checked={selectedRows.length === Downloading.length}
+                checked={selectedRowIds.length === Downloading.length}
                 onChange={handleSelectAll}
               />
             </th>
@@ -330,7 +332,7 @@ const Downloading = () => {
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
-                    checked={selectedRows.includes(download.id)}
+                    checked={selectedRowIds.includes(download.id)}
                     onChange={() => handleCheckboxChange(download.id)}
                   />
                 </td>

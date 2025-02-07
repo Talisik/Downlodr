@@ -15,6 +15,8 @@ import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { processFileName } from '../../../DataFunctions/FilterName';
+import HelpModal from '../Modal/HelpModal';
+import { FiHelpCircle } from 'react-icons/fi';
 
 interface TaskBarProps {
   className?: string;
@@ -30,10 +32,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const { settings } = useMainStore();
   const { downloading } = useDownloadStore();
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
-  const clearSelectedDownloads = useMainStore(
-    (state) => state.clearSelectedDownloads,
-  );
-  const clearSelectedRows = useMainStore((state) => state.clearSelectedRows);
+  const clearAllSelections = useMainStore((state) => state.clearAllSelections);
 
   const handleStopAll = async () => {
     console.log('Stopping all downloads');
@@ -99,13 +98,19 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     }
 
     // Store selected downloads in a temporary variable and clear selections immediately
-    const downloadsToStop = [...selectedDownloads];
-    clearSelectedDownloads();
-    clearSelectedRows();
 
-    const { deleteDownloading } = useDownloadStore.getState();
+    const { deleteDownloading, downloading } = useDownloadStore.getState();
+    // Filter selected downloads to only include those in forDownloads and remove duplicates
+    const validDownloads = selectedDownloads.filter((download) =>
+      downloading.some((fd) => fd.id === download.id),
+    );
+    const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))]
+      .map((id) => validDownloads.find((d) => d.id === id))
+      .filter((d): d is (typeof validDownloads)[0] => d !== undefined);
+    // const downloadsToStop = [...selectedDownloads];
 
-    for (const download of downloadsToStop) {
+    clearAllSelections();
+    for (const download of uniqueDownloads) {
       if (download.controllerId) {
         try {
           const success = await window.ytdlp.killController(
@@ -131,8 +136,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           });
         }
       }
-      clearSelectedDownloads();
-      clearSelectedRows();
+      clearAllSelections();
     }
   };
 
@@ -153,15 +157,17 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     const validDownloads = selectedDownloads.filter((download) =>
       forDownloads.some((fd) => fd.id === download.id),
     );
-    const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))].map(
-      (id) => validDownloads.find((d) => d.id === id)!,
-    );
+    const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))]
+      .map((id) => validDownloads.find((d) => d.id === id))
+      .filter((d): d is (typeof validDownloads)[0] => d !== undefined);
 
     // Clear selections immediately after filtering
-    clearSelectedDownloads();
-    clearSelectedRows();
+    clearAllSelections();
 
-    if (uniqueDownloads.length > settings.maxDownloadNum) {
+    if (
+      uniqueDownloads.length > settings.maxDownloadNum ||
+      downloading.length > settings.maxDownloadNum
+    ) {
       toast({
         variant: 'destructive',
         title: 'Download limit reached',
@@ -216,7 +222,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
   const handleOpenDownloadModal = () => {
     // Check if connection limits are enabled
-    if (settings.permitConnectionLimit) {
+    /*if (settings.permitConnectionLimit) {
       // Check if current downloads are at or above the limit
       if (downloading.length > settings.maxDownloadNum) {
         toast({
@@ -226,7 +232,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         });
         return;
       }
-    }
+    }*/
 
     // If we pass the checks, open the modal
     setDownloadModalOpen(true);
@@ -249,7 +255,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             onClick={handlePlaySelected}
           >
             {' '}
-            <VscPlayCircle size={18} className="mt-[0.9px]" /> Play
+            <VscPlayCircle size={18} className="mt-[0.9px]" /> Start
           </button>
 
           <button
@@ -257,8 +263,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             onClick={handleStopSelected}
           >
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
-            {selectedDownloads.length > 0 &&
-              ` (${selectedDownloads.length})`}{' '}
           </button>
           <button
             className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
@@ -298,7 +302,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           )}
         </div>
       </div>
-
       <SchedulerModal
         isOpen={isSchedulerModalOpen}
         onClose={() => setSchedulerModalOpen(false)}

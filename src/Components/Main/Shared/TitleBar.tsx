@@ -14,7 +14,6 @@ interface TitleBarProps {
 
 const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   const { theme } = useTheme();
-  const [showHelpModal, setShowHelpModal] = useState(false);
 
   const getLogoSrc = () => {
     if (theme === 'system') {
@@ -39,12 +38,6 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
           {/* Buttons */}
           <div className="flex space-x-4 no-drag">
             {/* Help Button */}
-            <button
-              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
-              onClick={() => setShowHelpModal(true)}
-            >
-              <FiHelpCircle size={16} />
-            </button>
 
             {/*Dark Mode/Light Mode */}
             <ModeToggle />
@@ -75,11 +68,6 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
           </div>
         </div>
       </div>
-
-      <HelpModal
-        isOpen={showHelpModal}
-        onClose={() => setShowHelpModal(false)}
-      />
     </>
   );
 };

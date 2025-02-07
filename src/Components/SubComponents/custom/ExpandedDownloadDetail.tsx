@@ -61,7 +61,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
                   Downloaded:{' '}
                 </span>
                 <span className="dark:text-gray-300">
-                  {download.size || '0 MB'}
+                  {(download.size / 1048576).toFixed(2) || '0 MB'}
                 </span>
               </p>
               <p>

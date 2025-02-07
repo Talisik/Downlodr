@@ -30,6 +30,9 @@ interface MainStore {
   selectedRows: string[];
   setSelectedRows: (rows: string[]) => void;
   clearSelectedRows: () => void;
+  selectedRowIds: string[];
+  setSelectedRowIds: (rows: string[]) => void;
+  clearAllSelections: () => void;
 }
 
 export const useMainStore = create<MainStore>()(
@@ -81,6 +84,26 @@ export const useMainStore = create<MainStore>()(
       selectedRows: [] as string[],
       setSelectedRows: (rows) => set({ selectedRows: rows }),
       clearSelectedRows: () => set({ selectedRows: [] }),
+
+      selectedRowIds: [] as string[],
+      setSelectedRowIds: (rows) =>
+        set((state) => {
+          // Update both selectedRowIds and selectedDownloads
+          const selectedDownloadsData: SelectedDownload[] = rows.map((id) => ({
+            id,
+            controllerId: undefined as string | undefined,
+            location: undefined as string | undefined,
+          }));
+          return {
+            selectedRowIds: rows,
+            selectedDownloads: selectedDownloadsData,
+          };
+        }),
+      clearAllSelections: () =>
+        set({
+          selectedDownloads: [],
+          selectedRowIds: [],
+        }),
     }),
     {
       name: 'download-settings-storage',

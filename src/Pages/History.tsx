@@ -4,6 +4,8 @@ import useDownloadStore from '../Store/downloadStore';
 import { useMainStore } from '../Store/mainStore';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import { createPortal } from 'react-dom';
+import { LuTrash } from 'react-icons/lu';
+import { VscPlayCircle } from 'react-icons/vsc';
 
 interface FileExistsMap {
   [key: string]: boolean;
@@ -390,13 +392,16 @@ const History = () => {
             top: hoveredVideo.position.top,
             left: hoveredVideo.position.left,
           }}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 min-w-[50px] max-w-[120px] border-2 dark:border-gray-500 border-gray-200"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 min-w-[100px] max-w-[200px] border-2 dark:border-gray-500 border-gray-200"
         >
           <button
             onClick={() => handleRedownload(hoveredVideo)}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
           >
-            Redownload video
+            <span className="flex items-center space-x-2">
+              <VscPlayCircle size={18} />
+              <span>Redownload video</span>
+            </span>{' '}
           </button>
           <button
             onClick={async () =>
@@ -408,9 +413,12 @@ const History = () => {
                 hoveredVideo.id,
               )
             }
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-500"
+            className="text-sm w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            Remove from History
+            <span className="flex items-center space-x-2">
+              <LuTrash size={16} />
+              <span>Remove from History</span>
+            </span>{' '}
           </button>
         </div>
       )}

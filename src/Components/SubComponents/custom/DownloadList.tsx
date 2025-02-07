@@ -125,7 +125,9 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                 <LuDownload className="text-blue-500" />
                 {download.name}
               </td>
-              <td className="p-2 dark:text-gray-200">{download.size}</td>
+              <td className="p-2 dark:text-gray-200">
+                {(download.size / 1048576).toFixed(2)} mb
+              </td>
               <td className="p-2 dark:text-gray-200">{download.status}</td>
               <td className="p-2">
                 <div className="flex flex-wrap gap-1">

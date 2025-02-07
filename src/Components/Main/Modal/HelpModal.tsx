@@ -58,7 +58,14 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
     : 'advanced';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className="bg-white dark:bg-darkMode rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b dark:border-gray-700">
           <h2 className="text-xl font-semibold dark:text-white">Help Guide</h2>
@@ -195,7 +202,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                   <AccordionSection
                     title="What is History"
                     content={
-                      <ul className="list-decimal pl-6 space-y-3 dark:text-gray-300 text-sm">
+                      <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
                         <li>
                           History is different from Finished Pages and
                           AllDownloads in a way that it only store logs of the
@@ -212,7 +219,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                   <AccordionSection
                     title="How to view videos"
                     content={
-                      <ul className="list-decimal pl-6 space-y-3 dark:text-gray-300 text-sm">
+                      <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
                         <li>right-click video row in all status pages</li>
                       </ul>
                     }
@@ -229,7 +236,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                   <AccordionSection
                     title="Download is stuck in initializing"
                     content={
-                      <ul className="list-decimal pl-6 space-y-3 dark:text-gray-300 text-sm">
+                      <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
                         <li>Initializing</li>
                       </ul>
                     }
@@ -241,7 +248,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                   <AccordionSection
                     title="Failed to delete video"
                     content={
-                      <ul className="list-decimal pl-6 space-y-3 dark:text-gray-300 text-sm">
+                      <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
                         <li>Initializing</li>
                       </ul>
                     }
@@ -253,7 +260,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                   <AccordionSection
                     title="EPERM Error"
                     content={
-                      <ul className="list-decimal pl-6 space-y-3 dark:text-gray-300 text-sm">
+                      <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
                         <li>allow admin access</li>
                       </ul>
                     }
