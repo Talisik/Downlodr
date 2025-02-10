@@ -367,8 +367,19 @@ const PlaylistModal: React.FC<PlaylistModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[9999]">
-      <div className="bg-white dark:bg-darkMode rounded-lg p-6 w-full max-w-xl shadow-lg">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[9999]"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleCancel();
+        }
+      }}
+    >
+      <div
+        className={`bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 ${
+          isValidUrl ? 'w-full max-w-[900px]' : 'w-full max-w-xl'
+        }`}
+      >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold dark:text-gray-200">
             Playlist Download
@@ -385,93 +396,116 @@ const PlaylistModal: React.FC<PlaylistModalProps> = ({ isOpen, onClose }) => {
           <div className="loading-screen">Loading...</div>
         ) : (
           <>
-            <div className="top-section">
-              <div className="inputs space-y-4">
-                <input
-                  type="url"
-                  value={videoUrl}
-                  onChange={(e) => handleUrl(e.target.value)}
-                  placeholder="Download Link"
-                  className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
-                  disabled={isLoading}
-                  aria-label="Video URL"
-                />
-                <input
-                  type="text"
-                  value={downloadFolder}
-                  onClick={handleDirectory}
-                  placeholder="Download Destination Folder"
-                  className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
-                  readOnly
-                  disabled={isLoading}
-                  aria-label="Download Folder"
-                />
-              </div>
-              <div className="buttons flex gap-3 mt-4">
-                <button
-                  className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 dark:hover:text-black dark:hover:bg-white"
-                  onClick={handleDownload}
-                  aria-label="Download selected videos"
-                >
-                  Download
-                </button>
-                <button
-                  className="px-4 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
-                  onClick={handleCancel}
-                  aria-label="Cancel download"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-            <div className={`video-section ${isVideoReady ? 'show' : ''}`}>
-              {isLoading ? (
-                <Skeleton className="h-4 w-[120px] rounded-[3px]" />
-              ) : (
-                isValidUrl && (
-                  <>
-                    <div className="select-all flex items-center">
+            <div className="flex gap-6">
+              <div className="w-[400px]">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block dark:text-gray-200">
+                      Download link
+                    </label>
+                    <div className="flex gap-2">
                       <input
-                        type="checkbox"
-                        checked={selectAll}
-                        onChange={handleSelectAll}
-                        className="mr-2"
-                        aria-label="Select all videos"
+                        type="url"
+                        value={videoUrl}
+                        onChange={(e) => handleUrl(e.target.value)}
+                        placeholder="Paste link here"
+                        className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
+                        disabled={isLoading}
+                        aria-label="Video URL"
                       />
-                      <label className="dark:text-gray-200">{videoTitle}</label>
                     </div>
-                    <div className="video-list mt-4">
-                      {playlistVideos.map((video) => (
-                        <div
-                          key={video.id}
-                          className="video-item flex items-center mb-2"
-                        >
+                  </div>
+
+                  <div>
+                    <label className="block dark:text-gray-200">
+                      Save file to
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={downloadFolder}
+                        onClick={handleDirectory}
+                        placeholder="Download Destination Folder"
+                        className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
+                        readOnly
+                        disabled={isLoading}
+                        aria-label="Download Folder"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {isValidUrl && (
+                <div className="flex-1 border-l border-divider dark:border-gray-700 pl-6">
+                  {isLoading ? (
+                    <Skeleton className="h-4 w-[120px] rounded-[3px]" />
+                  ) : (
+                    <div className="video-section">
+                      <div className="sticky top-0 bg-white dark:bg-darkMode pb-4 z-10">
+                        <div className="select-all flex items-center">
                           <input
                             type="checkbox"
-                            checked={selectedVideos.has(video.id)}
-                            onChange={() => handleVideoSelect(video.id)}
+                            checked={selectAll}
+                            onChange={handleSelectAll}
                             className="mr-2"
-                            aria-label={`Select ${video.title}`}
+                            aria-label="Select all videos"
                           />
-                          <img
-                            src={video.thumbnail}
-                            alt={video.title}
-                            className="w-16 h-16 rounded-md"
-                          />
-                          <div className="ml-2">
-                            <h4 className="font-semibold dark:text-gray-200">
-                              {video.title}
-                            </h4>
-                            <p className="text-sm dark:text-gray-400">
-                              {video.channel}
-                            </p>
-                          </div>
+                          <label className="dark:text-gray-200 font-medium">
+                            {videoTitle}
+                          </label>
                         </div>
-                      ))}
+                      </div>
+                      <div className="space-y-3 max-h-[180px] overflow-y-auto">
+                        {playlistVideos.map((video) => (
+                          <div
+                            key={video.id}
+                            className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedVideos.has(video.id)}
+                              onChange={() => handleVideoSelect(video.id)}
+                              className="flex-none"
+                              aria-label={`Select ${video.title}`}
+                            />
+                            <img
+                              src={video.thumbnail}
+                              alt={video.title}
+                              className="w-24 h-16 object-cover rounded"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium dark:text-gray-200 truncate">
+                                {video.title}
+                              </h4>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {video.channel}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </>
-                )
+                  )}
+                </div>
               )}
+            </div>
+
+            <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
+
+            <div className="flex gap-3">
+              <button
+                className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90 dark:hover:text-black dark:hover:bg-white"
+                onClick={handleDownload}
+              >
+                Download
+              </button>
+              <button
+                className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
+                onClick={handleCancel}
+              >
+                Cancel
+              </button>
             </div>
           </>
         )}
