@@ -153,8 +153,9 @@ const AllDownloads = () => {
         '',
       );
       deleteDownloading(downloadId);
-    } else if (currentDownload?.controllerId) {
+    } else if (currentDownload.controllerId != '---') {
       try {
+        console.log(currentDownload.controllerId);
         window.ytdlp
           .killController(currentDownload.controllerId)
           .then((success) => {

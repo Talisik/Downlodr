@@ -34,11 +34,12 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     settings.defaultDownloadSpeed === 0
       ? ''
       : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
-  const { openPlaylistModal } = usePlaylistStore();
+  // const { openPlaylistModal } = usePlaylistStore();
 
   // New state for playlist functionality
   const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [videoInfo, setVideoInfo] = useState<object | null>(null);
   const [videoTitle, setVideoTitle] = useState<string | null>(null);
   const [playlistVideos, setPlaylistVideos] = useState<Video[]>([]);
@@ -61,10 +62,8 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     // If it's a direct playlist URL
     else if (playlistPattern.test(url)) {
       return 'playlist';
-    } else if (videoPattern.test(url)) {
-      return 'video';
     }
-    return 'invalid';
+    return 'video';
   };
 
   const handleUrl = async (url: string) => {
@@ -196,13 +195,13 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
       toast({
         title: 'Download Queued',
-        description: 'Getting video information...',
+        description: 'Getting video metadata...',
       });
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to start download process',
+        description: 'Failed to Add to Download Queue',
       });
     }
   };
@@ -225,6 +224,12 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     setDownloadFolder(path);
   };
 
+  // Close Modal
+  const handleClose = () => {
+    resetModal();
+    onClose();
+  };
+
   // Move the conditional return after all hooks
   if (!isOpen) return null;
 
@@ -234,7 +239,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       onClick={(e) => {
         // Only close if clicking the overlay background
         if (e.target === e.currentTarget) {
-          resetModal();
+          handleClose();
         }
       }}
     >
@@ -249,7 +254,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             {isPlaylist ? 'Playlist Download' : 'New Download'}
           </h2>
           <button
-            onClick={resetModal}
+            onClick={handleClose}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <IoMdClose size={16} />
@@ -360,7 +365,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
           </button>
           <button
             type="button"
-            onClick={resetModal}
+            onClick={handleClose}
             className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
           >
             Cancel

@@ -34,6 +34,21 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const { settings } = useMainStore();
   const { downloading } = useDownloadStore();
 
+  // Move useEffect outside of handleOpenDownloadModal
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setActiveMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handlePlaySelected = async () => {
     if (selectedDownloads.length === 0) {
       toast({
@@ -98,7 +113,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
           downloadInfo.audioExt,
           downloadInfo.audioFormatId,
           downloadInfo.extractorKey,
-          '',
+          `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
         );
         removeFromForDownloads(selectedDownload.id);
       }
@@ -161,7 +176,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const handleStartAll = async () => {
     const { addDownload, forDownloads, removeFromForDownloads, downloading } =
       useDownloadStore.getState();
-
+    console.log(
+      `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+    );
     if (forDownloads.length === 0) {
       toast({
         variant: 'destructive',
@@ -206,29 +223,13 @@ const DropdownBar = ({ className }: { className?: string }) => {
         downloadInfo.audioExt,
         downloadInfo.audioFormatId,
         downloadInfo.extractorKey,
-        '',
+        `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
       );
       removeFromForDownloads(downloadInfo.id);
     }
   };
 
   const handleOpenDownloadModal = () => {
-    useEffect(() => {
-      const handleClickOutside = (event: MouseEvent) => {
-        if (
-          dropdownRef.current &&
-          !dropdownRef.current.contains(event.target as Node)
-        ) {
-          setActiveMenu(null);
-        }
-      };
-
-      document.addEventListener('mousedown', handleClickOutside);
-      return () =>
-        document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    // If we pass the checks, open the modal
     setDownloadModalOpen(true);
   };
 

@@ -327,7 +327,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       currentDownload.audioExt || '', // Use the actual audioExt if known
       currentDownload.audioFormatId || '', // Use the actual audioFormatId if known
       currentDownload.extractorKey || '', // Use the actual extractorKey if known
-      '',
+      `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
     );
 
     removeFromForDownloads(currentDownload.id); // Remove from forDownloads after starting

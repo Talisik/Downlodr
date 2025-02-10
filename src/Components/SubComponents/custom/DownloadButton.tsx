@@ -30,6 +30,9 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
     useDownloadStore();
 
   const handleDownloadClick = async (e: React.MouseEvent) => {
+    console.log(
+      `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+    );
     e.stopPropagation(); // Prevent row expansion
     console.log(downloading.length);
     if (downloading.length >= settings.maxDownloadNum) {
@@ -63,7 +66,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
       download.audioExt,
       download.audioFormatId,
       download.extractorKey,
-      '',
+      `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
     );
     removeFromForDownloads(download.id);
   };

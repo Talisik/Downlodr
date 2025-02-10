@@ -206,7 +206,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           downloadInfo.audioExt,
           downloadInfo.audioFormatId,
           downloadInfo.extractorKey,
-          '',
+          `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
         );
         removeFromForDownloads(selectedDownload.id);
       }
