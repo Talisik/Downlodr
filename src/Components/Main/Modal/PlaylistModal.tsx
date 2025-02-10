@@ -8,6 +8,7 @@ import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '../..//SubComponents/shadcn/hooks/use-toast';
 import { useMainStore } from '../../../Store/mainStore';
 import { IoMdClose } from 'react-icons/io';
+import { usePlaylistStore } from '../../../Store/playlistStore';
 
 interface PlaylistModalProps {
   isOpen: boolean;
@@ -30,10 +31,21 @@ interface VideoDownloadInfo {
   ext: string;
 }
 
-const PlaylistModal: React.FC<PlaylistModalProps> = ({ isOpen, onClose }) => {
+const PlaylistModal: React.FC = () => {
+  const {
+    isPlaylistModalOpen,
+    playlistUrl,
+    shouldFetchPlaylist,
+    closePlaylistModal,
+  } = usePlaylistStore();
+
+  // Use these values instead of props
+  const isOpen = isPlaylistModalOpen;
+  const onClose = closePlaylistModal;
+
   const [videoInfo, setVideoInfo] = useState<object | null>(null);
   const [videoTitle, setVideoTitle] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string>('');
+  // const [videoUrl, setvideoUrl] = useState<string>(playlistUrl);
   const [downloadFolder, setDownloadFolder] = useState<string>('');
   const [downloadName, setDownloadName] = useState<string>('');
   const [downloadQuality, setDownloadQuality] = useState<string>('');
@@ -133,19 +145,22 @@ const PlaylistModal: React.FC<PlaylistModalProps> = ({ isOpen, onClose }) => {
   };
 
   useEffect(() => {
-    if (isValidUrl) {
+    if (playlistUrl && shouldFetchPlaylist) {
+      console.log('Fetching playlist info for URL:', playlistUrl);
+      setIsValidUrl(true); // Set this immediately when we have a URL
+      setIsLoading(true); // Set loading state immediately
+
       const fetchPlaylistInfo = async () => {
         console.log('Fetching playlist info...');
-        setIsLoading(true);
         try {
-          const info = await (window as any).ytdlp.getPlaylistInfo({
-            url: videoUrl,
+          const info = await window.ytdlp.getPlaylistInfo({
+            url: playlistUrl,
           });
           const folderPath = await window.downlodrFunctions.getDownloadFolder();
 
           // Set video information and playlist videos
           setVideoInfo(info);
-          console.log(info);
+          console.log('Playlist info:', info);
           setVideoTitle(info.data.title);
           setDownloadName(info.data.title);
 
@@ -153,10 +168,10 @@ const PlaylistModal: React.FC<PlaylistModalProps> = ({ isOpen, onClose }) => {
             url: video.url,
             id: video.id,
             title: video.title,
-            thumbnail: video.thumbnails[0]?.url || '', // Handle potential undefined
+            thumbnail: video.thumbnails[0]?.url || '',
             channel: video.channel,
           }));
-          console.log(videos);
+          console.log('Playlist videos:', videos);
           setPlaylistVideos(videos);
 
           setDownloadFolder(folderPath);
@@ -164,19 +179,20 @@ const PlaylistModal: React.FC<PlaylistModalProps> = ({ isOpen, onClose }) => {
           setDownloadQuality('mp4');
           hideErrorCard();
         } catch (error) {
-          // Improved error handling
+          console.error('Error fetching playlist:', error);
           setErrorTitle('Search Error');
           setErrorMessage(
             `Playlist not found: ${error.message || 'Invalid url'}`,
           );
           setErrorVisible(true);
+          setIsValidUrl(false); // Reset on error
         } finally {
           setIsLoading(false);
         }
       };
       fetchPlaylistInfo();
     }
-  }, [videoUrl]);
+  }, [playlistUrl, shouldFetchPlaylist]);
 
   useEffect(() => {
     const handleOffline = () => {
@@ -192,7 +208,7 @@ const PlaylistModal: React.FC<PlaylistModalProps> = ({ isOpen, onClose }) => {
   }, []);
 
   const resetModal = () => {
-    setVideoUrl('');
+    // setvideoUrl('');
     setDownloadFolder('');
     setDownloadName('');
     setDownloadQuality('mp4');
@@ -207,7 +223,7 @@ const PlaylistModal: React.FC<PlaylistModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleUrl = (url: string) => {
-    setVideoUrl(url);
+    // setvideoUrl(url);
     setIsValidUrl(false);
 
     const urlPattern = new RegExp(
@@ -377,7 +393,7 @@ const PlaylistModal: React.FC<PlaylistModalProps> = ({ isOpen, onClose }) => {
     >
       <div
         className={`bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 ${
-          isValidUrl ? 'w-full max-w-[900px]' : 'w-full max-w-xl'
+          isValidUrl ? 'w-full max-w-[800px]' : 'w-full max-w-xl'
         }`}
       >
         <div className="flex justify-between items-center mb-6">
@@ -397,7 +413,7 @@ const PlaylistModal: React.FC<PlaylistModalProps> = ({ isOpen, onClose }) => {
         ) : (
           <>
             <div className="flex gap-6">
-              <div className="w-[400px]">
+              <div className="w-[350px]">
                 <div className="space-y-4">
                   <div>
                     <label className="block dark:text-gray-200">
@@ -406,7 +422,7 @@ const PlaylistModal: React.FC<PlaylistModalProps> = ({ isOpen, onClose }) => {
                     <div className="flex gap-2">
                       <input
                         type="url"
-                        value={videoUrl}
+                        value={playlistUrl}
                         onChange={(e) => handleUrl(e.target.value)}
                         placeholder="Paste link here"
                         className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"

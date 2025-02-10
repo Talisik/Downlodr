@@ -320,10 +320,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         isOpen={isDownloadModalOpen}
         onClose={() => setDownloadModalOpen(false)}
       />
-      <PlaylistModal
-        isOpen={isPlaylistDownloadModalOpen}
-        onClose={() => setPlaylistDownloadModalOpen(false)}
-      />
     </>
   );
 };

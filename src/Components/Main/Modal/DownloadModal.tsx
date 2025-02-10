@@ -4,6 +4,7 @@ import { IoMdClose } from 'react-icons/io';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
+import { usePlaylistStore } from '../../../Store/playlistStore';
 
 interface DownloadModalProps {
   isOpen: boolean;
@@ -24,9 +25,28 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     settings.defaultDownloadSpeed === 0
       ? ''
       : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
+  const { openPlaylistModal } = usePlaylistStore();
 
-  // URL validation
-  const handleUrl = (url: string) => {
+  // URL validation with playlist check
+  const isYouTubeLink = (url: string): 'playlist' | 'video' | 'invalid' => {
+    const videoPattern = /^https:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/;
+    const playlistPattern =
+      /^https:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+$/;
+
+    // If the URL matches a video URL and has a "list" query, it's part of a playlist
+    if (videoPattern.test(url) && url.includes('list=')) {
+      return 'playlist';
+    }
+    // If it's a direct playlist URL
+    else if (playlistPattern.test(url)) {
+      return 'playlist';
+    } else if (videoPattern.test(url)) {
+      return 'video';
+    }
+    return 'invalid';
+  };
+
+  const handleUrl = async (url: string) => {
     setVideoUrl(url);
     setIsValidUrl(false);
 
@@ -53,8 +73,23 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
 
     try {
+      // First check if it's a valid URL
       new URL(url);
-      setIsValidUrl(true);
+
+      const linkType = isYouTubeLink(url);
+
+      if (linkType === 'playlist') {
+        console.log('Opening playlist modal with URL:', url);
+        resetModal();
+        onClose();
+        openPlaylistModal(url);
+        return;
+      } else if (linkType === 'video') {
+        setIsValidUrl(true);
+      } else {
+        // Not a YouTube URL, proceed normally
+        setIsValidUrl(true);
+      }
     } catch (err) {
       toast({
         variant: 'destructive',
