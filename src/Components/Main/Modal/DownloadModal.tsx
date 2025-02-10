@@ -5,10 +5,19 @@ import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { usePlaylistStore } from '../../../Store/playlistStore';
+import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
 
 interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface Video {
+  id: string;
+  title: string;
+  thumbnail: string;
+  channel: string;
+  url: string;
 }
 
 const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
@@ -26,6 +35,18 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       ? ''
       : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
   const { openPlaylistModal } = usePlaylistStore();
+
+  // New state for playlist functionality
+  const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [videoInfo, setVideoInfo] = useState<object | null>(null);
+  const [videoTitle, setVideoTitle] = useState<string | null>(null);
+  const [playlistVideos, setPlaylistVideos] = useState<Video[]>([]);
+  const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
+
+  // Calculate selectAll state
+  const selectAll =
+    selectedVideos.size === playlistVideos.length && playlistVideos.length > 0;
 
   // URL validation with playlist check
   const isYouTubeLink = (url: string): 'playlist' | 'video' | 'invalid' => {
@@ -49,6 +70,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   const handleUrl = async (url: string) => {
     setVideoUrl(url);
     setIsValidUrl(false);
+    setIsPlaylist(false);
 
     const urlPattern = new RegExp(
       '^(https?:\\/\\/)?' +
@@ -63,31 +85,24 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     );
 
     if (!urlPattern.test(url)) {
-      setIsValidUrl(false);
       toast({
         variant: 'destructive',
         title: 'Invalid URL',
-        description: 'Please enter a valid video URL',
+        description: 'Please enter a valid URL',
       });
       return;
     }
 
     try {
-      // First check if it's a valid URL
       new URL(url);
-
       const linkType = isYouTubeLink(url);
 
       if (linkType === 'playlist') {
-        console.log('Opening playlist modal with URL:', url);
-        resetModal();
-        onClose();
-        openPlaylistModal(url);
-        return;
-      } else if (linkType === 'video') {
+        setIsPlaylist(true);
         setIsValidUrl(true);
-      } else {
-        // Not a YouTube URL, proceed normally
+        fetchPlaylistInfo(url);
+      } else if (linkType === 'video') {
+        setIsPlaylist(false);
         setIsValidUrl(true);
       }
     } catch (err) {
@@ -99,29 +114,91 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // Cancel button
-  const handleCancel = () => {
-    resetModal(); // Reset the state
-    onClose(); // Close the modal
+  // New playlist-specific functions
+  const fetchPlaylistInfo = async (url: string) => {
+    setIsLoading(true);
+    try {
+      const info = await window.ytdlp.getPlaylistInfo({ url });
+      const folderPath = await window.downlodrFunctions.getDownloadFolder();
+
+      setVideoInfo(info);
+      setVideoTitle(info.data.title);
+
+      const videos = info.data.entries.map((video: any) => ({
+        url: video.url,
+        id: video.id,
+        title: video.title,
+        thumbnail: video.thumbnails[0]?.url || '',
+        channel: video.channel,
+      }));
+
+      setPlaylistVideos(videos);
+      setDownloadFolder(folderPath);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Playlist Error',
+        description: 'Failed to fetch playlist information',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // download handler - only initiates the background process
+  const handleVideoSelect = (id: string) => {
+    setSelectedVideos((prevSelected) => {
+      const newSelected = new Set(prevSelected);
+      if (newSelected.has(id)) {
+        newSelected.delete(id);
+      } else {
+        newSelected.add(id);
+      }
+      return newSelected;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedVideos(new Set());
+    } else {
+      setSelectedVideos(new Set(playlistVideos.map((video) => video.id)));
+    }
+  };
+
+  // Modify handleDownload to handle both cases
   const handleDownload = async () => {
     try {
-      // Initialize download with just the basic information
-      setDownload(videoUrl, downloadFolder, maxDownload);
+      if (isPlaylist) {
+        const selectedVideosList = playlistVideos.filter((video) =>
+          selectedVideos.has(video.id),
+        );
 
-      // Reset and close modal
+        if (selectedVideosList.length === 0) {
+          toast({
+            variant: 'destructive',
+            title: 'Selection Error',
+            description: 'Please select at least one video to download',
+          });
+          return;
+        }
+
+        // Download each selected video
+        for (const video of selectedVideosList) {
+          setDownload(video.url, downloadFolder, maxDownload);
+        }
+      } else {
+        // Single video download
+        setDownload(videoUrl, downloadFolder, maxDownload);
+      }
+
       resetModal();
       onClose();
 
-      // Show toast notification
       toast({
         title: 'Download Queued',
         description: 'Getting video information...',
       });
     } catch (error) {
-      console.error('Error initiating download:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -130,10 +207,15 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // reset
+  // Modify resetModal to handle playlist state
   const resetModal = () => {
     setVideoUrl('');
     setIsValidUrl(false);
+    setIsPlaylist(false);
+    setVideoInfo(null);
+    setVideoTitle(null);
+    setPlaylistVideos([]);
+    setSelectedVideos(new Set());
     setDownloadFolder(settings.defaultLocation);
   };
 
@@ -152,28 +234,30 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       onClick={(e) => {
         // Only close if clicking the overlay background
         if (e.target === e.currentTarget) {
-          handleCancel();
+          resetModal();
         }
       }}
     >
       {' '}
       <div
-        className={`bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 w-full max-w-xl`}
+        className={`bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 ${
+          isValidUrl && isPlaylist ? 'w-full max-w-[800px]' : 'w-full max-w-xl'
+        }`}
       >
-        <div className={videoUrl && isValidUrl ? 'flex-1' : 'w-full'}>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold dark:text-gray-200">
-              New Download
-            </h2>
-            <button
-              onClick={handleCancel}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <IoMdClose size={16} />
-            </button>
-          </div>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold dark:text-gray-200">
+            {isPlaylist ? 'Playlist Download' : 'New Download'}
+          </h2>
+          <button
+            onClick={resetModal}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <IoMdClose size={16} />
+          </button>
+        </div>
 
-          <div className="flex gap-6">
+        <div className="flex gap-6">
+          <div className={isPlaylist ? 'w-[350px]' : 'w-full'}>
             <form onSubmit={(e) => e.preventDefault()} className={'w-full'}>
               <div className="space-y-4">
                 <div>
@@ -210,25 +294,77 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
               </div>
             </form>
           </div>
-          <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
 
-          <div className="flex gap-3">
-            <button
-              type="button"
-              className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90 dark:hover:text-black dark:hover:bg-white"
-              disabled={!isValidUrl}
-              onClick={isValidUrl ? handleDownload : undefined}
-            >
-              Download
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
-            >
-              Cancel
-            </button>
-          </div>
+          {isPlaylist && isValidUrl && (
+            <div className="flex-1 border-l border-divider dark:border-gray-700 pl-6">
+              {isLoading ? (
+                <Skeleton className="h-4 w-[120px] rounded-[3px]" />
+              ) : (
+                <div className="video-section">
+                  <div className="sticky top-0 bg-white dark:bg-darkMode pb-4 z-10">
+                    <div className="select-all flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={selectAll}
+                        onChange={handleSelectAll}
+                        className="mr-2"
+                      />
+                      <label className="dark:text-gray-200 font-medium">
+                        {videoTitle}
+                      </label>
+                    </div>
+                  </div>
+                  <div className="space-y-3 max-h-[180px] overflow-y-auto">
+                    {playlistVideos.map((video) => (
+                      <div
+                        key={video.id}
+                        className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedVideos.has(video.id)}
+                          onChange={() => handleVideoSelect(video.id)}
+                          className="flex-none"
+                        />
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="w-24 h-16 object-cover rounded"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium dark:text-gray-200 truncate">
+                            {video.title}
+                          </h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {video.channel}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90"
+            disabled={!isValidUrl}
+            onClick={handleDownload}
+          >
+            Download
+          </button>
+          <button
+            type="button"
+            onClick={resetModal}
+            className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>

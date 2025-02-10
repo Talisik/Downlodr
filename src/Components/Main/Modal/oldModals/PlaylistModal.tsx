@@ -2,13 +2,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from 'react';
-import useDownloadStore from '../../../Store/downloadStore';
-import GetEmbedUrl from '../../../DataFunctions/EmbedVideo';
-import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
-import { toast } from '../..//SubComponents/shadcn/hooks/use-toast';
-import { useMainStore } from '../../../Store/mainStore';
+import useDownloadStore from '../../../../Store/downloadStore';
+import GetEmbedUrl from '../../../../DataFunctions/EmbedVideo';
+import { Skeleton } from '../../../SubComponents/shadcn/components/ui/skeleton';
+import { toast } from '../../../SubComponents/shadcn/hooks/use-toast';
+import { useMainStore } from '../../../../Store/mainStore';
 import { IoMdClose } from 'react-icons/io';
-import { usePlaylistStore } from '../../../Store/playlistStore';
+import { usePlaylistStore } from '../../../../Store/playlistStore';
 
 interface PlaylistModalProps {
   isOpen: boolean;

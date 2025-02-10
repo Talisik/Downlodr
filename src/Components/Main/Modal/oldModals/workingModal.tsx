@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
-import useDownloadStore from '../../../Store/downloadStore';
-import { useMainStore } from '../../../Store/mainStore';
-import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
+import useDownloadStore from '../../../../Store/downloadStore';
+import { useMainStore } from '../../../../Store/mainStore';
+import { toast } from '../../../SubComponents/shadcn/hooks/use-toast';
 
 interface DownloadModalProps {
   isOpen: boolean;

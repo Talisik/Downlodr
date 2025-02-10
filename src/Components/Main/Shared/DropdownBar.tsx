@@ -171,7 +171,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
       return;
     }
 
-    if (downloading.length >= settings.maxDownloadNum) {
+    if (
+      downloading.length >= settings.maxDownloadNum ||
+      forDownloads.length > settings.maxDownloadNum
+    ) {
       toast({
         variant: 'destructive',
         title: 'Download limit reached',
