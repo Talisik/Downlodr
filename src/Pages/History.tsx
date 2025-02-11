@@ -6,6 +6,7 @@ import { HiChevronUpDown } from 'react-icons/hi2';
 import { createPortal } from 'react-dom';
 import { LuTrash } from 'react-icons/lu';
 import { VscPlayCircle } from 'react-icons/vsc';
+import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 
 interface FileExistsMap {
   [key: string]: boolean;
@@ -177,6 +178,11 @@ const History = () => {
         if (video) {
           console.log('Selected files deleted successfully');
           deleteDownload(video.id);
+          toast({
+            variant: 'success',
+            title: 'Download Log Deleted',
+            description: 'Your download log has been deleted successfully',
+          });
         } else {
           failedToDelete.push(video.name);
         }
@@ -260,6 +266,11 @@ const History = () => {
   const handleRedownload = async (video: any) => {
     setDownload(video.videoUrl, video.location, maxDownload);
     setHoveredVideo(null);
+    toast({
+      variant: 'success',
+      title: 'Download Added',
+      description: 'Your download has been added successfully',
+    });
   };
 
   // Add sort function

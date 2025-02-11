@@ -54,6 +54,11 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
               console.log(
                 `Controller with ID ${download.controllerId} has been terminated.`,
               );
+              toast({
+                variant: 'success',
+                title: 'Download stopped',
+                description: 'Your download has stopped successfully',
+              });
             } else {
               toast({
                 variant: 'destructive',
@@ -123,6 +128,11 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             console.log(
               `Controller with ID ${download.controllerId} has been terminated.`,
             );
+            toast({
+              variant: 'success',
+              title: 'Download Stopped',
+              description: 'Your download has stopped successfully',
+            });
           } else {
             toast({
               variant: 'destructive',

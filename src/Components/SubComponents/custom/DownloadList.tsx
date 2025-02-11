@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { LuDownload } from 'react-icons/lu';
 import useDownloadStore, { BaseDownload } from '../../../Store/downloadStore';
 import DownloadContextMenu from './DownloadContextMenu';
+import { toast } from '../shadcn/hooks/use-toast';
 
 interface DownloadListProps {
   downloads: BaseDownload[];
@@ -75,9 +76,19 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       if (success) {
         deleteDownload(downloadId);
         setContextMenu(null);
+        toast({
+          variant: 'success',
+          title: 'File Deleted',
+          description: 'File has been deleted successfully',
+        });
       }
     } catch (error) {
       console.error('Error deleting file:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Deletion Failed',
+        description: 'Failed to delete file',
+      });
     }
   };
 

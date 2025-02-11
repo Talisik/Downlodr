@@ -69,6 +69,10 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
       `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
     );
     removeFromForDownloads(download.id);
+    toast({
+      title: 'Download Started',
+      description: `Starting download for ${processedName}`,
+    });
   };
 
   return (

@@ -11,6 +11,7 @@ import { useMainStore } from '../Store/mainStore';
 import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
 import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
 import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
+import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 
 /* interface Format {
   value: string;
@@ -153,6 +154,11 @@ const Downloading = () => {
               );
               if (success) {
                 deleteDownloading(download.id);
+                toast({
+                  variant: 'success',
+                  title: 'Download Stopped',
+                  description: 'Your download has stopped successfully',
+                });
               }
             } catch (error) {
               console.error('Error invoking kill-controller:', error);
@@ -176,6 +182,11 @@ const Downloading = () => {
       );
       if (success) {
         deleteDownload(downloadId);
+        toast({
+          variant: 'success',
+          title: 'Download Deleted',
+          description: 'Download has been deleted successfully',
+        });
       }
     } catch (error) {
       console.error('Error deleting file:', error);
@@ -277,6 +288,11 @@ const Downloading = () => {
         '',
       );
       deleteDownloading(downloadId);
+      toast({
+        variant: 'success',
+        title: 'Download Resumed',
+        description: 'Download has been resumed successfully',
+      });
     } else if (currentDownload.controllerId != '---') {
       try {
         window.ytdlp
@@ -290,8 +306,19 @@ const Downloading = () => {
             }
           });
         updateDownloadStatus(downloadId, 'paused');
+        // When successfully paused
+        toast({
+          variant: 'success',
+          title: 'Download Paused',
+          description: 'Download has been paused successfully',
+        });
       } catch (error) {
         console.error('Error in pause:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to pause/resume download',
+        });
       }
     }
 

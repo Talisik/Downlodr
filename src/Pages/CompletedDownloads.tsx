@@ -11,6 +11,7 @@ import { useMainStore } from '../Store/mainStore';
 import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
 import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
 import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
+import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -148,6 +149,11 @@ const CompletedDownloads = () => {
         '',
       );
       deleteDownloading(downloadId);
+      toast({
+        variant: 'success',
+        title: 'Download Resumed',
+        description: 'Download has been resumed successfully',
+      });
     } else if (currentDownload.controllerId != '---') {
       try {
         window.ytdlp
@@ -160,8 +166,19 @@ const CompletedDownloads = () => {
               }, 1200);
             }
           });
+        // When successfully paused
+        toast({
+          variant: 'success',
+          title: 'Download Paused',
+          description: 'Download has been paused successfully',
+        });
         updateDownloadStatus(downloadId, 'paused');
       } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to pause/resume download',
+        });
         console.error('Error in pause:', error);
       }
     }
@@ -207,6 +224,11 @@ const CompletedDownloads = () => {
                 console.log(
                   `Controller with ID ${download.controllerId} has been terminated.`,
                 );
+                toast({
+                  variant: 'success',
+                  title: 'Download Stopped',
+                  description: 'Your download has stopped successfully',
+                });
               }
             } catch (error) {
               console.error('Error invoking kill-controller:', error);
@@ -249,11 +271,26 @@ const CompletedDownloads = () => {
       if (success) {
         deleteDownload(downloadId);
         console.log('File moved to trash successfully');
+        toast({
+          variant: 'success',
+          title: 'File Deleted',
+          description: 'File has been deleted successfully',
+        });
       } else {
         console.log('Could not delete');
+        toast({
+          variant: 'destructive',
+          title: 'Deletion Failed',
+          description: 'Failed to delete file',
+        });
       }
     } catch (error) {
       console.error('Error deleting file:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Deletion Failed',
+        description: 'Failed to delete file',
+      });
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };

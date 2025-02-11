@@ -4,7 +4,7 @@ import { IoMdClose } from 'react-icons/io';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
-import { usePlaylistStore } from '../../../Store/playlistStore';
+// import { usePlaylistStore } from '../../../Store/playlistStore';
 import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
 
 interface DownloadModalProps {
@@ -235,7 +235,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[9999]"
+      className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[8999]"
       onClick={(e) => {
         // Only close if clicking the overlay background
         if (e.target === e.currentTarget) {
@@ -303,7 +303,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
           {isPlaylist && isValidUrl && (
             <div className="flex-1 border-l border-divider dark:border-gray-700 pl-6">
               {isLoading ? (
-                <Skeleton className="h-4 w-[120px] rounded-[3px]" />
+                <Skeleton className="h-4 flex-1 rounded-[3px] h-full" />
               ) : (
                 <div className="video-section">
                   <div className="sticky top-0 bg-white dark:bg-darkMode pb-4 z-10">

@@ -11,6 +11,7 @@ import { useMainStore } from '../Store/mainStore';
 import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
 import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
 import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
+import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -153,6 +154,11 @@ const AllDownloads = () => {
         '',
       );
       deleteDownloading(downloadId);
+      toast({
+        variant: 'success',
+        title: 'Download Resumed',
+        description: 'Download has been resumed successfully',
+      });
     } else if (currentDownload.controllerId != '---') {
       try {
         console.log(currentDownload.controllerId);
@@ -166,8 +172,19 @@ const AllDownloads = () => {
               }, 1200);
             }
           });
+        // When successfully paused
+        toast({
+          variant: 'success',
+          title: 'Download Paused',
+          description: 'Download has been paused successfully',
+        });
         updateDownloadStatus(downloadId, 'paused');
       } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to pause/resume download',
+        });
         console.error('Error in pause:', error);
       }
     }
@@ -200,8 +217,18 @@ const AllDownloads = () => {
 
     if (currentDownload?.status === 'paused') {
       deleteDownloading(downloadId);
+      toast({
+        variant: 'success',
+        title: 'Download Stopped',
+        description: 'Download has been stopped successfully',
+      });
     } else if (currentForDownload?.status === 'to download') {
       removeFromForDownloads(downloadId);
+      toast({
+        variant: 'success',
+        title: 'Download Stopped',
+        description: 'Download has been stopped successfully',
+      });
     } else {
       if (downloading && downloading.length > 0) {
         downloading.forEach(async (download) => {
@@ -215,9 +242,19 @@ const AllDownloads = () => {
                 console.log(
                   `Controller with ID ${download.controllerId} has been terminated.`,
                 );
+                toast({
+                  variant: 'success',
+                  title: 'Download Stopped',
+                  description: 'Download has been stopped successfully',
+                });
               }
             } catch (error) {
               console.error('Error invoking kill-controller:', error);
+              toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to stop download',
+              });
             }
           }
         });
@@ -250,6 +287,21 @@ const AllDownloads = () => {
     controllerId?: string,
   ) => {
     if (!downloadLocation || !downloadId) return;
+
+    // Get the download status
+    const download = allDownloads.find((d) => d.id === downloadId);
+    if (download?.status === 'to download') {
+      console.log('for download');
+      deleteDownload(downloadId);
+      toast({
+        variant: 'success',
+        title: 'Download Deleted',
+        description: 'Download has been deleted successfully',
+      });
+
+      return;
+    }
+
     try {
       const success = await window.downlodrFunctions.deleteFile(
         downloadLocation,
@@ -257,10 +309,21 @@ const AllDownloads = () => {
       if (success) {
         deleteDownload(downloadId);
         console.log('File moved to trash successfully');
+        toast({
+          variant: 'success',
+          title: 'File Deleted',
+          description: 'File has been deleted successfully',
+        });
       } else {
-        console.log('Could not delete');
+        console.log('file not found');
+        toast({
+          variant: 'destructive',
+          title: 'Deletion Failed',
+          description: 'Failed to delete file',
+        });
       }
     } catch (error) {
+      deleteDownload(downloadId);
       console.error('Error deleting file:', error);
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });

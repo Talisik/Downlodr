@@ -115,6 +115,11 @@ const RenameModal: React.FC<RenameModalProps> = ({
     e.preventDefault();
     if (newName.trim()) {
       onRename(newName.trim());
+      toast({
+        variant: 'success',
+        title: 'File Renamed',
+        description: `Successfully renamed to ${newName}`,
+      });
       onClose();
     }
   };

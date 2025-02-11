@@ -138,6 +138,11 @@ const DropdownBar = ({ className }: { className?: string }) => {
               console.log(
                 `Controller with ID ${download.controllerId} has been terminated.`,
               );
+              toast({
+                variant: 'success',
+                title: 'Download Stopped',
+                description: 'Your download has stopped successfully',
+              });
             } else {
               toast({
                 variant: 'destructive',
