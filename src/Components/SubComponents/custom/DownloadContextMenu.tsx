@@ -311,7 +311,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       toast({
         variant: 'destructive',
         title: 'Download limit reached',
-        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete.`,
+        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
       });
       return;
     }
@@ -332,7 +332,9 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       currentDownload.audioExt || '', // Use the actual audioExt if known
       currentDownload.audioFormatId || '', // Use the actual audioFormatId if known
       currentDownload.extractorKey || '', // Use the actual extractorKey if known
-      `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+      settings.defaultDownloadSpeed === 0
+        ? ''
+        : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
     );
 
     removeFromForDownloads(currentDownload.id); // Remove from forDownloads after starting
@@ -435,6 +437,56 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             <span className="flex items-center space-x-2">
               <LuTrash size={16} />
               <span>Remove</span>
+            </span>
+          </button>
+          {commonOptions}
+        </>
+      );
+    }
+
+    if (downloadStatus === 'initializing') {
+      return (
+        <>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <LuFolderOpen size={20} />
+              <span>View Folder</span>
+            </span>
+          </button>
+
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              onPause(
+                downloadId,
+                downloadLocation,
+                controllerId,
+                downloadStatus,
+              );
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <IoPauseCircleOutline size={20} />
+              <span>Pause</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowStopConfirmation(true);
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <HiOutlineStopCircle size={20} />
+              <span>Stop</span>
             </span>
           </button>
           {commonOptions}

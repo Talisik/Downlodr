@@ -80,7 +80,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
       toast({
         variant: 'destructive',
         title: 'Download limit reached',
-        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete.`,
+        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
       });
       return;
     }
@@ -113,7 +113,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
           downloadInfo.audioExt,
           downloadInfo.audioFormatId,
           downloadInfo.extractorKey,
-          `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+          settings.defaultDownloadSpeed === 0
+            ? ''
+            : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
         );
         removeFromForDownloads(selectedDownload.id);
       }
@@ -200,7 +202,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
       toast({
         variant: 'destructive',
         title: 'Download limit reached',
-        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete.`,
+        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
       });
       return;
     }
@@ -228,7 +230,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
         downloadInfo.audioExt,
         downloadInfo.audioFormatId,
         downloadInfo.extractorKey,
-        `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+        settings.defaultDownloadSpeed === 0
+          ? ''
+          : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
       );
       removeFromForDownloads(downloadInfo.id);
     }
@@ -307,14 +311,14 @@ const DropdownBar = ({ className }: { className?: string }) => {
             </div>
           )}
         </div>
-        {/* 
+
         <button
           className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
           onClick={() => setShowHelpModal(true)}
         >
           Help
         </button>
-*/}
+
         {/*  <button className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
           <NavLink to="/scheduleTable" className={'scheduler font-semibold'}>
             <span className="ml-2">Scheduler</span>

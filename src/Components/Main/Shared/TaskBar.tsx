@@ -15,7 +15,8 @@ import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { processFileName } from '../../../DataFunctions/FilterName';
-import PlaylistModal from '../Modal/oldModals/PlaylistModal';
+// import PlaylistModal from '../Modal/oldModals/PlaylistModal';
+import { LuTrash } from 'react-icons/lu';
 
 interface TaskBarProps {
   className?: string;
@@ -183,7 +184,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       toast({
         variant: 'destructive',
         title: 'Download limit reached',
-        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete.`,
+        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
       });
       return;
     }
@@ -216,10 +217,80 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           downloadInfo.audioExt,
           downloadInfo.audioFormatId,
           downloadInfo.extractorKey,
-          `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+          settings.defaultDownloadSpeed === 0
+            ? ''
+            : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
         );
         removeFromForDownloads(selectedDownload.id);
       }
+    }
+  };
+
+  const handleRemoveSelected = async () => {
+    if (selectedDownloads.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'No Downloads Selected',
+        description: 'Please select downloads to remove',
+      });
+      return;
+    }
+
+    // Store selected downloads and clear selection immediately
+    const downloadsToRemove = [...selectedDownloads];
+    clearAllSelections();
+
+    const { deleteDownload, forDownloads } = useDownloadStore.getState();
+
+    // Helper function to handle file deletion
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const deleteFileSafely = async (download: any) => {
+      try {
+        const success = await window.downlodrFunctions.deleteFile(
+          download.location,
+        );
+        if (success) {
+          deleteDownload(download.id);
+          toast({
+            variant: 'success',
+            title: 'File Deleted',
+            description: 'File has been deleted successfully',
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Deletion Failed',
+            description: `Failed to delete file: ${download.location}`,
+          });
+        }
+      } catch (error) {
+        console.error('Error deleting file:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Deletion Failed',
+          description: `Error deleting file: ${download.location}`,
+        });
+      }
+    };
+
+    // Process each download
+    for (const download of downloadsToRemove) {
+      if (!download.location || !download.id) continue;
+
+      // Check if it's a pending download
+      const isPending = forDownloads.some((d) => d.id === download.id);
+      if (isPending) {
+        deleteDownload(download.id);
+        toast({
+          variant: 'success',
+          title: 'Download Removed',
+          description: 'Pending download has been removed successfully',
+        });
+        continue;
+      }
+
+      // Delete the file
+      await deleteFileSafely(download);
     }
   };
 
@@ -282,6 +353,12 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           >
             {' '}
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
+          </button>
+          <button
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            onClick={handleRemoveSelected}
+          >
+            <LuTrash size={15} className="mt-[0.9px]" /> Remove
           </button>
         </div>
 

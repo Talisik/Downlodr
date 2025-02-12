@@ -39,7 +39,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
       toast({
         variant: 'destructive',
         title: 'Download limit reached',
-        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete.`,
+        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
       });
       return;
     }
@@ -66,7 +66,9 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
       download.audioExt,
       download.audioFormatId,
       download.extractorKey,
-      `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+      settings.defaultDownloadSpeed === 0
+        ? ''
+        : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
     );
     removeFromForDownloads(download.id);
     toast({

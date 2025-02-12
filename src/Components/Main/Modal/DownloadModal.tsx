@@ -70,6 +70,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     setVideoUrl(url);
     setIsValidUrl(false);
     setIsPlaylist(false);
+    setSelectedVideos(new Set());
 
     const urlPattern = new RegExp(
       '^(https?:\\/\\/)?' +
@@ -118,21 +119,30 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     setIsLoading(true);
     try {
       const info = await window.ytdlp.getPlaylistInfo({ url });
-      const folderPath = await window.downlodrFunctions.getDownloadFolder();
 
       setVideoInfo(info);
       setVideoTitle(info.data.title);
 
-      const videos = info.data.entries.map((video: any) => ({
-        url: video.url,
-        id: video.id,
-        title: video.title,
-        thumbnail: video.thumbnails[0]?.url || '',
-        channel: video.channel,
-      }));
+      // Ensure no duplicate videos in the playlist
+      const uniqueVideos = new Map();
 
+      info.data.entries.forEach((video: any) => {
+        if (!uniqueVideos.has(video.id)) {
+          uniqueVideos.set(video.id, {
+            url: video.url,
+            id: video.id,
+            title: video.title,
+            thumbnail: video.thumbnails[0]?.url || '',
+            channel: video.channel,
+          });
+        }
+      });
+
+      const videos = Array.from(uniqueVideos.values());
       setPlaylistVideos(videos);
-      setDownloadFolder(folderPath);
+
+      // Start with no videos selected when loading new playlist
+      setSelectedVideos(new Set());
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -183,6 +193,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
         // Download each selected video
         for (const video of selectedVideosList) {
+          console.log(video.url);
           setDownload(video.url, downloadFolder, maxDownload);
         }
       } else {
@@ -273,6 +284,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                     <input
                       type="text"
                       placeholder="Paste link here"
+                      disabled={isLoading}
                       value={videoUrl}
                       onChange={(e) => handleUrl(e.target.value)}
                       className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
@@ -287,7 +299,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      disabled={isValidUrl}
+                      // disabled={isValidUrl}
                       value={downloadFolder}
                       onClick={handleDirectory}
                       placeholder="Download Destination Folder"
@@ -301,7 +313,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           {isPlaylist && isValidUrl && (
-            <div className="flex-1 border-l border-divider dark:border-gray-700 pl-6">
+            <div className="w-2/4 border-l border-divider dark:border-gray-700 pl-6">
               {isLoading ? (
                 <Skeleton className="h-4 flex-1 rounded-[3px] h-full" />
               ) : (
