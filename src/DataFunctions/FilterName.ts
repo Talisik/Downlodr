@@ -2,10 +2,19 @@ import useDownloadStore from '../Store/downloadStore';
 
 // Remove invalid characters from download name
 const removeInvalidChar = (filename: string) => {
-  const invalidChars = /[<>:"/\\|?*.]+/g;
-  let sanitized = filename.replace(invalidChars, '_').trim();
-  sanitized = sanitized.replace(/^\s+|\s+$/g, '');
-  sanitized = sanitized.substring(0, 255);
+  // More comprehensive list of invalid characters
+  const invalidChars = /[<>:"/\\|?*.!,]+/g;
+  let sanitized = filename.replace(invalidChars, '_');
+
+  // Replace multiple consecutive underscores with a single one
+  sanitized = sanitized.replace(/_+/g, '_');
+
+  // Remove leading/trailing whitespace and underscores
+  sanitized = sanitized.replace(/^[_\s]+|[_\s]+$/g, '');
+
+  // Ensure filename doesn't exceed maximum length (1150 characters)
+  sanitized = sanitized.substring(0, 150);
+
   return sanitized;
 };
 
