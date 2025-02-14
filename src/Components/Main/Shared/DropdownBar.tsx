@@ -49,6 +49,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handlePlaySelected = async () => {
     if (selectedDownloads.length === 0) {
       toast({
@@ -183,9 +184,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const handleStartAll = async () => {
     const { addDownload, forDownloads, removeFromForDownloads, downloading } =
       useDownloadStore.getState();
-    console.log(
-      `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
-    );
     if (forDownloads.length === 0) {
       toast({
         variant: 'destructive',
@@ -236,10 +234,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
       );
       removeFromForDownloads(downloadInfo.id);
     }
-  };
-
-  const handleOpenDownloadModal = () => {
-    setDownloadModalOpen(true);
   };
 
   return (

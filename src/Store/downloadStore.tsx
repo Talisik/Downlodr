@@ -34,6 +34,7 @@ export interface BaseDownload {
   formatId: string;
   audioExt: string;
   audioFormatId: string;
+  isLive: boolean;
 }
 
 interface ForDownload extends BaseDownload {
@@ -285,8 +286,6 @@ const useDownloadStore = create<DownloadStore>()(
           console.error('Invalid path parameters:', { location, downloadName });
           return;
         }
-        console.log(`In download store: speed ${limitRate}`);
-
         const args = {
           url: videoUrl,
           outputFilepath: await window.downlodrFunctions.joinDownloadPath(
@@ -361,6 +360,7 @@ const useDownloadStore = create<DownloadStore>()(
               extractorKey,
               audioExt: '',
               audioFormatId: '',
+              isLive: false,
             },
           ],
         }));
@@ -398,7 +398,7 @@ const useDownloadStore = create<DownloadStore>()(
               tags: [],
               category: [],
               extractorKey: '',
-
+              isLive: false,
               // ForDownload specific properties
               downloadStart: false,
               formatId: '',
@@ -411,7 +411,7 @@ const useDownloadStore = create<DownloadStore>()(
         try {
           // Fetch metadata in background
           const info = await window.ytdlp.getInfo(videoUrl);
-
+          console.log('download metadata', info);
           // Process formats using the service
           const { formatOptions, defaultFormatId, defaultExt } =
             await VideoFormatService.processVideoFormats(info);
@@ -438,11 +438,26 @@ const useDownloadStore = create<DownloadStore>()(
                     audioExt: '',
                     audioFormatId: '',
                     downloadStart: false,
-                    formats: formatOptions, // Store available formats for later use
+                    formats: formatOptions,
+                    isLive: info.data.is_live,
                   }
                 : download,
             ),
           }));
+          const currentDownload = get().forDownloads.find(
+            (d) => d.id === downloadId,
+          );
+          if (currentDownload?.isLive) {
+            toast({
+              variant: 'destructive',
+              title: 'Live Video Links Not Allowed',
+              description:
+                'Live video links are not supported. Please enter a valid URL.',
+            });
+
+            const { removeFromForDownloads } = get(); // Get the current state methods
+            removeFromForDownloads(downloadId); // Call the method            return;
+          }
         } catch (error) {
           console.error('Error fetching metadata:', error);
           toast({

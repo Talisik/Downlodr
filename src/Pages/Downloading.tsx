@@ -261,6 +261,7 @@ const Downloading = () => {
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handlePause = (downloadId: string, downloadLocation?: string) => {
     // Get fresh state each time
     const { downloading, deleteDownloading } = useDownloadStore.getState();
@@ -457,9 +458,6 @@ const Downloading = () => {
                         <FormatSelector
                           download={download}
                           onFormatSelect={(formatData) => {
-                            console.log(formatData.audioExt);
-                            console.log(formatData.audioFormatId);
-
                             useDownloadStore.setState((state) => ({
                               forDownloads: state.forDownloads.map((d) =>
                                 d.id === download.id

@@ -70,7 +70,7 @@ contextBridge.exposeInMainWorld('ytdlp', {
         ipcRenderer.invoke('ytdlp:download', id, args);
         // Listen for controller ID from the main process
         ipcRenderer.on(controllerChannel, (event, data) => {
-          console.log('Received controller data:', data);
+          //console.log('Received controller data:', data);
           callback({
             type: 'controller',
             downloadId: data.downloadId,

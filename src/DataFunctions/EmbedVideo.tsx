@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface VideoUrl {
   url: string;
   platform?:
@@ -16,16 +17,12 @@ const GetEmbedUrl = (link: string): string => {
     const url = new URL(link);
     const hostname = url.hostname;
     let embedUrl = '';
-    console.log('ENTERED EMBED');
 
     // Extract video ID based on platform
     if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
-      console.log('ENTERED YOUTUBE');
-
       const videoId =
         url.searchParams.get('v') || url.pathname.split('/').pop();
 
-      console.log(videoId);
       if (videoId) {
         embedUrl = `https://www.youtube.com/embed/${videoId}`;
       } else {
@@ -47,12 +44,12 @@ const GetEmbedUrl = (link: string): string => {
       if (url.pathname.includes('video.php')) {
         videoId = url.searchParams.get('v');
       } else {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         videoId = url.pathname.split('/videos/')[1]?.split('/')[0];
       }
       embedUrl = `https://www.facebook.com/plugins/video.php?href=${url}&show_text=false&width=500`;
     } else if (hostname.includes('tiktok.com')) {
       // Extract video ID from TikTok URL
-      console.log('ENTERED TIKTOK');
       let videoId = '';
 
       // Standard TikTok URL format: https://www.tiktok.com/@username/video/{video_id}
@@ -67,7 +64,6 @@ const GetEmbedUrl = (link: string): string => {
         videoId = url.pathname.split('/').pop(); // Get the last part of the path
       }
 
-      console.log(videoId);
       if (videoId) {
         embedUrl = `https://www.tiktok.com/embed/${videoId}`;
       } else {

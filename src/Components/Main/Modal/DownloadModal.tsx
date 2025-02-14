@@ -193,7 +193,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
         // Download each selected video
         for (const video of selectedVideosList) {
-          console.log(video.url);
+          //console.log(video.url);
           setDownload(video.url, downloadFolder, maxDownload);
         }
       } else {

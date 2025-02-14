@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';
@@ -270,14 +271,12 @@ const CompletedDownloads = () => {
       );
       if (success) {
         deleteDownload(downloadId);
-        console.log('File moved to trash successfully');
         toast({
           variant: 'success',
           title: 'File Deleted',
           description: 'File has been deleted successfully',
         });
       } else {
-        console.log('Could not delete');
         toast({
           variant: 'destructive',
           title: 'Deletion Failed',
@@ -495,9 +494,6 @@ const CompletedDownloads = () => {
                         <FormatSelector
                           download={download}
                           onFormatSelect={(formatData) => {
-                            console.log(formatData.audioExt);
-                            console.log(formatData.audioFormatId);
-
                             useDownloadStore.setState((state) => ({
                               forDownloads: state.forDownloads.map((d) =>
                                 d.id === download.id

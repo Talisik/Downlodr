@@ -24,8 +24,6 @@ interface TaskBarProps {
 
 const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
-  const [isPlaylistDownloadModalOpen, setPlaylistDownloadModalOpen] =
-    useState(false);
 
   const [isSchedulerModalOpen, setSchedulerModalOpen] = useState(false);
   const location = useLocation();
@@ -38,7 +36,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
 
   const handleStopAll = async () => {
-    console.log('Stopping all downloads');
     const { deleteDownloading } = useDownloadStore.getState();
 
     if (downloading && downloading.length > 0) {

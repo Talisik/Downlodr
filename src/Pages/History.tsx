@@ -140,7 +140,6 @@ const History = () => {
       } else {
         // If file doesn't exist, just remove from history
         deleteDownload(id);
-        console.log('Removed from history');
       }
     } catch (error) {
       console.error('Error deleting:', error);

@@ -68,7 +68,7 @@ const createWindow = () => {
 };
 
 ipcMain.on('openExternalLink', (_event, link: string) => {
-  console.log('link received', link);
+  //console.log('link received', link);
   shell.openExternal(link);
 });
 
@@ -175,7 +175,7 @@ ipcMain.handle('deleteFile', async (event, filepath) => {
 
     // Move the file to trash
     await shell.trashItem(normalizedPath);
-    console.log('File moved to trash successfully');
+    //console.log('File moved to trash successfully');
     return true;
   } catch (error) {
     console.error('Failed to move file to trash:', error);
@@ -196,7 +196,7 @@ ipcMain.handle('normalizePath', async (event, filepath) => {
 // YTDLP functons
 
 ipcMain.on('ytdlp:playlist:info', async (event, url) => {
-  console.log('Fetching playlist info for URL:', url);
+  //console.log('Fetching playlist info for URL:', url);
   try {
     const info = await YTDLP.getPlaylistInfo({
       url: url,
@@ -218,7 +218,7 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
       //ytdlpDownloadDestination: os.tmpdir(),
       // ffmpegDownloadDestination: os.tmpdir(),
     });
-    console.log(videoUrl.url);
+    // console.log(videoUrl.url);
     return info;
   } catch (error) {
     console.error('Error fetching playlist info:', error);
@@ -234,7 +234,7 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
     if (!info) {
       throw new Error('No info returned from YTDLP.getInfo');
     }
-    console.log(info.data.formats);
+    // console.log(info.data.formats);
     return info;
   } catch (error) {
     console.error('Error fetching video info:', error);
@@ -250,10 +250,10 @@ function killControllerById(id: any) {
 
     if (controller) {
       controller.kill(); // Call the kill function
-      console.log(`Controller with ID ${id} has been killed.`);
+      // console.log(`Controller with ID ${id} has been killed.`);
       return true;
     } else {
-      console.log(`Controller with ID ${id} not found.`);
+      // console.log(`Controller with ID ${id} not found.`);
       return false;
     }
   } catch (error) {
@@ -267,15 +267,15 @@ ipcMain.handle('ytdlp:stop', (e, id: string) => {
     const terminal = YTDLP.getTerminalFromID(id);
 
     if (!terminal) {
-      console.log(`No terminal found for ID: ${id}`);
+      //console.log(`No terminal found for ID: ${id}`);
       return false;
     }
 
     terminal.kill('SIGKILL');
-    console.log('i went through stop and true');
+    //console.log('i went through stop and true');
     return true;
   } catch (error) {
-    console.error('Error stopping download:', error);
+    //console.error('Error stopping download:', error);
     return false;
   }
 });
@@ -285,7 +285,7 @@ ipcMain.handle('kill-controller', async (_, id) => {
 });
 
 ipcMain.handle('ytdlp:download', async (e, id, args) => {
-  console.log('Downloading...', args);
+  //console.log('Downloading...', args);
 
   try {
     const controller = await YTDLP.download({
@@ -300,11 +300,11 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
       },
     });
 
-    console.log('Controller Main:', controller.id);
-    console.log(
+    //console.log('Controller Main:', controller.id);
+    /*console.log(
       'Controller methods Main:',
       Object.getOwnPropertyNames(Object.getPrototypeOf(controller)),
-    );
+    );*/
 
     if (!controller || typeof controller.listen !== 'function') {
       throw new Error(

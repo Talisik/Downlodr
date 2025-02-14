@@ -161,7 +161,6 @@ const AllDownloads = () => {
       });
     } else if (currentDownload.controllerId != '---') {
       try {
-        console.log(currentDownload.controllerId);
         window.ytdlp
           .killController(currentDownload.controllerId)
           .then((success) => {
@@ -291,7 +290,6 @@ const AllDownloads = () => {
     // Get the download status
     const download = allDownloads.find((d) => d.id === downloadId);
     if (download?.status === 'to download') {
-      console.log('for download');
       deleteDownload(downloadId);
       toast({
         variant: 'success',
@@ -308,14 +306,12 @@ const AllDownloads = () => {
       );
       if (success) {
         deleteDownload(downloadId);
-        console.log('File moved to trash successfully');
         toast({
           variant: 'success',
           title: 'File Deleted',
           description: 'File has been deleted successfully',
         });
       } else {
-        console.log('file not found');
         toast({
           variant: 'destructive',
           title: 'Deletion Failed',

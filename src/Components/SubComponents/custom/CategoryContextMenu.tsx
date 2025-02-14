@@ -63,7 +63,6 @@ const CategoryContextMenu: React.FC<CategoryContextMenuProps> = ({
         <>
           <button
             onClick={() => {
-              console.log('Rename button clicked');
               setIsRenaming(true);
             }}
             className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 dark:text-gray-200"
