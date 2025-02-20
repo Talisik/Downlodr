@@ -11,7 +11,6 @@ import NotFound from './Pages/SubPages/NotFound';
 import CategoryPage from './Pages/SubPages/CategoryPage';
 import TagPage from './Pages/SubPages/TagsPage';
 import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
-import PlaylistModal from './Components/Main/Modal/oldModals/PlaylistModal';
 
 const App = () => {
   return (
@@ -33,7 +32,6 @@ const App = () => {
         </Routes>
       </Router>
       <Toaster />
-      <PlaylistModal />
     </ThemeProvider>
   );
 };
