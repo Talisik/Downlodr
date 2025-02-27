@@ -1,12 +1,27 @@
-import React from 'react';
+/**
+ * A custom React component
+ * A React component that displays a context menu for managing tags.
+ * It provides options to rename and delete tags.
+ *
+ * @param TagContextMenuProps
+ *   @param position - An object containing the x and y coordinates for positioning the menu.
+ *   @param tagName - The name of the tag being acted upon.
+ *   @param onClose - A function to call when the menu should be closed.
+ *   @param onRename - A function that takes the old and new tag names to handle renaming.
+ *   @param onDelete - A function that takes the tag name to handle deletion.
+ *
+ * @returns JSX.Element - The rendered context menu component.
+ */
+
+import React, { useEffect } from 'react';
 import { MdEdit, MdDelete } from 'react-icons/md';
 
 interface TagContextMenuProps {
-  position: { x: number; y: number };
-  tagName: string;
-  onClose: () => void;
-  onRename: (oldName: string, newName: string) => void;
-  onDelete: (tag: string) => void;
+  position: { x: number; y: number }; // Position of the context menu
+  tagName: string; // Name of the tag
+  onClose: () => void; // Function to close the menu
+  onRename: (oldName: string, newName: string) => void; // Function to rename the tag
+  onDelete: (tag: string) => void; // Function to delete the tag
 }
 
 const TagContextMenu: React.FC<TagContextMenuProps> = ({
@@ -22,7 +37,8 @@ const TagContextMenu: React.FC<TagContextMenuProps> = ({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
+  // Adjusts context menu location based on element
+  useEffect(() => {
     const menu = menuRef.current;
     if (!menu) return;
 
@@ -50,7 +66,8 @@ const TagContextMenu: React.FC<TagContextMenuProps> = ({
     setAdjustedPosition({ x: adjustedX, y: adjustedY });
   }, [position]);
 
-  React.useEffect(() => {
+  // handles renaming tag
+  useEffect(() => {
     if (isRenaming && inputRef.current) {
       inputRef.current.focus();
     }

@@ -1,3 +1,16 @@
+/**
+ *
+ * Zustand store for managing downloads in the application.
+ * It provides functionalities to track the state of downloads, including those
+ * that are currently downloading, finished, or in history. The store also allows
+ * for managing tags and categories associated with downloads.
+ *
+ * Dependencies:
+ * - Zustand: A small, fast state-management solution.
+ * - Zustand middleware for persistence.
+ * - VideoFormatService: A service for processing video formats.
+ * - Toast: A notification system for user feedback.
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
@@ -15,36 +28,38 @@ function uuidv4() {
 
 // Base interface for all download types
 export interface BaseDownload {
-  id: string;
-  videoUrl: string;
-  name: string;
-  downloadName: string;
-  size: number;
-  speed: string;
-  timeLeft: string;
-  DateAdded: string;
-  progress: number;
-  location: string;
-  status: string;
-  ext: string;
-  controllerId?: string;
-  tags: string[];
-  category: string[];
-  extractorKey: string;
-  formatId: string;
-  audioExt: string;
-  audioFormatId: string;
-  isLive: boolean;
+  id: string; // Unique identifier for the download
+  videoUrl: string; // URL of the video to be downloaded
+  name: string; // Name of the video
+  downloadName: string; // Name used for the download file
+  size: number; // Size of the download in bytes
+  speed: string; // Current download speed
+  timeLeft: string; // Estimated time left for the download
+  DateAdded: string; // Date when the download was added
+  progress: number; // Current progress of the download (0-100)
+  location: string; // File path where the download will be saved
+  status: string; // Current status of the download
+  ext: string; // File extension of the download
+  controllerId?: string; // ID of the download controller
+  tags: string[]; // Tags associated with the download
+  category: string[]; // Categories associated with the download
+  extractorKey: string; // Key for the extractor used
+  formatId: string; // ID of the selected format
+  audioExt: string; // Audio file extension
+  audioFormatId: string; // ID of the audio format
+  isLive: boolean; // Indicates if the download is a live stream
 }
 
+// Interface for downloads that are currently being processed
 interface ForDownload extends BaseDownload {
-  status: string;
-  downloadStart: boolean;
-  formatId: string;
-  audioExt: string;
-  audioFormatId: string;
+  status: string; // Current status of the download
+  downloadStart: boolean; // Indicates if the download has started
+  formatId: string; // ID of the selected format
+  audioExt: string; // Audio file extension
+  audioFormatId: string; // ID of the audio format
 }
 
+// Interface for downloads that are currently downloading
 interface Downloading extends BaseDownload {
   status:
     | 'downloading'
@@ -54,32 +69,35 @@ interface Downloading extends BaseDownload {
     | 'initializing'
     | 'getting metadata'
     | 'paused';
-  formatId: string;
-  backupExt?: string;
-  backupFormatId?: string;
-  backupAudioExt?: string;
-  backupAudioFormatId?: string;
+  formatId: string; // ID of the selected format
+  backupExt?: string; // Backup file extension
+  backupFormatId?: string; // Backup format ID
+  backupAudioExt?: string; // Backup audio file extension
+  backupAudioFormatId?: string; // Backup audio format ID
 }
 
+// Interface for finished downloads
 interface FinishedDownloads extends BaseDownload {
-  status: string;
+  status: string; // Status of the finished download
 }
 
+// Interface for historical downloads
 interface HistoryDownloads extends BaseDownload {
-  status: string;
+  status: string; // Status of the historical download
 }
 
+// Main interface for the download store
 interface DownloadStore {
-  downloading: Downloading[];
-  finishedDownloads: FinishedDownloads[];
-  historyDownloads: HistoryDownloads[];
-  forDownloads: ForDownload[];
-  availableTags: string[];
-  availableCategories: string[];
+  downloading: Downloading[]; // List of currently downloading items
+  finishedDownloads: FinishedDownloads[]; // List of finished downloads
+  historyDownloads: HistoryDownloads[]; // List of download history logs
+  forDownloads: ForDownload[]; // List of downloads that are queued
+  availableTags: string[]; // List of available tags
+  availableCategories: string[]; // List of available categories
 
-  checkFinishedDownloads: () => void;
-  updateDownload: (id: string, result: any) => void;
-
+  // Methods for managing downloads
+  checkFinishedDownloads: () => void; // Check and update finished downloads
+  updateDownload: (id: string, result: any) => void; // Update a specific download's status
   addDownload: (
     videoUrl: string,
     name: string,
@@ -97,30 +115,23 @@ interface DownloadStore {
     audioFormatId: string,
     extractorKey: string,
     limitRate: string,
-  ) => void;
-
+  ) => void; // Add a new download
   setDownload: (
     videoUrl: string,
     location: string,
     maxDownload: string,
-  ) => void;
-
-  deleteDownload: (id: string) => void;
-  deleteDownloading: (id: string) => void;
-  removeFromForDownloads: (id: string) => void;
-
-  addTag: (downloadId: string, tag: string) => void;
-  removeTag: (downloadId: string, tag: string) => void;
-
-  addCategory: (downloadId: string, category: string) => void;
-  removeCategory: (downloadId: string, category: string) => void;
-
-  renameCategory: (oldName: string, newName: string) => void;
-  deleteCategory: (category: string) => void;
-
-  renameTag: (oldName: string, newName: string) => void;
-  deleteTag: (tag: string) => void;
-
+  ) => void; // Set a download with metadata
+  deleteDownload: (id: string) => void; // Delete a specific download
+  deleteDownloading: (id: string) => void; // Delete a downloading item
+  removeFromForDownloads: (id: string) => void; // Remove a download from the queue
+  addTag: (downloadId: string, tag: string) => void; // Add a tag to a download
+  removeTag: (downloadId: string, tag: string) => void; // Remove a tag from a download
+  addCategory: (downloadId: string, category: string) => void; // Add a category to a download
+  removeCategory: (downloadId: string, category: string) => void; // Remove a category from a download
+  renameCategory: (oldName: string, newName: string) => void; // Rename a category
+  deleteCategory: (category: string) => void; // Delete a category
+  renameTag: (oldName: string, newName: string) => void; // Rename a tag
+  deleteTag: (tag: string) => void; // Delete a tag
   updateDownloadStatus: (
     id: string,
     status:
@@ -131,15 +142,8 @@ interface DownloadStore {
       | 'initializing'
       | 'getting metadata'
       | 'paused',
-  ) => void;
-
-  renameDownload: (downloadId: string, newName: string) => void;
-
-  /*  fetchMetadataInBackground: (
-    downloadId: string,
-    videoUrl: string,
-    downloadFolder: string,
-  ) => void;*/
+  ) => void; // Update the status of a download
+  renameDownload: (downloadId: string, newName: string) => void; // Rename a download
 }
 
 const useDownloadStore = create<DownloadStore>()(
@@ -755,44 +759,11 @@ const useDownloadStore = create<DownloadStore>()(
           };
         });
       },
-
-      /* fetchMetadataInBackground: async (
-        downloadId: string,
-        videoUrl: string,
-        downloadFolder: string,
-      ) => {
-        try {
-          const info = await window.ytdlp.getInfo(videoUrl);
-
-          // Process formats using the service
-          const { formatOptions, defaultFormatId, defaultExt } =
-            await VideoFormatService.processVideoFormats(info);
-
-          // Update download with metadata
-          get().updateDownload(downloadId, {
-            title: info.data.title,
-            formats: formatOptions,
-            extractorKey: info.data.extractor_key,
-            status: 'ready',
-            formatId: defaultFormatId,
-            ext: defaultExt,
-            downloadFolder,
-            thumbnail: info.data.thumbnail,
-          });
-        } catch (error) {
-          console.error('Error fetching metadata:', error);
-          get().updateDownload(downloadId, {
-            status: 'error',
-            error: 'Failed to fetch video information',
-          });
-        }
-      }, */
-
       //End of store
     }),
     {
-      name: 'downlodr-storage',
-      storage: createJSONStorage(() => localStorage),
+      name: 'downlodr-storage', // Name of the storage
+      storage: createJSONStorage(() => localStorage), // Use local storage for persistence
       partialize: (state) => ({
         historyDownloads: state.historyDownloads,
         availableTags: state.availableTags,

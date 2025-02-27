@@ -1,13 +1,29 @@
+/**
+ * A custom React component
+ * A React component that displays a menu for managing categories.
+ * It allows users to add new categories and select from available categories.
+ *
+ * @param CategoryMenuProps
+ *   @param downloadId - A unique identifier for the download associated with the categories.
+ *   @param onAddCategory - A function to handle adding a new category.
+ *   @param onRemoveCategory - A function to handle removing a category.
+ *   @param currentCategories - An array of currently selected category names.
+ *   @param availableCategories - An array of available category names to choose from.
+ *   @param menuPositionClass - A string representing CSS classes for positioning the menu.
+ *
+ * @returns JSX.Element - The rendered category menu component.
+ */
+
 import React, { useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 
 interface CategoryMenuProps {
-  downloadId: string;
-  onAddCategory: (downloadId: string, category: string) => void;
-  onRemoveCategory: (downloadId: string, category: string) => void;
-  currentCategories: string[];
-  availableCategories: string[];
-  menuPositionClass: string;
+  downloadId: string; // Unique identifier for the download
+  onAddCategory: (downloadId: string, category: string) => void; // Function to add a new category
+  onRemoveCategory: (downloadId: string, category: string) => void; // Function to remove a category
+  currentCategories: string[]; // Array of currently selected categories
+  availableCategories: string[]; // Array of available categories to choose from
+  menuPositionClass: string; // CSS classes for positioning the menu
 }
 
 const CategoryMenu: React.FC<CategoryMenuProps> = ({

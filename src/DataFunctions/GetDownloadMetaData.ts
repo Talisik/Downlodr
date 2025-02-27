@@ -1,3 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/**
+ * A custom React function
+ * This function provides methods to process video formats from various platforms and create audio options
+ * (YouTube, Dailymotion, Vimeo, etc.)
+ * for audio-only formats. It includes methods to handle different format processing and return structured format options.
+ */
+
 interface FormatOption {
   value: string;
   label: string;

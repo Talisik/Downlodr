@@ -1,3 +1,9 @@
+/**
+ * A custom React Sub Page
+ * This component displays a list of categories , the contents of the page primarily depend on the type of category list chosen
+ *
+ * @returns JSX.Element - The rendered component displaying a category page.
+ */
 import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import useDownloadStore from '../../Store/downloadStore';
@@ -44,14 +50,6 @@ const CategoryPage: React.FC = () => {
 
   return (
     <div className="w-full pb-5">
-      {/* <h1 className="text-2xl font-semibold mb-4">
-        Category:{' '}
-        {categoryId === 'all'
-          ? 'All'
-          : categoryId === 'uncategorized'
-          ? 'Uncategorized'
-          : decodeURIComponent(categoryId || '')}
-      </h1>*/}
       <DownloadList downloads={downloads} />
     </div>
   );

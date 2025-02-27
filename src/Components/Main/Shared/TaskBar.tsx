@@ -1,3 +1,16 @@
+/**
+ * A custom React fixed component
+ * A Fixed element in the header portion of Downlodr, displays common download task buttons for downloads such as:
+ *  - Remove (Removing finished downloads from drive and log)
+ *  - Stop All (Stop all current downloads)
+ *  - Stop (Stop selected current downloads)
+ *  - Start (Start selected current downloads)
+ *  - Add URL (Add a download to the for download via link)
+ *
+ * @param className - for UI of TaskBar
+ * @returns JSX.Element - The rendered component displaying a TaskBar
+ *
+ */
 import React, { useState } from 'react';
 import { GoDownload } from 'react-icons/go';
 import { VscPlayCircle } from 'react-icons/vsc';
@@ -15,7 +28,6 @@ import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { processFileName } from '../../../DataFunctions/FilterName';
-// import PlaylistModal from '../Modal/oldModals/PlaylistModal';
 import { LuTrash } from 'react-icons/lu';
 
 interface TaskBarProps {
@@ -23,8 +35,8 @@ interface TaskBarProps {
 }
 
 const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
+  // Handle state for modal
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
-
   const [isSchedulerModalOpen, setSchedulerModalOpen] = useState(false);
   const location = useLocation();
   const { toast } = useToast();
@@ -32,21 +44,29 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // Get the max download limit and current downloads from stores
   const { settings } = useMainStore();
   const { downloading } = useDownloadStore();
+
+  // Handling selected downloads
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
 
+  // Stopping all current downloads via killController
   const handleStopAll = async () => {
+    // functions for deleting download log from store
     const { deleteDownloading } = useDownloadStore.getState();
 
+    // check if there are any current downloads
     if (downloading && downloading.length > 0) {
+      // iterate through current downloads
       for (const download of downloading) {
         console.log(`Attempting to stop download: ${download.id}`);
-
+        // check if download has a controller
         if (download.controllerId) {
           try {
+            // kills/stops download
             const success = await window.ytdlp.killController(
               download.controllerId,
             );
+            // if the download was stopped successfully then remove log of download
             if (success) {
               deleteDownloading(download.id);
               console.log(
@@ -92,6 +112,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     // setSelectedDownloading([]);
   };
 
+  // Stopping selected current downloads via killController
   const handleStopSelected = async () => {
     if (selectedDownloads.length === 0) {
       toast({
@@ -103,7 +124,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     }
 
     // Store selected downloads in a temporary variable and clear selections immediately
-
     const { deleteDownloading, downloading } = useDownloadStore.getState();
     // Filter selected downloads to only include those in forDownloads and remove duplicates
     const validDownloads = selectedDownloads.filter((download) =>
@@ -112,15 +132,18 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))]
       .map((id) => validDownloads.find((d) => d.id === id))
       .filter((d): d is (typeof validDownloads)[0] => d !== undefined);
-    // const downloadsToStop = [...selectedDownloads];
 
+    // removes the selected options to ensure no errors possible
     clearAllSelections();
+    // iterate through the listed unique downloads
     for (const download of uniqueDownloads) {
       if (download.controllerId) {
         try {
+          // kill/stop the download
           const success = await window.ytdlp.killController(
             download.controllerId,
           );
+          // if stopped download was successful, delete download log
           if (success) {
             deleteDownloading(download.id);
             console.log(
@@ -146,11 +169,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           });
         }
       }
+      // clear selected download
       clearAllSelections();
     }
   };
 
+  // Start downloading selected downloads
   const handlePlaySelected = async () => {
+    // check if any downloads have been selected
     if (selectedDownloads.length === 0) {
       toast({
         variant: 'destructive',
@@ -159,7 +185,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       });
       return;
     }
-
+    // get the functions and lists from store
     const { addDownload, forDownloads, removeFromForDownloads, downloading } =
       useDownloadStore.getState();
 
@@ -174,6 +200,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     // Clear selections immediately after filtering
     clearAllSelections();
 
+    // If the selected download amount or the currently downloading amount exceeds the max download set inside settings, dont start any downloads
     if (
       uniqueDownloads.length > settings.maxDownloadNum ||
       downloading.length >= settings.maxDownloadNum
@@ -186,18 +213,22 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       return;
     }
 
+    // iterate through selected unique downloads
     for (const selectedDownload of uniqueDownloads) {
+      // get metadata for each selected download
       const downloadInfo = forDownloads.find(
         (d) => d.id === selectedDownload.id,
       );
 
       if (downloadInfo) {
+        // checks download name and location to validate download name and location
+        // returns validated processed name
         const processedName = await processFileName(
           downloadInfo.location,
           downloadInfo.name,
           downloadInfo.ext || downloadInfo.audioExt,
         );
-
+        // calls the addDownload function from store to start each selected download
         addDownload(
           downloadInfo.videoUrl,
           `${processedName}.${downloadInfo.ext}`,
@@ -218,11 +249,13 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             ? ''
             : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
         );
+        // remove the current download from the saved list for forDownloads
         removeFromForDownloads(selectedDownload.id);
       }
     }
   };
 
+  // Remove the finished download from device drive and downloads log
   const handleRemoveSelected = async () => {
     if (selectedDownloads.length === 0) {
       toast({
@@ -300,21 +333,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     ? 'calendar'
     : 'table';
 
+  // opens download modal
   const handleOpenDownloadModal = () => {
-    // Check if connection limits are enabled
-    /*if (settings.permitConnectionLimit) {
-      // Check if current downloads are at or above the limit
-      if (downloading.length > settings.maxDownloadNum) {
-        toast({
-          variant: 'destructive',
-          title: 'Download limit reached',
-          description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete.`,
-        });
-        return;
-      }
-    }*/
-
-    // If we pass the checks, open the modal
     setDownloadModalOpen(true);
   };
 

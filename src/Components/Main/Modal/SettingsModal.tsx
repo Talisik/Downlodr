@@ -1,4 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/**
+ * A custom React component
+ * Shows the Settings modal for Downlodr, provides options for user to customize downlodr via: Download Speed, Default download location, amount of concurrent downloads
+ *
+ * @param isOpen - If modal is open, keeps it open
+ * @param onClose - If modal has been closed, closes modal
+ * @returns SettingsModal
+ *
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from 'react';
 import { IoMdClose } from 'react-icons/io';
@@ -15,7 +23,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     settings,
     updateDefaultLocation,
     updateDefaultDownloadSpeed,
-    // updateMaxUploadNum,
     updatePermitConnectionLimit,
     updateMaxDownloadNum,
     updateDefaultDownloadSpeedBit,
@@ -30,6 +37,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   );
   const [biteVal, setbiteVal] = useState(settings.defaultDownloadSpeed);
   const [maxDownload, setMaxDownload] = useState(settings.maxDownloadNum);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [maxUpload, setmaxUpload] = useState(settings.maxUploadNum);
   const [isConnectionLimitEnabled, setIsConnectionLimitEnabled] = useState(
     settings.permitConnectionLimit,
@@ -48,23 +56,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setMaxDownload(settings.maxDownloadNum);
     setmaxUpload(settings.maxUploadNum);
     setIsConnectionLimitEnabled(settings.permitConnectionLimit);
-  };
-
-  // checks if file location is correct
-  const isValidPath = async (path: string): Promise<boolean> => {
-    // Check for undefined or empty path
-    if (!path || path.includes('undefined')) {
-      console.log('undefined path');
-      return false;
-    }
-    try {
-      // Call the validatePath method from the preload script
-      const isValid = await window.downlodrFunctions.validatePath(path);
-      return isValid;
-    } catch (error) {
-      console.error('Error validating path:', error);
-      return false;
-    }
   };
 
   // Find location

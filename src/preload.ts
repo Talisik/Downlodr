@@ -1,3 +1,9 @@
+/**
+ * Preload script for the Electron application.
+ * This script runs in the context of the renderer process and exposes
+ * certain functions and properties to the renderer via the context bridge.
+ */
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // See the Electron documentation for details on how to use preload scripts:

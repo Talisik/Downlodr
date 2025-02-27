@@ -1,3 +1,14 @@
+/**
+ * A custom React component
+ * A React component that represents a button for initiating a download.
+ * It displays a circular progress bar indicating the download status and progress.
+ *
+ * @param DownloadButtonProps
+ *   @param download - An object containing details about the download, including its ID, location, name, status, and progress.
+ *
+ * @returns JSX.Element - The rendered download button component.
+ */
+
 import React from 'react';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
@@ -5,22 +16,23 @@ import { AnimatedCircularProgressBar } from './RadialProgress';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
 
+// Interface representing the props for the DownloadButton component
 interface DownloadButtonProps {
   download: {
-    id: string;
-    location: string;
-    name: string;
-    status: string;
-    ext: string;
-    audioExt: string;
-    videoUrl: string;
-    size: number;
-    speed: string;
-    timeLeft: string;
-    progress: number;
-    formatId: string;
-    audioFormatId: string;
-    extractorKey: string;
+    id: string; // Unique identifier for the download
+    location: string; // Location of the file to download
+    name: string; // Name of the file
+    status: string; // Current status of the download
+    ext: string; // File extension
+    audioExt: string; // Audio file extension
+    videoUrl: string; // URL of the video to download
+    size: number; // Size of the file in bytes
+    speed: string; // Download speed
+    timeLeft: string; // Estimated time left for the download
+    progress: number; // Download progress percentage
+    formatId: string; // Format ID of the download
+    audioFormatId: string; // Audio format ID
+    extractorKey: string; // Key for the extractor
   };
 }
 
@@ -29,6 +41,12 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
   const { downloading, addDownload, removeFromForDownloads } =
     useDownloadStore();
 
+  /**
+   * Handles the click event for the download button.
+   * Initiates the download process and updates the download store.
+   *
+   * @param e - The mouse event triggered by the button click.
+   */
   const handleDownloadClick = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row expansion
     if (downloading.length >= settings.maxDownloadNum) {
@@ -45,7 +63,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
       download.name,
       download.ext || download.audioExt, // Use appropriate extension
     );
-
+    // calls the addDownload function from store to start each selected download
     addDownload(
       download.videoUrl,
       `${processedName}.${download.ext}`,
@@ -66,6 +84,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
         ? ''
         : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
     );
+    // remove the current download from the saved list for forDownloads
     removeFromForDownloads(download.id);
     toast({
       title: 'Download Started',

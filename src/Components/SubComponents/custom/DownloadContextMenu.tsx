@@ -1,4 +1,35 @@
-import React, { useState } from 'react';
+/**
+ * A custom React component
+ * A React component that displays a context menu for managing downloads.
+ * It provides options to pause, stop, remove, and view downloads, as well as manage tags and categories.
+ *
+ * @param DownloadContextMenuProps
+ *   @param downloadId - The unique identifier for the download.
+ *   @param position - An object containing the x and y coordinates for positioning the menu.
+ *   @param downloadLocation - The location of the download file.
+ *   @param controllerId - The ID of the controller managing the download.
+ *   @param downloadStatus - The current status of the download.
+ *   @param onClose - A function to call when the menu should be closed.
+ *   @param onPause - A function to pause the download.
+ *   @param onStop - A function to stop the download.
+ *   @param onForceStart - A function to force start the download.
+ *   @param onRemove - A function to remove the download.
+ *   @param onViewDownload - A function to view the download.
+ *   @param onAddTag - A function to add a tag to the download.
+ *   @param onRemoveTag - A function to remove a tag from the download.
+ *   @param currentTags - An array of current tags for the download.
+ *   @param availableTags - An array of all available tags in the system.
+ *   @param onAddCategory - A function to add a category to the download.
+ *   @param onRemoveCategory - A function to remove a category from the download.
+ *   @param currentCategories - An array of current categories for the download.
+ *   @param availableCategories - An array of all available categories in the system.
+ *   @param onViewFolder - A function to view the folder containing the download.
+ *   @param downloadName - The name of the download file.
+ *
+ * @returns JSX.Element - The rendered context menu component.
+ */
+
+import React, { useState, useEffect } from 'react';
 import TagMenu from './TagsMenu';
 import CategoryMenu from './CategoryMenu';
 import { IoPauseCircleOutline } from 'react-icons/io5';
@@ -15,45 +46,46 @@ import { processFileName } from '../../../DataFunctions/FilterName';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
 
+// Interface representing the props for the DownloadContextMenu component
 interface DownloadContextMenuProps {
-  downloadId: string;
-  position: { x: number; y: number };
-  downloadLocation?: string;
-  controllerId?: string;
-  downloadStatus?: string;
-  onClose: () => void;
+  downloadId: string; // Unique identifier for the download
+  position: { x: number; y: number }; // Position of the context menu
+  downloadLocation?: string; // Location of the download file
+  controllerId?: string; // ID of the controller managing the download
+  downloadStatus?: string; // Current status of the download
+  onClose: () => void; // Function to close the context menu
   onPause: (
     id: string,
     downloadLocation?: string,
     controllerId?: string,
     downloadStatus?: string,
-  ) => void;
+  ) => void; // Function to pause the download
   onStop: (
     id: string,
     downloadLocation?: string,
     controllerId?: string,
-  ) => void;
+  ) => void; // Function to stop the download
   onForceStart: (
     id: string,
     downloadLocation?: string,
     controllerId?: string,
-  ) => void;
+  ) => void; // Function to force start the download
   onRemove: (
     downloadLocation?: string,
     id?: string,
     controllerId?: string,
-  ) => void;
-  onViewDownload: (downloadLocation?: string) => void;
-  onAddTag: (downloadId: string, tag: string) => void;
-  onRemoveTag: (downloadId: string, tag: string) => void;
-  currentTags: string[];
-  availableTags: string[]; // All tags used in the system
-  onAddCategory: (downloadId: string, category: string) => void;
-  onRemoveCategory: (downloadId: string, category: string) => void;
-  currentCategories: string[];
-  availableCategories: string[];
-  onViewFolder: (downloadLocation?: string) => void;
-  downloadName?: string;
+  ) => void; // Function to remove the download
+  onViewDownload: (downloadLocation?: string) => void; // Function to view the download
+  onAddTag: (downloadId: string, tag: string) => void; // Function to add a tag to the download
+  onRemoveTag: (downloadId: string, tag: string) => void; // Function to remove a tag from the download
+  currentTags: string[]; // Array of current tags for the download
+  availableTags: string[]; // Array of all available tags in the system
+  onAddCategory: (downloadId: string, category: string) => void; // Function to add a category to the download
+  onRemoveCategory: (downloadId: string, category: string) => void; // Function to remove a category from the download
+  currentCategories: string[]; // Array of current categories for the download
+  availableCategories: string[]; // Array of all available categories in the system
+  onViewFolder: (downloadLocation?: string) => void; // Function to view the folder containing the download
+  downloadName?: string; // Name of the download file
 }
 
 interface ConfirmModalProps {
@@ -197,19 +229,20 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const menuRef = React.useRef<HTMLDivElement>(null);
   const tagMenuRef = React.useRef<HTMLDivElement>(null);
   // const categoryMenuRef = React.useRef<HTMLDivElement>(null);
-  const [showTagMenu, setShowTagMenu] = useState(false);
-  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const [showTagMenu, setShowTagMenu] = useState(false); // State to track visibility of the tag menu
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false); // State to track visibility of the category menu
   const [tagMenuPosition, setTagMenuPosition] = useState<
     'right' | 'left' | 'top'
   >('right');
-  const [showStopConfirmation, setShowStopConfirmation] = useState(false);
-  const [showRenameModal, setShowRenameModal] = useState(false);
-  const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
-  const renameDownload = useDownloadStore((state) => state.renameDownload);
+  const [showStopConfirmation, setShowStopConfirmation] = useState(false); // State to track visibility of the stop confirmation modal
+  const [showRenameModal, setShowRenameModal] = useState(false); // State to track visibility of the rename modal
+  const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false); // State to track visibility of the remove confirmation modal
+  const renameDownload = useDownloadStore((state) => state.renameDownload); // Function to rename a download
   const { settings } = useMainStore();
   const { downloading, addDownload, removeFromForDownloads, forDownloads } =
     useDownloadStore();
 
+  // Effect to position the context menu based on the provided coordinates
   React.useEffect(() => {
     if (menuRef.current) {
       const menuRect = menuRef.current.getBoundingClientRect();
@@ -233,7 +266,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     }
   }, [position]);
 
-  React.useEffect(() => {
+  // Effect to position the context menu based on the provided coordinates
+  useEffect(() => {
     if (showTagMenu && tagMenuRef.current && menuRef.current) {
       const tagMenu = tagMenuRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
@@ -249,6 +283,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     }
   }, [showTagMenu]);
 
+  // Function to handle opening tag menu
   const getTagMenuPositionClass = () => {
     switch (tagMenuPosition) {
       case 'left':
@@ -274,23 +309,27 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     setShowCategoryMenu(!showCategoryMenu);
   };
 
+  // Function to confirm stopping the download
   const handleStopConfirm = () => {
     onStop(downloadId, downloadLocation, controllerId);
     setShowStopConfirmation(false);
     onClose();
   };
 
+  // Function to handle renaming the download
   const handleRename = (newName: string) => {
     renameDownload(downloadId, newName);
     onClose();
   };
 
+  // Function to confirm removing the download
   const handleRemoveConfirm = () => {
     onRemove(downloadLocation, downloadId, controllerId);
     setShowRemoveConfirmation(false);
     onClose();
   };
 
+  // Function to start the download
   const handleStartDownload = async () => {
     // Find the download information from forDownloads using downloadId
     const currentDownload = forDownloads.find((d) => d.id === downloadId);
@@ -315,23 +354,23 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       });
       return;
     }
-
+    // calls the addDownload function from store to start each selected download
     addDownload(
       currentDownload.videoUrl,
-      `${processedName}.${currentDownload.ext}`, // Use the correct extension
-      `${processedName}.${currentDownload.ext}`, // Use the correct extension
-      currentDownload.size || 0, // Use the actual size if known
-      currentDownload.speed || '0 KB/s', // Use the actual speed if known
-      currentDownload.timeLeft || '0:00:00', // Use the actual time left if known
+      `${processedName}.${currentDownload.ext}`,
+      `${processedName}.${currentDownload.ext}`,
+      currentDownload.size || 0,
+      currentDownload.speed || '0 KB/s',
+      currentDownload.timeLeft || '0:00:00',
       new Date().toISOString(),
-      0, // Progress can be set to 0
+      0,
       currentDownload.location,
       'downloading',
-      currentDownload.ext || 'mp4', // Use the correct extension
-      currentDownload.formatId || '', // Use the actual formatId if known
-      currentDownload.audioExt || '', // Use the actual audioExt if known
-      currentDownload.audioFormatId || '', // Use the actual audioFormatId if known
-      currentDownload.extractorKey || '', // Use the actual extractorKey if known
+      currentDownload.ext || 'mp4',
+      currentDownload.formatId || '',
+      currentDownload.audioExt || '',
+      currentDownload.audioFormatId || '',
+      currentDownload.extractorKey || '',
       settings.defaultDownloadSpeed === 0
         ? ''
         : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
@@ -341,7 +380,9 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     onClose();
   };
 
+  // Function to render menu options based on download status
   const renderMenuOptions = () => {
+    // Common options for tags and categories
     const commonOptions = (
       <>
         {/* Tags and Categories are always available */}

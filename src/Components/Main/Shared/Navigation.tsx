@@ -1,3 +1,14 @@
+/**
+ * A custom React fixed component
+ * A Fixed element in Downlodr, displays the navigation links for status, categories and tag pages
+ *  - Status (All Downloads, Currently Downloading, and Finished Downloads)
+ *  - Categories (All Categories, Uncategorized downloads, and then list of individual categories)
+ *  - Tags (All Tags, Untaged downloads, and then list of individual tags)
+ *
+ * @param className - for UI of Navigation
+ * @returns Navigation
+ *
+ */
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { HiChevronDown, HiChevronRight } from 'react-icons/hi';
@@ -11,37 +22,35 @@ import CategoryContextMenu from '../../SubComponents/custom/CategoryContextMenu'
 import TagContextMenu from '../../SubComponents/custom/TagContextMenu';
 
 const Navigation = ({ className }: { className?: string }) => {
+  // states for opening and closing navigation sections
   const [openSections, setOpenSections] = useState({
     status: true,
     category: false,
     tag: false,
   });
-  const [contextMenu, setContextMenu] = useState<{
-    category: string;
-    x: number;
-    y: number;
-  } | null>(null);
-  const [tagContextMenu, setTagContextMenu] = useState<{
-    tag: string;
-    x: number;
-    y: number;
-  } | null>(null);
-  const navRef = useRef<HTMLElement>(null);
-  const availableCategories = useDownloadStore(
-    (state) => state.availableCategories,
-  );
-  const renameCategory = useDownloadStore((state) => state.renameCategory);
-  const deleteCategory = useDownloadStore((state) => state.deleteCategory);
-  const availableTags = useDownloadStore((state) => state.availableTags);
-  const renameTag = useDownloadStore((state) => state.renameTag);
-  const deleteTag = useDownloadStore((state) => state.deleteTag);
-
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
   };
+
+  // Context menu for Tags and Category
+  const [contextMenu, setContextMenu] = useState<{
+    category: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const renameCategory = useDownloadStore((state) => state.renameCategory);
+  const deleteCategory = useDownloadStore((state) => state.deleteCategory);
+
+  const [tagContextMenu, setTagContextMenu] = useState<{
+    tag: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const renameTag = useDownloadStore((state) => state.renameTag);
+  const deleteTag = useDownloadStore((state) => state.deleteTag);
 
   const handleCategoryContextMenu = (e: React.MouseEvent, category: string) => {
     e.preventDefault();
@@ -52,14 +61,22 @@ const Navigation = ({ className }: { className?: string }) => {
     });
   };
 
-  /*  const handleTagContextMenu = (e: React.MouseEvent, tag: string) => {
+  const handleTagContextMenu = (e: React.MouseEvent, tag: string) => {
     e.preventDefault();
     setTagContextMenu({
       tag,
       x: e.clientX,
       y: e.clientY,
     });
-  }; */
+  };
+
+  // List of available tags and categories
+  const availableCategories = useDownloadStore(
+    (state) => state.availableCategories,
+  );
+  const availableTags = useDownloadStore((state) => state.availableTags);
+
+  const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -202,11 +219,7 @@ const Navigation = ({ className }: { className?: string }) => {
                   className="nav-link"
                   onContextMenu={(e) => {
                     e.preventDefault();
-                    setTagContextMenu({
-                      tag,
-                      x: e.clientX,
-                      y: e.clientY,
-                    });
+                    handleTagContextMenu(e, tag);
                   }}
                 >
                   <BsTag className="text-yellow-500 text-lg flex-shrink-0" />

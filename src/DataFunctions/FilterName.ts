@@ -1,3 +1,15 @@
+/**
+ * A custom React function
+ * This function sanitizes a given filename by removing invalid characters,
+ * replacing multiple consecutive underscores with a single one, and ensuring
+ * the filename does not exceed a specified length.
+ * It also trims leading and trailing whitespace.
+ *
+ * @param filename - The original filename to be sanitized and validated.
+ *
+ * @returns string - The sanitized and validated  filename.
+ */
+
 import useDownloadStore from '../Store/downloadStore';
 
 // Remove invalid characters from download name
@@ -62,4 +74,5 @@ const processFileName = async (
   return finalName;
 };
 
+// returns processed filtered and validated name
 export { removeInvalidChar, processFileName };

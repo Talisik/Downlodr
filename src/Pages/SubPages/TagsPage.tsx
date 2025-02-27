@@ -1,3 +1,9 @@
+/**
+ * A custom React Sub Page
+ * This component displays a list of tags , the contents of the page primarily depend on the type of tag list chosen
+ *
+ * @returns JSX.Element - The rendered component displaying a tag page.
+ */
 import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import useDownloadStore from '../../Store/downloadStore';

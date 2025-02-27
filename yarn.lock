@@ -7151,7 +7151,7 @@ yocto-queue@^0.1.0:
 
 "yt-dlp-helper@https://x-token-auth:ATCTT3xFfGN0aai6a2HGXTJW6CWXqLhBk5vfHpij4Os2gmIex7kwMzc_7XZbal4HeB6AMVFXfScbWkg0QyXhrovJqrVVL0nBxoDu8Ery_jME3Sun6RU9pTA1g3PvYpcUfhN60r90JtfqSj5ZniLEDBfKSJxn5Ps-GJdr7gV1epm2oTpKIXn8N-8=C4687B75@bitbucket.org/metawhale/yt-dlp-helper.git":
   version "1.0.0"
-  resolved "https://x-token-auth:ATCTT3xFfGN0aai6a2HGXTJW6CWXqLhBk5vfHpij4Os2gmIex7kwMzc_7XZbal4HeB6AMVFXfScbWkg0QyXhrovJqrVVL0nBxoDu8Ery_jME3Sun6RU9pTA1g3PvYpcUfhN60r90JtfqSj5ZniLEDBfKSJxn5Ps-GJdr7gV1epm2oTpKIXn8N-8=C4687B75@bitbucket.org/metawhale/yt-dlp-helper.git#c478b92d2758113cdabb16704dd558f6a996e287"
+  resolved "https://x-token-auth:ATCTT3xFfGN0aai6a2HGXTJW6CWXqLhBk5vfHpij4Os2gmIex7kwMzc_7XZbal4HeB6AMVFXfScbWkg0QyXhrovJqrVVL0nBxoDu8Ery_jME3Sun6RU9pTA1g3PvYpcUfhN60r90JtfqSj5ZniLEDBfKSJxn5Ps-GJdr7gV1epm2oTpKIXn8N-8=C4687B75@bitbucket.org/metawhale/yt-dlp-helper.git#58d81acf576d03a469fd3ec20b25d51613e7a20f"
   dependencies:
     ffbinaries "^1.1.6"
     tree-kill "^1.2.2"

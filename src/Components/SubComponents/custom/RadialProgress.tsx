@@ -1,17 +1,32 @@
+/**
+ * A custom React component
+ * A React component that displays an animated circular progress bar.
+ * It visually represents progress with customizable colors and status indicators.
+ *
+ * @param AnimatedCircularProgressBarProps
+ *   @param status - The current status of the progress (e.g., 'paused', 'to download').
+ *   @param max - The maximum value for the progress.
+ *   @param value - The current value of the progress.
+ *   @param min - The minimum value for the progress.
+ *   @param gaugePrimaryColor - The primary color of the progress gauge.
+ *   @param gaugeSecondaryColor - The secondary color of the progress gauge.
+ *   @param className - Optional additional CSS classes for styling.
+ *
+ * @returns JSX.Element - The rendered animated circular progress bar component.
+ */
+
 import { cn } from '../shadcn/lib/utils';
-import { FaPause } from 'react-icons/fa6';
-import { IoPauseSharp } from 'react-icons/io5';
 import { MdPause } from 'react-icons/md';
 import { FaPlay } from 'react-icons/fa';
 
 interface AnimatedCircularProgressBarProps {
-  status: string;
-  max: number;
-  value: number;
-  min: number;
-  gaugePrimaryColor: string;
-  gaugeSecondaryColor: string;
-  className?: string;
+  status: string; // Current status of the progress
+  max: number; // Maximum value for the progress
+  value: number; // Current value of the progress
+  min: number; // Minimum value for the progress
+  gaugePrimaryColor: string; // Primary color of the progress gauge
+  gaugeSecondaryColor: string; // Secondary color of the progress gauge
+  className?: string; // Optional additional CSS classes
 }
 
 export function AnimatedCircularProgressBar({

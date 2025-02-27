@@ -1,3 +1,11 @@
+/**
+ *
+ * This component displays a list of completed downloads. It allows users to manage their completed downloads, including deleting and viewing details.
+ * It also provides functionalities to handle tags and categories.
+ *
+ * @returns JSX.Element - The rendered component displaying completed downloads.
+ */
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';

@@ -1,3 +1,10 @@
+/**
+ * A custom React component
+ * A React component that toggles between light and dark themes.
+ * It displays a button with icons for light and dark modes.
+ *
+ * @returns JSX.Element - The rendered mode toggle component.
+ */
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '../shadcn/components/ui/button';
 import { useTheme } from '../../ThemeProvider';

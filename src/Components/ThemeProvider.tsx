@@ -1,3 +1,13 @@
+/**
+ *
+ * This component wraps its children with a theme context provider, allowing
+ * for consistent theming across the application.
+ * It manages the theme state and provides functions to toggle between light and dark modes.
+ *
+ * @param children - The child components to be rendered within the theme context.
+ * @param defaultTheme - Theme used by application
+ * @param defaultTheme
+ */
 import { createContext, useContext, useEffect, useState } from 'react';
 
 type Theme = 'dark' | 'light' | 'system';

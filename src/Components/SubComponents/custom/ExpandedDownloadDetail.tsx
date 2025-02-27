@@ -1,17 +1,29 @@
+/**
+ * A custom React component
+ * A React component that displays detailed information about a download.
+ * It shows the progress, transfer details, and additional information about the download.
+ *
+ * @param ExpandedDownloadDetailsProps
+ *   @param download - An object containing details about the download, including time active, downloaded size, speed, time left, and status.
+ *
+ * @returns JSX.Element - The rendered expanded download details component.
+ */
 import React from 'react';
 
+// Interface representing the details of a download
 interface DownloadDetails {
-  timeActive?: string;
-  downloaded?: string;
-  speed?: string;
-  timeLeft?: string;
-  size?: number;
-  DateAdded: string;
-  location?: string;
-  progress?: number;
-  status?: string;
+  timeActive?: string; // Time the download has been active
+  downloaded?: string; // Amount downloaded
+  speed?: string; // Download speed
+  timeLeft?: string; // Estimated time left for the download
+  size?: number; // Total size of the download in bytes
+  DateAdded: string; // Date the download was added
+  location?: string; // Location of the download file
+  progress?: number; // Download progress percentage
+  status?: string; // Current status of the download
 }
 
+// Interface representing the props for the ExpandedDownloadDetails component
 interface ExpandedDownloadDetailsProps {
   download: DownloadDetails;
 }

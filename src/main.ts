@@ -1,3 +1,9 @@
+/**
+ * Main process entry point for the Electron application.
+ * This file is responsible for creating the main application window,
+ * handling IPC (Inter-Process Communication) events, and managing
+ * application lifecycle events.
+ */
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import path from 'path';
 import started from 'electron-squirrel-startup';
@@ -13,6 +19,7 @@ if (started) {
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
+// Function to create the main application window
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -60,20 +67,19 @@ const createWindow = () => {
     }
   });
 
-  // Add this to handle file protocol security
+  // Prevent navigation to external URLs
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   mainWindow.webContents.on('will-navigate', (event, url) => {
     event.preventDefault();
   });
 };
-
+// IPC handlers for various functionalities
 ipcMain.on('openExternalLink', (_event, link: string) => {
   //console.log('link received', link);
   shell.openExternal(link);
 });
 
 // Functions for Download Verification
-
 ipcMain.handle('joinDownloadPath', async (event, downloadPath, fileName) => {
   const normalizedPath = downloadPath.endsWith(path.sep)
     ? downloadPath
@@ -356,9 +362,6 @@ app.on('activate', () => {
   }
 });
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
-
 ipcMain.on('toggle-dev-tools', () => {
   const win = BrowserWindow.getFocusedWindow();
   if (win) {
@@ -370,7 +373,6 @@ ipcMain.on('toggle-dev-tools', () => {
   }
 });
 
-// Add this handler for external links
 ipcMain.handle('openExternalLink', async (_event, link: string) => {
   try {
     await shell.openExternal(link);

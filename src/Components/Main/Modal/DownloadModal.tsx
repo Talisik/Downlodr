@@ -1,10 +1,26 @@
+/**
+ * A custom React component
+ * shows Download Modal for Downlodr, accepts and validates download links
+ *
+ * - Standard video link
+ * Verifies if link has the standard format before sending link to the download store to get metadata and for verificationn
+ *
+ * - Youtube Playlist link
+ * After verification, gets the metadata for the playlist and displays videos under the playlist, allows users to choose playlist videos to download
+ * Chosen videos are then sent to downloadStore to get metadata
+ *
+ * @param isOpen - If modal is open, keeps it open
+ * @param onClose - If modal has been closed, closes modal
+ * @returns JSX.Element - The rendered component displaying a DownloadModal
+ *
+ */
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
-// import { usePlaylistStore } from '../../../Store/playlistStore';
 import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
 
 interface DownloadModalProps {
@@ -12,6 +28,7 @@ interface DownloadModalProps {
   onClose: () => void;
 }
 
+// Expected download video params
 interface Video {
   id: string;
   title: string;
@@ -34,7 +51,6 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     settings.defaultDownloadSpeed === 0
       ? ''
       : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
-  // const { openPlaylistModal } = usePlaylistStore();
 
   // New state for playlist functionality
   const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
@@ -66,12 +82,13 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     return 'video';
   };
 
+  // Function for receiving download url and handling next actions depending if url is a single download link or playlist link
   const handleUrl = async (url: string) => {
     setVideoUrl(url);
     setIsValidUrl(false);
     setIsPlaylist(false);
     setSelectedVideos(new Set());
-
+    // Validates link if it follows the standard format
     const urlPattern = new RegExp(
       '^(https?:\\/\\/)?' +
         '(' +
@@ -114,7 +131,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // New playlist-specific functions
+  // Playlist validation and getting metadata
   const fetchPlaylistInfo = async (url: string) => {
     setIsLoading(true);
     try {
@@ -126,6 +143,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       // Ensure no duplicate videos in the playlist
       const uniqueVideos = new Map();
 
+      // Iterates through each video link inside playlist and saves to unique videos
       info.data.entries.forEach((video: any) => {
         if (!uniqueVideos.has(video.id)) {
           uniqueVideos.set(video.id, {
@@ -154,6 +172,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  // Selecting videos from playlist
   const handleVideoSelect = (id: string) => {
     setSelectedVideos((prevSelected) => {
       const newSelected = new Set(prevSelected);
@@ -166,6 +185,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     });
   };
 
+  // Selecting all videos from playlist
   const handleSelectAll = () => {
     if (selectAll) {
       setSelectedVideos(new Set());
@@ -174,14 +194,14 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // Modify handleDownload to handle both cases
+  // Sending download link(s) to download store through setDownload
   const handleDownload = async () => {
     try {
       if (isPlaylist) {
         const selectedVideosList = playlistVideos.filter((video) =>
           selectedVideos.has(video.id),
         );
-
+        // If link is a YT playlist link, checks if there is atleast one video selected for download
         if (selectedVideosList.length === 0) {
           toast({
             variant: 'destructive',
@@ -200,7 +220,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         // Single video download
         setDownload(videoUrl, downloadFolder, maxDownload);
       }
-
+      // Cleaning up modal
       resetModal();
       onClose();
 
@@ -217,7 +237,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // Modify resetModal to handle playlist state
+  // cleans up states of download modal variable
   const resetModal = () => {
     setVideoUrl('');
     setIsValidUrl(false);

@@ -1,3 +1,12 @@
+/**
+ *
+ * This component displays a list of downloads that are currently in progress.
+ * It provides functionalities to manage these downloads, including pausing,
+ * stopping, and viewing details. It also includes a context menu for additional actions.
+ *
+ * @returns JSX.Element - The rendered component displaying ongoing downloads.
+ */
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';

@@ -1,3 +1,12 @@
+/**
+ * A custom React Main Page
+ * This component displays a list of all downloads, including those that
+ * are currently downloading, finished, or in history. It provides
+ * functionalities to manage downloads, such as pausing, stopping, and
+ * viewing details. It also includes a context menu for additional actions.
+ *
+ * @returns JSX.Element - The rendered component displaying all downloads.
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';

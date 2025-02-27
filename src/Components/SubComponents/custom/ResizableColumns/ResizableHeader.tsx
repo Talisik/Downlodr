@@ -1,3 +1,16 @@
+/**
+ *  A custom React component
+ * Component for the table headers, holds table name and resizable border which will resize length of header column
+ *
+ * @param ResizableHeaderProps
+ *   @param children - content of each header column (usually header name as a string)
+ *   @param width - a number that specifies the width of the header column in pixels. It is used to set the inline style of the <th> element to control its width.
+ *   @param onResizeStart - a function that takes a React.MouseEvent as an argument. It is called when the user starts resizing the header column. This function typically contains the logic to handle the resizing action.
+ *   @param showSort - optional boolean parameter (defaults to true). if the chev icon will be shown
+ *
+ * @returns JSX.Element - The rendered component displaying a TitleBar
+ *
+ */
 import React from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';
 

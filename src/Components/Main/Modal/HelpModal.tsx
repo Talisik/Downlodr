@@ -1,3 +1,13 @@
+/**
+ * A custom React component
+ * Shows the Help modal for Downlodr, provides guide for using the Downlodr app as well as answers for commonly asked questions
+ *
+ * @param isOpen - If modal is open, keeps it open
+ * @param onClose - If modal has been closed, closes modal
+ * @returns AboutModal
+ *
+ */
+
 import React, { useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { IoChevronDownOutline } from 'react-icons/io5';
@@ -13,6 +23,7 @@ interface HelpModalProps {
   onClose: () => void;
 }
 
+// Accordion params and component
 interface AccordionSectionProps {
   title: string;
   content: React.ReactNode;
@@ -48,6 +59,7 @@ const AccordionSection: React.FC<AccordionSectionProps> = ({
   );
 };
 
+// Help Modal
 const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
   // Determine default value based on current path
@@ -350,14 +362,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
           </Tabs>
         </div>
 
-        <div className="py-2 px-6 border-t dark:border-gray-700">
-          <button
-            onClick={onClose}
-            className="px-2 py-2 bg-primary text-white rounded-md hover:black transition-colors"
-          >
-            Report Issue
-          </button>
-        </div>
+        <div className="py-2 px-6 border-t dark:border-gray-700"></div>
       </div>
     </div>
   );

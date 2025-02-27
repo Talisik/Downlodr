@@ -1,3 +1,12 @@
+/**
+ * Main application component for the React application.
+ * This component defines the structure of the UI, setting up the routing and theming for the app.
+ *
+ * Dependencies:
+ * - React Router: For handling navigation between different pages.
+ * - ThemeProvider: A custom component for managing theme settings.
+ * - Various page components: AllDownloads, Downloading, History, etc.
+ */
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './Components/ThemeProvider';
 import MainLayout from './Layout/MainLayout';

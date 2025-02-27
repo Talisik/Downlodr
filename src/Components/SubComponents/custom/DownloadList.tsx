@@ -1,26 +1,38 @@
+/**
+ * A custom React component
+ * A React component that displays a list of downloads in a table format.
+ * It allows users to view download details and manage downloads through a context menu.
+ *
+ * @param DownloadListProps
+ *   @param downloads - An array of download objects to display in the list.
+ *
+ * @returns JSX.Element - The rendered download list component.
+ */
+
 import React, { useEffect, useRef, useState } from 'react';
 import { LuDownload } from 'react-icons/lu';
 import useDownloadStore, { BaseDownload } from '../../../Store/downloadStore';
 import DownloadContextMenu from './DownloadContextMenu';
 import { toast } from '../shadcn/hooks/use-toast';
 
+// Interface representing the props for the DownloadList component
 interface DownloadListProps {
   downloads: BaseDownload[];
 }
 
 const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   const [contextMenu, setContextMenu] = useState<{
-    downloadId: string;
-    x: number;
-    y: number;
-    downloadLocation?: string;
-    controllerId?: string;
+    downloadId: string; // Unique identifier for the download
+    x: number; // X coordinate for context menu position
+    y: number; // Y coordinate for context menu position
+    downloadLocation?: string; // Location of the download file
+    controllerId?: string; // ID of the controller managing the download
   } | null>(null);
   const [selectedDownloadId, setSelectedDownloadId] = useState<string | null>(
     null,
   );
   const listRef = useRef<HTMLDivElement>(null);
-
+  // Access download store functions
   const addTag = useDownloadStore((state) => state.addTag);
   const removeTag = useDownloadStore((state) => state.removeTag);
   const addCategory = useDownloadStore((state) => state.addCategory);
@@ -30,11 +42,11 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   const availableCategories = useDownloadStore(
     (state) => state.availableCategories,
   );
-
+  // Remove duplicate downloads based on ID
   const uniqueDownloads = [
     ...new Map(downloads.map((item) => [item.id, item])).values(),
   ];
-
+  // Effect to handle clicks outside the list to close the context menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (listRef.current && !listRef.current.contains(event.target as Node)) {
@@ -47,6 +59,12 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
+  /**
+   * Handles the context menu event for a download.
+   *
+   * @param event - The mouse event triggered by right-clicking on a download.
+   * @param download - The download object associated with the context menu.
+   */
   const handleContextMenu = (
     event: React.MouseEvent,
     download: BaseDownload,
@@ -64,6 +82,9 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     setSelectedDownloadId(download.id);
   };
 
+  // Handles the removal of a download.
+  //downloadLocation - The location of the download file.
+  //downloadId - The ID of the download to remove.
   const handleRemove = async (
     downloadLocation?: string,
     downloadId?: string,
@@ -91,14 +112,16 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       });
     }
   };
-
+  // Handles viewing a download.
+  // downloadLocation - The location of the download file.
   const handleViewDownload = (downloadLocation?: string) => {
     if (downloadLocation) {
       window.downlodrFunctions.openVideo(downloadLocation);
     }
     setContextMenu(null);
   };
-
+  // Handles viewing the folder containing the download.
+  // downloadLocation - The location of the download file.
   const handleViewFolder = (downloadLocation?: string) => {
     if (downloadLocation) {
       window.downlodrFunctions.openFolder(downloadLocation);

@@ -1,3 +1,18 @@
+/**
+ * A custom React fixed component
+ * A Fixed element in the header portion of Downlodr, displays the download options that are available through dropdowns such as:
+ *  - File (Has options for Adding new download and closing app)
+ *  - Task (Has options for Stopping or Starting All downloads)
+ *  - Help (Opens Help Modal)
+ *  - Console (Opens Console)
+ *  - Settings (Opens Settings Modal)
+ *  - About (Opens About Modal)
+ *  - History (Navigates to History component)
+ *
+ * @param className - for UI of DropdownBar
+ * @returns DropdownBar
+ *
+ */
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { FaRegClock } from 'react-icons/fa6';
@@ -14,27 +29,32 @@ import HelpModal from '../Modal/HelpModal';
 import { processFileName } from '../../../DataFunctions/FilterName';
 
 const DropdownBar = ({ className }: { className?: string }) => {
+  // Dropdown element states
   const [activeMenu, setActiveMenu] = useState<'file' | 'task' | null>(null);
   const [isSchedulerModalOpen, setSchedulerModalOpen] = useState(false);
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
   const [isAboutModalOpen, setAboutModalOpen] = useState(false);
-  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [isHelpModalOpen, setHelpModalOpen] = useState(false);
+
+  // Selected download for stop and start all
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
 
+  // Misc
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const { toast } = useToast();
 
   const isSchedulePage = ['/scheduleTable', '/scheduleCalendar'].includes(
     location.pathname,
   );
 
-  const { toast } = useToast();
+  // Store
   const { settings } = useMainStore();
   const { downloading } = useDownloadStore();
 
-  // Move useEffect outside of handleOpenDownloadModal
+  // UseEffect for clicking outside dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -123,6 +143,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
     }
   };
 
+  // Handles stopping all current downloads
   const handleStopAll = async () => {
     console.log('Stopping all downloads');
     const { deleteDownloading } = useDownloadStore.getState();
@@ -181,6 +202,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
     // setSelectedDownloading([]);
   };
 
+  // Handles starting all for downloads
   const handleStartAll = async () => {
     const { addDownload, forDownloads, removeFromForDownloads, downloading } =
       useDownloadStore.getState();
@@ -308,7 +330,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
 
         <button
           className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
-          onClick={() => setShowHelpModal(true)}
+          onClick={() => setHelpModalOpen(true)}
         >
           Help
         </button>
@@ -369,8 +391,8 @@ const DropdownBar = ({ className }: { className?: string }) => {
       )}
 
       <HelpModal
-        isOpen={showHelpModal}
-        onClose={() => setShowHelpModal(false)}
+        isOpen={isHelpModalOpen}
+        onClose={() => setHelpModalOpen(false)}
       />
       <SchedulerModal
         isOpen={isSchedulerModalOpen}

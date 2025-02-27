@@ -1,10 +1,22 @@
+/**
+ * A custom React component
+ * A React component that allows users to select a file format for download.
+ * It displays a dropdown menu with available formats and handles format selection.
+ *
+ * @param FormatSelectorProps
+ *   @param download - An object containing details about the download, including formats and status.
+ *   @param onFormatSelect - A function to call when a format is selected.
+ *
+ * @returns JSX.Element - The rendered format selector component.
+ */
+
 import React, { useState } from 'react';
 
 interface Format {
-  value: string;
-  label: string;
-  fileExtension: string;
-  formatId: string;
+  value: string; // Value of the format
+  label: string; // Display label for the format
+  fileExtension: string; // File extension associated with the format
+  formatId: string; // Unique identifier for the format
 }
 
 interface FormatSelectorProps {

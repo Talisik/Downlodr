@@ -1,14 +1,32 @@
+/**
+ *
+ * A React component that displays a context menu for category actions such as renaming
+ * and deleting a category. It provides an interface for users to interact with category
+ * items in a user-friendly manner.
+ *
+ * @param CategoryContextMenuProps
+ *   @param position - An object containing the x and y coordinates for positioning the menu.
+ *   @param categoryName - The name of the category being acted upon.
+ *   @param onClose - A function to call when the menu should be closed.
+ *   @param onRename - A function that takes the old and new category names to handle renaming.
+ *   @param onDelete - A function that takes the category name to handle deletion.
+ *
+ * @returns JSX.Element - The rendered context menu component.
+ */
+
 import React from 'react';
 import { MdEdit, MdDelete } from 'react-icons/md';
 
+// Interface representing the props for the CategoryContextMenu component
 interface CategoryContextMenuProps {
-  position: { x: number; y: number };
-  categoryName: string;
-  onClose: () => void;
-  onRename: (oldName: string, newName: string) => void;
-  onDelete: (category: string) => void;
+  position: { x: number; y: number }; // Position of the context menu
+  categoryName: string; // Name of the category
+  onClose: () => void; // Function to close the menu
+  onRename: (oldName: string, newName: string) => void; // Function to rename the category
+  onDelete: (category: string) => void; // Function to delete the category
 }
 
+// Displays a context menu for category actions such as renaming and deleting.
 const CategoryContextMenu: React.FC<CategoryContextMenuProps> = ({
   position,
   categoryName,
@@ -20,12 +38,17 @@ const CategoryContextMenu: React.FC<CategoryContextMenuProps> = ({
   const [newName, setNewName] = React.useState(categoryName);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
+  // Effect to focus the input when renaming starts
   React.useEffect(() => {
     if (isRenaming && inputRef.current) {
       inputRef.current.focus();
     }
   }, [isRenaming]);
 
+  /**
+   * Handles the renaming of the category.
+   * If the new name is valid, it calls the onRename function and closes the menu.
+   */
   const handleRename = () => {
     if (newName.trim() && newName !== categoryName) {
       onRename(categoryName, newName.trim());

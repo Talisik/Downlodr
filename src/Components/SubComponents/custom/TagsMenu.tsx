@@ -1,13 +1,29 @@
-import React, { useState } from 'react';
+/**
+ * A custom React component
+ * A React component that displays a menu for managing tags.
+ * It allows users to add new tags and select from available tags.
+ *
+ * @param TagMenuProps
+ *   @param downloadId - A unique identifier for the download associated with the tags.
+ *   @param onAddTag - A function to handle adding a new tag.
+ *   @param onRemoveTag - A function to handle removing a tag.
+ *   @param currentTags - An array of currently selected tag names.
+ *   @param availableTags - An array of available tag names to choose from.
+ *   @param menuPositionClass - A string representing CSS classes for positioning the menu.
+ *
+ * @returns JSX.Element - The rendered tag menu component.
+ */
+
+import React, { useState, useEffect } from 'react';
 import { GoPlus } from 'react-icons/go';
 
 interface TagMenuProps {
-  downloadId: string;
-  onAddTag: (downloadId: string, tag: string) => void;
-  onRemoveTag: (downloadId: string, tag: string) => void;
-  currentTags: string[];
-  availableTags: string[];
-  menuPositionClass: string;
+  downloadId: string; // Unique identifier for the download
+  onAddTag: (downloadId: string, tag: string) => void; // Function to add a new tag
+  onRemoveTag: (downloadId: string, tag: string) => void; // Function to remove a tag
+  currentTags: string[]; // Array of currently selected tags
+  availableTags: string[]; // Array of available tags to choose from
+  menuPositionClass: string; // CSS classes for positioning the menu
 }
 
 const TagMenu: React.FC<TagMenuProps> = ({
@@ -21,7 +37,8 @@ const TagMenu: React.FC<TagMenuProps> = ({
   const [newTag, setNewTag] = useState('');
   const menuRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
+  // Adjusts menu location based on element location
+  useEffect(() => {
     if (menuRef.current) {
       const menuRect = menuRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;

@@ -1,9 +1,16 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/**
+ * A custom React component
+ * Shows the About modal for Downlodr, displays features as well as link to official site
+ *
+ * @param isOpen - If modal is open, keeps it open
+ * @param onClose - If modal has been closed, closes modal
+ * @returns JSX.Element - The rendered component displaying a AboutModal
+ *
+ */
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { IoMdClose } from 'react-icons/io';
-import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
-import { useMainStore } from '../../../Store/mainStore';
 import DownlodrLogo from '../../../Assets/Logo/DownlodrLogo-NoName.svg';
 import { FiExternalLink } from 'react-icons/fi';
 
@@ -15,13 +22,8 @@ interface AboutModalProps {
 const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
   const navRef = useRef<HTMLDivElement>(null);
 
-  const resetAboutModal = () => {
-    // hello
-  };
-
   // Close Modal
   const handleClose = () => {
-    resetAboutModal();
     onClose();
   };
 
@@ -31,6 +33,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
     onClose();
   };
 
+  // Handles event when user clicks outside modal
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(event.target as Node)) {

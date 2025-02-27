@@ -1,3 +1,17 @@
+/**
+ * A custom React function
+ * This function takes a video link as input and returns the corresponding
+ * embed URL based on the platform
+ *  - (YouTube, Vimeo, Dailymotion, Facebook, TikTok, Twitter, Twitch).
+ *
+ * It handles various URL formats and extracts
+ * the necessary video ID to construct the embed URL.
+ *
+ * @param link  - The URL of the video to be embedded.
+ *
+ * @returns link   - The embed URL for the video.
+ */
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface VideoUrl {

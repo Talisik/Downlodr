@@ -1,3 +1,11 @@
+/**
+ *
+ * This component displays the history of downloads, allowing users to view and manage their past downloads.
+ * It includes functionalities to delete entries from history and provides visual feedback for actions taken.
+ *
+ * @returns JSX.Element - The rendered component displaying download history.
+ */
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useRef, useState } from 'react';
 import useDownloadStore from '../Store/downloadStore';
@@ -11,7 +19,6 @@ import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 interface FileExistsMap {
   [key: string]: boolean;
 }
-// Pre change of new version
 const History = () => {
   const { historyDownloads, deleteDownload, setDownload } = useDownloadStore();
   const { settings } = useMainStore();
