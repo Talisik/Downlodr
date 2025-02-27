@@ -26,10 +26,9 @@ const createWindow = () => {
     width: 1100,
     height: 600,
     frame: false,
-    // icon: '256x256', //    icon: './src/Assets/appLogo/png 256x256',
     autoHideMenuBar: true,
-    minWidth: 550, // Add minimum width
-    minHeight: 400, // Add minimum height
+    minWidth: 550,
+    minHeight: 400,
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
@@ -109,7 +108,7 @@ ipcMain.handle('getDownloadFolder', async () => {
     return downloadsPath;
   } catch (error) {
     console.error('Error determining Downloads folder:', error);
-    return null; // or a default path if you prefer
+    return null;
   }
 });
 
@@ -137,6 +136,7 @@ ipcMain.handle('validatePath', async (event, folderPath) => {
   }
 });
 
+// open directory to choose location, add path sep to work with different OS
 ipcMain.handle('dialog:openDirectory', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openDirectory'],
@@ -146,6 +146,7 @@ ipcMain.handle('dialog:openDirectory', async () => {
     : result.filePaths[0] + path.sep;
 });
 
+// open folder
 ipcMain.handle('open-folder', async (_, folderPath) => {
   try {
     const result = await shell.openPath(folderPath);
@@ -168,6 +169,7 @@ ipcMain.handle('openVideo', async (event, filePath) => {
   shell.openPath(filePath);
 });
 
+// delete file from drive
 ipcMain.handle('deleteFile', async (event, filepath) => {
   try {
     // Normalize the file path
@@ -189,6 +191,7 @@ ipcMain.handle('deleteFile', async (event, filepath) => {
   }
 });
 
+// adjust pathname to ensure its safe
 ipcMain.handle('normalizePath', async (event, filepath) => {
   try {
     // Normalize the file path
@@ -199,23 +202,21 @@ ipcMain.handle('normalizePath', async (event, filepath) => {
     return '';
   }
 });
-// YTDLP functons
 
-ipcMain.on('ytdlp:playlist:info', async (event, url) => {
-  //console.log('Fetching playlist info for URL:', url);
+// YTDLP functons
+/* ipcMain.on('ytdlp:playlist:info', async (event, url) => {
   try {
     const info = await YTDLP.getPlaylistInfo({
       url: url,
       // ytdlpDownloadDestination: os.tmpdir(),
       // ffmpegDownloadDestination: os.tmpdir(),
     });
-    // console.log(info);
     event.returnValue = info;
   } catch (error) {
     console.error('Error fetching playlist info:', error);
     event.returnValue = { error: 'Failed to fetch playlist info.' };
   }
-});
+}); */
 
 ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
   try {
@@ -224,7 +225,6 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
       //ytdlpDownloadDestination: os.tmpdir(),
       // ffmpegDownloadDestination: os.tmpdir(),
     });
-    // console.log(videoUrl.url);
     return info;
   } catch (error) {
     console.error('Error fetching playlist info:', error);
@@ -240,26 +240,23 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
     if (!info) {
       throw new Error('No info returned from YTDLP.getInfo');
     }
-    // console.log(info.data.formats);
     return info;
   } catch (error) {
     console.error('Error fetching video info:', error);
-    return { error: error.message }; // Optionally send a default response
+    return { error: error.message };
   }
 });
 
+// after identifying ID kill/stop the id
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function killControllerById(id: any) {
   try {
     const controller = YTDLP.getTerminalFromID(id);
-    // const controller2 = YTDLP.Terminal.fromID(id);
 
     if (controller) {
-      controller.kill(); // Call the kill function
-      // console.log(`Controller with ID ${id} has been killed.`);
+      controller.kill();
       return true;
     } else {
-      // console.log(`Controller with ID ${id} not found.`);
       return false;
     }
   } catch (error) {
@@ -268,20 +265,16 @@ function killControllerById(id: any) {
   }
 }
 
+// get the terminal or controller of the download to stop, then call killControllerById
 ipcMain.handle('ytdlp:stop', (e, id: string) => {
   try {
     const terminal = YTDLP.getTerminalFromID(id);
-
     if (!terminal) {
-      //console.log(`No terminal found for ID: ${id}`);
       return false;
     }
-
     terminal.kill('SIGKILL');
-    //console.log('i went through stop and true');
     return true;
   } catch (error) {
-    //console.error('Error stopping download:', error);
     return false;
   }
 });
@@ -290,11 +283,11 @@ ipcMain.handle('kill-controller', async (_, id) => {
   return killControllerById(id); // Call the function and return the result
 });
 
+// download video from link
 ipcMain.handle('ytdlp:download', async (e, id, args) => {
-  //console.log('Downloading...', args);
-
   try {
     const controller = await YTDLP.download({
+      // args needed for download
       args: {
         url: args.url,
         output: args.outputFilepath,
@@ -306,20 +299,11 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
       },
     });
 
-    //console.log('Controller Main:', controller.id);
-    /*console.log(
-      'Controller methods Main:',
-      Object.getOwnPropertyNames(Object.getPrototypeOf(controller)),
-    );*/
-
     if (!controller || typeof controller.listen !== 'function') {
       throw new Error(
         'Controller is not defined or does not have a listen method',
       );
     }
-
-    //  let stopping = false;
-
     // Send the controller ID back to the renderer process
     e.sender.send(`ytdlp:controller:${id}`, {
       downloadId: id,
@@ -327,10 +311,6 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     });
 
     for await (const chunk of controller.listen()) {
-      // if (!stopping) {
-      //  stopping = true;
-      //  setTimeout(() => controller.kill(), 1_000); // Stop the process after 1 second.
-      //  }
       // Send the download status back to the renderer process
       e.sender.send(`ytdlp:download:status:${id}`, chunk);
     }
@@ -362,6 +342,7 @@ app.on('activate', () => {
   }
 });
 
+// function to handle the dev tools or console open
 ipcMain.on('toggle-dev-tools', () => {
   const win = BrowserWindow.getFocusedWindow();
   if (win) {
@@ -373,6 +354,7 @@ ipcMain.on('toggle-dev-tools', () => {
   }
 });
 
+// opening external link
 ipcMain.handle('openExternalLink', async (_event, link: string) => {
   try {
     await shell.openExternal(link);

@@ -6,14 +6,13 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// See the Electron documentation for details on how to use preload scripts:
-// https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
 import { contextBridge, ipcRenderer } from 'electron';
 
+// downlodr exlusive functions
 contextBridge.exposeInMainWorld('downlodrFunctions', {
   invoke: (channel: any, ...args: any) => ipcRenderer.invoke(channel, ...args),
-  closeApp: () => ipcRenderer.send('close-btn'),
+  closeApp: () => ipcRenderer.send('close-btn'), // close app
   openExternalLink: (link: string) =>
     ipcRenderer.invoke('openExternalLink', link),
   minimizeApp: () => ipcRenderer.send('minimize-btn'),
@@ -33,8 +32,8 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
     ipcRenderer.invoke('open-folder', folderPath),
   fileExists: (path: string) => ipcRenderer.invoke('file-exists', path),
 });
-// let isOperationInProgress = false;
 
+// give download a unique id
 function uuidv4() {
   return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) =>
     (
@@ -44,6 +43,7 @@ function uuidv4() {
   );
 }
 
+// Ytdlp exclusive functions
 contextBridge.exposeInMainWorld('ytdlp', {
   getPlaylistInfo: async (url: string) => {
     return await ipcRenderer.invoke('ytdlp:playlist:info', url);

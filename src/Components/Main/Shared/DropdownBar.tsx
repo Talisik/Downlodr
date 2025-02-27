@@ -10,7 +10,7 @@
  *  - History (Navigates to History component)
  *
  * @param className - for UI of DropdownBar
- * @returns DropdownBar
+ * @returns JSX.Element - The rendered component displaying a DropdownBar
  *
  */
 import React, { useState, useRef, useEffect } from 'react';

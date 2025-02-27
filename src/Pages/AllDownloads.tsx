@@ -49,14 +49,17 @@ const formatRelativeTime = (dateString: string) => {
 };
 
 const AllDownloads = () => {
+  // All downloads from different states
   const history = useDownloadStore((state) => state.historyDownloads);
   const downloading = useDownloadStore((state) => state.downloading);
   const forDownloads = useDownloadStore((state) => state.forDownloads);
   const finishedDownloads = useDownloadStore(
     (state) => state.finishedDownloads,
   );
+  // remove download id
   const deleteDownload = useDownloadStore((state) => state.deleteDownload);
 
+  // Tag and Category states and imports
   const availableTags = useDownloadStore((state) => state.availableTags);
   const addTag = useDownloadStore((state) => state.addTag);
   const removeTag = useDownloadStore((state) => state.removeTag);
@@ -65,6 +68,8 @@ const AllDownloads = () => {
   );
   const addCategory = useDownloadStore((state) => state.addCategory);
   const removeCategory = useDownloadStore((state) => state.removeCategory);
+
+  // Selected state management
   const selectedRowIds = useMainStore((state) => state.selectedRowIds);
   const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
   const setSelectedDownloads = useMainStore(

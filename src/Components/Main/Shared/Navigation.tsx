@@ -6,7 +6,7 @@
  *  - Tags (All Tags, Untaged downloads, and then list of individual tags)
  *
  * @param className - for UI of Navigation
- * @returns Navigation
+ * @returns JSX.Element - The rendered component displaying a Navigation
  *
  */
 import React, { useState, useRef, useEffect } from 'react';

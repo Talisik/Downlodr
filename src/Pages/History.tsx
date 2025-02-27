@@ -20,32 +20,39 @@ interface FileExistsMap {
   [key: string]: boolean;
 }
 const History = () => {
+  // get download historical logs and other functions from downloadStore
   const { historyDownloads, deleteDownload, setDownload } = useDownloadStore();
+  // get settings from MainStore
   const { settings } = useMainStore();
-
-  const [products, setProducts] = useState(historyDownloads);
+  // values of longs are based on historical logs
+  const [logs, setLogs] = useState(historyDownloads);
+  // handle selected states
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [allChecked, setAllChecked] = useState(false);
+  // error handling
   const [errorMessage, setErrorMessage] = useState('');
   const [isErrorVisible, setErrorVisible] = useState(false); //error card
   const [errorTitle, setErrorTitle] = useState('');
   const hideErrorCard = () => {
     setErrorVisible(false);
   };
+  // check max download state from settings
   const maxDownload =
     settings.defaultDownloadSpeed === 0
       ? ''
       : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
+  // check if file exists in specific location
   const [fileExistsMap, setFileExistsMap] = useState<FileExistsMap>({});
+  // handle sorting logs
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [sortMenuPosition, setSortMenuPosition] = useState({ x: 0, y: 0 });
   const sortMenuRef = useRef<HTMLDivElement>(null);
-
+  // checkif file exists, if not cross out name
   useEffect(() => {
     const checkAllFiles = async () => {
       const newFileExistsMap: FileExistsMap = {};
-      for (const download of products) {
+      for (const download of logs) {
         const exists = await window.downlodrFunctions.fileExists(
           `${download.location}${download.name}`,
         );
@@ -53,17 +60,14 @@ const History = () => {
       }
       setFileExistsMap(newFileExistsMap);
     };
-
     // Check immediately
     checkAllFiles();
-
     // Set up interval to check every 2 seconds
     const interval = setInterval(checkAllFiles, 2000);
-
     // Cleanup interval on unmount
     return () => clearInterval(interval);
-  }, [products]);
-
+  }, [logs]);
+  // handle context menu
   const [hoveredVideo, setHoveredVideo] = useState<{
     id: number;
     location: string;
@@ -76,7 +80,6 @@ const History = () => {
     const target = event.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
-
     // Calculate position relative to click position instead of row
     let left = event.clientX;
 
@@ -85,7 +88,6 @@ const History = () => {
     if (left + menuWidth > viewportWidth) {
       left = viewportWidth - menuWidth - 10; // 10px padding from edge
     }
-
     // Ensure menu doesn't go beyond left edge
     left = Math.max(10, left);
 
@@ -98,6 +100,7 @@ const History = () => {
     });
   };
 
+  // handle clicking outside context menu
   const handleClickOutside = (event: MouseEvent) => {
     if (
       miniModalRef.current &&
@@ -106,9 +109,9 @@ const History = () => {
       setHoveredVideo(null);
     }
   };
-
+  // updates logs data based on any changes to history inside the store
   useEffect(() => {
-    setProducts(historyDownloads);
+    setLogs(historyDownloads);
   }, [historyDownloads]);
 
   useEffect(() => {
@@ -118,27 +121,7 @@ const History = () => {
     };
   }, []);
 
-  /*
-  const OpenVideoButton = async (videoPath: string) => {
-    try {
-      await window.downlodrFunctions.openVideo(videoPath);
-    } catch {
-      setErrorTitle('Directory Error');
-      setErrorMessage('Failed to open video');
-      setErrorVisible(true);
-    }
-  };
-
-  const handleGoToFolder = async (folderPath: string) => {
-    const response = await window.downlodrFunctions.openFolder(folderPath);
-
-    if (response.success) {
-      console.log('Folder opened successfully!');
-    } else {
-      console.log(`Failed to open folder: ${response.error}`);
-    }
-  }; */
-
+  // handle deleting file
   const handleDelete = async (videoFile: any, id: any) => {
     try {
       if (fileExistsMap[id]) {
@@ -154,16 +137,16 @@ const History = () => {
       deleteDownload(id);
     }
   };
-
+  // handle state of checkboxes when all of them are checked
   useEffect(() => {
-    setAllChecked(selectedItems.length === products.length);
-  }, [selectedItems, products]);
+    setAllChecked(selectedItems.length === logs.length);
+  }, [selectedItems, logs]);
 
   function handleAllCheckboxChange() {
     if (allChecked) {
       setSelectedItems([]);
     } else {
-      setSelectedItems(products.map((product) => product.id));
+      setSelectedItems(logs.map((product) => product.id));
     }
     setAllChecked(!allChecked);
   }
@@ -176,11 +159,12 @@ const History = () => {
     );
   }
 
+  // handle delete selected download
   const handleDeleteSelected = async () => {
     const failedToDelete = [];
     try {
       for (const id of selectedItems) {
-        const video = products.find((product) => product.id === String(id));
+        const video = logs.find((product) => product.id === String(id));
         if (video) {
           console.log('Selected files deleted successfully');
           deleteDownload(video.id);
@@ -207,68 +191,7 @@ const History = () => {
     }
   };
 
-  /*  const handleDeleteSelected = async () => {
-    const failedToDelete = [];
-    try {
-      for (const id of selectedItems) {
-        const video = products.find((product) => product.id === String(id));
-        if (video) {
-          const success = await window.downlodrFunctions.deleteFile(
-            await window.downlodrFunctions.joinDownloadPath(
-              video.location,
-              video.name,
-            ),
-          );
-          if (success) {
-            console.log('Selected files deleted successfully');
-            deleteDownload(video.id);
-          } else {
-            failedToDelete.push(video.name);
-          }
-        }
-      }
-      if (failedToDelete.length > 0) {
-        setErrorTitle('Deletion Error');
-        setErrorMessage(`Failed to delete: ${failedToDelete.join(', ')}`);
-        setErrorVisible(true);
-      }
-      setSelectedItems([]); // Clear selected items after deletion
-    } catch (error) {
-      console.error('Error deleting selected files:', error);
-      console.log(
-        'An error occurred while trying to delete the selected files',
-      );
-    }
-  };
-
-  */
-
-  /* function parseISODate(isoDateString: any) {
-    const dateObject = new Date(isoDateString);
-    let hours = dateObject.getHours();
-    const minutes = String(dateObject.getMinutes()).padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
-    const time = `${hours}:${minutes} ${ampm}`;
-    return time;
-  } */
-
-  /* const groupedProducts = products.reduce(
-    (acc: { [key: string]: typeof products }, product) => {
-      const date = new Date(product.DateAdded).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-      if (!acc[date]) {
-        acc[date] = [];
-      }
-      acc[date].push(product);
-      return acc;
-    },
-    {},
-  );
-*/
+  // handle redownload using setDownload
   const handleRedownload = async (video: any) => {
     setDownload(video.videoUrl, video.location, maxDownload);
     setHoveredVideo(null);
@@ -279,8 +202,8 @@ const History = () => {
     });
   };
 
-  // Add sort function
-  const sortedProducts = [...products].sort((a, b) => {
+  // sort function
+  const sortedlogs = [...logs].sort((a, b) => {
     const dateA = new Date(a.DateAdded).getTime();
     const dateB = new Date(b.DateAdded).getTime();
     return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
@@ -358,7 +281,7 @@ const History = () => {
           </tr>
         </thead>
         <tbody>
-          {sortedProducts.map((product) => (
+          {sortedlogs.map((product) => (
             <tr
               key={product.id}
               className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"

@@ -22,6 +22,8 @@ import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
 import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 
+// Calculation for date added relative to current time
+// returns relative time
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -33,6 +35,7 @@ const formatRelativeTime = (dateString: string) => {
   const diffInMonths = Math.floor(diffInDays / 30);
   const diffInYears = Math.floor(diffInDays / 365);
 
+  // changes time measure depending on diffInMinutes
   if (diffInMinutes < 60) {
     return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
   } else if (diffInHours < 24) {
@@ -48,12 +51,15 @@ const formatRelativeTime = (dateString: string) => {
   }
 };
 
+// completed downloads page component
 const CompletedDownloads = () => {
   const finishedDownloads = useDownloadStore(
     (state) => state.finishedDownloads,
   );
+  // remove download id
   const deleteDownload = useDownloadStore((state) => state.deleteDownload);
 
+  // Tag and Category states and imports
   const availableTags = useDownloadStore((state) => state.availableTags);
   const addTag = useDownloadStore((state) => state.addTag);
   const removeTag = useDownloadStore((state) => state.removeTag);
@@ -62,6 +68,8 @@ const CompletedDownloads = () => {
   );
   const addCategory = useDownloadStore((state) => state.addCategory);
   const removeCategory = useDownloadStore((state) => state.removeCategory);
+
+  // Selected state management
   const selectedRowIds = useMainStore((state) => state.selectedRowIds);
   const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
   const setSelectedDownloads = useMainStore(
@@ -79,7 +87,7 @@ const CompletedDownloads = () => {
     null,
   );
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-
+  // column size values
   const { columns, startResizing } = useResizableColumns([
     { id: 'name', width: 110, minWidth: 110 },
     { id: 'size', width: 60, minWidth: 60 },
@@ -195,6 +203,7 @@ const CompletedDownloads = () => {
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
+  // view downloaded video through openVideo
   const handleViewDownload = (downloadLocation?: string) => {
     if (downloadLocation) {
       window.downlodrFunctions.openVideo(downloadLocation);
@@ -202,6 +211,7 @@ const CompletedDownloads = () => {
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
+  // handles pause, stop and unpause functions depending on download status
   const handleStop = (
     downloadId: string,
     downloadLocation?: string,
@@ -215,12 +225,14 @@ const CompletedDownloads = () => {
     } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
     const currentForDownload = forDownloads.find((d) => d.id === downloadId);
-
+    // if status is paused
     if (currentDownload?.status === 'paused') {
       deleteDownloading(downloadId);
+      // if the download is to download
     } else if (currentForDownload?.status === 'to download') {
       removeFromForDownloads(downloadId);
-    } else {
+    } // if the download is to download
+    else {
       if (downloading && downloading.length > 0) {
         downloading.forEach(async (download) => {
           if (download.controllerId) {

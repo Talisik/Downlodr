@@ -10,6 +10,7 @@ import useDownloadStore from '../../Store/downloadStore';
 import DownloadList from '../../Components/SubComponents/custom/DownloadList';
 
 const TagPage: React.FC = () => {
+  // takes the type of tag from url paramaters
   const { tagId } = useParams<{ tagId: string }>();
   const downloading = useDownloadStore((state) => state.downloading);
   const finishedDownloads = useDownloadStore(

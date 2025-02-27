@@ -4,7 +4,7 @@
  *
  * @param isOpen - If modal is open, keeps it open
  * @param onClose - If modal has been closed, closes modal
- * @returns SettingsModal
+ * @returns JSX.Element - The rendered component displaying a SettingsModal
  *
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */

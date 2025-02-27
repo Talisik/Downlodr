@@ -22,13 +22,8 @@ import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
 import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 
-/* interface Format {
-  value: string;
-  label: string;
-  fileExtension: string;
-  formatId: string;
-}*/
-
+// Calculation for date added relative to current time
+// returns relative time
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -55,6 +50,7 @@ const formatRelativeTime = (dateString: string) => {
   }
 };
 
+// downloading component
 const Downloading = () => {
   const downloading = useDownloadStore((state) => state.downloading);
   const forDownloads = useDownloadStore((state) => state.forDownloads);
