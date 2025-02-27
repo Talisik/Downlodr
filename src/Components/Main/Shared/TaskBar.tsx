@@ -16,14 +16,6 @@ import { GoDownload } from 'react-icons/go';
 import { VscPlayCircle } from 'react-icons/vsc';
 import { PiStopCircle } from 'react-icons/pi';
 import DownloadModal from '../Modal/DownloadModal';
-import { useLocation, NavLink } from 'react-router-dom';
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from '../../SubComponents/shadcn/components/ui/tabs';
-import { RiTable3, RiCalendarLine } from 'react-icons/ri';
-import SchedulerModal from '../Modal/SchedulerModal';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
@@ -37,8 +29,6 @@ interface TaskBarProps {
 const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // Handle state for modal
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
-  const [isSchedulerModalOpen, setSchedulerModalOpen] = useState(false);
-  const location = useLocation();
   const { toast } = useToast();
 
   // Get the max download limit and current downloads from stores
@@ -324,15 +314,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     }
   };
 
-  const isSchedulePage = ['/scheduleTable', '/scheduleCalendar'].includes(
-    location.pathname,
-  );
-
-  // Determine default value based on current path
-  const defaultTab = location.pathname.includes('Calendar')
-    ? 'calendar'
-    : 'table';
-
   // opens download modal
   const handleOpenDownloadModal = () => {
     setDownloadModalOpen(true);
@@ -378,40 +359,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             <LuTrash size={15} className="mt-[0.9px]" /> Remove
           </button>
         </div>
-
-        {/* Move portal container here */}
-        <div className="flex items-center">
-          <div id="taskbar-portal" className="mr-4" />
-          {isSchedulePage && (
-            <Tabs defaultValue={defaultTab} className="w-[100px]">
-              <TabsList className="dark:bg-gray-700">
-                <TabsTrigger
-                  value="table"
-                  asChild
-                  className="dark:data-[state=active]:bg-gray-600 dark:text-gray-200"
-                >
-                  <NavLink to="/scheduleTable" className="w-full">
-                    <RiTable3 size={18} />
-                  </NavLink>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="calendar"
-                  asChild
-                  className="dark:data-[state=active]:bg-gray-600 dark:text-gray-200"
-                >
-                  <NavLink to="/scheduleCalendar" className="w-full">
-                    <RiCalendarLine size={18} />
-                  </NavLink>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
-        </div>
       </div>
-      <SchedulerModal
-        isOpen={isSchedulerModalOpen}
-        onClose={() => setSchedulerModalOpen(false)}
-      />
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setDownloadModalOpen(false)}

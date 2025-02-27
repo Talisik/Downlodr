@@ -14,8 +14,6 @@ import Downloading from './Pages/Downloading';
 import AllDownloads from './Pages/AllDownloads';
 import History from './Pages/History';
 import CompletedDownloads from './Pages/CompletedDownloads';
-import ScheduleTable from './Pages/Scheduler/ScheduleTable';
-import ScheduleCalendar from './Pages/Scheduler/ScheduleCalendar';
 import NotFound from './Pages/SubPages/NotFound';
 import CategoryPage from './Pages/SubPages/CategoryPage';
 import TagPage from './Pages/SubPages/TagsPage';
@@ -32,8 +30,6 @@ const App = () => {
             <Route path="/allDownloads" element={<AllDownloads />} />
             <Route path="/completed" element={<CompletedDownloads />} />
             <Route path="/history" element={<History />} />
-            <Route path="/scheduleTable" element={<ScheduleTable />} />
-            <Route path="/scheduleCalendar" element={<ScheduleCalendar />} />
             <Route path="/category/:categoryId" element={<CategoryPage />} />
             <Route path="/tags/:tagId" element={<TagPage />} />
             <Route path="*" element={<NotFound />} />

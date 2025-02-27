@@ -14,11 +14,9 @@
  *
  */
 import React, { useState, useRef, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { FaRegClock } from 'react-icons/fa6';
+import { NavLink } from 'react-router-dom';
 import { IoIosAdd } from 'react-icons/io';
 import { RxExit } from 'react-icons/rx';
-import SchedulerModal from '../Modal/SchedulerModal';
 import DownloadModal from '../Modal/DownloadModal';
 import SettingsModal from '../Modal/SettingsModal';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
@@ -31,7 +29,6 @@ import { processFileName } from '../../../DataFunctions/FilterName';
 const DropdownBar = ({ className }: { className?: string }) => {
   // Dropdown element states
   const [activeMenu, setActiveMenu] = useState<'file' | 'task' | null>(null);
-  const [isSchedulerModalOpen, setSchedulerModalOpen] = useState(false);
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
   const [isAboutModalOpen, setAboutModalOpen] = useState(false);
@@ -39,12 +36,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
 
   // Misc
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const location = useLocation();
   const { toast } = useToast();
-
-  const isSchedulePage = ['/scheduleTable', '/scheduleCalendar'].includes(
-    location.pathname,
-  );
 
   // Store
   const { settings } = useMainStore();
@@ -256,13 +248,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
         >
           Help
         </button>
-
-        {/*  <button className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-          <NavLink to="/scheduleTable" className={'scheduler font-semibold'}>
-            <span className="ml-2">Scheduler</span>
-          </NavLink>{' '}
-        </button>*/}
-
         <button
           className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
           onClick={() => window.electronDevTools.toggle()}
@@ -298,27 +283,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
       </div>
 
       {/* Right side button */}
-      {isSchedulePage && (
-        <button
-          className="primary-custom-btn px-[6px] py-[3px] sm:px-[8px] sm:py-[4px] mr-2 sm:mr-4 flex items-center gap-1 sm:gap-2 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
-          onClick={() => {
-            setSchedulerModalOpen(true);
-            setActiveMenu(null);
-          }}
-        >
-          <FaRegClock size={12} className="sm:w-[14px] sm:h-[14px]" />
-          <span className="hidden sm:inline">Create Schedule</span>
-          <span className="sm:hidden">Schedule</span>
-        </button>
-      )}
-
       <HelpModal
         isOpen={isHelpModalOpen}
         onClose={() => setHelpModalOpen(false)}
-      />
-      <SchedulerModal
-        isOpen={isSchedulerModalOpen}
-        onClose={() => setSchedulerModalOpen(false)}
       />
 
       <SettingsModal
