@@ -37,10 +37,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const [isAboutModalOpen, setAboutModalOpen] = useState(false);
   const [isHelpModalOpen, setHelpModalOpen] = useState(false);
 
-  // Selected download for stop and start all
-  const selectedDownloads = useMainStore((state) => state.selectedDownloads);
-  const clearAllSelections = useMainStore((state) => state.clearAllSelections);
-
   // Misc
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -68,80 +64,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handlePlaySelected = async () => {
-    if (selectedDownloads.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: 'No Downloads Selected',
-        description: 'Please select downloads to play',
-      });
-      return;
-    }
-
-    const { addDownload, forDownloads, removeFromForDownloads, downloading } =
-      useDownloadStore.getState();
-
-    // Filter selected downloads to only include those in forDownloads and remove duplicates
-    const validDownloads = selectedDownloads.filter((download) =>
-      forDownloads.some((fd) => fd.id === download.id),
-    );
-    const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))]
-      .map((id) => validDownloads.find((d) => d.id === id))
-      .filter((d): d is (typeof validDownloads)[0] => d !== undefined);
-
-    // Clear selections immediately after filtering
-    clearAllSelections();
-
-    if (
-      uniqueDownloads.length > settings.maxDownloadNum ||
-      downloading.length >= settings.maxDownloadNum
-    ) {
-      toast({
-        variant: 'destructive',
-        title: 'Download limit reached',
-        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
-      });
-      return;
-    }
-
-    for (const selectedDownload of uniqueDownloads) {
-      const downloadInfo = forDownloads.find(
-        (d) => d.id === selectedDownload.id,
-      );
-
-      if (downloadInfo) {
-        const processedName = await processFileName(
-          downloadInfo.location,
-          downloadInfo.name,
-          downloadInfo.ext || downloadInfo.audioExt,
-        );
-
-        addDownload(
-          downloadInfo.videoUrl,
-          `${processedName}.${downloadInfo.ext}`,
-          `${processedName}.${downloadInfo.ext}`,
-          downloadInfo.size,
-          downloadInfo.speed,
-          downloadInfo.timeLeft,
-          new Date().toISOString(),
-          downloadInfo.progress,
-          downloadInfo.location,
-          'downloading',
-          downloadInfo.ext,
-          downloadInfo.formatId,
-          downloadInfo.audioExt,
-          downloadInfo.audioFormatId,
-          downloadInfo.extractorKey,
-          settings.defaultDownloadSpeed === 0
-            ? ''
-            : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
-        );
-        removeFromForDownloads(selectedDownload.id);
-      }
-    }
-  };
 
   // Handles stopping all current downloads
   const handleStopAll = async () => {

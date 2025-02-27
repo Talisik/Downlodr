@@ -1,5 +1,5 @@
 /**
- *
+ * A custom React component
  * A React component that displays a context menu for category actions such as renaming
  * and deleting a category. It provides an interface for users to interact with category
  * items in a user-friendly manner.
