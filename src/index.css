@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+  /* body */
+
+body {
+  font-family: Roboto;
+  font-size: 14px;
+}
+
+/* end of body*
+
+/* custom scroll bar */
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;  /* Width of the scrollbar */
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;  /* Track background */
+  margin-bottom: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;  /* Scrollbar color */
+  border-radius: 4px;  /* Rounded corners */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #666;  /* Darker on hover */
+}
+
+/* Hide scrollbar buttons */
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* end of custom scroll bar */
+/* Draggable */
+
+.drag-area {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* end of draggable*/
+
+/*Navigation*/
+
+.nav-link {
+  @apply block w-4/5 text-left px-3 py-2 rounded flex flex-row;
+  font-family: Roboto;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+  text-align: left;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
+}
+
+.nav-link.active {
+  @apply bg-gray-100;
+  @apply dark:bg-gray-700;
+
+}
+
+.scheduler.active {
+  @apply text-primary;
+}
+
+.nav-link:not(.active):hover {
+  @apply bg-gray-100;
+  @apply dark:bg-gray-700;
+}
+
+/*Navigation end*/
+
+
+/* buttons */
+
+.primary-custom-btn{
+  @apply bg-primary text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex gap-2 text-sm
+}
+
+.primary-custom-btn:hover{
+  @apply bg-black  dark:bg-gray-100;
+
+}
