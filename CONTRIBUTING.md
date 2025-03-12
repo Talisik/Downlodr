@@ -118,6 +118,7 @@ The project uses ESLint and Prettier for code formatting and linting. The config
 
 ## Project Structure
 
+<pre>
 downlodr/
 ├── src/                    # Source code
 │   ├── Assets/             # Images, icons, and other static assets
@@ -136,6 +137,7 @@ downlodr/
 │   └── main.ts             # Electron main process
 ├── forge.config.ts         # Electron Forge configuration
 └── package.json            # Project dependencies and scripts
+</pre>
 
 ## Testing
 
@@ -148,7 +150,7 @@ Currently, the project does not have automated tests. If you're adding tests:
 
 - Add JSDoc comments to all functions, components, and complex code
 - Follow the existing documentation style:
-
+<pre>
 /**
  * A custom React component
  * Brief description of what the component does
@@ -156,6 +158,7 @@ Currently, the project does not have automated tests. If you're adding tests:
  * @param props - Description of props
  * @returns JSX.Element - The rendered component
  */
+</pre>
 
 ## Reporting Bugs
 
