@@ -22,6 +22,7 @@ Current application has only been packaged for Windows.
 - **ElectronJS**: Framework for building cross-platform desktop applications.
 - **Electron Forge**: Packaging and distribution tool for Electron applications.
 - **YTDLP**: Command-line tool for audio and video downloads from various platforms.
+- **FFMPEG**: Multimedia framework that provides users with the ability to process and manipulate audio and video files.
 - **React**: JavaScript library for building user interfaces.
 - **Vite**: Local development server.
 - **Zustand**: Small, fast state-management solution.
@@ -104,5 +105,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- The yt-dlp project for providing the core downloading functionality
+- The yt-dlp project and FFMPEG project for providing the core downloading functionality
 - All contributors who have helped make Downlodr better.
