@@ -8,6 +8,8 @@ Built with Electron Forge and Vite, Downlodr offers a modern desktop experience 
 
 Current application has only been packaged for Windows.
 
+To download current version and learn more about Downlodr, visit site: <a href="https://downlodr.com/">Downlodr Official Site</a>
+
 ## Features
 
 - **Download Management**: Track the status of downloads, including currently downloading, finished, and historical download logs
