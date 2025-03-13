@@ -63,16 +63,16 @@ To download current version and learn more about Downlodr, visit site: <a href="
 ### Running the Application
 
 To start the application in development mode:
-
+   ```
 yarn start
-
+   ```
 
 ### Building and Packaging
 
 To build and package the application:
-
+   ```
 yarn make
-
+   ```
 
 This will create distributable packages for your platform in the `out` directory.
 
