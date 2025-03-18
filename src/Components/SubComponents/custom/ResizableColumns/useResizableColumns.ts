@@ -28,6 +28,12 @@ export const useResizableColumns = (initialColumns: Column[]) => {
     startX: number;
     startWidth: number;
   } | null>(null);
+  // State to track dragging
+  const [dragging, setDragging] = useState<{
+    columnId: string;
+    index: number;
+  } | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // UseEffect to handle mouse movement during resizing
   useEffect(() => {
@@ -90,6 +96,45 @@ export const useResizableColumns = (initialColumns: Column[]) => {
       startWidth: column.width,
     });
   };
-  // Return the current columns and the startResizing function
-  return { columns, startResizing };
+
+  // Start dragging a column
+  const startDragging = (columnId: string, index: number) => {
+    setDragging({ columnId, index });
+  };
+
+  // Handle drag over another column
+  const handleDragOver = (index: number) => {
+    if (dragging && index !== dragging.index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  // Handle drop to reorder columns
+  const handleDrop = () => {
+    if (
+      dragging &&
+      dragOverIndex !== null &&
+      dragOverIndex !== dragging.index
+    ) {
+      setColumns((prevColumns) => {
+        const newColumns = [...prevColumns];
+        const [draggedColumn] = newColumns.splice(dragging.index, 1);
+        newColumns.splice(dragOverIndex, 0, draggedColumn);
+        return newColumns;
+      });
+    }
+    setDragging(null);
+    setDragOverIndex(null);
+  };
+
+  // Return the current columns and functions
+  return {
+    columns,
+    startResizing,
+    startDragging,
+    handleDragOver,
+    handleDrop,
+    dragging,
+    dragOverIndex,
+  };
 };
