@@ -59,6 +59,10 @@ const AllDownloads = () => {
   // remove download id
   const deleteDownload = useDownloadStore((state) => state.deleteDownload);
 
+  // Add sorting state
+  const [sortColumn, setSortColumn] = useState<string>('dateAdded');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
   // Tag and Category states and imports
   const availableTags = useDownloadStore((state) => state.availableTags);
   const addTag = useDownloadStore((state) => state.addTag);
@@ -94,7 +98,6 @@ const AllDownloads = () => {
     { id: 'format', width: 80, minWidth: 80 },
     { id: 'status', width: 80, minWidth: 80 },
     { id: 'speed', width: 80, minWidth: 80 },
-    { id: 'timeLeft', width: 90, minWidth: 80 },
     { id: 'dateAdded', width: 100, minWidth: 100 },
   ]);
 
@@ -109,10 +112,92 @@ const AllDownloads = () => {
       (download, index, self) =>
         index === self.findIndex((d) => d.id === download.id),
     )
-    .sort(
-      (a, b) =>
-        new Date(b.DateAdded).getTime() - new Date(a.DateAdded).getTime(),
-    ); // Sort by date, newest first
+    .sort((a, b) => {
+      // Apply sorting based on sortColumn and sortDirection
+      switch (sortColumn) {
+        case 'name':
+          return sortDirection === 'asc'
+            ? a.name.localeCompare(b.name)
+            : b.name.localeCompare(a.name);
+        case 'size': {
+          const sizeA = a.size || 0;
+          const sizeB = b.size || 0;
+          return sortDirection === 'asc' ? sizeA - sizeB : sizeB - sizeA;
+        }
+        case 'format': {
+          const formatA = a.ext || '';
+          const formatB = b.ext || '';
+          return sortDirection === 'asc'
+            ? formatA.localeCompare(formatB)
+            : formatB.localeCompare(formatA);
+        }
+        case 'status': {
+          return sortDirection === 'asc'
+            ? a.status.localeCompare(b.status)
+            : b.status.localeCompare(a.status);
+        }
+        case 'speed': {
+          // Handle speed sorting (numbers with units)
+          const speedA = a.speed ? parseFloat(a.speed.split(' ')[0]) || 0 : 0;
+          const speedB = b.speed ? parseFloat(b.speed.split(' ')[0]) || 0 : 0;
+          return sortDirection === 'asc' ? speedA - speedB : speedB - speedA;
+        }
+        case 'dateAdded': {
+          return sortDirection === 'asc'
+            ? new Date(a.DateAdded).getTime() - new Date(b.DateAdded).getTime()
+            : new Date(b.DateAdded).getTime() - new Date(a.DateAdded).getTime();
+        }
+        case 'source': {
+          const sourceA = a.extractorKey || '';
+          const sourceB = b.extractorKey || '';
+          return sortDirection === 'asc'
+            ? sourceA.localeCompare(sourceB)
+            : sourceB.localeCompare(sourceA);
+        }
+        default: {
+          return sortDirection === 'asc'
+            ? new Date(a.DateAdded).getTime() - new Date(b.DateAdded).getTime()
+            : new Date(b.DateAdded).getTime() - new Date(a.DateAdded).getTime();
+        }
+      }
+    });
+
+  // Handle column header click for sorting
+  const handleSortClick = (column: string) => {
+    if (sortColumn === column) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new column and default to desc
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  // Function to render sort indicator
+  const renderSortIndicator = (column: string) => {
+    if (sortColumn !== column) {
+      return (
+        <HiChevronUpDown
+          size={14}
+          className="flex-shrink-0 dark:text-gray-400"
+        />
+      );
+    }
+
+    if (sortDirection === 'asc') {
+      return (
+        <HiChevronUpDown
+          size={14}
+          className="flex-shrink-0 text-blue-500 rotate-180"
+        />
+      );
+    } else {
+      return (
+        <HiChevronUpDown size={14} className="flex-shrink-0 text-blue-500" />
+      );
+    }
+  };
 
   // Close Menu and clear selected download when clicking outside
   useEffect(() => {
@@ -426,51 +511,81 @@ const AllDownloads = () => {
               width={columns[0].width}
               onResizeStart={(e) => startResizing('name', e.clientX)}
             >
-              Schedule
+              <div
+                className="flex items-center dark:text-gray-200 cursor-pointer"
+                onClick={() => handleSortClick('name')}
+              >
+                Title
+                {renderSortIndicator('name')}
+              </div>
             </ResizableHeader>
             <ResizableHeader
               width={columns[1].width}
               onResizeStart={(e) => startResizing('size', e.clientX)}
             >
-              Size
+              <div
+                className="flex items-center dark:text-gray-200 cursor-pointer"
+                onClick={() => handleSortClick('size')}
+              >
+                Size
+                {renderSortIndicator('size')}
+              </div>
             </ResizableHeader>
             <ResizableHeader
               width={columns[2].width}
               onResizeStart={(e) => startResizing('format', e.clientX)}
             >
-              Format
+              <div
+                className="flex items-center dark:text-gray-200 cursor-pointer"
+                onClick={() => handleSortClick('format')}
+              >
+                Format
+                {renderSortIndicator('format')}
+              </div>
             </ResizableHeader>
             <ResizableHeader
               width={columns[3].width}
               onResizeStart={(e) => startResizing('status', e.clientX)}
             >
-              Status
+              <div
+                className="flex items-center dark:text-gray-200 cursor-pointer"
+                onClick={() => handleSortClick('status')}
+              >
+                Status
+                {renderSortIndicator('status')}
+              </div>
             </ResizableHeader>
             <ResizableHeader
               width={columns[4].width}
               onResizeStart={(e) => startResizing('speed', e.clientX)}
             >
-              Speed
+              <div
+                className="flex items-center dark:text-gray-200 cursor-pointer"
+                onClick={() => handleSortClick('speed')}
+              >
+                Speed
+                {renderSortIndicator('speed')}
+              </div>
             </ResizableHeader>
             <ResizableHeader
               width={columns[5].width}
-              onResizeStart={(e) => startResizing('timeLeft', e.clientX)}
-            >
-              Time Left
-            </ResizableHeader>
-            <ResizableHeader
-              width={columns[6].width}
               onResizeStart={(e) => startResizing('dateAdded', e.clientX)}
             >
-              Date Added
+              <div
+                className="flex items-center dark:text-gray-200 cursor-pointer"
+                onClick={() => handleSortClick('dateAdded')}
+              >
+                Date Added
+                {renderSortIndicator('dateAdded')}
+              </div>
             </ResizableHeader>
-            <th className="w-20 p-2 font-semibold">
+            <th
+              className="w-20 p-2 font-semibold cursor-pointer"
+              onClick={() => handleSortClick('source')}
+            >
               <div className="flex items-center dark:text-gray-200">
                 Source
-                <HiChevronUpDown
-                  size={14}
-                  className="flex-shrink-0 dark:text-gray-400"
-                />
+                {renderSortIndicator('source')}
               </div>
             </th>
           </tr>
@@ -616,16 +731,6 @@ const AllDownloads = () => {
                 </td>
                 <td
                   style={{ width: columns[5].width }}
-                  className="p-2 dark:text-gray-200"
-                >
-                  {download.status === 'downloading' ? (
-                    <span>{download.timeLeft}</span>
-                  ) : (
-                    <span>—</span>
-                  )}{' '}
-                </td>
-                <td
-                  style={{ width: columns[6].width }}
                   className="p-2 dark:text-gray-200"
                 >
                   {formatRelativeTime(download.DateAdded)}
