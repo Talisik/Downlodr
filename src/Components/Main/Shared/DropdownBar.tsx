@@ -20,11 +20,14 @@ import { RxExit } from 'react-icons/rx';
 import DownloadModal from '../Modal/DownloadModal';
 import SettingsModal from '../Modal/SettingsModal';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
-import useDownloadStore from '../../../Store/downloadStore';
+import useDownloadStore, {
+  HistoryDownloads,
+} from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import AboutModal from '../Modal/AboutModal';
 import HelpModal from '../Modal/HelpModal';
 import { processFileName } from '../../../DataFunctions/FilterName';
+import { FiSearch } from 'react-icons/fi';
 
 const DropdownBar = ({ className }: { className?: string }) => {
   // Dropdown element states
@@ -40,7 +43,63 @@ const DropdownBar = ({ className }: { className?: string }) => {
 
   // Store
   const { settings } = useMainStore();
-  const { downloading } = useDownloadStore();
+  const { downloading, historyDownloads } = useDownloadStore();
+
+  // Add search functionality
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showResults, setShowResults] = useState(false);
+  const [searchResults, setSearchResults] = useState<HistoryDownloads[]>([]);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Filter search results when search term changes
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setSearchResults([]);
+      return;
+    }
+    console.log(searchTerm);
+    console.log(historyDownloads);
+    const results = historyDownloads.filter((download) =>
+      download.name.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+
+    setSearchResults(results);
+  }, [searchTerm, historyDownloads]);
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Handle opening the video file
+  const handleOpenVideo = async (download: HistoryDownloads) => {
+    try {
+      const fullPath = `${download.location}${download.name}`;
+      window.downlodrFunctions.openVideo(fullPath);
+    } catch (error) {
+      console.error('Error opening file:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error Opening File',
+        description: 'An error occurred while trying to open the file',
+      });
+    }
+
+    setShowResults(false);
+    setSearchTerm('');
+  };
 
   // UseEffect for clicking outside dropdowns
   useEffect(() => {
@@ -174,7 +233,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
 
   return (
     <div
-      className={`${className} flex items-center justify-between relative z-48`}
+      className={`${className} flex items-center justify-between relative z-48 py-4`}
       ref={dropdownRef}
     >
       <div className="flex items-center gap-4">
@@ -280,6 +339,58 @@ const DropdownBar = ({ className }: { className?: string }) => {
         >
           <span> History</span>
         </NavLink>
+      </div>
+      {/* Search Bar with increased width */}
+      <div ref={searchRef} className="relative my-10 mr-6 w-1/4">
+        <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-md px-2">
+          <FiSearch className="text-gray-500 dark:text-gray-400 h-4 w-4 mr-1" />
+          <input
+            type="text"
+            placeholder="Search downloads..."
+            className="py-1 px-2 bg-transparent focus:outline-none text-sm w-full"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              if (e.target.value.trim() !== '') {
+                setShowResults(true);
+              } else {
+                setShowResults(false);
+              }
+            }}
+            onFocus={() => {
+              if (searchTerm.trim() !== '') {
+                setShowResults(true);
+              }
+            }}
+          />
+        </div>
+
+        {/* Search Results Dropdown */}
+        {showResults && searchResults.length > 0 && (
+          <div className="absolute top-full left-0 mt-1 w-full max-h-60 overflow-y-auto bg-white dark:bg-gray-800 rounded-md shadow-lg z-10">
+            {searchResults.map((download) => (
+              <div
+                key={download.id}
+                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm truncate"
+                onClick={() => handleOpenVideo(download)}
+                title={download.name}
+              >
+                {download.name}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* No Results Message */}
+        {showResults &&
+          searchTerm.trim() !== '' &&
+          searchResults.length === 0 && (
+            <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10">
+              <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                No downloads found
+              </div>
+            </div>
+          )}
       </div>
 
       {/* Right side button */}

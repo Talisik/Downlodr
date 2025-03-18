@@ -331,6 +331,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             <span className="hidden sm:inline">Add URL</span>
             <span className="sm:hidden"> Add URL</span>
           </button>
+
           <button
             className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={handlePlaySelected}

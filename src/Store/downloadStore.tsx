@@ -78,12 +78,12 @@ interface Downloading extends BaseDownload {
 }
 
 // Interface for finished downloads
-interface FinishedDownloads extends BaseDownload {
+export interface FinishedDownloads extends BaseDownload {
   status: string; // Status of the finished download
 }
 
 // Interface for historical downloads
-interface HistoryDownloads extends BaseDownload {
+export interface HistoryDownloads extends BaseDownload {
   status: string; // Status of the historical download
 }
 
