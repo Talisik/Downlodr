@@ -28,6 +28,7 @@ declare global {
         folderPath: string,
       ) => Promise<{ success: boolean; error?: string }>; // Opens a specified folder
       fileExists: (path: string) => Promise<boolean>; // Checks if a file exists at the specified path
+      showInputContextMenu: () => void; // Shows the input field context menu (right-click menu)
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist

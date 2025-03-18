@@ -307,6 +307,10 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                       disabled={isLoading}
                       value={videoUrl}
                       onChange={(e) => handleUrl(e.target.value)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        window.downlodrFunctions.showInputContextMenu();
+                      }}
                       className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
                     />
                   </div>

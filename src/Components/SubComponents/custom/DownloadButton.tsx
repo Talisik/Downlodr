@@ -93,15 +93,20 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
   };
 
   return (
-    <button onClick={handleDownloadClick} className="text-left">
-      <AnimatedCircularProgressBar
-        status={download.status}
-        max={100}
-        min={0}
-        value={download.progress}
-        gaugePrimaryColor="#4CAF50"
-        gaugeSecondaryColor="#EEEEEE"
-      />{' '}
+    <button onClick={handleDownloadClick} className="text-left relative">
+      <div className="relative">
+        {download.status === 'to download' && (
+          <div className="absolute top-0 right-[-14px] transform -translate-x-1/2 w-3 h-3 rounded-full bg-green-500 animate-pulse z-10"></div>
+        )}
+        <AnimatedCircularProgressBar
+          status={download.status}
+          max={100}
+          min={0}
+          value={download.progress}
+          gaugePrimaryColor="#4CAF50"
+          gaugeSecondaryColor="#EEEEEE"
+        />
+      </div>{' '}
     </button>
   );
 };

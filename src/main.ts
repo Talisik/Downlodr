@@ -4,7 +4,7 @@
  * handling IPC (Inter-Process Communication) events, and managing
  * application lifecycle events.
  */
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from 'electron';
 import path from 'path';
 import started from 'electron-squirrel-startup';
 import os from 'os';
@@ -352,6 +352,20 @@ ipcMain.on('toggle-dev-tools', () => {
       win.webContents.openDevTools();
     }
   }
+});
+
+// allows right click functions
+ipcMain.on('show-input-context-menu', (event) => {
+  const menu = Menu.buildFromTemplate([
+    { label: 'Cut', role: 'cut' },
+    { label: 'Copy', role: 'copy' },
+    { label: 'Paste', role: 'paste' },
+    { type: 'separator' },
+    { label: 'Select All', role: 'selectAll' },
+  ]);
+
+  const win = BrowserWindow.fromWebContents(event.sender);
+  menu.popup({ window: win });
 });
 
 // opening external link

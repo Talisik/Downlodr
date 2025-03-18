@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
   openFolder: (folderPath: string) =>
     ipcRenderer.invoke('open-folder', folderPath),
   fileExists: (path: string) => ipcRenderer.invoke('file-exists', path),
+  showInputContextMenu: () => ipcRenderer.send('show-input-context-menu'),
 });
 
 // give download a unique id
