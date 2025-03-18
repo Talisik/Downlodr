@@ -24,15 +24,22 @@ import TagContextMenu from '../../SubComponents/custom/TagContextMenu';
 const Navigation = ({ className }: { className?: string }) => {
   // states for opening and closing navigation sections
   const [openSections, setOpenSections] = useState({
-    status: true,
     category: false,
     tag: false,
   });
+  // New state for All navigation dropdown
+  const [showStatusSubItems, setShowStatusSubItems] = useState(false);
+
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
+  };
+
+  // Toggle status sub-items on double click
+  const toggleStatusSubItems = () => {
+    setShowStatusSubItems((prev) => !prev);
   };
 
   // Context menu for Tags and Category
@@ -95,34 +102,24 @@ const Navigation = ({ className }: { className?: string }) => {
       ref={navRef}
       className={`${className} border-solid border-r-2 border-gray-200 dark:border-gray-700`}
     >
-      <div className="p-2 space-y-2 ml-2">
-        {/* Status Section */}
-        <div>
-          <button
-            onClick={() => toggleSection('status')}
-            className="w-full flex items-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
+      <div className="p-2 pt-6 space-y-2 ml-2">
+        {/* All Navigation with sub-items on double-click */}
+        <div className="space-y-1">
+          <NavLink
+            to="/allDownloads"
+            className={({ isActive }) =>
+              `nav-link ${
+                isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+              } dark:text-gray-200 dark:hover:bg-gray-700`
+            }
+            onDoubleClick={toggleStatusSubItems}
           >
-            {openSections.status ? (
-              <HiChevronDown size={18} />
-            ) : (
-              <HiChevronRight size={18} />
-            )}
-            <span className="ml-2 text-sm font-semibold">Status</span>
-          </button>
+            <CiFolderOn className="text-gray-600 dark:text-gray-400 text-lg flex-shrink-0" />
+            <span className="ml-2">All</span>
+          </NavLink>
 
-          {openSections.status && (
+          {showStatusSubItems && (
             <div className="ml-4 space-y-1">
-              <NavLink
-                to="/allDownloads"
-                className={({ isActive }) =>
-                  `nav-link ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
-                }
-              >
-                <CiFolderOn className="text-gray-600 dark:text-gray-400 text-lg flex-shrink-0" />
-                <span className="ml-2">All</span>
-              </NavLink>
               <NavLink
                 to="/downloading"
                 className={({ isActive }) =>
