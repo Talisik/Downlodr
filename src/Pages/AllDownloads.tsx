@@ -195,16 +195,9 @@ const AllDownloads = () => {
     }
 
     if (sortDirection === 'asc') {
-      return (
-        <HiChevronUpDown
-          size={14}
-          className="flex-shrink-0 text-blue-500 rotate-180"
-        />
-      );
+      return <HiChevronUpDown size={14} className="flex-shrink-0 rotate-180" />;
     } else {
-      return (
-        <HiChevronUpDown size={14} className="flex-shrink-0 text-blue-500" />
-      );
+      return <HiChevronUpDown size={14} className="flex-shrink-0" />;
     }
   };
 

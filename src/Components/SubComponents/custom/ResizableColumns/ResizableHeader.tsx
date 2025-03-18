@@ -18,7 +18,6 @@
  *
  */
 import React from 'react';
-import { HiOutlineDotsVertical } from 'react-icons/hi';
 
 interface ResizableHeaderProps {
   children: React.ReactNode;
@@ -63,27 +62,21 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
       }}
       data-column-id={columnId}
     >
-      <div className="flex items-center gap-1">
-        {/* Dedicated drag handle */}
-        {onDragStart && (
-          <div
-            className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded mr-1"
-            draggable
-            onDragStart={() =>
-              index !== undefined &&
-              columnId !== undefined &&
-              onDragStart &&
-              onDragStart(columnId, index)
-            }
-          >
-            <HiOutlineDotsVertical
-              size={14}
-              className="text-gray-500 dark:text-gray-400"
-            />
-          </div>
-        )}
+      {/* Main header content - draggable */}
+      <div
+        className="flex items-center w-full cursor-grab active:cursor-grabbing p-1 mr-1"
+        draggable={onDragStart ? true : false}
+        onDragStart={() =>
+          index !== undefined &&
+          columnId !== undefined &&
+          onDragStart &&
+          onDragStart(columnId, index)
+        }
+      >
         {children}
       </div>
+
+      {/* Resize handle - not draggable */}
       <div
         className="absolute right-0 top-0 h-full w-6 cursor-col-resize hover:bg-blue-500/20 group -mr-3"
         onMouseDown={(e) => {
@@ -91,6 +84,7 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
           e.stopPropagation();
           onResizeStart(e);
         }}
+        draggable={false}
       >
         <div className="absolute right-[7px] top-0 h-full w-[3px] bg-gray-300 dark:bg-gray-700 group-hover:bg-blue-500" />
       </div>
