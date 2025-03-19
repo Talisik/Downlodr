@@ -104,10 +104,10 @@ const AllDownloads = () => {
     { id: 'name', width: 110, minWidth: 110 },
     { id: 'size', width: 60, minWidth: 60 },
     { id: 'format', width: 80, minWidth: 80 },
-    { id: 'status', width: 80, minWidth: 80 },
-    { id: 'speed', width: 80, minWidth: 80 },
-    { id: 'dateAdded', width: 100, minWidth: 100 },
-    { id: 'source', width: 80, minWidth: 80 },
+    { id: 'status', width: 110, minWidth: 110 },
+    { id: 'speed', width: 70, minWidth: 70 },
+    { id: 'dateAdded', width: 90, minWidth: 90 },
+    { id: 'source', width: 60, minWidth: 60 },
   ]);
 
   // Combine downloads from downloading and history
@@ -504,7 +504,7 @@ const AllDownloads = () => {
             <th className="w-8 p-2">
               <input
                 type="checkbox"
-                className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
+                className=" ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                 checked={selectedRowIds.length === allDownloads.length}
                 onChange={handleSelectAll}
               />
@@ -554,7 +554,7 @@ const AllDownloads = () => {
                 <td className="w-8 p-2">
                   <input
                     type="checkbox"
-                    className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
+                    className=" ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                     checked={selectedRowIds.includes(download.id)}
                     onChange={() => handleCheckboxChange(download.id)}
                   />
@@ -588,7 +588,7 @@ const AllDownloads = () => {
                         <td
                           key={column.id}
                           style={{ width: column.width }}
-                          className="p-2 dark:text-gray-200"
+                          className="p-2 dark:text-gray-200 ml-2"
                         >
                           {download.status === 'getting metadata' ? (
                             <div className="space-y-1">
@@ -596,7 +596,7 @@ const AllDownloads = () => {
                               <Skeleton className="h-4 w-[70px] rounded-[3px]" />
                             </div>
                           ) : (
-                            <div className="line-clamp-2 break-words">
+                            <div className="line-clamp-2 break-words ml-1">
                               {download.size
                                 ? `${(download.size / 1048576).toFixed(2)} MB`
                                 : '—'}{' '}
@@ -609,9 +609,9 @@ const AllDownloads = () => {
                         <td
                           key={column.id}
                           style={{ width: column.width }}
-                          className="p-2"
+                          className="p-2 ml-2"
                         >
-                          <div className="flex items-center">
+                          <div className="flex items-center ml-1">
                             <span className="text-sm text-gray-600 dark:text-gray-300">
                               {download.status === 'getting metadata' ? (
                                 <div className="space-y-1">
@@ -651,12 +651,21 @@ const AllDownloads = () => {
                           className="p-2"
                         >
                           <div className="flex justify-start">
-                            <span className="text-sm text-gray-600 dark:text-gray-300">
+                            <span className="text-sm text-gray-600 dark:text-gray-300 ml-1">
                               {download.status === 'cancelled' ||
                               download.status === 'initializing' ||
-                              download.status === 'getting metadata' ||
-                              download.status === 'finished' ? (
+                              download.status === 'getting metadata' ? (
                                 <span>{download.status}</span>
+                              ) : download.status === 'finished' ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewFolder(`${download.location}`);
+                                  }}
+                                  className="underline"
+                                >
+                                  {download.status}
+                                </button>
                               ) : download.status === 'to download' ? (
                                 <DownloadButton download={download} />
                               ) : download.status === 'paused' ||
@@ -696,12 +705,12 @@ const AllDownloads = () => {
                         <td
                           key={column.id}
                           style={{ width: column.width }}
-                          className="p-2 dark:text-gray-200"
+                          className="p-2 dark:text-gray-200 ml-2"
                         >
                           {download.status === 'downloading' ? (
-                            <span>{download.speed}</span>
+                            <span className="m-1">{download.speed}</span>
                           ) : (
-                            <span>—</span>
+                            <span className="m-1">—</span>
                           )}{' '}
                         </td>
                       );
@@ -710,7 +719,7 @@ const AllDownloads = () => {
                         <td
                           key={column.id}
                           style={{ width: column.width }}
-                          className="p-2 dark:text-gray-200"
+                          className="p-2 dark:text-gray-200 ml-2"
                         >
                           {formatRelativeTime(download.DateAdded)}
                         </td>
@@ -720,7 +729,7 @@ const AllDownloads = () => {
                         <td
                           key={column.id}
                           style={{ width: column.width }}
-                          className="p-2 dark:text-gray-200"
+                          className="p-2 dark:text-gray-200 ml-2"
                         >
                           {download.status === 'getting metadata' ? (
                             <div className="space-y-1">
@@ -729,7 +738,7 @@ const AllDownloads = () => {
                             </div>
                           ) : (
                             <div
-                              className="line-clamp-2 break-words"
+                              className="line-clamp-2 break-words ml-1"
                               title={download.extractorKey}
                             >
                               <a

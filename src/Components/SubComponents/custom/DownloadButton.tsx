@@ -12,7 +12,7 @@
 import React from 'react';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
-import { AnimatedCircularProgressBar } from './RadialProgress';
+import { IoMdDownload } from 'react-icons/io';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
 
@@ -94,19 +94,10 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
 
   return (
     <button onClick={handleDownloadClick} className="text-left relative">
-      <div className="relative">
-        {download.status === 'to download' && (
-          <div className="absolute top-0 right-[-14px] transform -translate-x-1/2 w-3 h-3 rounded-full bg-green-500 animate-pulse z-10"></div>
-        )}
-        <AnimatedCircularProgressBar
-          status={download.status}
-          max={100}
-          min={0}
-          value={download.progress}
-          gaugePrimaryColor="#4CAF50"
-          gaugeSecondaryColor="#EEEEEE"
-        />
-      </div>{' '}
+      <div className="relative flex items-center text-sm ">
+        <IoMdDownload className="mr-1" size={18} />
+        Start Download
+      </div>
     </button>
   );
 };

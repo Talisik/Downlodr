@@ -115,7 +115,7 @@ const Navigation = ({ className }: { className?: string }) => {
             onDoubleClick={toggleStatusSubItems}
           >
             <CiFolderOn className="text-gray-600 dark:text-gray-400 text-lg flex-shrink-0" />
-            <span className="ml-2">All</span>
+            <span className="ml-2">Main</span>
           </NavLink>
 
           {showStatusSubItems && (
