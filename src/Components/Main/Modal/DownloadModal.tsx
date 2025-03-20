@@ -397,7 +397,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             disabled={!isValidUrl}
             onClick={handleDownload}
           >
-            Download
+            Fetch Download
           </button>
           <button
             type="button"
