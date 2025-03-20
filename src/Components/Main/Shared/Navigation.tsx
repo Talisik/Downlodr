@@ -107,38 +107,19 @@ const Navigation = ({ className }: { className?: string }) => {
         <div className="space-y-1">
           <NavLink
             to="/allDownloads"
-            className={({ isActive }) =>
-              `nav-link ${
-                isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-              } dark:text-gray-200 dark:hover:bg-gray-700`
-            }
+            className="nav-link"
             onDoubleClick={toggleStatusSubItems}
           >
             <CiFolderOn className="text-gray-600 dark:text-gray-400 text-lg flex-shrink-0" />
             <span className="ml-2">Main</span>
           </NavLink>
-
           {showStatusSubItems && (
             <div className="ml-4 space-y-1">
-              <NavLink
-                to="/downloading"
-                className={({ isActive }) =>
-                  `nav-link ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
-                }
-              >
+              <NavLink to="/downloading" className="nav-link">
                 <FiDownload className="text-blue-500 text-lg flex-shrink-0" />
                 <span className="ml-2">Downloading</span>
               </NavLink>
-              <NavLink
-                to="/completed"
-                className={({ isActive }) =>
-                  `nav-link ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
-                }
-              >
+              <NavLink to="/completed" className="nav-link">
                 <AiOutlineCheck className="text-green-500 text-lg flex-shrink-0" />
                 <span className="ml-2">Completed</span>
               </NavLink>
