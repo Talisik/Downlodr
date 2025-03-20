@@ -566,6 +566,16 @@ const AllDownloads = () => {
                 }`}
                 onContextMenu={(e) => handleContextMenu(e, download)}
                 onClick={() => handleRowClick(download.id)}
+                draggable={true}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('downloadId', download.id);
+                  const dragIcon = document.createElement('div');
+                  dragIcon.className = 'bg-white p-2 rounded shadow';
+                  dragIcon.textContent = download.name;
+                  document.body.appendChild(dragIcon);
+                  e.dataTransfer.setDragImage(dragIcon, 0, 0);
+                  setTimeout(() => document.body.removeChild(dragIcon), 0);
+                }}
               >
                 <td className="w-8 p-2">
                   <input
