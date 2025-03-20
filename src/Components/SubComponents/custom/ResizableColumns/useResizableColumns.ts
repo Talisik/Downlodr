@@ -49,7 +49,7 @@ export const useResizableColumns = (initialColumns: Column[]) => {
 
       // Calculate the new width, ensuring it respects the minimum width
       const newWidth = Math.max(
-        currentColumn.minWidth || 50,
+        currentColumn.minWidth || 10,
         startWidth + diff,
       );
 

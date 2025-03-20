@@ -107,7 +107,7 @@ const AllDownloads = () => {
     { id: 'status', width: 110, minWidth: 110 },
     { id: 'speed', width: 70, minWidth: 70 },
     { id: 'dateAdded', width: 90, minWidth: 90 },
-    { id: 'source', width: 60, minWidth: 60 },
+    { id: 'source', width: 20, minWidth: 20 },
   ]);
 
   // Combine downloads from downloading and history
@@ -504,39 +504,55 @@ const AllDownloads = () => {
             <th className="w-8 p-2">
               <input
                 type="checkbox"
-                className=" ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
+                className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                 checked={selectedRowIds.length === allDownloads.length}
                 onChange={handleSelectAll}
               />
             </th>
-            {columns.map((column, index) => (
-              <ResizableHeader
-                key={column.id}
-                width={column.width}
-                onResizeStart={(e) => startResizing(column.id, e.clientX)}
-                index={index}
-                onDragStart={startDragging}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                isDragging={dragging?.index === index}
-                isDragOver={dragOverIndex === index}
-                columnId={column.id}
-              >
-                <div
-                  className="flex items-center dark:text-gray-200 cursor-pointer"
-                  onClick={() => handleSortClick(column.id)}
+            {columns.map((column, index) => {
+              if (column.id === 'end') {
+                return (
+                  <th key={column.id} className="w-20 p-2 font-semibold"></th>
+                );
+              }
+              return (
+                <ResizableHeader
+                  key={column.id}
+                  width={column.width}
+                  onResizeStart={(e) => startResizing(column.id, e.clientX)}
+                  index={index}
+                  onDragStart={startDragging}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  isDragging={dragging?.columnId === column.id}
+                  isDragOver={dragOverIndex === index}
+                  columnId={column.id}
+                  isLastColumn={index === columns.length - 1}
                 >
-                  {column.id === 'name' && 'Title'}
-                  {column.id === 'size' && 'Size'}
-                  {column.id === 'format' && 'Format'}
-                  {column.id === 'status' && 'Status'}
-                  {column.id === 'speed' && 'Speed'}
-                  {column.id === 'dateAdded' && 'Date Added'}
-                  {column.id === 'source' && 'Source'}
-                  {renderSortIndicator(column.id)}
-                </div>
-              </ResizableHeader>
-            ))}
+                  <div
+                    className="flex items-center cursor-pointer"
+                    onClick={() => handleSortClick(column.id)}
+                  >
+                    {column.id === 'name'
+                      ? 'Title'
+                      : column.id === 'size'
+                      ? 'Size'
+                      : column.id === 'format'
+                      ? 'Format'
+                      : column.id === 'status'
+                      ? 'Status'
+                      : column.id === 'speed'
+                      ? 'Speed'
+                      : column.id === 'dateAdded'
+                      ? 'Date Added'
+                      : column.id === 'source'
+                      ? 'Source'
+                      : column.id}
+                    {renderSortIndicator(column.id)}
+                  </div>
+                </ResizableHeader>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -554,7 +570,7 @@ const AllDownloads = () => {
                 <td className="w-8 p-2">
                   <input
                     type="checkbox"
-                    className=" ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
+                    className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                     checked={selectedRowIds.includes(download.id)}
                     onChange={() => handleCheckboxChange(download.id)}
                   />
@@ -728,8 +744,7 @@ const AllDownloads = () => {
                       return (
                         <td
                           key={column.id}
-                          style={{ width: column.width }}
-                          className="p-2 dark:text-gray-200 ml-2"
+                          className="w-8 p-2 dark:text-gray-200 ml-2"
                         >
                           {download.status === 'getting metadata' ? (
                             <div className="space-y-1">

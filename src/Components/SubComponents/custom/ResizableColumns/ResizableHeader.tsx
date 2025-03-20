@@ -13,6 +13,8 @@
  *   @param isDragging - optional boolean indicating if the column is being dragged
  *   @param isDragOver - optional boolean indicating if the column is being dragged over
  *   @param columnId - optional ID of the column
+ *   @param className - optional class name to add to the component
+ *   @param isLastColumn - optional boolean indicating if this is the last column
  *
  * @returns JSX.Element - The rendered component displaying a TitleBar
  *
@@ -30,6 +32,8 @@ interface ResizableHeaderProps {
   isDragging?: boolean;
   isDragOver?: boolean;
   columnId?: string;
+  className?: string;
+  isLastColumn?: boolean;
 }
 
 const ResizableHeader: React.FC<ResizableHeaderProps> = ({
@@ -43,12 +47,14 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
   isDragging,
   isDragOver,
   columnId,
+  className = '',
+  isLastColumn = false,
 }) => {
   return (
     <th
       className={`relative p-2 font-semibold dark:text-gray-200 select-none ${
         isDragging ? 'opacity-50 bg-blue-100 dark:bg-blue-900' : ''
-      } ${isDragOver ? 'border-l-2 border-blue-500' : ''}`}
+      } ${isDragOver ? 'border-l-2 border-blue-500' : ''} ${className}`}
       style={{ width: `${width}px` }}
       onDragOver={(e) => {
         if (index !== undefined && onDragOver) {
@@ -76,18 +82,20 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
         {children}
       </div>
 
-      {/* Resize handle - not draggable */}
-      <div
-        className="absolute right-0 top-0 h-full w-6 cursor-col-resize hover:bg-blue-500/20 group -mr-3"
-        onMouseDown={(e) => {
-          // Prevent drag start when trying to resize
-          e.stopPropagation();
-          onResizeStart(e);
-        }}
-        draggable={false}
-      >
-        <div className="absolute right-[7px] top-0 h-full w-[3px] bg-gray-300 dark:bg-gray-700 group-hover:bg-blue-500" />
-      </div>
+      {/* Resize handle - not draggable, only show if not the last column */}
+      {!isLastColumn && (
+        <div
+          className="absolute right-0 top-0 h-full w-6 cursor-col-resize hover:bg-blue-500/20 group -mr-3"
+          onMouseDown={(e) => {
+            // Prevent drag start when trying to resize
+            e.stopPropagation();
+            onResizeStart(e);
+          }}
+          draggable={false}
+        >
+          <div className="absolute right-[7px] top-0 h-full w-[3px] bg-gray-300 dark:bg-gray-700 group-hover:bg-blue-500" />
+        </div>
+      )}
     </th>
   );
 };
