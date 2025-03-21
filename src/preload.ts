@@ -104,3 +104,10 @@ contextBridge.exposeInMainWorld('ytdlp', {
 contextBridge.exposeInMainWorld('electronDevTools', {
   toggle: () => ipcRenderer.send('toggle-dev-tools'),
 });
+
+contextBridge.exposeInMainWorld('updateAPI', {
+  onUpdateAvailable: (callback: any) => {
+    ipcRenderer.on('update-available', (_, updateInfo) => callback(updateInfo));
+  },
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+});

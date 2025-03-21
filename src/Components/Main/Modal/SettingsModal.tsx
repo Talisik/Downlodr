@@ -12,6 +12,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
 import { useMainStore } from '../../../Store/mainStore';
+import { Button } from '../../../Components/SubComponents/shadcn/components/ui/button';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -98,6 +99,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     return option ? option.biteDisplayName : 'Kilo byte (KB)';
   };
 
+  const handleCheckForUpdates = async () => {
+    if (window.updateAPI?.checkForUpdates) {
+      await window.updateAPI.checkForUpdates();
+    }
+  };
+
   useEffect(() => {
     // Update the biteUnit whenever the store value changes
     setBiteUnit(getInitialBiteOption());
@@ -148,6 +155,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             {/* Schedule Name */}
             <div className="space-y-2">
               <div className="flex-1">
+                <Button
+                  onClick={handleCheckForUpdates}
+                  variant="outline"
+                  color="primary"
+                  // leftIcon={<IconRefresh size={16} />}
+                >
+                  Check for Updates
+                </Button>
                 <label className="block mb-2 dark:text-gray-200">
                   Download Location
                 </label>
