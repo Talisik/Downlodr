@@ -235,7 +235,7 @@ const Navigation = ({ className }: { className?: string }) => {
             ) : (
               <HiChevronRight size={18} />
             )}
-            <span className="ml-2 text-sm font-semibold">Category</span>
+            <span className="ml-2 text-sm font-semibold">Categories</span>
           </button>
 
           {openSections.category && (
@@ -283,7 +283,7 @@ const Navigation = ({ className }: { className?: string }) => {
             ) : (
               <HiChevronRight size={18} />
             )}
-            <span className="ml-2 text-sm font-semibold">Tag</span>
+            <span className="ml-2 text-sm font-semibold">Tags</span>
           </button>
 
           {openSections.tag && (

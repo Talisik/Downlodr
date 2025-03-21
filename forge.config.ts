@@ -41,7 +41,7 @@ const config: ForgeConfig = {
             createStartMenuShortcut: true,
             shortcutName: 'Downlodr',
             uninstallDisplayName: 'Downlodr',
-            deleteAppDataOnUninstall: true,
+            deleteAppDataOnUninstall: false,
             warningsAsErrors: false,
             perMachine: false, // Changed to false - install per-user, not machine-wide
             include: './installer.nsh', // Keep this for admin privileges at runtime

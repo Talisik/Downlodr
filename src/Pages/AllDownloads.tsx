@@ -10,6 +10,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';
+import { FaPlay } from 'react-icons/fa6';
 import useDownloadStore from '../Store/downloadStore';
 import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
 import ExpandedDownloadDetails from '../Components/SubComponents/custom/ExpandedDownloadDetail';
@@ -688,9 +689,10 @@ const AllDownloads = () => {
                                     e.stopPropagation();
                                     handleViewFolder(`${download.location}`);
                                   }}
-                                  className="underline"
+                                  className="relative flex items-center text-sm underline"
                                 >
-                                  {download.status}
+                                  <FaPlay className="mr-1" />
+                                  finished
                                 </button>
                               ) : download.status === 'to download' ? (
                                 <DownloadButton download={download} />
