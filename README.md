@@ -57,7 +57,7 @@ To download current version and learn more about Downlodr, visit site: <a href="
 
 4. Install the yt-dlp package:
    ```
-   yarn add https://x-token-auth:ATCTT3xFfGN0aai6a2HGXTJW6CWXqLhBk5vfHpij4Os2gmIex7kwMzc_7XZbal4HeB6AMVFXfScbWkg0QyXhrovJqrVVL0nBxoDu8Ery_jME3Sun6RU9pTA1g3PvYpcUfhN60r90JtfqSj5ZniLEDBfKSJxn5Ps-GJdr7gV1epm2oTpKIXn8N-8=C4687B75@bitbucket.org/metawhale/yt-dlp-helper.git
+   yarn add github:Talisik/yt-dlp-helper
    ```
 
 ### Running the Application
