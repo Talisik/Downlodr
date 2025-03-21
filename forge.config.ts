@@ -34,12 +34,17 @@ const config: ForgeConfig = {
             artifactName: '${productName}-${version}-${arch}.${ext}',
             oneClick: false,
             allowElevation: true,
+            installerIcon: './src/Assets/AppLogo/256x256.ico',
+            uninstallerIcon: './src/Assets/AppLogo/256x256.ico',
             allowToChangeInstallationDirectory: true,
             createDesktopShortcut: true,
             createStartMenuShortcut: true,
             shortcutName: 'Downlodr',
             uninstallDisplayName: 'Downlodr',
             deleteAppDataOnUninstall: false,
+            warningsAsErrors: false,
+            perMachine: false, // Changed to false - install per-user, not machine-wide
+            include: './installer.nsh', // Keep this for admin privileges at runtime
           },
         };
       },

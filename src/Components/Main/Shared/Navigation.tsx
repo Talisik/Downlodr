@@ -20,6 +20,8 @@ import { CiFolderOn } from 'react-icons/ci';
 import useDownloadStore from '../../../Store/downloadStore';
 import CategoryContextMenu from '../../SubComponents/custom/CategoryContextMenu';
 import TagContextMenu from '../../SubComponents/custom/TagContextMenu';
+// import { toast } from 'react-hot-toast';
+import { toast } from '../../../Components/SubComponents/shadcn/hooks/use-toast';
 
 const Navigation = ({ className }: { className?: string }) => {
   // states for opening and closing navigation sections
@@ -97,6 +99,101 @@ const Navigation = ({ className }: { className?: string }) => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
+  // Handle dragging over a tag
+  const handleDragOver = (e: React.DragEvent, item?: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'link';
+    if (item) {
+      setDragOverItem(item);
+    }
+  };
+
+  // Helper function to ensure a download has only one category
+  const ensureSingleCategory = (downloadId: string, newCategory: string) => {
+    // Get the current categories for this download
+    const allDownloads = [
+      ...useDownloadStore.getState().downloading,
+      ...useDownloadStore.getState().finishedDownloads,
+      ...useDownloadStore.getState().historyDownloads,
+      ...useDownloadStore.getState().forDownloads,
+    ];
+
+    const download = allDownloads.find((d) => d.id === downloadId);
+    const currentCategories = download?.category || [];
+
+    // Remove any existing categories before adding the new one
+    if (currentCategories.length > 0) {
+      currentCategories.forEach((existingCategory) => {
+        useDownloadStore
+          .getState()
+          .removeCategory(downloadId, existingCategory);
+      });
+    }
+
+    // Add the new category
+    useDownloadStore.getState().addCategory(downloadId, newCategory);
+  };
+
+  // Helper function to ensure a download has only one category
+  const ensureNoDouble = (downloadId: string, newCategory: string) => {
+    // Get the current categories for this download
+    const allDownloads = [
+      ...useDownloadStore.getState().downloading,
+      ...useDownloadStore.getState().finishedDownloads,
+      ...useDownloadStore.getState().historyDownloads,
+      ...useDownloadStore.getState().forDownloads,
+    ];
+
+    const download = allDownloads.find((d) => d.id === downloadId);
+    const currentTags = download?.tags || [];
+
+    // Remove any existing categories before adding the new one
+    if (!currentTags.includes(newCategory)) {
+      useDownloadStore.getState().addTag(downloadId, newCategory);
+    }
+  };
+
+  // Update handleCategoryDrop to clear the highlight after dropping
+  const handleCategoryDrop = (e: React.DragEvent, category: string) => {
+    e.preventDefault();
+    const downloadId = e.dataTransfer.getData('downloadId');
+    if (downloadId) {
+      ensureSingleCategory(downloadId, category);
+
+      // Show a success toast
+      toast({
+        title: 'Download categorized',
+        description: `Set to "${category}"`,
+      });
+    }
+    // Clear the highlight after drop
+    setDragOverItem(null);
+  };
+
+  // Handle dropping on a tag
+  const handleTagDrop = (e: React.DragEvent, tag: string) => {
+    e.preventDefault();
+    const downloadId = e.dataTransfer.getData('downloadId');
+    if (downloadId) {
+      // Add the download to this tag
+      // useDownloadStore.getState().addTag(downloadId, tag);
+      ensureNoDouble(downloadId, tag);
+      // Show a success toast
+      toast({
+        title: 'Download tagged',
+        description: `Tagged with "${tag}"`,
+      });
+    }
+    // Clear the highlight after drop
+    setDragOverItem(null);
+  };
+
+  const [dragOverItem, setDragOverItem] = useState<string | null>(null);
+
+  const handleDragLeave = () => {
+    setDragOverItem(null);
+  };
+
   return (
     <nav
       ref={navRef}
@@ -138,7 +235,7 @@ const Navigation = ({ className }: { className?: string }) => {
             ) : (
               <HiChevronRight size={18} />
             )}
-            <span className="ml-2 text-sm font-semibold">Category</span>
+            <span className="ml-2 text-sm font-semibold">Categories</span>
           </button>
 
           {openSections.category && (
@@ -155,8 +252,17 @@ const Navigation = ({ className }: { className?: string }) => {
                 <NavLink
                   key={category}
                   to={`/category/${encodeURIComponent(category)}`}
-                  className="nav-link"
+                  className={`nav-link ${
+                    dragOverItem === category
+                      ? 'bg-gray-200 dark:bg-gray-700'
+                      : ''
+                  }`}
                   onContextMenu={(e) => handleCategoryContextMenu(e, category)}
+                  onDragOver={(e) => handleDragOver(e, category)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleCategoryDrop(e, category)}
+                  aria-dropeffect="link"
+                  role="listitem"
                 >
                   <BiLayer className="text-yellow-500 text-lg flex-shrink-0" />
                   <span className="ml-2 truncate">{category}</span>
@@ -177,7 +283,7 @@ const Navigation = ({ className }: { className?: string }) => {
             ) : (
               <HiChevronRight size={18} />
             )}
-            <span className="ml-2 text-sm font-semibold">Tag</span>
+            <span className="ml-2 text-sm font-semibold">Tags</span>
           </button>
 
           {openSections.tag && (
@@ -194,11 +300,13 @@ const Navigation = ({ className }: { className?: string }) => {
                 <NavLink
                   key={tag}
                   to={`/tags/${encodeURIComponent(tag)}`}
-                  className="nav-link"
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    handleTagContextMenu(e, tag);
-                  }}
+                  className={`nav-link ${
+                    dragOverItem === tag ? 'bg-gray-200 dark:bg-gray-700' : ''
+                  }`}
+                  onContextMenu={(e) => handleTagContextMenu(e, tag)}
+                  onDragOver={(e) => handleDragOver(e, tag)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleTagDrop(e, tag)}
                 >
                   <BsTag className="text-yellow-500 text-lg flex-shrink-0" />
                   <span className="ml-2 truncate">{tag}</span>
