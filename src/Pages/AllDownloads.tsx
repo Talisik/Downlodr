@@ -111,6 +111,9 @@ const AllDownloads = () => {
     { id: 'source', width: 20, minWidth: 20 },
   ]);
 
+  // Add column visibility state from the store
+  const visibleColumns = useMainStore((state) => state.visibleColumns);
+
   // Combine downloads from downloading and history
   const allDownloads = [
     ...forDownloads,
@@ -171,6 +174,13 @@ const AllDownloads = () => {
         }
       }
     });
+
+  // Filter columns based on visibility settings, ensuring essential columns are always included
+  const displayColumns = columns.filter(
+    (column) =>
+      visibleColumns.includes(column.id) ||
+      ['name', 'status', 'format'].includes(column.id),
+  );
 
   // Handle column header click for sorting
   const handleSortClick = (column: string) => {
@@ -510,7 +520,7 @@ const AllDownloads = () => {
                 onChange={handleSelectAll}
               />
             </th>
-            {columns.map((column, index) => {
+            {displayColumns.map((column, index) => {
               if (column.id === 'end') {
                 return (
                   <th key={column.id} className="w-20 p-2 font-semibold"></th>
@@ -528,7 +538,7 @@ const AllDownloads = () => {
                   isDragging={dragging?.columnId === column.id}
                   isDragOver={dragOverIndex === index}
                   columnId={column.id}
-                  isLastColumn={index === columns.length - 1}
+                  isLastColumn={index === displayColumns.length - 1}
                 >
                   <div
                     className="flex items-center cursor-pointer"
@@ -586,7 +596,7 @@ const AllDownloads = () => {
                     onChange={() => handleCheckboxChange(download.id)}
                   />
                 </td>
-                {columns.map((column) => {
+                {displayColumns.map((column) => {
                   switch (column.id) {
                     case 'name':
                       return (

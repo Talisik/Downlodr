@@ -27,6 +27,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     updatePermitConnectionLimit,
     updateMaxDownloadNum,
     updateDefaultDownloadSpeedBit,
+    visibleColumns,
+    setVisibleColumns,
   } = useMainStore();
   // Form submission
   const [biteUnit, setBiteUnit] = useState('');
@@ -44,6 +46,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     settings.permitConnectionLimit,
   );
 
+  // Add state for column visibility
+  const [localVisibleColumns, setLocalVisibleColumns] = useState<string[]>([
+    ...visibleColumns,
+  ]);
+
   // Misc
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -57,6 +64,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setMaxDownload(settings.maxDownloadNum);
     setmaxUpload(settings.maxUploadNum);
     setIsConnectionLimitEnabled(settings.permitConnectionLimit);
+    // Reset column visibility
+    setLocalVisibleColumns([...visibleColumns]);
   };
 
   // Find location
@@ -123,6 +132,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setBiteUnitVal(settings.defaultDownloadSpeedBit);
   }, [settings.defaultDownloadSpeedBit]);
 
+  // Column options with required flag
+  const columnOptions = [
+    { id: 'name', label: 'Title', required: true },
+    { id: 'size', label: 'Size', required: false },
+    { id: 'format', label: 'Format', required: true },
+    { id: 'status', label: 'Status', required: true },
+    { id: 'speed', label: 'Speed', required: false },
+    { id: 'dateAdded', label: 'Date Added', required: false },
+    { id: 'source', label: 'Source', required: false },
+  ];
+
+  // Column toggle handler
+  const handleToggleColumn = (columnId: string) => {
+    if (localVisibleColumns.includes(columnId)) {
+      setLocalVisibleColumns(
+        localVisibleColumns.filter((id) => id !== columnId),
+      );
+    } else {
+      setLocalVisibleColumns([...localVisibleColumns, columnId]);
+    }
+  };
+
   // Modify handleSubmit to consider the checkbox
   const handleSubmit = () => {
     updateDefaultLocation(downloadLocation);
@@ -130,8 +161,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     updateDefaultDownloadSpeedBit(biteUnitVal);
     updatePermitConnectionLimit(isConnectionLimitEnabled);
     // Only update connection limits if enabled, otherwise set to default of 5
-    // updateMaxUploadNum(isConnectionLimitEnabled ? maxUpload : 5);
     updateMaxDownloadNum(isConnectionLimitEnabled ? maxDownload : 5);
+    // Update visible columns
+    setVisibleColumns(localVisibleColumns);
     onClose();
   };
 
@@ -278,6 +310,49 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
               {/* End of Download Location Name */}
+            </div>
+
+            {/* Add column visibility section */}
+            <div className="pt-6">
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block dark:text-gray-200 text-nowrap font-bold">
+                  Visible Columns
+                </label>
+                <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                {columnOptions.map((column) => (
+                  <div key={column.id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id={`column-${column.id}`}
+                      checked={
+                        localVisibleColumns.includes(column.id) ||
+                        column.required
+                      }
+                      onChange={() =>
+                        column.required ? null : handleToggleColumn(column.id)
+                      }
+                      disabled={column.required}
+                      className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500 mr-2"
+                    />
+                    <label
+                      htmlFor={`column-${column.id}`}
+                      className={`dark:text-gray-200 ${
+                        column.required ? 'font-semibold' : ''
+                      }`}
+                    >
+                      {column.label}
+                      {column.required && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                          (Required)
+                        </span>
+                      )}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
           </form>
         </div>
