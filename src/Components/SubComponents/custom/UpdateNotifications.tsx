@@ -12,6 +12,7 @@ import {
 } from '../shadcn/components/ui/alert-dialog';
 import { Button } from '../shadcn/components/ui/button';
 import { Badge } from '../shadcn/components/ui/badge';
+import { toast } from '../shadcn/hooks/use-toast';
 
 // Define the update info type
 interface UpdateInfo {
@@ -40,11 +41,18 @@ const UpdateNotification: React.FC = () => {
 
   useEffect(() => {
     // Only add the listener if we're in an Electron environment
+    console.log(window.updateAPI);
     if (window.updateAPI) {
       // Listen for update notifications from the main process
       window.updateAPI.onUpdateAvailable((info) => {
         setUpdateInfo(info);
         setOpen(true);
+      });
+    } else {
+      toast({
+        title: "You're up to date!",
+        description: `You're using the latest version (v${updateInfo.currentVersion}).`,
+        duration: 3000,
       });
     }
   }, []);
@@ -53,45 +61,55 @@ const UpdateNotification: React.FC = () => {
     return null;
   }
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (updateInfo?.downloadUrl) {
-      window.open(updateInfo.downloadUrl, '_blank');
+      await window.downlodrFunctions.openExternalLink(
+        'https://downlodr.com/downloads/',
+      );
     }
     setOpen(false);
   };
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogContent className="sm:max-w-md">
+      <AlertDialogContent className="sm:max-w-md bg-white dark:bg-darkMode">
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            <div className="bg-slate-100 p-1.5 rounded-full dark:bg-slate-800">
-              <FaArrowCircleUp className="text-primary" size={18} />
+          <AlertDialogTitle className="flex items-center gap-2 dark:text-gray-200">
+            <div className="bg-slate-100 rounded-full dark:bg-slate-800">
+              <FaArrowCircleUp className="text-primary" size={19} />
             </div>
             <span>Update Available: v{updateInfo.latestVersion}</span>
           </AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogDescription className="ml-1">
             A new version of Downlodr is available! You're currently using v
             {updateInfo.currentVersion}.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         {updateInfo.releaseNotes && (
-          <div className="my-4 p-3 bg-slate-100 rounded text-sm max-h-32 overflow-y-auto dark:bg-slate-800 dark:text-slate-300">
-            <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line">
+          <div className="my-2 p-6 bg-slate-100 rounded text-sm max-h-32 overflow-y-auto dark:bg-slate-800 dark:text-gray-200">
+            <p className="text-sm text-slate-700 dark:text-gray-200 whitespace-pre-line">
               {updateInfo.releaseNotes}
             </p>
           </div>
         )}
 
-        <AlertDialogFooter>
+        <AlertDialogFooter className="flex items-center justify-end gap-2">
           <AlertDialogCancel asChild>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="default"
+              size="sm"
+              className="h-8 px-4 py-4.8 text-sm dark:text-gray-200"
+            >
               Later
             </Button>
           </AlertDialogCancel>
           <AlertDialogAction asChild>
-            <Button onClick={handleDownload} size="sm">
+            <Button
+              onClick={handleDownload}
+              size="sm"
+              className="h-7 px-3 py-2 text-sm"
+            >
               Download Now
             </Button>
           </AlertDialogAction>

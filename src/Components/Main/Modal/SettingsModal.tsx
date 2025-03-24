@@ -100,8 +100,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleCheckForUpdates = async () => {
+    console.log('Check for updates button clicked');
+    console.log('updateAPI available:', !!window.updateAPI?.checkForUpdates);
     if (window.updateAPI?.checkForUpdates) {
-      await window.updateAPI.checkForUpdates();
+      try {
+        console.log('Calling checkForUpdates...');
+        const result = await window.updateAPI.checkForUpdates();
+        console.log('Update check result:', result);
+        onClose();
+      } catch (error) {
+        console.error('Error checking for updates:', error);
+      }
+    } else {
+      console.error('updateAPI is not available');
+      onClose();
     }
   };
 

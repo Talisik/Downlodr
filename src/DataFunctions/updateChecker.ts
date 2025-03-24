@@ -22,7 +22,7 @@ export async function checkForUpdates() {
 
     // Fetch releases from GitHub API (update with your actual repo)
     const response = await axios.get<GitHubRelease[]>(
-      'https://api.github.com/repos/Kia/Downlodr/releases',
+      'https://api.github.com/repos/Talisik/Downlodr/releases',
     );
 
     // Get the latest release
