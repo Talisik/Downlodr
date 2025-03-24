@@ -769,6 +769,7 @@ const useDownloadStore = create<DownloadStore>()(
         historyDownloads: state.historyDownloads,
         availableTags: state.availableTags,
         availableCategories: state.availableCategories,
+        finishedDownloads: state.finishedDownloads, // This was missing before
       }),
     },
   ),
