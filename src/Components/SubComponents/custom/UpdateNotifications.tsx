@@ -25,16 +25,6 @@ interface UpdateInfo {
   publishedAt: Date;
 }
 
-// Add the window interface
-declare global {
-  interface Window {
-    updateAPI: {
-      onUpdateAvailable: (callback: (updateInfo: UpdateInfo) => void) => void;
-      checkForUpdates: () => Promise<void>;
-    };
-  }
-}
-
 const UpdateNotification: React.FC = () => {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [open, setOpen] = useState(false);
