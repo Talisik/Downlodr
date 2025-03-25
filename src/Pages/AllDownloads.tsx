@@ -93,6 +93,10 @@ const AllDownloads = () => {
   );
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
+  // Get visible columns from the store
+  const visibleColumns = useMainStore((state) => state.visibleColumns);
+
+  // Call the hook with visible column IDs
   const {
     columns,
     startResizing,
@@ -101,15 +105,18 @@ const AllDownloads = () => {
     handleDrop,
     dragging,
     dragOverIndex,
-  } = useResizableColumns([
-    { id: 'name', width: 110, minWidth: 110 },
-    { id: 'size', width: 60, minWidth: 60 },
-    { id: 'format', width: 80, minWidth: 80 },
-    { id: 'status', width: 110, minWidth: 110 },
-    { id: 'speed', width: 70, minWidth: 70 },
-    { id: 'dateAdded', width: 90, minWidth: 90 },
-    { id: 'source', width: 20, minWidth: 20 },
-  ]);
+  } = useResizableColumns(
+    [
+      { id: 'name', width: 110, minWidth: 110 },
+      { id: 'size', width: 60, minWidth: 60 },
+      { id: 'format', width: 80, minWidth: 80 },
+      { id: 'status', width: 110, minWidth: 110 },
+      { id: 'speed', width: 70, minWidth: 70 },
+      { id: 'dateAdded', width: 90, minWidth: 90 },
+      { id: 'source', width: 20, minWidth: 20 },
+    ],
+    visibleColumns,
+  );
 
   // color themes
   const getStatusColor = (status: string): string => {
@@ -124,7 +131,7 @@ const AllDownloads = () => {
         return '#9E9E9E'; // Grey
       case 'initializing':
         return '#FF9800'; // Orange
-      case 'getting metadata':
+      case 'fetching metadata':
         return '#9C27B0'; // Purple
       case 'paused':
         return '#FFEB3B'; // Yellow
@@ -134,9 +141,6 @@ const AllDownloads = () => {
         return 'currentColor'; // Default color
     }
   };
-
-  // Add column visibility state from the store
-  const visibleColumns = useMainStore((state) => state.visibleColumns);
 
   // Combine downloads from downloading and history
   const allDownloads = [
@@ -205,6 +209,12 @@ const AllDownloads = () => {
       visibleColumns.includes(column.id) ||
       ['name', 'status', 'format'].includes(column.id),
   );
+
+  // Map the displayColumns to have correct indices for drag and drop
+  const displayColumnsWithIndices = displayColumns.map((column, index) => ({
+    ...column,
+    displayIndex: index,
+  }));
 
   // Handle column header click for sorting
   const handleSortClick = (column: string) => {
@@ -531,6 +541,22 @@ const AllDownloads = () => {
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
+  // Add a column display name mapping
+  const getColumnDisplayName = (columnId: string): string => {
+    const columnMappings: Record<string, string> = {
+      name: 'Title',
+      size: 'Size',
+      format: 'Format',
+      status: 'Status',
+      speed: 'Speed',
+      dateAdded: 'Date Added',
+      source: 'Source',
+      // Add any other columns here
+    };
+
+    return columnMappings[columnId] || columnId;
+  };
+
   return (
     <div className="w-full">
       <table className="w-full">
@@ -544,45 +570,37 @@ const AllDownloads = () => {
                 onChange={handleSelectAll}
               />
             </th>
-            {displayColumns.map((column, index) => {
+            {displayColumns.map((column, displayIndex) => {
               if (column.id === 'end') {
                 return (
                   <th key={column.id} className="w-20 p-2 font-semibold"></th>
                 );
               }
+
+              // Find original index in the full columns array
+              const originalIndex = columns.findIndex(
+                (col) => col.id === column.id,
+              );
+
               return (
                 <ResizableHeader
                   key={column.id}
                   width={column.width}
                   onResizeStart={(e) => startResizing(column.id, e.clientX)}
-                  index={index}
+                  index={originalIndex} // Use the original index from the full columns array
                   onDragStart={startDragging}
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   isDragging={dragging?.columnId === column.id}
-                  isDragOver={dragOverIndex === index}
+                  isDragOver={dragOverIndex === originalIndex}
                   columnId={column.id}
-                  isLastColumn={index === displayColumns.length - 1}
+                  isLastColumn={displayIndex === displayColumns.length - 1}
                 >
                   <div
                     className="flex items-center cursor-pointer"
                     onClick={() => handleSortClick(column.id)}
                   >
-                    {column.id === 'name'
-                      ? 'Title'
-                      : column.id === 'size'
-                      ? 'Size'
-                      : column.id === 'format'
-                      ? 'Format'
-                      : column.id === 'status'
-                      ? 'Status'
-                      : column.id === 'speed'
-                      ? 'Speed'
-                      : column.id === 'dateAdded'
-                      ? 'Date Added'
-                      : column.id === 'source'
-                      ? 'Source'
-                      : column.id}
+                    {getColumnDisplayName(column.id)}
                     {renderSortIndicator(column.id)}
                   </div>
                 </ResizableHeader>
@@ -620,7 +638,7 @@ const AllDownloads = () => {
                     onChange={() => handleCheckboxChange(download.id)}
                   />
                 </td>
-                {displayColumns.map((column) => {
+                {displayColumns.map((column, displayIndex) => {
                   switch (column.id) {
                     case 'name':
                       return (
@@ -629,7 +647,7 @@ const AllDownloads = () => {
                           style={{ width: column.width }}
                           className="p-2 dark:text-gray-200"
                         >
-                          {download.status === 'getting metadata' ? (
+                          {download.status === 'fetching metadata' ? (
                             <div className="space-y-1">
                               <Skeleton className="h-4 w-[100px] rounded-[3px]" />
                               <Skeleton className="h-4 w-[120px] rounded-[3px]" />
@@ -651,7 +669,7 @@ const AllDownloads = () => {
                           style={{ width: column.width }}
                           className="p-2 dark:text-gray-200 ml-2"
                         >
-                          {download.status === 'getting metadata' ? (
+                          {download.status === 'fetching metadata' ? (
                             <div className="space-y-1">
                               <Skeleton className="h-4 w-[50px] rounded-[3px]" />
                               <Skeleton className="h-4 w-[70px] rounded-[3px]" />
@@ -674,7 +692,7 @@ const AllDownloads = () => {
                         >
                           <div className="flex items-center ml-1">
                             <span className="text-sm text-gray-600 dark:text-gray-300">
-                              {download.status === 'getting metadata' ? (
+                              {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1">
                                   <Skeleton className="h-8 w-[50px] rounded-[3px]" />
                                 </div>
@@ -715,7 +733,7 @@ const AllDownloads = () => {
                             <span className="text-sm text-gray-600 dark:text-gray-300 ml-1">
                               {download.status === 'cancelled' ||
                               download.status === 'initializing' ||
-                              download.status === 'getting metadata' ? (
+                              download.status === 'fetching metadata' ? (
                                 <span
                                   style={{
                                     color: getStatusColor(download.status),
@@ -808,7 +826,7 @@ const AllDownloads = () => {
                           key={column.id}
                           className="w-8 p-2 dark:text-gray-200 ml-2"
                         >
-                          {download.status === 'getting metadata' ? (
+                          {download.status === 'fetching metadata' ? (
                             <div className="space-y-1">
                               <Skeleton className="h-4 w-[100px] rounded-[3px]" />
                               <Skeleton className="h-4 w-[120px] rounded-[3px]" />

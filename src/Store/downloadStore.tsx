@@ -68,7 +68,7 @@ interface Downloading extends BaseDownload {
     | 'failed'
     | 'cancelled'
     | 'initializing'
-    | 'getting metadata'
+    | 'fetching metadata'
     | 'paused';
   formatId: string; // ID of the selected format
   backupExt?: string; // Backup file extension
@@ -141,7 +141,7 @@ interface DownloadStore {
       | 'failed'
       | 'cancelled'
       | 'initializing'
-      | 'getting metadata'
+      | 'fetching metadata'
       | 'paused',
   ) => void; // Update the status of a download
   renameDownload: (downloadId: string, newName: string) => void; // Rename a download
@@ -397,7 +397,7 @@ const useDownloadStore = create<DownloadStore>()(
               DateAdded: new Date().toISOString(),
               progress: 0,
               location,
-              status: 'getting metadata',
+              status: 'fetching metadata',
               ext: '',
               controllerId: undefined,
               tags: [],
@@ -723,7 +723,7 @@ const useDownloadStore = create<DownloadStore>()(
           | 'failed'
           | 'cancelled'
           | 'initializing'
-          | 'getting metadata'
+          | 'fetching metadata'
           | 'paused',
       ) => {
         console.log('Updating status for id:', id, 'to:', status);

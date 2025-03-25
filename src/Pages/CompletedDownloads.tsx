@@ -431,7 +431,7 @@ const CompletedDownloads = () => {
                           style={{ width: column.width }}
                           className="p-2 dark:text-gray-200"
                         >
-                          {download.status === 'getting metadata' ? (
+                          {download.status === 'fetching metadata' ? (
                             <div className="space-y-1">
                               <Skeleton className="h-4 w-[100px] rounded-[3px]" />
                               <Skeleton className="h-4 w-[120px] rounded-[3px]" />
@@ -453,7 +453,7 @@ const CompletedDownloads = () => {
                           style={{ width: column.width }}
                           className="p-2 dark:text-gray-200 ml-2"
                         >
-                          {download.status === 'getting metadata' ? (
+                          {download.status === 'fetching metadata' ? (
                             <div className="space-y-1">
                               <Skeleton className="h-4 w-[50px] rounded-[3px]" />
                               <Skeleton className="h-4 w-[70px] rounded-[3px]" />
@@ -476,7 +476,7 @@ const CompletedDownloads = () => {
                         >
                           <div className="flex items-center ml-1">
                             <span className="text-sm text-gray-600 dark:text-gray-300">
-                              {download.status === 'getting metadata' ? (
+                              {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1">
                                   <Skeleton className="h-8 w-[50px] rounded-[3px]" />
                                 </div>
@@ -558,7 +558,7 @@ const CompletedDownloads = () => {
                           key={column.id}
                           className="w-8 p-2 dark:text-gray-200 ml-2"
                         >
-                          {download.status === 'getting metadata' ? (
+                          {download.status === 'fetching metadata' ? (
                             <div className="space-y-1">
                               <Skeleton className="h-4 w-[100px] rounded-[3px]" />
                               <Skeleton className="h-4 w-[120px] rounded-[3px]" />

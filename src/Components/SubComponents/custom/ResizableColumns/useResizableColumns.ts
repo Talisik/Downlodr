@@ -5,6 +5,7 @@
  * the column widths dynamically based on user interactions.
  *
  * @param initialColumns - An array of Column objects that define the initial state of the columns.
+ * @param visibleColumnIds - An optional array of column IDs to filter the visible columns.
  * @returns An object containing the current columns and a function to start resizing.
  *   - columns: The current state of the columns with updated widths.
  *   - startResizing: A function to initiate the resizing process for a specific column.
@@ -19,7 +20,10 @@ interface Column {
   minWidth?: number;
 }
 
-export const useResizableColumns = (initialColumns: Column[]) => {
+export const useResizableColumns = (
+  initialColumns: Column[],
+  visibleColumnIds?: string[],
+) => {
   // State to hold the current columns
   const [columns, setColumns] = useState(initialColumns);
   // State to track the resizing state
@@ -102,14 +106,20 @@ export const useResizableColumns = (initialColumns: Column[]) => {
     setDragging({ columnId, index });
   };
 
-  // Handle drag over another column
+  // Create a function to convert between display indices and original indices
+  const getVisibleColumns = () => {
+    if (!visibleColumnIds) return columns;
+    const visibleIdSet = new Set(visibleColumnIds);
+    return columns.filter((column) => visibleIdSet.has(column.id));
+  };
+
+  // Modified drag handlers
   const handleDragOver = (index: number) => {
     if (dragging && index !== dragging.index) {
       setDragOverIndex(index);
     }
   };
 
-  // Handle drop to reorder columns
   const handleDrop = () => {
     if (
       dragging &&

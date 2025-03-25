@@ -131,7 +131,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // Playlist validation and getting metadata
+  // Playlist validation and fetching metadata
   const fetchPlaylistInfo = async (url: string) => {
     setIsLoading(true);
     try {
@@ -390,7 +390,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         </div>
         <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 justify-end">
           <button
             type="button"
             className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90"

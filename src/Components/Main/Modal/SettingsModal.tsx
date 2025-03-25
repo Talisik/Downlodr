@@ -354,30 +354,30 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         <hr className="solid mt-4 mb-3 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
 
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="bg-primary text-white px-2 py-2 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
-          >
-            Okay
-          </button>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
-          >
-            Cancel
-          </button>
-
           <Button
             onClick={handleCheckForUpdates}
             variant="outline"
             color="primary"
-            className="ml-auto"
           >
             <GrUpdate />
             Check for Updates
           </Button>
+          <div className="ml-auto flex gap-3">
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className="bg-primary text-white px-2 py-2 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
+            >
+              Okay
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
         {/* End of Button commands */}
       </div>

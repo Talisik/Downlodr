@@ -199,7 +199,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
         {/* Button commands */}
         <hr className="solid mt-2 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
 
-        <div className="flex mt-1">
+        <div className="flex justify-end mt-1">
           <button
             type="button"
             onClick={handleClose}
