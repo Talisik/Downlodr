@@ -10,6 +10,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from 'react';
 import { IoMdClose } from 'react-icons/io';
+import { GrUpdate } from 'react-icons/gr';
 import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
 import { useMainStore } from '../../../Store/mainStore';
 import { Button } from '../../../Components/SubComponents/shadcn/components/ui/button';
@@ -134,13 +135,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
   // Column options with required flag
   const columnOptions = [
-    { id: 'name', label: 'Title', required: true },
-    { id: 'size', label: 'Size', required: false },
     { id: 'format', label: 'Format', required: true },
-    { id: 'status', label: 'Status', required: true },
+    { id: 'size', label: 'Size', required: false },
     { id: 'speed', label: 'Speed', required: false },
-    { id: 'dateAdded', label: 'Date Added', required: false },
     { id: 'source', label: 'Source', required: false },
+    { id: 'status', label: 'Status', required: true },
+    { id: 'name', label: 'Title', required: true },
+    { id: 'dateAdded', label: 'Date Added', required: false },
   ];
 
   // Column toggle handler
@@ -199,14 +200,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             {/* Schedule Name */}
             <div className="space-y-2">
               <div className="flex-1">
-                <Button
-                  onClick={handleCheckForUpdates}
-                  variant="outline"
-                  color="primary"
-                  // leftIcon={<IconRefresh size={16} />}
-                >
-                  Check for Updates
-                </Button>
                 <label className="block mb-2 dark:text-gray-200">
                   Download Location
                 </label>
@@ -313,7 +306,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Add column visibility section */}
-            <div className="pt-6">
+            <div className="pt-4">
               <div className="flex items-center gap-2 mb-2">
                 <label className="block dark:text-gray-200 text-nowrap font-bold">
                   Visible Columns
@@ -321,9 +314,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="grid grid-cols-4 gap-1 mt-4">
                 {columnOptions.map((column) => (
-                  <div key={column.id} className="flex items-center">
+                  <div key={column.id} className="flex items-center mr-2">
                     <input
                       type="checkbox"
                       id={`column-${column.id}`}
@@ -339,14 +332,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     />
                     <label
                       htmlFor={`column-${column.id}`}
-                      className={`dark:text-gray-200 ${
+                      className={`dark:text-gray-200 mr-2 ${
                         column.required ? 'font-semibold' : ''
                       }`}
                     >
                       {column.label}
                       {column.required && (
                         <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                          (Required)
+                          (required)
                         </span>
                       )}
                     </label>
@@ -358,7 +351,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Button commands */}
-        <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
+        <hr className="solid mt-4 mb-3 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
 
         <div className="flex gap-3">
           <button
@@ -375,6 +368,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           >
             Cancel
           </button>
+
+          <Button
+            onClick={handleCheckForUpdates}
+            variant="outline"
+            color="primary"
+            className="ml-auto"
+          >
+            <GrUpdate />
+            Check for Updates
+          </Button>
         </div>
         {/* End of Button commands */}
       </div>

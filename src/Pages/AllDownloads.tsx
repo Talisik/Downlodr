@@ -111,6 +111,30 @@ const AllDownloads = () => {
     { id: 'source', width: 20, minWidth: 20 },
   ]);
 
+  // color themes
+  const getStatusColor = (status: string): string => {
+    switch (status.toLowerCase()) {
+      case 'downloading':
+        return '#2196F3'; // Blue
+      case 'finished':
+        return '#4CAF50'; // Green
+      case 'failed':
+        return '#F44336'; // Red
+      case 'cancelled':
+        return '#9E9E9E'; // Grey
+      case 'initializing':
+        return '#FF9800'; // Orange
+      case 'getting metadata':
+        return '#9C27B0'; // Purple
+      case 'paused':
+        return '#FFEB3B'; // Yellow
+      case 'to download':
+        return '#FF9800'; // Orange (same as initializing)
+      default:
+        return 'currentColor'; // Default color
+    }
+  };
+
   // Add column visibility state from the store
   const visibleColumns = useMainStore((state) => state.visibleColumns);
 
@@ -692,7 +716,14 @@ const AllDownloads = () => {
                               {download.status === 'cancelled' ||
                               download.status === 'initializing' ||
                               download.status === 'getting metadata' ? (
-                                <span>{download.status}</span>
+                                <span
+                                  style={{
+                                    color: getStatusColor(download.status),
+                                    fontWeight: '500',
+                                  }}
+                                >
+                                  {download.status}
+                                </span>
                               ) : download.status === 'finished' ? (
                                 <button
                                   onClick={(e) => {
@@ -700,12 +731,21 @@ const AllDownloads = () => {
                                     handleViewFolder(`${download.location}`);
                                   }}
                                   className="relative flex items-center text-sm underline"
+                                  style={{
+                                    color: getStatusColor(download.status),
+                                  }}
                                 >
                                   <FaPlay className="mr-1" />
                                   finished
                                 </button>
                               ) : download.status === 'to download' ? (
-                                <DownloadButton download={download} />
+                                <div
+                                  style={{
+                                    color: getStatusColor(download.status),
+                                  }}
+                                >
+                                  <DownloadButton download={download} />
+                                </div>
                               ) : download.status === 'paused' ||
                                 download.status === 'downloading' ? (
                                 <button
