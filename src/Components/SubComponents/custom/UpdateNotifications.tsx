@@ -32,17 +32,20 @@ const UpdateNotification: React.FC = () => {
   useEffect(() => {
     // Only add the listener if we're in an Electron environment
     console.log(window.updateAPI);
-    if (window.updateAPI) {
+    if (window.updateAPI.onUpdateAvailable) {
       // Listen for update notifications from the main process
       window.updateAPI.onUpdateAvailable((info) => {
-        setUpdateInfo(info);
-        setOpen(true);
-      });
-    } else {
-      toast({
-        title: "You're up to date!",
-        description: `You're using the latest version (v${updateInfo.currentVersion}).`,
-        duration: 3000,
+        console.log(!info.hasUpdate);
+        if (!info.hasUpdate) {
+          setUpdateInfo(info);
+          setOpen(true);
+        } else {
+          toast({
+            title: "You're up to date!",
+            description: `You're using the latest version (v${updateInfo.currentVersion}).`,
+            duration: 3000,
+          });
+        }
       });
     }
   }, []);
@@ -77,7 +80,7 @@ const UpdateNotification: React.FC = () => {
         </AlertDialogHeader>
 
         {updateInfo.releaseNotes && (
-          <div className="my-2 p-6 bg-slate-100 rounded text-sm max-h-32 overflow-y-auto dark:bg-slate-800 dark:text-gray-200">
+          <div className="p-2 bg-slate-100 rounded text-sm max-h-32 overflow-y-auto dark:bg-slate-800 dark:text-gray-200">
             <p className="text-sm text-slate-700 dark:text-gray-200 whitespace-pre-line">
               {updateInfo.releaseNotes}
             </p>

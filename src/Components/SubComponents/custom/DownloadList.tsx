@@ -134,11 +134,16 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       <table className="min-w-full table-auto">
         <thead>
           <tr className="bg-gray-100 dark:bg-darkModeCompliment">
-            <th className="p-2 text-left dark:text-gray-200">Name</th>
+            <th className="p-2 w-8">
+              <input type="checkbox" className="rounded" />
+            </th>
+            <th className="p-2 text-left dark:text-gray-200">Title</th>
             <th className="p-2 text-left dark:text-gray-200">Size</th>
+            <th className="p-2 text-left dark:text-gray-200">Format</th>
             <th className="p-2 text-left dark:text-gray-200">Status</th>
             <th className="p-2 text-left dark:text-gray-200">Tags</th>
             <th className="p-2 text-left dark:text-gray-200">Categories</th>
+            <th className="p-2 text-left dark:text-gray-200">Source</th>
           </tr>
         </thead>
         <tbody>
@@ -155,17 +160,36 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                 handleViewDownload(`${download.location}${download.name}`)
               }
             >
+              <td className="p-2">
+                <input type="checkbox" className="rounded" />
+              </td>
               <td className="p-2 flex items-center gap-2 dark:text-gray-200">
-                <LuDownload className="text-blue-500" />
                 {download.name}
               </td>
               <td className="p-2 dark:text-gray-200">
-                {(download.size / 1048576).toFixed(2)} mb
+                {Math.round(download.size / 1048576)} MB
               </td>
-              <td className="p-2 dark:text-gray-200">{download.status}</td>
+              <td className="p-2 dark:text-gray-200">{download.ext}</td>
+              <td className="p-2">
+                {download.status === 'completed' ||
+                download.status === 'Finished' ? (
+                  <span className="flex items-center text-green-500">
+                    <span className="mr-1">►</span> Finished
+                  </span>
+                ) : download.status === 'failed' ||
+                  download.status === 'Failed' ? (
+                  <span className="text-red-500">Failed</span>
+                ) : download.status === 'cancelled' ||
+                  download.status === 'Cancelled' ||
+                  download.status === 'canceled' ? (
+                  <span className="text-red-500">Cancelled</span>
+                ) : (
+                  <span>{download.status}</span>
+                )}
+              </td>
               <td className="p-2">
                 <div className="flex flex-wrap gap-1">
-                  {download.tags?.map((tag) => (
+                  {download.tags?.map((tag, index) => (
                     <span
                       key={tag}
                       className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-full"
@@ -173,6 +197,11 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                       {tag}
                     </span>
                   ))}
+                  {download.tags && download.tags.length > 0 && (
+                    <span className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-full">
+                      +{Math.max(0, download.tags.length - 1)}
+                    </span>
+                  )}
                 </div>
               </td>
               <td className="p-2">
@@ -180,12 +209,15 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                   {download.category?.map((category) => (
                     <span
                       key={category}
-                      className="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-200 rounded-full"
+                      className="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded-full"
                     >
                       {category}
                     </span>
                   ))}
                 </div>
+              </td>
+              <td className="p-2 dark:text-gray-200">
+                {download.extractorKey || 'YouTube'}
               </td>
             </tr>
           ))}

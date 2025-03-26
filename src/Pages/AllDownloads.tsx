@@ -124,19 +124,19 @@ const AllDownloads = () => {
       case 'downloading':
         return '#2196F3'; // Blue
       case 'finished':
-        return '#4CAF50'; // Green
+        return '#34C759'; // Green
       case 'failed':
-        return '#F44336'; // Red
+        return '#E74C3C'; // Red
       case 'cancelled':
-        return '#9E9E9E'; // Grey
+        return '#E74C3C'; // Red
       case 'initializing':
-        return '#FF9800'; // Orange
-      case 'fetching metadata':
-        return '#9C27B0'; // Purple
+        return '#3498DB'; // Blue
       case 'paused':
         return '#FFEB3B'; // Yellow
       case 'to download':
         return '#FF9800'; // Orange (same as initializing)
+      case 'fetching metadata':
+        return 'currentColor'; // Use default text color
       default:
         return 'currentColor'; // Default color
     }
