@@ -10,15 +10,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';
+import { FaPlay } from 'react-icons/fa6';
 import useDownloadStore from '../Store/downloadStore';
 import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
 import ExpandedDownloadDetails from '../Components/SubComponents/custom/ExpandedDownloadDetail';
 import { useResizableColumns } from '../Components/SubComponents/custom/ResizableColumns/useResizableColumns';
 import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
+import { AnimatedCircularProgressBar } from '../Components/SubComponents/custom/RadialProgress';
 import { useMainStore } from '../Store/mainStore';
+import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
 import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
 import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
+import ColumnHeaderContextMenu from '../Components/SubComponents/custom/ColumnHeaderContextMenu';
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -48,6 +52,9 @@ const formatRelativeTime = (dateString: string) => {
 
 const CompletedDownloads = () => {
   // All downloads from different states
+  const history = useDownloadStore((state) => state.historyDownloads);
+  const downloading = useDownloadStore((state) => state.downloading);
+  const forDownloads = useDownloadStore((state) => state.forDownloads);
   const finishedDownloads = useDownloadStore(
     (state) => state.finishedDownloads,
   );
@@ -87,6 +94,10 @@ const CompletedDownloads = () => {
   );
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
+  // Get visible columns from the store
+  const visibleColumns = useMainStore((state) => state.visibleColumns);
+
+  // Call the hook with visible column IDs
   const {
     columns,
     startResizing,
@@ -95,15 +106,42 @@ const CompletedDownloads = () => {
     handleDrop,
     dragging,
     dragOverIndex,
-  } = useResizableColumns([
-    { id: 'name', width: 110, minWidth: 110 },
-    { id: 'size', width: 60, minWidth: 60 },
-    { id: 'format', width: 80, minWidth: 80 },
-    { id: 'status', width: 110, minWidth: 110 },
-    { id: 'speed', width: 70, minWidth: 70 },
-    { id: 'dateAdded', width: 90, minWidth: 90 },
-    { id: 'source', width: 20, minWidth: 20 },
-  ]);
+  } = useResizableColumns(
+    [
+      { id: 'name', width: 110, minWidth: 110 },
+      { id: 'size', width: 60, minWidth: 60 },
+      { id: 'format', width: 80, minWidth: 80 },
+      { id: 'status', width: 110, minWidth: 110 },
+      { id: 'speed', width: 70, minWidth: 70 },
+      { id: 'dateAdded', width: 90, minWidth: 90 },
+      { id: 'source', width: 20, minWidth: 20 },
+    ],
+    visibleColumns,
+  );
+
+  // color themes
+  const getStatusColor = (status: string): string => {
+    switch (status.toLowerCase()) {
+      case 'downloading':
+        return '#2196F3'; // Blue
+      case 'finished':
+        return '#34C759'; // Green
+      case 'failed':
+        return '#E74C3C'; // Red
+      case 'cancelled':
+        return '#E74C3C'; // Red
+      case 'initializing':
+        return '#3498DB'; // Blue
+      case 'paused':
+        return '#FFEB3B'; // Yellow
+      case 'to download':
+        return '#FF9800'; // Orange (same as initializing)
+      case 'fetching metadata':
+        return 'currentColor'; // Use default text color
+      default:
+        return 'currentColor'; // Default color
+    }
+  };
 
   // Combine downloads from downloading and history
   const CompletedDownloads = [...finishedDownloads]
@@ -161,6 +199,19 @@ const CompletedDownloads = () => {
       }
     });
 
+  // Filter columns based on visibility settings, ensuring essential columns are always included
+  const displayColumns = columns.filter(
+    (column) =>
+      visibleColumns.includes(column.id) ||
+      ['name', 'status', 'format'].includes(column.id),
+  );
+
+  // Map the displayColumns to have correct indices for drag and drop
+  const displayColumnsWithIndices = displayColumns.map((column, index) => ({
+    ...column,
+    displayIndex: index,
+  }));
+
   // Handle column header click for sorting
   const handleSortClick = (column: string) => {
     if (sortColumn === column) {
@@ -191,11 +242,49 @@ const CompletedDownloads = () => {
     }
   };
 
+  // Add this new state for the column header context menu
+  const [columnHeaderContextMenu, setColumnHeaderContextMenu] = useState<{
+    x: number;
+    y: number;
+    visible: boolean;
+  }>({ x: 0, y: 0, visible: false });
+
+  // Add this handler for the column header right-click
+  const handleColumnHeaderContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setColumnHeaderContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      visible: true,
+    });
+  };
+
+  // Add this to close the column header context menu
+  const handleCloseColumnHeaderContextMenu = () => {
+    setColumnHeaderContextMenu((prev) => ({ ...prev, visible: false }));
+  };
+
+  // Handle toggle column visibility
+  const handleToggleColumn = (columnId: string) => {
+    const newVisibleColumns = visibleColumns.includes(columnId)
+      ? visibleColumns.filter((id) => id !== columnId)
+      : [...visibleColumns, columnId];
+
+    useMainStore.getState().setVisibleColumns(newVisibleColumns);
+  };
+
+  // Handle column options
+  const handleColumnOptions = (columnId: string) => {
+    // Implement column options logic here
+  };
+
   // Close Menu and clear selected download when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       setContextMenu({ downloadId: null, x: 0, y: 0 });
       setSelectedDownloadId(null);
+      setColumnHeaderContextMenu((prev) => ({ ...prev, visible: false }));
     };
 
     document.addEventListener('click', handleClickOutside);
@@ -220,10 +309,163 @@ const CompletedDownloads = () => {
   };
 
   //Context Menu actons
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handlePause = (downloadId: string, downloadLocation?: string) => {
+    // Get fresh state each time
+    const { downloading, deleteDownloading } = useDownloadStore.getState();
+    const currentDownload = downloading.find((d) => d.id === downloadId);
+    const { updateDownloadStatus } = useDownloadStore.getState();
+
+    if (currentDownload?.status === 'paused') {
+      const { addDownload } = useDownloadStore.getState();
+      addDownload(
+        currentDownload.videoUrl,
+        currentDownload.name,
+        currentDownload.downloadName,
+        currentDownload.size,
+        currentDownload.speed,
+        currentDownload.timeLeft,
+        new Date().toISOString(),
+        currentDownload.progress,
+        currentDownload.location,
+        'downloading',
+        currentDownload.backupExt,
+        currentDownload.backupFormatId,
+        currentDownload.backupAudioExt,
+        currentDownload.backupAudioFormatId,
+        currentDownload.extractorKey,
+        '',
+      );
+      deleteDownloading(downloadId);
+      toast({
+        variant: 'success',
+        title: 'Download Resumed',
+        description: 'Download has been resumed successfully',
+        duration: 3000,
+      });
+    } else if (currentDownload.controllerId != '---') {
+      try {
+        window.ytdlp
+          .killController(currentDownload.controllerId)
+          .then((success) => {
+            if (success) {
+              setTimeout(() => {
+                updateDownloadStatus(downloadId, 'paused');
+                console.log('Status updated to paused after delay');
+              }, 1200);
+            }
+          });
+        // When successfully paused
+        toast({
+          variant: 'success',
+          title: 'Download Paused',
+          description: 'Download has been paused successfully',
+          duration: 3000,
+        });
+        updateDownloadStatus(downloadId, 'paused');
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to pause/resume download',
+          duration: 3000,
+        });
+        console.error('Error in pause:', error);
+      }
+    }
+
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
   const handleViewDownload = (downloadLocation?: string) => {
     if (downloadLocation) {
       window.downlodrFunctions.openVideo(downloadLocation);
     }
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  const handleStop = (
+    downloadId: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    downloadLocation?: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    controllerId?: string,
+  ) => {
+    const {
+      downloading,
+      deleteDownloading,
+      forDownloads,
+      removeFromForDownloads,
+    } = useDownloadStore.getState();
+    const currentDownload = downloading.find((d) => d.id === downloadId);
+    const currentForDownload = forDownloads.find((d) => d.id === downloadId);
+
+    if (currentDownload?.status === 'paused') {
+      deleteDownloading(downloadId);
+      toast({
+        variant: 'success',
+        title: 'Download Stopped',
+        description: 'Download has been stopped successfully',
+        duration: 3000,
+      });
+    } else if (currentForDownload?.status === 'to download') {
+      removeFromForDownloads(downloadId);
+      toast({
+        variant: 'success',
+        title: 'Download Stopped',
+        description: 'Download has been stopped successfully',
+        duration: 3000,
+      });
+    } else {
+      if (downloading && downloading.length > 0) {
+        downloading.forEach(async (download) => {
+          if (download.controllerId) {
+            try {
+              const success = await window.ytdlp.killController(
+                download.controllerId,
+              );
+              if (success) {
+                deleteDownloading(download.id);
+                console.log(
+                  `Controller with ID ${download.controllerId} has been terminated.`,
+                );
+                toast({
+                  variant: 'success',
+                  title: 'Download Stopped',
+                  description: 'Download has been stopped successfully',
+                  duration: 3000,
+                });
+              }
+            } catch (error) {
+              console.error('Error invoking kill-controller:', error);
+              toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to stop download',
+                duration: 3000,
+              });
+            }
+          }
+        });
+      }
+    }
+
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  const handleForceStart = (
+    downloadId: string,
+    downloadLocation?: string,
+    controllerId?: string,
+  ) => {
+    console.log(
+      'Force starting:',
+      downloadId,
+      'at:',
+      downloadLocation,
+      'controller:',
+      controllerId,
+    );
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
@@ -339,18 +581,48 @@ const CompletedDownloads = () => {
     return download?.category || [];
   };
 
-  const handleViewFolder = (downloadLocation?: string) => {
+  const handleViewFolder = (downloadLocation?: string, filePath?: string) => {
     if (downloadLocation) {
-      window.downlodrFunctions.openFolder(downloadLocation);
+      window.downlodrFunctions.openFolder(downloadLocation, filePath);
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
+  // Add a column display name mapping
+  const getColumnDisplayName = (columnId: string): string => {
+    const columnMappings: Record<string, string> = {
+      name: 'Title',
+      size: 'Size',
+      format: 'Format',
+      status: 'Status',
+      speed: 'Speed',
+      dateAdded: 'Date Added',
+      source: 'Source',
+      // Add any other columns here
+    };
+
+    return columnMappings[columnId] || columnId;
+  };
+
+  // Column options configuration - consistent with SettingsModal
+  const columnOptions = [
+    { id: 'name', label: 'Title', required: true },
+    { id: 'size', label: 'Size', required: false },
+    { id: 'format', label: 'Format', required: true },
+    { id: 'status', label: 'Status', required: true },
+    { id: 'speed', label: 'Speed', required: false },
+    { id: 'dateAdded', label: 'Date Added', required: false },
+    { id: 'source', label: 'Source', required: false },
+    { id: 'timeLeft', label: 'Time Left', required: false },
+  ];
 
   return (
     <div className="w-full">
       <table className="w-full">
         <thead>
-          <tr className="border-b text-left dark:border-gray-700">
+          <tr
+            className="border-b text-left dark:border-gray-700"
+            onContextMenu={handleColumnHeaderContextMenu}
+          >
             <th className="w-8 p-2">
               <input
                 type="checkbox"
@@ -359,45 +631,37 @@ const CompletedDownloads = () => {
                 onChange={handleSelectAll}
               />
             </th>
-            {columns.map((column, index) => {
+            {displayColumns.map((column, displayIndex) => {
               if (column.id === 'end') {
                 return (
                   <th key={column.id} className="w-20 p-2 font-semibold"></th>
                 );
               }
+
+              // Find original index in the full columns array
+              const originalIndex = columns.findIndex(
+                (col) => col.id === column.id,
+              );
+
               return (
                 <ResizableHeader
                   key={column.id}
                   width={column.width}
                   onResizeStart={(e) => startResizing(column.id, e.clientX)}
-                  index={index}
+                  index={originalIndex} // Use the original index from the full columns array
                   onDragStart={startDragging}
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   isDragging={dragging?.columnId === column.id}
-                  isDragOver={dragOverIndex === index}
+                  isDragOver={dragOverIndex === originalIndex}
                   columnId={column.id}
-                  isLastColumn={index === columns.length - 1}
+                  isLastColumn={displayIndex === displayColumns.length - 1}
                 >
                   <div
                     className="flex items-center cursor-pointer"
                     onClick={() => handleSortClick(column.id)}
                   >
-                    {column.id === 'name'
-                      ? 'Title'
-                      : column.id === 'size'
-                      ? 'Size'
-                      : column.id === 'format'
-                      ? 'Format'
-                      : column.id === 'status'
-                      ? 'Status'
-                      : column.id === 'speed'
-                      ? 'Speed'
-                      : column.id === 'dateAdded'
-                      ? 'Date Added'
-                      : column.id === 'source'
-                      ? 'Source'
-                      : column.id}
+                    {getColumnDisplayName(column.id)}
                     {renderSortIndicator(column.id)}
                   </div>
                 </ResizableHeader>
@@ -416,6 +680,16 @@ const CompletedDownloads = () => {
                 }`}
                 onContextMenu={(e) => handleContextMenu(e, download)}
                 onClick={() => handleRowClick(download.id)}
+                draggable={true}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('downloadId', download.id);
+                  const dragIcon = document.createElement('div');
+                  dragIcon.className = 'bg-white p-2 rounded shadow';
+                  dragIcon.textContent = download.name;
+                  document.body.appendChild(dragIcon);
+                  e.dataTransfer.setDragImage(dragIcon, 0, 0);
+                  setTimeout(() => document.body.removeChild(dragIcon), 0);
+                }}
               >
                 <td className="w-8 p-2">
                   <input
@@ -425,7 +699,7 @@ const CompletedDownloads = () => {
                     onChange={() => handleCheckboxChange(download.id)}
                   />
                 </td>
-                {columns.map((column) => {
+                {displayColumns.map((column, displayIndex) => {
                   switch (column.id) {
                     case 'name':
                       return (
@@ -518,15 +792,68 @@ const CompletedDownloads = () => {
                         >
                           <div className="flex justify-start">
                             <span className="text-sm text-gray-600 dark:text-gray-300 ml-1">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleViewFolder(`${download.location}`);
-                                }}
-                                className="underline"
-                              >
-                                {download.status}
-                              </button>
+                              {download.status === 'cancelled' ||
+                              download.status === 'initializing' ||
+                              download.status === 'fetching metadata' ? (
+                                <span
+                                  style={{
+                                    color: getStatusColor(download.status),
+                                    fontWeight: '500',
+                                    textTransform: 'capitalize',
+                                  }}
+                                >
+                                  {download.status}
+                                </span>
+                              ) : download.status === 'finished' ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewFolder(`${download.location}`);
+                                  }}
+                                  className="relative flex items-center text-sm underline"
+                                  style={{
+                                    color: getStatusColor(download.status),
+                                  }}
+                                >
+                                  <FaPlay className="mr-1" />
+                                  finished
+                                </button>
+                              ) : download.status === 'to download' ? (
+                                <div
+                                  style={{
+                                    color: getStatusColor(download.status),
+                                  }}
+                                >
+                                  <DownloadButton download={download} />
+                                </div>
+                              ) : download.status === 'paused' ||
+                                download.status === 'downloading' ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePause(download.id);
+                                  }}
+                                  className="hover:bg-gray-100 dark:hover:bg-gray-600 p-1 rounded-full"
+                                >
+                                  <AnimatedCircularProgressBar
+                                    status={download.status}
+                                    max={100}
+                                    min={0}
+                                    value={download.progress}
+                                    gaugePrimaryColor="#4CAF50"
+                                    gaugeSecondaryColor="#EEEEEE"
+                                  />
+                                </button>
+                              ) : (
+                                <AnimatedCircularProgressBar
+                                  status={download.status}
+                                  max={100}
+                                  min={0}
+                                  value={download.progress}
+                                  gaugePrimaryColor="#4CAF50"
+                                  gaugeSecondaryColor="#EEEEEE"
+                                />
+                              )}
                             </span>
                           </div>
                         </td>
@@ -608,15 +935,9 @@ const CompletedDownloads = () => {
           controllerId={contextMenu.controllerId}
           downloadStatus={contextMenu.downloadStatus}
           onClose={handleCloseContextMenu}
-          onPause={() => {
-            /* Not needed for completed downloads */
-          }}
-          onStop={() => {
-            /* Not needed for completed downloads */
-          }}
-          onForceStart={() => {
-            /* Not needed for completed downloads */
-          }}
+          onPause={handlePause}
+          onStop={handleStop}
+          onForceStart={handleForceStart}
           onRemove={handleRemove}
           onViewDownload={handleViewDownload}
           onViewFolder={handleViewFolder}
@@ -634,6 +955,19 @@ const CompletedDownloads = () => {
           }
         />
       )}
+
+      {/* Add the column header context menu component */}
+      <ColumnHeaderContextMenu
+        position={{
+          x: columnHeaderContextMenu.x,
+          y: columnHeaderContextMenu.y,
+        }}
+        visible={columnHeaderContextMenu.visible}
+        visibleColumns={visibleColumns}
+        onToggleColumn={handleToggleColumn}
+        onClose={handleCloseColumnHeaderContextMenu}
+        columnOptions={columnOptions}
+      />
     </div>
   );
 };

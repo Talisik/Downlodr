@@ -20,7 +20,7 @@ const ColumnHeaderContextMenu: React.FC<ColumnHeaderContextMenuProps> = ({
   visible,
   visibleColumns,
   onToggleColumn,
-  onClose,
+  // onClose,
   columnOptions,
 }) => {
   if (!visible) return null;

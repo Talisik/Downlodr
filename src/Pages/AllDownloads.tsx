@@ -50,6 +50,20 @@ const formatRelativeTime = (dateString: string) => {
   }
 };
 
+// Add this helper function before the AllDownloads component
+const formatFileSize = (bytes: number | undefined): string => {
+  if (!bytes) return '—';
+
+  const MB = 1048576;
+  const GB = MB * 1024;
+
+  if (bytes >= GB) {
+    return `${(bytes / GB).toFixed(2)} GB`;
+  } else {
+    return `${(bytes / MB).toFixed(2)} MB`;
+  }
+};
+
 const AllDownloads = () => {
   // All downloads from different states
   const history = useDownloadStore((state) => state.historyDownloads);
@@ -583,9 +597,16 @@ const AllDownloads = () => {
     return download?.category || [];
   };
 
-  const handleViewFolder = (downloadLocation?: string) => {
+  const handleViewFolder = (downloadLocation?: string, filePath?: string) => {
     if (downloadLocation) {
-      window.downlodrFunctions.openFolder(downloadLocation);
+      // Check if the location contains a comma (indicating old format)
+      if (downloadLocation.includes(',') && !filePath) {
+        const [folderPath, filePathFromString] = downloadLocation.split(',');
+        window.downlodrFunctions.openFolder(folderPath, filePathFromString);
+      } else {
+        // Normal case with separate parameters
+        window.downlodrFunctions.openFolder(downloadLocation, filePath);
+      }
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
@@ -740,9 +761,7 @@ const AllDownloads = () => {
                             </div>
                           ) : (
                             <div className="line-clamp-2 break-words ml-1">
-                              {download.size
-                                ? `${(download.size / 1048576).toFixed(2)} MB`
-                                : '—'}{' '}
+                              {formatFileSize(download.size)}
                             </div>
                           )}
                         </td>
@@ -802,23 +821,37 @@ const AllDownloads = () => {
                                   style={{
                                     color: getStatusColor(download.status),
                                     fontWeight: '500',
+                                    textTransform: 'capitalize',
                                   }}
                                 >
                                   {download.status}
                                 </span>
                               ) : download.status === 'finished' ? (
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleViewFolder(`${download.location}`);
-                                  }}
                                   className="relative flex items-center text-sm underline"
                                   style={{
                                     color: getStatusColor(download.status),
                                   }}
                                 >
-                                  <FaPlay className="mr-1" />
-                                  finished
+                                  <FaPlay
+                                    className="mr-3"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleViewDownload(
+                                        `${download.location}${download.name}`,
+                                      );
+                                    }}
+                                  />
+                                  <span
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleViewFolder(
+                                        `${download.location},${download.location}${download.name}`,
+                                      );
+                                    }}
+                                  >
+                                    Finished
+                                  </span>
                                 </button>
                               ) : download.status === 'to download' ? (
                                 <div

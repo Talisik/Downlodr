@@ -28,8 +28,8 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
     ipcRenderer.invoke('joinDownloadPath', downloadPath, fileName),
   validatePath: (folderPath: string) =>
     ipcRenderer.invoke('validatePath', folderPath),
-  openFolder: (folderPath: string) =>
-    ipcRenderer.invoke('open-folder', folderPath),
+  openFolder: (folderPath: string, filePath: string) =>
+    ipcRenderer.invoke('open-folder', folderPath, filePath),
   fileExists: (path: string) => ipcRenderer.invoke('file-exists', path),
   showInputContextMenu: () => ipcRenderer.send('show-input-context-menu'),
 });

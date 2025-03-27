@@ -139,13 +139,12 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   };
   // Handles viewing the folder containing the download.
   // downloadLocation - The location of the download file.
-  const handleViewFolder = (downloadLocation?: string) => {
+  const handleViewFolder = (downloadLocation?: string, filePath?: string) => {
     if (downloadLocation) {
-      window.downlodrFunctions.openFolder(downloadLocation);
+      window.downlodrFunctions.openFolder(downloadLocation, filePath);
     }
-    setContextMenu(null);
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
-
   // Initialize resizable columns - excluding checkbox
   const initialColumns = [
     { id: 'title', width: 250, minWidth: 100 },
@@ -360,7 +359,12 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                         download.status === 'canceled' ? (
                         <span className="text-red-500">Cancelled</span>
                       ) : (
-                        <span>{download.status}</span>
+                        <span
+                          className="capitalize
+"
+                        >
+                          {download.status}
+                        </span>
                       );
                     case 'tags':
                       return (
@@ -414,6 +418,15 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                   </td>
                 );
               })}
+              <th className="w-20 p-2 font-semibold text-white">
+                <div className="flex items-center dark:text-gray-200">
+                  Source
+                  <HiChevronUpDown
+                    size={14}
+                    className="flex-shrink-0 dark:text-gray-400"
+                  />
+                </div>
+              </th>
             </tr>
           ))}
         </tbody>

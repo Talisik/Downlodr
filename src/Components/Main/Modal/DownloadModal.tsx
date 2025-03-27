@@ -231,12 +231,14 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       toast({
         title: 'Download Queued',
         description: 'Getting video metadata...',
+        duration: 3000,
       });
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Error',
         description: 'Failed to Add to Download Queue',
+        duration: 3000,
       });
     }
   };

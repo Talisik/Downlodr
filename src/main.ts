@@ -147,15 +147,22 @@ ipcMain.handle('dialog:openDirectory', async () => {
     : result.filePaths[0] + path.sep;
 });
 
-// open folder
-ipcMain.handle('open-folder', async (_, folderPath) => {
+// open folder with optional file highlighting
+ipcMain.handle('open-folder', async (_, folderPath, filePath = null) => {
   try {
-    const result = await shell.openPath(folderPath);
-    if (result) {
-      console.error(`Error opening folder: ${result}`);
-      return { success: false, error: result };
+    // If a file path is provided, show the file in the folder (will highlight it)
+    if (filePath) {
+      await shell.showItemInFolder(filePath);
+      return { success: true };
+    } else {
+      // Otherwise just open the folder without highlighting anything
+      const result = await shell.openPath(folderPath);
+      if (result) {
+        console.error(`Error opening folder: ${result}`);
+        return { success: false, error: result };
+      }
+      return { success: true };
     }
-    return { success: true };
   } catch (error) {
     console.error('Failed to open folder:', error);
     return { success: false, error: error.message };

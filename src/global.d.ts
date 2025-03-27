@@ -26,6 +26,7 @@ declare global {
       validatePath: (folderPath: string) => Promise<boolean>; // Validates a folder path
       openFolder: (
         folderPath: string,
+        filePath: string,
       ) => Promise<{ success: boolean; error?: string }>; // Opens a specified folder
       fileExists: (path: string) => Promise<boolean>; // Checks if a file exists at the specified path
       showInputContextMenu: () => void; // Shows the input field context menu (right-click menu)

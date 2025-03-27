@@ -454,7 +454,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           >
             <span className="flex items-center space-x-2">
               <LiaFileVideoSolid size={20} />
-              <span>View Download</span>
+              <span>Play Download</span>
             </span>
           </button>
           <button

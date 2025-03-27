@@ -31,6 +31,20 @@ interface ExpandedDownloadDetailsProps {
 const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
   download,
 }) => {
+  // Add this helper function before the AllDownloads component
+  const formatFileSize = (bytes: number | undefined): string => {
+    if (!bytes) return '—';
+
+    const MB = 1048576;
+    const GB = MB * 1024;
+
+    if (bytes >= GB) {
+      return `${(bytes / GB).toFixed(2)} GB`;
+    } else {
+      return `${(bytes / MB).toFixed(2)} MB`;
+    }
+  };
+
   return (
     <tr className="bg-lightGray dark:bg-gray-800 text-xs">
       <td colSpan={9} className="p-4">
@@ -73,40 +87,45 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
                   Downloaded:{' '}
                 </span>
                 <span className="dark:text-gray-300">
-                  {(download.size / 1048576).toFixed(2) || '0 MB'}
+                  {formatFileSize(download.size)}
                 </span>
               </p>
               <p>
                 <span className="font-bold dark:text-gray-200">Status: </span>
-                <span className="dark:text-gray-300">{download.status}</span>
+                <span
+                  className="dark:text-gray-300 capitalize
+"
+                >
+                  {download.status}
+                </span>
               </p>
               <p>
                 <span className="font-bold dark:text-gray-200">
-                  Download Speed:{' '}
+                  Average Download Speed:{' '}
                 </span>
                 <span className="dark:text-gray-300">
                   {download.speed || '0 KB/s'}
                 </span>
               </p>
-              <p>
-                <span className="font-bold dark:text-gray-200">ETA: </span>
-                <span className="dark:text-gray-300">
-                  {download.timeLeft || 'Unknown'}
-                </span>
-              </p>
+              {download.speed === 'finished' && (
+                <p>
+                  <span className="font-bold dark:text-gray-200">ETA: </span>
+                  <span className="dark:text-gray-300">
+                    {download.timeLeft || '-'}
+                  </span>
+                </p>
+              )}
             </div>
           </div>
           <div>
-            <h4 className="mb-2 dark:text-gray-200">Information</h4>
+            <h4 className="mb-2 dark:text-gray-200">File Information</h4>
             <div className="space-y-1 flex flex-row gap-x-12 items-center justify-start">
               <p>
                 <span className="font-bold dark:text-gray-200">
                   Total Size:{' '}
                 </span>
                 <span className="dark:text-gray-300">
-                  {download.size
-                    ? `${(download.size / 1048576).toFixed(2)} MB`
-                    : 'Unknown'}
+                  {formatFileSize(download.size)}
                 </span>
               </p>
               <p>
