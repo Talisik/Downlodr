@@ -94,6 +94,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
         variant: 'destructive',
         title: 'Error Opening File',
         description: 'An error occurred while trying to open the file',
+        duration: 3000,
       });
     }
 
@@ -139,12 +140,14 @@ const DropdownBar = ({ className }: { className?: string }) => {
                 variant: 'success',
                 title: 'Download Stopped',
                 description: 'Your download has stopped successfully',
+                duration: 3000,
               });
             } else {
               toast({
                 variant: 'destructive',
                 title: 'Stop Download Error',
                 description: `Could not stop current download with controller ${download.controllerId}`,
+                duration: 3000,
               });
               // setCurrentDownloadId(download.id);
             }
@@ -153,6 +156,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
               variant: 'destructive',
               title: 'Stop Download Error',
               description: `Could not stop current download with controller ${download.controllerId}`,
+              duration: 3000,
             });
           }
         } else {
@@ -160,6 +164,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
             variant: 'destructive',
             title: 'Stop Download Error',
             description: `Could not stop current download with controller ${download.controllerId}`,
+            duration: 3000,
           });
         }
       }
@@ -170,6 +175,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
         variant: 'destructive',
         title: 'No Downloads Found',
         description: `No current downloads to delete`,
+        duration: 3000,
       });
     }
     // setSelectedDownloading([]);
@@ -184,6 +190,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
         variant: 'destructive',
         title: 'No Downloads Available',
         description: 'No downloads available to start',
+        duration: 3000,
       });
       return;
     }
@@ -196,6 +203,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
         variant: 'destructive',
         title: 'Download limit reached',
         description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
+        duration: 7000,
       });
       return;
     }

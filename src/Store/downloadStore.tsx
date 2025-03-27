@@ -68,7 +68,7 @@ interface Downloading extends BaseDownload {
     | 'failed'
     | 'cancelled'
     | 'initializing'
-    | 'getting metadata'
+    | 'fetching metadata'
     | 'paused';
   formatId: string; // ID of the selected format
   backupExt?: string; // Backup file extension
@@ -141,7 +141,7 @@ interface DownloadStore {
       | 'failed'
       | 'cancelled'
       | 'initializing'
-      | 'getting metadata'
+      | 'fetching metadata'
       | 'paused',
   ) => void; // Update the status of a download
   renameDownload: (downloadId: string, newName: string) => void; // Rename a download
@@ -397,7 +397,7 @@ const useDownloadStore = create<DownloadStore>()(
               DateAdded: new Date().toISOString(),
               progress: 0,
               location,
-              status: 'getting metadata',
+              status: 'fetching metadata',
               ext: '',
               controllerId: undefined,
               tags: [],
@@ -458,6 +458,7 @@ const useDownloadStore = create<DownloadStore>()(
               title: 'Live Video Links Not Allowed',
               description:
                 'Live video links are not supported. Please enter a valid URL.',
+              duration: 3000,
             });
 
             const { removeFromForDownloads } = get(); // Get the current state methods
@@ -469,6 +470,7 @@ const useDownloadStore = create<DownloadStore>()(
             variant: 'destructive',
             title: `Could not find video metadata`,
             description: 'Please enter a valid video URL',
+            duration: 3000,
           });
 
           // Access the method correctly
@@ -723,7 +725,7 @@ const useDownloadStore = create<DownloadStore>()(
           | 'failed'
           | 'cancelled'
           | 'initializing'
-          | 'getting metadata'
+          | 'fetching metadata'
           | 'paused',
       ) => {
         console.log('Updating status for id:', id, 'to:', status);
@@ -769,6 +771,7 @@ const useDownloadStore = create<DownloadStore>()(
         historyDownloads: state.historyDownloads,
         availableTags: state.availableTags,
         availableCategories: state.availableCategories,
+        finishedDownloads: state.finishedDownloads, // This was missing before
       }),
     },
   ),

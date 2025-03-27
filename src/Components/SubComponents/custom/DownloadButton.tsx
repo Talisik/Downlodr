@@ -54,6 +54,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
         variant: 'destructive',
         title: 'Download limit reached',
         description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
+        duration: 3000,
       });
       return;
     }
@@ -89,6 +90,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
     toast({
       title: 'Download Started',
       description: `Starting download for ${processedName}`,
+      duration: 3000,
     });
   };
 

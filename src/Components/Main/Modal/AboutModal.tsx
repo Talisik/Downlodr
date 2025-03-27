@@ -9,7 +9,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import DownlodrLogo from '../../../Assets/Logo/DownlodrLogo-NoName.svg';
 import { FiExternalLink } from 'react-icons/fi';
@@ -19,8 +19,43 @@ interface AboutModalProps {
   onClose: () => void;
 }
 
+// Define the update info type
+interface UpdateInfo {
+  hasUpdate: boolean;
+  latestVersion: string;
+  currentVersion: string;
+  releaseUrl: string;
+  releaseNotes: string;
+  downloadUrl: string;
+  publishedAt: Date;
+}
+
 const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
+  const [appVersion, setAppVersion] = useState('1.0.0');
   const navRef = useRef<HTMLDivElement>(null);
+
+  // Get current app version on mount
+  useEffect(() => {
+    const getVersion = async () => {
+      if (window.updateAPI) {
+        try {
+          // Register a one-time listener for update info
+          window.updateAPI.onUpdateAvailable((info) => {
+            if (info.currentVersion) {
+              setAppVersion(info.currentVersion);
+            }
+          });
+
+          // Trigger a check for updates to get version info
+          await window.updateAPI.checkForUpdates();
+        } catch (error) {
+          console.error('Error getting version:', error);
+        }
+      }
+    };
+
+    getVersion();
+  }, []);
 
   // Close Modal
   const handleClose = () => {
@@ -86,7 +121,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
               <div className="flex flex-col ml-4 items-start">
                 <h1 className="font-bold text-xl">Downlodr</h1>
                 <h1 className="font-bold text-[15px] text-[#BCBCBC]">
-                  Version 1.1
+                  Version {appVersion}
                 </h1>
               </div>
             </div>
@@ -164,7 +199,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
         {/* Button commands */}
         <hr className="solid mt-2 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
 
-        <div className="flex mt-1">
+        <div className="flex justify-end mt-1">
           <button
             type="button"
             onClick={handleClose}

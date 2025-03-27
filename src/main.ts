@@ -10,6 +10,7 @@ import started from 'electron-squirrel-startup';
 import os from 'os';
 import * as YTDLP from 'yt-dlp-helper';
 import fs, { existsSync } from 'fs';
+import { checkForUpdates } from './DataFunctions/updateChecker';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -146,15 +147,22 @@ ipcMain.handle('dialog:openDirectory', async () => {
     : result.filePaths[0] + path.sep;
 });
 
-// open folder
-ipcMain.handle('open-folder', async (_, folderPath) => {
+// open folder with optional file highlighting
+ipcMain.handle('open-folder', async (_, folderPath, filePath = null) => {
   try {
-    const result = await shell.openPath(folderPath);
-    if (result) {
-      console.error(`Error opening folder: ${result}`);
-      return { success: false, error: result };
+    // If a file path is provided, show the file in the folder (will highlight it)
+    if (filePath) {
+      await shell.showItemInFolder(filePath);
+      return { success: true };
+    } else {
+      // Otherwise just open the folder without highlighting anything
+      const result = await shell.openPath(folderPath);
+      if (result) {
+        console.error(`Error opening folder: ${result}`);
+        return { success: false, error: result };
+      }
+      return { success: true };
     }
-    return { success: true };
   } catch (error) {
     console.error('Failed to open folder:', error);
     return { success: false, error: error.message };
@@ -323,7 +331,30 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
   }
 });
 
-app.on('ready', createWindow);
+app.on('ready', () => {
+  createWindow();
+
+  // Check for updates when app starts
+  setTimeout(async () => {
+    const updateInfo = await checkForUpdates();
+    if (updateInfo.hasUpdate) {
+      BrowserWindow.getAllWindows().forEach((win) =>
+        win.webContents.send('update-available', updateInfo),
+      );
+    }
+  }, 5000); // Check after 5 seconds to not slow startup
+
+  // Set up periodic update checking
+  const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 4; // Check every 4 hours
+  setInterval(async () => {
+    const updateInfo = await checkForUpdates();
+    if (updateInfo.hasUpdate) {
+      BrowserWindow.getAllWindows().forEach((win) =>
+        win.webContents.send('update-available', updateInfo),
+      );
+    }
+  }, UPDATE_CHECK_INTERVAL);
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
@@ -376,4 +407,16 @@ ipcMain.handle('openExternalLink', async (_event, link: string) => {
     console.error('Failed to open external link:', error);
     throw error;
   }
+});
+
+// Add this to your IPC handlers
+ipcMain.handle('check-for-updates', async () => {
+  const updateInfo = await checkForUpdates();
+  if (updateInfo.hasUpdate) {
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    if (mainWindow) {
+      mainWindow.webContents.send('update-available', updateInfo);
+    }
+  }
+  return updateInfo;
 });

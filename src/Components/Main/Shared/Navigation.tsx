@@ -164,6 +164,7 @@ const Navigation = ({ className }: { className?: string }) => {
       toast({
         title: 'Download categorized',
         description: `Set to "${category}"`,
+        duration: 3000,
       });
     }
     // Clear the highlight after drop
@@ -182,6 +183,7 @@ const Navigation = ({ className }: { className?: string }) => {
       toast({
         title: 'Download tagged',
         description: `Tagged with "${tag}"`,
+        duration: 3000,
       });
     }
     // Clear the highlight after drop

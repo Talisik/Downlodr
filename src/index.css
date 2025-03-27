@@ -93,3 +93,18 @@ body {
   @apply bg-black  dark:bg-gray-100;
 
 }
+
+/* checkboxes */
+
+input[type="checkbox"] {
+  accent-color: #F45513;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  padding: 1px;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #F45513;
+  border-color: #F45513;
+}
