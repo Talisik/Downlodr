@@ -10,10 +10,13 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { LuDownload } from 'react-icons/lu';
+import { LuDownload, LuArrowDown, LuArrowUp } from 'react-icons/lu';
+import { HiChevronUpDown } from 'react-icons/hi2';
 import useDownloadStore, { BaseDownload } from '../../../Store/downloadStore';
 import DownloadContextMenu from './DownloadContextMenu';
 import { toast } from '../shadcn/hooks/use-toast';
+import ResizableHeader from './ResizableColumns/ResizableHeader';
+import { useResizableColumns } from './ResizableColumns/useResizableColumns';
 
 // Interface representing the props for the DownloadList component
 interface DownloadListProps {
@@ -46,6 +49,18 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   const uniqueDownloads = [
     ...new Map(downloads.map((item) => [item.id, item])).values(),
   ];
+  // Add a debug state to track dragging status more visibly
+  const [debugDrag, setDebugDrag] = useState<string>('');
+
+  // Add sort state
+  const [sortConfig, setSortConfig] = useState<{
+    key: string | null;
+    direction: 'ascending' | 'descending';
+  }>({
+    key: null,
+    direction: 'ascending',
+  });
+
   // Effect to handle clicks outside the list to close the context menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -101,6 +116,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           variant: 'success',
           title: 'File Deleted',
           description: 'File has been deleted successfully',
+          duration: 3000,
         });
       }
     } catch (error) {
@@ -109,6 +125,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         variant: 'destructive',
         title: 'Deletion Failed',
         description: 'Failed to delete file',
+        duration: 3000,
       });
     }
   };
@@ -129,25 +146,165 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     setContextMenu(null);
   };
 
+  // Initialize resizable columns - excluding checkbox
+  const initialColumns = [
+    { id: 'title', width: 250, minWidth: 100 },
+    { id: 'size', width: 100, minWidth: 80 },
+    { id: 'format', width: 100, minWidth: 80 },
+    { id: 'status', width: 120, minWidth: 90 },
+    { id: 'tags', width: 150, minWidth: 100 },
+    { id: 'categories', width: 150, minWidth: 100 },
+    { id: 'source', width: 150, minWidth: 80 },
+  ];
+
+  const {
+    columns,
+    startResizing,
+    startDragging,
+    handleDragOver,
+    handleDrop,
+    dragging,
+    dragOverIndex,
+  } = useResizableColumns(initialColumns);
+
+  // Enhance drag handlers with better visual cues
+  const enhancedStartDragging = (columnId: string, index: number) => {
+    startDragging(columnId, index);
+    setDebugDrag(`Dragging: ${columnId}`);
+    // Add a class to the body for global drag state
+    document.body.classList.add('column-dragging');
+  };
+
+  const enhancedHandleDrop = () => {
+    handleDrop();
+    setDebugDrag('');
+    document.body.classList.remove('column-dragging');
+  };
+
+  const enhancedHandleDragOver = (index: number) => {
+    handleDragOver(index);
+    setDebugDrag(`Dragging over: ${index}`);
+  };
+
+  // Add effect to cleanup drag state if dragging is interrupted
+  useEffect(() => {
+    const handleDragEnd = () => {
+      setDebugDrag('');
+      document.body.classList.remove('column-dragging');
+    };
+
+    document.addEventListener('dragend', handleDragEnd);
+    return () => {
+      document.removeEventListener('dragend', handleDragEnd);
+      document.body.classList.remove('column-dragging');
+    };
+  }, []);
+
+  // Function to handle sort request
+  const requestSort = (key: string) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+
+    // If already sorting by this key, toggle direction
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+
+    setSortConfig({ key, direction });
+  };
+
+  // Sort the downloads
+  const sortedDownloads = React.useMemo(() => {
+    // Create a copy of the uniqueDownloads array to avoid mutating the original
+    const sortableItems = [...uniqueDownloads];
+
+    if (sortConfig.key !== null) {
+      sortableItems.sort((a, b) => {
+        // Helper function to get the value for sorting
+        const getSortValue = (item: BaseDownload, key: string) => {
+          switch (key) {
+            case 'title':
+              return item.name.toLowerCase();
+            case 'size':
+              return item.size;
+            case 'format':
+              return item.ext?.toLowerCase() || '';
+            case 'status':
+              return item.status?.toLowerCase() || '';
+            case 'tags':
+              return (item.tags && item.tags.length) || 0;
+            case 'categories':
+              return (item.category && item.category.length) || 0;
+            case 'source':
+              return (item.extractorKey || 'YouTube').toLowerCase();
+            default:
+              return '';
+          }
+        };
+
+        const valueA = getSortValue(a, sortConfig.key);
+        const valueB = getSortValue(b, sortConfig.key);
+
+        if (valueA < valueB) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (valueA > valueB) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return sortableItems;
+  }, [uniqueDownloads, sortConfig]);
+
   return (
     <div ref={listRef} className="overflow-x-auto">
       <table className="min-w-full table-auto">
         <thead>
           <tr className="bg-gray-100 dark:bg-darkModeCompliment">
+            {/* Regular checkbox cell - not resizable */}
             <th className="p-2 w-8">
               <input type="checkbox" className="rounded" />
             </th>
-            <th className="p-2 text-left dark:text-gray-200">Title</th>
-            <th className="p-2 text-left dark:text-gray-200">Size</th>
-            <th className="p-2 text-left dark:text-gray-200">Format</th>
-            <th className="p-2 text-left dark:text-gray-200">Status</th>
-            <th className="p-2 text-left dark:text-gray-200">Tags</th>
-            <th className="p-2 text-left dark:text-gray-200">Categories</th>
-            <th className="p-2 text-left dark:text-gray-200">Source</th>
+
+            {/* Render headers based on column order in state */}
+            {columns.map((column, index) => (
+              <ResizableHeader
+                key={column.id}
+                width={column.width}
+                onResizeStart={(e) => startResizing(column.id, e.clientX)}
+                columnId={column.id}
+                index={index}
+                onDragStart={enhancedStartDragging}
+                onDragOver={enhancedHandleDragOver}
+                onDrop={enhancedHandleDrop}
+                isDragging={dragging?.columnId === column.id}
+                isDragOver={dragOverIndex === index}
+                isLastColumn={index === columns.length - 1}
+                className={
+                  dragging?.columnId === column.id
+                    ? 'bg-blue-100 dark:bg-blue-800 opacity-70'
+                    : ''
+                }
+              >
+                <div
+                  className="flex items-center cursor-pointer"
+                  onClick={() => requestSort(column.id)}
+                >
+                  <span>
+                    {column.id.charAt(0).toUpperCase() + column.id.slice(1)}
+                  </span>
+                  <span className="ml-1">
+                    <HiChevronUpDown className="inline h-4 w-4 text-gray-400" />
+                  </span>
+                </div>
+              </ResizableHeader>
+            ))}
           </tr>
         </thead>
+
         <tbody>
-          {uniqueDownloads.map((download) => (
+          {sortedDownloads.map((download) => (
             <tr
               key={download.id}
               className={`border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${
@@ -160,65 +317,103 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                 handleViewDownload(`${download.location}${download.name}`)
               }
             >
-              <td className="p-2">
+              {/* Regular checkbox cell - not resizable */}
+              <td className="p-2 w-8">
                 <input type="checkbox" className="rounded" />
               </td>
-              <td className="p-2 flex items-center gap-2 dark:text-gray-200">
-                {download.name}
-              </td>
-              <td className="p-2 dark:text-gray-200">
-                {Math.round(download.size / 1048576)} MB
-              </td>
-              <td className="p-2 dark:text-gray-200">{download.ext}</td>
-              <td className="p-2">
-                {download.status === 'completed' ||
-                download.status === 'Finished' ? (
-                  <span className="flex items-center text-green-500">
-                    <span className="mr-1">►</span> Finished
-                  </span>
-                ) : download.status === 'failed' ||
-                  download.status === 'Failed' ? (
-                  <span className="text-red-500">Failed</span>
-                ) : download.status === 'cancelled' ||
-                  download.status === 'Cancelled' ||
-                  download.status === 'canceled' ? (
-                  <span className="text-red-500">Cancelled</span>
-                ) : (
-                  <span>{download.status}</span>
-                )}
-              </td>
-              <td className="p-2">
-                <div className="flex flex-wrap gap-1">
-                  {download.tags?.map((tag, index) => (
-                    <span
-                      key={tag}
-                      className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-full"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                  {download.tags && download.tags.length > 0 && (
-                    <span className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-full">
-                      +{Math.max(0, download.tags.length - 1)}
-                    </span>
-                  )}
-                </div>
-              </td>
-              <td className="p-2">
-                <div className="flex flex-wrap gap-1">
-                  {download.category?.map((category) => (
-                    <span
-                      key={category}
-                      className="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded-full"
-                    >
-                      {category}
-                    </span>
-                  ))}
-                </div>
-              </td>
-              <td className="p-2 dark:text-gray-200">
-                {download.extractorKey || 'YouTube'}
-              </td>
+
+              {/* Render cells based on column order in state */}
+              {columns.map((column) => {
+                const cellContent = (() => {
+                  switch (column.id) {
+                    case 'title':
+                      return (
+                        <div className="flex items-center gap-2 dark:text-gray-200">
+                          <div className="line-clamp-2 overflow-hidden text-ellipsis">
+                            {download.name}
+                          </div>
+                        </div>
+                      );
+                    case 'size':
+                      return (
+                        <span className="dark:text-gray-200">
+                          {Math.round(download.size / 1048576)} MB
+                        </span>
+                      );
+                    case 'format':
+                      return (
+                        <span className="dark:text-gray-200">
+                          {download.ext}
+                        </span>
+                      );
+                    case 'status':
+                      return download.status === 'completed' ||
+                        download.status === 'Finished' ? (
+                        <span className="flex items-center text-green-500">
+                          <span className="mr-1">►</span> Finished
+                        </span>
+                      ) : download.status === 'failed' ||
+                        download.status === 'Failed' ? (
+                        <span className="text-red-500">Failed</span>
+                      ) : download.status === 'cancelled' ||
+                        download.status === 'Cancelled' ||
+                        download.status === 'canceled' ? (
+                        <span className="text-red-500">Cancelled</span>
+                      ) : (
+                        <span>{download.status}</span>
+                      );
+                    case 'tags':
+                      return (
+                        <div className="flex flex-wrap gap-1">
+                          {download.tags?.map((tag, index) => (
+                            <span
+                              key={tag}
+                              className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-full"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {download.tags && download.tags.length > 0 && (
+                            <span className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-full">
+                              +{Math.max(0, download.tags.length - 1)}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    case 'categories':
+                      return (
+                        <div className="flex flex-wrap gap-1">
+                          {download.category?.map((category) => (
+                            <span
+                              key={category}
+                              className="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded-full"
+                            >
+                              {category}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    case 'source':
+                      return (
+                        <span className="dark:text-gray-200">
+                          {download.extractorKey || 'YouTube'}
+                        </span>
+                      );
+                    default:
+                      return null;
+                  }
+                })();
+
+                return (
+                  <td
+                    key={column.id}
+                    className="p-2"
+                    style={{ width: `${column.width}px` }}
+                  >
+                    {cellContent}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

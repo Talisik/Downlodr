@@ -250,6 +250,7 @@ const Downloading = () => {
         variant: 'success',
         title: 'Download Resumed',
         description: 'Download has been resumed successfully',
+        duration: 3000,
       });
     } else if (currentDownload.controllerId != '---') {
       try {
@@ -268,6 +269,7 @@ const Downloading = () => {
           variant: 'success',
           title: 'Download Paused',
           description: 'Download has been paused successfully',
+          duration: 3000,
         });
         updateDownloadStatus(downloadId, 'paused');
       } catch (error) {
@@ -275,6 +277,7 @@ const Downloading = () => {
           variant: 'destructive',
           title: 'Error',
           description: 'Failed to pause/resume download',
+          duration: 3000,
         });
         console.error('Error in pause:', error);
       }
@@ -312,6 +315,7 @@ const Downloading = () => {
         variant: 'success',
         title: 'Download Stopped',
         description: 'Download has been stopped successfully',
+        duration: 3000,
       });
     } else if (currentForDownload?.status === 'to download') {
       removeFromForDownloads(downloadId);
@@ -319,6 +323,7 @@ const Downloading = () => {
         variant: 'success',
         title: 'Download Stopped',
         description: 'Download has been stopped successfully',
+        duration: 3000,
       });
     } else {
       if (downloading && downloading.length > 0) {
@@ -337,6 +342,7 @@ const Downloading = () => {
                   variant: 'success',
                   title: 'Download Stopped',
                   description: 'Download has been stopped successfully',
+                  duration: 3000,
                 });
               }
             } catch (error) {
@@ -345,6 +351,7 @@ const Downloading = () => {
                 variant: 'destructive',
                 title: 'Error',
                 description: 'Failed to stop download',
+                duration: 3000,
               });
             }
           }
@@ -387,6 +394,7 @@ const Downloading = () => {
         variant: 'success',
         title: 'Download Deleted',
         description: 'Download has been deleted successfully',
+        duration: 3000,
       });
 
       return;
@@ -402,12 +410,14 @@ const Downloading = () => {
           variant: 'success',
           title: 'File Deleted',
           description: 'File has been deleted successfully',
+          duration: 3000,
         });
       } else {
         toast({
           variant: 'destructive',
           title: 'Deletion Failed',
           description: 'Failed to delete file',
+          duration: 3000,
         });
       }
     } catch (error) {

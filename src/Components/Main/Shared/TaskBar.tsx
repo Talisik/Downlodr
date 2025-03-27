@@ -66,12 +66,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                 variant: 'success',
                 title: 'Download stopped',
                 description: 'Your download has stopped successfully',
+                duration: 3000,
               });
             } else {
               toast({
                 variant: 'destructive',
                 title: 'Stop Download Error',
                 description: `Could not stop current download with controller ${download.controllerId}`,
+                duration: 3000,
               });
               // setCurrentDownloadId(download.id);
             }
@@ -80,6 +82,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
               variant: 'destructive',
               title: 'Stop Download Error',
               description: `Could not stop current download with controller ${download.controllerId}`,
+              duration: 3000,
             });
           }
         } else {
@@ -87,6 +90,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             variant: 'destructive',
             title: 'Stop Download Error',
             description: `Could not stop current download with controller ${download.controllerId}`,
+            duration: 3000,
           });
         }
       }
@@ -97,6 +101,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         variant: 'destructive',
         title: 'No Downloads Found',
         description: `No current downloads to delete`,
+        duration: 3000,
       });
     }
     // setSelectedDownloading([]);
@@ -109,6 +114,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         variant: 'destructive',
         title: 'No Downloads Selected',
         description: 'Please select downloads to stop',
+        duration: 3000,
       });
       return;
     }
@@ -143,12 +149,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
               variant: 'success',
               title: 'Download Stopped',
               description: 'Your download has stopped successfully',
+              duration: 3000,
             });
           } else {
             toast({
               variant: 'destructive',
               title: 'Stop Download Error',
               description: `Could not stop download with controller ${download.controllerId}`,
+              duration: 3000,
             });
           }
         } catch (error) {
@@ -156,6 +164,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             variant: 'destructive',
             title: 'Stop Download Error',
             description: `Error stopping download with controller ${download.controllerId}`,
+            duration: 3000,
           });
         }
       }
@@ -172,6 +181,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         variant: 'destructive',
         title: 'No Downloads Selected',
         description: 'Please select downloads to play',
+        duration: 3000,
       });
       return;
     }
@@ -199,6 +209,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         variant: 'destructive',
         title: 'Download limit reached',
         description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
+        duration: 7000,
       });
       return;
     }
@@ -252,6 +263,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         variant: 'destructive',
         title: 'No Downloads Selected',
         description: 'Please select downloads to remove',
+        duration: 3000,
       });
       return;
     }
@@ -275,12 +287,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             variant: 'success',
             title: 'File Deleted',
             description: 'File has been deleted successfully',
+            duration: 3000,
           });
         } else {
           toast({
             variant: 'destructive',
             title: 'Deletion Failed',
             description: `Failed to delete file: ${download.location}`,
+            duration: 3000,
           });
         }
       } catch (error) {
@@ -289,6 +303,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           variant: 'destructive',
           title: 'Deletion Failed',
           description: `Error deleting file: ${download.location}`,
+          duration: 3000,
         });
       }
     };
@@ -305,6 +320,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           variant: 'success',
           title: 'Download Removed',
           description: 'Pending download has been removed successfully',
+          duration: 3000,
         });
         continue;
       }

@@ -106,6 +106,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         variant: 'destructive',
         title: 'Invalid URL',
         description: 'Please enter a valid URL',
+        duration: 3000,
       });
       return;
     }
@@ -127,6 +128,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         variant: 'destructive',
         title: 'Invalid URL Format',
         description: 'The URL format is not valid',
+        duration: 3000,
       });
     }
   };
@@ -166,6 +168,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         variant: 'destructive',
         title: 'Playlist Error',
         description: 'Failed to fetch playlist information',
+        duration: 3000,
       });
     } finally {
       setIsLoading(false);
@@ -207,6 +210,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             variant: 'destructive',
             title: 'Selection Error',
             description: 'Please select at least one video to download',
+            duration: 3000,
           });
           return;
         }

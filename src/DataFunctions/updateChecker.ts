@@ -29,7 +29,7 @@ export async function checkForUpdates() {
     const latestRelease = response.data[0];
 
     if (!latestRelease) {
-      return { hasUpdate: false };
+      return { hasUpdate: false, currentVersion };
     }
 
     // Clean the version string (remove 'v' prefix if it exists)
@@ -50,6 +50,6 @@ export async function checkForUpdates() {
     };
   } catch (error) {
     console.error('Error checking for updates:', error);
-    return { hasUpdate: false, error };
+    return { hasUpdate: false, currentVersion: app.getVersion(), error };
   }
 }

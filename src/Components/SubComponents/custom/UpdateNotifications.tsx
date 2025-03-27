@@ -35,16 +35,9 @@ const UpdateNotification: React.FC = () => {
     if (window.updateAPI.onUpdateAvailable) {
       // Listen for update notifications from the main process
       window.updateAPI.onUpdateAvailable((info) => {
-        console.log(!info.hasUpdate);
-        if (!info.hasUpdate) {
+        if (info.hasUpdate) {
           setUpdateInfo(info);
           setOpen(true);
-        } else {
-          toast({
-            title: "You're up to date!",
-            description: `You're using the latest version (v${updateInfo.currentVersion}).`,
-            duration: 3000,
-          });
         }
       });
     }

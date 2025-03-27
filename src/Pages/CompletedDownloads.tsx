@@ -243,6 +243,7 @@ const CompletedDownloads = () => {
         variant: 'success',
         title: 'Download Deleted',
         description: 'Download has been deleted successfully',
+        duration: 3000,
       });
 
       return;
@@ -258,12 +259,14 @@ const CompletedDownloads = () => {
           variant: 'success',
           title: 'File Deleted',
           description: 'File has been deleted successfully',
+          duration: 3000,
         });
       } else {
         toast({
           variant: 'destructive',
           title: 'Deletion Failed',
           description: 'Failed to delete file',
+          duration: 3000,
         });
       }
     } catch (error) {

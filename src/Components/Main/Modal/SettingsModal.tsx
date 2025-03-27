@@ -14,6 +14,7 @@ import { GrUpdate } from 'react-icons/gr';
 import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
 import { useMainStore } from '../../../Store/mainStore';
 import { Button } from '../../../Components/SubComponents/shadcn/components/ui/button';
+import { toast } from '../../../Components/SubComponents/shadcn/hooks/use-toast';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -47,10 +48,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     settings.permitConnectionLimit,
   );
 
-  // Add state for column visibility
-  const [localVisibleColumns, setLocalVisibleColumns] = useState<string[]>([
-    ...visibleColumns,
-  ]);
+  // Update the state declaration for local visible columns
+  const [localVisibleColumns, setLocalVisibleColumns] = useState<string[]>([]);
+
+  // Add this useEffect to sync with the mainStore's visibleColumns
+  useEffect(() => {
+    if (isOpen) {
+      // Reset the local state when the modal opens to match the store
+      setLocalVisibleColumns([...visibleColumns]);
+    }
+  }, [isOpen, visibleColumns]);
 
   // Misc
   const navRef = useRef<HTMLDivElement>(null);
@@ -117,6 +124,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         console.log('Calling checkForUpdates...');
         const result = await window.updateAPI.checkForUpdates();
         console.log('Update check result:', result);
+        if (!result.hasUpdate) {
+          toast({
+            title: "You're up to date!",
+            description: `You're using the latest version (v${result.currentVersion}).`,
+            duration: 3000,
+          });
+        }
         onClose();
       } catch (error) {
         console.error('Error checking for updates:', error);

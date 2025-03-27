@@ -56,7 +56,7 @@ declare global {
     };
     updateAPI: {
       onUpdateAvailable: (callback: (updateInfo: UpdateInfo) => void) => void;
-      checkForUpdates: () => Promise<void>;
+      checkForUpdates: () => Promise<UpdateInfo>; // Changed return type from void to UpdateInfo
     };
   }
 }

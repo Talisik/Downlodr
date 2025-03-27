@@ -151,6 +151,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
         variant: 'success',
         title: 'File Renamed',
         description: `Successfully renamed to ${newName}`,
+        duration: 3000,
       });
       onClose();
     }
@@ -351,6 +352,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         variant: 'destructive',
         title: 'Download limit reached',
         description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
+        duration: 3000,
       });
       return;
     }

@@ -22,6 +22,7 @@ import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
 import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
 import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
+import ColumnHeaderContextMenu from '../Components/SubComponents/custom/ColumnHeaderContextMenu';
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -246,11 +247,49 @@ const AllDownloads = () => {
     }
   };
 
+  // Add this new state for the column header context menu
+  const [columnHeaderContextMenu, setColumnHeaderContextMenu] = useState<{
+    x: number;
+    y: number;
+    visible: boolean;
+  }>({ x: 0, y: 0, visible: false });
+
+  // Add this handler for the column header right-click
+  const handleColumnHeaderContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setColumnHeaderContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      visible: true,
+    });
+  };
+
+  // Add this to close the column header context menu
+  const handleCloseColumnHeaderContextMenu = () => {
+    setColumnHeaderContextMenu((prev) => ({ ...prev, visible: false }));
+  };
+
+  // Handle toggle column visibility
+  const handleToggleColumn = (columnId: string) => {
+    const newVisibleColumns = visibleColumns.includes(columnId)
+      ? visibleColumns.filter((id) => id !== columnId)
+      : [...visibleColumns, columnId];
+
+    useMainStore.getState().setVisibleColumns(newVisibleColumns);
+  };
+
+  // Handle column options
+  const handleColumnOptions = (columnId: string) => {
+    // Implement column options logic here
+  };
+
   // Close Menu and clear selected download when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       setContextMenu({ downloadId: null, x: 0, y: 0 });
       setSelectedDownloadId(null);
+      setColumnHeaderContextMenu((prev) => ({ ...prev, visible: false }));
     };
 
     document.addEventListener('click', handleClickOutside);
@@ -304,6 +343,7 @@ const AllDownloads = () => {
         variant: 'success',
         title: 'Download Resumed',
         description: 'Download has been resumed successfully',
+        duration: 3000,
       });
     } else if (currentDownload.controllerId != '---') {
       try {
@@ -322,6 +362,7 @@ const AllDownloads = () => {
           variant: 'success',
           title: 'Download Paused',
           description: 'Download has been paused successfully',
+          duration: 3000,
         });
         updateDownloadStatus(downloadId, 'paused');
       } catch (error) {
@@ -329,6 +370,7 @@ const AllDownloads = () => {
           variant: 'destructive',
           title: 'Error',
           description: 'Failed to pause/resume download',
+          duration: 3000,
         });
         console.error('Error in pause:', error);
       }
@@ -366,6 +408,7 @@ const AllDownloads = () => {
         variant: 'success',
         title: 'Download Stopped',
         description: 'Download has been stopped successfully',
+        duration: 3000,
       });
     } else if (currentForDownload?.status === 'to download') {
       removeFromForDownloads(downloadId);
@@ -373,6 +416,7 @@ const AllDownloads = () => {
         variant: 'success',
         title: 'Download Stopped',
         description: 'Download has been stopped successfully',
+        duration: 3000,
       });
     } else {
       if (downloading && downloading.length > 0) {
@@ -391,6 +435,7 @@ const AllDownloads = () => {
                   variant: 'success',
                   title: 'Download Stopped',
                   description: 'Download has been stopped successfully',
+                  duration: 3000,
                 });
               }
             } catch (error) {
@@ -399,6 +444,7 @@ const AllDownloads = () => {
                 variant: 'destructive',
                 title: 'Error',
                 description: 'Failed to stop download',
+                duration: 3000,
               });
             }
           }
@@ -441,6 +487,7 @@ const AllDownloads = () => {
         variant: 'success',
         title: 'Download Deleted',
         description: 'Download has been deleted successfully',
+        duration: 3000,
       });
 
       return;
@@ -456,12 +503,14 @@ const AllDownloads = () => {
           variant: 'success',
           title: 'File Deleted',
           description: 'File has been deleted successfully',
+          duration: 3000,
         });
       } else {
         toast({
           variant: 'destructive',
           title: 'Deletion Failed',
           description: 'Failed to delete file',
+          duration: 3000,
         });
       }
     } catch (error) {
@@ -557,11 +606,26 @@ const AllDownloads = () => {
     return columnMappings[columnId] || columnId;
   };
 
+  // Column options configuration - consistent with SettingsModal
+  const columnOptions = [
+    { id: 'name', label: 'Title', required: true },
+    { id: 'size', label: 'Size', required: false },
+    { id: 'format', label: 'Format', required: true },
+    { id: 'status', label: 'Status', required: true },
+    { id: 'speed', label: 'Speed', required: false },
+    { id: 'dateAdded', label: 'Date Added', required: false },
+    { id: 'source', label: 'Source', required: false },
+    { id: 'timeLeft', label: 'Time Left', required: false },
+  ];
+
   return (
     <div className="w-full">
       <table className="w-full">
         <thead>
-          <tr className="border-b text-left dark:border-gray-700">
+          <tr
+            className="border-b text-left dark:border-gray-700"
+            onContextMenu={handleColumnHeaderContextMenu}
+          >
             <th className="w-8 p-2">
               <input
                 type="checkbox"
@@ -893,6 +957,19 @@ const AllDownloads = () => {
           }
         />
       )}
+
+      {/* Add the column header context menu component */}
+      <ColumnHeaderContextMenu
+        position={{
+          x: columnHeaderContextMenu.x,
+          y: columnHeaderContextMenu.y,
+        }}
+        visible={columnHeaderContextMenu.visible}
+        visibleColumns={visibleColumns}
+        onToggleColumn={handleToggleColumn}
+        onClose={handleCloseColumnHeaderContextMenu}
+        columnOptions={columnOptions}
+      />
     </div>
   );
 };

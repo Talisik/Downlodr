@@ -458,6 +458,7 @@ const useDownloadStore = create<DownloadStore>()(
               title: 'Live Video Links Not Allowed',
               description:
                 'Live video links are not supported. Please enter a valid URL.',
+              duration: 3000,
             });
 
             const { removeFromForDownloads } = get(); // Get the current state methods
@@ -469,6 +470,7 @@ const useDownloadStore = create<DownloadStore>()(
             variant: 'destructive',
             title: `Could not find video metadata`,
             description: 'Please enter a valid video URL',
+            duration: 3000,
           });
 
           // Access the method correctly
