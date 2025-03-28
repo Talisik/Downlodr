@@ -4,7 +4,16 @@
  * handling IPC (Inter-Process Communication) events, and managing
  * application lifecycle events.
  */
-import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  shell,
+  Menu,
+  Tray,
+  nativeImage,
+} from 'electron';
 import path from 'path';
 import started from 'electron-squirrel-startup';
 import os from 'os';
@@ -20,10 +29,15 @@ if (started) {
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
+// Add these variables at the top level, outside any functions
+let tray: Tray | null = null;
+let mainWindow: BrowserWindow | null = null;
+let forceQuit = false;
+
 // Function to create the main application window
 const createWindow = () => {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1100,
     height: 600,
     frame: false,
@@ -49,17 +63,27 @@ const createWindow = () => {
     );
   }
 
-  // MAIN FUNCTIONS FOR TITLE BAR
+  // Handle window close events - hide instead of close
+  mainWindow.on('close', (event) => {
+    if (!forceQuit) {
+      event.preventDefault();
+      mainWindow?.hide();
+      // Optional: Show a notification the first time window is hidden
+      return false;
+    }
+  });
 
+  // MAIN FUNCTIONS FOR TITLE BAR
   ipcMain.on('close-btn', () => {
-    mainWindow.close();
+    if (mainWindow) mainWindow.hide();
   });
 
   ipcMain.on('minimize-btn', () => {
-    mainWindow.minimize();
+    if (mainWindow) mainWindow.minimize();
   });
 
   ipcMain.on('maximize-btn', () => {
+    if (!mainWindow) return;
     if (mainWindow.isMaximized()) {
       mainWindow.unmaximize();
     } else {
@@ -68,11 +92,57 @@ const createWindow = () => {
   });
 
   // Prevent navigation to external URLs
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   mainWindow.webContents.on('will-navigate', (event, url) => {
     event.preventDefault();
   });
 };
+
+const createTray = () => {
+  // Create tray icon
+  const icon = nativeImage.createFromPath(
+    path.join(__dirname, '../assets/256x256.ico'), // Use your app icon or create a smaller tray icon
+  );
+
+  tray = new Tray(icon);
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show Downlodr',
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+        }
+      },
+    },
+    {
+      label: 'Check for Updates',
+      click: async () => {
+        const updateInfo = await checkForUpdates();
+        if (updateInfo.hasUpdate && mainWindow) {
+          mainWindow.webContents.send('update-available', updateInfo);
+        }
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        forceQuit = true;
+        app.quit();
+      },
+    },
+  ]);
+
+  tray.setToolTip('Downlodr');
+  tray.setContextMenu(contextMenu);
+
+  // Double click on tray icon shows the app
+  tray.on('double-click', () => {
+    if (mainWindow) {
+      mainWindow.show();
+    }
+  });
+};
+
 // IPC handlers for various functionalities
 ipcMain.on('openExternalLink', (_event, link: string) => {
   //console.log('link received', link);
@@ -333,6 +403,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
 
 app.on('ready', () => {
   createWindow();
+  createTray();
 
   // Check for updates when app starts
   setTimeout(async () => {
@@ -356,13 +427,10 @@ app.on('ready', () => {
   }, UPDATE_CHECK_INTERVAL);
 });
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// Change this to keep app running in background
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  // Do nothing here to keep app running when windows are closed
+  // Note: macOS has its own behavior for this already
 });
 
 app.on('activate', () => {
@@ -370,7 +438,14 @@ app.on('activate', () => {
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
+  } else {
+    mainWindow?.show();
   }
+});
+
+// Add a new 'before-quit' handler to properly set force quit
+app.on('before-quit', () => {
+  forceQuit = true;
 });
 
 // function to handle the dev tools or console open
@@ -419,4 +494,26 @@ ipcMain.handle('check-for-updates', async () => {
     }
   }
   return updateInfo;
+});
+
+ipcMain.handle('show-window', () => {
+  if (mainWindow) {
+    mainWindow.show();
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle('hide-window', () => {
+  if (mainWindow) {
+    mainWindow.hide();
+    return true;
+  }
+  return false;
+});
+
+// Add this IPC handler
+ipcMain.handle('exit-app', () => {
+  forceQuit = true;
+  app.quit();
 });

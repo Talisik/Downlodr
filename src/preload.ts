@@ -111,3 +111,14 @@ contextBridge.exposeInMainWorld('updateAPI', {
   },
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
 });
+
+// Add these to your existing preload API exposures
+contextBridge.exposeInMainWorld('appControl', {
+  showWindow: () => ipcRenderer.invoke('show-window'),
+  hideWindow: () => ipcRenderer.invoke('hide-window'),
+  quitApp: () => ipcRenderer.invoke('exit-app'),
+  setAutoLaunch: (enabled: boolean) =>
+    ipcRenderer.invoke('set-auto-launch', enabled),
+
+  getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
+});
