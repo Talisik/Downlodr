@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface ColumnOption {
   id: string;
@@ -20,13 +20,30 @@ const ColumnHeaderContextMenu: React.FC<ColumnHeaderContextMenuProps> = ({
   visible,
   visibleColumns,
   onToggleColumn,
-  // onClose,
+  onClose,
   columnOptions,
 }) => {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Add effect to handle clicks outside menu
+  useEffect(() => {
+    if (!visible) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [visible, onClose]);
+
   if (!visible) return null;
 
   return (
     <div
+      ref={menuRef}
       className="justify-start absolute bg-white dark:bg-darkMode border-2 py-2 dark:border-gray-700 rounded-md shadow-lg z-50 min-w-[149px]"
       style={{ left: position.x, top: position.y }}
       onClick={(e) => e.stopPropagation()}

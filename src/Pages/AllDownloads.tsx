@@ -843,6 +843,7 @@ const AllDownloads = () => {
                                     }}
                                   />
                                   <span
+                                    className="hover:text-green-400 transition-colors"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleViewFolder(

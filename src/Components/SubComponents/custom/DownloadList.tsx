@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * A custom React component
  * A React component that displays a list of downloads in a table format.
@@ -20,6 +22,7 @@ import ResizableHeader from './ResizableColumns/ResizableHeader';
 import { useResizableColumns } from './ResizableColumns/useResizableColumns';
 import { Skeleton } from '../shadcn/components/ui/skeleton';
 import { useMainStore } from '../../../Store/mainStore';
+import ColumnHeaderContextMenu from './ColumnHeaderContextMenu';
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -160,22 +163,27 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   };
 
   // Function to get status color
-  const getStatusColor = (status?: string): string => {
-    switch (status) {
+  // color themes
+  const getStatusColor = (status: string): string => {
+    switch (status.toLowerCase()) {
       case 'downloading':
-        return '#4CAF50';
-      case 'paused':
-        return '#FF9800';
+        return '#2196F3'; // Blue
       case 'finished':
-        return '#2196F3';
+        return '#34C759'; // Green
+      case 'failed':
+        return '#E74C3C'; // Red
       case 'cancelled':
-        return '#F44336';
-      case 'error':
-        return '#F44336';
+        return '#E74C3C'; // Red
+      case 'initializing':
+        return '#3498DB'; // Blue
+      case 'paused':
+        return '#FFEB3B'; // Yellow
       case 'to download':
-        return '#9C27B0';
+        return '#FF9800'; // Orange (same as initializing)
+      case 'fetching metadata':
+        return 'currentColor'; // Use default text color
       default:
-        return '#757575';
+        return 'currentColor'; // Default color
     }
   };
 
@@ -315,11 +323,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     onFormatSelect: (formatData: any) => void;
   }) => {
     // Simple format display for now
-    return (
-      <div className="text-sm py-1 px-2 bg-gray-100 dark:bg-gray-700 rounded">
-        {download.ext || 'mp4'}
-      </div>
-    );
+    return <div className="text-sm py-1 px-2">{download.ext || 'mp4'}</div>;
   };
 
   // Expanded row component
@@ -371,45 +375,12 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     );
   };
 
-  // Column header context menu component
-  const ColumnHeaderContextMenu = ({
-    position,
-    visible,
-    visibleColumns,
-    onToggleColumn,
-    onClose,
-    columnOptions,
-  }: {
-    position: { x: number; y: number };
-    visible: boolean;
-    visibleColumns: string[];
-    onToggleColumn: (columnId: string) => void;
-    onClose: () => void;
-    columnOptions: { id: string; displayName: string; required: boolean }[];
-  }) => {
-    if (!visible) return null;
-
-    return (
-      <div
-        className="absolute z-50 bg-white dark:bg-gray-800 shadow-lg rounded-md border border-gray-200 dark:border-gray-700 p-2 min-w-[150px]"
-        style={{ top: position.y, left: position.x }}
-      >
-        <div className="font-semibold mb-2 border-b pb-1">Manage Columns</div>
-        {columnOptions.map((option) => (
-          <div key={option.id} className="flex items-center p-1">
-            <input
-              type="checkbox"
-              id={`col-${option.id}`}
-              checked={visibleColumns.includes(option.id)}
-              onChange={() => onToggleColumn(option.id)}
-              className="mr-2"
-            />
-            <label htmlFor={`col-${option.id}`}>{option.displayName}</label>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  // Transform your column options to match the expected interface
+  const columnMenuOptions = columnOptions.map((option) => ({
+    id: option.id,
+    label: option.displayName, // Note: change displayName to label to match the interface
+    required: ['title', 'status', 'format'].includes(option.id), // Required columns
+  }));
 
   // Effect to handle clicks outside the list to close the context menu
   useEffect(() => {
@@ -737,6 +708,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                                     }}
                                   />
                                   <span
+                                    className="hover:text-green-400 transition-colors"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleViewFolder(
@@ -887,9 +859,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                   }
                 })}
               </tr>
-              {expandedRowId === download.id && (
-                <ExpandedDownloadDetails download={download} />
-              )}
             </React.Fragment>
           ))}
         </tbody>
@@ -905,11 +874,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         visibleColumns={visibleColumns}
         onToggleColumn={handleToggleColumn}
         onClose={handleCloseColumnHeaderContextMenu}
-        columnOptions={columnOptions.map((col) => ({
-          id: col.id,
-          displayName: col.displayName,
-          required: false,
-        }))}
+        columnOptions={columnMenuOptions}
       />
 
       {/* Context menu for download options */}
