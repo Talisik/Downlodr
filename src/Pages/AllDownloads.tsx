@@ -834,7 +834,7 @@ const AllDownloads = () => {
                                   }}
                                 >
                                   <FaPlay
-                                    className="mr-3"
+                                    className="mr-3 text-green-600 hover:text-green-400 transition-colors duration-200"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleViewDownload(
@@ -843,6 +843,7 @@ const AllDownloads = () => {
                                     }}
                                   />
                                   <span
+                                    className="hover:text-green-400 transition-colors"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleViewFolder(
