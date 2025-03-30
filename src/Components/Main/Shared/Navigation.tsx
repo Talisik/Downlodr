@@ -202,7 +202,7 @@ const Navigation = ({ className }: { className?: string }) => {
       ref={navRef}
       className={`${className} border-solid border-r-2 border-gray-200 dark:border-gray-700`}
     >
-      <div className="p-2 space-y-2 ml-2">
+      <div className="p-2 space-y-2 ml-2 mt-2">
         {/* Status Section */}
         <div>
           <button
@@ -218,7 +218,7 @@ const Navigation = ({ className }: { className?: string }) => {
           </button>
 
           {openSections.status && (
-            <div className="ml-4 space-y-1">
+            <div className="ml-2 space-y-1 mt-1">
               <NavLink
                 to="/allDownloads"
                 className={({ isActive }) =>
@@ -227,8 +227,11 @@ const Navigation = ({ className }: { className?: string }) => {
                   } dark:text-gray-200 dark:hover:bg-gray-700`
                 }
               >
-                <CiFolderOn className="text-gray-600 dark:text-gray-400 text-lg flex-shrink-0" />
-                <span className="ml-2">All</span>
+                <CiFolderOn
+                  size={16}
+                  className="text-gray-600 dark:text-gray-400 flex-shrink-0"
+                />
+                <span className="ml-2 text-[14px]">All</span>
               </NavLink>
               <NavLink
                 to="/downloading"
@@ -238,8 +241,8 @@ const Navigation = ({ className }: { className?: string }) => {
                   } dark:text-gray-200 dark:hover:bg-gray-700`
                 }
               >
-                <FiDownload className="text-blue-500 text-lg flex-shrink-0" />
-                <span className="ml-2">Downloading</span>
+                <FiDownload size={16} className="text-blue-500 flex-shrink-0" />
+                <span className="ml-2 text-[14px]">Downloading</span>
               </NavLink>
               <NavLink
                 to="/completed"
@@ -249,8 +252,11 @@ const Navigation = ({ className }: { className?: string }) => {
                   } dark:text-gray-200 dark:hover:bg-gray-700`
                 }
               >
-                <AiOutlineCheck className="text-green-500 text-lg flex-shrink-0" />
-                <span className="ml-2">Fetching Metadata</span>
+                <AiOutlineCheck
+                  size={16}
+                  className="text-green-500 flex-shrink-0"
+                />
+                <span className="ml-2 text-[14px]">Fetching Metadata</span>
               </NavLink>
               <NavLink
                 to="/completed"
@@ -260,8 +266,11 @@ const Navigation = ({ className }: { className?: string }) => {
                   } dark:text-gray-200 dark:hover:bg-gray-700`
                 }
               >
-                <AiOutlineCheck className="text-green-500 text-lg flex-shrink-0" />
-                <span className="ml-2">Failed</span>
+                <AiOutlineCheck
+                  size={16}
+                  className="text-green-500 flex-shrink-0"
+                />
+                <span className="ml-2 text-[14px] ">Start Download</span>
               </NavLink>
               <NavLink
                 to="/completed"
@@ -271,8 +280,54 @@ const Navigation = ({ className }: { className?: string }) => {
                   } dark:text-gray-200 dark:hover:bg-gray-700`
                 }
               >
-                <AiOutlineCheck className="text-green-500 text-lg flex-shrink-0" />
-                <span className="ml-2">Completed</span>
+                <AiOutlineCheck
+                  size={16}
+                  className="text-green-500 flex-shrink-0"
+                />
+                <span className="ml-2 text-[14px]">Paused</span>
+              </NavLink>
+              <NavLink
+                to="/completed"
+                className={({ isActive }) =>
+                  `nav-link ${
+                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                }
+              >
+                <AiOutlineCheck
+                  size={16}
+                  className="text-green-500 flex-shrink-0"
+                />
+                <span className="ml-2 text-[14px]">Initializing</span>
+              </NavLink>
+
+              <NavLink
+                to="/completed"
+                className={({ isActive }) =>
+                  `nav-link ${
+                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                }
+              >
+                <AiOutlineCheck
+                  size={16}
+                  className="text-green-500 flex-shrink-0"
+                />
+                <span className="ml-2 text-[14px]">Failed</span>
+              </NavLink>
+              <NavLink
+                to="/completed"
+                className={({ isActive }) =>
+                  `nav-link ${
+                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                }
+              >
+                <AiOutlineCheck
+                  size={16}
+                  className="text-green-500 flex-shrink-0"
+                />
+                <span className="ml-2 text-[14px]">Finished</span>
               </NavLink>
             </div>
           )}
@@ -293,24 +348,42 @@ const Navigation = ({ className }: { className?: string }) => {
           </button>
 
           {openSections.category && (
-            <div className="ml-4 space-y-1">
-              <NavLink to="/category/all" className="nav-link">
-                <BiLayer className="text-orange-500 text-lg flex-shrink-0" />
-                <span className="ml-2">All</span>
+            <div className="ml-2 space-y-1 mt-1">
+              <NavLink
+                to="/category/all"
+                className={({ isActive }) =>
+                  `nav-link ${
+                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                }
+              >
+                <BiLayer size={16} className="text-orange-500 flex-shrink-0" />
+                <span className="ml-2 text-[14px]">All</span>
               </NavLink>
-              <NavLink to="/category/uncategorized" className="nav-link">
-                <BiLayer className="text-blue-500 text-lg flex-shrink-0" />
-                <span className="ml-2">Uncategorized</span>
+              <NavLink
+                to="/category/uncategorized"
+                className={({ isActive }) =>
+                  `nav-link ${
+                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                }
+              >
+                <BiLayer size={16} className="text-blue-500 flex-shrink-0" />
+                <span className="ml-2 text-[14px]">Uncategorized</span>
               </NavLink>
               {availableCategories.map((category) => (
                 <NavLink
                   key={category}
                   to={`/category/${encodeURIComponent(category)}`}
-                  className={`nav-link ${
-                    dragOverItem === category
-                      ? 'bg-gray-200 dark:bg-gray-700'
-                      : ''
-                  }`}
+                  className={({ isActive }) =>
+                    `nav-link ${
+                      isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                    } dark:text-gray-200 dark:hover:bg-gray-700 ${
+                      dragOverItem === category
+                        ? 'bg-gray-200 dark:bg-gray-700'
+                        : ''
+                    }`
+                  }
                   onContextMenu={(e) => handleCategoryContextMenu(e, category)}
                   onDragOver={(e) => handleDragOver(e, category)}
                   onDragLeave={handleDragLeave}
@@ -318,8 +391,11 @@ const Navigation = ({ className }: { className?: string }) => {
                   aria-dropeffect="link"
                   role="listitem"
                 >
-                  <BiLayer className="text-yellow-500 text-lg flex-shrink-0" />
-                  <span className="ml-2 truncate">{category}</span>
+                  <BiLayer
+                    size={16}
+                    className="text-yellow-500 flex-shrink-0"
+                  />
+                  <span className="ml-2 text-[14px] truncate">{category}</span>
                 </NavLink>
               ))}
             </div>
@@ -341,29 +417,47 @@ const Navigation = ({ className }: { className?: string }) => {
           </button>
 
           {openSections.tag && (
-            <div className="ml-4 space-y-1">
-              <NavLink to="/tags/all" className="nav-link">
-                <BsTag className="text-orange-500 text-lg flex-shrink-0" />
-                <span className="ml-2">All</span>
+            <div className="ml-2 space-y-1 mt-1">
+              <NavLink
+                to="/tags/all"
+                className={({ isActive }) =>
+                  `nav-link ${
+                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                }
+              >
+                <BsTag size={16} className="text-orange-500 flex-shrink-0" />
+                <span className="ml-2 text-[14px]">All</span>
               </NavLink>
-              <NavLink to="/tags/untagged" className="nav-link">
-                <BsTag className="text-blue-500 text-lg flex-shrink-0" />
-                <span className="ml-2">Untagged</span>
+              <NavLink
+                to="/tags/untagged"
+                className={({ isActive }) =>
+                  `nav-link ${
+                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                }
+              >
+                <BsTag size={16} className="text-blue-500 flex-shrink-0" />
+                <span className="ml-2 text-[14px]">Untagged</span>
               </NavLink>
               {availableTags.map((tag) => (
                 <NavLink
                   key={tag}
                   to={`/tags/${encodeURIComponent(tag)}`}
-                  className={`nav-link ${
-                    dragOverItem === tag ? 'bg-gray-200 dark:bg-gray-700' : ''
-                  }`}
+                  className={({ isActive }) =>
+                    `nav-link ${
+                      isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                    } dark:text-gray-200 dark:hover:bg-gray-700 ${
+                      dragOverItem === tag ? 'bg-gray-200 dark:bg-gray-700' : ''
+                    }`
+                  }
                   onContextMenu={(e) => handleTagContextMenu(e, tag)}
                   onDragOver={(e) => handleDragOver(e, tag)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleTagDrop(e, tag)}
                 >
-                  <BsTag className="text-yellow-500 text-lg flex-shrink-0" />
-                  <span className="ml-2 truncate">{tag}</span>
+                  <BsTag size={16} className="text-yellow-500 flex-shrink-0" />
+                  <span className="ml-2 text-[14px] truncate">{tag}</span>
                 </NavLink>
               ))}
             </div>

@@ -100,10 +100,10 @@ const createWindow = () => {
 const createTray = () => {
   // Create tray icon
   const icon = nativeImage.createFromPath(
-    path.join(__dirname, '../assets/256x256.ico'), // Use your app icon or create a smaller tray icon
+    path.join(__dirname, 'systemTray.ico'), // Use your app icon or create a smaller tray icon
   );
 
-  tray = new Tray(icon);
+  tray = new Tray('exclude.png'); //src\systemTray.ico
   const contextMenu = Menu.buildFromTemplate([
     {
       label: 'Show Downlodr',
