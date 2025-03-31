@@ -220,7 +220,7 @@ const Navigation = ({ className }: { className?: string }) => {
           {openSections.status && (
             <div className="ml-2 space-y-1 mt-1">
               <NavLink
-                to="/allDownloads"
+                to="/status/all"
                 className={({ isActive }) =>
                   `nav-link ${
                     isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
@@ -234,7 +234,7 @@ const Navigation = ({ className }: { className?: string }) => {
                 <span className="ml-2 text-[14px]">All</span>
               </NavLink>
               <NavLink
-                to="/downloading"
+                to="/status/downloading"
                 className={({ isActive }) =>
                   `nav-link ${
                     isActive ? 'bg-gray-100 dark:bg-gray-700' : ''

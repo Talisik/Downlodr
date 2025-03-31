@@ -25,11 +25,11 @@ const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1100,
-    height: 600,
+    height: 680,
     frame: false,
     autoHideMenuBar: true,
     minWidth: 550,
-    minHeight: 400,
+    minHeight: 450,
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),

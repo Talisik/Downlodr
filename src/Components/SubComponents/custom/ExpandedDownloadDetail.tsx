@@ -25,13 +25,16 @@ interface DownloadDetails {
 
 // Interface representing the props for the ExpandedDownloadDetails component
 interface ExpandedDownloadDetailsProps {
-  download: DownloadDetails;
+  download?: DownloadDetails | null;
 }
 
 const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
   download,
 }) => {
-  // Add this helper function before the AllDownloads component
+  // Check if download is null or undefined
+  const isEmpty = !download;
+
+  // Format file size helper function
   const formatFileSize = (bytes: number | undefined): string => {
     if (!bytes) return '—';
 
@@ -44,107 +47,103 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
       return `${(bytes / MB).toFixed(2)} MB`;
     }
   };
+  //         <hr className="solid mt-2 mb-2 -mx-4 w-[calc(100%+32px)] border-t-1 border-divider dark:border-gray-700" />
 
   return (
-    <tr className="bg-lightGray dark:bg-gray-800 text-xs">
-      <td colSpan={9} className="p-4">
+    <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t dark:border-gray-700 h-[39%] flex flex-col shadow-lg">
+      <div className="overflow-auto flex-grow px-4 pt-3">
         {/* Progress Bar */}
         <div className="flex flex-row items-center gap-4">
-          <p className="font-semibold dark:text-gray-200">Progress</p>
+          <p className="font-semibold dark:text-gray-200 text-[12px]">
+            Progress
+          </p>
           <div className="w-full">
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
               <div
-                className={`h-2.5 rounded-full transition-all duration-300 ${
-                  !download.progress || download.progress === 0
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  isEmpty || !download.progress || download.progress === 0
                     ? 'bg-gray-400 dark:bg-gray-600'
                     : download.progress === 100
                     ? 'bg-green-500'
                     : 'bg-orange-500'
                 }`}
-                style={{ width: `${download.progress || 0}%` }}
+                style={{ width: `${isEmpty ? 0 : download.progress || 0}%` }}
               ></div>
             </div>
           </div>
           {/* Add percentage number */}
-          <span className="dark:text-gray-200">{download.progress || 0}%</span>
+          <span className="dark:text-gray-200 text-[12px]">
+            {isEmpty ? 0 : download.progress || 0}%
+          </span>
         </div>
-        <hr className="solid mt-2 mb-2 -mx-4 w-[calc(100%+32px)] border-t-1 border-divider dark:border-gray-700" />
+        <div className="grid grid-cols-2 gap-4 py-2">
+          <div className="rounded border-2 border-gray-300 dark:border-gray-600 p-3">
+            <p className="text-[12px] font-semibold mb-2">Transfer</p>
+            <div className="text-[12px]">
+              <div className="mb-1">
+                Download Time: {isEmpty ? '—' : download.timeActive || '< 1m'}
+              </div>
+              <div className="mb-1">
+                Downloaded: {isEmpty ? '—' : formatFileSize(download.size)}
+              </div>
+              <div className="mb-1">
+                Download speed: {isEmpty ? '—' : download.speed || '—'}
+              </div>
+              <div>ETA: {isEmpty ? '—' : download.timeLeft || '—'}</div>
+            </div>
+          </div>
 
-        <div className="flex flex-col gap-4">
-          <div>
-            <h4 className="mb-2 dark:text-gray-200">Transfer</h4>
-            <div className="space-y-1 flex flex-row gap-x-12 items-center justify-start">
-              <p>
-                <span className="font-bold dark:text-gray-200">
-                  Time Active:{' '}
-                </span>
-                <span className="dark:text-gray-300">
-                  {download.timeActive || '1m'}
-                </span>
-              </p>
-              <p>
-                <span className="font-bold dark:text-gray-200">
-                  Downloaded:{' '}
-                </span>
-                <span className="dark:text-gray-300">
-                  {formatFileSize(download.size)}
-                </span>
-              </p>
-              <p>
-                <span className="font-bold dark:text-gray-200">Status: </span>
-                <span
-                  className="dark:text-gray-300 capitalize
-"
-                >
-                  {download.status}
-                </span>
-              </p>
-              <p>
-                <span className="font-bold dark:text-gray-200">
-                  Average Download Speed:{' '}
-                </span>
-                <span className="dark:text-gray-300">
-                  {download.speed || '0 KB/s'}
-                </span>
-              </p>
-              {download.speed === 'finished' && (
-                <p>
-                  <span className="font-bold dark:text-gray-200">ETA: </span>
-                  <span className="dark:text-gray-300">
-                    {download.timeLeft || '-'}
-                  </span>
-                </p>
-              )}
-            </div>
-          </div>
-          <div>
-            <h4 className="mb-2 dark:text-gray-200">File Information</h4>
-            <div className="space-y-1 flex flex-row gap-x-12 items-center justify-start">
-              <p>
-                <span className="font-bold dark:text-gray-200">
-                  Total Size:{' '}
-                </span>
-                <span className="dark:text-gray-300">
-                  {formatFileSize(download.size)}
-                </span>
-              </p>
-              <p>
-                <span className="font-bold dark:text-gray-200">Added On: </span>
-                <span className="dark:text-gray-300">
-                  {new Date(download.DateAdded).toLocaleString()}
-                </span>
-              </p>
-              <p>
-                <span className="font-bold dark:text-gray-200">
-                  Save Path:{' '}
-                </span>
-                <span className="dark:text-gray-300">{download.location}</span>
-              </p>
+          <div className="rounded border-2 border-gray-300 dark:border-gray-600 p-3">
+            <h3 className="text-[12px] font-semibold mb-2">File information</h3>
+            <div className="text-[12px]">
+              <div className="mb-1">
+                Total Size: {isEmpty ? '—' : formatFileSize(download.size)}
+              </div>
+              <div className="mb-1">
+                Added On:{' '}
+                {isEmpty
+                  ? '—'
+                  : download.DateAdded
+                  ? new Date(download.DateAdded).toLocaleString()
+                  : '—'}
+              </div>
+              <div className="mb-1">
+                Save Path: {isEmpty ? '—' : download.location || '—'}
+              </div>
+              <div>
+                Created On:{' '}
+                {isEmpty
+                  ? '—'
+                  : download.DateAdded
+                  ? new Date(download.DateAdded).toLocaleString()
+                  : '—'}
+              </div>
             </div>
           </div>
         </div>
-      </td>
-    </tr>
+      </div>
+      <div className="sticky bottom-0 left-0 right-0 py-1 border-t border-gray-300 dark:border-gray-600 flex justify-end mt-auto">
+        <p className="text-white px-4 flex items-center text-[11px]">
+          <svg
+            className="w-3 h-3 mr-1"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fillRule="evenodd"
+              d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+              clipRule="evenodd"
+            ></path>
+          </svg>
+          {isEmpty
+            ? '0 MB/s'
+            : `${download.speed || '0 MB/s'} (${formatFileSize(
+                download.size || 0,
+              )})`}
+        </p>
+      </div>
+    </div>
   );
 };
 

@@ -71,6 +71,7 @@ const statusMapping: Record<string, string> = {
   failed: 'failed',
   finished: 'finished',
   downloading: 'downloading',
+  all: 'all',
 };
 
 const StatusSpecificDownloads = () => {
@@ -191,6 +192,7 @@ const StatusSpecificDownloads = () => {
     // Filter by status if we're on a status-specific page
     .filter((download) => {
       if (!currentStatus) return true; // If no status filter, show all
+      if (currentStatus.toLowerCase() === 'all') return true; // Show all for 'all' status
       return download.status.toLowerCase() === currentStatus.toLowerCase();
     })
     .sort((a, b) => {
@@ -320,10 +322,20 @@ const StatusSpecificDownloads = () => {
 
   // Close Menu and clear selected download when clicking outside
   useEffect(() => {
-    const handleClickOutside = () => {
-      setContextMenu({ downloadId: null, x: 0, y: 0 });
-      setSelectedDownloadId(null);
-      setColumnHeaderContextMenu((prev) => ({ ...prev, visible: false }));
+    const handleClickOutside = (event: MouseEvent) => {
+      // Don't clear selection if clicking inside the table or the details panel
+      const target = event.target as HTMLElement;
+      const isClickInsideTable = target.closest('table');
+      const isClickInsideDetailsPanel = target.closest(
+        '.download-details-panel',
+      );
+
+      // Only clear selection if clicking outside both table and details panel
+      if (!isClickInsideTable && !isClickInsideDetailsPanel) {
+        setContextMenu({ downloadId: null, x: 0, y: 0 });
+        setSelectedDownloadId(null);
+        setColumnHeaderContextMenu((prev) => ({ ...prev, visible: false }));
+      }
     };
 
     document.addEventListener('click', handleClickOutside);
@@ -599,26 +611,24 @@ const StatusSpecificDownloads = () => {
   };
 
   const handleRowClick = (downloadId: string) => {
-    // Toggle expanded view - if clicking the same row, collapse it
-    if (expandedRowId === downloadId) {
-      setExpandedRowId(null);
-    } else {
-      setExpandedRowId(downloadId);
+    // Find the download object
+    const clickedDownload = allDownloads.find((d) => d.id === downloadId);
+
+    if (!clickedDownload) {
+      console.error('Download not found:', downloadId);
+      return;
     }
 
-    // Update selected download ID
+    console.log('Left-click on download:', clickedDownload.name);
+
+    // Set the selected download ID - this is crucial for the details panel
     setSelectedDownloadId(downloadId);
 
-    // Update selected downloads in store
-    const selectedDownload = allDownloads.find((d) => d.id === downloadId);
-    if (selectedDownload) {
-      setSelectedDownloads([selectedDownload]);
-    }
+    // Update the expanded row state
+    setExpandedRowId(downloadId === expandedRowId ? null : downloadId);
 
-    // Update selected row IDs
-    if (!selectedRowIds.includes(downloadId)) {
-      setSelectedRowIds([downloadId]);
-    }
+    // Update selected row IDs for highlighting
+    setSelectedRowIds([downloadId]);
   };
 
   // Find current tags for the selected download
@@ -674,238 +684,256 @@ const StatusSpecificDownloads = () => {
     { id: 'timeLeft', label: 'Time Left', required: false },
   ];
 
+  // Make sure we're passing the selectedDownload correctly
+  const selectedDownload = selectedDownloadId
+    ? allDownloads.find((d) => d.id === selectedDownloadId)
+    : null;
+
+  console.log('Current selected download:', selectedDownload?.name || 'None');
+
   return (
-    <div className="w-full">
-      <table className="w-full">
-        <thead>
-          <tr
-            className="border-b text-left dark:border-gray-700"
-            onContextMenu={handleColumnHeaderContextMenu}
-          >
-            <th className="w-8 p-2">
-              <input
-                type="checkbox"
-                className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
-                checked={selectedRowIds.length === allDownloads.length}
-                onChange={handleSelectAll}
-              />
-            </th>
-            {displayColumns.map((column, displayIndex) => {
-              if (column.id === 'end') {
-                return (
-                  <th key={column.id} className="w-20 p-2 font-semibold"></th>
+    <div className="w-full flex flex-col h-full relative">
+      <div className="flex-grow overflow-auto pb-[30vh]">
+        <table className="w-full">
+          <thead>
+            <tr
+              className="border-b text-left dark:border-gray-700"
+              onContextMenu={handleColumnHeaderContextMenu}
+            >
+              <th className="w-8 p-2">
+                <input
+                  type="checkbox"
+                  className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
+                  checked={selectedRowIds.length === allDownloads.length}
+                  onChange={handleSelectAll}
+                />
+              </th>
+              {displayColumns.map((column, displayIndex) => {
+                if (column.id === 'end') {
+                  return (
+                    <th key={column.id} className="w-20 p-2 font-semibold"></th>
+                  );
+                }
+
+                // Find original index in the full columns array
+                const originalIndex = columns.findIndex(
+                  (col) => col.id === column.id,
                 );
-              }
 
-              // Find original index in the full columns array
-              const originalIndex = columns.findIndex(
-                (col) => col.id === column.id,
-              );
-
-              return (
-                <ResizableHeader
-                  key={column.id}
-                  width={column.width}
-                  onResizeStart={(e) => startResizing(column.id, e.clientX)}
-                  index={originalIndex} // Use the original index from the full columns array
-                  onDragStart={startDragging}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  isDragging={dragging?.columnId === column.id}
-                  isDragOver={dragOverIndex === originalIndex}
-                  columnId={column.id}
-                  isLastColumn={displayIndex === displayColumns.length - 1}
-                >
-                  <div
-                    className="flex items-center cursor-pointer"
-                    onClick={() => handleSortClick(column.id)}
+                return (
+                  <ResizableHeader
+                    key={column.id}
+                    width={column.width}
+                    onResizeStart={(e) => startResizing(column.id, e.clientX)}
+                    index={originalIndex} // Use the original index from the full columns array
+                    onDragStart={startDragging}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                    isDragging={dragging?.columnId === column.id}
+                    isDragOver={dragOverIndex === originalIndex}
+                    columnId={column.id}
+                    isLastColumn={displayIndex === displayColumns.length - 1}
                   >
-                    {getColumnDisplayName(column.id)}
-                    {renderSortIndicator(column.id)}
-                  </div>
-                </ResizableHeader>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {allDownloads.map((download) => (
-            <React.Fragment key={download.id}>
-              <tr
-                className={`border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 cursor-pointer ${
-                  selectedDownloadId === download.id
-                    ? 'bg-blue-50 dark:bg-gray-600'
-                    : 'dark:bg-darkMode'
-                }`}
-                onContextMenu={(e) => handleContextMenu(e, download)}
-                onClick={() => handleRowClick(download.id)}
-                draggable={true}
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('downloadId', download.id);
-                  const dragIcon = document.createElement('div');
-                  dragIcon.className = 'bg-white p-2 rounded shadow';
-                  dragIcon.textContent = download.name;
-                  document.body.appendChild(dragIcon);
-                  e.dataTransfer.setDragImage(dragIcon, 0, 0);
-                  setTimeout(() => document.body.removeChild(dragIcon), 0);
-                }}
-              >
-                <td className="w-8 p-2">
-                  <input
-                    type="checkbox"
-                    className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
-                    checked={selectedRowIds.includes(download.id)}
-                    onChange={() => handleCheckboxChange(download.id)}
-                  />
-                </td>
-                {displayColumns.map((column) => {
-                  switch (column.id) {
-                    case 'name':
-                      return (
-                        <td
-                          key={column.id}
-                          style={{ width: column.width }}
-                          className="p-2 dark:text-gray-200"
-                        >
-                          {download.status === 'fetching metadata' ? (
-                            <div className="space-y-1">
-                              <Skeleton className="h-4 w-[100px] rounded-[3px]" />
-                              <Skeleton className="h-4 w-[120px] rounded-[3px]" />
-                            </div>
-                          ) : (
-                            <div
-                              className="line-clamp-2 break-words"
-                              title={download.name}
-                            >
-                              {download.name}
-                            </div>
-                          )}
-                        </td>
-                      );
-                    case 'size':
-                      return (
-                        <td
-                          key={column.id}
-                          style={{ width: column.width }}
-                          className="p-2 dark:text-gray-200 ml-2"
-                        >
-                          {download.status === 'fetching metadata' ? (
-                            <div className="space-y-1">
-                              <Skeleton className="h-4 w-[50px] rounded-[3px]" />
-                              <Skeleton className="h-4 w-[70px] rounded-[3px]" />
-                            </div>
-                          ) : (
-                            <div className="line-clamp-2 break-words ml-1">
-                              {formatFileSize(download.size)}
-                            </div>
-                          )}
-                        </td>
-                      );
-                    case 'format':
-                      return (
-                        <td
-                          key={column.id}
-                          style={{ width: column.width }}
-                          className="p-2 ml-2"
-                        >
-                          <div className="flex items-center ml-1">
-                            <span className="text-sm text-gray-600 dark:text-gray-300">
-                              {download.status === 'fetching metadata' ? (
-                                <div className="space-y-1">
-                                  <Skeleton className="h-8 w-[50px] rounded-[3px]" />
-                                </div>
-                              ) : (
-                                <FormatSelector
-                                  download={download}
-                                  onFormatSelect={(formatData) => {
-                                    useDownloadStore.setState((state) => ({
-                                      forDownloads: state.forDownloads.map(
-                                        (d) =>
-                                          d.id === download.id
-                                            ? {
-                                                ...d,
-                                                ext: formatData.ext,
-                                                formatId: formatData.formatId,
-                                                audioExt: formatData.audioExt,
-                                                audioFormatId:
-                                                  formatData.audioFormatId,
-                                              }
-                                            : d,
-                                      ),
-                                    }));
-                                  }}
-                                />
-                              )}
-                            </span>
-                          </div>
-                        </td>
-                      );
-                    case 'status':
-                      return (
-                        <td
-                          key={column.id}
-                          style={{ width: column.width }}
-                          className="p-2"
-                        >
-                          <div className="flex justify-start">
-                            <span className="text-sm text-gray-600 dark:text-gray-300 ml-1">
-                              {download.status === 'cancelled' ||
-                              download.status === 'initializing' ||
-                              download.status === 'fetching metadata' ? (
-                                <span
-                                  style={{
-                                    color: getStatusColor(download.status),
-                                    fontWeight: '500',
-                                    textTransform: 'capitalize',
-                                  }}
-                                >
-                                  {download.status}
-                                </span>
-                              ) : download.status === 'finished' ? (
-                                <button
-                                  className="relative flex items-center text-sm underline"
-                                  style={{
-                                    color: getStatusColor(download.status),
-                                  }}
-                                >
-                                  <FaPlay
-                                    className="mr-3 text-green-600 hover:text-green-400 transition-colors duration-200"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleViewDownload(
-                                        `${download.location}${download.name}`,
-                                      );
+                    <div
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSortClick(column.id)}
+                    >
+                      {getColumnDisplayName(column.id)}
+                      {renderSortIndicator(column.id)}
+                    </div>
+                  </ResizableHeader>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {allDownloads.map((download) => (
+              <React.Fragment key={download.id}>
+                <tr
+                  className={`border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 cursor-pointer ${
+                    selectedDownloadId === download.id
+                      ? 'bg-blue-50 dark:bg-gray-600'
+                      : 'dark:bg-darkMode'
+                  }`}
+                  onContextMenu={(e) => handleContextMenu(e, download)}
+                  onClick={() => handleRowClick(download.id)}
+                  draggable={true}
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('downloadId', download.id);
+                    const dragIcon = document.createElement('div');
+                    dragIcon.className = 'bg-white p-2 rounded shadow';
+                    dragIcon.textContent = download.name;
+                    document.body.appendChild(dragIcon);
+                    e.dataTransfer.setDragImage(dragIcon, 0, 0);
+                    setTimeout(() => document.body.removeChild(dragIcon), 0);
+                  }}
+                >
+                  <td className="w-8 p-2">
+                    <input
+                      type="checkbox"
+                      className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
+                      checked={selectedRowIds.includes(download.id)}
+                      onChange={() => handleCheckboxChange(download.id)}
+                    />
+                  </td>
+                  {displayColumns.map((column) => {
+                    switch (column.id) {
+                      case 'name':
+                        return (
+                          <td
+                            key={column.id}
+                            style={{ width: column.width }}
+                            className="p-2 dark:text-gray-200"
+                          >
+                            {download.status === 'fetching metadata' ? (
+                              <div className="space-y-1">
+                                <Skeleton className="h-4 w-[100px] rounded-[3px]" />
+                                <Skeleton className="h-4 w-[120px] rounded-[3px]" />
+                              </div>
+                            ) : (
+                              <div
+                                className="line-clamp-2 break-words"
+                                title={download.name}
+                              >
+                                {download.name}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      case 'size':
+                        return (
+                          <td
+                            key={column.id}
+                            style={{ width: column.width }}
+                            className="p-2 dark:text-gray-200 ml-2"
+                          >
+                            {download.status === 'fetching metadata' ? (
+                              <div className="space-y-1">
+                                <Skeleton className="h-4 w-[50px] rounded-[3px]" />
+                                <Skeleton className="h-4 w-[70px] rounded-[3px]" />
+                              </div>
+                            ) : (
+                              <div className="line-clamp-2 break-words ml-1">
+                                {formatFileSize(download.size)}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      case 'format':
+                        return (
+                          <td
+                            key={column.id}
+                            style={{ width: column.width }}
+                            className="p-2 ml-2"
+                          >
+                            <div className="flex items-center ml-1">
+                              <span className="text-sm text-gray-600 dark:text-gray-300">
+                                {download.status === 'fetching metadata' ? (
+                                  <div className="space-y-1">
+                                    <Skeleton className="h-8 w-[50px] rounded-[3px]" />
+                                  </div>
+                                ) : (
+                                  <FormatSelector
+                                    download={download}
+                                    onFormatSelect={(formatData) => {
+                                      useDownloadStore.setState((state) => ({
+                                        forDownloads: state.forDownloads.map(
+                                          (d) =>
+                                            d.id === download.id
+                                              ? {
+                                                  ...d,
+                                                  ext: formatData.ext,
+                                                  formatId: formatData.formatId,
+                                                  audioExt: formatData.audioExt,
+                                                  audioFormatId:
+                                                    formatData.audioFormatId,
+                                                }
+                                              : d,
+                                        ),
+                                      }));
                                     }}
                                   />
+                                )}
+                              </span>
+                            </div>
+                          </td>
+                        );
+                      case 'status':
+                        return (
+                          <td
+                            key={column.id}
+                            style={{ width: column.width }}
+                            className="p-2"
+                          >
+                            <div className="flex justify-start">
+                              <span className="text-sm text-gray-600 dark:text-gray-300 ml-1">
+                                {download.status === 'cancelled' ||
+                                download.status === 'initializing' ||
+                                download.status === 'fetching metadata' ? (
                                   <span
-                                    className="hover:text-green-400 transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleViewFolder(
-                                        `${download.location},${download.location}${download.name}`,
-                                      );
+                                    style={{
+                                      color: getStatusColor(download.status),
+                                      fontWeight: '500',
+                                      textTransform: 'capitalize',
                                     }}
                                   >
-                                    Finished
+                                    {download.status}
                                   </span>
-                                </button>
-                              ) : download.status === 'to download' ? (
-                                <div
-                                  style={{
-                                    color: getStatusColor(download.status),
-                                  }}
-                                >
-                                  <DownloadButton download={download} />
-                                </div>
-                              ) : download.status === 'paused' ||
-                                download.status === 'downloading' ? (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handlePause(download.id);
-                                  }}
-                                  className="hover:bg-gray-100 dark:hover:bg-gray-600 p-1 rounded-full"
-                                >
+                                ) : download.status === 'finished' ? (
+                                  <button
+                                    className="relative flex items-center text-sm underline"
+                                    style={{
+                                      color: getStatusColor(download.status),
+                                    }}
+                                  >
+                                    <FaPlay
+                                      className="mr-3 text-green-600 hover:text-green-400 transition-colors duration-200"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewDownload(
+                                          `${download.location}${download.name}`,
+                                        );
+                                      }}
+                                    />
+                                    <span
+                                      className="hover:text-green-400 transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewFolder(
+                                          `${download.location},${download.location}${download.name}`,
+                                        );
+                                      }}
+                                    >
+                                      Finished
+                                    </span>
+                                  </button>
+                                ) : download.status === 'to download' ? (
+                                  <div
+                                    style={{
+                                      color: getStatusColor(download.status),
+                                    }}
+                                  >
+                                    <DownloadButton download={download} />
+                                  </div>
+                                ) : download.status === 'paused' ||
+                                  download.status === 'downloading' ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handlePause(download.id);
+                                    }}
+                                    className="hover:bg-gray-100 dark:hover:bg-gray-600 p-1 rounded-full"
+                                  >
+                                    <AnimatedCircularProgressBar
+                                      status={download.status}
+                                      max={100}
+                                      min={0}
+                                      value={download.progress}
+                                      gaugePrimaryColor="#4CAF50"
+                                      gaugeSecondaryColor="#EEEEEE"
+                                    />
+                                  </button>
+                                ) : (
                                   <AnimatedCircularProgressBar
                                     status={download.status}
                                     max={100}
@@ -914,87 +942,80 @@ const StatusSpecificDownloads = () => {
                                     gaugePrimaryColor="#4CAF50"
                                     gaugeSecondaryColor="#EEEEEE"
                                   />
-                                </button>
-                              ) : (
-                                <AnimatedCircularProgressBar
-                                  status={download.status}
-                                  max={100}
-                                  min={0}
-                                  value={download.progress}
-                                  gaugePrimaryColor="#4CAF50"
-                                  gaugeSecondaryColor="#EEEEEE"
-                                />
-                              )}
-                            </span>
-                          </div>
-                        </td>
-                      );
-                    case 'speed':
-                      return (
-                        <td
-                          key={column.id}
-                          style={{ width: column.width }}
-                          className="p-2 dark:text-gray-200 ml-2"
-                        >
-                          {download.status === 'downloading' ? (
-                            <span className="m-1">{download.speed}</span>
-                          ) : (
-                            <span className="m-1">—</span>
-                          )}{' '}
-                        </td>
-                      );
-                    case 'dateAdded':
-                      return (
-                        <td
-                          key={column.id}
-                          style={{ width: column.width }}
-                          className="p-2 dark:text-gray-200 ml-2"
-                        >
-                          {formatRelativeTime(download.DateAdded)}
-                        </td>
-                      );
-                    case 'source':
-                      return (
-                        <td
-                          key={column.id}
-                          className="w-8 p-2 dark:text-gray-200 ml-2"
-                        >
-                          {download.status === 'fetching metadata' ? (
-                            <div className="space-y-1">
-                              <Skeleton className="h-4 w-[100px] rounded-[3px]" />
-                              <Skeleton className="h-4 w-[120px] rounded-[3px]" />
+                                )}
+                              </span>
                             </div>
-                          ) : (
-                            <div
-                              className="line-clamp-2 break-words ml-1"
-                              title={download.extractorKey}
-                            >
-                              <a
-                                onClick={() =>
-                                  window.downlodrFunctions.openExternalLink(
-                                    download.videoUrl,
-                                  )
-                                }
-                                className="hover:underline cursor-pointer"
+                          </td>
+                        );
+                      case 'speed':
+                        return (
+                          <td
+                            key={column.id}
+                            style={{ width: column.width }}
+                            className="p-2 dark:text-gray-200 ml-2"
+                          >
+                            {download.status === 'downloading' ? (
+                              <span className="m-1">{download.speed}</span>
+                            ) : (
+                              <span className="m-1">—</span>
+                            )}{' '}
+                          </td>
+                        );
+                      case 'dateAdded':
+                        return (
+                          <td
+                            key={column.id}
+                            style={{ width: column.width }}
+                            className="p-2 dark:text-gray-200 ml-2"
+                          >
+                            {formatRelativeTime(download.DateAdded)}
+                          </td>
+                        );
+                      case 'source':
+                        return (
+                          <td
+                            key={column.id}
+                            className="w-8 p-2 dark:text-gray-200 ml-2"
+                          >
+                            {download.status === 'fetching metadata' ? (
+                              <div className="space-y-1">
+                                <Skeleton className="h-4 w-[100px] rounded-[3px]" />
+                                <Skeleton className="h-4 w-[120px] rounded-[3px]" />
+                              </div>
+                            ) : (
+                              <div
+                                className="line-clamp-2 break-words ml-1"
+                                title={download.extractorKey}
                               >
-                                {download.extractorKey}
-                              </a>{' '}
-                            </div>
-                          )}
-                        </td>
-                      );
-                    default:
-                      return null;
-                  }
-                })}
-              </tr>
-              {expandedRowId === download.id && (
-                <ExpandedDownloadDetails download={download} />
-              )}
-            </React.Fragment>
-          ))}
-        </tbody>
-      </table>
+                                <a
+                                  onClick={() =>
+                                    window.downlodrFunctions.openExternalLink(
+                                      download.videoUrl,
+                                    )
+                                  }
+                                  className="hover:underline cursor-pointer"
+                                >
+                                  {download.extractorKey}
+                                </a>{' '}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      default:
+                        return null;
+                    }
+                  })}
+                </tr>
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ExpandedDownloadDetails positioned absolutely within the parent container */}
+      <div className="download-details-panel">
+        <ExpandedDownloadDetails download={selectedDownload} />
+      </div>
 
       {/* Context Menu */}
       {contextMenu.downloadId && (
