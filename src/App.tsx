@@ -19,6 +19,7 @@ import CategoryPage from './Pages/SubPages/CategoryPage';
 import TagPage from './Pages/SubPages/TagsPage';
 import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
 import UpdateNotification from './Components/SubComponents/custom/UpdateNotifications';
+import StatusSpecificDownloads from './Pages/StatusSpecificDownload';
 
 const App = () => {
   return (
@@ -33,6 +34,10 @@ const App = () => {
             <Route path="/history" element={<History />} />
             <Route path="/category/:categoryId" element={<CategoryPage />} />
             <Route path="/tags/:tagId" element={<TagPage />} />
+            <Route
+              path="/status/:status"
+              element={<StatusSpecificDownloads />}
+            />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
