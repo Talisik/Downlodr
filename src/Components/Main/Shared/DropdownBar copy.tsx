@@ -5,7 +5,7 @@
  *  - Task (Has options for Stopping or Starting All downloads)
  *  - Help (Opens Help Modal)
  *  - Console (Opens Console)
- *  - settings (Opens settings Modal)
+ *  - Settings (Opens Settings Modal)
  *  - About (Opens About Modal)
  *  - History (Navigates to History component)
  *
@@ -16,7 +16,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { IoIosAdd } from 'react-icons/io';
-import { RxExit, RxUpdate } from 'react-icons/rx';
+import { RxExit } from 'react-icons/rx';
 import DownloadModal from '../Modal/DownloadModal';
 import SettingsModal from '../Modal/SettingsModal';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
@@ -27,13 +27,11 @@ import { useMainStore } from '../../../Store/mainStore';
 import AboutModal from '../Modal/AboutModal';
 import HelpModal from '../Modal/HelpModal';
 import { processFileName } from '../../../DataFunctions/FilterName';
-import { FiSearch, FiBook } from 'react-icons/fi';
-import { MdOutlineHistory } from 'react-icons/md';
-import { AiOutlineExclamationCircle } from 'react-icons/ai';
+import { FiSearch } from 'react-icons/fi';
 
 const DropdownBar = ({ className }: { className?: string }) => {
   // Dropdown element states
-  const [activeMenu, setActiveMenu] = useState<'file' | 'help' | null>(null);
+  const [activeMenu, setActiveMenu] = useState<'file' | 'task' | null>(null);
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
   const [isAboutModalOpen, setAboutModalOpen] = useState(false);
@@ -241,31 +239,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
     }
   };
 
-  const handleCheckForUpdates = async () => {
-    console.log('Check for updates button clicked');
-    console.log('updateAPI available:', !!window.updateAPI?.checkForUpdates);
-    if (window.updateAPI?.checkForUpdates) {
-      try {
-        console.log('Calling checkForUpdates...');
-        const result = await window.updateAPI.checkForUpdates();
-        console.log('Update check result:', result);
-        if (!result.hasUpdate) {
-          toast({
-            title: "You're up to date!",
-            description: `You're using the latest version (v${result.currentVersion}).`,
-            duration: 3000,
-          });
-        }
-        setActiveMenu(null);
-      } catch (error) {
-        console.error('Error checking for updates:', error);
-      }
-    } else {
-      console.error('updateAPI is not available');
-      setActiveMenu(null);
-    }
-  };
-
   return (
     <div
       className={`${className} flex items-center justify-between relative z-48 py-4`}
@@ -284,27 +257,20 @@ const DropdownBar = ({ className }: { className?: string }) => {
             File
           </button>
           {activeMenu === 'file' && (
-            <div className="absolute left-0 mt-1 w-40 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+            <div className="absolute left-0 mt-1 w-48 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <button
-                className="w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
                 onClick={() => {
                   // handleOpenDownloadModal();
                   setDownloadModalOpen(true);
                   setActiveMenu(null);
                 }}
               >
-                <IoIosAdd size={20} className="mr-[-2px]" />
+                <IoIosAdd size={18} className="mr-[-2px]" />
                 <span>New Download</span>
               </button>
               <button
-                className="w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
-                onClick={() => window.downlodrFunctions.closeApp()}
-              >
-                <MdOutlineHistory size={18} />
-                <span>History</span>
-              </button>
-              <button
-                className="w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
                 onClick={() => window.downlodrFunctions.closeApp()}
               >
                 <RxExit />
@@ -313,6 +279,78 @@ const DropdownBar = ({ className }: { className?: string }) => {
             </div>
           )}
         </div>
+
+        <div className="relative">
+          <button
+            className={`px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold ${
+              activeMenu === 'task'
+                ? 'bg-gray-100 dark:bg-gray-700 font-semibold'
+                : ''
+            }`}
+            onClick={() => setActiveMenu(activeMenu === 'task' ? null : 'task')}
+          >
+            Help
+          </button>
+          {activeMenu === 'task' && (
+            <div className="absolute left-0 mt-1 w-48 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+              <button
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold dark:text-gray-200"
+                onClick={() => handleStartAll()}
+              >
+                Start All
+              </button>
+              <button
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold dark:text-gray-200"
+                onClick={() => handleStopAll()}
+              >
+                Stop All
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="relative">
+          <button
+            className={`px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold ${
+              activeMenu === 'task'
+                ? 'bg-gray-100 dark:bg-gray-700 font-semibold'
+                : ''
+            }`}
+            onClick={() => setActiveMenu(activeMenu === 'task' ? null : 'task')}
+          >
+            Task
+          </button>
+          {activeMenu === 'task' && (
+            <div className="absolute left-0 mt-1 w-48 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+              <button
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold dark:text-gray-200"
+                onClick={() => handleStartAll()}
+              >
+                Start All
+              </button>
+              <button
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold dark:text-gray-200"
+                onClick={() => handleStopAll()}
+              >
+                Stop All
+              </button>
+            </div>
+          )}
+        </div>
+
+        <button
+          className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
+          onClick={() => setHelpModalOpen(true)}
+        >
+          Help
+        </button>
+        <button
+          className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
+          onClick={() => window.electronDevTools.toggle()}
+        >
+          Console
+        </button>
+
         <button
           className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
           onClick={() => {
@@ -322,49 +360,22 @@ const DropdownBar = ({ className }: { className?: string }) => {
         >
           Settings
         </button>
-        <div className="relative">
-          <button
-            className={`px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold ${
-              activeMenu === 'help'
-                ? 'bg-gray-100 dark:bg-gray-700 font-semibold'
-                : ''
-            }`}
-            onClick={() => setActiveMenu(activeMenu === 'help' ? null : 'help')}
-          >
-            Help
-          </button>
-          {activeMenu === 'help' && (
-            <div className="absolute left-0 mt-1 w-48 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
-              <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
-                onClick={() => {
-                  setHelpModalOpen(true);
-                  setActiveMenu(null);
-                }}
-              >
-                <FiBook size={18} className="mr-[-2px]" />
-                <span>Guide</span>
-              </button>
-              <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
-                onClick={handleCheckForUpdates}
-              >
-                <RxUpdate size={16} />
-                <span>Check for Updates</span>
-              </button>
-              <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
-                onClick={() => {
-                  setAboutModalOpen(true);
-                  setActiveMenu(null);
-                }}
-              >
-                <AiOutlineExclamationCircle size={18} />
-                <span>About</span>
-              </button>
-            </div>
-          )}
-        </div>
+
+        <button
+          className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
+          onClick={() => {
+            setAboutModalOpen(true);
+            setActiveMenu(null);
+          }}
+        >
+          About
+        </button>
+        <NavLink
+          to="/history"
+          className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded scheduler font-semibold"
+        >
+          <span> History</span>
+        </NavLink>
       </div>
       {/* Search Bar with increased width */}
       <div ref={searchRef} className="relative my-10 mr-6 w-1/4">
