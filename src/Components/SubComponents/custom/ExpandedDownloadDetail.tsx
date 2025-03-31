@@ -8,7 +8,7 @@
  *
  * @returns JSX.Element - The rendered expanded download details component.
  */
-import React from 'react';
+import React, { useState } from 'react';
 
 // Interface representing the details of a download
 interface DownloadDetails {
@@ -31,6 +31,9 @@ interface ExpandedDownloadDetailsProps {
 const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
   download,
 }) => {
+  // Add state to track expanded/collapsed state
+  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+
   // Check if download is null or undefined
   const isEmpty = !download;
 
@@ -47,86 +50,136 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
       return `${(bytes / MB).toFixed(2)} MB`;
     }
   };
-  //         <hr className="solid mt-2 mb-2 -mx-4 w-[calc(100%+32px)] border-t-1 border-divider dark:border-gray-700" />
+
+  // Toggle expanded/collapsed state
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
+  };
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t dark:border-gray-700 h-[39%] flex flex-col shadow-lg">
-      <div className="overflow-auto flex-grow px-4 pt-3">
-        {/* Progress Bar */}
-        <div className="flex flex-row items-center gap-4">
-          <p className="font-semibold dark:text-gray-200 text-[12px]">
-            Progress
-          </p>
-          <div className="w-full">
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-              <div
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  isEmpty || !download.progress || download.progress === 0
-                    ? 'bg-gray-400 dark:bg-gray-600'
-                    : download.progress === 100
-                    ? 'bg-green-500'
-                    : 'bg-orange-500'
-                }`}
-                style={{ width: `${isEmpty ? 0 : download.progress || 0}%` }}
-              ></div>
+    <div
+      className={`absolute bottom-0 left-0 right-0 bg-detailsTab dark:border-t dark:bg-gray-800 border-t border-gray-300 dark:border-[#BCBCBC] ${
+        isExpanded ? 'h-[39%]' : 'h-auto'
+      } flex flex-col shadow-lg transition-all duration-300`}
+    >
+      {isExpanded ? (
+        // Expanded view
+        <div className="overflow-auto flex-grow px-4 pt-3">
+          {/* Progress Bar */}
+          <div className="flex flex-row items-center gap-4">
+            <p className="font-semibold dark:text-gray-200 text-[12px]">
+              Progress
+            </p>
+            <div className="w-full">
+              <div className="w-full bg-white rounded-full h-1.5">
+                <div
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    isEmpty || !download.progress || download.progress === 0
+                      ? 'bg-gray-400 dark:bg-gray-600'
+                      : download.progress === 100
+                      ? 'bg-green-500'
+                      : 'bg-orange-500'
+                  }`}
+                  style={{ width: `${isEmpty ? 0 : download.progress || 0}%` }}
+                ></div>
+              </div>
             </div>
+            {/* Add percentage number */}
+            <span className="dark:text-gray-200 text-[12px]">
+              {isEmpty ? 0 : download.progress || 0}%
+            </span>
           </div>
-          {/* Add percentage number */}
-          <span className="dark:text-gray-200 text-[12px]">
-            {isEmpty ? 0 : download.progress || 0}%
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-4 py-2">
-          <div className="rounded border-2 border-gray-300 dark:border-gray-600 p-3">
-            <p className="text-[12px] font-semibold mb-2">Transfer</p>
-            <div className="text-[12px]">
-              <div className="mb-1">
-                Download Time: {isEmpty ? '—' : download.timeActive || '< 1m'}
+          <div className="grid grid-cols-2 gap-4 py-2">
+            <div className="rounded border-2 border-gray-300 dark:border-gray-600 p-3">
+              <p className="text-[12px] font-semibold mb-2">Transfer</p>
+              <div className="text-[12px]">
+                <div className="mb-1">
+                  Download Time: {isEmpty ? '—' : download.timeActive || '< 1m'}
+                </div>
+                <div className="mb-1">
+                  Downloaded: {isEmpty ? '—' : formatFileSize(download.size)}
+                </div>
+                <div className="mb-1">
+                  Download speed: {isEmpty ? '—' : download.speed || '—'}
+                </div>
+                <div>ETA: {isEmpty ? '—' : download.timeLeft || '—'}</div>
               </div>
-              <div className="mb-1">
-                Downloaded: {isEmpty ? '—' : formatFileSize(download.size)}
-              </div>
-              <div className="mb-1">
-                Download speed: {isEmpty ? '—' : download.speed || '—'}
-              </div>
-              <div>ETA: {isEmpty ? '—' : download.timeLeft || '—'}</div>
             </div>
-          </div>
 
-          <div className="rounded border-2 border-gray-300 dark:border-gray-600 p-3">
-            <h3 className="text-[12px] font-semibold mb-2">File information</h3>
-            <div className="text-[12px]">
-              <div className="mb-1">
-                Total Size: {isEmpty ? '—' : formatFileSize(download.size)}
-              </div>
-              <div className="mb-1">
-                Added On:{' '}
-                {isEmpty
-                  ? '—'
-                  : download.DateAdded
-                  ? new Date(download.DateAdded).toLocaleString()
-                  : '—'}
-              </div>
-              <div className="mb-1">
-                Save Path: {isEmpty ? '—' : download.location || '—'}
-              </div>
-              <div>
-                Created On:{' '}
-                {isEmpty
-                  ? '—'
-                  : download.DateAdded
-                  ? new Date(download.DateAdded).toLocaleString()
-                  : '—'}
+            <div className="rounded border-2 border-gray-300 dark:border-gray-600 p-3">
+              <h3 className="text-[12px] font-semibold mb-2">
+                File information
+              </h3>
+              <div className="text-[12px]">
+                <div className="mb-1">
+                  Total Size: {isEmpty ? '—' : formatFileSize(download.size)}
+                </div>
+                <div className="mb-1">
+                  Added On:{' '}
+                  {isEmpty
+                    ? '—'
+                    : download.DateAdded
+                    ? new Date(download.DateAdded).toLocaleString()
+                    : '—'}
+                </div>
+                <div className="mb-1">
+                  Save Path: {isEmpty ? '—' : download.location || '—'}
+                </div>
+                <div>
+                  Created On:{' '}
+                  {isEmpty
+                    ? '—'
+                    : download.DateAdded
+                    ? new Date(download.DateAdded).toLocaleString()
+                    : '—'}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div className="sticky bottom-0 left-0 right-0 py-1 border-t border-gray-300 dark:border-gray-600 flex justify-end mt-auto">
-        <p className="text-white px-4 flex items-center text-[11px]">
+      ) : null}
+
+      {/* Status bar - always visible */}
+      <div
+        className="sticky bottom-0 left-0 right-0 py-1 border-t-1 dark:border-t border-gray-300 dark:border-[#BCBCBC] flex justify-between mt-auto cursor-pointer"
+        onClick={toggleExpanded}
+      >
+        {/* Toggle button */}
+        <button className="ml-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+          {isExpanded ? (
+            <svg
+              className="w-4 h-4"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fillRule="evenodd"
+                d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
+                clipRule="evenodd"
+              ></path>
+            </svg>
+          ) : (
+            <svg
+              className="w-4 h-4"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fillRule="evenodd"
+                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              ></path>
+            </svg>
+          )}
+        </button>
+
+        {/* Download info */}
+        <p className="text-gray-600 dark:text-gray-300 px-4 flex items-center text-[11px]">
           <svg
             className="w-3 h-3 mr-1"
-            fill="currentColor"
+            fill="blue"
             viewBox="0 0 20 20"
             xmlns="http://www.w3.org/2000/svg"
           >

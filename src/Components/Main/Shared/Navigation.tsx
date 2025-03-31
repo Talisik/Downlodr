@@ -12,14 +12,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { HiChevronDown, HiChevronRight } from 'react-icons/hi';
-import { FiDownload } from 'react-icons/fi';
-import { AiOutlineCheck } from 'react-icons/ai';
+import { FiDownload, FiFolder } from 'react-icons/fi';
+import { AiOutlineCheck, AiOutlineFileSearch } from 'react-icons/ai';
 import { BiLayer } from 'react-icons/bi';
 import { BsTag } from 'react-icons/bs';
 import { CiFolderOn } from 'react-icons/ci';
 import useDownloadStore from '../../../Store/downloadStore';
 import CategoryContextMenu from '../../SubComponents/custom/CategoryContextMenu';
 import TagContextMenu from '../../SubComponents/custom/TagContextMenu';
+import { TbDeviceTabletSearch } from 'react-icons/tb';
+import { PiPauseBold } from 'react-icons/pi';
+import { HiMiniArrowPath } from 'react-icons/hi2';
+import { CgClose } from 'react-icons/cg';
+import { MdPlayArrow } from 'react-icons/md';
+
 // import { toast } from 'react-hot-toast';
 import { toast } from '../../../Components/SubComponents/shadcn/hooks/use-toast';
 
@@ -200,7 +206,7 @@ const Navigation = ({ className }: { className?: string }) => {
   return (
     <nav
       ref={navRef}
-      className={`${className} border-solid border-r-2 border-gray-200 dark:border-gray-700`}
+      className={`${className} border-solid border-r border-gray-200 dark:border-componentBorder`}
     >
       <div className="p-2 space-y-2 ml-2 mt-2">
         {/* Status Section */}
@@ -227,22 +233,8 @@ const Navigation = ({ className }: { className?: string }) => {
                   } dark:text-gray-200 dark:hover:bg-gray-700`
                 }
               >
-                <CiFolderOn
-                  size={16}
-                  className="text-gray-600 dark:text-gray-400 flex-shrink-0"
-                />
+                <FiFolder size={16} className="text-primary flex-shrink-0" />
                 <span className="ml-2 text-[14px]">All</span>
-              </NavLink>
-              <NavLink
-                to="/status/downloading"
-                className={({ isActive }) =>
-                  `nav-link ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
-                }
-              >
-                <FiDownload size={16} className="text-blue-500 flex-shrink-0" />
-                <span className="ml-2 text-[14px]">Downloading</span>
               </NavLink>
               <NavLink
                 to="/status/fetching-metadata"
@@ -252,9 +244,9 @@ const Navigation = ({ className }: { className?: string }) => {
                   } dark:text-gray-200 dark:hover:bg-gray-700`
                 }
               >
-                <AiOutlineCheck
-                  size={16}
-                  className="text-green-500 flex-shrink-0"
+                <TbDeviceTabletSearch
+                  size={17}
+                  className="text-blue-500 flex-shrink-0"
                 />
                 <span className="ml-2 text-[14px]">Fetching Metadata</span>
               </NavLink>
@@ -266,12 +258,21 @@ const Navigation = ({ className }: { className?: string }) => {
                   } dark:text-gray-200 dark:hover:bg-gray-700`
                 }
               >
-                <AiOutlineCheck
-                  size={16}
-                  className="text-green-500 flex-shrink-0"
-                />
+                <FiDownload size={16} className="text-primary flex-shrink-0" />
                 <span className="ml-2 text-[14px] ">Start Download</span>
               </NavLink>
+              <NavLink
+                to="/status/downloading"
+                className={({ isActive }) =>
+                  `nav-link ${
+                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
+                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                }
+              >
+                <FiDownload size={16} className="text-primary flex-shrink-0" />
+                <span className="ml-2 text-[14px]">Downloading</span>
+              </NavLink>
+
               <NavLink
                 to="/status/paused"
                 className={({ isActive }) =>
@@ -280,9 +281,9 @@ const Navigation = ({ className }: { className?: string }) => {
                   } dark:text-gray-200 dark:hover:bg-gray-700`
                 }
               >
-                <AiOutlineCheck
+                <PiPauseBold
                   size={16}
-                  className="text-green-500 flex-shrink-0"
+                  className="text-blue-500 flex-shrink-0"
                 />
                 <span className="ml-2 text-[14px]">Paused</span>
               </NavLink>
@@ -294,9 +295,9 @@ const Navigation = ({ className }: { className?: string }) => {
                   } dark:text-gray-200 dark:hover:bg-gray-700`
                 }
               >
-                <AiOutlineCheck
-                  size={16}
-                  className="text-green-500 flex-shrink-0"
+                <HiMiniArrowPath
+                  size={17}
+                  className="text-blue-500 flex-shrink-0"
                 />
                 <span className="ml-2 text-[14px]">Initializing</span>
               </NavLink>
@@ -309,10 +310,7 @@ const Navigation = ({ className }: { className?: string }) => {
                   } dark:text-gray-200 dark:hover:bg-gray-700`
                 }
               >
-                <AiOutlineCheck
-                  size={16}
-                  className="text-green-500 flex-shrink-0"
-                />
+                <CgClose size={17} className="text-red-500 flex-shrink-0" />
                 <span className="ml-2 text-[14px]">Failed</span>
               </NavLink>
               <NavLink
@@ -323,8 +321,8 @@ const Navigation = ({ className }: { className?: string }) => {
                   } dark:text-gray-200 dark:hover:bg-gray-700`
                 }
               >
-                <AiOutlineCheck
-                  size={16}
+                <MdPlayArrow
+                  size={18}
                   className="text-green-500 flex-shrink-0"
                 />
                 <span className="ml-2 text-[14px]">Finished</span>

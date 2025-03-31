@@ -697,7 +697,7 @@ const StatusSpecificDownloads = () => {
         <table className="w-full">
           <thead>
             <tr
-              className="border-b text-left dark:border-gray-700"
+              className="border-b text-left dark:border-componentBorder"
               onContextMenu={handleColumnHeaderContextMenu}
             >
               <th className="w-8 p-2">
@@ -750,7 +750,7 @@ const StatusSpecificDownloads = () => {
             {allDownloads.map((download) => (
               <React.Fragment key={download.id}>
                 <tr
-                  className={`border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 cursor-pointer ${
+                  className={`border-b hover:bg-gray-50 dark:border-componentBorder dark:hover:bg-gray-700 cursor-pointer ${
                     selectedDownloadId === download.id
                       ? 'bg-blue-50 dark:bg-gray-600'
                       : 'dark:bg-darkMode'
@@ -1013,7 +1013,7 @@ const StatusSpecificDownloads = () => {
       </div>
 
       {/* ExpandedDownloadDetails positioned absolutely within the parent container */}
-      <div className="download-details-panel">
+      <div className="">
         <ExpandedDownloadDetails download={selectedDownload} />
       </div>
 

@@ -57,6 +57,8 @@ module.exports = {
         inputDarkMode: '#FEF9F426',
         skeleton: '#E8EDF1',
         border: '#E4E4E7',
+        detailsTab: '#EDEDED',
+        componentBorder:'#BCBCBC',
       },
     },
   },
