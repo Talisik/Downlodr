@@ -382,18 +382,33 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     required: ['title', 'status', 'format'].includes(option.id), // Required columns
   }));
 
-  // Effect to handle clicks outside the list to close the context menu
+  // Effect to handle clicks outside the list to close context menus
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Close download context menu when clicking outside
       if (listRef.current && !listRef.current.contains(event.target as Node)) {
         setContextMenu(null);
         setSelectedDownloadId(null);
+      }
+
+      // Close column header context menu when clicking outside
+      if (columnHeaderContextMenu.visible) {
+        // Check if the click was not on the column header context menu
+        const menuElement = document.querySelector(
+          '.column-header-context-menu',
+        );
+        if (menuElement && !menuElement.contains(event.target as Node)) {
+          setColumnHeaderContextMenu({
+            ...columnHeaderContextMenu,
+            visible: false,
+          });
+        }
       }
     };
 
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+  }, [columnHeaderContextMenu.visible]);
 
   /**
    * Handles the context menu event for a download.
@@ -464,7 +479,8 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     if (downloadLocation) {
       window.downlodrFunctions.openFolder(downloadLocation, filePath);
     }
-    setContextMenu({ downloadId: null, x: 0, y: 0 });
+    // Always close the context menu after clicking
+    setContextMenu(null);
   };
 
   // Enhance drag handlers with better visual cues
