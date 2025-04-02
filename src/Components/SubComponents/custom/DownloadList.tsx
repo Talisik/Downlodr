@@ -583,8 +583,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'
                 }`}
-                onContextMenu={(e) => handleContextMenu(e, download)}
-                onClick={() => handleRowClick(download.id)}
                 draggable={true}
                 onDragStart={(e) => {
                   e.dataTransfer.setData('downloadId', download.id);
