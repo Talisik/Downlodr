@@ -299,9 +299,17 @@ const StatusSpecificDownloads = () => {
   const handleColumnHeaderContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Get the table's position
+    const tableRect = e.currentTarget.getBoundingClientRect();
+
+    // Calculate position relative to the table/header
+    const x = e.clientX - tableRect.left + 2; // Small offset for better appearance
+    const y = e.clientY - tableRect.top + window.scrollY + 2;
+
     setColumnHeaderContextMenu({
-      x: e.clientX,
-      y: e.clientY,
+      x: x,
+      y: y,
       visible: true,
     });
   };
@@ -1008,7 +1016,7 @@ const StatusSpecificDownloads = () => {
       </div>
 
       {/* ExpandedDownloadDetails with adjusted positioning to not cover scrollbar */}
-      <div className="pointer-events-none absolute bottom-[10px] left-0 right-[5px]">
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0">
         <div className="pointer-events-auto">
           <ExpandedDownloadDetails download={selectedDownload} />
         </div>

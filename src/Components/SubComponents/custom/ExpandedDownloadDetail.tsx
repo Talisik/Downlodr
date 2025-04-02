@@ -96,8 +96,8 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
       {isExpanded && (
         // Expanded view (without progress bar since it's moved outside)
         <div className="overflow-auto flex-grow px-4">
-          <div className="grid grid-cols-2 gap-4 py-2">
-            <div className="rounded border-2 border-gray-300 dark:border-gray-600 p-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
+            <div className="rounded border-2 border-gray-300 dark:border-gray-600 p-3 w-full">
               <p className="text-[12px] font-semibold mb-2">Transfer</p>
               <div className="text-[12px]">
                 <div className="mb-1">
@@ -126,7 +126,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
               </div>
             </div>
 
-            <div className="w-auto rounded border-2 border-gray-300 dark:border-gray-600 p-3">
+            <div className="rounded border-2 border-gray-300 dark:border-gray-600 p-3 w-full">
               <h3 className="text-[12px] font-semibold mb-2">
                 File information
               </h3>
