@@ -26,9 +26,48 @@ interface TaskBarProps {
   className?: string;
 }
 
+interface ConfirmModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  message: string;
+}
+
+const ConfirmModal: React.FC<ConfirmModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  message,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-darkMode rounded-lg p-6 max-w-sm w-full mx-4">
+        <p className="text-gray-800 dark:text-gray-200 mb-4">{message}</p>
+        <div className="flex justify-end space-x-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // Handle state for modal
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [showStopConfirmation, setShowStopConfirmation] = useState(false);
   const { toast } = useToast();
 
   // Get the max download limit and current downloads from stores
@@ -39,6 +78,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
 
+  const handleStopConfirm = () => {
+    handleRemoveSelected();
+    setShowStopConfirmation(false);
+  };
   // Stopping all current downloads via killController
   const handleStopAll = async () => {
     // functions for deleting download log from store
@@ -369,17 +412,27 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             {' '}
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
           </button>
-          <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
-            onClick={handleRemoveSelected}
-          >
-            <LuTrash size={15} className="mt-[0.9px]" /> Remove
-          </button>
+
+          {/* Right side button */}
+          {selectedDownloads.length > 0 && (
+            <button
+              className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+              onClick={() => setShowStopConfirmation(true)}
+            >
+              <LuTrash size={15} className="mt-[0.9px]" /> Remove
+            </button>
+          )}
         </div>
       </div>
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setDownloadModalOpen(false)}
+      />
+      <ConfirmModal
+        isOpen={showStopConfirmation}
+        onClose={() => setShowStopConfirmation(false)}
+        onConfirm={handleStopConfirm}
+        message="Are you sure you want to stop and remove this download?"
       />
     </>
   );

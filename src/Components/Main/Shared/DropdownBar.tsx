@@ -342,7 +342,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
                   setActiveMenu(null);
                 }}
               >
-                <FiBook size={18} className="mr-[-2px]" />
+                <FiBook size={16} className="mr-[-2px]" />
                 <span>Guide</span>
               </button>
               <button
@@ -359,7 +359,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
                   setActiveMenu(null);
                 }}
               >
-                <AiOutlineExclamationCircle size={18} />
+                <AiOutlineExclamationCircle size={16} />
                 <span>About</span>
               </button>
             </div>

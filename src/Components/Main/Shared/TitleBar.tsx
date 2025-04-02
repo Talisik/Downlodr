@@ -59,7 +59,7 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
 
             {/* Minimize Button */}
             <button
-              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
+              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1 m-2"
               onClick={() => window.downlodrFunctions.minimizeApp()}
             >
               <IoMdRemove size={16} />
@@ -67,7 +67,7 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
 
             {/* Maximize Button with dynamic icon */}
             <button
-              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
+              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1 m-2"
               onClick={handleMaximizeRestore}
             >
               {isMaximized ? <PiBrowsers size={16} /> : <RxBox size={14} />}
@@ -75,7 +75,7 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
 
             {/* Close Button */}
             <button
-              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
+              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1 m-2"
               onClick={() => window.downlodrFunctions.closeApp()}
             >
               <IoMdClose size={16} />
