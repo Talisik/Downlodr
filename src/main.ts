@@ -35,7 +35,7 @@ const createWindow = () => {
       preload: path.join(__dirname, 'preload.js'),
       webSecurity: true,
       nodeIntegration: true,
-      devTools: false,
+      // devTools: false,
     },
   });
 
@@ -321,6 +321,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     for await (const chunk of controller.listen()) {
       // Send the download status back to the renderer process
       e.sender.send(`ytdlp:download:status:${id}`, chunk);
+      console.log(chunk);
     }
     // Return the download ID and controller ID
     return { downloadId: id, controllerId: controller.id };

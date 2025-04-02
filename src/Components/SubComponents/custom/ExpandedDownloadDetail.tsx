@@ -9,6 +9,7 @@
  * @returns JSX.Element - The rendered expanded download details component.
  */
 import React, { useState } from 'react';
+import { formatElapsedTime } from '../../../Store/downloadStore';
 
 // Interface representing the details of a download
 interface DownloadDetails {
@@ -21,6 +22,7 @@ interface DownloadDetails {
   location?: string; // Location of the download file
   progress?: number; // Download progress percentage
   status?: string; // Current status of the download
+  elapsed: number;
 }
 
 // Interface representing the props for the ExpandedDownloadDetails component
@@ -39,7 +41,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
 
   // Format file size helper function
   const formatFileSize = (bytes: number | undefined): string => {
-    if (!bytes) return '—';
+    if (!bytes) return '';
 
     const MB = 1048576;
     const GB = MB * 1024;
@@ -59,85 +61,103 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
   return (
     <div
       className={`absolute bottom-0 left-0 right-0 bg-detailsTab dark:border-t dark:bg-gray-800 border-t border-gray-300 dark:border-[#BCBCBC] ${
-        isExpanded ? 'h-[39%]' : 'h-auto'
+        isExpanded ? 'h-auto' : 'h-auto'
       } flex flex-col shadow-lg transition-all duration-300`}
     >
-      {isExpanded ? (
-        // Expanded view
-        <div className="overflow-auto flex-grow px-4 pt-3">
-          {/* Progress Bar */}
-          <div className="flex flex-row items-center gap-4">
+      {/* Progress Bar - Always visible */}
+      <div className="px-4 pt-2 pb-1">
+        <div className="flex flex-row items-center gap-4">
+          {isExpanded && (
             <p className="font-semibold dark:text-gray-200 text-[12px]">
               Progress
             </p>
-            <div className="w-full">
-              <div className="w-full bg-white rounded-full h-1.5">
-                <div
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    isEmpty || !download.progress || download.progress === 0
-                      ? 'bg-gray-400 dark:bg-gray-600'
-                      : download.progress === 100
-                      ? 'bg-green-500'
-                      : 'bg-orange-500'
-                  }`}
-                  style={{ width: `${isEmpty ? 0 : download.progress || 0}%` }}
-                ></div>
-              </div>
+          )}
+          <div className="w-full">
+            <div className="w-full bg-white rounded-full h-1.5">
+              <div
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  isEmpty || !download.progress || download.progress === 0
+                    ? 'bg-gray-400 dark:bg-gray-600'
+                    : download.progress === 100
+                    ? 'bg-green-500'
+                    : 'bg-orange-500'
+                }`}
+                style={{ width: `${isEmpty ? 0 : download.progress || 0}%` }}
+              ></div>
             </div>
-            {/* Add percentage number */}
-            <span className="dark:text-gray-200 text-[12px]">
-              {isEmpty ? 0 : download.progress || 0}%
-            </span>
           </div>
+          {/* Add percentage number */}
+          <span className="dark:text-gray-200 text-[12px]">
+            {isEmpty ? 0 : download.progress || 0}%
+          </span>
+        </div>
+      </div>
+
+      {isExpanded && (
+        // Expanded view (without progress bar since it's moved outside)
+        <div className="overflow-auto flex-grow px-4">
           <div className="grid grid-cols-2 gap-4 py-2">
             <div className="rounded border-2 border-gray-300 dark:border-gray-600 p-3">
               <p className="text-[12px] font-semibold mb-2">Transfer</p>
               <div className="text-[12px]">
                 <div className="mb-1">
-                  Download Time: {isEmpty ? '—' : download.timeActive || '< 1m'}
+                  Download Time:{' '}
+                  {isEmpty ? '' : formatElapsedTime(download.elapsed)}
                 </div>
                 <div className="mb-1">
-                  Downloaded: {isEmpty ? '—' : formatFileSize(download.size)}
+                  Downloaded: {isEmpty ? '' : formatFileSize(download.size)}
                 </div>
                 <div className="mb-1">
-                  Download speed: {isEmpty ? '—' : download.speed || '—'}
+                  Download speed:{' '}
+                  {isEmpty
+                    ? ''
+                    : download.progress === 100
+                    ? `${download.speed} avg.`
+                    : formatFileSize(download.size || 0) || ''}
                 </div>
-                <div>ETA: {isEmpty ? '—' : download.timeLeft || '—'}</div>
+                <div>
+                  ETA:{' '}
+                  {isEmpty
+                    ? ''
+                    : download.progress === 100
+                    ? '∞'
+                    : download.timeLeft || ''}
+                </div>
               </div>
             </div>
 
-            <div className="rounded border-2 border-gray-300 dark:border-gray-600 p-3">
+            <div className="w-auto rounded border-2 border-gray-300 dark:border-gray-600 p-3">
               <h3 className="text-[12px] font-semibold mb-2">
                 File information
               </h3>
               <div className="text-[12px]">
                 <div className="mb-1">
-                  Total Size: {isEmpty ? '—' : formatFileSize(download.size)}
+                  Total Size: {isEmpty ? '' : formatFileSize(download.size)}
                 </div>
                 <div className="mb-1">
                   Added On:{' '}
                   {isEmpty
-                    ? '—'
+                    ? ''
                     : download.DateAdded
                     ? new Date(download.DateAdded).toLocaleString()
-                    : '—'}
+                    : ''}
                 </div>
                 <div className="mb-1">
-                  Save Path: {isEmpty ? '—' : download.location || '—'}
+                  Save Path: {isEmpty ? '' : download.location || ''}
                 </div>
                 <div>
                   Created On:{' '}
                   {isEmpty
-                    ? '—'
+                    ? ''
                     : download.DateAdded
                     ? new Date(download.DateAdded).toLocaleString()
-                    : '—'}
+                    : ''}
                 </div>
               </div>
             </div>
           </div>
         </div>
-      ) : null}
+      )}
 
       {/* Status bar - always visible */}
       <div

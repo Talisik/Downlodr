@@ -286,7 +286,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
           {activeMenu === 'file' && (
             <div className="absolute left-0 mt-1 w-40 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <button
-                className="w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                className="rounded w-[94%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
                 onClick={() => {
                   // handleOpenDownloadModal();
                   setDownloadModalOpen(true);
@@ -296,15 +296,16 @@ const DropdownBar = ({ className }: { className?: string }) => {
                 <IoIosAdd size={20} className="mr-[-2px]" />
                 <span>New Download</span>
               </button>
-              <button
-                className="w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
-                onClick={() => window.downlodrFunctions.closeApp()}
+              <NavLink
+                to="/history"
+                className="rounded w-[94%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                onClick={() => setActiveMenu(null)}
               >
                 <MdOutlineHistory size={18} />
-                <span>History</span>
-              </button>
+                <span> History</span>
+              </NavLink>
               <button
-                className="w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                className="rounded w-[94%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
                 onClick={() => window.downlodrFunctions.closeApp()}
               >
                 <RxExit />
@@ -336,7 +337,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
           {activeMenu === 'help' && (
             <div className="absolute left-0 mt-1 w-48 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                className="rounded w-[94%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
                 onClick={() => {
                   setHelpModalOpen(true);
                   setActiveMenu(null);
@@ -346,14 +347,14 @@ const DropdownBar = ({ className }: { className?: string }) => {
                 <span>Guide</span>
               </button>
               <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                className="rounded w-[94%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
                 onClick={handleCheckForUpdates}
               >
                 <RxUpdate size={16} />
                 <span>Check for Updates</span>
               </button>
               <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                className="rounded w-[94%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
                 onClick={() => {
                   setAboutModalOpen(true);
                   setActiveMenu(null);

@@ -398,7 +398,6 @@ const StatusSpecificDownloads = () => {
             if (response.success) {
               setTimeout(() => {
                 updateDownloadStatus(downloadId, 'paused');
-                console.log('Status updated to paused after delay');
               }, 1200);
             }
           });
@@ -619,8 +618,6 @@ const StatusSpecificDownloads = () => {
       return;
     }
 
-    console.log('Left-click on download:', clickedDownload.name);
-
     // Set the selected download ID - this is crucial for the details panel
     setSelectedDownloadId(downloadId);
 
@@ -689,12 +686,10 @@ const StatusSpecificDownloads = () => {
     ? allDownloads.find((d) => d.id === selectedDownloadId)
     : null;
 
-  console.log('Current selected download:', selectedDownload?.name || 'None');
-
   return (
     <div className="w-full flex flex-col h-full relative">
-      <div className="flex-grow overflow-auto pb-[30vh]">
-        <table className="w-full">
+      <div className="flex-grow overflow-x-auto overflow-y-auto pb-[30vh]">
+        <table className="w-full min-w-[800px]">
           <thead>
             <tr
               className="border-b text-left dark:border-componentBorder"
@@ -1012,9 +1007,11 @@ const StatusSpecificDownloads = () => {
         </table>
       </div>
 
-      {/* ExpandedDownloadDetails positioned absolutely within the parent container */}
-      <div className="">
-        <ExpandedDownloadDetails download={selectedDownload} />
+      {/* ExpandedDownloadDetails with adjusted positioning to not cover scrollbar */}
+      <div className="pointer-events-none absolute bottom-[10px] left-0 right-[5px]">
+        <div className="pointer-events-auto">
+          <ExpandedDownloadDetails download={selectedDownload} />
+        </div>
       </div>
 
       {/* Context Menu */}
