@@ -49,6 +49,7 @@ export interface BaseDownload {
   audioExt: string; // Audio file extension
   audioFormatId: string; // ID of the audio format
   isLive: boolean; // Indicates if the download is a live stream
+  elapsed: number;
 }
 
 // Interface for downloads that are currently being processed
@@ -250,6 +251,14 @@ const useDownloadStore = create<DownloadStore>()(
       updateDownload: (id, result) => {
         if (!result || !result.data) return;
 
+        // Add this debug log
+        console.log('Download data received:', {
+          id,
+          resultData: result.data,
+          elapsedValue: result.data.elapsed,
+          rawResult: result,
+        });
+
         set((state) => ({
           downloading: state.downloading.map((downloading) =>
             downloading.id === id
@@ -260,7 +269,7 @@ const useDownloadStore = create<DownloadStore>()(
                   timeLeft: result.data._eta_str || '',
                   size: parseFloat(result.data.total_bytes) || downloading.size,
                   status: result.data.status || downloading.status,
-
+                  elapsed: result.data.elapsed || downloading.elapsed,
                   controllerId: result.controllerId ?? downloading.controllerId,
                 }
               : downloading,
@@ -329,6 +338,7 @@ const useDownloadStore = create<DownloadStore>()(
                           parseFloat(result.data.downloaded_bytes) ||
                           download.size,
                         status: result.data.status || download.status,
+                        elapsed: result.data.elapsed || download.elapsed,
                       }
                     : download,
                 ),
@@ -366,6 +376,7 @@ const useDownloadStore = create<DownloadStore>()(
               audioExt: '',
               audioFormatId: '',
               isLive: false,
+              elapsed: 0,
             },
           ],
         }));
@@ -409,6 +420,7 @@ const useDownloadStore = create<DownloadStore>()(
               formatId: '',
               audioExt: '',
               audioFormatId: '',
+              elapsed: 0,
             },
           ],
         }));
@@ -445,6 +457,7 @@ const useDownloadStore = create<DownloadStore>()(
                     downloadStart: false,
                     formats: formatOptions,
                     isLive: info.data.is_live,
+                    elapsed: info.data.elapsed,
                   }
                 : download,
             ),
@@ -452,6 +465,9 @@ const useDownloadStore = create<DownloadStore>()(
           const currentDownload = get().forDownloads.find(
             (d) => d.id === downloadId,
           );
+          console.log(`me - ${currentDownload.elapsed}`);
+          console.log(`me - ${currentDownload.elapsed}`);
+
           if (currentDownload?.isLive) {
             toast({
               variant: 'destructive',
@@ -778,3 +794,19 @@ const useDownloadStore = create<DownloadStore>()(
 );
 
 export default useDownloadStore;
+
+// Add to your utilities or directly in the component that displays elapsed time
+export function formatElapsedTime(elapsedSeconds: number | undefined): string {
+  if (!elapsedSeconds || elapsedSeconds < 60) {
+    return elapsedSeconds ? `${Math.floor(elapsedSeconds)}s` : '';
+  }
+
+  const minutes = Math.floor(elapsedSeconds / 60);
+  const hours = Math.floor(minutes / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes % 60}m`;
+  } else {
+    return `${minutes}m ${Math.floor(elapsedSeconds % 60)}s`;
+  }
+}

@@ -368,14 +368,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         <hr className="solid mt-4 mb-3 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
 
         <div className="flex gap-3">
-          <Button
-            onClick={handleCheckForUpdates}
-            variant="outline"
-            color="primary"
-          >
-            <GrUpdate />
-            Check for Updates
-          </Button>
           <div className="ml-auto flex gap-3">
             <button
               type="button"

@@ -39,17 +39,17 @@ const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 1100,
-    height: 600,
+    height: 680,
     frame: false,
     autoHideMenuBar: true,
     minWidth: 550,
-    minHeight: 400,
+    minHeight: 450,
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       webSecurity: true,
       nodeIntegration: true,
-      // devTools: false,
+      devTools: false,
     },
   });
 
@@ -391,6 +391,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     for await (const chunk of controller.listen()) {
       // Send the download status back to the renderer process
       e.sender.send(`ytdlp:download:status:${id}`, chunk);
+      console.log(chunk);
     }
     // Return the download ID and controller ID
     return { downloadId: id, controllerId: controller.id };

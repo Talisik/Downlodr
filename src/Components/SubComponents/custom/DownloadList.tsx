@@ -382,18 +382,33 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     required: ['title', 'status', 'format'].includes(option.id), // Required columns
   }));
 
-  // Effect to handle clicks outside the list to close the context menu
+  // Effect to handle clicks outside the list to close context menus
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Close download context menu when clicking outside
       if (listRef.current && !listRef.current.contains(event.target as Node)) {
         setContextMenu(null);
         setSelectedDownloadId(null);
+      }
+
+      // Close column header context menu when clicking outside
+      if (columnHeaderContextMenu.visible) {
+        // Check if the click was not on the column header context menu
+        const menuElement = document.querySelector(
+          '.column-header-context-menu',
+        );
+        if (menuElement && !menuElement.contains(event.target as Node)) {
+          setColumnHeaderContextMenu({
+            ...columnHeaderContextMenu,
+            visible: false,
+          });
+        }
       }
     };
 
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+  }, [columnHeaderContextMenu.visible]);
 
   /**
    * Handles the context menu event for a download.
@@ -464,7 +479,8 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     if (downloadLocation) {
       window.downlodrFunctions.openFolder(downloadLocation, filePath);
     }
-    setContextMenu({ downloadId: null, x: 0, y: 0 });
+    // Always close the context menu after clicking
+    setContextMenu(null);
   };
 
   // Enhance drag handlers with better visual cues
@@ -517,7 +533,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       <table className="w-full">
         <thead>
           <tr
-            className="border-b text-left dark:border-gray-700"
+            className="border-b text-left dark:border-white"
             onContextMenu={handleColumnHeaderContextMenu}
           >
             <th className="w-8 p-2">
@@ -562,13 +578,11 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           {allDownloads.map((download) => (
             <React.Fragment key={download.id}>
               <tr
-                className={`border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 cursor-pointer ${
+                className={`border-b hover:bg-gray-50 dark:border-white dark:hover:bg-gray-700 cursor-pointer ${
                   selectedDownloadId === download.id
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'
                 }`}
-                onContextMenu={(e) => handleContextMenu(e, download)}
-                onClick={() => handleRowClick(download.id)}
                 draggable={true}
                 onDragStart={(e) => {
                   e.dataTransfer.setData('downloadId', download.id);
@@ -742,9 +756,16 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                           style={{ width: column.width }}
                           className="p-2"
                         >
-                          <div className="flex flex-wrap gap-1">
+                          <div
+                            className="flex flex-wrap gap-1"
+                            title={
+                              download.tags && download.tags.length > 0
+                                ? download.tags.join(', ')
+                                : 'No tags'
+                            }
+                          >
                             {download.tags && download.tags.length > 0 ? (
-                              download.tags.slice(0, 2).map((tag, idx) => (
+                              download.tags.slice(0, 5).map((tag, idx) => (
                                 <span
                                   key={idx}
                                   className="px-2 py-0.5 bg-blue-100 dark:bg-blue-800 rounded-full text-xs"
@@ -757,9 +778,9 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                                 No tags
                               </span>
                             )}
-                            {download.tags && download.tags.length > 2 && (
+                            {download.tags && download.tags.length > 5 && (
                               <span className="text-xs text-gray-500">
-                                +{download.tags.length - 2}
+                                +{download.tags.length - 5}
                               </span>
                             )}
                           </div>
@@ -772,11 +793,18 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                           style={{ width: column.width }}
                           className="p-2"
                         >
-                          <div className="flex flex-wrap gap-1">
+                          <div
+                            className="flex flex-wrap gap-1"
+                            title={
+                              download.category && download.category.length > 0
+                                ? download.category.join(', ')
+                                : 'No categories'
+                            }
+                          >
                             {download.category &&
                             download.category.length > 0 ? (
                               download.category
-                                .slice(0, 2)
+                                .slice(0, 5)
                                 .map((category, idx) => (
                                   <span
                                     key={idx}
@@ -791,9 +819,9 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                               </span>
                             )}
                             {download.category &&
-                              download.category.length > 2 && (
+                              download.category.length > 5 && (
                                 <span className="text-xs text-gray-500">
-                                  +{download.category.length - 2}
+                                  +{download.category.length - 5}
                                 </span>
                               )}
                           </div>
