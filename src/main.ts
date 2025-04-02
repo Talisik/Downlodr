@@ -33,6 +33,7 @@ declare const MAIN_WINDOW_VITE_NAME: string;
 let tray: Tray | null = null;
 let mainWindow: BrowserWindow | null = null;
 let forceQuit = false;
+let runInBackgroundSetting = true; // Default value
 
 // Function to create the main application window
 const createWindow = () => {
@@ -49,7 +50,7 @@ const createWindow = () => {
       preload: path.join(__dirname, 'preload.js'),
       webSecurity: true,
       nodeIntegration: true,
-      devTools: false,
+      // devTools: false,
     },
   });
 
@@ -64,18 +65,34 @@ const createWindow = () => {
   }
 
   // Handle window close events - hide instead of close
-  mainWindow.on('close', (event) => {
+  mainWindow.on('close', async (event) => {
     if (!forceQuit) {
-      event.preventDefault();
-      mainWindow?.hide();
-      // Optional: Show a notification the first time window is hidden
-      return false;
+      // Get the real-time setting
+      const shouldRunInBackground = await getRunInBackgroundSetting();
+      console.log('Window closing, checking setting:', shouldRunInBackground);
+
+      if (shouldRunInBackground) {
+        event.preventDefault();
+        mainWindow?.hide();
+        return false;
+      }
     }
   });
 
   // MAIN FUNCTIONS FOR TITLE BAR
   ipcMain.on('close-btn', () => {
-    if (mainWindow) mainWindow.hide();
+    if (!mainWindow) return;
+
+    if (runInBackgroundSetting) {
+      // If running in background is enabled, hide the window
+      console.log('Close button clicked, hiding window (background enabled)');
+      mainWindow.hide();
+    } else {
+      // If running in background is disabled, actually quit the app
+      console.log('Close button clicked, quitting app (background disabled)');
+      forceQuit = true;
+      app.quit();
+    }
   });
 
   ipcMain.on('minimize-btn', () => {
@@ -405,6 +422,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
 app.on('ready', () => {
   createWindow();
   createTray();
+  updateCloseHandler();
 
   // Check for updates when app starts
   setTimeout(async () => {
@@ -518,3 +536,45 @@ ipcMain.handle('exit-app', () => {
   forceQuit = true;
   app.quit();
 });
+
+// Add a handler to update the setting
+ipcMain.handle('set-run-in-background', (_event, value) => {
+  console.log('Main process received runInBackground:', value);
+  runInBackgroundSetting = value;
+  updateCloseHandler();
+  return true;
+});
+
+// Add an IPC handler to get the background running setting
+ipcMain.handle('get-run-in-background', () => {
+  return runInBackgroundSetting;
+});
+
+// Add this function to dynamically update the close handler
+function updateCloseHandler() {
+  if (!mainWindow) return;
+
+  // Remove existing listeners
+  mainWindow.removeAllListeners('close');
+
+  // Add the updated handler
+  mainWindow.on('close', async (event) => {
+    if (!forceQuit) {
+      // Get the real-time setting
+      const shouldRunInBackground = await getRunInBackgroundSetting();
+      console.log('Window closing, checking setting:', shouldRunInBackground);
+
+      if (shouldRunInBackground) {
+        event.preventDefault();
+        mainWindow?.hide();
+        return false;
+      }
+    }
+  });
+}
+
+// Use a function to get the current setting instead of a variable
+async function getRunInBackgroundSetting() {
+  // You could implement your own persistent storage here instead
+  return runInBackgroundSetting;
+}

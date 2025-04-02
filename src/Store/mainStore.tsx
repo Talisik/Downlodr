@@ -20,6 +20,7 @@ interface DownloadSettings {
   permitConnectionLimit: boolean; // Whether to permit connection limits
   maxUploadNum: number; // Maximum number of uploads allowed
   maxDownloadNum: number; // Maximum number of downloads allowed
+  runInBackground: boolean;
 }
 
 // Interface for selected downloads
@@ -49,12 +50,13 @@ interface MainStore {
   clearAllSelections: () => void; // Clear all selections
   visibleColumns: string[];
   setVisibleColumns: (columns: string[]) => void;
+  updateRunInBackground: (value: boolean) => void;
 }
 
 // Create the main store with persistence
 export const useMainStore = create<MainStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       settings: {
         defaultLocation: '', // Start with empty string
         defaultDownloadSpeed: 0,
@@ -62,6 +64,7 @@ export const useMainStore = create<MainStore>()(
         permitConnectionLimit: false,
         maxUploadNum: 5,
         maxDownloadNum: 5,
+        runInBackground: false,
       },
       selectedDownloads: [] as SelectedDownload[],
       setSelectedDownloads: (downloads) =>
@@ -97,6 +100,9 @@ export const useMainStore = create<MainStore>()(
         set((state) => ({
           settings: { ...state.settings, maxDownloadNum: count },
         })),
+
+      updateRunInBackground: (value) =>
+        set({ settings: { ...get().settings, runInBackground: value } }),
 
       selectedRows: [] as string[],
       setSelectedRows: (rows) => set({ selectedRows: rows }),

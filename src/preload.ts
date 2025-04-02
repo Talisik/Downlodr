@@ -122,3 +122,10 @@ contextBridge.exposeInMainWorld('appControl', {
 
   getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
 });
+
+// Change this from a separate exposure to include both functions
+contextBridge.exposeInMainWorld('backgroundSettings', {
+  getRunInBackground: () => ipcRenderer.invoke('get-run-in-background'),
+  setRunInBackground: (value: boolean) =>
+    ipcRenderer.invoke('set-run-in-background', value),
+});

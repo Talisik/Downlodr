@@ -59,6 +59,10 @@ declare global {
       onUpdateAvailable: (callback: (updateInfo: UpdateInfo) => void) => void;
       checkForUpdates: () => Promise<UpdateInfo>; // Changed return type from void to UpdateInfo
     };
+    backgroundSettings: {
+      getRunInBackground: () => Promise<boolean>;
+      setRunInBackground: (value: boolean) => Promise<boolean>;
+    };
   }
 }
 
