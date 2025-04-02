@@ -161,7 +161,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
 
       {/* Status bar - always visible */}
       <div
-        className="sticky bottom-0 left-0 right-0 py-1 border-t-1 dark:border-t border-gray-300 dark:border-[#BCBCBC] flex justify-between mt-auto cursor-pointer"
+        className="sticky bottom-0 left-0 right-0 py-1 border-t dark:border-t border-gray-300 dark:border-[#BCBCBC] flex justify-between mt-auto cursor-pointer"
         onClick={toggleExpanded}
       >
         {/* Toggle button */}
