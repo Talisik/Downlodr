@@ -418,7 +418,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         <div className="px-4">
           {selectedDownloads.length > 0 && (
             <button
-              className="bg-[#FF3B30] hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded flex gap-1 font-semibold dark:text-gray-200"
+              className="bg-[#FF3B30] hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded flex gap-1 font-semibold text-gray-200"
               onClick={() => setShowStopConfirmation(true)}
             >
               <LuTrash size={15} className="mt-[0.9px]" /> Remove

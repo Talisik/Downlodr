@@ -12,7 +12,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { LuDownload, LuArrowDown, LuArrowUp } from 'react-icons/lu';
+// import { LuDownload, LuArrowDown, LuArrowUp } from 'react-icons/lu';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import { FaPlay } from 'react-icons/fa';
 import useDownloadStore, { BaseDownload } from '../../../Store/downloadStore';
@@ -294,9 +294,9 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     }
 
     return sortConfig.direction === 'ascending' ? (
-      <LuArrowUp className="ml-1" />
+      <HiChevronUpDown size={14} className="flex-shrink-0 rotate-180 ml-1" />
     ) : (
-      <LuArrowDown className="ml-1" />
+      <HiChevronUpDown size={14} className="flex-shrink-0 ml-1" />
     );
   };
 
@@ -770,7 +770,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                             }
                           >
                             {download.tags && download.tags.length > 0 ? (
-                              download.tags.slice(0, 5).map((tag, idx) => (
+                              download.tags.slice(0, 3).map((tag, idx) => (
                                 <span
                                   key={idx}
                                   className="px-2 py-0.5 bg-blue-100 dark:bg-blue-800 rounded-full text-xs"
@@ -785,7 +785,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                             )}
                             {download.tags && download.tags.length > 5 && (
                               <span className="text-xs text-gray-500">
-                                +{download.tags.length - 5}
+                                +{download.tags.length - 3}
                               </span>
                             )}
                           </div>
