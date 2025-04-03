@@ -63,11 +63,11 @@ const AccordionSection: React.FC<AccordionSectionProps> = ({
 const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
   // Determine default value based on current path
-  const defaultTab = location.pathname.includes('guide')
-    ? 'guide'
-    : location.pathname.includes('common')
+  const defaultTab = location.pathname.includes('common')
     ? 'common'
-    : 'advanced';
+    : location.pathname.includes('advanced')
+    ? 'advanced'
+    : 'guide';
 
   return (
     <div

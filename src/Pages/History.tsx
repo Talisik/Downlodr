@@ -233,17 +233,18 @@ const History = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Render the delete button in a portal
+  // Render the history-specific delete button in a portal
   const renderDeleteButton = () => {
+    // Make sure the portal container exists
     const portalContainer = document.getElementById('taskbar-portal');
 
     if (portalContainer && selectedItems.length > 0) {
       return createPortal(
         <button
           onClick={handleDeleteSelected}
-          className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors text-sm"
+          className="bg-[#FF3B30] hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded flex gap-1 font-semibold text-gray-200"
         >
-          Delete Selected
+          <LuTrash size={15} className="mt-[0.9px]" /> Remove from History
         </button>,
         portalContainer,
       );
@@ -252,7 +253,7 @@ const History = () => {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full p-4">
       {renderDeleteButton()}
       <table className="w-full">
         <thead>
