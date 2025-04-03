@@ -382,33 +382,35 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     required: ['title', 'status', 'format'].includes(option.id), // Required columns
   }));
 
-  // Effect to handle clicks outside the list to close context menus
+  // Close Menu and clear selected download when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Close download context menu when clicking outside
-      if (listRef.current && !listRef.current.contains(event.target as Node)) {
+      // Don't clear selection if clicking inside a context menu
+      const target = event.target as HTMLElement;
+      const isClickInsideContextMenu = target.closest('[data-context-menu]');
+
+      // Check if we're clicking on a different row
+      const clickedRow = target.closest('tr');
+      const isClickOnDifferentRow =
+        clickedRow &&
+        contextMenu?.downloadId &&
+        !clickedRow.querySelector(
+          `[data-download-id="${contextMenu.downloadId}"]`,
+        );
+
+      // Close the context menu if:
+      // 1. Clicking outside the context menu, OR
+      // 2. Clicking on a different row than the one with the context menu
+      if (!isClickInsideContextMenu || isClickOnDifferentRow) {
         setContextMenu(null);
         setSelectedDownloadId(null);
-      }
-
-      // Close column header context menu when clicking outside
-      if (columnHeaderContextMenu.visible) {
-        // Check if the click was not on the column header context menu
-        const menuElement = document.querySelector(
-          '.column-header-context-menu',
-        );
-        if (menuElement && !menuElement.contains(event.target as Node)) {
-          setColumnHeaderContextMenu({
-            ...columnHeaderContextMenu,
-            visible: false,
-          });
-        }
+        setColumnHeaderContextMenu((prev) => ({ ...prev, visible: false }));
       }
     };
 
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [columnHeaderContextMenu.visible]);
+  }, [contextMenu?.downloadId]);
 
   /**
    * Handles the context menu event for a download.
@@ -583,7 +585,10 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'
                 }`}
+                onContextMenu={(e) => handleContextMenu(e, download)}
+                onClick={() => handleRowClick(download.id)}
                 draggable={true}
+                data-download-id={download.id}
                 onDragStart={(e) => {
                   e.dataTransfer.setData('downloadId', download.id);
                   const dragIcon = document.createElement('div');
@@ -908,6 +913,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       {/* Context menu for download options */}
       {contextMenu && (
         <DownloadContextMenu
+          data-context-menu
           position={{ x: contextMenu.x, y: contextMenu.y }}
           downloadId={contextMenu.downloadId}
           onClose={() => setContextMenu(null)}

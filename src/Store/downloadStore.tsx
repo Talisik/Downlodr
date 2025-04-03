@@ -376,7 +376,7 @@ const useDownloadStore = create<DownloadStore>()(
               audioExt: '',
               audioFormatId: '',
               isLive: false,
-              elapsed: 0,
+              elapsed: null,
             },
           ],
         }));
@@ -420,7 +420,7 @@ const useDownloadStore = create<DownloadStore>()(
               formatId: '',
               audioExt: '',
               audioFormatId: '',
-              elapsed: 0,
+              elapsed: null,
             },
           ],
         }));
@@ -465,8 +465,6 @@ const useDownloadStore = create<DownloadStore>()(
           const currentDownload = get().forDownloads.find(
             (d) => d.id === downloadId,
           );
-          console.log(`me - ${currentDownload.elapsed}`);
-          console.log(`me - ${currentDownload.elapsed}`);
 
           if (currentDownload?.isLive) {
             toast({
@@ -798,6 +796,9 @@ export default useDownloadStore;
 // Add to your utilities or directly in the component that displays elapsed time
 export function formatElapsedTime(elapsedSeconds: number | undefined): string {
   if (!elapsedSeconds || elapsedSeconds < 60) {
+    if (elapsedSeconds == 0) {
+      return '< 1s';
+    }
     return elapsedSeconds ? `${Math.floor(elapsedSeconds)}s` : '';
   }
 

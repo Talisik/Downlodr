@@ -338,8 +338,27 @@ const StatusSpecificDownloads = () => {
         '.download-details-panel',
       );
 
-      // Only clear selection if clicking outside both table and details panel
-      if (!isClickInsideTable && !isClickInsideDetailsPanel) {
+      // Check if we're clicking on a context menu
+      const isClickInsideContextMenu = target.closest('[data-context-menu]');
+
+      // Always close context menu if we're clicking on a different row
+      const clickedRow = target.closest('tr');
+      const isClickOnDifferentRow =
+        clickedRow &&
+        contextMenu.downloadId &&
+        !clickedRow.querySelector(
+          `[data-download-id="${contextMenu.downloadId}"]`,
+        );
+
+      // Close the context menu if:
+      // 1. Clicking outside both table and details panel, OR
+      // 2. Clicking on a different row than the one with the context menu
+      if (
+        (!isClickInsideTable &&
+          !isClickInsideDetailsPanel &&
+          !isClickInsideContextMenu) ||
+        isClickOnDifferentRow
+      ) {
         setContextMenu({ downloadId: null, x: 0, y: 0 });
         setSelectedDownloadId(null);
         setColumnHeaderContextMenu((prev) => ({ ...prev, visible: false }));
@@ -348,7 +367,7 @@ const StatusSpecificDownloads = () => {
 
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+  }, [contextMenu.downloadId]);
 
   const handleContextMenu = (event: React.MouseEvent, allDownloads: any) => {
     event.preventDefault();
@@ -686,7 +705,6 @@ const StatusSpecificDownloads = () => {
     { id: 'speed', label: 'Speed', required: false },
     { id: 'dateAdded', label: 'Date Added', required: false },
     { id: 'source', label: 'Source', required: false },
-    { id: 'timeLeft', label: 'Time Left', required: false },
   ];
 
   // Make sure we're passing the selectedDownload correctly
@@ -753,13 +771,14 @@ const StatusSpecificDownloads = () => {
             {allDownloads.map((download) => (
               <React.Fragment key={download.id}>
                 <tr
-                  className={`border-b hover:bg-gray-50 dark:border-componentBorder dark:hover:bg-gray-700 cursor-pointer ${
+                  className={`border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-600 cursor-pointer ${
                     selectedDownloadId === download.id
                       ? 'bg-blue-50 dark:bg-gray-600'
                       : 'dark:bg-darkMode'
                   }`}
                   onContextMenu={(e) => handleContextMenu(e, download)}
                   onClick={() => handleRowClick(download.id)}
+                  data-download-id={download.id}
                   draggable={true}
                   onDragStart={(e) => {
                     e.dataTransfer.setData('downloadId', download.id);

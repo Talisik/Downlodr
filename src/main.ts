@@ -117,7 +117,7 @@ const createWindow = () => {
 const createTray = () => {
   // Create tray icon
   const icon = nativeImage.createFromPath(
-    path.join(__dirname, 'systemTray.ico'), // Use your app icon or create a smaller tray icon
+    path.join(__dirname, 'src/Assets/AppLogo/systemTray.ico'),
   );
 
   tray = new Tray('exclude.png'); //src\systemTray.ico
@@ -578,3 +578,10 @@ async function getRunInBackgroundSetting() {
   // You could implement your own persistent storage here instead
   return runInBackgroundSetting;
 }
+
+// Add this handler
+ipcMain.handle('sync-background-setting-on-startup', (_event, value) => {
+  console.log('Syncing background setting on startup:', value);
+  runInBackgroundSetting = value;
+  return true;
+});

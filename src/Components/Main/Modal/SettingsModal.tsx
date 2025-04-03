@@ -54,7 +54,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
   // Add this new state for the background running setting
   const [runInBackground, setRunInBackground] = useState(
-    settings.runInBackground ?? true,
+    settings.runInBackground,
   ); // Default to true for backward compatibility
 
   // Add this useEffect to sync with the mainStore's visibleColumns
