@@ -52,6 +52,11 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       ? ''
       : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
 
+  // Add this useEffect to listen for settings changes
+  useEffect(() => {
+    setDownloadFolder(settings.defaultLocation);
+  }, [settings.defaultLocation]);
+
   // New state for playlist functionality
   const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
