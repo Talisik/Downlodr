@@ -12,6 +12,7 @@ const config: ForgeConfig = {
     icon: './src/Assets/AppLogo/256x256',
     name: 'Downlodr',
     executableName: 'Downlodr',
+    extraResource: ['./src/Assets/AppLogo'],
   },
   rebuildConfig: {},
   makers: [

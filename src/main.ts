@@ -115,12 +115,29 @@ const createWindow = () => {
 };
 
 const createTray = () => {
-  // Create tray icon
-  const icon = nativeImage.createFromPath(
-    path.join(__dirname, 'src/Assets/AppLogo/systemTray.ico'),
-  );
+  // Get correct path based on whether in dev or production
+  let iconPath;
 
-  tray = new Tray('exclude.png'); //src\systemTray.ico
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    // Development mode - use the path relative to project root
+    iconPath = path.join(
+      process.cwd(),
+      'src/Assets/AppLogo/systemTrayIcon.png',
+    );
+  } else {
+    // Production mode - assets should be in the resources directory
+    iconPath = path.join(
+      process.resourcesPath,
+      'src/Assets/AppLogo/systemTrayIcon.png',
+    );
+  }
+
+  console.log('Loading tray icon from:', iconPath);
+  console.log('Icon exists:', fs.existsSync(iconPath));
+
+  const icon = nativeImage.createFromPath(iconPath);
+
+  tray = new Tray(icon);
   const contextMenu = Menu.buildFromTemplate([
     {
       label: 'Show Downlodr',
