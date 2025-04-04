@@ -26,6 +26,23 @@ if (started) {
   app.quit();
 }
 
+// Prevent multiple instances of the app
+const isSingleInstance = app.requestSingleInstanceLock();
+
+if (!isSingleInstance) {
+  console.log('Another instance is already running. Quitting this instance.');
+  app.quit();
+}
+
+// Someone tried to run a second instance, focus our window instead
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
+
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
