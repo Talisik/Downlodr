@@ -143,10 +143,7 @@ const createTray = () => {
     );
   } else {
     // Production mode - assets should be in the resources directory
-    iconPath = path.join(
-      process.resourcesPath,
-      'src/Assets/AppLogo/systemTrayIcon.png',
-    );
+    iconPath = path.join(process.resourcesPath, 'AppLogo/systemTrayIcon.png');
   }
 
   console.log('Loading tray icon from:', iconPath);
@@ -161,15 +158,6 @@ const createTray = () => {
       click: () => {
         if (mainWindow) {
           mainWindow.show();
-        }
-      },
-    },
-    {
-      label: 'Check for Updates',
-      click: async () => {
-        const updateInfo = await checkForUpdates();
-        if (updateInfo.hasUpdate && mainWindow) {
-          mainWindow.webContents.send('update-available', updateInfo);
         }
       },
     },
