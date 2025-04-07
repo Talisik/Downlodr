@@ -26,9 +26,48 @@ interface TaskBarProps {
   className?: string;
 }
 
+interface ConfirmModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  message: string;
+}
+
+const ConfirmModal: React.FC<ConfirmModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  message,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-darkMode rounded-lg p-6 max-w-sm w-full mx-4">
+        <p className="text-gray-800 dark:text-gray-200 mb-4">{message}</p>
+        <div className="flex justify-end space-x-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // Handle state for modal
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [showStopConfirmation, setShowStopConfirmation] = useState(false);
   const { toast } = useToast();
 
   // Get the max download limit and current downloads from stores
@@ -39,6 +78,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
 
+  const handleStopConfirm = () => {
+    handleRemoveSelected();
+    setShowStopConfirmation(false);
+  };
   // Stopping all current downloads via killController
   const handleStopAll = async () => {
     // functions for deleting download log from store
@@ -66,12 +109,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                 variant: 'success',
                 title: 'Download stopped',
                 description: 'Your download has stopped successfully',
+                duration: 3000,
               });
             } else {
               toast({
                 variant: 'destructive',
                 title: 'Stop Download Error',
                 description: `Could not stop current download with controller ${download.controllerId}`,
+                duration: 3000,
               });
               // setCurrentDownloadId(download.id);
             }
@@ -80,6 +125,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
               variant: 'destructive',
               title: 'Stop Download Error',
               description: `Could not stop current download with controller ${download.controllerId}`,
+              duration: 3000,
             });
           }
         } else {
@@ -87,6 +133,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             variant: 'destructive',
             title: 'Stop Download Error',
             description: `Could not stop current download with controller ${download.controllerId}`,
+            duration: 3000,
           });
         }
       }
@@ -97,6 +144,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         variant: 'destructive',
         title: 'No Downloads Found',
         description: `No current downloads to delete`,
+        duration: 3000,
       });
     }
     // setSelectedDownloading([]);
@@ -109,6 +157,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         variant: 'destructive',
         title: 'No Downloads Selected',
         description: 'Please select downloads to stop',
+        duration: 3000,
       });
       return;
     }
@@ -143,12 +192,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
               variant: 'success',
               title: 'Download Stopped',
               description: 'Your download has stopped successfully',
+              duration: 3000,
             });
           } else {
             toast({
               variant: 'destructive',
               title: 'Stop Download Error',
               description: `Could not stop download with controller ${download.controllerId}`,
+              duration: 3000,
             });
           }
         } catch (error) {
@@ -156,6 +207,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             variant: 'destructive',
             title: 'Stop Download Error',
             description: `Error stopping download with controller ${download.controllerId}`,
+            duration: 3000,
           });
         }
       }
@@ -172,6 +224,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         variant: 'destructive',
         title: 'No Downloads Selected',
         description: 'Please select downloads to play',
+        duration: 3000,
       });
       return;
     }
@@ -199,6 +252,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         variant: 'destructive',
         title: 'Download limit reached',
         description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
+        duration: 7000,
       });
       return;
     }
@@ -252,6 +306,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         variant: 'destructive',
         title: 'No Downloads Selected',
         description: 'Please select downloads to remove',
+        duration: 3000,
       });
       return;
     }
@@ -275,12 +330,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             variant: 'success',
             title: 'File Deleted',
             description: 'File has been deleted successfully',
+            duration: 3000,
           });
         } else {
           toast({
             variant: 'destructive',
             title: 'Deletion Failed',
             description: `Failed to delete file: ${download.location}`,
+            duration: 3000,
           });
         }
       } catch (error) {
@@ -289,6 +346,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           variant: 'destructive',
           title: 'Deletion Failed',
           description: `Error deleting file: ${download.location}`,
+          duration: 3000,
         });
       }
     };
@@ -305,6 +363,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           variant: 'success',
           title: 'Download Removed',
           description: 'Pending download has been removed successfully',
+          duration: 3000,
         });
         continue;
       }
@@ -331,6 +390,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             <span className="hidden sm:inline">Add URL</span>
             <span className="sm:hidden"> Add URL</span>
           </button>
+
           <button
             className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={handlePlaySelected}
@@ -352,17 +412,29 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             {' '}
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
           </button>
-          <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
-            onClick={handleRemoveSelected}
-          >
-            <LuTrash size={15} className="mt-[0.9px]" /> Remove
-          </button>
+        </div>
+
+        {/* Moved Remove button to right side */}
+        <div className="px-4">
+          {selectedDownloads.length > 0 && (
+            <button
+              className="bg-[#FF3B30] hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded flex gap-1 font-semibold dark:text-gray-200"
+              onClick={() => setShowStopConfirmation(true)}
+            >
+              <LuTrash size={15} className="mt-[0.9px]" /> Remove
+            </button>
+          )}
         </div>
       </div>
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setDownloadModalOpen(false)}
+      />
+      <ConfirmModal
+        isOpen={showStopConfirmation}
+        onClose={() => setShowStopConfirmation(false)}
+        onConfirm={handleStopConfirm}
+        message="Are you sure you want to stop and remove this download?"
       />
     </>
   );

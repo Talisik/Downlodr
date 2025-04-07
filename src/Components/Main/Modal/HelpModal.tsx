@@ -290,26 +290,18 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                     title="Download is stuck in initializing"
                     content={
                       <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
+                        <li>Check your internet connection</li>
+                        <li>Verify the video URL is still valid</li>
                         <li>
-                          Common cause is that your device could not handle the
-                          download format quality of the video, please cancel
-                          the download and choose another format quality
+                          Restart the download:
+                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-sm">
+                            <li>Pause Download</li>
+                            <li>
+                              Go to folder and delete any lingering part file
+                            </li>
+                            <li>Resume download</li>
+                          </ul>
                         </li>
-                        <li className="mb-0">Other Fixes:</li>
-                        <ul className="list-inside list-disc pl-4 mt-0 space-y-0 dark:text-gray-300 text-sm">
-                          <li>Check your internet connection</li>
-                          <li>Verify the video URL is still valid</li>
-                          <li>
-                            Restart the download:
-                            <ul className="list-inside list-disc pl-6 space-y-1 dark:text-gray-300 text-sm">
-                              <li>Pause Download</li>
-                              <li>
-                                Go to folder and delete any lingering part file
-                              </li>
-                              <li>Resume download</li>
-                            </ul>
-                          </li>
-                        </ul>
                       </ul>
                     }
                   />

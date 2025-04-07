@@ -5,7 +5,7 @@
  *  - Task (Has options for Stopping or Starting All downloads)
  *  - Help (Opens Help Modal)
  *  - Console (Opens Console)
- *  - Settings (Opens Settings Modal)
+ *  - settings (Opens settings Modal)
  *  - About (Opens About Modal)
  *  - History (Navigates to History component)
  *
@@ -16,19 +16,24 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { IoIosAdd } from 'react-icons/io';
-import { RxExit } from 'react-icons/rx';
+import { RxExit, RxUpdate } from 'react-icons/rx';
 import DownloadModal from '../Modal/DownloadModal';
 import SettingsModal from '../Modal/SettingsModal';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
-import useDownloadStore from '../../../Store/downloadStore';
+import useDownloadStore, {
+  HistoryDownloads,
+} from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import AboutModal from '../Modal/AboutModal';
 import HelpModal from '../Modal/HelpModal';
 import { processFileName } from '../../../DataFunctions/FilterName';
+import { FiSearch, FiBook } from 'react-icons/fi';
+import { MdOutlineHistory } from 'react-icons/md';
+import { AiOutlineExclamationCircle } from 'react-icons/ai';
 
 const DropdownBar = ({ className }: { className?: string }) => {
   // Dropdown element states
-  const [activeMenu, setActiveMenu] = useState<'file' | 'task' | null>(null);
+  const [activeMenu, setActiveMenu] = useState<'file' | 'help' | null>(null);
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
   const [isAboutModalOpen, setAboutModalOpen] = useState(false);
@@ -40,7 +45,64 @@ const DropdownBar = ({ className }: { className?: string }) => {
 
   // Store
   const { settings } = useMainStore();
-  const { downloading } = useDownloadStore();
+  const { downloading, historyDownloads } = useDownloadStore();
+
+  // Add search functionality
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showResults, setShowResults] = useState(false);
+  const [searchResults, setSearchResults] = useState<HistoryDownloads[]>([]);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Filter search results when search term changes
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setSearchResults([]);
+      return;
+    }
+    console.log(searchTerm);
+    console.log(historyDownloads);
+    const results = historyDownloads.filter((download) =>
+      download.name.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+
+    setSearchResults(results);
+  }, [searchTerm, historyDownloads]);
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Handle opening the video file
+  const handleOpenVideo = async (download: HistoryDownloads) => {
+    try {
+      const fullPath = `${download.location}${download.name}`;
+      window.downlodrFunctions.openVideo(fullPath);
+    } catch (error) {
+      console.error('Error opening file:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error Opening File',
+        description: 'An error occurred while trying to open the file',
+        duration: 3000,
+      });
+    }
+
+    setShowResults(false);
+    setSearchTerm('');
+  };
 
   // UseEffect for clicking outside dropdowns
   useEffect(() => {
@@ -80,12 +142,14 @@ const DropdownBar = ({ className }: { className?: string }) => {
                 variant: 'success',
                 title: 'Download Stopped',
                 description: 'Your download has stopped successfully',
+                duration: 3000,
               });
             } else {
               toast({
                 variant: 'destructive',
                 title: 'Stop Download Error',
                 description: `Could not stop current download with controller ${download.controllerId}`,
+                duration: 3000,
               });
               // setCurrentDownloadId(download.id);
             }
@@ -94,6 +158,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
               variant: 'destructive',
               title: 'Stop Download Error',
               description: `Could not stop current download with controller ${download.controllerId}`,
+              duration: 3000,
             });
           }
         } else {
@@ -101,6 +166,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
             variant: 'destructive',
             title: 'Stop Download Error',
             description: `Could not stop current download with controller ${download.controllerId}`,
+            duration: 3000,
           });
         }
       }
@@ -111,6 +177,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
         variant: 'destructive',
         title: 'No Downloads Found',
         description: `No current downloads to delete`,
+        duration: 3000,
       });
     }
     // setSelectedDownloading([]);
@@ -125,6 +192,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
         variant: 'destructive',
         title: 'No Downloads Available',
         description: 'No downloads available to start',
+        duration: 3000,
       });
       return;
     }
@@ -137,6 +205,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
         variant: 'destructive',
         title: 'Download limit reached',
         description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
+        duration: 7000,
       });
       return;
     }
@@ -172,9 +241,34 @@ const DropdownBar = ({ className }: { className?: string }) => {
     }
   };
 
+  const handleCheckForUpdates = async () => {
+    console.log('Check for updates button clicked');
+    console.log('updateAPI available:', !!window.updateAPI?.checkForUpdates);
+    if (window.updateAPI?.checkForUpdates) {
+      try {
+        console.log('Calling checkForUpdates...');
+        const result = await window.updateAPI.checkForUpdates();
+        console.log('Update check result:', result);
+        if (!result.hasUpdate) {
+          toast({
+            title: "You're up to date!",
+            description: `You're using the latest version (v${result.currentVersion}).`,
+            duration: 3000,
+          });
+        }
+        setActiveMenu(null);
+      } catch (error) {
+        console.error('Error checking for updates:', error);
+      }
+    } else {
+      console.error('updateAPI is not available');
+      setActiveMenu(null);
+    }
+  };
+
   return (
     <div
-      className={`${className} flex items-center justify-between relative z-48`}
+      className={`${className} flex items-center justify-between relative z-48 py-4`}
       ref={dropdownRef}
     >
       <div className="flex items-center gap-4">
@@ -190,20 +284,28 @@ const DropdownBar = ({ className }: { className?: string }) => {
             File
           </button>
           {activeMenu === 'file' && (
-            <div className="absolute left-0 mt-1 w-48 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+            <div className="absolute left-0 mt-1 w-40 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                className="rounded w-[93%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
                 onClick={() => {
                   // handleOpenDownloadModal();
                   setDownloadModalOpen(true);
                   setActiveMenu(null);
                 }}
               >
-                <IoIosAdd size={18} className="mr-[-2px]" />
+                <IoIosAdd size={20} className="mr-[-2px]" />
                 <span>New Download</span>
               </button>
+              <NavLink
+                to="/history"
+                className="rounded w-[93%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                onClick={() => setActiveMenu(null)}
+              >
+                <MdOutlineHistory size={18} />
+                <span> History</span>
+              </NavLink>
               <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                className="rounded w-[93%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
                 onClick={() => window.downlodrFunctions.closeApp()}
               >
                 <RxExit />
@@ -212,49 +314,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
             </div>
           )}
         </div>
-
-        <div className="relative">
-          <button
-            className={`px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold ${
-              activeMenu === 'task'
-                ? 'bg-gray-100 dark:bg-gray-700 font-semibold'
-                : ''
-            }`}
-            onClick={() => setActiveMenu(activeMenu === 'task' ? null : 'task')}
-          >
-            Task
-          </button>
-          {activeMenu === 'task' && (
-            <div className="absolute left-0 mt-1 w-48 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
-              <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold dark:text-gray-200"
-                onClick={() => handleStartAll()}
-              >
-                Start All
-              </button>
-              <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold dark:text-gray-200"
-                onClick={() => handleStopAll()}
-              >
-                Stop All
-              </button>
-            </div>
-          )}
-        </div>
-
-        <button
-          className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
-          onClick={() => setHelpModalOpen(true)}
-        >
-          Help
-        </button>
-        <button
-          className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
-          onClick={() => window.electronDevTools.toggle()}
-        >
-          Console
-        </button>
-
         <button
           className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
           onClick={() => {
@@ -264,22 +323,101 @@ const DropdownBar = ({ className }: { className?: string }) => {
         >
           Settings
         </button>
+        <div className="relative">
+          <button
+            className={`px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold ${
+              activeMenu === 'help'
+                ? 'bg-gray-100 dark:bg-gray-700 font-semibold'
+                : ''
+            }`}
+            onClick={() => setActiveMenu(activeMenu === 'help' ? null : 'help')}
+          >
+            Help
+          </button>
+          {activeMenu === 'help' && (
+            <div className="absolute left-0 mt-1 w-48 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+              <button
+                className="rounded w-[93%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                onClick={() => {
+                  setHelpModalOpen(true);
+                  setActiveMenu(null);
+                }}
+              >
+                <FiBook size={16} className="mr-[-2px]" />
+                <span>Guide</span>
+              </button>
+              <button
+                className="rounded w-[93%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                onClick={handleCheckForUpdates}
+              >
+                <RxUpdate size={16} />
+                <span>Check for Updates</span>
+              </button>
+              <button
+                className="rounded w-[93%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
+                onClick={() => {
+                  setAboutModalOpen(true);
+                  setActiveMenu(null);
+                }}
+              >
+                <AiOutlineExclamationCircle size={16} />
+                <span>About</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Search Bar with increased width */}
+      <div ref={searchRef} className="relative my-10 mr-6 w-1/4">
+        <div className="flex items-center bg-gray-100 dark:bg-[#30303C] rounded-md px-2">
+          <FiSearch className="text-gray-500 dark:text-gray-400 h-4 w-4 mr-1" />
+          <input
+            type="text"
+            placeholder="Search downloads..."
+            className="py-1 px-2 bg-transparent focus:outline-none text-sm w-full"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              if (e.target.value.trim() !== '') {
+                setShowResults(true);
+              } else {
+                setShowResults(false);
+              }
+            }}
+            onFocus={() => {
+              if (searchTerm.trim() !== '') {
+                setShowResults(true);
+              }
+            }}
+          />
+        </div>
 
-        <button
-          className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
-          onClick={() => {
-            setAboutModalOpen(true);
-            setActiveMenu(null);
-          }}
-        >
-          About
-        </button>
-        <NavLink
-          to="/history"
-          className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded scheduler font-semibold"
-        >
-          <span> History</span>
-        </NavLink>
+        {/* Search Results Dropdown */}
+        {showResults && searchResults.length > 0 && (
+          <div className="absolute top-full left-0 mt-1 w-full max-h-60 overflow-y-auto bg-white dark:bg-gray-800 rounded-md shadow-lg z-10">
+            {searchResults.map((download) => (
+              <div
+                key={download.id}
+                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm truncate"
+                onClick={() => handleOpenVideo(download)}
+                title={download.name}
+              >
+                {download.name}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* No Results Message */}
+        {showResults &&
+          searchTerm.trim() !== '' &&
+          searchResults.length === 0 && (
+            <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10">
+              <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                No downloads found
+              </div>
+            </div>
+          )}
       </div>
 
       {/* Right side button */}

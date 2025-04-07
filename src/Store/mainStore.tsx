@@ -47,6 +47,8 @@ interface MainStore {
   selectedRowIds: string[]; // List of selected row IDs
   setSelectedRowIds: (rows: string[]) => void; // Set selected row IDs
   clearAllSelections: () => void; // Clear all selections
+  visibleColumns: string[];
+  setVisibleColumns: (columns: string[]) => void;
 }
 
 // Create the main store with persistence
@@ -120,6 +122,19 @@ export const useMainStore = create<MainStore>()(
           selectedDownloads: [],
           selectedRowIds: [],
         }),
+      // Default visible columns
+      visibleColumns: [
+        'name',
+        'size',
+        'format',
+        'status',
+        'speed',
+        'dateAdded',
+        'source',
+      ],
+
+      // Set visible columns
+      setVisibleColumns: (columns) => set({ visibleColumns: columns }),
     }),
     {
       name: 'download-settings-storage', // Name of the storage

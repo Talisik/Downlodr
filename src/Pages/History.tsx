@@ -172,6 +172,7 @@ const History = () => {
             variant: 'success',
             title: 'Download Log Deleted',
             description: 'Your download log has been deleted successfully',
+            duration: 3000,
           });
         } else {
           failedToDelete.push(video.name);
@@ -199,6 +200,7 @@ const History = () => {
       variant: 'success',
       title: 'Download Added',
       description: 'Your download has been added successfully',
+      duration: 3000,
     });
   };
 

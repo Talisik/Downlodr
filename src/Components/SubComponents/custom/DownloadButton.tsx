@@ -12,7 +12,7 @@
 import React from 'react';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
-import { AnimatedCircularProgressBar } from './RadialProgress';
+import { IoMdDownload } from 'react-icons/io';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
 
@@ -54,6 +54,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
         variant: 'destructive',
         title: 'Download limit reached',
         description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
+        duration: 3000,
       });
       return;
     }
@@ -89,19 +90,16 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
     toast({
       title: 'Download Started',
       description: `Starting download for ${processedName}`,
+      duration: 3000,
     });
   };
 
   return (
-    <button onClick={handleDownloadClick} className="text-left">
-      <AnimatedCircularProgressBar
-        status={download.status}
-        max={100}
-        min={0}
-        value={download.progress}
-        gaugePrimaryColor="#4CAF50"
-        gaugeSecondaryColor="#EEEEEE"
-      />{' '}
+    <button onClick={handleDownloadClick} className="text-left relative">
+      <div className="relative flex items-center text-sm ">
+        <IoMdDownload className="mr-1" size={18} />
+        Start Download
+      </div>
     </button>
   );
 };

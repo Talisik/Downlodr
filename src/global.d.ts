@@ -26,8 +26,10 @@ declare global {
       validatePath: (folderPath: string) => Promise<boolean>; // Validates a folder path
       openFolder: (
         folderPath: string,
+        filePath: string,
       ) => Promise<{ success: boolean; error?: string }>; // Opens a specified folder
       fileExists: (path: string) => Promise<boolean>; // Checks if a file exists at the specified path
+      showInputContextMenu: () => void; // Shows the input field context menu (right-click menu)
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist
@@ -52,6 +54,10 @@ declare global {
     };
     electronDevTools: {
       toggle: () => void; // Toggles the visibility of the developer tools
+    };
+    updateAPI: {
+      onUpdateAvailable: (callback: (updateInfo: UpdateInfo) => void) => void;
+      checkForUpdates: () => Promise<UpdateInfo>; // Changed return type from void to UpdateInfo
     };
   }
 }

@@ -10,8 +10,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from 'react';
 import { IoMdClose } from 'react-icons/io';
+import { GrUpdate } from 'react-icons/gr';
 import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
 import { useMainStore } from '../../../Store/mainStore';
+import { Button } from '../../../Components/SubComponents/shadcn/components/ui/button';
+import { toast } from '../../../Components/SubComponents/shadcn/hooks/use-toast';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -26,6 +29,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     updatePermitConnectionLimit,
     updateMaxDownloadNum,
     updateDefaultDownloadSpeedBit,
+    visibleColumns,
+    setVisibleColumns,
   } = useMainStore();
   // Form submission
   const [biteUnit, setBiteUnit] = useState('');
@@ -43,6 +48,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     settings.permitConnectionLimit,
   );
 
+  // Update the state declaration for local visible columns
+  const [localVisibleColumns, setLocalVisibleColumns] = useState<string[]>([]);
+
+  // Add this useEffect to sync with the mainStore's visibleColumns
+  useEffect(() => {
+    if (isOpen) {
+      // Reset the local state when the modal opens to match the store
+      setLocalVisibleColumns([...visibleColumns]);
+    }
+  }, [isOpen, visibleColumns]);
+
   // Misc
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -56,6 +72,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setMaxDownload(settings.maxDownloadNum);
     setmaxUpload(settings.maxUploadNum);
     setIsConnectionLimitEnabled(settings.permitConnectionLimit);
+    // Reset column visibility
+    setLocalVisibleColumns([...visibleColumns]);
   };
 
   // Find location
@@ -98,11 +116,58 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     return option ? option.biteDisplayName : 'Kilo byte (KB)';
   };
 
+  const handleCheckForUpdates = async () => {
+    console.log('Check for updates button clicked');
+    console.log('updateAPI available:', !!window.updateAPI?.checkForUpdates);
+    if (window.updateAPI?.checkForUpdates) {
+      try {
+        console.log('Calling checkForUpdates...');
+        const result = await window.updateAPI.checkForUpdates();
+        console.log('Update check result:', result);
+        if (!result.hasUpdate) {
+          toast({
+            title: "You're up to date!",
+            description: `You're using the latest version (v${result.currentVersion}).`,
+            duration: 3000,
+          });
+        }
+        onClose();
+      } catch (error) {
+        console.error('Error checking for updates:', error);
+      }
+    } else {
+      console.error('updateAPI is not available');
+      onClose();
+    }
+  };
+
   useEffect(() => {
     // Update the biteUnit whenever the store value changes
     setBiteUnit(getInitialBiteOption());
     setBiteUnitVal(settings.defaultDownloadSpeedBit);
   }, [settings.defaultDownloadSpeedBit]);
+
+  // Column options with required flag
+  const columnOptions = [
+    { id: 'format', label: 'Format', required: true },
+    { id: 'size', label: 'Size', required: false },
+    { id: 'speed', label: 'Speed', required: false },
+    { id: 'source', label: 'Source', required: false },
+    { id: 'status', label: 'Status', required: true },
+    { id: 'name', label: 'Title', required: true },
+    { id: 'dateAdded', label: 'Date Added', required: false },
+  ];
+
+  // Column toggle handler
+  const handleToggleColumn = (columnId: string) => {
+    if (localVisibleColumns.includes(columnId)) {
+      setLocalVisibleColumns(
+        localVisibleColumns.filter((id) => id !== columnId),
+      );
+    } else {
+      setLocalVisibleColumns([...localVisibleColumns, columnId]);
+    }
+  };
 
   // Modify handleSubmit to consider the checkbox
   const handleSubmit = () => {
@@ -111,8 +176,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     updateDefaultDownloadSpeedBit(biteUnitVal);
     updatePermitConnectionLimit(isConnectionLimitEnabled);
     // Only update connection limits if enabled, otherwise set to default of 5
-    // updateMaxUploadNum(isConnectionLimitEnabled ? maxUpload : 5);
     updateMaxDownloadNum(isConnectionLimitEnabled ? maxDownload : 5);
+    // Update visible columns
+    setVisibleColumns(localVisibleColumns);
     onClose();
   };
 
@@ -252,27 +318,72 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               </div>
               {/* End of Download Location Name */}
             </div>
+
+            {/* Add column visibility section */}
+            <div className="pt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block dark:text-gray-200 text-nowrap font-bold">
+                  Visible Columns
+                </label>
+                <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
+              </div>
+
+              <div className="grid grid-cols-4 gap-1 mt-4">
+                {columnOptions.map((column) => (
+                  <div key={column.id} className="flex items-center mr-2">
+                    <input
+                      type="checkbox"
+                      id={`column-${column.id}`}
+                      checked={
+                        localVisibleColumns.includes(column.id) ||
+                        column.required
+                      }
+                      onChange={() =>
+                        column.required ? null : handleToggleColumn(column.id)
+                      }
+                      disabled={column.required}
+                      className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500 mr-2"
+                    />
+                    <label
+                      htmlFor={`column-${column.id}`}
+                      className={`dark:text-gray-200 mr-2 ${
+                        column.required ? 'font-semibold' : ''
+                      }`}
+                    >
+                      {column.label}
+                      {column.required && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                          (required)
+                        </span>
+                      )}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
           </form>
         </div>
 
         {/* Button commands */}
-        <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
+        <hr className="solid mt-4 mb-3 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
 
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="bg-primary text-white px-2 py-2 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
-          >
-            Okay
-          </button>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
-          >
-            Cancel
-          </button>
+          <div className="ml-auto flex gap-3">
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className="bg-primary text-white px-2 py-2 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
+            >
+              Okay
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
         {/* End of Button commands */}
       </div>

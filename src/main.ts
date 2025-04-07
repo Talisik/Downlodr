@@ -4,12 +4,13 @@
  * handling IPC (Inter-Process Communication) events, and managing
  * application lifecycle events.
  */
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from 'electron';
 import path from 'path';
 import started from 'electron-squirrel-startup';
 import os from 'os';
 import * as YTDLP from 'yt-dlp-helper';
 import fs, { existsSync } from 'fs';
+import { checkForUpdates } from './DataFunctions/updateChecker';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -24,17 +25,17 @@ const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1100,
-    height: 600,
+    height: 680,
     frame: false,
     autoHideMenuBar: true,
     minWidth: 550,
-    minHeight: 400,
+    minHeight: 450,
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       webSecurity: true,
       nodeIntegration: true,
-      // devTools: false,
+      devTools: false,
     },
   });
 
@@ -146,15 +147,22 @@ ipcMain.handle('dialog:openDirectory', async () => {
     : result.filePaths[0] + path.sep;
 });
 
-// open folder
-ipcMain.handle('open-folder', async (_, folderPath) => {
+// open folder with optional file highlighting
+ipcMain.handle('open-folder', async (_, folderPath, filePath = null) => {
   try {
-    const result = await shell.openPath(folderPath);
-    if (result) {
-      console.error(`Error opening folder: ${result}`);
-      return { success: false, error: result };
+    // If a file path is provided, show the file in the folder (will highlight it)
+    if (filePath) {
+      await shell.showItemInFolder(filePath);
+      return { success: true };
+    } else {
+      // Otherwise just open the folder without highlighting anything
+      const result = await shell.openPath(folderPath);
+      if (result) {
+        console.error(`Error opening folder: ${result}`);
+        return { success: false, error: result };
+      }
+      return { success: true };
     }
-    return { success: true };
   } catch (error) {
     console.error('Failed to open folder:', error);
     return { success: false, error: error.message };
@@ -313,6 +321,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     for await (const chunk of controller.listen()) {
       // Send the download status back to the renderer process
       e.sender.send(`ytdlp:download:status:${id}`, chunk);
+      console.log(chunk);
     }
     // Return the download ID and controller ID
     return { downloadId: id, controllerId: controller.id };
@@ -323,7 +332,30 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
   }
 });
 
-app.on('ready', createWindow);
+app.on('ready', () => {
+  createWindow();
+
+  // Check for updates when app starts
+  setTimeout(async () => {
+    const updateInfo = await checkForUpdates();
+    if (updateInfo.hasUpdate) {
+      BrowserWindow.getAllWindows().forEach((win) =>
+        win.webContents.send('update-available', updateInfo),
+      );
+    }
+  }, 5000); // Check after 5 seconds to not slow startup
+
+  // Set up periodic update checking
+  const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 4; // Check every 4 hours
+  setInterval(async () => {
+    const updateInfo = await checkForUpdates();
+    if (updateInfo.hasUpdate) {
+      BrowserWindow.getAllWindows().forEach((win) =>
+        win.webContents.send('update-available', updateInfo),
+      );
+    }
+  }, UPDATE_CHECK_INTERVAL);
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
@@ -354,6 +386,20 @@ ipcMain.on('toggle-dev-tools', () => {
   }
 });
 
+// allows right click functions
+ipcMain.on('show-input-context-menu', (event) => {
+  const menu = Menu.buildFromTemplate([
+    { label: 'Cut', role: 'cut' },
+    { label: 'Copy', role: 'copy' },
+    { label: 'Paste', role: 'paste' },
+    { type: 'separator' },
+    { label: 'Select All', role: 'selectAll' },
+  ]);
+
+  const win = BrowserWindow.fromWebContents(event.sender);
+  menu.popup({ window: win });
+});
+
 // opening external link
 ipcMain.handle('openExternalLink', async (_event, link: string) => {
   try {
@@ -362,4 +408,16 @@ ipcMain.handle('openExternalLink', async (_event, link: string) => {
     console.error('Failed to open external link:', error);
     throw error;
   }
+});
+
+// Add this to your IPC handlers
+ipcMain.handle('check-for-updates', async () => {
+  const updateInfo = await checkForUpdates();
+  if (updateInfo.hasUpdate) {
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    if (mainWindow) {
+      mainWindow.webContents.send('update-available', updateInfo);
+    }
+  }
+  return updateInfo;
 });

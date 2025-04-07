@@ -106,6 +106,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         variant: 'destructive',
         title: 'Invalid URL',
         description: 'Please enter a valid URL',
+        duration: 3000,
       });
       return;
     }
@@ -127,11 +128,12 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         variant: 'destructive',
         title: 'Invalid URL Format',
         description: 'The URL format is not valid',
+        duration: 3000,
       });
     }
   };
 
-  // Playlist validation and getting metadata
+  // Playlist validation and fetching metadata
   const fetchPlaylistInfo = async (url: string) => {
     setIsLoading(true);
     try {
@@ -166,6 +168,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         variant: 'destructive',
         title: 'Playlist Error',
         description: 'Failed to fetch playlist information',
+        duration: 3000,
       });
     } finally {
       setIsLoading(false);
@@ -207,6 +210,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             variant: 'destructive',
             title: 'Selection Error',
             description: 'Please select at least one video to download',
+            duration: 3000,
           });
           return;
         }
@@ -227,12 +231,14 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       toast({
         title: 'Download Queued',
         description: 'Getting video metadata...',
+        duration: 3000,
       });
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Error',
         description: 'Failed to Add to Download Queue',
+        duration: 3000,
       });
     }
   };
@@ -307,6 +313,10 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                       disabled={isLoading}
                       value={videoUrl}
                       onChange={(e) => handleUrl(e.target.value)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        window.downlodrFunctions.showInputContextMenu();
+                      }}
                       className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
                     />
                   </div>
@@ -386,14 +396,14 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         </div>
         <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 justify-end">
           <button
             type="button"
             className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90"
             disabled={!isValidUrl}
             onClick={handleDownload}
           >
-            Download
+            Fetch Download
           </button>
           <button
             type="button"
