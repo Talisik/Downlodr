@@ -29,6 +29,7 @@ declare global {
         filePath: string,
       ) => Promise<{ success: boolean; error?: string }>; // Opens a specified folder
       fileExists: (path: string) => Promise<boolean>; // Checks if a file exists at the specified path
+      getFileSize: (path: string) => Promise<number | null>; // Gets the size of a file in bytes
       showInputContextMenu: () => void; // Shows the input field context menu (right-click menu)
     };
     ytdlp: {

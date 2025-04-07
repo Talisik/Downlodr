@@ -717,3 +717,14 @@ function showNotification(title: string, body: string, onClick?: () => void) {
   }
   notification.show();
 }
+
+// Function to get file size
+ipcMain.handle('get-file-size', async (_event, filePath) => {
+  try {
+    const stats = await fs.promises.stat(filePath);
+    return stats.size; // Returns size in bytes
+  } catch (error) {
+    console.error('Error getting file size:', error);
+    return null;
+  }
+});

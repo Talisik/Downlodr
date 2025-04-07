@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
   openFolder: (folderPath: string, filePath: string) =>
     ipcRenderer.invoke('open-folder', folderPath, filePath),
   fileExists: (path: string) => ipcRenderer.invoke('file-exists', path),
+  getFileSize: (path: string) => ipcRenderer.invoke('get-file-size', path),
   showInputContextMenu: () => ipcRenderer.send('show-input-context-menu'),
 });
 
