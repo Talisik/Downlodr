@@ -150,18 +150,23 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   }, [columns, visibleColumns]);
 
   // Function to get formatted file size
-  const formatFileSize = (bytes?: number): string => {
-    if (!bytes) return '0 B';
-    const units = ['B', 'KB', 'MB', 'GB'];
-    let size = bytes;
-    let unitIndex = 0;
-    while (size >= 1024 && unitIndex < units.length - 1) {
-      size /= 1024;
-      unitIndex++;
-    }
-    return `${size.toFixed(1)} ${units[unitIndex]}`;
-  };
+  const formatFileSize = (bytes: number | undefined): string => {
+    if (!bytes) return '—';
+    console.log(bytes);
+    const KB = 1024;
+    const MB = KB * 1024;
+    const GB = MB * 1024;
 
+    if (bytes >= GB) {
+      return `${(bytes / GB).toFixed(2)} GB`;
+    } else if (bytes >= MB) {
+      return `${(bytes / MB).toFixed(2)} MB`;
+    } else if (bytes >= KB) {
+      return `${(bytes / KB).toFixed(2)} KB`;
+    } else {
+      return `${bytes} bytes`;
+    }
+  };
   // Function to get status color
   // color themes
   const getStatusColor = (status: string): string => {
