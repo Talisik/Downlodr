@@ -63,6 +63,13 @@ declare global {
       getRunInBackground: () => Promise<boolean>;
       setRunInBackground: (value: boolean) => Promise<boolean>;
     };
+    notifications: {
+      notifyDownloadFinished: (downloadInfo: {
+        name: string;
+        id: string;
+        location: string;
+      }) => void;
+    };
   }
 }
 

@@ -129,3 +129,9 @@ contextBridge.exposeInMainWorld('backgroundSettings', {
   setRunInBackground: (value: boolean) =>
     ipcRenderer.invoke('set-run-in-background', value),
 });
+
+contextBridge.exposeInMainWorld('notifications', {
+  notifyDownloadFinished: (downloadInfo: any) => {
+    ipcRenderer.send('download-finished', downloadInfo);
+  },
+});
