@@ -53,6 +53,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const [searchResults, setSearchResults] = useState<HistoryDownloads[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
 
+  // Plug-ins:
+  const showPlugin = true;
+  const pluginVals = ['2', '2'];
+
   // Filter search results when search term changes
   useEffect(() => {
     if (searchTerm.trim() === '') {
@@ -364,6 +368,17 @@ const DropdownBar = ({ className }: { className?: string }) => {
                 <span>About</span>
               </button>
             </div>
+          )}
+        </div>
+        <div className="relative">
+          {pluginVals.length > 0 && (
+            <NavLink
+              to="/plugin-manager"
+              className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
+              onClick={() => setActiveMenu(null)}
+            >
+              <span> Plugin</span>
+            </NavLink>
           )}
         </div>
       </div>

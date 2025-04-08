@@ -21,6 +21,8 @@ import os from 'os';
 import * as YTDLP from 'yt-dlp-helper';
 import fs, { existsSync } from 'fs';
 import { checkForUpdates } from './DataFunctions/updateChecker';
+import { PluginManager } from './plugins/pluginManager';
+import { PluginRegistry } from './plugins/registry';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -55,6 +57,8 @@ let runInBackgroundSetting = true;
 let normalTrayIcon: Electron.NativeImage;
 let alertTrayIcon: Electron.NativeImage;
 let isDownloadComplete = false;
+
+let pluginManager: PluginManager;
 
 // Function to create the main application window
 const createWindow = () => {
@@ -504,7 +508,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
 });
 
 // once the app opens
-app.on('ready', () => {
+app.on('ready', async () => {
   createWindow();
   createTray();
   updateCloseHandler();
@@ -529,6 +533,10 @@ app.on('ready', () => {
       );
     }
   }, UPDATE_CHECK_INTERVAL);
+
+  // Initialize plugin manager
+  pluginManager = new PluginManager();
+  await pluginManager.loadPlugins();
 });
 
 // Change this to keep app running in background
@@ -727,4 +735,22 @@ ipcMain.handle('get-file-size', async (_event, filePath) => {
     console.error('Error getting file size:', error);
     return null;
   }
+});
+
+// Add IPC handlers for plugin management
+ipcMain.handle('plugins:list', () => {
+  return pluginManager.getPlugins();
+});
+
+ipcMain.handle('plugins:install', async (_event, pluginPath) => {
+  return await pluginManager.installPlugin(pluginPath);
+});
+
+ipcMain.handle('plugins:uninstall', async (_event, pluginId) => {
+  return await pluginManager.unloadPlugin(pluginId);
+});
+
+// Add a handler to get plugin menu items
+ipcMain.handle('plugins:menu-items', () => {
+  return PluginRegistry.getMenuItems();
 });

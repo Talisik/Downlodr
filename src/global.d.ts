@@ -71,7 +71,27 @@ declare global {
         location: string;
       }) => void;
     };
+    plugins: {
+      list: () => Promise<PluginInfo[]>;
+      install: (pluginPath: string) => Promise<boolean>;
+      uninstall: (pluginId: string) => Promise<boolean>;
+      getMenuItems: () => Promise<MenuItem[]>;
+    };
   }
+}
+
+interface PluginInfo {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+}
+
+interface MenuItem {
+  label: string;
+  onClick: () => void;
+  icon?: string;
 }
 
 export {};

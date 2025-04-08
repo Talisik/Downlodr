@@ -19,6 +19,7 @@ import Downloading from './Pages/Downloading';
 // import AllDownloads from './Pages/AllDownloads';
 import History from './Pages/History';
 import CompletedDownloads from './Pages/CompletedDownloads';
+import PluginManager from './Pages/PlugInManager';
 import NotFound from './Pages/SubPages/NotFound';
 import CategoryPage from './Pages/SubPages/CategoryPage';
 import TagPage from './Pages/SubPages/TagsPage';
@@ -49,6 +50,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Navigate to="/status/all" replace />} />
+            <Route path="/plugin-manager" element={<PluginManager />} />
             <Route path="/downloading" element={<Downloading />} />
             <Route path="/completed" element={<CompletedDownloads />} />
             <Route path="/history" element={<History />} />

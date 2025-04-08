@@ -49,9 +49,8 @@ const formatRelativeTime = (dateString: string) => {
   }
 };
 
-const formatFileSize = (bytes: number | undefined): string => {
+export const formatFileSize = (bytes: number | undefined): string => {
   if (!bytes) return '—';
-  console.log(bytes);
   const KB = 1024;
   const MB = KB * 1024;
   const GB = MB * 1024;

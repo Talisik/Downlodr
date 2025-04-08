@@ -136,3 +136,12 @@ contextBridge.exposeInMainWorld('notifications', {
     ipcRenderer.send('download-finished', downloadInfo);
   },
 });
+
+contextBridge.exposeInMainWorld('plugins', {
+  list: () => ipcRenderer.invoke('plugins:list'),
+  install: (pluginPath: string) =>
+    ipcRenderer.invoke('plugins:install', pluginPath),
+  uninstall: (pluginId: string) =>
+    ipcRenderer.invoke('plugins:uninstall', pluginId),
+  getMenuItems: () => ipcRenderer.invoke('plugins:menu-items'),
+});
