@@ -45,6 +45,8 @@ import { PlayCircle } from 'lucide-react';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
+import { PluginRegistry } from '../../../plugins/registry'; // Import if needed
+import { MenuItem } from '../../../plugins/types';
 
 // Interface representing the props for the DownloadContextMenu component
 interface DownloadContextMenuProps {
@@ -243,6 +245,30 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const { downloading, addDownload, removeFromForDownloads, forDownloads } =
     useDownloadStore();
 
+  //Plugins
+  const [pluginMenuItems, setPluginMenuItems] = useState([]);
+
+  useEffect(() => {
+    const fetchPluginMenuItems = async () => {
+      try {
+        // Get menu items from plugins
+        const items = await window.plugins.getMenuItems();
+
+        // Filter items that are relevant to download context menu
+        // You might want to add a "context" property to menu items
+        const contextMenuItems = items.filter(
+          (item) => item.context === 'download' || item.context === 'all',
+        );
+
+        setPluginMenuItems(contextMenuItems);
+      } catch (error) {
+        console.error('Failed to get plugin menu items:', error);
+      }
+    };
+
+    fetchPluginMenuItems();
+  }, []);
+
   // Effect to position the context menu based on the provided coordinates
   React.useEffect(() => {
     if (menuRef.current) {
@@ -298,6 +324,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
   // Function to handle opening tag menu
   const handleTagMenuClick = (e: React.MouseEvent) => {
+    console.log(pluginMenuItems);
     e.stopPropagation();
     setShowCategoryMenu(false); // Close category menu
     setShowTagMenu(!showTagMenu);
@@ -731,6 +758,28 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         }}
       >
         {renderMenuOptions()}
+
+        {/* Plugin menu items - render them properly styled */}
+        {pluginMenuItems.length > 0 && (
+          <>
+            <hr className="my-1 border-gray-200 dark:border-gray-700" />
+            {pluginMenuItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  item.onClick(downloadId); // Pass download ID to plugin
+                  onClose(); // Close menu after clicking
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+              >
+                <span className="flex items-center space-x-2">
+                  {item.icon && <span>{item.icon}</span>}
+                  <span>{item.label}</span>
+                </span>
+              </button>
+            ))}
+          </>
+        )}
       </div>
 
       <RenameModal

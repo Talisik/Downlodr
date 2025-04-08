@@ -60,19 +60,35 @@ const PluginManager: React.FC = () => {
     }
   };
 
+  const handleLoadUnzipped = async () => {
+    try {
+      // Use your existing directory selection dialog
+      const pluginDirPath = await window.ytdlp.selectDownloadDirectory();
+      if (pluginDirPath) {
+        const success = await window.plugins.loadUnzipped(pluginDirPath);
+        if (success) {
+          await loadPlugins();
+        } else {
+          // Show error notification
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load unzipped plugin:', error);
+    }
+  };
+
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Plugin Manager</h1>
-        <Button onClick={handleInstall}>Install Plugin</Button>
+        <Button onClick={handleInstall}>Add Plugin</Button>
+        <Button onClick={handleLoadUnzipped}>Load Unzipped Plugin</Button>
       </div>
 
       {loading ? (
         <div>Loading plugins...</div>
       ) : plugins.length === 0 ? (
-        <div className="text-center text-gray-500 p-8">
-          No plugins installed
-        </div>
+        <div className="text-center text-gray-500 p-8">lol walang lumabas</div>
       ) : (
         <div className="grid gap-4">
           {plugins.map((plugin) => (

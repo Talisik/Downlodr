@@ -754,3 +754,7 @@ ipcMain.handle('plugins:uninstall', async (_event, pluginId) => {
 ipcMain.handle('plugins:menu-items', () => {
   return PluginRegistry.getMenuItems();
 });
+
+ipcMain.handle('plugins:loadUnzipped', async (_event, pluginDirPath) => {
+  return await pluginManager.loadUnzippedPlugin(pluginDirPath);
+});

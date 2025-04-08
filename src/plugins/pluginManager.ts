@@ -62,21 +62,22 @@ export class PluginManager {
         return;
       }
 
-      // Load plugin (using dynamic import instead of require)
-      const pluginModule = await import(mainFile);
-      const plugin: DownlodrPlugin = pluginModule.default || pluginModule;
+      // Fix: Use CommonJS require instead of ESM import for compatibility
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const pluginModule = require(mainFile);
+      const plugin = pluginModule.default || pluginModule;
 
       // Create isolated API for this plugin
       const api = createPluginAPI(plugin.id);
 
-      // Initialize plugin
+      // Initialize the plugin
       await plugin.initialize(api);
 
-      // Store references
+      // Store the plugin and its API
       this.plugins.set(plugin.id, plugin);
       this.pluginAPIs.set(plugin.id, api);
 
-      console.log(`Plugin loaded: ${plugin.name} v${plugin.version}`);
+      console.log(`Plugin loaded: ${plugin.name}`);
     } catch (error) {
       console.error(`Failed to load plugin ${pluginDir}:`, error);
     }
@@ -155,6 +156,42 @@ export class PluginManager {
       return true;
     } catch (error) {
       console.error('Failed to install plugin:', error);
+      return false;
+    }
+  }
+
+  async loadUnzippedPlugin(pluginDirPath: string): Promise<boolean> {
+    try {
+      // Validate the plugin directory
+      const manifestPath = path.join(pluginDirPath, 'manifest.json');
+      if (!fs.existsSync(manifestPath)) {
+        console.error('Invalid plugin: Missing manifest.json');
+        return false;
+      }
+
+      // Read the manifest to get the plugin ID
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      if (!manifest.id) {
+        console.error('Invalid plugin: Missing plugin ID in manifest');
+        return false;
+      }
+
+      // Copy the plugin files to the plugins directory
+      const pluginDir = path.join(this.pluginsDir, manifest.id);
+      if (fs.existsSync(pluginDir)) {
+        // Plugin already exists, remove it first
+        fs.rmSync(pluginDir, { recursive: true, force: true });
+      }
+
+      // Create plugin directory and copy files
+      fs.mkdirSync(pluginDir, { recursive: true });
+      fs.cpSync(pluginDirPath, pluginDir, { recursive: true });
+
+      // Load the plugin
+      await this.loadPlugin(manifest.id);
+      return true;
+    } catch (error) {
+      console.error('Failed to load unzipped plugin:', error);
       return false;
     }
   }

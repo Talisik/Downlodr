@@ -141,4 +141,5 @@ export interface MenuItem {
   tooltip?: string;
   submenu?: MenuItem[];
   order?: number;
+  context?: 'download' | 'main' | 'all';
 }

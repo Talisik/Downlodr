@@ -76,6 +76,7 @@ declare global {
       install: (pluginPath: string) => Promise<boolean>;
       uninstall: (pluginId: string) => Promise<boolean>;
       getMenuItems: () => Promise<MenuItem[]>;
+      loadUnzipped: (pluginDirPath: string) => Promise<boolean>;
     };
   }
 }
@@ -86,12 +87,6 @@ interface PluginInfo {
   version: string;
   description: string;
   author: string;
-}
-
-interface MenuItem {
-  label: string;
-  onClick: () => void;
-  icon?: string;
 }
 
 export {};
