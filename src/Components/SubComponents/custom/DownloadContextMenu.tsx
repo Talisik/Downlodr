@@ -767,15 +767,12 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <button
                 key={item.id}
                 onClick={() => {
-                  item.onClick(downloadId); // Pass download ID to plugin
-                  onClose(); // Close menu after clicking
+                  window.plugins.executeMenuItem(item.id);
+                  onClose();
                 }}
                 className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
               >
-                <span className="flex items-center space-x-2">
-                  {item.icon && <span>{item.icon}</span>}
-                  <span>{item.label}</span>
-                </span>
+                <span>{item.label}</span>
               </button>
             ))}
           </>

@@ -2,23 +2,55 @@
 import { MenuItem } from './types';
 
 // Simple registry to keep track of plugin registrations
-export class PluginRegistryClass {
-  private menuItems = new Map<string, MenuItem>();
+export class PluginRegistry {
+  private menuItems: MenuItem[] = [];
+  private menuItemHandlers: Map<string, () => void> = new Map();
 
-  registerMenuItem(id: string, item: MenuItem) {
-    this.menuItems.set(id, item);
+  registerMenuItem(item: MenuItem): string {
+    const id = item.id || `menu-item-${Date.now()}`;
+
+    // Store the onClick handler separately
+    if (item.onClick) {
+      this.menuItemHandlers.set(id, item.onClick);
+    }
+
+    // Create a serializable version of the menu item without the function
+    const serializableItem = {
+      ...item,
+      id,
+      // Explicitly type onClick as undefined
+      onClick: undefined as unknown as () => void,
+    };
+
+    this.menuItems.push(serializableItem);
+    return id;
   }
 
   unregisterMenuItem(id: string) {
-    this.menuItems.delete(id);
+    this.menuItems = this.menuItems.filter((item) => item.id !== id);
   }
 
-  getMenuItems() {
-    return Array.from(this.menuItems.values());
+  getMenuItems(context?: string): Omit<MenuItem, 'onClick'>[] {
+    const items = context
+      ? this.menuItems.filter(
+          (item) =>
+            !item.context || item.context === context || item.context === 'all',
+        )
+      : this.menuItems;
+
+    // Return serializable items (without onClick functions)
+    return items;
+  }
+
+  executeMenuItemAction(id: string): void {
+    const handler = this.menuItemHandlers.get(id);
+    if (handler) {
+      handler();
+    }
   }
 
   // Add more registration methods for other extension points
 }
 
 // Singleton instance
-export const PluginRegistry = new PluginRegistryClass();
+export const pluginRegistry = new PluginRegistry();

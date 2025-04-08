@@ -1,14 +1,56 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/plugins/pluginAPI.ts
-import { PluginAPI, DownloadAPI, UIAPI, FormatAPI, UtilityAPI } from './types';
+import {
+  PluginAPI,
+  DownloadAPI,
+  UIAPI,
+  FormatAPI,
+  UtilityAPI,
+  MenuItem,
+  FormatProvider,
+  SettingsPage,
+  NotificationOptions,
+} from './types';
 import useDownloadStore from '../Store/downloadStore';
 import { formatFileSize } from '../Pages/StatusSpecificDownload'; // Import from where the function is defined
+import { pluginRegistry } from './registry';
 
 export function createPluginAPI(pluginId: string): PluginAPI {
+  // Create UI API
+  const uiAPI: UIAPI = {
+    registerMenuItem: (menuItem: MenuItem) => {
+      console.log(`Plugin ${pluginId} registering menu item:`, menuItem);
+      // Make sure you're using the pluginRegistry instance
+      return pluginRegistry.registerMenuItem(menuItem);
+    },
+
+    unregisterMenuItem: (id: string) => {
+      console.log(`Plugin ${pluginId} unregistering menu item:`, id);
+      pluginRegistry.unregisterMenuItem(id);
+    },
+
+    registerFormatProvider: (provider: FormatProvider) => {
+      console.log(`Plugin ${pluginId} registering format provider:`, provider);
+      return `${pluginId}:format:${Date.now()}`;
+    },
+
+    registerSettingsPage: (page: SettingsPage) => {
+      console.log(`Plugin ${pluginId} registering settings page:`, page);
+      return `${pluginId}:settings:${Date.now()}`;
+    },
+
+    showNotification: (options: NotificationOptions) => {
+      console.log(`Plugin ${pluginId} showing notification:`, options);
+      // Implement notification display logic
+    },
+  };
+
+  // Rest of your API implementation...
+
   return {
     downloads: createDownloadAPI(pluginId),
-    ui: createUIAPI(pluginId),
+    ui: uiAPI,
     formats: createFormatAPI(pluginId),
     utilities: createUtilityAPI(pluginId),
   };

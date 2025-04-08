@@ -143,7 +143,10 @@ contextBridge.exposeInMainWorld('plugins', {
     ipcRenderer.invoke('plugins:install', pluginPath),
   uninstall: (pluginId: string) =>
     ipcRenderer.invoke('plugins:uninstall', pluginId),
-  getMenuItems: () => ipcRenderer.invoke('plugins:menu-items'),
+  getMenuItems: (context: any) =>
+    ipcRenderer.invoke('plugins:menu-items', context),
+  executeMenuItem: (id: any) =>
+    ipcRenderer.invoke('plugins:execute-menu-item', id),
   loadUnzipped: (pluginDirPath: any) =>
     ipcRenderer.invoke('plugins:loadUnzipped', pluginDirPath),
 });

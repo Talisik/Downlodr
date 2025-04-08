@@ -22,7 +22,7 @@ import * as YTDLP from 'yt-dlp-helper';
 import fs, { existsSync } from 'fs';
 import { checkForUpdates } from './DataFunctions/updateChecker';
 import { PluginManager } from './plugins/pluginManager';
-import { PluginRegistry } from './plugins/registry';
+import { pluginRegistry } from './plugins/registry';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -751,10 +751,15 @@ ipcMain.handle('plugins:uninstall', async (_event, pluginId) => {
 });
 
 // Add a handler to get plugin menu items
-ipcMain.handle('plugins:menu-items', () => {
-  return PluginRegistry.getMenuItems();
+ipcMain.handle('plugins:menu-items', (event, context) => {
+  return pluginRegistry.getMenuItems(context);
 });
 
 ipcMain.handle('plugins:loadUnzipped', async (_event, pluginDirPath) => {
   return await pluginManager.loadUnzippedPlugin(pluginDirPath);
+});
+
+// Add handler for menu item clicks
+ipcMain.handle('plugins:execute-menu-item', (_event, id) => {
+  return pluginRegistry.executeMenuItemAction(id);
 });

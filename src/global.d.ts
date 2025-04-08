@@ -77,6 +77,7 @@ declare global {
       uninstall: (pluginId: string) => Promise<boolean>;
       getMenuItems: () => Promise<MenuItem[]>;
       loadUnzipped: (pluginDirPath: string) => Promise<boolean>;
+      executeMenuItem: (id: string) => Promise<void>;
     };
   }
 }
