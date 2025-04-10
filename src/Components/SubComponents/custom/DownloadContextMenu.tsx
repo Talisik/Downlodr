@@ -45,8 +45,8 @@ import { PlayCircle } from 'lucide-react';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
-import { PluginRegistry } from '../../../plugins/registry'; // Import if needed
-import { MenuItem } from '../../../plugins/types';
+// import { PluginRegistry, pluginRegistry } from '../../../plugins/registry'; // Import if needed
+// import { MenuItem } from '../../../plugins/types';
 
 // Interface representing the props for the DownloadContextMenu component
 interface DownloadContextMenuProps {
@@ -242,10 +242,14 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false); // State to track visibility of the remove confirmation modal
   const renameDownload = useDownloadStore((state) => state.renameDownload); // Function to rename a download
   const { settings } = useMainStore();
-  const { downloading, addDownload, removeFromForDownloads, forDownloads } =
-    useDownloadStore();
-
-  //Plugins
+  const {
+    downloading,
+    addDownload,
+    removeFromForDownloads,
+    forDownloads,
+    finishedDownloads,
+  } = useDownloadStore();
+  const allDownloads = [...forDownloads, ...downloading, ...finishedDownloads]; //Plugins
   const [pluginMenuItems, setPluginMenuItems] = useState([]);
 
   useEffect(() => {
@@ -747,6 +751,18 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     );
   };
 
+  // Example of how to call the menu item action with context data
+  function handleMenuItemClick(menuItemId: string) {
+    const downloadInfo = allDownloads.find((d) => d.id === downloadId);
+
+    if (downloadInfo) {
+      // Use the IPC channel instead of direct call
+      window.plugins.executeMenuItem(menuItemId, downloadInfo);
+    } else {
+      window.plugins.executeMenuItem(menuItemId, { id: downloadId });
+    }
+  }
+
   return (
     <>
       <div
@@ -768,6 +784,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                 key={item.id}
                 onClick={() => {
                   window.plugins.executeMenuItem(item.id);
+                  handleMenuItemClick(item.id);
                   onClose();
                 }}
                 className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"

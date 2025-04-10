@@ -136,7 +136,7 @@ export interface MenuItem {
   id?: string;
   label: string;
   icon?: string;
-  onClick: () => void;
+  onClick: (contextData?: any) => void;
   disabled?: boolean;
   tooltip?: string;
   submenu?: MenuItem[];

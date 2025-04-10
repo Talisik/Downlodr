@@ -4,14 +4,19 @@ import { MenuItem } from './types';
 // Simple registry to keep track of plugin registrations
 export class PluginRegistry {
   private menuItems: MenuItem[] = [];
-  private menuItemHandlers: Map<string, () => void> = new Map();
+  private menuItemHandlers: Map<string, (contextData?: any) => void> =
+    new Map();
 
   registerMenuItem(item: MenuItem): string {
     const id = item.id || `menu-item-${Date.now()}`;
 
+    console.log('Registering menu item with ID:', id);
+    console.log('Has onClick handler:', !!item.onClick);
+
     // Store the onClick handler separately
     if (item.onClick) {
       this.menuItemHandlers.set(id, item.onClick);
+      console.log('Handler registered successfully');
     }
 
     // Create a serializable version of the menu item without the function
@@ -42,10 +47,18 @@ export class PluginRegistry {
     return items;
   }
 
-  executeMenuItemAction(id: string): void {
+  executeMenuItemAction(id: string, contextData?: any): void {
+    console.log('Executing menu item with ID:', id);
+    console.log(
+      'Available handlers:',
+      Array.from(this.menuItemHandlers.keys()),
+    );
     const handler = this.menuItemHandlers.get(id);
+    console.log('Handler found:', handler ? 'Yes' : 'No');
+    console.log(contextData);
     if (handler) {
-      handler();
+      console.log(contextData);
+      handler(contextData);
     }
   }
 

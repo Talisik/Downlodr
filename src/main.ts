@@ -134,6 +134,7 @@ const createWindow = () => {
   });
 
   // Prevent navigation to external URLs
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   mainWindow.webContents.on('will-navigate', (event, url) => {
     event.preventDefault();
   });
@@ -404,6 +405,7 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
     if (!info) {
       throw new Error('No info returned from YTDLP.getInfo');
     }
+    console.log(info);
     return info;
   } catch (error) {
     console.error('Error fetching video info:', error);
@@ -759,7 +761,6 @@ ipcMain.handle('plugins:loadUnzipped', async (_event, pluginDirPath) => {
   return await pluginManager.loadUnzippedPlugin(pluginDirPath);
 });
 
-// Add handler for menu item clicks
-ipcMain.handle('plugins:execute-menu-item', (_event, id) => {
-  return pluginRegistry.executeMenuItemAction(id);
+ipcMain.handle('plugins:execute-menu-item', (_event, id, contextData) => {
+  return pluginRegistry.executeMenuItemAction(id, contextData);
 });

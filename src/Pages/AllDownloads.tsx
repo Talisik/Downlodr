@@ -231,11 +231,12 @@ const AllDownloads = () => {
   );
 
   // Map the displayColumns to have correct indices for drag and drop
+  /*
   const displayColumnsWithIndices = displayColumns.map((column, index) => ({
     ...column,
     displayIndex: index,
   }));
-
+*/
   // Handle column header click for sorting
   const handleSortClick = (column: string) => {
     if (sortColumn === column) {
@@ -299,10 +300,11 @@ const AllDownloads = () => {
   };
 
   // Handle column options
+  /*
   const handleColumnOptions = (columnId: string) => {
     // Implement column options logic here
   };
-
+  */
   // Close Menu and clear selected download when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
@@ -727,6 +729,7 @@ const AllDownloads = () => {
                     onChange={() => handleCheckboxChange(download.id)}
                   />
                 </td>
+                {/* eslint-disable-next-line @typescript-eslint/no-unused-vars*/}
                 {displayColumns.map((column, displayIndex) => {
                   switch (column.id) {
                     case 'name':
