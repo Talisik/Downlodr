@@ -31,6 +31,7 @@ declare global {
       fileExists: (path: string) => Promise<boolean>; // Checks if a file exists at the specified path
       getFileSize: (path: string) => Promise<number | null>; // Gets the size of a file in bytes
       showInputContextMenu: () => void; // Shows the input field context menu (right-click menu)
+      invokeMainProcess: (channel: string, ...args: any[]) => Promise<any>;
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist
@@ -73,11 +74,21 @@ declare global {
     };
     plugins: {
       list: () => Promise<PluginInfo[]>;
+      getCode: (
+        pluginId: string,
+      ) => Promise<{ code: string; manifest: any; error?: string }>;
       install: (pluginPath: string) => Promise<boolean>;
       uninstall: (pluginId: string) => Promise<boolean>;
-      getMenuItems: () => Promise<MenuItem[]>;
-      loadUnzipped: (pluginDirPath: string) => Promise<boolean>;
+      getMenuItems: (context: any) => Promise<MenuItem[]>;
       executeMenuItem: (id: string, contextData?: any) => Promise<void>;
+      loadUnzipped: (pluginDirPath: string) => Promise<boolean>;
+      writeFile: (
+        filePath: string,
+        content: string,
+      ) => Promise<{ success: boolean; error?: string }>;
+      readFile: (
+        filePath: string,
+      ) => Promise<{ content: string; error?: string }>;
     };
   }
 }

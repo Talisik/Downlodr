@@ -45,6 +45,7 @@ import { PlayCircle } from 'lucide-react';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
+import { MenuItem } from '../../../plugins/types';
 // import { PluginRegistry, pluginRegistry } from '../../../plugins/registry'; // Import if needed
 // import { MenuItem } from '../../../plugins/types';
 
@@ -250,28 +251,22 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     finishedDownloads,
   } = useDownloadStore();
   const allDownloads = [...forDownloads, ...downloading, ...finishedDownloads]; //Plugins
-  const [pluginMenuItems, setPluginMenuItems] = useState([]);
+  const [pluginMenuItems, setPluginMenuItems] = useState<MenuItem[]>([]);
 
   useEffect(() => {
-    const fetchPluginMenuItems = async () => {
+    async function fetchPluginMenuItems() {
       try {
-        // Get menu items from plugins
-        const items = await window.plugins.getMenuItems();
-
-        // Filter items that are relevant to download context menu
-        // You might want to add a "context" property to menu items
-        const contextMenuItems = items.filter(
-          (item) => item.context === 'download' || item.context === 'all',
-        );
-
-        setPluginMenuItems(contextMenuItems);
+        // Fetch menu items for the 'download' context
+        const items = await window.plugins.getMenuItems('download');
+        setPluginMenuItems(items || []);
       } catch (error) {
-        console.error('Failed to get plugin menu items:', error);
+        console.error('Failed to fetch plugin menu items:', error);
+        setPluginMenuItems([]);
       }
-    };
+    }
 
     fetchPluginMenuItems();
-  }, []);
+  }, [downloadId]);
 
   // Effect to position the context menu based on the provided coordinates
   React.useEffect(() => {
@@ -763,6 +758,45 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     }
   }
 
+  const renderPluginMenuItems = () => {
+    console.log(pluginMenuItems);
+    if (!pluginMenuItems || pluginMenuItems.length === 0) return null;
+    return (
+      <>
+        {/* Divider if there are other menu items */}
+        <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+
+        {/* Plugin menu items */}
+        {pluginMenuItems.map((item) => (
+          <button
+            key={item.id || item.label}
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              // Create a context data object with all relevant information
+              const contextData = {
+                downloadId,
+                videoUrl: allDownloads.find((d) => d.id === downloadId)
+                  ?.videoUrl,
+                location: downloadLocation,
+                status: downloadStatus,
+                // Add any other fields your plugin might need
+              };
+
+              // Execute the menu item with the context data
+              window.plugins.executeMenuItem(item.id || '', contextData);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              {item.icon && <span>{item.icon}</span>}
+              <span>{item.label}</span>
+            </span>
+          </button>
+        ))}
+      </>
+    );
+  };
+
   return (
     <>
       <div
@@ -774,26 +808,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         }}
       >
         {renderMenuOptions()}
-
-        {/* Plugin menu items - render them properly styled */}
-        {pluginMenuItems.length > 0 && (
-          <>
-            <hr className="my-1 border-gray-200 dark:border-gray-700" />
-            {pluginMenuItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  window.plugins.executeMenuItem(item.id);
-                  handleMenuItemClick(item.id);
-                  onClose();
-                }}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
-              >
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </>
-        )}
+        {renderPluginMenuItems()}
       </div>
 
       <RenameModal

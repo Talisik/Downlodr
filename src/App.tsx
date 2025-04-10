@@ -28,6 +28,8 @@ import UpdateNotification from './Components/SubComponents/custom/UpdateNotifica
 import StatusSpecificDownloads from './Pages/StatusSpecificDownload';
 import { useEffect } from 'react';
 import { useMainStore } from './Store/mainStore';
+import React from 'react';
+import { PluginLoader } from './Components/PluginLoader';
 
 const App = () => {
   const { settings } = useMainStore();
@@ -66,6 +68,7 @@ const App = () => {
       </Router>
       <Toaster />
       <UpdateNotification />
+      <PluginLoader />
     </ThemeProvider>
   );
 };

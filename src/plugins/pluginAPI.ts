@@ -107,6 +107,38 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
       // Logic to pause a download
       return true;
     },
+    getInfo: async (url: string) => {
+      console.log(`Plugin ${pluginId} requesting info for URL: ${url}`);
+
+      try {
+        // Use the IPC handler instead of window.ytdlp
+        const info = await window.downlodrFunctions.invokeMainProcess(
+          'ytdlp:info',
+          url,
+        );
+
+        if (!info || info.error) {
+          throw new Error(info?.error || 'Failed to get video info');
+        }
+
+        // Map the data to match DownloadInfo interface
+        return {
+          title: info.data?.title || 'Unknown',
+          videoUrl: url,
+          isLive: info.data?.is_live || false,
+          duration: info.data?.duration,
+          uploader: info.data?.uploader,
+          uploadDate: info.data?.upload_date,
+          description: info.data?.description,
+          thumbnailUrl: info.data?.thumbnail,
+          extractorKey: info.data?.extractor_key,
+          formats: info.data?.formats || [],
+        };
+      } catch (error) {
+        console.error(`Error getting info for ${url}:`, error);
+        throw new Error(`Failed to get video info: ${error.message}`);
+      }
+    },
   };
 }
 

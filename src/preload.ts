@@ -33,6 +33,9 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
   fileExists: (path: string) => ipcRenderer.invoke('file-exists', path),
   getFileSize: (path: string) => ipcRenderer.invoke('get-file-size', path),
   showInputContextMenu: () => ipcRenderer.send('show-input-context-menu'),
+  invokeMainProcess: (channel: any, ...args: any) => {
+    return ipcRenderer.invoke(channel, ...args);
+  },
 });
 
 // give download a unique id
@@ -137,8 +140,11 @@ contextBridge.exposeInMainWorld('notifications', {
   },
 });
 
+// Plugin control functions
 contextBridge.exposeInMainWorld('plugins', {
   list: () => ipcRenderer.invoke('plugins:list'),
+  getCode: (pluginId: string) =>
+    ipcRenderer.invoke('plugins:get-code', pluginId),
   install: (pluginPath: string) =>
     ipcRenderer.invoke('plugins:install', pluginPath),
   uninstall: (pluginId: string) =>
@@ -149,4 +155,10 @@ contextBridge.exposeInMainWorld('plugins', {
     ipcRenderer.invoke('plugins:execute-menu-item', id, contextData),
   loadUnzipped: (pluginDirPath: any) =>
     ipcRenderer.invoke('plugins:loadUnzipped', pluginDirPath),
+
+  // Safe file operations for plugins
+  writeFile: (filePath: string, content: string) =>
+    ipcRenderer.invoke('plugin:fs:writeFile', { filePath, content }),
+  readFile: (filePath: string) =>
+    ipcRenderer.invoke('plugin:fs:readFile', { filePath }),
 });

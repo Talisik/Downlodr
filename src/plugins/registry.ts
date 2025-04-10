@@ -36,6 +36,9 @@ export class PluginRegistry {
   }
 
   getMenuItems(context?: string): Omit<MenuItem, 'onClick'>[] {
+    console.log(`Getting menu items for context: ${context}`);
+    console.log(`Total registered items: ${this.menuItems.length}`);
+
     const items = context
       ? this.menuItems.filter(
           (item) =>
@@ -43,7 +46,9 @@ export class PluginRegistry {
         )
       : this.menuItems;
 
-    // Return serializable items (without onClick functions)
+    console.log(`Returning ${items.length} items for context ${context}`);
+    console.log('Items:', items);
+
     return items;
   }
 

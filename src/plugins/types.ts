@@ -26,6 +26,7 @@ export interface DownloadAPI {
   addDownload: (url: string, options: DownloadOptions) => Promise<string>;
   cancelDownload?: (id: string) => Promise<boolean>;
   pauseDownload?: (id: string) => Promise<boolean>;
+  getInfo: (url: string) => Promise<DownloadInfo>;
 }
 
 export interface UIAPI {

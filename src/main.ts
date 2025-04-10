@@ -536,9 +536,14 @@ app.on('ready', async () => {
     }
   }, UPDATE_CHECK_INTERVAL);
 
-  // Initialize plugin manager
+  // Create plugin manager instance
   pluginManager = new PluginManager();
+
+  // Load plugins
   await pluginManager.loadPlugins();
+
+  // Set up IPC handlers AFTER app is ready
+  pluginManager.setupIPC();
 });
 
 // Change this to keep app running in background
@@ -740,6 +745,7 @@ ipcMain.handle('get-file-size', async (_event, filePath) => {
 });
 
 // Add IPC handlers for plugin management
+/*
 ipcMain.handle('plugins:list', () => {
   return pluginManager.getPlugins();
 });
@@ -751,16 +757,16 @@ ipcMain.handle('plugins:install', async (_event, pluginPath) => {
 ipcMain.handle('plugins:uninstall', async (_event, pluginId) => {
   return await pluginManager.unloadPlugin(pluginId);
 });
-
+*/
 // Add a handler to get plugin menu items
 ipcMain.handle('plugins:menu-items', (event, context) => {
   return pluginRegistry.getMenuItems(context);
 });
 
-ipcMain.handle('plugins:loadUnzipped', async (_event, pluginDirPath) => {
+/*ipcMain.handle('plugins:loadUnzipped', async (_event, pluginDirPath) => {
   return await pluginManager.loadUnzippedPlugin(pluginDirPath);
 });
-
+*/
 ipcMain.handle('plugins:execute-menu-item', (_event, id, contextData) => {
   return pluginRegistry.executeMenuItemAction(id, contextData);
 });
