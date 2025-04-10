@@ -772,18 +772,29 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             key={item.id || item.label}
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
             onClick={() => {
-              // Create a context data object with all relevant information
+              // Get the necessary data for the context
               const contextData = {
+                name: name,
                 downloadId,
                 videoUrl: allDownloads.find((d) => d.id === downloadId)
                   ?.videoUrl,
                 location: downloadLocation,
                 status: downloadStatus,
-                // Add any other fields your plugin might need
               };
 
-              // Execute the menu item with the context data
-              window.plugins.executeMenuItem(item.id || '', contextData);
+              // Find and execute the handler directly if it's a rendered plugin with handlerId
+              if (
+                item.handlerId &&
+                window.PluginHandlers &&
+                window.PluginHandlers[item.handlerId]
+              ) {
+                // Call the handler directly
+                window.PluginHandlers[item.handlerId](contextData);
+              } else {
+                // Fall back to the IPC method for non-renderer plugins
+                window.plugins.executeMenuItem(item.id || '', contextData);
+              }
+
               onClose();
             }}
           >

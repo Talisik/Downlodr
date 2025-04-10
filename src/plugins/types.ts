@@ -31,8 +31,8 @@ export interface DownloadAPI {
 
 export interface UIAPI {
   // Add UI-related methods here
-  registerMenuItem: (menuItem: MenuItem) => string;
-  unregisterMenuItem: (id: string) => void;
+  registerMenuItem: (menuItem: MenuItem) => Promise<string>;
+  unregisterMenuItem: (id: string) => Promise<boolean>;
   registerFormatProvider: (provider: FormatProvider) => string;
   registerSettingsPage: (page: SettingsPage) => string;
   showNotification: (options: NotificationOptions) => void;
@@ -135,6 +135,7 @@ export interface FormatHandler {
 
 export interface MenuItem {
   id?: string;
+  handlerId?: string;
   label: string;
   icon?: string;
   onClick: (contextData?: any) => void;

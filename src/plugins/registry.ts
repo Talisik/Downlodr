@@ -70,5 +70,5 @@ export class PluginRegistry {
   // Add more registration methods for other extension points
 }
 
-// Singleton instance
+// Export a singleton instance
 export const pluginRegistry = new PluginRegistry();

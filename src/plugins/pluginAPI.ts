@@ -20,14 +20,34 @@ export function createPluginAPI(pluginId: string): PluginAPI {
   // Create UI API
   const uiAPI: UIAPI = {
     registerMenuItem: (menuItem: MenuItem) => {
-      console.log(`Plugin ${pluginId} registering menu item:`, menuItem);
-      // Make sure you're using the pluginRegistry instance
-      return pluginRegistry.registerMenuItem(menuItem);
+      console.log(
+        `Plugin ${pluginId} registering menu item via IPC:`,
+        menuItem,
+      );
+
+      // Create a serializable version (without the onClick function)
+      const serializableMenuItem = {
+        ...menuItem,
+        pluginId, // Include plugin ID
+        // Remove onClick function for IPC
+        onClick: undefined as unknown as (contextData?: any) => void,
+      };
+
+      // Store the handler locally in renderer process
+      const handlerId = `${pluginId}:menu:${Date.now()}`;
+      window.PluginHandlers = window.PluginHandlers || {};
+      window.PluginHandlers[handlerId] = menuItem.onClick;
+
+      // Send serializable version to main process
+      return window.plugins.registerMenuItem({
+        ...serializableMenuItem,
+        handlerId, // Include handler ID
+      });
     },
 
     unregisterMenuItem: (id: string) => {
-      console.log(`Plugin ${pluginId} unregistering menu item:`, id);
-      pluginRegistry.unregisterMenuItem(id);
+      console.log(`Plugin ${pluginId} unregistering menu item via IPC:`, id);
+      return window.plugins.unregisterMenuItem(id);
     },
 
     registerFormatProvider: (provider: FormatProvider) => {
@@ -122,18 +142,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         }
 
         // Map the data to match DownloadInfo interface
-        return {
-          title: info.data?.title || 'Unknown',
-          videoUrl: url,
-          isLive: info.data?.is_live || false,
-          duration: info.data?.duration,
-          uploader: info.data?.uploader,
-          uploadDate: info.data?.upload_date,
-          description: info.data?.description,
-          thumbnailUrl: info.data?.thumbnail,
-          extractorKey: info.data?.extractor_key,
-          formats: info.data?.formats || [],
-        };
+        return info;
       } catch (error) {
         console.error(`Error getting info for ${url}:`, error);
         throw new Error(`Failed to get video info: ${error.message}`);
@@ -143,14 +152,14 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
 }
 
 function createUIAPI(pluginId: string): UIAPI {
-  // Implement UI extension functionality
   return {
-    registerMenuItem: (menuItem: any) => {
+    registerMenuItem: (menuItem: MenuItem) => {
       // Store menu item in a global registry
-      return `${pluginId}:menu:${Date.now()}`;
+      return Promise.resolve(`${pluginId}:menu:${Date.now()}`);
     },
-    unregisterMenuItem: (id: any) => {
+    unregisterMenuItem: (id: string) => {
       // Remove menu item
+      return Promise.resolve(true);
     },
     registerFormatProvider: (provider: any) => {
       // Register custom format provider

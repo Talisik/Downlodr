@@ -161,4 +161,14 @@ contextBridge.exposeInMainWorld('plugins', {
     ipcRenderer.invoke('plugin:fs:writeFile', { filePath, content }),
   readFile: (filePath: string) =>
     ipcRenderer.invoke('plugin:fs:readFile', { filePath }),
+
+  registerMenuItem: (menuItem: any) =>
+    ipcRenderer.invoke('plugins:register-menu-item', menuItem),
+  unregisterMenuItem: (id: any) =>
+    ipcRenderer.invoke('plugins:unregister-menu-item', id),
+
+  getPluginDataPath: (pluginId: string) =>
+    ipcRenderer.invoke('plugins:get-data-path', pluginId),
+  saveFileDialog: (options: any) =>
+    ipcRenderer.invoke('plugins:save-file-dialog', options),
 });

@@ -767,6 +767,51 @@ ipcMain.handle('plugins:menu-items', (event, context) => {
   return await pluginManager.loadUnzippedPlugin(pluginDirPath);
 });
 */
-ipcMain.handle('plugins:execute-menu-item', (_event, id, contextData) => {
-  return pluginRegistry.executeMenuItemAction(id, contextData);
+ipcMain.handle('plugins:execute-menu-item', (event, id, contextData) => {
+  console.log('Executing menu item action:', id, contextData);
+  pluginRegistry.executeMenuItemAction(id, contextData);
+  return true;
+});
+
+// Add this debug handler
+ipcMain.handle('debug:plugin-registry', () => {
+  console.log('REGISTRY DEBUG:', pluginRegistry);
+  return {
+    menuItems: pluginRegistry.getMenuItems(),
+    handlerKeys: Array.from(pluginRegistry['menuItemHandlers'].keys()),
+  };
+});
+
+// Add these new IPC handlers
+ipcMain.handle('plugins:register-menu-item', (event, menuItem) => {
+  console.log('Main process registering menu item:', menuItem);
+  return pluginRegistry.registerMenuItem(menuItem);
+});
+
+ipcMain.handle('plugins:unregister-menu-item', (event, id) => {
+  console.log('Main process unregistering menu item:', id);
+  pluginRegistry.unregisterMenuItem(id);
+  return true;
+});
+
+// Add to main.ts where you set up your other IPC handlers
+ipcMain.handle('plugins:get-data-path', (event, pluginId) => {
+  const pluginDataDir = path.join(
+    app.getPath('userData'),
+    'plugin-data',
+    pluginId,
+  );
+  // Ensure the directory exists
+  if (!fs.existsSync(pluginDataDir)) {
+    fs.mkdirSync(pluginDataDir, { recursive: true });
+  }
+  return pluginDataDir;
+});
+
+// Add a handler for save file dialog if you want to implement that option
+ipcMain.handle('plugins:save-file-dialog', (event, options) => {
+  return dialog.showSaveDialog(
+    BrowserWindow.fromWebContents(event.sender),
+    options,
+  );
 });

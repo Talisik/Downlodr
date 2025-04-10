@@ -264,6 +264,15 @@ export class PluginManager {
 
   async loadPlugins() {
     try {
+      console.log('PLUGIN DIR:', this.pluginsDir);
+      // Log the contents of the plugins directory
+      if (fs.existsSync(this.pluginsDir)) {
+        const files = fs.readdirSync(this.pluginsDir);
+        console.log('Found plugins directory with contents:', files);
+      } else {
+        console.log('Plugins directory does not exist');
+      }
+
       // Get all subdirectories in the plugins directory
       const pluginDirs = fs
         .readdirSync(this.pluginsDir)

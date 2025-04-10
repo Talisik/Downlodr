@@ -89,7 +89,12 @@ declare global {
       readFile: (
         filePath: string,
       ) => Promise<{ content: string; error?: string }>;
+
+      // Add these new methods
+      registerMenuItem: (menuItem: MenuItem) => Promise<string>;
+      unregisterMenuItem: (id: string) => Promise<boolean>;
     };
+    PluginHandlers?: Record<string, (contextData?: any) => void>;
   }
 }
 
