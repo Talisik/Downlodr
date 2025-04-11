@@ -806,3 +806,47 @@ ipcMain.handle('plugins:save-file-dialog', (event, options) => {
     options,
   );
 });
+
+// Update the reload handler
+ipcMain.handle('plugins:reload', async (event) => {
+  console.log('Reloading plugins...');
+
+  // Only reload the plugins from disk, don't re-setup IPC handlers
+  await pluginManager.loadPlugins();
+
+  // Notify renderer that plugins have been reloaded
+  event.sender.send('plugins:reloaded');
+
+  return true;
+});
+
+// Update your plugin install/uninstall handlers to reload immediately:
+ipcMain.handle('plugins:install', async (event, pluginPath) => {
+  const success = await pluginManager.installPlugin(pluginPath);
+  if (success) {
+    // Optionally, automatically reload plugins here
+    await pluginManager.loadPlugins();
+    // Notify renderer
+    event.sender.send('plugins:reloaded');
+  }
+  return success;
+});
+
+ipcMain.handle('plugins:uninstall', async (event, pluginId) => {
+  const success = await pluginManager.unloadPlugin(pluginId);
+  if (success) {
+    // Optionally, automatically reload plugins here
+    await pluginManager.loadPlugins();
+    // Notify renderer
+    event.sender.send('plugins:reloaded');
+  }
+  return success;
+});
+
+ipcMain.handle('plugins:loadUnzipped', async (event, pluginDirPath) => {
+  if (!pluginManager) {
+    console.error('Plugin manager not initialized');
+    return false;
+  }
+  return await pluginManager.loadUnzippedPlugin(pluginDirPath);
+});

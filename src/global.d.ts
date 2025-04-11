@@ -93,6 +93,8 @@ declare global {
       // Add these new methods
       registerMenuItem: (menuItem: MenuItem) => Promise<string>;
       unregisterMenuItem: (id: string) => Promise<boolean>;
+      reload: () => Promise<boolean>;
+      onReloaded: (callback: () => void) => () => void;
     };
     PluginHandlers?: Record<string, (contextData?: any) => void>;
   }

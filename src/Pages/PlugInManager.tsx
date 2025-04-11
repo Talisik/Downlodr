@@ -32,14 +32,14 @@ const PluginManager: React.FC = () => {
 
   const handleInstall = async () => {
     try {
-      // Use your existing file dialog
       const pluginPath = await window.ytdlp.selectDownloadDirectory();
       if (pluginPath) {
         const success = await window.plugins.install(pluginPath);
         if (success) {
+          // First reload the plugins in the main process
+          await window.plugins.reload();
+          // Then update the UI list
           await loadPlugins();
-        } else {
-          // Show error notification
         }
       }
     } catch (error) {
@@ -51,9 +51,10 @@ const PluginManager: React.FC = () => {
     try {
       const success = await window.plugins.uninstall(pluginId);
       if (success) {
+        // First reload the plugins in the main process
+        await window.plugins.reload();
+        // Then update the UI list
         await loadPlugins();
-      } else {
-        // Show error notification
       }
     } catch (error) {
       console.error('Failed to uninstall plugin:', error);
@@ -62,14 +63,14 @@ const PluginManager: React.FC = () => {
 
   const handleLoadUnzipped = async () => {
     try {
-      // Use your existing directory selection dialog
       const pluginDirPath = await window.ytdlp.selectDownloadDirectory();
       if (pluginDirPath) {
         const success = await window.plugins.loadUnzipped(pluginDirPath);
         if (success) {
+          // First reload the plugins in the main process
+          await window.plugins.reload();
+          // Then update the UI list
           await loadPlugins();
-        } else {
-          // Show error notification
         }
       }
     } catch (error) {

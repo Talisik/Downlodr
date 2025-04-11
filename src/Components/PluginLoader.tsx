@@ -1,9 +1,29 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPluginAPI } from '../plugins/pluginAPI';
 
 export const PluginLoader: React.FC = () => {
+  const [pluginsLoaded, setPluginsLoaded] = useState(false);
+
   useEffect(() => {
+    // Initial load
     loadPlugins();
+
+    // Set up reload listener
+    const unsubscribe = window.plugins.onReloaded(() => {
+      console.log(
+        'Plugins reloaded event received, reloading plugins in renderer',
+      );
+      // Unload existing plugins if needed
+      // ...
+
+      // Reload plugins
+      loadPlugins();
+    });
+
+    // Cleanup
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   async function loadPlugins() {

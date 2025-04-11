@@ -171,4 +171,11 @@ contextBridge.exposeInMainWorld('plugins', {
     ipcRenderer.invoke('plugins:get-data-path', pluginId),
   saveFileDialog: (options: any) =>
     ipcRenderer.invoke('plugins:save-file-dialog', options),
+  reload: () => ipcRenderer.invoke('plugins:reload'),
+  onReloaded: (callback: () => void) => {
+    ipcRenderer.on('plugins:reloaded', callback);
+    return () => {
+      ipcRenderer.removeListener('plugins:reloaded', callback);
+    };
+  },
 });
