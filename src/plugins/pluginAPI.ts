@@ -13,8 +13,9 @@ import {
   NotificationOptions,
 } from './types';
 import useDownloadStore from '../Store/downloadStore';
-import { formatFileSize } from '../Pages/StatusSpecificDownload'; // Import from where the function is defined
+import { formatFileSize } from '../Pages/StatusSpecificDownload';
 import { pluginRegistry } from './registry';
+import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 
 export function createPluginAPI(pluginId: string): PluginAPI {
   // Create UI API
@@ -28,8 +29,7 @@ export function createPluginAPI(pluginId: string): PluginAPI {
       // Create a serializable version (without the onClick function)
       const serializableMenuItem = {
         ...menuItem,
-        pluginId, // Include plugin ID
-        // Remove onClick function for IPC
+        pluginId,
         onClick: undefined as unknown as (contextData?: any) => void,
       };
 
@@ -41,7 +41,7 @@ export function createPluginAPI(pluginId: string): PluginAPI {
       // Send serializable version to main process
       return window.plugins.registerMenuItem({
         ...serializableMenuItem,
-        handlerId, // Include handler ID
+        handlerId,
       });
     },
 
@@ -62,11 +62,32 @@ export function createPluginAPI(pluginId: string): PluginAPI {
 
     showNotification: (options: NotificationOptions) => {
       console.log(`Plugin ${pluginId} showing notification:`, options);
-      // Implement notification display logic
+
+      // Map NotificationOptions.type to toast variant
+      let variant: 'default' | 'destructive' | 'success' = 'default';
+      switch (options.type) {
+        case 'success':
+          variant = 'success';
+          break;
+        case 'error':
+          variant = 'destructive';
+          break;
+        case 'warning':
+          variant = 'destructive';
+          break;
+        case 'info':
+        default:
+          variant = 'default';
+      }
+
+      toast({
+        title: options.title,
+        description: options.message,
+        duration: options.duration,
+        variant: variant,
+      });
     },
   };
-
-  // Rest of your API implementation...
 
   return {
     downloads: createDownloadAPI(pluginId),

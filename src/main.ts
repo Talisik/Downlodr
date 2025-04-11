@@ -773,15 +773,6 @@ ipcMain.handle('plugins:execute-menu-item', (event, id, contextData) => {
   return true;
 });
 
-// Add this debug handler
-ipcMain.handle('debug:plugin-registry', () => {
-  console.log('REGISTRY DEBUG:', pluginRegistry);
-  return {
-    menuItems: pluginRegistry.getMenuItems(),
-    handlerKeys: Array.from(pluginRegistry['menuItemHandlers'].keys()),
-  };
-});
-
 // Add these new IPC handlers
 ipcMain.handle('plugins:register-menu-item', (event, menuItem) => {
   console.log('Main process registering menu item:', menuItem);

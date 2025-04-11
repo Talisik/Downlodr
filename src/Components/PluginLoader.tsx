@@ -52,7 +52,6 @@ export const PluginLoader: React.FC = () => {
   // Execute plugin code in a controlled way
   async function executePluginCode(code: string, pluginId: string) {
     try {
-      // Create a controlled context for plugin execution
       const sandbox = {
         // Provide limited globals
         console: {

@@ -5,6 +5,7 @@ import {
   DownloadOptions,
   SettingsPage,
   MenuItem,
+  NotifItem,
   FormatHandler,
   FormatProvider,
 } from './types';
@@ -24,7 +25,7 @@ export interface UIAPI {
   unregisterMenuItem: (id: string) => void;
   registerFormatProvider: (provider: FormatProvider) => string;
   registerSettingsPage: (page: SettingsPage) => string;
-  showNotification: (options: NotificationOptions) => void;
+  showNotification: (notifItem: NotifItem) => void;
 }
 
 export interface FormatAPI {

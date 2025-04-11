@@ -315,6 +315,22 @@ const useDownloadStore = create<DownloadStore>()(
         extractorKey,
         limitRate,
       ) => {
+        console.log(videoUrl);
+        console.log(name);
+        console.log(downloadName);
+        console.log(size);
+        console.log(speed);
+        console.log(timeLeft);
+        console.log(DateAdded);
+        console.log(progress);
+        console.log(location);
+        console.log(status);
+        console.log(ext);
+        console.log(formatId);
+        console.log(formatId);
+        console.log(extractorKey);
+        console.log(limitRate);
+
         if (!location || !downloadName) {
           console.error('Invalid path parameters:', { location, downloadName });
           return;

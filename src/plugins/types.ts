@@ -1,6 +1,4 @@
-// src/plugins/types.ts
-
-// src/plugins/types.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface DownlodrPlugin {
   id: string;
   name: string;
@@ -19,7 +17,6 @@ export interface PluginAPI {
   utilities: UtilityAPI;
 }
 
-// Define the missing interfaces
 export interface DownloadAPI {
   registerDownloadSource: (source: DownloadSource) => void;
   getActiveDownloads: () => Download[];
@@ -30,7 +27,6 @@ export interface DownloadAPI {
 }
 
 export interface UIAPI {
-  // Add UI-related methods here
   registerMenuItem: (menuItem: MenuItem) => Promise<string>;
   unregisterMenuItem: (id: string) => Promise<boolean>;
   registerFormatProvider: (provider: FormatProvider) => string;
@@ -39,13 +35,11 @@ export interface UIAPI {
 }
 
 export interface FormatAPI {
-  // Add format-related methods here
   registerFormatHandler?: (handler: any) => string;
   getSupportedFormats?: () => string[];
 }
 
 export interface UtilityAPI {
-  // Add utility methods here
   formatFileSize: (size: number) => string;
   openExternalLink: (url: string) => Promise<void>;
   selectDirectory: () => Promise<string>;
@@ -67,7 +61,7 @@ export interface Format {
 export interface SettingsPage {
   id: string;
   title: string;
-  component: any; // Replace with actual React component type if using TypeScript with React
+  component: any;
 }
 
 export interface NotificationOptions {
@@ -140,6 +134,23 @@ export interface MenuItem {
   icon?: string;
   onClick: (contextData?: any) => void;
   disabled?: boolean;
+  pluginId?: string;
+  tooltip?: string;
+  submenu?: MenuItem[];
+  order?: number;
+  context?: 'download' | 'main' | 'all';
+}
+
+export interface NotifItem {
+  id?: string;
+  handlerId?: string;
+  title: string;
+  message: string;
+  type: string;
+  duration: number;
+  onClick: (contextData?: any) => void;
+  disabled?: boolean;
+  pluginId?: string;
   tooltip?: string;
   submenu?: MenuItem[];
   order?: number;

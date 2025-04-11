@@ -759,7 +759,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   }
 
   const renderPluginMenuItems = () => {
-    console.log(pluginMenuItems);
     if (!pluginMenuItems || pluginMenuItems.length === 0) return null;
     return (
       <>
@@ -774,14 +773,14 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             onClick={() => {
               // Get the necessary data for the context
               const contextData = {
-                name: name,
+                name: downloadName,
                 downloadId,
                 videoUrl: allDownloads.find((d) => d.id === downloadId)
                   ?.videoUrl,
                 location: downloadLocation,
                 status: downloadStatus,
               };
-
+              console.log(contextData);
               // Find and execute the handler directly if it's a rendered plugin with handlerId
               if (
                 item.handlerId &&
