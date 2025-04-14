@@ -47,7 +47,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const { settings } = useMainStore();
   const { downloading, historyDownloads } = useDownloadStore();
 
-  // Add search functionality
+  // Search
   const [searchTerm, setSearchTerm] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState<HistoryDownloads[]>([]);
@@ -384,7 +384,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
       </div>
       {/* Search Bar with increased width */}
       <div ref={searchRef} className="relative my-10 mr-6 w-1/4">
-        <div className="flex items-center bg-gray-100 dark:bg-[#30303C] rounded-md px-2">
+        <div className="flex items-center dark:bg-[#30303C] rounded-md border border-[#D1D5DB] dark:border-none px-2">
           <FiSearch className="text-gray-500 dark:text-gray-400 h-4 w-4 mr-1" />
           <input
             type="text"

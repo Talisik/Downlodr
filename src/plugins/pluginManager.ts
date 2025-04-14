@@ -60,7 +60,7 @@ export class PluginManager {
     ipcMain.handle('plugins:install', async (event, pluginPath) => {
       return await this.installPlugin(pluginPath);
     });
-
+    /*
     // Uninstall plugin
     ipcMain.handle('plugins:uninstall', async (event, pluginId) => {
       const pluginDir = path.join(this.pluginsDir, pluginId);
@@ -70,12 +70,12 @@ export class PluginManager {
       }
       return false;
     });
-
+  
     // Load unzipped plugin
     ipcMain.handle('plugins:loadUnzipped', async (event, pluginDirPath) => {
       return await this.loadUnzippedPlugin(pluginDirPath);
     });
-
+  */
     // Register for handling plugin IPC requests
     ipcMain.handle('plugin:fs:writeFile', async (event, args) => {
       // Validate paths to ensure they're within allowed directories
