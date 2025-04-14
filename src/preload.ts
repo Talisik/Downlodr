@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
   },
   downloadFile: (url: string, outputPath: string) =>
     ipcRenderer.invoke('downloadFile', url, outputPath),
+  ensureDirectoryExists: (dirPath: string) =>
+    ipcRenderer.invoke('ensureDirectoryExists', dirPath),
 });
 
 // give download a unique id

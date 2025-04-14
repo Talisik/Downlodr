@@ -51,6 +51,7 @@ export interface BaseDownload {
   audioFormatId: string; // ID of the audio format
   isLive: boolean; // Indicates if the download is a live stream
   elapsed: number;
+  automaticCaption: any;
 }
 
 // Interface for downloads that are currently being processed
@@ -387,6 +388,7 @@ const useDownloadStore = create<DownloadStore>()(
               audioFormatId: '',
               isLive: false,
               elapsed: null,
+              automaticCaption: null,
             },
           ],
         }));
@@ -431,6 +433,7 @@ const useDownloadStore = create<DownloadStore>()(
               audioExt: '',
               audioFormatId: '',
               elapsed: null,
+              automaticCaption: null,
             },
           ],
         }));
@@ -438,9 +441,24 @@ const useDownloadStore = create<DownloadStore>()(
         try {
           // Fetch metadata in background
           const info = await window.ytdlp.getInfo(videoUrl);
+          const sanitizedTitle = info.data.title.replace(/[\\/:*?"<>.|]/g, '_');
+
+          const subfolderPath = await window.downlodrFunctions.joinDownloadPath(
+            location,
+            sanitizedTitle,
+          );
+
+          const dirCreated =
+            await window.downlodrFunctions.ensureDirectoryExists(subfolderPath);
+          if (!dirCreated) {
+            console.error('Failed to create subfolder:', subfolderPath);
+          }
+
+          const folderPath = dirCreated ? subfolderPath : location;
+
           const captionsPath = await downloadEnglishCaptions(
             info,
-            location,
+            folderPath,
             info.data.title,
           );
 
@@ -460,7 +478,7 @@ const useDownloadStore = create<DownloadStore>()(
             f.label.includes('Audio Only'),
           );
 
-          // Update the forDownloads entry with metadata
+          // Update the forDownloads entry with metadata AND the new folder path
           set((state) => ({
             ...state,
             forDownloads: state.forDownloads.map((download) =>
@@ -479,6 +497,8 @@ const useDownloadStore = create<DownloadStore>()(
                     formats: formatOptions,
                     isLive: info.data.is_live,
                     elapsed: info.data.elapsed,
+                    location: location,
+                    automaticCaption: info.data.automatic_captions.en,
                   }
                 : download,
             ),

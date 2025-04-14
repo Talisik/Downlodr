@@ -612,6 +612,22 @@ ipcMain.handle('openExternalLink', async (_event, link: string) => {
   }
 });
 
+ipcMain.handle('ensureDirectoryExists', async (event, dirPath) => {
+  try {
+    try {
+      await fs.promises.access(dirPath, fs.constants.F_OK);
+      return true; // Directory already exists
+    } catch (error) {
+      // Directory doesn't exist, create it
+      await fs.promises.mkdir(dirPath, { recursive: true });
+      return true;
+    }
+  } catch (error) {
+    console.error('Error creating directory:', error);
+    return false;
+  }
+});
+
 // check for download updates
 ipcMain.handle('check-for-updates', async () => {
   const updateInfo = await checkForUpdates();

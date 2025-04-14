@@ -40,6 +40,7 @@ declare global {
         path?: string;
         error?: string;
       }>;
+      ensureDirectoryExists: (dirPath: string) => Promise<boolean>; // Creates directory if it doesn't exist
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist
