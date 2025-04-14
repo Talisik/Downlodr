@@ -32,6 +32,14 @@ declare global {
       getFileSize: (path: string) => Promise<number | null>; // Gets the size of a file in bytes
       showInputContextMenu: () => void; // Shows the input field context menu (right-click menu)
       invokeMainProcess: (channel: string, ...args: any[]) => Promise<any>;
+      downloadFile: (
+        url: string,
+        outputPath: string,
+      ) => Promise<{
+        success: boolean;
+        path?: string;
+        error?: string;
+      }>;
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist

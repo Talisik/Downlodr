@@ -20,6 +20,7 @@ import started from 'electron-squirrel-startup';
 import os from 'os';
 import * as YTDLP from 'yt-dlp-helper';
 import fs, { existsSync } from 'fs';
+import https from 'https';
 import { checkForUpdates } from './DataFunctions/updateChecker';
 import { PluginManager } from './plugins/pluginManager';
 import { pluginRegistry } from './plugins/registry';
@@ -847,4 +848,33 @@ ipcMain.handle('plugins:loadUnzipped', async (event, pluginDirPath) => {
     return false;
   }
   return await pluginManager.loadUnzippedPlugin(pluginDirPath);
+});
+
+// Add this near your other ipcMain handlers
+ipcMain.handle('downloadFile', async (_event, url, outputPath) => {
+  try {
+    return new Promise((resolve, reject) => {
+      const file = fs.createWriteStream(outputPath);
+      https
+        .get(url, (response) => {
+          response.pipe(file);
+
+          file.on('finish', () => {
+            file.close();
+            resolve({ success: true, path: outputPath });
+          });
+        })
+        .on('error', (err) => {
+          fs.unlink(outputPath, (unlinkErr) => {
+            // Ignoring deletion errors since the download already failed
+            if (unlinkErr)
+              console.error('Failed to delete incomplete file:', unlinkErr);
+          });
+          reject({ success: false, error: err.message });
+        });
+    });
+  } catch (error) {
+    console.error('Error downloading file:', error);
+    return { success: false, error: error.message };
+  }
 });

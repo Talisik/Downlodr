@@ -226,24 +226,24 @@ const PluginManager: React.FC = () => {
                   </h3>
                   <p className="mt-2 text-sm">{plugin.description}</p>
                   <hr className="solid my-4 w-full border-t border-divider dark:border-gray-700" />
-                  <div className="flex justify-between items-center sm:flex-row">
-                    <div className="flex gap-2 flex-shrink-0 sm:flex-auto">
+                  <div className="flex justify-between items-center">
+                    <div className="gap-2 flex">
                       <Button
                         variant="outline"
-                        className="border-2 px-3 h-8 text-sm whitespace-nowrap"
+                        className="border-2 px-4 h-8"
                         onClick={() => handleUninstall(plugin.id)}
                       >
                         Details
                       </Button>
                       <Button
                         variant="outline"
-                        className="border-2 px-3 h-8 text-sm whitespace-nowrap"
+                        className="border-2 px-4 h-8"
                         onClick={() => handleUninstall(plugin.id)}
                       >
                         Remove
                       </Button>
                     </div>
-                    <div className="flex-shrink-0 ml-2">
+                    <div className="flex items-center gap-2">
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"

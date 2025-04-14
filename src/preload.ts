@@ -36,6 +36,8 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
   invokeMainProcess: (channel: any, ...args: any) => {
     return ipcRenderer.invoke(channel, ...args);
   },
+  downloadFile: (url: string, outputPath: string) =>
+    ipcRenderer.invoke('downloadFile', url, outputPath),
 });
 
 // give download a unique id

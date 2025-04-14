@@ -16,6 +16,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { VideoFormatService } from '../DataFunctions/GetDownloadMetaData';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
+import { downloadEnglishCaptions } from '../DataFunctions/captionsHelper';
 
 // give unique id to downloads
 function uuidv4() {
@@ -198,7 +199,6 @@ const useDownloadStore = create<DownloadStore>()(
                     ...download,
                     size: actualFileSize || download.size,
                   };
-                  console.log(actualFileSize);
                   set((state) => ({
                     finishedDownloads: state.finishedDownloads.some(
                       (fd) => fd.id === download.id,
@@ -269,15 +269,6 @@ const useDownloadStore = create<DownloadStore>()(
 
       updateDownload: (id, result) => {
         if (!result || !result.data) return;
-
-        // Add this debug log
-        console.log('Download data received:', {
-          id,
-          resultData: result.data,
-          elapsedValue: result.data.elapsed,
-          rawResult: result,
-        });
-
         set((state) => ({
           downloading: state.downloading.map((downloading) =>
             downloading.id === id
@@ -315,22 +306,6 @@ const useDownloadStore = create<DownloadStore>()(
         extractorKey,
         limitRate,
       ) => {
-        console.log(videoUrl);
-        console.log(name);
-        console.log(downloadName);
-        console.log(size);
-        console.log(speed);
-        console.log(timeLeft);
-        console.log(DateAdded);
-        console.log(progress);
-        console.log(location);
-        console.log(status);
-        console.log(ext);
-        console.log(formatId);
-        console.log(formatId);
-        console.log(extractorKey);
-        console.log(limitRate);
-
         if (!location || !downloadName) {
           console.error('Invalid path parameters:', { location, downloadName });
           return;
@@ -463,7 +438,18 @@ const useDownloadStore = create<DownloadStore>()(
         try {
           // Fetch metadata in background
           const info = await window.ytdlp.getInfo(videoUrl);
-          console.log('download metadata', info);
+          const captionsPath = await downloadEnglishCaptions(
+            info,
+            location,
+            info.data.title,
+          );
+
+          if (captionsPath) {
+            console.log(`Successfully downloaded captions to: ${captionsPath}`);
+          } else {
+            console.log('Could not download English captions');
+          }
+
           // Process formats using the service
           const { formatOptions, defaultFormatId, defaultExt } =
             await VideoFormatService.processVideoFormats(info);
@@ -514,7 +500,6 @@ const useDownloadStore = create<DownloadStore>()(
             removeFromForDownloads(downloadId); // Call the method            return;
           }
         } catch (error) {
-          console.error('Error fetching metadata:', error);
           toast({
             variant: 'destructive',
             title: `Could not find video metadata`,
@@ -777,21 +762,16 @@ const useDownloadStore = create<DownloadStore>()(
           | 'fetching metadata'
           | 'paused',
       ) => {
-        console.log('Updating status for id:', id, 'to:', status);
-        console.log('Current downloads:', get().downloading);
-
         set((state) => {
           const newState = {
             ...state,
             downloading: state.downloading.map((download) => {
               if (download.id === id) {
-                console.log('Found matching download, updating status');
                 return { ...download, status };
               }
               return download;
             }),
           };
-          console.log('New state downloads:', newState.downloading);
           return newState;
         });
       },

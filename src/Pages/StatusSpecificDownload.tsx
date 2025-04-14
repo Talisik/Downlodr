@@ -153,6 +153,8 @@ const StatusSpecificDownloads = () => {
       { id: 'speed', width: 70, minWidth: 70 },
       { id: 'dateAdded', width: 90, minWidth: 90 },
       { id: 'source', width: 20, minWidth: 20 },
+      { id: 'transcript', width: 20, minWidth: 20 },
+      { id: 'thumbnail', width: 20, minWidth: 20 },
     ],
     visibleColumns,
   );
@@ -235,6 +237,20 @@ const StatusSpecificDownloads = () => {
             : new Date(b.DateAdded).getTime() - new Date(a.DateAdded).getTime();
         }
         case 'source': {
+          const sourceA = a.extractorKey || '';
+          const sourceB = b.extractorKey || '';
+          return sortDirection === 'asc'
+            ? sourceA.localeCompare(sourceB)
+            : sourceB.localeCompare(sourceA);
+        }
+        case 'thumbnail': {
+          const sourceA = a.extractorKey || '';
+          const sourceB = b.extractorKey || '';
+          return sortDirection === 'asc'
+            ? sourceA.localeCompare(sourceB)
+            : sourceB.localeCompare(sourceA);
+        }
+        case 'transcript': {
           const sourceA = a.extractorKey || '';
           const sourceB = b.extractorKey || '';
           return sortDirection === 'asc'
@@ -684,7 +700,7 @@ const StatusSpecificDownloads = () => {
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
-  // Add a column display name mapping
+  // column display name mapping
   const getColumnDisplayName = (columnId: string): string => {
     const columnMappings: Record<string, string> = {
       name: 'Title',
@@ -694,13 +710,13 @@ const StatusSpecificDownloads = () => {
       speed: 'Speed',
       dateAdded: 'Date Added',
       source: 'Source',
-      // Add any other columns here
+      thumbnail: 'Thumbnail',
+      transcript: 'Transcript',
     };
 
     return columnMappings[columnId] || columnId;
   };
 
-  // Column options configuration - consistent with SettingsModal
   const columnOptions = [
     { id: 'name', label: 'Title', required: true },
     { id: 'size', label: 'Size', required: false },
@@ -709,9 +725,10 @@ const StatusSpecificDownloads = () => {
     { id: 'speed', label: 'Speed', required: false },
     { id: 'dateAdded', label: 'Date Added', required: false },
     { id: 'source', label: 'Source', required: false },
+    { id: 'transcript', label: 'Transcript', required: false },
+    { id: 'thumbnail', label: 'Thumbnail', required: false },
   ];
 
-  // Make sure we're passing the selectedDownload correctly
   const selectedDownload = selectedDownloadId
     ? allDownloads.find((d) => d.id === selectedDownloadId)
     : null;
@@ -995,6 +1012,26 @@ const StatusSpecificDownloads = () => {
                             </td>
                           );
                         case 'dateAdded':
+                          return (
+                            <td
+                              key={column.id}
+                              style={{ width: column.width }}
+                              className="p-2 dark:text-gray-200 ml-2"
+                            >
+                              {formatRelativeTime(download.DateAdded)}
+                            </td>
+                          );
+                        case 'thumbnail':
+                          return (
+                            <td
+                              key={column.id}
+                              style={{ width: column.width }}
+                              className="p-2 dark:text-gray-200 ml-2"
+                            >
+                              'Hello'
+                            </td>
+                          );
+                        case 'transcript':
                           return (
                             <td
                               key={column.id}
