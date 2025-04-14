@@ -402,6 +402,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       settings.defaultDownloadSpeed === 0
         ? ''
         : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+      currentDownload.automaticCaption,
     );
 
     removeFromForDownloads(currentDownload.id); // Remove from forDownloads after starting

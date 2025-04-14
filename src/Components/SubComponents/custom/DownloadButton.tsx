@@ -33,6 +33,7 @@ interface DownloadButtonProps {
     formatId: string; // Format ID of the download
     audioFormatId: string; // Audio format ID
     extractorKey: string; // Key for the extractor
+    automaticCaption: any; // Add this property
   };
 }
 
@@ -64,6 +65,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
       download.name,
       download.ext || download.audioExt, // Use appropriate extension
     );
+    console.log(download.automaticCaption);
     // calls the addDownload function from store to start each selected download
     addDownload(
       download.videoUrl,
@@ -84,6 +86,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
       settings.defaultDownloadSpeed === 0
         ? ''
         : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+      download.automaticCaption,
     );
     // remove the current download from the saved list for forDownloads
     removeFromForDownloads(download.id);

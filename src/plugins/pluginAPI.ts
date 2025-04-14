@@ -136,6 +136,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         options.audioFormatId || '',
         options.extractorKey || '',
         options.limitRate || '',
+        options.automaticCaption || '',
       );
 
       return options.name; // Return ID

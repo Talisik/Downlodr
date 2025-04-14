@@ -119,6 +119,7 @@ interface DownloadStore {
     audioFormatId: string,
     extractorKey: string,
     limitRate: string,
+    automatic_caption: string,
   ) => void; // Add a new download
   setDownload: (
     videoUrl: string,
@@ -168,7 +169,10 @@ const useDownloadStore = create<DownloadStore>()(
 
         if (finishedDownloads.length > 0) {
           for (const download of finishedDownloads) {
-            const filePath = `${download.location}${download.name}`;
+            const filePath = await window.downlodrFunctions.joinDownloadPath(
+              download.location,
+              download.downloadName,
+            );
             const exists = await window.downlodrFunctions.fileExists(filePath);
             console.log(`Checking file: ${filePath}, exists: ${exists}`);
 
@@ -306,27 +310,48 @@ const useDownloadStore = create<DownloadStore>()(
         audioFormatId,
         extractorKey,
         limitRate,
+        automatic_caption,
       ) => {
         if (!location || !downloadName) {
           console.error('Invalid path parameters:', { location, downloadName });
           return;
         }
-        const args = {
-          url: videoUrl,
-          outputFilepath: await window.downlodrFunctions.joinDownloadPath(
-            location,
-            downloadName,
-          ),
-          videoFormat: formatId,
-          remuxVideo: ext,
-          audioExt: audioExt,
-          audioFormatId: audioFormatId,
-          limitRate: limitRate,
-        };
 
+        // Create a sanitized name for the subfolder
+        const sanitizedTitle = name.replace(/[\\/:*?"<>.|]/g, '_');
+
+        // Create subfolder path
+        const subfolderPath = await window.downlodrFunctions.joinDownloadPath(
+          location,
+          sanitizedTitle,
+        );
+
+        // Ensure directory exists
+        const dirCreated = await window.downlodrFunctions.ensureDirectoryExists(
+          subfolderPath,
+        );
+        if (!dirCreated) {
+          console.error('Failed to create subfolder:', subfolderPath);
+        }
+
+        // Use subfolder path if created successfully, otherwise use original location
+        const finalLocation = dirCreated ? subfolderPath : location;
+        const subFolder = await window.downlodrFunctions.joinDownloadPath(
+          finalLocation,
+          downloadName,
+        );
+        // Create a download ID before starting the download
         const downloadId = (window as any).ytdlp.download(
-          args,
-          (result: any) => {
+          {
+            url: videoUrl,
+            outputFilepath: subFolder,
+            videoFormat: formatId,
+            remuxVideo: ext,
+            audioExt: audioExt,
+            audioFormatId: audioFormatId,
+            limitRate: limitRate,
+          },
+          async (result: any) => {
             if (result.type === 'controller' && result.controllerId) {
               set((state) => ({
                 downloading: state.downloading.map((download) =>
@@ -358,7 +383,23 @@ const useDownloadStore = create<DownloadStore>()(
             get().checkFinishedDownloads();
           },
         );
+        console.log(automatic_caption);
+        if (automatic_caption) {
+          const captionsPath = await downloadEnglishCaptions(
+            automatic_caption,
+            finalLocation,
+            downloadName,
+          );
 
+          if (captionsPath) {
+            console.log(`Successfully downloaded captions to: ${captionsPath}`);
+          } else {
+            console.log('Could not download English captions');
+          }
+        } else {
+          console.log('no transcript');
+        }
+        // Add the download to state with the final location
         set((state) => ({
           downloading: [
             ...state.downloading,
@@ -372,7 +413,7 @@ const useDownloadStore = create<DownloadStore>()(
               timeLeft,
               DateAdded,
               progress,
-              location,
+              location: finalLocation, // Use the subfolder path for the download location
               status: 'downloading',
               ext,
               formatId,
@@ -388,7 +429,7 @@ const useDownloadStore = create<DownloadStore>()(
               audioFormatId: '',
               isLive: false,
               elapsed: null,
-              automaticCaption: null,
+              automaticCaption: automatic_caption,
             },
           ],
         }));
@@ -441,6 +482,7 @@ const useDownloadStore = create<DownloadStore>()(
         try {
           // Fetch metadata in background
           const info = await window.ytdlp.getInfo(videoUrl);
+          /*
           const sanitizedTitle = info.data.title.replace(/[\\/:*?"<>.|]/g, '_');
 
           const subfolderPath = await window.downlodrFunctions.joinDownloadPath(
@@ -467,7 +509,7 @@ const useDownloadStore = create<DownloadStore>()(
           } else {
             console.log('Could not download English captions');
           }
-
+          */
           // Process formats using the service
           const { formatOptions, defaultFormatId, defaultExt } =
             await VideoFormatService.processVideoFormats(info);
@@ -477,7 +519,7 @@ const useDownloadStore = create<DownloadStore>()(
           const defaultAudioFormat = formatOptions.find((f) =>
             f.label.includes('Audio Only'),
           );
-
+          console.log(info.data.automatic_captions.en);
           // Update the forDownloads entry with metadata AND the new folder path
           set((state) => ({
             ...state,
@@ -498,7 +540,8 @@ const useDownloadStore = create<DownloadStore>()(
                     isLive: info.data.is_live,
                     elapsed: info.data.elapsed,
                     location: location,
-                    automaticCaption: info.data.automatic_captions.en,
+                    automaticCaption:
+                      info.data.subtitles.en || info.data.automatic_captions.en,
                   }
                 : download,
             ),

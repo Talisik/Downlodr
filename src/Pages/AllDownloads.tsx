@@ -358,6 +358,7 @@ const AllDownloads = () => {
         currentDownload.backupAudioFormatId,
         currentDownload.extractorKey,
         '',
+        currentDownload.automaticCaption,
       );
       deleteDownloading(downloadId);
       toast({

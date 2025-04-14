@@ -292,6 +292,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           settings.defaultDownloadSpeed === 0
             ? ''
             : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+          downloadInfo.automaticCaption,
         );
         // remove the current download from the saved list for forDownloads
         removeFromForDownloads(selectedDownload.id);

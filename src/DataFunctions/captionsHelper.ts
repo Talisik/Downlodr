@@ -14,7 +14,7 @@ export async function downloadEnglishCaptions(
 ): Promise<string | null> {
   try {
     // Check if automatic captions exist
-    if (!videoInfo.data.automatic_captions) {
+    if (!videoInfo) {
       console.log('No automatic captions available in this video');
       return null;
     }
@@ -23,14 +23,10 @@ export async function downloadEnglishCaptions(
     let captionsData = null;
     let captionLang = '';
     console.log(videoInfo);
-    if (videoInfo.data.automatic_captions.en) {
-      captionsData = videoInfo.data.automatic_captions.en;
+    if (videoInfo) {
+      captionsData = videoInfo;
       captionLang = 'en';
       console.log('found caption!last');
-    } else if (videoInfo.data.automatic_captions['en']) {
-      captionsData = videoInfo.automatic_captions['en'];
-      captionLang = 'en';
-      console.log('found caption!');
     }
     if (!captionsData) {
       console.log('No English automatic captions available');

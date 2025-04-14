@@ -104,6 +104,7 @@ export interface DownloadOptions {
   audioExt?: string;
   extractorKey?: string;
   limitRate?: string;
+  automaticCaption?: any;
 }
 
 export interface DownloadInfo {

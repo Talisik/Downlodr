@@ -429,6 +429,7 @@ const StatusSpecificDownloads = () => {
         currentDownload.backupAudioFormatId,
         currentDownload.extractorKey,
         '',
+        currentDownload.automaticCaption,
       );
       deleteDownloading(downloadId);
       toast({
@@ -938,19 +939,27 @@ const StatusSpecificDownloads = () => {
                                     >
                                       <FaPlay
                                         className="mr-3 text-green-600 hover:text-green-400 transition-colors duration-200"
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                           e.stopPropagation();
                                           handleViewDownload(
-                                            `${download.location}${download.name}`,
+                                            await window.downlodrFunctions.joinDownloadPath(
+                                              download.location,
+                                              download.name,
+                                            ),
                                           );
                                         }}
                                       />
                                       <span
                                         className="hover:text-green-400 transition-colors"
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                           e.stopPropagation();
                                           handleViewFolder(
-                                            `${download.location},${download.location}${download.name}`,
+                                            `${
+                                              download.location
+                                            },${await window.downlodrFunctions.joinDownloadPath(
+                                              download.location,
+                                              download.name,
+                                            )}`,
                                           );
                                         }}
                                       >
