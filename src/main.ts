@@ -254,6 +254,13 @@ ipcMain.handle('joinDownloadPath', async (event, downloadPath, fileName) => {
   return path.join(normalizedPath, fileName);
 });
 
+ipcMain.handle('createFolder', async (_event, dirPath) => {
+  if (!fs.existsSync(dirPath)) {
+    await fs.promises.mkdir(dirPath, { recursive: true });
+  }
+  return true;
+});
+
 // Function for getting default download folder from each OS
 ipcMain.handle('getDownloadFolder', async () => {
   try {
@@ -292,8 +299,6 @@ ipcMain.handle('validatePath', async (event, folderPath) => {
       console.error('Path is not a directory:', resolvedPath);
       return false;
     }
-
-    // Check if the directory is accessible
     await fs.promises.access(
       resolvedPath,
       fs.constants.R_OK | fs.constants.W_OK,
@@ -811,6 +816,9 @@ ipcMain.handle('plugins:save-file-dialog', (event, options) => {
 ipcMain.handle('plugins:reload', async (event) => {
   console.log('Reloading plugins...');
 
+  // Clear existing registry items before reloading
+  pluginRegistry.clearAllRegistrations();
+
   // Only reload the plugins from disk, don't re-setup IPC handlers
   await pluginManager.loadPlugins();
 
@@ -820,24 +828,14 @@ ipcMain.handle('plugins:reload', async (event) => {
   return true;
 });
 
-// Update your plugin install/uninstall handlers to reload immediately:
-ipcMain.handle('plugins:install', async (event, pluginPath) => {
-  const success = await pluginManager.installPlugin(pluginPath);
-  if (success) {
-    // Optionally, automatically reload plugins here
-    await pluginManager.loadPlugins();
-    // Notify renderer
-    event.sender.send('plugins:reloaded');
-  }
-  return success;
-});
-
+// When uninstalling a specific plugin
 ipcMain.handle('plugins:uninstall', async (event, pluginId) => {
+  // Clear registrations specific to this plugin
+  pluginRegistry.clearAllRegistrations(pluginId);
+
   const success = await pluginManager.unloadPlugin(pluginId);
   if (success) {
-    // Optionally, automatically reload plugins here
     await pluginManager.loadPlugins();
-    // Notify renderer
     event.sender.send('plugins:reloaded');
   }
   return success;

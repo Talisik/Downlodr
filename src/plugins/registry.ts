@@ -10,6 +10,33 @@ export class PluginRegistry {
   private notifItems: NotifItem[] = [];
   private notifItemHandlers: Map<string, (contextData?: any) => void> =
     new Map();
+
+  // Add this method to clear everything
+  clearAllRegistrations(pluginId?: string) {
+    if (pluginId) {
+      // Clear only items from this plugin
+      this.menuItems = this.menuItems.filter(
+        (item) => item.pluginId !== pluginId,
+      );
+
+      // Clear handlers from this plugin
+      const handlersToRemove: string[] = [];
+      this.menuItemHandlers.forEach((_, key) => {
+        if (key.startsWith(pluginId)) {
+          handlersToRemove.push(key);
+        }
+      });
+
+      handlersToRemove.forEach((key) => {
+        this.menuItemHandlers.delete(key);
+      });
+    } else {
+      // Clear everything
+      this.menuItems = [];
+      this.menuItemHandlers.clear();
+    }
+  }
+
   registerMenuItem(item: MenuItem): string {
     const id = item.id || `menu-item-${Date.now()}`;
 

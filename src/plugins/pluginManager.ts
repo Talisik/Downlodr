@@ -11,7 +11,7 @@ export class PluginManager {
   constructor() {
     this.pluginsDir = path.join(app.getPath('userData'), 'plugins');
     this.ensurePluginDirectory();
-    // Don't call setupIPC here - it will be called separately
+    // Dont call setupIPC here - it will be called separately
   }
 
   private ensurePluginDirectory() {
@@ -20,7 +20,6 @@ export class PluginManager {
     }
   }
 
-  // Make this method public so we can call it once from main.ts
   setupIPC() {
     // Get list of available plugins
     ipcMain.handle('plugins:list', async () => {
@@ -246,16 +245,28 @@ export class PluginManager {
 
   async unloadPlugin(pluginId: string): Promise<boolean> {
     try {
-      // 1. Remove from memory if loaded
+      console.log(`Unloading plugin ${pluginId}`);
+
+      // 1. Get plugin details before removal
+      const plugin = this.loadedPlugins.get(pluginId);
+
+      // 2. Remove from memory
       this.loadedPlugins.delete(pluginId);
 
-      // 2. Delete from disk
+      // 3. Delete from disk
       const pluginDir = path.join(this.pluginsDir, pluginId);
       if (fs.existsSync(pluginDir)) {
         fs.rmSync(pluginDir, { recursive: true });
+        console.log(`Deleted plugin directory: ${pluginDir}`);
         return true;
+      } else {
+        console.log(`Plugin directory not found: ${pluginDir}`);
       }
-      return false;
+
+      // 4. Force a reload of available plugins list
+      await this.loadPlugins();
+
+      return true;
     } catch (error) {
       console.error(`Failed to unload plugin ${pluginId}:`, error);
       return false;
