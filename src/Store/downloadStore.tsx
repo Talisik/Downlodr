@@ -52,6 +52,9 @@ export interface BaseDownload {
   isLive: boolean; // Indicates if the download is a live stream
   elapsed: number;
   automaticCaption: any;
+  thumbnails: any;
+  autoCaptionLocation: string;
+  thumnailsLocation: string;
 }
 
 // Interface for downloads that are currently being processed
@@ -119,7 +122,8 @@ interface DownloadStore {
     audioFormatId: string,
     extractorKey: string,
     limitRate: string,
-    automatic_caption: string,
+    automatic_caption: any,
+    thumbnails: any,
   ) => void; // Add a new download
   setDownload: (
     videoUrl: string,
@@ -311,6 +315,7 @@ const useDownloadStore = create<DownloadStore>()(
         extractorKey,
         limitRate,
         automatic_caption,
+        thumbnails,
       ) => {
         if (!location || !downloadName) {
           console.error('Invalid path parameters:', { location, downloadName });
@@ -404,9 +409,10 @@ const useDownloadStore = create<DownloadStore>()(
             get().checkFinishedDownloads();
           },
         );
+        let captionsPath = '';
         console.log(automatic_caption);
         if (automatic_caption) {
-          const captionsPath = await downloadEnglishCaptions(
+          captionsPath = await downloadEnglishCaptions(
             automatic_caption,
             finalLocation,
             downloadName,
@@ -419,6 +425,31 @@ const useDownloadStore = create<DownloadStore>()(
           }
         } else {
           console.log('no transcript');
+        }
+        const outputPath = await window.downlodrFunctions.joinDownloadPath(
+          finalLocation,
+          `thumb1.jpg`,
+        );
+        if (thumbnails) {
+          console.log(thumbnails);
+
+          try {
+            // Extract the URL from the thumbnails object
+            const thumbnailUrl = thumbnails.url;
+            if (thumbnailUrl) {
+              await window.downlodrFunctions.downloadFile(
+                thumbnailUrl,
+                outputPath,
+              );
+              console.log(`Thumbnail downloaded to: ${outputPath}`);
+            } else {
+              console.log('Thumbnail URL not found in object');
+            }
+          } catch (error) {
+            console.log('Error downloading thumbnail:', error);
+          }
+        } else {
+          console.log('no available thumbnail');
         }
         // Add the download to state with the final location
         set((state) => ({
@@ -451,6 +482,9 @@ const useDownloadStore = create<DownloadStore>()(
               isLive: false,
               elapsed: null,
               automaticCaption: automatic_caption,
+              thumbnails: thumbnails,
+              autoCaptionLocation: captionsPath,
+              thumnailsLocation: outputPath,
             },
           ],
         }));
@@ -496,6 +530,9 @@ const useDownloadStore = create<DownloadStore>()(
               audioFormatId: '',
               elapsed: null,
               automaticCaption: null,
+              thumbnails: null,
+              autoCaptionLocation: null,
+              thumnailsLocation: null,
             },
           ],
         }));
@@ -503,34 +540,16 @@ const useDownloadStore = create<DownloadStore>()(
         try {
           // Fetch metadata in background
           const info = await window.ytdlp.getInfo(videoUrl);
-          /*
-          const sanitizedTitle = info.data.title.replace(/[\\/:*?"<>.|]/g, '_');
 
-          const subfolderPath = await window.downlodrFunctions.joinDownloadPath(
-            location,
-            sanitizedTitle,
-          );
-
-          const dirCreated =
-            await window.downlodrFunctions.ensureDirectoryExists(subfolderPath);
-          if (!dirCreated) {
-            console.error('Failed to create subfolder:', subfolderPath);
+          let caption = null;
+          let thumbnail = null;
+          if (info.data?.subtitles?.en || info.data?.automatic_captions?.en) {
+            caption =
+              info.data?.subtitles?.en || info.data?.automatic_captions?.en;
           }
-
-          const folderPath = dirCreated ? subfolderPath : location;
-
-          const captionsPath = await downloadEnglishCaptions(
-            info,
-            folderPath,
-            info.data.title,
-          );
-
-          if (captionsPath) {
-            console.log(`Successfully downloaded captions to: ${captionsPath}`);
-          } else {
-            console.log('Could not download English captions');
+          if (info.data?.thumbnails && info.data.thumbnails.length > 0) {
+            thumbnail = info.data.thumbnails[0];
           }
-          */
           // Process formats using the service
           const { formatOptions, defaultFormatId, defaultExt } =
             await VideoFormatService.processVideoFormats(info);
@@ -540,7 +559,7 @@ const useDownloadStore = create<DownloadStore>()(
           const defaultAudioFormat = formatOptions.find((f) =>
             f.label.includes('Audio Only'),
           );
-          console.log(info.data.automatic_captions.en);
+          // console.log(info.data.automatic_captions.en);
           // Update the forDownloads entry with metadata AND the new folder path
           set((state) => ({
             ...state,
@@ -548,21 +567,21 @@ const useDownloadStore = create<DownloadStore>()(
               download.id === downloadId
                 ? {
                     ...download,
-                    name: `${info.data.title}`,
-                    downloadName: `${info.data.title}`,
+                    name: `${info.data?.title || 'Untitled'}`,
+                    downloadName: `${info.data?.title || 'Untitled'}`,
                     status: 'to download',
                     ext: defaultExt,
                     formatId: defaultFormatId,
-                    extractorKey: info.data.extractor_key,
+                    extractorKey: info.data?.extractor_key || '',
                     audioExt: '',
                     audioFormatId: '',
                     downloadStart: false,
                     formats: formatOptions,
-                    isLive: info.data.is_live,
-                    elapsed: info.data.elapsed,
+                    isLive: info.data?.is_live || false,
+                    elapsed: info.data?.elapsed || null,
                     location: location,
-                    automaticCaption:
-                      info.data.subtitles.en || info.data.automatic_captions.en,
+                    automaticCaption: caption,
+                    thumbnails: thumbnail,
                   }
                 : download,
             ),

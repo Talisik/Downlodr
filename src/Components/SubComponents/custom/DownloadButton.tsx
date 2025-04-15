@@ -34,6 +34,7 @@ interface DownloadButtonProps {
     audioFormatId: string; // Audio format ID
     extractorKey: string; // Key for the extractor
     automaticCaption: any; // Add this property
+    thumbnails: any;
   };
 }
 
@@ -87,6 +88,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
         ? ''
         : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
       download.automaticCaption,
+      download.thumbnails,
     );
     // remove the current download from the saved list for forDownloads
     removeFromForDownloads(download.id);

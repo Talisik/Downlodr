@@ -42,6 +42,9 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   const [isValidUrl, setIsValidUrl] = useState<boolean>(false);
 
   // Store
+  const [getTranscript, setGetTranscript] = useState<boolean>(false);
+  const [getThumbnail, setGetThumbnail] = useState<boolean>(false);
+
   const { setDownload } = useDownloadStore();
   const { settings } = useMainStore();
   const [downloadFolder, setDownloadFolder] = useState<string>(
@@ -52,7 +55,6 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       ? ''
       : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
 
-  // Add this useEffect to listen for settings changes
   useEffect(() => {
     setDownloadFolder(settings.defaultLocation);
   }, [settings.defaultLocation]);
@@ -346,7 +348,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             <form onSubmit={(e) => e.preventDefault()} className={'w-full'}>
               <div className="space-y-4">
                 <div>
-                  <label className="block dark:text-gray-200">
+                  <label className="block dark:text-gray-200 font-medium">
                     Download link
                   </label>
                   <div className="flex gap-2">
@@ -366,7 +368,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 <div>
-                  <label className="block dark:text-gray-200">
+                  <label className="block dark:text-gray-200 font-medium">
                     Save file to
                   </label>
                   <div className="flex gap-2">
@@ -379,6 +381,40 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                       className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
                       readOnly
                     />
+                  </div>
+                </div>
+                <div className="">
+                  <div className="flex items-center gap-2">
+                    <label className="block dark:text-gray-200 text-nowrap font-bold">
+                      Additional Options
+                    </label>
+                    <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
+                  </div>
+                  <div className="flex items-center gap-4 mt-3">
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        id="run-in-background"
+                        checked={getTranscript}
+                        onChange={(e) => setGetTranscript(e.target.checked)}
+                        className="w-4 h-4 text-primary rounded focus:ring-primary"
+                      />
+                      <label className="font-medium dark:text-gray-200 ">
+                        Get Transcript
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        id="run-in-background"
+                        checked={getThumbnail}
+                        onChange={(e) => setGetThumbnail(e.target.checked)}
+                        className="w-4 h-4 text-primary rounded focus:ring-primary"
+                      />
+                      <label className="font-medium dark:text-gray-200 ">
+                        Get Thumbnail
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>

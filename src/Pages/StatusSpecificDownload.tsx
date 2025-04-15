@@ -82,6 +82,9 @@ const StatusSpecificDownloads = () => {
   // Get status from URL parameters
   const { status } = useParams<{ status: string }>();
   const currentStatus = status ? statusMapping[status] || status : '';
+  const [thumbnailDataUrls, setThumbnailDataUrls] = useState<
+    Record<string, string>
+  >({});
 
   // Set page title based on status
   useEffect(() => {
@@ -151,7 +154,7 @@ const StatusSpecificDownloads = () => {
       { id: 'format', width: 80, minWidth: 80 },
       { id: 'status', width: 110, minWidth: 110 },
       { id: 'speed', width: 70, minWidth: 70 },
-      { id: 'dateAdded', width: 90, minWidth: 90 },
+      { id: 'dateAdded', width: 100, minWidth: 100 },
       { id: 'source', width: 20, minWidth: 20 },
       { id: 'transcript', width: 20, minWidth: 20 },
       { id: 'thumbnail', width: 20, minWidth: 20 },
@@ -436,6 +439,7 @@ const StatusSpecificDownloads = () => {
         currentDownload.extractorKey,
         '',
         currentDownload.automaticCaption,
+        currentDownload.thumbnails,
       );
       deleteDownloading(downloadId);
       toast({
@@ -641,6 +645,7 @@ const StatusSpecificDownloads = () => {
     Promise.all(promises).then((resolvedData) => {
       setSelectedDownloads(resolvedData);
     });
+    console.log(selectedDownload);
   };
 
   const handleSelectAll = () => {
@@ -670,6 +675,7 @@ const StatusSpecificDownloads = () => {
     Promise.all(promises).then((resolvedData) => {
       setSelectedDownloads(resolvedData);
     });
+    console.log(selectedDownload);
   };
 
   const handleCloseContextMenu = () => {
@@ -753,6 +759,25 @@ const StatusSpecificDownloads = () => {
   const selectedDownload = selectedDownloadId
     ? allDownloads.find((d) => d.id === selectedDownloadId)
     : null;
+
+  // Add this effect to load thumbnails for displayed downloads
+  useEffect(() => {
+    // Load thumbnails for visible downloads
+    allDownloads.forEach((download) => {
+      if (download.thumnailsLocation && !thumbnailDataUrls[download.id]) {
+        window.downlodrFunctions
+          .getThumbnailDataUrl(download.thumnailsLocation)
+          .then((dataUrl: any) => {
+            if (dataUrl) {
+              setThumbnailDataUrls((prev) => ({
+                ...prev,
+                [download.id]: dataUrl,
+              }));
+            }
+          });
+      }
+    });
+  }, [allDownloads, thumbnailDataUrls]);
 
   return (
     <div className="flex flex-col h-full">
@@ -1057,7 +1082,36 @@ const StatusSpecificDownloads = () => {
                               style={{ width: column.width }}
                               className="p-2 dark:text-gray-200 ml-2"
                             >
-                              'Hello'
+                              {download.thumnailsLocation ? (
+                                <div className="flex items-center">
+                                  {thumbnailDataUrls[download.id] ? (
+                                    <img
+                                      src={thumbnailDataUrls[download.id]}
+                                      alt="Thumbnail"
+                                      className="h-10 w-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+                                      onClick={() =>
+                                        handleViewDownload(
+                                          download.thumnailsLocation,
+                                        )
+                                      }
+                                      title="Click to view full thumbnail"
+                                      onError={(e) => {
+                                        console.error(
+                                          'Failed to load thumbnail:',
+                                          download.thumnailsLocation,
+                                        );
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.parentElement.innerHTML =
+                                          'Unable to load';
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="h-10 w-16 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+                                  )}
+                                </div>
+                              ) : (
+                                '—'
+                              )}
                             </td>
                           );
                         case 'transcript':
@@ -1067,7 +1121,20 @@ const StatusSpecificDownloads = () => {
                               style={{ width: column.width }}
                               className="p-2 dark:text-gray-200 ml-2"
                             >
-                              {formatRelativeTime(download.DateAdded)}
+                              {download.autoCaptionLocation ? (
+                                <button
+                                  onClick={() =>
+                                    handleViewDownload(
+                                      download.autoCaptionLocation,
+                                    )
+                                  }
+                                  className="text-blue-500 hover:underline"
+                                >
+                                  Transcription
+                                </button>
+                              ) : (
+                                '—'
+                              )}{' '}
                             </td>
                           );
                         case 'source':

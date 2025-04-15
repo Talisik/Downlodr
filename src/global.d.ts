@@ -41,6 +41,7 @@ declare global {
         error?: string;
       }>;
       ensureDirectoryExists: (dirPath: string) => Promise<boolean>; // Creates directory if it doesn't exist
+      getThumbnailDataUrl: (path: string) => Promise<string | null>;
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist

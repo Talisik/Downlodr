@@ -14,6 +14,7 @@ import {
   Tray,
   nativeImage,
   Notification,
+  protocol,
 } from 'electron';
 import path from 'path';
 import started from 'electron-squirrel-startup';
@@ -65,12 +66,12 @@ let pluginManager: PluginManager;
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 1100,
+    width: 1200,
     height: 680,
     frame: false,
     autoHideMenuBar: true,
-    minWidth: 550,
-    minHeight: 450,
+    minWidth: 600,
+    minHeight: 600,
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
@@ -550,6 +551,42 @@ app.on('ready', async () => {
 
   // Set up IPC handlers AFTER app is ready
   pluginManager.setupIPC();
+
+  // Register a custom protocol with better security
+  protocol.registerFileProtocol('app-image', (request, callback) => {
+    try {
+      const filePath = decodeURIComponent(
+        request.url.slice('app-image://'.length),
+      );
+
+      // Security check: Validate the file exists and is an image
+      if (!fs.existsSync(filePath)) {
+        throw new Error('File does not exist');
+      }
+
+      // Check file extension to ensure it's an image
+      const ext = path.extname(filePath).toLowerCase();
+      const allowedExtensions = [
+        '.jpg',
+        '.jpeg',
+        '.png',
+        '.gif',
+        '.webp',
+        '.bmp',
+        '.svg',
+      ];
+
+      if (!allowedExtensions.includes(ext)) {
+        throw new Error('Not an allowed image type');
+      }
+
+      return callback(filePath);
+    } catch (error) {
+      console.error('Error in protocol handler:', error);
+      // Return a placeholder or error image instead
+      callback({ path: path.join(__dirname, 'assets', 'error-image.png') });
+    }
+  });
 });
 
 // Change this to keep app running in background
@@ -892,5 +929,32 @@ ipcMain.handle('downloadFile', async (_event, url, outputPath) => {
   } catch (error) {
     console.error('Error downloading file:', error);
     return { success: false, error: error.message };
+  }
+});
+
+// Add this near your other ipcMain handlers
+ipcMain.handle('get-thumbnail-data-url', async (_event, imagePath) => {
+  try {
+    if (!fs.existsSync(imagePath)) {
+      console.error('Thumbnail file does not exist:', imagePath);
+      return null;
+    }
+
+    // Read the file as a buffer
+    const buffer = await fs.promises.readFile(imagePath);
+
+    // Determine MIME type based on file extension
+    const ext = path.extname(imagePath).toLowerCase();
+    let mimeType = 'image/jpeg'; // Default
+
+    if (ext === '.png') mimeType = 'image/png';
+    else if (ext === '.gif') mimeType = 'image/gif';
+    else if (ext === '.webp') mimeType = 'image/webp';
+
+    // Convert to base64 and return as data URL
+    return `data:${mimeType};base64,${buffer.toString('base64')}`;
+  } catch (error) {
+    console.error('Error creating thumbnail data URL:', error);
+    return null;
   }
 });
