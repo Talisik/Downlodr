@@ -320,11 +320,32 @@ const useDownloadStore = create<DownloadStore>()(
         // Create a sanitized name for the subfolder
         const sanitizedTitle = name.replace(/[\\/:*?"<>.|]/g, '_');
 
-        // Create subfolder path
-        const subfolderPath = await window.downlodrFunctions.joinDownloadPath(
+        // Create initial subfolder path
+        let subfolderPath = await window.downlodrFunctions.joinDownloadPath(
           location,
           sanitizedTitle,
         );
+
+        // Check if folder already exists and append counter if needed
+        let counter = 1;
+        let folderExists = await window.downlodrFunctions.fileExists(
+          subfolderPath,
+        );
+
+        while (folderExists) {
+          // Create a new path with counter appended
+          const newFolderName = `${sanitizedTitle} (${counter})`;
+          subfolderPath = await window.downlodrFunctions.joinDownloadPath(
+            location,
+            newFolderName,
+          );
+
+          // Check if this new path exists
+          folderExists = await window.downlodrFunctions.fileExists(
+            subfolderPath,
+          );
+          counter++;
+        }
 
         // Ensure directory exists
         const dirCreated = await window.downlodrFunctions.ensureDirectoryExists(

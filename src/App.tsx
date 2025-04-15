@@ -15,10 +15,8 @@ import {
 } from 'react-router-dom';
 import { ThemeProvider } from './Components/ThemeProvider';
 import MainLayout from './Layout/MainLayout';
-import Downloading from './Pages/Downloading';
 // import AllDownloads from './Pages/AllDownloads';
 import History from './Pages/History';
-import CompletedDownloads from './Pages/CompletedDownloads';
 import PluginManager from './Pages/PlugInManager';
 import NotFound from './Pages/SubPages/NotFound';
 import CategoryPage from './Pages/SubPages/CategoryPage';
@@ -28,7 +26,6 @@ import UpdateNotification from './Components/SubComponents/custom/UpdateNotifica
 import StatusSpecificDownloads from './Pages/StatusSpecificDownload';
 import { useEffect } from 'react';
 import { useMainStore } from './Store/mainStore';
-import React from 'react';
 import { PluginLoader } from './Components/PluginLoader';
 
 const App = () => {
@@ -53,8 +50,6 @@ const App = () => {
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Navigate to="/status/all" replace />} />
             <Route path="/plugin-manager" element={<PluginManager />} />
-            <Route path="/downloading" element={<Downloading />} />
-            <Route path="/completed" element={<CompletedDownloads />} />
             <Route path="/history" element={<History />} />
             <Route path="/category/:categoryId" element={<CategoryPage />} />
             <Route path="/tags/:tagId" element={<TagPage />} />

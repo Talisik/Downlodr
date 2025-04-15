@@ -10,12 +10,6 @@ export const PluginLoader: React.FC = () => {
 
     // Set up reload listener
     const unsubscribe = window.plugins.onReloaded(() => {
-      console.log(
-        'Plugins reloaded event received, reloading plugins in renderer',
-      );
-      // Unload existing plugins if needed
-      // ...
-
       // Reload plugins
       loadPlugins();
     });

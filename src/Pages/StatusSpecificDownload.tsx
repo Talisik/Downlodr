@@ -389,14 +389,20 @@ const StatusSpecificDownloads = () => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [contextMenu.downloadId]);
 
-  const handleContextMenu = (event: React.MouseEvent, allDownloads: any) => {
+  const handleContextMenu = async (
+    event: React.MouseEvent,
+    allDownloads: any,
+  ) => {
     event.preventDefault();
     event.stopPropagation(); // Prevent the click outside handler from firing immediately
     setContextMenu({
       downloadId: allDownloads.id,
       x: event.clientX,
       y: event.clientY,
-      downloadLocation: `${allDownloads.location}${allDownloads.name}`,
+      downloadLocation: await window.downlodrFunctions.joinDownloadPath(
+        allDownloads.location,
+        allDownloads.name,
+      ),
       downloadStatus: allDownloads.status,
       controllerId: allDownloads.controllerId,
     });
@@ -616,18 +622,25 @@ const StatusSpecificDownloads = () => {
 
     setSelectedRowIds(newSelected);
 
-    // Update selectedDownloads with full download info
-    const selectedDownloadsData = newSelected.map((id) => {
+    // Create promises for each download
+    const promises = newSelected.map(async (id) => {
       const download = allDownloads.find((d) => d.id === id);
       return {
         id,
         controllerId: download?.controllerId,
         location: download?.location
-          ? `${download.location}${download.name}`
+          ? await window.downlodrFunctions.joinDownloadPath(
+              download.location,
+              download.name,
+            )
           : undefined,
       };
     });
-    setSelectedDownloads(selectedDownloadsData);
+
+    // Resolve all promises before updating state
+    Promise.all(promises).then((resolvedData) => {
+      setSelectedDownloads(resolvedData);
+    });
   };
 
   const handleSelectAll = () => {
@@ -638,18 +651,25 @@ const StatusSpecificDownloads = () => {
 
     setSelectedRowIds(newSelected);
 
-    // Update selectedDownloads with full download info
-    const selectedDownloadsData = newSelected.map((id) => {
+    // Create promises for each download
+    const promises = newSelected.map(async (id) => {
       const download = allDownloads.find((d) => d.id === id);
       return {
         id,
         controllerId: download?.controllerId,
         location: download?.location
-          ? `${download.location}${download.name}`
+          ? await window.downlodrFunctions.joinDownloadPath(
+              download.location,
+              download.name,
+            )
           : undefined,
       };
     });
-    setSelectedDownloads(selectedDownloadsData);
+
+    // Resolve all promises before updating state
+    Promise.all(promises).then((resolvedData) => {
+      setSelectedDownloads(resolvedData);
+    });
   };
 
   const handleCloseContextMenu = () => {
