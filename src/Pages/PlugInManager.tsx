@@ -216,7 +216,7 @@ const PluginManager: React.FC = () => {
       ) : plugins.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center text-gray-500 p-8 min-h-[60vh]">
           <img src={NoPlugin} alt="No plugins available" className="mx-auto" />
-          <span className="mx-auto mt-8">
+          <span className="mx-auto mt-8 dark:text-gray-200">
             You haven't installed any plugins
           </span>
           <Button

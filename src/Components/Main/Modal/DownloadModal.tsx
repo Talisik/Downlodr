@@ -78,6 +78,25 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   );
   const [isValidatingUrl, setIsValidatingUrl] = useState<boolean>(false);
 
+  // New state to track if directory selection is in progress
+  const [isSelectingDirectory, setIsSelectingDirectory] =
+    useState<boolean>(false);
+
+  // set download folder location
+  const handleDirectory = async () => {
+    // Prevent multiple dialogs from being opened
+    if (isSelectingDirectory) return;
+
+    try {
+      setIsSelectingDirectory(true);
+      const path = await window.ytdlp.selectDownloadDirectory();
+      if (path) {
+        setDownloadFolder(path);
+      }
+    } finally {
+      setIsSelectingDirectory(false);
+    }
+  };
   // URL validation with playlist check
   const isYouTubeLink = (url: string): 'playlist' | 'video' | 'invalid' => {
     const videoPattern = /^https:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/;
@@ -296,12 +315,6 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     setDownloadFolder(settings.defaultLocation);
   };
 
-  // set download folder location
-  const handleDirectory = async () => {
-    const path = await window.ytdlp.selectDownloadDirectory();
-    setDownloadFolder(path);
-  };
-
   // Close Modal
   const handleClose = () => {
     resetModal();
@@ -330,7 +343,10 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         }
       }}
     >
-      {' '}
+      {/* Directory selection overlay - blocks all app interaction */}
+      {isSelectingDirectory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] cursor-not-allowed" />
+      )}{' '}
       <div
         className={`bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 ${
           isValidUrl && isPlaylist ? 'w-full max-w-[800px]' : 'w-full max-w-xl'

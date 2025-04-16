@@ -1093,7 +1093,7 @@ const StatusSpecificDownloads = () => {
                                     <img
                                       src={thumbnailDataUrls[download.id]}
                                       alt="Thumbnail"
-                                      className="h-10 w-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+                                      className="ml-4 h-10 w-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
                                       onClick={() =>
                                         handleViewDownload(
                                           download.thumnailsLocation,
@@ -1140,7 +1140,7 @@ const StatusSpecificDownloads = () => {
                                       download.autoCaptionLocation,
                                     )
                                   }
-                                  className="text-blue-500 hover:underline"
+                                  className="text-blue-500 hover:underline ml-2"
                                 >
                                   Available
                                 </button>
