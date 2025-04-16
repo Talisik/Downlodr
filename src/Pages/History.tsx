@@ -253,7 +253,7 @@ const History = () => {
   };
 
   return (
-    <div className="w-full p-4">
+    <div className="w-full p-1">
       {renderDeleteButton()}
       <table className="w-full">
         <thead>

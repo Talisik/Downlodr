@@ -4,6 +4,8 @@ import { Button } from '../Components/SubComponents/shadcn/components/ui/button'
 import useDownloadStore, { HistoryDownloads } from '../Store/downloadStore';
 import { FiSearch } from 'react-icons/fi';
 import { FaPlus } from 'react-icons/fa6';
+import NoPlugin from '../Assets/Images/extension_light_nobg 1.svg';
+import { NavLink } from 'react-router-dom';
 
 interface PluginInfo {
   id: string;
@@ -196,21 +198,35 @@ const PluginManager: React.FC = () => {
               )}
           </div>
         </div>
-        <div className="flex items-center">
-          <Button
-            onClick={handleInstall}
-            className="bg-[#F45513] px-4 py-1 h-8 ml-4"
-          >
-            <FaPlus />
-            <span>Add Extension</span>
-          </Button>
-        </div>
+        {plugins.length > 0 && (
+          <div className="flex items-center">
+            <Button
+              onClick={handleInstall}
+              className="bg-[#F45513] px-4 py-1 h-8 ml-4"
+            >
+              <FaPlus />
+              <span>Add Plugin</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {loading ? (
         <div>Loading plugins...</div>
       ) : plugins.length === 0 ? (
-        <div className="text-center text-gray-500 p-8">lol walang lumabas</div>
+        <div className="flex flex-col items-center justify-center text-center text-gray-500 p-8 min-h-[60vh]">
+          <img src={NoPlugin} alt="No plugins available" className="mx-auto" />
+          <span className="mx-auto mt-8">
+            You haven't installed any plugins
+          </span>
+          <Button
+            onClick={handleInstall}
+            className="bg-[#F45513] px-4 py-1 h-8 mt-2"
+          >
+            <FaPlus />
+            <span>Add Plugin</span>
+          </Button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {plugins.map((plugin) => (
@@ -230,13 +246,11 @@ const PluginManager: React.FC = () => {
                   <hr className="solid my-4 w-full border-t border-divider dark:border-gray-700" />
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <div className="flex gap-2 flex-wrap">
-                      <Button
-                        variant="outline"
-                        className="border-2 px-4 h-8"
-                        onClick={() => handleUninstall(plugin.id)}
-                      >
-                        Details
-                      </Button>
+                      <NavLink to="/plugin-details" state={{ plugin }}>
+                        <Button variant="outline" className="border-2 px-4 h-8">
+                          Details
+                        </Button>
+                      </NavLink>
                       <Button
                         variant="outline"
                         className="border-2 px-4 h-8"

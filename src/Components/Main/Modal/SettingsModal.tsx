@@ -161,11 +161,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     { id: 'size', label: 'Size', required: false },
     { id: 'speed', label: 'Speed', required: false },
     { id: 'source', label: 'Source', required: false },
-    { id: 'status', label: 'Status', required: true },
     { id: 'name', label: 'Title', required: true },
     { id: 'dateAdded', label: 'Date Added', required: false },
     { id: 'transcript', label: 'Transcript', required: false },
     { id: 'thumbnail', label: 'Thumbnail', required: false },
+    { id: 'status', label: 'Status', required: true },
   ];
 
   // Column toggle handler

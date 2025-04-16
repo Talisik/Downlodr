@@ -53,7 +53,7 @@ const MainLayout = () => {
         <DropdownBar className="h-11 pl-4 bg-nav-main dark:bg-darkMode border-b border-gray-200 dark:border-componentBorder" />
         <TaskBar className="py-[9px] pr-[24px] pl-[8px] bg-nav-main dark:bg-darkMode border-b border-gray-200 dark:border-componentBorder" />
         <div className="flex flex-1 overflow-hidden h-[calc(100vh-120px)]">
-          <Navigation className="w-[215px] overflow-y-auto h-full" />
+          <Navigation className="w-[205px] overflow-y-auto h-full" />
           <main className="flex-1 overflow-auto">
             <Outlet />
           </main>

@@ -4,23 +4,23 @@
  * @param videoInfo The video info object returned from ytdlp.getInfo
  * @param outputPath path to save the captions file (defaults to same location as video with .en.vtt extension)
  * @param fileName file name to save the captions file (defaults to video if no name is available)
- * @returns Promise<string> Path to the downloaded captions file or null if not available
+ * @returns Promise<string> Path to the downloaded captions file or undefined if not available
  */
 
 export async function downloadEnglishCaptions(
   videoInfo: any,
   outputPath: string,
   fileName: string,
-): Promise<string | null> {
+): Promise<string | undefined> {
   try {
     // Check if automatic captions exist
     if (!videoInfo) {
       console.log('No automatic captions available in this video');
-      return null;
+      return undefined;
     }
 
     // Priority order: English original, then English
-    let captionsData = null;
+    let captionsData = undefined;
     let captionLang = '';
     console.log(videoInfo);
     if (videoInfo) {
@@ -30,12 +30,12 @@ export async function downloadEnglishCaptions(
     }
     if (!captionsData) {
       console.log('No English automatic captions available');
-      return null;
+      return undefined;
     }
 
     // Find the VTT format (preferred) or fallback to others in order of preference
     const formatPreference = ['vtt', 'ttml', 'srv3', 'srv2', 'srv1', 'json3'];
-    let selectedCaption = null;
+    let selectedCaption = undefined;
 
     for (const format of formatPreference) {
       selectedCaption = captionsData.find(
@@ -48,7 +48,7 @@ export async function downloadEnglishCaptions(
       console.log(
         `English captions found in ${captionLang} but no suitable format available`,
       );
-      return null;
+      return undefined;
     }
 
     // Remove file extension from fileName if it exists
@@ -84,6 +84,6 @@ export async function downloadEnglishCaptions(
     return outputPath;
   } catch (error) {
     console.error('Error downloading English captions:', error);
-    return null;
+    return undefined;
   }
 }

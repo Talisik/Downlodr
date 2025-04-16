@@ -381,7 +381,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
               className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
               onClick={() => setActiveMenu(null)}
             >
-              <span> Plugin</span>
+              <span> Plugins</span>
             </NavLink>
           )}
         </div>

@@ -431,6 +431,7 @@ const useDownloadStore = create<DownloadStore>()(
             console.log('Could not download English captions');
           }
         } else {
+          captionsPath = '';
           console.log('No transcript requested or available');
         }
         const outputPath = await window.downlodrFunctions.joinDownloadPath(
