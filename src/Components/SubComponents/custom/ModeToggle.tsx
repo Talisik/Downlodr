@@ -33,7 +33,7 @@ export function ModeToggle() {
     <div className="relative" ref={dropdownRef}>
       <Button
         variant="ghost"
-        className="hover:bg-gray-100 dark:bg-transparent dark:hover:bg-darkModeCompliment hover:opacity-100 active:bg-transparent focus-none"
+        className="hover:bg-gray-100 dark:bg-transparent dark:hover:bg-darkModeCompliment hover:opacity-100 active:bg-transparent focus-none p-1 m-2 h-auto min-h-0"
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
       >
