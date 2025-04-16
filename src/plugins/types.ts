@@ -105,6 +105,9 @@ export interface DownloadOptions {
   extractorKey?: string;
   limitRate?: string;
   automaticCaption?: any;
+  thumbnails?: any;
+  getTranscript?: boolean;
+  getThumbnail?: boolean;
 }
 
 export interface DownloadInfo {

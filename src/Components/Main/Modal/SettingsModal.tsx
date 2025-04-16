@@ -164,6 +164,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     { id: 'status', label: 'Status', required: true },
     { id: 'name', label: 'Title', required: true },
     { id: 'dateAdded', label: 'Date Added', required: false },
+    { id: 'transcript', label: 'Transcript', required: false },
+    { id: 'thumbnail', label: 'Thumbnail', required: false },
   ];
 
   // Column toggle handler

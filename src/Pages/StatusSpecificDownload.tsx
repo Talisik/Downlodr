@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * A custom React Page Component for Status-Specific Downloads
  * This component dynamically displays downloads filtered by their status,
@@ -155,9 +157,9 @@ const StatusSpecificDownloads = () => {
       { id: 'status', width: 110, minWidth: 110 },
       { id: 'speed', width: 70, minWidth: 70 },
       { id: 'dateAdded', width: 100, minWidth: 100 },
-      { id: 'source', width: 20, minWidth: 20 },
       { id: 'transcript', width: 20, minWidth: 20 },
-      { id: 'thumbnail', width: 20, minWidth: 20 },
+      { id: 'thumbnail', width: 10, minWidth: 10 },
+      { id: 'source', width: 20, minWidth: 20 },
     ],
     visibleColumns,
   );
@@ -373,9 +375,6 @@ const StatusSpecificDownloads = () => {
           `[data-download-id="${contextMenu.downloadId}"]`,
         );
 
-      // Close the context menu if:
-      // 1. Clicking outside both table and details panel, OR
-      // 2. Clicking on a different row than the one with the context menu
       if (
         (!isClickInsideTable &&
           !isClickInsideDetailsPanel &&
@@ -440,6 +439,8 @@ const StatusSpecificDownloads = () => {
         '',
         currentDownload.automaticCaption,
         currentDownload.thumbnails,
+        currentDownload.getTranscript || false,
+        currentDownload.getThumbnail || false,
       );
       deleteDownloading(downloadId);
       toast({
@@ -736,9 +737,9 @@ const StatusSpecificDownloads = () => {
       status: 'Status',
       speed: 'Speed',
       dateAdded: 'Date Added',
-      source: 'Source',
       thumbnail: 'Thumbnail',
       transcript: 'Transcript',
+      source: 'Source',
     };
 
     return columnMappings[columnId] || columnId;
@@ -1082,7 +1083,11 @@ const StatusSpecificDownloads = () => {
                               style={{ width: column.width }}
                               className="p-2 dark:text-gray-200 ml-2"
                             >
-                              {download.thumnailsLocation ? (
+                              {download.status === 'fetching metadata' ? (
+                                <div className="h-10 w-16 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+                              ) : download.status === 'finished' &&
+                                download.thumnailsLocation &&
+                                download.thumnailsLocation !== '—' ? (
                                 <div className="flex items-center">
                                   {thumbnailDataUrls[download.id] ? (
                                     <img
@@ -1106,7 +1111,7 @@ const StatusSpecificDownloads = () => {
                                       }}
                                     />
                                   ) : (
-                                    <div className="h-10 w-16 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+                                    '—'
                                   )}
                                 </div>
                               ) : (

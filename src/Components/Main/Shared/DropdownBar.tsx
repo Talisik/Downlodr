@@ -242,6 +242,8 @@ const DropdownBar = ({ className }: { className?: string }) => {
           : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
         downloadInfo.automaticCaption,
         downloadInfo.thumbnails,
+        downloadInfo.getTranscript || false,
+        downloadInfo.getThumbnail || false,
       );
       removeFromForDownloads(downloadInfo.id);
     }

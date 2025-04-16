@@ -240,7 +240,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         const selectedVideosList = playlistVideos.filter((video) =>
           selectedVideos.has(video.id),
         );
-        // If link is a YT playlist link, checks if there is atleast one video selected for download
+        // If link is a YT playlist link, checks if there is at least one video selected for download
         if (selectedVideosList.length === 0) {
           toast({
             variant: 'destructive',
@@ -251,14 +251,19 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
           return;
         }
 
-        // Download each selected video
+        // Download each selected video with user preferences
         for (const video of selectedVideosList) {
-          //console.log(video.url);
-          setDownload(video.url, downloadFolder, maxDownload);
+          setDownload(video.url, downloadFolder, maxDownload, {
+            getTranscript,
+            getThumbnail,
+          });
         }
       } else {
-        // Single video download
-        setDownload(videoUrl, downloadFolder, maxDownload);
+        // Single video download with user preferences
+        setDownload(videoUrl, downloadFolder, maxDownload, {
+          getTranscript,
+          getThumbnail,
+        });
       }
       // Cleaning up modal
       resetModal();

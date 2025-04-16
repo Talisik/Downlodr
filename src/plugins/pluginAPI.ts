@@ -137,6 +137,9 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         options.extractorKey || '',
         options.limitRate || '',
         options.automaticCaption || '',
+        options.thumbnails,
+        options.getTranscript || false,
+        options.getThumbnail || false,
       );
 
       return options.name; // Return ID

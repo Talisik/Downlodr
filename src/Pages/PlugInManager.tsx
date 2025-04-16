@@ -199,7 +199,7 @@ const PluginManager: React.FC = () => {
         <div className="flex items-center">
           <Button
             onClick={handleInstall}
-            className="bg-[#F45513] px-4 py-1 h-8"
+            className="bg-[#F45513] px-4 py-1 h-8 ml-4"
           >
             <FaPlus />
             <span>Add Extension</span>
@@ -212,7 +212,7 @@ const PluginManager: React.FC = () => {
       ) : plugins.length === 0 ? (
         <div className="text-center text-gray-500 p-8">lol walang lumabas</div>
       ) : (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {plugins.map((plugin) => (
             <div
               key={plugin.id}
@@ -221,13 +221,15 @@ const PluginManager: React.FC = () => {
               <div className="flex">
                 <div className="w-full">
                   <span>{plugin.icon}</span>
-                  <h3 className="text-lg text-[14px] font-bold">
+                  <h3 className="text-lg text-[14px] font-bold truncate">
                     {plugin.name}
                   </h3>
-                  <p className="mt-2 text-sm">{plugin.description}</p>
+                  <p className="mt-2 text-sm line-clamp-2">
+                    {plugin.description}
+                  </p>
                   <hr className="solid my-4 w-full border-t border-divider dark:border-gray-700" />
-                  <div className="flex justify-between items-center">
-                    <div className="gap-2 flex">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Button
                         variant="outline"
                         className="border-2 px-4 h-8"
@@ -243,7 +245,7 @@ const PluginManager: React.FC = () => {
                         Remove
                       </Button>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"

@@ -55,6 +55,8 @@ export interface BaseDownload {
   thumbnails: any;
   autoCaptionLocation: string;
   thumnailsLocation: string;
+  getTranscript: boolean;
+  getThumbnail: boolean;
 }
 
 // Interface for downloads that are currently being processed
@@ -124,12 +126,15 @@ interface DownloadStore {
     limitRate: string,
     automatic_caption: any,
     thumbnails: any,
+    getTranscript: boolean,
+    getThumbnail: boolean,
   ) => void; // Add a new download
   setDownload: (
     videoUrl: string,
     location: string,
-    maxDownload: string,
-  ) => void; // Set a download with metadata
+    limitRate: string,
+    options?: { getTranscript: boolean; getThumbnail: boolean },
+  ) => Promise<string | undefined>; // Set a download with metadata
   deleteDownload: (id: string) => void; // Delete a specific download
   deleteDownloading: (id: string) => void; // Delete a downloading item
   removeFromForDownloads: (id: string) => void; // Remove a download from the queue
@@ -316,6 +321,8 @@ const useDownloadStore = create<DownloadStore>()(
         limitRate,
         automatic_caption,
         thumbnails,
+        getTranscript,
+        getThumbnail,
       ) => {
         if (!location || !downloadName) {
           console.error('Invalid path parameters:', { location, downloadName });
@@ -410,8 +417,8 @@ const useDownloadStore = create<DownloadStore>()(
           },
         );
         let captionsPath = '';
-        console.log(automatic_caption);
-        if (automatic_caption) {
+        console.log(automatic_caption, getTranscript);
+        if (automatic_caption && getTranscript) {
           captionsPath = await downloadEnglishCaptions(
             automatic_caption,
             finalLocation,
@@ -424,13 +431,13 @@ const useDownloadStore = create<DownloadStore>()(
             console.log('Could not download English captions');
           }
         } else {
-          console.log('no transcript');
+          console.log('No transcript requested or available');
         }
         const outputPath = await window.downlodrFunctions.joinDownloadPath(
           finalLocation,
           `thumb1.jpg`,
         );
-        if (thumbnails) {
+        if (thumbnails && getThumbnail) {
           console.log(thumbnails);
 
           try {
@@ -449,7 +456,7 @@ const useDownloadStore = create<DownloadStore>()(
             console.log('Error downloading thumbnail:', error);
           }
         } else {
-          console.log('no available thumbnail');
+          console.log('No thumbnail requested or available');
         }
         // Add the download to state with the final location
         set((state) => ({
@@ -485,18 +492,26 @@ const useDownloadStore = create<DownloadStore>()(
               thumbnails: thumbnails,
               autoCaptionLocation: captionsPath,
               thumnailsLocation: outputPath,
+              getTranscript,
+              getThumbnail,
             },
           ],
         }));
       },
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      setDownload: async (videoUrl, location, limitRate) => {
+      setDownload: async (
+        videoUrl: string,
+        location: string,
+        limitRate: string,
+        options = { getTranscript: false, getThumbnail: false },
+      ) => {
         if (!location) {
           console.error('Invalid path parameters:', { location });
           return;
         }
-
+        console.log(options.getThumbnail);
+        console.log(options.getTranscript);
         const downloadId = uuidv4();
 
         // Add initial entry with minimal info
@@ -533,6 +548,9 @@ const useDownloadStore = create<DownloadStore>()(
               thumbnails: null,
               autoCaptionLocation: null,
               thumnailsLocation: null,
+              // Store the user preferences
+              getTranscript: options.getTranscript,
+              getThumbnail: options.getThumbnail,
             },
           ],
         }));
@@ -541,15 +559,26 @@ const useDownloadStore = create<DownloadStore>()(
           // Fetch metadata in background
           const info = await window.ytdlp.getInfo(videoUrl);
 
-          let caption = null;
-          let thumbnail = null;
-          if (info.data?.subtitles?.en || info.data?.automatic_captions?.en) {
+          // Only set caption if transcript is requested
+          let caption = '—';
+          if (
+            options.getTranscript &&
+            (info.data?.subtitles?.en || info.data?.automatic_captions?.en)
+          ) {
             caption =
               info.data?.subtitles?.en || info.data?.automatic_captions?.en;
           }
-          if (info.data?.thumbnails && info.data.thumbnails.length > 0) {
+
+          // Only set thumbnail if thumbnail is requested
+          let thumbnail = '—';
+          if (
+            options.getThumbnail &&
+            info.data?.thumbnails &&
+            info.data.thumbnails.length > 0
+          ) {
             thumbnail = info.data.thumbnails[0];
           }
+
           // Process formats using the service
           const { formatOptions, defaultFormatId, defaultExt } =
             await VideoFormatService.processVideoFormats(info);
@@ -559,7 +588,7 @@ const useDownloadStore = create<DownloadStore>()(
           const defaultAudioFormat = formatOptions.find((f) =>
             f.label.includes('Audio Only'),
           );
-          // console.log(info.data.automatic_captions.en);
+
           // Update the forDownloads entry with metadata AND the new folder path
           set((state) => ({
             ...state,
@@ -582,6 +611,9 @@ const useDownloadStore = create<DownloadStore>()(
                     location: location,
                     automaticCaption: caption,
                     thumbnails: thumbnail,
+                    // Keep the user preferences
+                    getTranscript: options.getTranscript,
+                    getThumbnail: options.getThumbnail,
                   }
                 : download,
             ),
