@@ -282,7 +282,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
       <div className="flex items-center gap-4">
         <div className="relative">
           <button
-            className={`px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold ${
+            className={`px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold ${
               activeMenu === 'file'
                 ? 'bg-gray-100 dark:bg-gray-700 font-semibold'
                 : ''
@@ -292,38 +292,43 @@ const DropdownBar = ({ className }: { className?: string }) => {
             File
           </button>
           {activeMenu === 'file' && (
-            <div className="px-1 absolute left-0 mt-1 w-40 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
-              <button
-                className="rounded w-[92%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
-                onClick={() => {
-                  // handleOpenDownloadModal();
-                  setDownloadModalOpen(true);
-                  setActiveMenu(null);
-                }}
-              >
-                <IoIosAdd size={20} className="mr-[-2px]" />
-                <span>New Download</span>
-              </button>
-              <NavLink
-                to="/history"
-                className="rounded w-[92%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
-                onClick={() => setActiveMenu(null)}
-              >
-                <MdOutlineHistory size={18} />
-                <span> History</span>
-              </NavLink>
-              <button
-                className="rounded w-[92%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
-                onClick={() => window.downlodrFunctions.closeApp()}
-              >
-                <RxExit />
-                <span>Exit</span>
-              </button>
+            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+              <div className="mx-1">
+                <button
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  onClick={() => {
+                    setDownloadModalOpen(true);
+                    setActiveMenu(null);
+                  }}
+                >
+                  <IoIosAdd size={20} className="ml-[-2px]" />
+                  <span>New Download</span>
+                </button>
+              </div>
+              <div className="mx-1">
+                <NavLink
+                  to="/history"
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  onClick={() => setActiveMenu(null)}
+                >
+                  <MdOutlineHistory size={18} />
+                  <span> History</span>
+                </NavLink>
+              </div>
+              <div className="mx-1">
+                <button
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  onClick={() => window.downlodrFunctions.closeApp()}
+                >
+                  <RxExit />
+                  <span>Exit</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
         <button
-          className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
+          className="px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
           onClick={() => {
             setSettingsModalOpen(true);
             setActiveMenu(null);
@@ -333,7 +338,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
         </button>
         <div className="relative">
           <button
-            className={`px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold ${
+            className={`px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold ${
               activeMenu === 'help'
                 ? 'bg-gray-100 dark:bg-gray-700 font-semibold'
                 : ''
@@ -343,34 +348,40 @@ const DropdownBar = ({ className }: { className?: string }) => {
             Help
           </button>
           {activeMenu === 'help' && (
-            <div className="absolute left-0 mt-1 w-48 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
-              <button
-                className="rounded w-[92%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
-                onClick={() => {
-                  setHelpModalOpen(true);
-                  setActiveMenu(null);
-                }}
-              >
-                <FiBook size={16} className="mr-[-2px]" />
-                <span>Guide</span>
-              </button>
-              <button
-                className="rounded w-[92%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
-                onClick={handleCheckForUpdates}
-              >
-                <RxUpdate size={16} />
-                <span>Check for Updates</span>
-              </button>
-              <button
-                className="rounded w-[92%] w-full text-left ml-1 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-semibold dark:text-gray-200 flex"
-                onClick={() => {
-                  setAboutModalOpen(true);
-                  setActiveMenu(null);
-                }}
-              >
-                <AiOutlineExclamationCircle size={16} />
-                <span>About</span>
-              </button>
+            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+              <div className="mx-1">
+                <button
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  onClick={() => {
+                    setHelpModalOpen(true);
+                    setActiveMenu(null);
+                  }}
+                >
+                  <FiBook size={16} />
+                  <span>Guide</span>
+                </button>
+              </div>
+              <div className="mx-1">
+                <button
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  onClick={handleCheckForUpdates}
+                >
+                  <RxUpdate size={16} />
+                  <span>Check for Updates</span>
+                </button>
+              </div>
+              <div className="mx-1">
+                <button
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  onClick={() => {
+                    setAboutModalOpen(true);
+                    setActiveMenu(null);
+                  }}
+                >
+                  <AiOutlineExclamationCircle size={16} />
+                  <span>About</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
