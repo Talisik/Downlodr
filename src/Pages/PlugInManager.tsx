@@ -152,7 +152,7 @@ const PluginManager: React.FC = () => {
     }
   };
 
-  // Replace the dummy function with actual toggle functionality
+  // enable and disable toggle functionality
   const handleToggle = async (pluginId: string) => {
     try {
       const newState = !enabledPlugins[pluginId];

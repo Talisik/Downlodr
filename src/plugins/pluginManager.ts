@@ -1,5 +1,5 @@
 // src/plugins/pluginManager.ts
-import { app, ipcMain } from 'electron';
+import { app, ipcMain, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { validatePlugin } from './security';
@@ -15,7 +15,6 @@ export class PluginManager {
     this.configPath = path.join(app.getPath('userData'), 'plugin-config.json');
     this.ensurePluginDirectory();
     this.loadEnabledState();
-    // Dont call setupIPC here - it will be called separately
   }
 
   private ensurePluginDirectory() {
@@ -85,6 +84,26 @@ export class PluginManager {
       }
     });
 
+    // Get plugin location
+    ipcMain.handle('plugins:get-location', async (event, pluginId) => {
+      const pluginPath = path.join(this.pluginsDir, pluginId);
+      if (fs.existsSync(pluginPath)) {
+        return pluginPath;
+      }
+      return null;
+    });
+
+    // Open plugin folder in file explorer
+    ipcMain.handle('plugins:open-folder', async (event, pluginId) => {
+      const pluginPath = path.join(this.pluginsDir, pluginId);
+      if (fs.existsSync(pluginPath)) {
+        // Use electron shell to open the folder
+        await shell.openPath(pluginPath);
+        return true;
+      }
+      return false;
+    });
+
     // Install plugin
     ipcMain.handle('plugins:install', async (event, pluginPath) => {
       return await this.installPlugin(pluginPath);
@@ -144,8 +163,6 @@ export class PluginManager {
         return false;
       }
     });
-
-    // Add other controlled filesystem operations here
   }
 
   // Security check to limit file access to appropriate directories

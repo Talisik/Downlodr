@@ -113,6 +113,8 @@ declare global {
       onPluginStateChanged: (
         callback: (data: { pluginId: string; enabled: boolean }) => void,
       ) => () => void;
+      getPluginLocation: (pluginId: string) => Promise<string | null>;
+      openPluginFolder: (pluginId: string) => Promise<boolean>;
     };
     PluginHandlers?: Record<string, (contextData?: any) => void>;
   }

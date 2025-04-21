@@ -7,7 +7,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaExternalLinkAlt } from 'react-icons/fa';
 import { IoIosArrowForward, IoMdArrowBack } from 'react-icons/io';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -30,6 +30,29 @@ const PluginDetails = () => {
   const [enabledPlugins, setEnabledPlugins] = useState<Record<string, boolean>>(
     {},
   );
+  const [pluginLocation, setPluginLocation] = useState<string>('');
+
+  useEffect(() => {
+    const loadPluginData = async () => {
+      if (plugin) {
+        // Load enabled state
+        try {
+          const enabledState = await window.plugins.getEnabledPlugins();
+          setEnabledPlugins(enabledState || {});
+
+          // Load plugin location
+          const location = await window.plugins.getPluginLocation(plugin.id);
+          if (location) {
+            setPluginLocation(location);
+          }
+        } catch (error) {
+          console.error('Failed to load plugin data:', error);
+        }
+      }
+    };
+
+    loadPluginData();
+  }, [plugin]);
 
   const loadPlugins = async () => {
     try {
@@ -58,21 +81,47 @@ const PluginDetails = () => {
     }
   };
 
-  // Dummy function to handle toggle state
-  const handleToggle = (pluginId: string) => {
-    setEnabledPlugins((prev) => ({
-      ...prev,
-      [pluginId]: !prev[pluginId],
-    }));
-    console.log(
-      `Plugin ${pluginId} is now ${
-        !enabledPlugins[pluginId] ? 'enabled' : 'disabled'
-      }`,
-    );
+  // enable and disable toggle functionality
+  const handleToggle = async (pluginId: string) => {
+    try {
+      const newState = !enabledPlugins[pluginId];
+
+      // Update UI state immediately for responsive UX
+      setEnabledPlugins((prev) => ({
+        ...prev,
+        [pluginId]: newState,
+      }));
+
+      // Save the state persistently
+      const success = await window.plugins.setPluginEnabled(pluginId, newState);
+
+      if (success) {
+        console.log(`Plugin ${pluginId} ${newState ? 'enabled' : 'disabled'}`);
+      } else {
+        // Revert UI state if the operation failed
+        setEnabledPlugins((prev) => ({
+          ...prev,
+          [pluginId]: !newState,
+        }));
+        console.error(`Failed to update plugin state for ${pluginId}`);
+      }
+    } catch (error) {
+      console.error(`Error toggling plugin ${pluginId}:`, error);
+    }
   };
 
   const handleGoBack = () => {
     navigate(-1);
+  };
+
+  const handleOpenPluginFolder = async () => {
+    if (plugin) {
+      try {
+        await window.plugins.openPluginFolder(plugin.id);
+      } catch (error) {
+        console.error('Failed to open plugin folder:', error);
+      }
+    }
   };
 
   // If no plugin data was passed, show a message
@@ -132,6 +181,17 @@ const PluginDetails = () => {
         <div>
           <p className="text-sm font-medium">Size</p>
           <p>1mb</p>
+        </div>
+        <hr className="solid my-4 w-full border-t border-divider dark:border-gray-700" />
+        <div className="flex justify-between flex-wrap">
+          <p>View Plugin Folder</p>
+          <FaExternalLinkAlt
+            className="cursor-pointer"
+            onClick={async (e) => {
+              e.stopPropagation();
+              await window.downlodrFunctions.openVideo(pluginLocation);
+            }}
+          />
         </div>
         <hr className="solid my-4 w-full border-t border-divider dark:border-gray-700" />
         <div className="flex justify-between flex-wrap">

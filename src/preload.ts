@@ -194,4 +194,8 @@ contextBridge.exposeInMainWorld('plugins', {
       ipcRenderer.removeListener('plugins:stateChanged', subscription);
     };
   },
+  getPluginLocation: (pluginId: string) =>
+    ipcRenderer.invoke('plugins:get-location', pluginId),
+  openPluginFolder: (pluginId: string) =>
+    ipcRenderer.invoke('plugins:open-folder', pluginId),
 });
