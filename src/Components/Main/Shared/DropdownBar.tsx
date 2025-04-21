@@ -274,6 +274,18 @@ const DropdownBar = ({ className }: { className?: string }) => {
     }
   };
 
+  useEffect(() => {
+    const handleWindowBlur = () => {
+      setActiveMenu(null);
+    };
+
+    window.addEventListener('blur', handleWindowBlur);
+
+    return () => {
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, []);
+
   return (
     <div
       className={`${className} flex items-center justify-between relative z-48 py-4`}

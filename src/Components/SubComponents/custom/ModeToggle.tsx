@@ -16,6 +16,18 @@ export function ModeToggle() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const handleWindowBlur = () => {
+      setIsOpen(false);
+    };
+
+    window.addEventListener('blur', handleWindowBlur);
+
+    return () => {
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, []);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -43,7 +55,7 @@ export function ModeToggle() {
       </Button>
 
       {isOpen && (
-        <div className="fixed right-[inherit] mt-2 w-32 rounded-md bg-white dark:bg-darkModeCompliment shadow-lg ring-1 ring-black ring-opacity-5 z-[100]">
+        <div className="fixed right-[inherit] w-32 rounded-md bg-white dark:bg-darkModeCompliment shadow-lg ring-1 ring-black ring-opacity-5 z-[100]">
           <div className="py-1" role="menu">
             <button
               className="block w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
