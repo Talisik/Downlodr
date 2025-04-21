@@ -23,7 +23,9 @@ const PluginManager: React.FC = () => {
   const [enabledPlugins, setEnabledPlugins] = useState<Record<string, boolean>>(
     {},
   );
-
+  // New state to track if directory selection is in progress
+  const [isSelectingDirectory, setIsSelectingDirectory] =
+    useState<boolean>(false);
   //Store
   const { historyDownloads } = useDownloadStore();
 
@@ -81,7 +83,10 @@ const PluginManager: React.FC = () => {
   };
 
   const handleInstall = async () => {
+    if (isSelectingDirectory) return;
+
     try {
+      setIsSelectingDirectory(true);
       const pluginPath = await window.ytdlp.selectDownloadDirectory();
       if (pluginPath) {
         const success = await window.plugins.install(pluginPath);
@@ -94,6 +99,8 @@ const PluginManager: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to install plugin:', error);
+    } finally {
+      setIsSelectingDirectory(false);
     }
   };
 
@@ -144,6 +151,20 @@ const PluginManager: React.FC = () => {
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
+        {/* Directory selection overlay - blocks all app interaction */}
+        {isSelectingDirectory && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] cursor-not-allowed flex items-center justify-center">
+            <div className="bg-white dark:bg-darkMode p-4 rounded-lg shadow-lg max-w-md text-center">
+              <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
+                Directory Selection In Progress
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Please complete the directory selection dialog before
+                continuing.
+              </p>
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <h1 className="text-[20px] font-medium">Plugins</h1>
           {/* Search Bar with increased width */}

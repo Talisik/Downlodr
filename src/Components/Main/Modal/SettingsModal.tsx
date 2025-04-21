@@ -83,13 +83,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     // Add this line to reset the background running setting
     setRunInBackground(settings.runInBackground ?? true);
   };
-
-  // Find location
+  // New state to track if directory selection is in progress
+  const [isSelectingDirectory, setIsSelectingDirectory] =
+    useState<boolean>(false);
   const handleDirectory = async () => {
-    const path = await window.ytdlp.selectDownloadDirectory();
-    setDownloadLocation(path);
-  };
+    // Prevent multiple dialogs from being opened
+    if (isSelectingDirectory) return;
 
+    try {
+      setIsSelectingDirectory(true);
+      const path = await window.ytdlp.selectDownloadDirectory();
+      if (path) {
+        setDownloadLocation(path);
+      }
+    } finally {
+      setIsSelectingDirectory(false);
+    }
+  };
   // Close Modal
   const handleClose = () => {
     resetSettingsModal();
@@ -215,6 +225,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         }
       }}
     >
+      {/* Directory selection overlay - blocks all app interaction */}
+      {isSelectingDirectory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] cursor-not-allowed flex items-center justify-center">
+          <div className="bg-white dark:bg-darkMode p-4 rounded-lg shadow-lg max-w-md text-center">
+            <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
+              Directory Selection In Progress
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300">
+              Please complete the directory selection dialog before continuing.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 max-w-xl w-full mx-4">
         {/* Left side - Form */}
         <div className="w-full">

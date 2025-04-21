@@ -344,7 +344,6 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       }}
     >
       {/* Directory selection overlay - blocks all app interaction */}
-      {/* Directory selection overlay - blocks all app interaction */}
       {isSelectingDirectory && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] cursor-not-allowed flex items-center justify-center">
           <div className="bg-white dark:bg-darkMode p-4 rounded-lg shadow-lg max-w-md text-center">
