@@ -105,6 +105,14 @@ declare global {
       unregisterMenuItem: (id: string) => Promise<boolean>;
       reload: () => Promise<boolean>;
       onReloaded: (callback: () => void) => () => void;
+      getEnabledPlugins: () => Promise<Record<string, boolean>>;
+      setPluginEnabled: (
+        pluginId: string,
+        enabled: boolean,
+      ) => Promise<boolean>;
+      onPluginStateChanged: (
+        callback: (data: { pluginId: string; enabled: boolean }) => void,
+      ) => () => void;
     };
     PluginHandlers?: Record<string, (contextData?: any) => void>;
   }
@@ -116,6 +124,15 @@ interface PluginInfo {
   version: string;
   description: string;
   author: string;
+}
+
+interface MenuItem {
+  id: string;
+  label: string;
+  context?: string;
+  pluginId?: string;
+  onClick: (contextData?: any) => void;
+  handlerId?: string;
 }
 
 export {};

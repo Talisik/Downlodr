@@ -7,16 +7,45 @@ import { validatePlugin } from './security';
 export class PluginManager {
   private pluginsDir: string;
   private loadedPlugins: Map<string, any> = new Map();
+  private enabledPlugins: Record<string, boolean> = {};
+  private configPath: string;
 
   constructor() {
     this.pluginsDir = path.join(app.getPath('userData'), 'plugins');
+    this.configPath = path.join(app.getPath('userData'), 'plugin-config.json');
     this.ensurePluginDirectory();
+    this.loadEnabledState();
     // Dont call setupIPC here - it will be called separately
   }
 
   private ensurePluginDirectory() {
     if (!fs.existsSync(this.pluginsDir)) {
       fs.mkdirSync(this.pluginsDir, { recursive: true });
+    }
+  }
+
+  private loadEnabledState() {
+    try {
+      if (fs.existsSync(this.configPath)) {
+        const config = JSON.parse(fs.readFileSync(this.configPath, 'utf8'));
+        this.enabledPlugins = config.enabledPlugins || {};
+      }
+    } catch (error) {
+      console.error('Error loading plugin config:', error);
+      this.enabledPlugins = {};
+    }
+  }
+
+  private saveEnabledState() {
+    try {
+      const config = { enabledPlugins: this.enabledPlugins };
+      fs.writeFileSync(
+        this.configPath,
+        JSON.stringify(config, null, 2),
+        'utf8',
+      );
+    } catch (error) {
+      console.error('Error saving plugin config:', error);
     }
   }
 
@@ -95,6 +124,27 @@ export class PluginManager {
       }
     });
 
+    // Get enabled plugins state
+    ipcMain.handle('plugins:getEnabled', () => {
+      return this.enabledPlugins;
+    });
+
+    // Set plugin enabled state
+    ipcMain.handle('plugins:setEnabled', (event, pluginId, enabled) => {
+      try {
+        this.enabledPlugins[pluginId] = enabled;
+        this.saveEnabledState();
+
+        // Notify renderer about the state change
+        event.sender.send('plugins:stateChanged', { pluginId, enabled });
+
+        return true;
+      } catch (error) {
+        console.error(`Error setting plugin ${pluginId} state:`, error);
+        return false;
+      }
+    });
+
     // Add other controlled filesystem operations here
   }
 
@@ -125,12 +175,21 @@ export class PluginManager {
               const manifest = JSON.parse(
                 fs.readFileSync(manifestPath, 'utf8'),
               );
+              const pluginId = manifest.id || dir;
+
+              // Set default enabled state if not already set
+              if (this.enabledPlugins[pluginId] === undefined) {
+                this.enabledPlugins[pluginId] = true; // Enable by default
+                this.saveEnabledState();
+              }
+
               return {
-                id: manifest.id || dir,
+                id: pluginId,
                 name: manifest.name || dir,
                 version: manifest.version || '0.0.0',
                 description: manifest.description || '',
                 author: manifest.author || 'Unknown',
+                enabled: this.enabledPlugins[pluginId],
               };
             }
             return null;
@@ -312,5 +371,9 @@ export class PluginManager {
       console.error('Error loading plugins:', error);
       return false;
     }
+  }
+
+  public getEnabledPlugins(): Record<string, boolean> {
+    return this.enabledPlugins;
   }
 }

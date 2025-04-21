@@ -3,10 +3,25 @@ import { createPluginAPI } from '../plugins/pluginAPI';
 
 export const PluginLoader: React.FC = () => {
   const [pluginsLoaded, setPluginsLoaded] = useState(false);
+  const [enabledPlugins, setEnabledPlugins] = useState<Record<string, boolean>>(
+    {},
+  );
 
   useEffect(() => {
+    // Load enabled state
+    const loadEnabledState = async () => {
+      try {
+        const enabledState = await window.plugins.getEnabledPlugins();
+        setEnabledPlugins(enabledState || {});
+      } catch (error) {
+        console.error('Failed to load plugin enabled states:', error);
+      }
+    };
+
     // Initial load
-    loadPlugins();
+    loadEnabledState().then(() => {
+      loadPlugins();
+    });
 
     // Set up reload listener
     const unsubscribe = window.plugins.onReloaded(() => {
@@ -14,9 +29,20 @@ export const PluginLoader: React.FC = () => {
       loadPlugins();
     });
 
+    // Set up state change listener
+    const unsubscribeState = window.plugins.onPluginStateChanged(
+      ({ pluginId, enabled }) => {
+        setEnabledPlugins((prev) => ({
+          ...prev,
+          [pluginId]: enabled,
+        }));
+      },
+    );
+
     // Cleanup
     return () => {
       if (unsubscribe) unsubscribe();
+      if (unsubscribeState) unsubscribeState();
     };
   }, []);
 
@@ -25,9 +51,19 @@ export const PluginLoader: React.FC = () => {
       // Get list of plugins
       const plugins = await window.plugins.list();
 
+      // Get current enabled states
+      const enabledStates = await window.plugins.getEnabledPlugins();
+      setEnabledPlugins(enabledStates);
+
       // Load each plugin in the renderer process
       for (const plugin of plugins) {
         try {
+          // Skip disabled plugins
+          if (enabledStates[plugin.id] === false) {
+            console.log(`Skipping disabled plugin: ${plugin.id}`);
+            continue;
+          }
+
           console.log(`Loading plugin: ${plugin.id}`);
           const { code, manifest, error } = await window.plugins.getCode(
             plugin.id,

@@ -46,8 +46,8 @@ import { processFileName } from '../../../DataFunctions/FilterName';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
 import { MenuItem } from '../../../plugins/types';
-// import { PluginRegistry, pluginRegistry } from '../../../plugins/registry'; // Import if needed
-// import { MenuItem } from '../../../plugins/types';
+import { usePluginState } from '../../../plugins/Hooks/usePluginState';
+import { pluginRegistry } from '../../../plugins/registry';
 
 // Interface representing the props for the DownloadContextMenu component
 interface DownloadContextMenuProps {
@@ -252,21 +252,29 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   } = useDownloadStore();
   const allDownloads = [...forDownloads, ...downloading, ...finishedDownloads]; //Plugins
   const [pluginMenuItems, setPluginMenuItems] = useState<MenuItem[]>([]);
+  const enabledPlugins = usePluginState();
+
+  const fetchPluginMenuItems = async () => {
+    try {
+      // Option 1: Using the window.plugins API with filtering
+      const items = await window.plugins.getMenuItems('download');
+      const filteredItems = (items || []).filter(
+        (item) => !item.pluginId || enabledPlugins[item.pluginId] !== false,
+      ) as MenuItem[];
+
+      // OR Option 2: Using the registry directly (if it exposes a method)
+      // const filteredItems = pluginRegistry.getMenuItems('download');
+
+      setPluginMenuItems(filteredItems);
+    } catch (error) {
+      console.error('Failed to fetch plugin menu items:', error);
+      setPluginMenuItems([]);
+    }
+  };
 
   useEffect(() => {
-    async function fetchPluginMenuItems() {
-      try {
-        // Fetch menu items for the 'download' context
-        const items = await window.plugins.getMenuItems('download');
-        setPluginMenuItems(items || []);
-      } catch (error) {
-        console.error('Failed to fetch plugin menu items:', error);
-        setPluginMenuItems([]);
-      }
-    }
-
     fetchPluginMenuItems();
-  }, [downloadId]);
+  }, [enabledPlugins]);
 
   // Effect to position the context menu based on the provided coordinates
   React.useEffect(() => {

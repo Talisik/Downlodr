@@ -587,6 +587,15 @@ app.on('ready', async () => {
       callback({ path: path.join(__dirname, 'assets', 'error-image.png') });
     }
   });
+
+  // Listen for plugin state changes
+  ipcMain.on('plugins:stateChanged', (event, { pluginId, enabled }) => {
+    // Update the registry's knowledge of enabled plugins
+    pluginRegistry.updateEnabledStates(pluginManager.getEnabledPlugins());
+  });
+
+  // Initial loading of enabled states into the registry
+  pluginRegistry.updateEnabledStates(pluginManager.getEnabledPlugins());
 });
 
 // Change this to keep app running in background

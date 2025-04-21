@@ -55,6 +55,20 @@ const PluginManager: React.FC = () => {
     loadPlugins();
   }, []);
 
+  // Load enabled plugins state
+  useEffect(() => {
+    const loadEnabledState = async () => {
+      try {
+        const enabledState = await window.plugins.getEnabledPlugins();
+        setEnabledPlugins(enabledState || {});
+      } catch (error) {
+        console.error('Failed to load plugin enabled states:', error);
+      }
+    };
+
+    loadEnabledState();
+  }, []);
+
   // Close search results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -138,17 +152,33 @@ const PluginManager: React.FC = () => {
     }
   };
 
-  // Dummy function to handle toggle state
-  const handleToggle = (pluginId: string) => {
-    setEnabledPlugins((prev) => ({
-      ...prev,
-      [pluginId]: !prev[pluginId],
-    }));
-    console.log(
-      `Plugin ${pluginId} is now ${
-        !enabledPlugins[pluginId] ? 'enabled' : 'disabled'
-      }`,
-    );
+  // Replace the dummy function with actual toggle functionality
+  const handleToggle = async (pluginId: string) => {
+    try {
+      const newState = !enabledPlugins[pluginId];
+
+      // Update UI state immediately for responsive UX
+      setEnabledPlugins((prev) => ({
+        ...prev,
+        [pluginId]: newState,
+      }));
+
+      // Save the state persistently
+      const success = await window.plugins.setPluginEnabled(pluginId, newState);
+
+      if (success) {
+        console.log(`Plugin ${pluginId} ${newState ? 'enabled' : 'disabled'}`);
+      } else {
+        // Revert UI state if the operation failed
+        setEnabledPlugins((prev) => ({
+          ...prev,
+          [pluginId]: !newState,
+        }));
+        console.error(`Failed to update plugin state for ${pluginId}`);
+      }
+    } catch (error) {
+      console.error(`Error toggling plugin ${pluginId}:`, error);
+    }
   };
 
   return (

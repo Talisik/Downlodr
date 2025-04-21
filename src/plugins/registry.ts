@@ -11,6 +11,17 @@ export class PluginRegistry {
   private notifItemHandlers: Map<string, (contextData?: any) => void> =
     new Map();
 
+  // Keep a reference to enabled plugin states
+  private enabledPlugins: Record<string, boolean> = {};
+
+  // Add this property near the other private property declarations
+  private _extensions: Record<string, any[]> = {};
+
+  // Method to update enabled states
+  updateEnabledStates(enabledStates: Record<string, boolean>) {
+    this.enabledPlugins = enabledStates;
+  }
+
   // Add this method to clear everything
   clearAllRegistrations(pluginId?: string) {
     if (pluginId) {
@@ -69,12 +80,18 @@ export class PluginRegistry {
     console.log(`Total registered items: ${this.menuItems.length}`);
 
     // Filter by context first
-    const filteredItems = context
+    let filteredItems = context
       ? this.menuItems.filter(
           (item) =>
             !item.context || item.context === context || item.context === 'all',
         )
       : this.menuItems;
+
+    // Filter by enabled state
+    filteredItems = filteredItems.filter((item) => {
+      // Items without pluginId or from enabled plugins are shown
+      return !item.pluginId || this.enabledPlugins[item.pluginId] !== false;
+    });
 
     filteredItems.forEach((item) => {
       console.log(`Item key: ${item.pluginId}:${item.label}`);
@@ -144,12 +161,18 @@ export class PluginRegistry {
     console.log(`Total registered items: ${this.notifItems.length}`);
 
     // Filter by context first
-    const filteredItems = context
+    let filteredItems = context
       ? this.notifItems.filter(
           (item) =>
             !item.context || item.context === context || item.context === 'all',
         )
       : this.notifItems;
+
+    // Filter by enabled state
+    filteredItems = filteredItems.filter((item) => {
+      // Items without pluginId or from enabled plugins are shown
+      return !item.pluginId || this.enabledPlugins[item.pluginId] !== false;
+    });
 
     // Add debug logging to see the generated keys
     filteredItems.forEach((item) => {
@@ -186,6 +209,27 @@ export class PluginRegistry {
       console.log(contextData);
       handler(contextData);
     }
+  }
+
+  // Generic method to filter any plugin features by enabled state
+  filterByEnabled<T extends { pluginId?: string }>(items: T[]): T[] {
+    return items.filter(
+      (item) => !item.pluginId || this.enabledPlugins[item.pluginId] !== false,
+    );
+  }
+
+  // For any extension point (components, UI elements, functions, etc.)
+  getExtensions(extensionPoint: string) {
+    const extensions = this._extensions[extensionPoint] || [];
+    return this.filterByEnabled(extensions);
+  }
+
+  // Add a method to register extensions
+  registerExtension(extensionPoint: string, extension: any): void {
+    if (!this._extensions[extensionPoint]) {
+      this._extensions[extensionPoint] = [];
+    }
+    this._extensions[extensionPoint].push(extension);
   }
 }
 

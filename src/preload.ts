@@ -184,4 +184,14 @@ contextBridge.exposeInMainWorld('plugins', {
       ipcRenderer.removeListener('plugins:reloaded', callback);
     };
   },
+  getEnabledPlugins: () => ipcRenderer.invoke('plugins:getEnabled'),
+  setPluginEnabled: (pluginId: string, enabled: boolean) =>
+    ipcRenderer.invoke('plugins:setEnabled', pluginId, enabled),
+  onPluginStateChanged: (callback: any) => {
+    const subscription = (_event: any, data: any) => callback(data);
+    ipcRenderer.on('plugins:stateChanged', subscription);
+    return () => {
+      ipcRenderer.removeListener('plugins:stateChanged', subscription);
+    };
+  },
 });
