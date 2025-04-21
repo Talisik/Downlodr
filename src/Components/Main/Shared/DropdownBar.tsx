@@ -274,6 +274,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
     }
   };
 
+  // use effect to close dropdown on window blur
   useEffect(() => {
     const handleWindowBlur = () => {
       setActiveMenu(null);

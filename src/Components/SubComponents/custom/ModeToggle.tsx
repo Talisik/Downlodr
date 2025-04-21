@@ -15,6 +15,7 @@ export function ModeToggle() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // use effect to close dropdown on window blur
   useEffect(() => {
     const handleWindowBlur = () => {
       setIsOpen(false);
