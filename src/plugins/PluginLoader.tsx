@@ -58,12 +58,13 @@ export const PluginLoader: React.FC = () => {
       // Load each plugin in the renderer process
       for (const plugin of plugins) {
         try {
+          /*
           // Skip disabled plugins
           if (enabledStates[plugin.id] === false) {
             console.log(`Skipping disabled plugin: ${plugin.id}`);
             continue;
           }
-
+          */
           console.log(`Loading plugin: ${plugin.id}`);
           const { code, manifest, error } = await window.plugins.getCode(
             plugin.id,
