@@ -1126,10 +1126,10 @@ const StatusSpecificDownloads = () => {
                               style={{ width: column.width }}
                               className="p-2 dark:text-gray-200 ml-2"
                             >
-                              {download.autoCaptionLocation === null ? (
+                              {download.autoCaptionLocation === '' ||
+                              download.autoCaptionLocation === null ? (
                                 '—'
-                              ) : download.autoCaptionLocation === '' ||
-                                download.autoCaptionLocation === undefined ? (
+                              ) : download.autoCaptionLocation === undefined ? (
                                 <span className="text-gray-500">
                                   Not available
                                 </span>

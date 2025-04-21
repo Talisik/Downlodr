@@ -133,11 +133,6 @@ const PluginDetails = () => {
           <p className="text-sm font-medium">Size</p>
           <p>1mb</p>
         </div>
-
-        <hr className="solid my-4 w-full border-t border-divider dark:border-gray-700" />
-        <div>
-          <h1>SPECIAL PART FOR PLUGIN OPTIONS</h1>
-        </div>
         <hr className="solid my-4 w-full border-t border-divider dark:border-gray-700" />
         <div className="flex justify-between flex-wrap">
           <p>View in Downloadr Web Store</p>
