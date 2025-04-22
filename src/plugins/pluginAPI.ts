@@ -42,6 +42,7 @@ export function createPluginAPI(pluginId: string): PluginAPI {
       return window.plugins.registerMenuItem({
         ...serializableMenuItem,
         handlerId,
+        id: menuItem.id || `${pluginId}-menu-${Date.now()}`,
       });
     },
 

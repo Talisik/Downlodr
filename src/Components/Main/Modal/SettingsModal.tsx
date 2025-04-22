@@ -179,7 +179,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     { id: 'source', label: 'Source', required: false },
     { id: 'name', label: 'Title', required: true },
     { id: 'dateAdded', label: 'Date Added', required: false },
-    { id: 'transcript', label: 'Transcript', required: false },
+    { id: 'transcript', label: 'Closed Captions', required: false },
     { id: 'thumbnail', label: 'Thumbnail', required: false },
     { id: 'status', label: 'Status', required: true },
   ];
@@ -452,7 +452,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
               </div>
 
-              <div className="grid grid-cols-4 gap-1 mt-4 ml-2">
+              <div className="grid grid-cols-4 gap-1 mt-2 ml-2">
                 {columnOptions.map((column) => (
                   <div key={column.id} className="flex items-center mr-2">
                     <input
