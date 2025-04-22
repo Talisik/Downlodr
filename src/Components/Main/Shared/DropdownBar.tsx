@@ -94,8 +94,11 @@ const DropdownBar = ({ className }: { className?: string }) => {
   // Handle opening the video file
   const handleOpenVideo = async (download: HistoryDownloads) => {
     try {
-      const fullPath = `${download.location}${download.name}`;
-      window.downlodrFunctions.openVideo(fullPath);
+      const filePath = await window.downlodrFunctions.joinDownloadPath(
+        download.location,
+        download.downloadName,
+      );
+      window.downlodrFunctions.openVideo(filePath);
     } catch (error) {
       console.error('Error opening file:', error);
       toast({

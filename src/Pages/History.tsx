@@ -53,9 +53,11 @@ const History = () => {
     const checkAllFiles = async () => {
       const newFileExistsMap: FileExistsMap = {};
       for (const download of logs) {
-        const exists = await window.downlodrFunctions.fileExists(
-          `${download.location}${download.name}`,
+        const filePath = await window.downlodrFunctions.joinDownloadPath(
+          download.location,
+          download.downloadName,
         );
+        const exists = await window.downlodrFunctions.fileExists(filePath);
         newFileExistsMap[download.id] = exists;
       }
       setFileExistsMap(newFileExistsMap);

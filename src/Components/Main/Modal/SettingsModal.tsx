@@ -250,7 +250,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
       )}
-      <div className="bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 max-w-xl w-full mx-4">
+      <div className="bg-white dark:bg-darkMode rounded-lg pt-4 pr-6 pl-6 pb-4 max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto">
         {/* Left side - Form */}
         <div className="w-full">
           <div className="flex justify-between items-center mb-6">
@@ -284,11 +284,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               {/* End of Upload Button */}
               {/* URL Name */}
               <div>
-                <label className="block dark:text-gray-200 mt-6 mb-[-2]">
+                <label className="text-sm block dark:text-gray-200 mt-4 mb-[-2]">
                   Speed Limit:
                   {biteVal === 0 ? ` No limit` : ` (${biteVal} ${biteUnitVal})`}
                 </label>
-                <div className="flex gap-4 pt-2 items-center">
+                <div className="flex gap-4 items-center">
                   <div className="flex-1">
                     <Slider
                       defaultValue={[biteVal]}
@@ -328,7 +328,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               </div>
               {/* End of Schedule Name */}
               {/* Download Location Name */}
-              <div className="flex gap-4 pt-4">
+              <div className="flex gap-4 pt-2">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <input
@@ -339,7 +339,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       }
                       className="w-4 h-4 text-primary rounded focus:ring-primary"
                     />
-                    <label className="block dark:text-gray-200 text-nowrap font-bold">
+                    <label className="text-sm block dark:text-gray-200 text-nowrap font-bold">
                       Connection Limits
                     </label>
                     <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
@@ -351,7 +351,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         : 'opacity-50 pointer-events-none'
                     }
                   >
-                    <div className="flex flex-row items-center gap-4">
+                    <div className="flex flex-row items-center gap-4 ml-2">
                       <label className="flex-1 dark:text-gray-200">
                         Maximum Active Downloads
                       </label>
@@ -383,7 +383,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
               </div>
 
-              <div className="flex items-center gap-2 mt-3">
+              <div className="flex items-center gap-2 mt-3 ml-2">
                 <input
                   type="checkbox"
                   id="run-in-background"
@@ -417,7 +417,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               </div>
 
               <div className="flex gap-2 flex-wrap justify-between">
-                <span className="mt-2 text-xs font-medium">
+                <span className="mt-2 text-xs font-medium ml-2">
                   Note: Plugins is an experimental feature and might not work as
                   expected.
                 </span>
@@ -452,7 +452,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
               </div>
 
-              <div className="grid grid-cols-4 gap-1 mt-4">
+              <div className="grid grid-cols-4 gap-1 mt-4 ml-2">
                 {columnOptions.map((column) => (
                   <div key={column.id} className="flex items-center mr-2">
                     <input
@@ -489,21 +489,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Button commands */}
-        <hr className="solid mt-4 mb-3 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
+        <hr className="solid mt-2 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
 
-        <div className="flex gap-3 p-1">
+        <div className="flex gap-3 p-0">
           <div className="ml-auto flex gap-3">
             <button
               type="button"
               onClick={handleSubmit}
-              className="bg-primary text-white text-sm px-2 py-2 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
+              className="bg-primary text-white text-sm px-2 py-1 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
             >
               Okay
             </button>
             <button
               type="button"
               onClick={handleClose}
-              className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
+              className="px-2 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
             >
               Cancel
             </button>
