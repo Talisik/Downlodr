@@ -207,7 +207,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                           </li>
                           <li>
                             For pending downloads, only the download record is
-                            no file has been saved to the drive yet.
+                            saved; no file has been saved to the drive yet.
                           </li>
                         </ul>
                       </ul>
@@ -227,10 +227,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                     content={
                       <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
                         <li>History is a record of all your past downloads</li>
-                        <li>
-                          Unlike status pages (All/Downloading/Finished),
-                          History:
-                        </li>
+                        <li>Unlike status pages, History:</li>
                         <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-sm">
                           <li>Doesn't show download progress or controls</li>
                           <li>Only keeps track of what you've downloaded</li>

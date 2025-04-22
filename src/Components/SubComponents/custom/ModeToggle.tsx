@@ -15,6 +15,19 @@ export function ModeToggle() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // use effect to close dropdown on window blur
+  useEffect(() => {
+    const handleWindowBlur = () => {
+      setIsOpen(false);
+    };
+
+    window.addEventListener('blur', handleWindowBlur);
+
+    return () => {
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -33,7 +46,7 @@ export function ModeToggle() {
     <div className="relative" ref={dropdownRef}>
       <Button
         variant="ghost"
-        className="hover:bg-gray-100 dark:bg-transparent dark:hover:bg-darkModeCompliment hover:opacity-100 active:bg-transparent focus-none"
+        className="hover:bg-gray-100 dark:bg-transparent dark:hover:bg-darkModeCompliment hover:opacity-100 active:bg-transparent focus-none p-1 m-2 h-auto min-h-0"
         size="icon"
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -43,7 +56,7 @@ export function ModeToggle() {
       </Button>
 
       {isOpen && (
-        <div className="fixed right-[inherit] mt-2 w-32 rounded-md bg-white dark:bg-darkModeCompliment shadow-lg ring-1 ring-black ring-opacity-5 z-[100]">
+        <div className="fixed right-[inherit] w-32 rounded-md bg-white dark:bg-darkModeCompliment shadow-lg ring-1 ring-black ring-opacity-5 z-[100]">
           <div className="py-1" role="menu">
             <button
               className="block w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"

@@ -15,18 +15,19 @@ import {
 } from 'react-router-dom';
 import { ThemeProvider } from './Components/ThemeProvider';
 import MainLayout from './Layout/MainLayout';
-import Downloading from './Pages/Downloading';
 // import AllDownloads from './Pages/AllDownloads';
 import History from './Pages/History';
-import CompletedDownloads from './Pages/CompletedDownloads';
+import PluginManager from './Pages/PlugInManager';
 import NotFound from './Pages/SubPages/NotFound';
 import CategoryPage from './Pages/SubPages/CategoryPage';
 import TagPage from './Pages/SubPages/TagsPage';
+import PluginDetails from './Pages/SubPages/PluginDetails';
 import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
 import UpdateNotification from './Components/SubComponents/custom/UpdateNotifications';
 import StatusSpecificDownloads from './Pages/StatusSpecificDownload';
 import { useEffect } from 'react';
 import { useMainStore } from './Store/mainStore';
+import { PluginLoader } from './plugins/PluginLoader';
 
 const App = () => {
   const { settings } = useMainStore();
@@ -49,8 +50,8 @@ const App = () => {
         <Routes>
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Navigate to="/status/all" replace />} />
-            <Route path="/downloading" element={<Downloading />} />
-            <Route path="/completed" element={<CompletedDownloads />} />
+            <Route path="/plugin-manager" element={<PluginManager />} />
+            <Route path="/plugin-details" element={<PluginDetails />} />
             <Route path="/history" element={<History />} />
             <Route path="/category/:categoryId" element={<CategoryPage />} />
             <Route path="/tags/:tagId" element={<TagPage />} />
@@ -64,6 +65,7 @@ const App = () => {
       </Router>
       <Toaster />
       <UpdateNotification />
+      <PluginLoader />
     </ThemeProvider>
   );
 };

@@ -53,9 +53,11 @@ const History = () => {
     const checkAllFiles = async () => {
       const newFileExistsMap: FileExistsMap = {};
       for (const download of logs) {
-        const exists = await window.downlodrFunctions.fileExists(
-          `${download.location}${download.name}`,
+        const filePath = await window.downlodrFunctions.joinDownloadPath(
+          download.location,
+          download.downloadName,
         );
+        const exists = await window.downlodrFunctions.fileExists(filePath);
         newFileExistsMap[download.id] = exists;
       }
       setFileExistsMap(newFileExistsMap);
@@ -242,7 +244,7 @@ const History = () => {
       return createPortal(
         <button
           onClick={handleDeleteSelected}
-          className="bg-[#FF3B30] hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded flex gap-1 font-semibold text-gray-200"
+          className="bg-[#FF3B30] hover:bg-black dark:hover:bg-gray-700 px-3 py-2 rounded flex gap-1 font-semibold text-gray-200"
         >
           <LuTrash size={15} className="mt-[0.9px]" /> Remove from History
         </button>,
@@ -253,7 +255,7 @@ const History = () => {
   };
 
   return (
-    <div className="w-full p-4">
+    <div className="w-full p-1">
       {renderDeleteButton()}
       <table className="w-full">
         <thead>

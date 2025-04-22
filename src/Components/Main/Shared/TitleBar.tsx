@@ -44,7 +44,7 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   return (
     <>
       <div className={className}>
-        <div className="flex justify-between items-center h-full px-4">
+        <div className="flex justify-between items-center h-full px-4 py-2">
           {/* Title */}
           <div className="text-sm flex-1 drag-area">
             <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
@@ -59,7 +59,7 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
 
             {/* Minimize Button */}
             <button
-              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1 m-2"
+              className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
               onClick={() => window.downlodrFunctions.minimizeApp()}
             >
               <IoMdRemove size={16} />
@@ -67,7 +67,7 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
 
             {/* Maximize Button with dynamic icon */}
             <button
-              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1 m-2"
+              className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
               onClick={handleMaximizeRestore}
             >
               {isMaximized ? <PiBrowsers size={16} /> : <RxBox size={14} />}
@@ -75,7 +75,7 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
 
             {/* Close Button */}
             <button
-              className="hover:bg-gray-100 dark:hover:bg-gray-700 p-1 m-2"
+              className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
               onClick={() => window.downlodrFunctions.closeApp()}
             >
               <IoMdClose size={16} />
