@@ -1,7 +1,7 @@
 {
   "name": "downlodr",
   "productName": "Downlodr",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Downlodr is a powerful, user-friendly video downloading solution that supports over 1,800 platforms, including YouTube, Vimeo, and many more. Downlodr provides a seamless experience for managing your video downloads.",
   "main": ".vite/build/main.js",
   "scripts": {

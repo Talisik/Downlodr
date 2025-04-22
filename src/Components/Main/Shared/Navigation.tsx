@@ -13,10 +13,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { HiChevronDown, HiChevronRight } from 'react-icons/hi';
 import { FiDownload, FiFolder } from 'react-icons/fi';
-import { AiOutlineCheck, AiOutlineFileSearch } from 'react-icons/ai';
 import { BiLayer } from 'react-icons/bi';
-import { BsTag } from 'react-icons/bs';
-import { CiFolderOn } from 'react-icons/ci';
+import { BsTag, BsHourglassSplit } from 'react-icons/bs';
 import useDownloadStore from '../../../Store/downloadStore';
 import CategoryContextMenu from '../../SubComponents/custom/CategoryContextMenu';
 import TagContextMenu from '../../SubComponents/custom/TagContextMenu';
@@ -269,7 +267,10 @@ const Navigation = ({ className }: { className?: string }) => {
                   } dark:text-gray-200 dark:hover:bg-gray-700`
                 }
               >
-                <FiDownload size={16} className="text-primary flex-shrink-0" />
+                <BsHourglassSplit
+                  size={16}
+                  className="text-primary flex-shrink-0"
+                />
                 <span className="ml-2 text-[14px]">Downloading</span>
               </NavLink>
 

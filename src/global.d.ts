@@ -29,6 +29,7 @@ declare global {
         filePath: string,
       ) => Promise<{ success: boolean; error?: string }>; // Opens a specified folder
       fileExists: (path: string) => Promise<boolean>; // Checks if a file exists at the specified path
+      getFileSize: (path: string) => Promise<number | null>; // Gets the size of a file in bytes
       showInputContextMenu: () => void; // Shows the input field context menu (right-click menu)
     };
     ytdlp: {
@@ -58,6 +59,17 @@ declare global {
     updateAPI: {
       onUpdateAvailable: (callback: (updateInfo: UpdateInfo) => void) => void;
       checkForUpdates: () => Promise<UpdateInfo>; // Changed return type from void to UpdateInfo
+    };
+    backgroundSettings: {
+      getRunInBackground: () => Promise<boolean>;
+      setRunInBackground: (value: boolean) => Promise<boolean>;
+    };
+    notifications: {
+      notifyDownloadFinished: (downloadInfo: {
+        name: string;
+        id: string;
+        location: string;
+      }) => void;
     };
   }
 }

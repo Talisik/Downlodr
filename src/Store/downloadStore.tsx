@@ -190,18 +190,27 @@ const useDownloadStore = create<DownloadStore>()(
                   console.log(
                     `File now exists, moving download ${download.id} to finished/history`,
                   );
+
+                  // Get the actual file size from the file system
+                  const actualFileSize =
+                    await window.downlodrFunctions.getFileSize(filePath);
+                  const updatedDownload = {
+                    ...download,
+                    size: actualFileSize || download.size,
+                  };
+                  console.log(actualFileSize);
                   set((state) => ({
                     finishedDownloads: state.finishedDownloads.some(
                       (fd) => fd.id === download.id,
                     )
                       ? state.finishedDownloads
-                      : [...state.finishedDownloads, download],
+                      : [...state.finishedDownloads, updatedDownload],
 
                     historyDownloads: state.historyDownloads.some(
                       (hd) => hd.id === download.id,
                     )
                       ? state.historyDownloads
-                      : [...state.historyDownloads, download],
+                      : [...state.historyDownloads, updatedDownload],
 
                     downloading: state.downloading.filter(
                       (d) => d.id !== download.id,
@@ -218,18 +227,28 @@ const useDownloadStore = create<DownloadStore>()(
               console.log(
                 `File exists, moving download ${download.id} to finished/history`,
               );
+
+              // Get the actual file size from the file system
+              const actualFileSize = await window.downlodrFunctions.getFileSize(
+                filePath,
+              );
+              const updatedDownload = {
+                ...download,
+                size: actualFileSize || download.size,
+              };
+
               set((state) => ({
                 finishedDownloads: state.finishedDownloads.some(
                   (fd) => fd.id === download.id,
                 )
                   ? state.finishedDownloads
-                  : [...state.finishedDownloads, download],
+                  : [...state.finishedDownloads, updatedDownload],
 
                 historyDownloads: state.historyDownloads.some(
                   (hd) => hd.id === download.id,
                 )
                   ? state.historyDownloads
-                  : [...state.historyDownloads, download],
+                  : [...state.historyDownloads, updatedDownload],
 
                 downloading: state.downloading.filter(
                   (d) => d.id !== download.id,
@@ -376,7 +395,7 @@ const useDownloadStore = create<DownloadStore>()(
               audioExt: '',
               audioFormatId: '',
               isLive: false,
-              elapsed: 0,
+              elapsed: null,
             },
           ],
         }));
@@ -420,7 +439,7 @@ const useDownloadStore = create<DownloadStore>()(
               formatId: '',
               audioExt: '',
               audioFormatId: '',
-              elapsed: 0,
+              elapsed: null,
             },
           ],
         }));
@@ -465,8 +484,6 @@ const useDownloadStore = create<DownloadStore>()(
           const currentDownload = get().forDownloads.find(
             (d) => d.id === downloadId,
           );
-          console.log(`me - ${currentDownload.elapsed}`);
-          console.log(`me - ${currentDownload.elapsed}`);
 
           if (currentDownload?.isLive) {
             toast({
@@ -798,6 +815,9 @@ export default useDownloadStore;
 // Add to your utilities or directly in the component that displays elapsed time
 export function formatElapsedTime(elapsedSeconds: number | undefined): string {
   if (!elapsedSeconds || elapsedSeconds < 60) {
+    if (elapsedSeconds == 0) {
+      return '< 1s';
+    }
     return elapsedSeconds ? `${Math.floor(elapsedSeconds)}s` : '';
   }
 

@@ -610,7 +610,6 @@ const Downloading = () => {
     { id: 'speed', label: 'Speed', required: false },
     { id: 'dateAdded', label: 'Date Added', required: false },
     { id: 'source', label: 'Source', required: false },
-    { id: 'timeLeft', label: 'Time Left', required: false },
   ];
 
   return (

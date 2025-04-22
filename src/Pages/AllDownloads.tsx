@@ -53,14 +53,19 @@ const formatRelativeTime = (dateString: string) => {
 // Add this helper function before the AllDownloads component
 const formatFileSize = (bytes: number | undefined): string => {
   if (!bytes) return '—';
-
-  const MB = 1048576;
+  console.log(bytes);
+  const KB = 1024;
+  const MB = KB * 1024;
   const GB = MB * 1024;
 
   if (bytes >= GB) {
     return `${(bytes / GB).toFixed(2)} GB`;
-  } else {
+  } else if (bytes >= MB) {
     return `${(bytes / MB).toFixed(2)} MB`;
+  } else if (bytes >= KB) {
+    return `${(bytes / KB).toFixed(2)} KB`;
+  } else {
+    return `${bytes} bytes`;
   }
 };
 
@@ -636,7 +641,6 @@ const AllDownloads = () => {
     { id: 'speed', label: 'Speed', required: false },
     { id: 'dateAdded', label: 'Date Added', required: false },
     { id: 'source', label: 'Source', required: false },
-    { id: 'timeLeft', label: 'Time Left', required: false },
   ];
 
   return (

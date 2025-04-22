@@ -31,6 +31,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     updateDefaultDownloadSpeedBit,
     visibleColumns,
     setVisibleColumns,
+    updateRunInBackground,
   } = useMainStore();
   // Form submission
   const [biteUnit, setBiteUnit] = useState('');
@@ -50,6 +51,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
   // Update the state declaration for local visible columns
   const [localVisibleColumns, setLocalVisibleColumns] = useState<string[]>([]);
+
+  // Add this new state for the background running setting
+  const [runInBackground, setRunInBackground] = useState(
+    settings.runInBackground,
+  ); // Default to true for backward compatibility
 
   // Add this useEffect to sync with the mainStore's visibleColumns
   useEffect(() => {
@@ -74,6 +80,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setIsConnectionLimitEnabled(settings.permitConnectionLimit);
     // Reset column visibility
     setLocalVisibleColumns([...visibleColumns]);
+    // Add this line to reset the background running setting
+    setRunInBackground(settings.runInBackground ?? true);
   };
 
   // Find location
@@ -179,6 +187,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     updateMaxDownloadNum(isConnectionLimitEnabled ? maxDownload : 5);
     // Update visible columns
     setVisibleColumns(localVisibleColumns);
+    // Add this line to save the background running setting
+    console.log('Saving runInBackground value:', runInBackground);
+    updateRunInBackground(runInBackground);
+
+    // Also update the main process directly
+    if (window.backgroundSettings?.setRunInBackground) {
+      console.log('Sending to main process:', runInBackground);
+      window.backgroundSettings.setRunInBackground(runInBackground);
+    }
+
     onClose();
   };
 
@@ -317,6 +335,39 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
               {/* End of Download Location Name */}
+            </div>
+
+            {/* Add the background running toggle after the connection limits section */}
+            <div className="pt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block dark:text-gray-200 text-nowrap font-bold">
+                  Application Behavior
+                </label>
+                <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
+              </div>
+
+              <div className="flex items-center gap-2 mt-3">
+                <input
+                  type="checkbox"
+                  id="run-in-background"
+                  checked={runInBackground}
+                  onChange={(e) => {
+                    console.log('Checkbox toggled:', e.target.checked);
+                    setRunInBackground(e.target.checked);
+                  }}
+                  className="w-4 h-4 text-primary rounded focus:ring-primary"
+                />
+                <label
+                  htmlFor="run-in-background"
+                  className="dark:text-gray-200"
+                >
+                  Run in background when window is closed
+                </label>
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 mt-1">
+                When disabled, closing the window will completely exit the
+                application
+              </div>
             </div>
 
             {/* Add column visibility section */}

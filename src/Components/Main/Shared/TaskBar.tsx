@@ -414,16 +414,20 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           </button>
         </div>
 
-        {/* Moved Remove button to right side */}
-        <div className="px-4">
-          {selectedDownloads.length > 0 && (
-            <button
-              className="bg-[#FF3B30] hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded flex gap-1 font-semibold dark:text-gray-200"
-              onClick={() => setShowStopConfirmation(true)}
-            >
-              <LuTrash size={15} className="mt-[0.9px]" /> Remove
-            </button>
-          )}
+        <div className="px-4 flex items-center">
+          {/* This is the regular downloads Remove button */}
+          {selectedDownloads.length > 0 &&
+            !window.location.pathname.includes('history') && (
+              <button
+                className="bg-[#FF3B30] hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded flex gap-1 font-semibold text-gray-200"
+                onClick={() => setShowStopConfirmation(true)}
+              >
+                <LuTrash size={15} className="mt-[0.9px]" /> Remove
+              </button>
+            )}
+
+          {/* Portal target for History-specific Remove button */}
+          <div id="taskbar-portal"></div>
         </div>
       </div>
       <DownloadModal

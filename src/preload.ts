@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
   openFolder: (folderPath: string, filePath: string) =>
     ipcRenderer.invoke('open-folder', folderPath, filePath),
   fileExists: (path: string) => ipcRenderer.invoke('file-exists', path),
+  getFileSize: (path: string) => ipcRenderer.invoke('get-file-size', path),
   showInputContextMenu: () => ipcRenderer.send('show-input-context-menu'),
 });
 
@@ -110,4 +111,28 @@ contextBridge.exposeInMainWorld('updateAPI', {
     ipcRenderer.on('update-available', (_, updateInfo) => callback(updateInfo));
   },
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+});
+
+// Add these to your existing preload API exposures
+contextBridge.exposeInMainWorld('appControl', {
+  showWindow: () => ipcRenderer.invoke('show-window'),
+  hideWindow: () => ipcRenderer.invoke('hide-window'),
+  quitApp: () => ipcRenderer.invoke('exit-app'),
+  setAutoLaunch: (enabled: boolean) =>
+    ipcRenderer.invoke('set-auto-launch', enabled),
+
+  getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
+});
+
+// Change this from a separate exposure to include both functions
+contextBridge.exposeInMainWorld('backgroundSettings', {
+  getRunInBackground: () => ipcRenderer.invoke('get-run-in-background'),
+  setRunInBackground: (value: boolean) =>
+    ipcRenderer.invoke('set-run-in-background', value),
+});
+
+contextBridge.exposeInMainWorld('notifications', {
+  notifyDownloadFinished: (downloadInfo: any) => {
+    ipcRenderer.send('download-finished', downloadInfo);
+  },
 });

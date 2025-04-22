@@ -39,15 +39,18 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
     const getVersion = async () => {
       if (window.updateAPI) {
         try {
-          // Register a one-time listener for update info
+          // Register a listener for update info (for future updates)
           window.updateAPI.onUpdateAvailable((info) => {
             if (info.currentVersion) {
               setAppVersion(info.currentVersion);
             }
           });
 
-          // Trigger a check for updates to get version info
-          await window.updateAPI.checkForUpdates();
+          // Directly get the current version info
+          const updateInfo = await window.updateAPI.checkForUpdates();
+          if (updateInfo && updateInfo.currentVersion) {
+            setAppVersion(updateInfo.currentVersion);
+          }
         } catch (error) {
           console.error('Error getting version:', error);
         }

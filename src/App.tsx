@@ -25,8 +25,24 @@ import TagPage from './Pages/SubPages/TagsPage';
 import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
 import UpdateNotification from './Components/SubComponents/custom/UpdateNotifications';
 import StatusSpecificDownloads from './Pages/StatusSpecificDownload';
+import { useEffect } from 'react';
+import { useMainStore } from './Store/mainStore';
 
 const App = () => {
+  const { settings } = useMainStore();
+
+  // Sync setting with main process on startup
+  useEffect(() => {
+    if (window.backgroundSettings) {
+      window.backgroundSettings
+        .setRunInBackground(settings.runInBackground)
+        .then(() => console.log('Background setting synced on startup'))
+        .catch((err) =>
+          console.error('Failed to sync background setting:', err),
+        );
+    }
+  }, [settings.runInBackground]);
+
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <Router>

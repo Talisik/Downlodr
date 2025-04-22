@@ -4,7 +4,17 @@
  * handling IPC (Inter-Process Communication) events, and managing
  * application lifecycle events.
  */
-import { app, BrowserWindow, ipcMain, dialog, shell, Menu } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  shell,
+  Menu,
+  Tray,
+  nativeImage,
+  Notification,
+} from 'electron';
 import path from 'path';
 import started from 'electron-squirrel-startup';
 import os from 'os';
@@ -17,13 +27,39 @@ if (started) {
   app.quit();
 }
 
+// Prevent multiple instances of the app
+const isSingleInstance = app.requestSingleInstanceLock();
+
+if (!isSingleInstance) {
+  console.log('Another instance is already running. Quitting this instance.');
+  app.quit();
+}
+
+// focus first window instead
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
+
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
+
+let tray: Tray | null = null;
+let mainWindow: BrowserWindow | null = null;
+let forceQuit = false;
+let runInBackgroundSetting = true;
+
+let normalTrayIcon: Electron.NativeImage;
+let alertTrayIcon: Electron.NativeImage;
+let isDownloadComplete = false;
 
 // Function to create the main application window
 const createWindow = () => {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1100,
     height: 680,
     frame: false,
@@ -35,7 +71,7 @@ const createWindow = () => {
       preload: path.join(__dirname, 'preload.js'),
       webSecurity: true,
       nodeIntegration: true,
-      devTools: false,
+      // devTools: false,
     },
   });
 
@@ -49,17 +85,43 @@ const createWindow = () => {
     );
   }
 
-  // MAIN FUNCTIONS FOR TITLE BAR
+  // Handle window close events - hide instead of close
+  mainWindow.on('close', async (event) => {
+    if (!forceQuit) {
+      // Get the real-time setting
+      const shouldRunInBackground = await getRunInBackgroundSetting();
+      console.log('Window closing, checking setting:', shouldRunInBackground);
 
+      if (shouldRunInBackground) {
+        event.preventDefault();
+        mainWindow?.hide();
+        return false;
+      }
+    }
+  });
+
+  // MAIN FUNCTIONS FOR TITLE BAR
   ipcMain.on('close-btn', () => {
-    mainWindow.close();
+    if (!mainWindow) return;
+
+    if (runInBackgroundSetting) {
+      // If running in background is enabled, hide the window
+      console.log('Close button clicked, hiding window (background enabled)');
+      mainWindow.hide();
+    } else {
+      // If running in background is disabled, actually quit the app
+      console.log('Close button clicked, quitting app (background disabled)');
+      forceQuit = true;
+      app.quit();
+    }
   });
 
   ipcMain.on('minimize-btn', () => {
-    mainWindow.minimize();
+    if (mainWindow) mainWindow.minimize();
   });
 
   ipcMain.on('maximize-btn', () => {
+    if (!mainWindow) return;
     if (mainWindow.isMaximized()) {
       mainWindow.unmaximize();
     } else {
@@ -68,14 +130,114 @@ const createWindow = () => {
   });
 
   // Prevent navigation to external URLs
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   mainWindow.webContents.on('will-navigate', (event, url) => {
     event.preventDefault();
   });
 };
+
+const createTray = () => {
+  // Get correct path based on whether in dev or production
+  let iconPath, alertIconPath;
+
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    // Development mode paths
+    iconPath = path.join(
+      process.cwd(),
+      'src/Assets/AppLogo/systemTray/systemTray.png',
+    );
+    alertIconPath = path.join(
+      process.cwd(),
+      'src/Assets/AppLogo/systemTray/systemNotif.png',
+    );
+  } else {
+    // Production mode paths
+    iconPath = path.join(
+      process.resourcesPath,
+      'AppLogo/systemTray/systemTray.png', // "C:\Users\Mikaela\Desktop\Development\codebase\Electron\v2\Electron\ui_downlodr_v2\src\Assets\AppLogo\systemTray\systemIcon.svg"
+    );
+    alertIconPath = path.join(
+      process.resourcesPath,
+      'AppLogo/systemTray/systemNotif.png',
+    );
+  }
+
+  // Create both icons upfront
+  normalTrayIcon = nativeImage.createFromPath(iconPath);
+  alertTrayIcon = nativeImage.createFromPath(alertIconPath);
+
+  // Initialize with normal icon
+  tray = new Tray(normalTrayIcon);
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show Downlodr',
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          resetTrayIcon(); // Reset icon when showing app
+        }
+      },
+    },
+    {
+      label: 'Check for Updates',
+      click: async () => {
+        const updateInfo = await checkForUpdates();
+        if (updateInfo.hasUpdate && mainWindow) {
+          mainWindow.webContents.send('update-available', updateInfo);
+        }
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        forceQuit = true;
+        app.quit();
+      },
+    },
+  ]);
+
+  tray.setToolTip('Downlodr');
+  tray.setContextMenu(contextMenu);
+
+  // Double click on tray icon shows the app and resets the icon
+  tray.on('double-click', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      resetTrayIcon();
+    }
+  });
+};
+
+// set the alert icon
+function setAlertTrayIcon() {
+  if (tray && alertTrayIcon) {
+    console.log('Setting alert tray icon');
+    tray.setImage(alertTrayIcon);
+    isDownloadComplete = true;
+    tray.setToolTip('Downlodr - Download(s) complete!');
+    // Force tray update by setting context menu
+    // tray.setContextMenu(tray.getContextMenu());
+  } else {
+    console.log(
+      'Cannot set alert icon - tray or icon missing',
+      !!tray,
+      !!alertTrayIcon,
+    );
+  }
+}
+
+// reset the icon to normal
+function resetTrayIcon() {
+  if (tray && normalTrayIcon && isDownloadComplete) {
+    tray.setImage(normalTrayIcon);
+    isDownloadComplete = false;
+    tray.setToolTip('Downlodr');
+  }
+}
+
 // IPC handlers for various functionalities
 ipcMain.on('openExternalLink', (_event, link: string) => {
-  //console.log('link received', link);
   shell.openExternal(link);
 });
 
@@ -87,6 +249,7 @@ ipcMain.handle('joinDownloadPath', async (event, downloadPath, fileName) => {
   return path.join(normalizedPath, fileName);
 });
 
+// Function for getting default download folder from each OS
 ipcMain.handle('getDownloadFolder', async () => {
   try {
     const homedir = os.homedir();
@@ -113,6 +276,7 @@ ipcMain.handle('getDownloadFolder', async () => {
   }
 });
 
+// Function for validating path of download location
 ipcMain.handle('validatePath', async (event, folderPath) => {
   try {
     const resolvedPath = path.resolve(folderPath);
@@ -169,10 +333,12 @@ ipcMain.handle('open-folder', async (_, folderPath, filePath = null) => {
   }
 });
 
+// Function for checking if file exists in the directory
 ipcMain.handle('file-exists', async (_event, path) => {
   return existsSync(path);
 });
 
+// Function for opening video
 ipcMain.handle('openVideo', async (event, filePath) => {
   shell.openPath(filePath);
 });
@@ -211,21 +377,7 @@ ipcMain.handle('normalizePath', async (event, filepath) => {
   }
 });
 
-// YTDLP functons
-/* ipcMain.on('ytdlp:playlist:info', async (event, url) => {
-  try {
-    const info = await YTDLP.getPlaylistInfo({
-      url: url,
-      // ytdlpDownloadDestination: os.tmpdir(),
-      // ffmpegDownloadDestination: os.tmpdir(),
-    });
-    event.returnValue = info;
-  } catch (error) {
-    console.error('Error fetching playlist info:', error);
-    event.returnValue = { error: 'Failed to fetch playlist info.' };
-  }
-}); */
-
+// get the playlist information
 ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
   try {
     const info = await YTDLP.getPlaylistInfo({
@@ -240,7 +392,7 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
   }
 });
 
-// Register the IPC handler before loading the window
+// get the video information
 ipcMain.handle('ytdlp:info', async (e, url) => {
   YTDLP.Config.log = true;
   try {
@@ -286,6 +438,7 @@ ipcMain.handle('ytdlp:stop', (e, id: string) => {
     return false;
   }
 });
+
 // Listen for the kill-controller event from the renderer
 ipcMain.handle('kill-controller', async (_, id) => {
   return killControllerById(id); // Call the function and return the result
@@ -322,6 +475,24 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
       // Send the download status back to the renderer process
       e.sender.send(`ytdlp:download:status:${id}`, chunk);
       console.log(chunk);
+
+      // Add this code where download status is set to 'finished'#
+      if (chunk != null) {
+        if (chunk.data.status === 'finished') {
+          console.log('Download complete, updating tray icon...');
+          setAlertTrayIcon();
+
+          // Notify the main process about the finished download
+          const win = BrowserWindow.getAllWindows()[0];
+          if (win) {
+            win.webContents.send('download-finished', {
+              name: args.name,
+              id: id,
+              location: args.outputFilepath,
+            });
+          }
+        }
+      }
     }
     // Return the download ID and controller ID
     return { downloadId: id, controllerId: controller.id };
@@ -332,8 +503,11 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
   }
 });
 
+// once the app opens
 app.on('ready', () => {
   createWindow();
+  createTray();
+  updateCloseHandler();
 
   // Check for updates when app starts
   setTimeout(async () => {
@@ -357,13 +531,10 @@ app.on('ready', () => {
   }, UPDATE_CHECK_INTERVAL);
 });
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// Change this to keep app running in background
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  // Do nothing here to keep app running when windows are closed
+  // Note: macOS has its own behavior for this already
 });
 
 app.on('activate', () => {
@@ -371,7 +542,17 @@ app.on('activate', () => {
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
+  } else {
+    mainWindow?.show();
   }
+
+  // Reset the tray icon when the app is activated
+  resetTrayIcon();
+});
+
+// before-quit' handler to properly set force quit
+app.on('before-quit', () => {
+  forceQuit = true;
 });
 
 // function to handle the dev tools or console open
@@ -410,7 +591,7 @@ ipcMain.handle('openExternalLink', async (_event, link: string) => {
   }
 });
 
-// Add this to your IPC handlers
+// check for download updates
 ipcMain.handle('check-for-updates', async () => {
   const updateInfo = await checkForUpdates();
   if (updateInfo.hasUpdate) {
@@ -420,4 +601,130 @@ ipcMain.handle('check-for-updates', async () => {
     }
   }
   return updateInfo;
+});
+
+// function for showing window by opening it
+ipcMain.handle('show-window', () => {
+  if (mainWindow) {
+    mainWindow.show();
+    resetTrayIcon(); // Reset icon when window is explicitly shown
+    return true;
+  }
+  return false;
+});
+
+// function for hiding window not close it
+ipcMain.handle('hide-window', () => {
+  if (mainWindow) {
+    mainWindow.hide();
+    return true;
+  }
+  return false;
+});
+
+// function for forcibly closing the app
+ipcMain.handle('exit-app', () => {
+  forceQuit = true;
+  app.quit();
+});
+
+// function for running the appolication in the background
+ipcMain.handle('set-run-in-background', (_event, value) => {
+  console.log('Main process received runInBackground:', value);
+  runInBackgroundSetting = value;
+  updateCloseHandler();
+  return true;
+});
+
+// function for getting the current behaviour of run in the background
+ipcMain.handle('get-run-in-background', () => {
+  return runInBackgroundSetting;
+});
+
+// function for handling how the close button reacts
+function updateCloseHandler() {
+  if (!mainWindow) return;
+
+  // Remove existing listeners
+  mainWindow.removeAllListeners('close');
+
+  // Add the updated handler
+  mainWindow.on('close', async (event) => {
+    if (!forceQuit) {
+      // Get the real-time setting
+      const shouldRunInBackground = await getRunInBackgroundSetting();
+      console.log('Window closing, checking setting:', shouldRunInBackground);
+
+      if (shouldRunInBackground) {
+        event.preventDefault();
+        mainWindow?.hide();
+        return false;
+      }
+    }
+  });
+}
+
+// Use a function to get the current setting instead of a variable
+async function getRunInBackgroundSetting() {
+  return runInBackgroundSetting;
+}
+
+// function for syncing settings on startup
+ipcMain.handle('sync-background-setting-on-startup', (_event, value) => {
+  console.log('Syncing background setting on startup:', value);
+  runInBackgroundSetting = value;
+  return true;
+});
+
+// function for update the download-finished handler to also change the tray icon
+ipcMain.on('download-finished', (_event, downloadInfo) => {
+  const { name } = downloadInfo;
+
+  // Show notification
+  showNotification(
+    'Download Complete',
+    `"${name}" has finished downloading`,
+    () => {
+      // Show the app window when notification is clicked
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+        resetTrayIcon(); // Reset icon when app is shown via notification
+      }
+    },
+  );
+
+  // Change the tray icon to the alert version
+  setAlertTrayIcon();
+});
+
+// function to display notifications
+function showNotification(title: string, body: string, onClick?: () => void) {
+  // Check if notifications are supported
+  if (!Notification.isSupported()) {
+    console.log('Notifications not supported on this system');
+    return;
+  }
+
+  const notification = new Notification({
+    title,
+    body,
+    icon: normalTrayIcon,
+  });
+
+  if (onClick) {
+    notification.on('click', onClick);
+  }
+  notification.show();
+}
+
+// Function to get file size
+ipcMain.handle('get-file-size', async (_event, filePath) => {
+  try {
+    const stats = await fs.promises.stat(filePath);
+    return stats.size; // Returns size in bytes
+  } catch (error) {
+    console.error('Error getting file size:', error);
+    return null;
+  }
 });

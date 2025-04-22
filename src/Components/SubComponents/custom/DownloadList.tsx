@@ -12,7 +12,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { LuDownload, LuArrowDown, LuArrowUp } from 'react-icons/lu';
+// import { LuDownload, LuArrowDown, LuArrowUp } from 'react-icons/lu';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import { FaPlay } from 'react-icons/fa';
 import useDownloadStore, { BaseDownload } from '../../../Store/downloadStore';
@@ -150,18 +150,23 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   }, [columns, visibleColumns]);
 
   // Function to get formatted file size
-  const formatFileSize = (bytes?: number): string => {
-    if (!bytes) return '0 B';
-    const units = ['B', 'KB', 'MB', 'GB'];
-    let size = bytes;
-    let unitIndex = 0;
-    while (size >= 1024 && unitIndex < units.length - 1) {
-      size /= 1024;
-      unitIndex++;
-    }
-    return `${size.toFixed(1)} ${units[unitIndex]}`;
-  };
+  const formatFileSize = (bytes: number | undefined): string => {
+    if (!bytes) return '—';
+    console.log(bytes);
+    const KB = 1024;
+    const MB = KB * 1024;
+    const GB = MB * 1024;
 
+    if (bytes >= GB) {
+      return `${(bytes / GB).toFixed(2)} GB`;
+    } else if (bytes >= MB) {
+      return `${(bytes / MB).toFixed(2)} MB`;
+    } else if (bytes >= KB) {
+      return `${(bytes / KB).toFixed(2)} KB`;
+    } else {
+      return `${bytes} bytes`;
+    }
+  };
   // Function to get status color
   // color themes
   const getStatusColor = (status: string): string => {
@@ -294,9 +299,9 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     }
 
     return sortConfig.direction === 'ascending' ? (
-      <LuArrowUp className="ml-1" />
+      <HiChevronUpDown size={14} className="flex-shrink-0 rotate-180 ml-1" />
     ) : (
-      <LuArrowDown className="ml-1" />
+      <HiChevronUpDown size={14} className="flex-shrink-0 ml-1" />
     );
   };
 
@@ -382,33 +387,35 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     required: ['title', 'status', 'format'].includes(option.id), // Required columns
   }));
 
-  // Effect to handle clicks outside the list to close context menus
+  // Close Menu and clear selected download when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Close download context menu when clicking outside
-      if (listRef.current && !listRef.current.contains(event.target as Node)) {
+      // Don't clear selection if clicking inside a context menu
+      const target = event.target as HTMLElement;
+      const isClickInsideContextMenu = target.closest('[data-context-menu]');
+
+      // Check if we're clicking on a different row
+      const clickedRow = target.closest('tr');
+      const isClickOnDifferentRow =
+        clickedRow &&
+        contextMenu?.downloadId &&
+        !clickedRow.querySelector(
+          `[data-download-id="${contextMenu.downloadId}"]`,
+        );
+
+      // Close the context menu if:
+      // 1. Clicking outside the context menu, OR
+      // 2. Clicking on a different row than the one with the context menu
+      if (!isClickInsideContextMenu || isClickOnDifferentRow) {
         setContextMenu(null);
         setSelectedDownloadId(null);
-      }
-
-      // Close column header context menu when clicking outside
-      if (columnHeaderContextMenu.visible) {
-        // Check if the click was not on the column header context menu
-        const menuElement = document.querySelector(
-          '.column-header-context-menu',
-        );
-        if (menuElement && !menuElement.contains(event.target as Node)) {
-          setColumnHeaderContextMenu({
-            ...columnHeaderContextMenu,
-            visible: false,
-          });
-        }
+        setColumnHeaderContextMenu((prev) => ({ ...prev, visible: false }));
       }
     };
 
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [columnHeaderContextMenu.visible]);
+  }, [contextMenu?.downloadId]);
 
   /**
    * Handles the context menu event for a download.
@@ -583,7 +590,10 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'
                 }`}
+                onContextMenu={(e) => handleContextMenu(e, download)}
+                onClick={() => handleRowClick(download.id)}
                 draggable={true}
+                data-download-id={download.id}
                 onDragStart={(e) => {
                   e.dataTransfer.setData('downloadId', download.id);
                   const dragIcon = document.createElement('div');
@@ -765,7 +775,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                             }
                           >
                             {download.tags && download.tags.length > 0 ? (
-                              download.tags.slice(0, 5).map((tag, idx) => (
+                              download.tags.slice(0, 3).map((tag, idx) => (
                                 <span
                                   key={idx}
                                   className="px-2 py-0.5 bg-blue-100 dark:bg-blue-800 rounded-full text-xs"
@@ -780,7 +790,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                             )}
                             {download.tags && download.tags.length > 5 && (
                               <span className="text-xs text-gray-500">
-                                +{download.tags.length - 5}
+                                +{download.tags.length - 3}
                               </span>
                             )}
                           </div>
@@ -908,6 +918,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       {/* Context menu for download options */}
       {contextMenu && (
         <DownloadContextMenu
+          data-context-menu
           position={{ x: contextMenu.x, y: contextMenu.y }}
           downloadId={contextMenu.downloadId}
           onClose={() => setContextMenu(null)}

@@ -16,7 +16,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
@@ -52,6 +52,11 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       ? ''
       : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
 
+  // Add this useEffect to listen for settings changes
+  useEffect(() => {
+    setDownloadFolder(settings.defaultLocation);
+  }, [settings.defaultLocation]);
+
   // New state for playlist functionality
   const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -64,6 +69,12 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   // Calculate selectAll state
   const selectAll =
     selectedVideos.size === playlistVideos.length && playlistVideos.length > 0;
+
+  // Add a debounce timer and URL validation states
+  const [validationTimer, setValidationTimer] = useState<NodeJS.Timeout | null>(
+    null,
+  );
+  const [isValidatingUrl, setIsValidatingUrl] = useState<boolean>(false);
 
   // URL validation with playlist check
   const isYouTubeLink = (url: string): 'playlist' | 'video' | 'invalid' => {
@@ -88,6 +99,29 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     setIsValidUrl(false);
     setIsPlaylist(false);
     setSelectedVideos(new Set());
+
+    // Clear any existing validation timer
+    if (validationTimer) {
+      clearTimeout(validationTimer);
+    }
+
+    // Skip validation for empty URLs
+    if (!url.trim()) {
+      return;
+    }
+
+    // Set a new validation timer (500ms delay)
+    setIsValidatingUrl(true);
+    const timer = setTimeout(() => {
+      validateUrl(url);
+      setIsValidatingUrl(false);
+    }, 500);
+
+    setValidationTimer(timer);
+  };
+
+  // Separate validation function
+  const validateUrl = (url: string) => {
     // Validates link if it follows the standard format
     const urlPattern = new RegExp(
       '^(https?:\\/\\/)?' +
@@ -266,6 +300,15 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     resetModal();
     onClose();
   };
+
+  // Make sure to clean up the timer when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (validationTimer) {
+        clearTimeout(validationTimer);
+      }
+    };
+  }, [validationTimer]);
 
   // Move the conditional return after all hooks
   if (!isOpen) return null;
