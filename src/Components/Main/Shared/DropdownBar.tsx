@@ -24,6 +24,7 @@ import useDownloadStore, {
   HistoryDownloads,
 } from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
+import { usePluginStore } from '../../../Store/pluginStore';
 import AboutModal from '../Modal/AboutModal';
 import HelpModal from '../Modal/HelpModal';
 import { processFileName } from '../../../DataFunctions/FilterName';
@@ -56,6 +57,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
   // Plug-ins:
   const showPlugin = true;
   const pluginVals = ['2', '2'];
+  const { settingsPlugin } = usePluginStore();
 
   // Filter search results when search term changes
   useEffect(() => {
@@ -399,7 +401,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
           )}
         </div>
         <div className="relative">
-          {pluginVals.length > 0 && (
+          {pluginVals.length > 0 && settingsPlugin.isShowPlugin && (
             <NavLink
               to="/plugin-manager"
               className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"

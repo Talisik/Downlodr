@@ -15,6 +15,7 @@ import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
 import { useMainStore } from '../../../Store/mainStore';
 import { Button } from '../../../Components/SubComponents/shadcn/components/ui/button';
 import { toast } from '../../../Components/SubComponents/shadcn/hooks/use-toast';
+import { usePluginStore } from '../../../Store/pluginStore';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -33,6 +34,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setVisibleColumns,
     updateRunInBackground,
   } = useMainStore();
+
+  const { settingsPlugin, updateIsShowPlugin } = usePluginStore();
   // Form submission
   const [biteUnit, setBiteUnit] = useState('');
   const [biteUnitVal, setBiteUnitVal] = useState(
@@ -69,7 +72,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const navRef = useRef<HTMLDivElement>(null);
 
   // Add this state for the dummy plugin toggle
-  const [isShowPlugin, setIsShowPlugin] = useState(false);
+  const [isShowPlugin, setIsShowPlugin] = useState(settingsPlugin.isShowPlugin);
 
   const resetSettingsModal = () => {
     // Reset all state values to their original store values
@@ -211,7 +214,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     // Add this line to save the background running setting
     console.log('Saving runInBackground value:', runInBackground);
     updateRunInBackground(runInBackground);
-
+    updateIsShowPlugin(isShowPlugin);
     // Also update the main process directly
     if (window.backgroundSettings?.setRunInBackground) {
       console.log('Sending to main process:', runInBackground);
@@ -426,7 +429,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       className="sr-only peer"
                       checked={isShowPlugin}
                       onChange={(e) => {
-                        console.log('Checkbox toggled:', e.target.checked);
+                        console.log(
+                          'Checkbox toggled for plugin',
+                          e.target.checked,
+                        );
                         setIsShowPlugin(e.target.checked);
                       }}
                     />

@@ -945,7 +945,6 @@ ipcMain.handle('downloadFile', async (_event, url, outputPath) => {
 ipcMain.handle('get-thumbnail-data-url', async (_event, imagePath) => {
   try {
     if (!fs.existsSync(imagePath)) {
-      console.error('Thumbnail file does not exist:', imagePath);
       return null;
     }
 
