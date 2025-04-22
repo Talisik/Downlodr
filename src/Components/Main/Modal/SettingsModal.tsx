@@ -52,12 +52,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   // Update the state declaration for local visible columns
   const [localVisibleColumns, setLocalVisibleColumns] = useState<string[]>([]);
 
-  // Add this new state for the background running setting
+  // background running setting
   const [runInBackground, setRunInBackground] = useState(
     settings.runInBackground,
   ); // Default to true for backward compatibility
 
-  // Add this useEffect to sync with the mainStore's visibleColumns
+  // sync with the mainStore's visibleColumns
   useEffect(() => {
     if (isOpen) {
       // Reset the local state when the modal opens to match the store
@@ -67,6 +67,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
   // Misc
   const navRef = useRef<HTMLDivElement>(null);
+
+  // Add this state for the dummy plugin toggle
+  const [isShowPlugin, setIsShowPlugin] = useState(false);
 
   const resetSettingsModal = () => {
     // Reset all state values to their original store values
@@ -187,6 +190,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     } else {
       setLocalVisibleColumns([...localVisibleColumns, columnId]);
     }
+  };
+
+  // Dummy function to handle toggle state
+  const handleToggle = () => {
+    setIsShowPlugin((prev) => !prev);
+    console.log(`Plugin is now ${!isShowPlugin ? 'enabled' : 'disabled'}`);
   };
 
   // Modify handleSubmit to consider the checkbox
@@ -395,6 +404,39 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               </div>
             </div>
 
+            {/* Add the background running toggle after the connection limits section */}
+            <div className="pt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block dark:text-gray-200 text-nowrap font-bold">
+                  Plugins
+                </label>
+                <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
+              </div>
+
+              <div className="flex gap-2 flex-wrap justify-between">
+                <span className="mt-2 text-xs font-medium">
+                  Note: Plugins is an experimental feature and might not work as
+                  expected.
+                </span>
+                {/*checkbox */}
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={isShowPlugin}
+                      onChange={(e) => {
+                        console.log('Checkbox toggled:', e.target.checked);
+                        setIsShowPlugin(e.target.checked);
+                      }}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
+                  </label>
+                </div>
+                {/* end of checkbox */}
+              </div>
+            </div>
+
             {/* Add column visibility section */}
             <div className="pt-4">
               <div className="flex items-center gap-2 mb-2">
@@ -422,7 +464,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     />
                     <label
                       htmlFor={`column-${column.id}`}
-                      className={`dark:text-gray-200 mr-2 ${
+                      className={`dark:text-gray-200 mr-2 text-xs ${
                         column.required ? 'font-semibold' : ''
                       }`}
                     >
@@ -443,12 +485,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         {/* Button commands */}
         <hr className="solid mt-4 mb-3 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 p-1">
           <div className="ml-auto flex gap-3">
             <button
               type="button"
               onClick={handleSubmit}
-              className="bg-primary text-white px-2 py-2 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
+              className="bg-primary text-white text-sm px-2 py-2 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
             >
               Okay
             </button>

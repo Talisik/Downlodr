@@ -22,6 +22,7 @@ import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
+import { MdOutlineInfo } from 'react-icons/md';
 
 interface DownloadModalProps {
   isOpen: boolean;
@@ -444,6 +445,16 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                       <label className="font-medium dark:text-gray-200 ">
                         Get Thumbnail
                       </label>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-4">
+                    <MdOutlineInfo size={20} />
+                    <div>
+                      <p className="text-xs">
+                        Please note that transcripts and thumbnails may not be
+                        available for all websites. Availability depends on the
+                        source.
+                      </p>
                     </div>
                   </div>
                 </div>
