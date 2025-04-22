@@ -6,6 +6,7 @@ import { FiSearch } from 'react-icons/fi';
 import { FaPlus } from 'react-icons/fa6';
 import NoPlugin from '../Assets/Images/extension_light_nobg 1.svg';
 import { NavLink } from 'react-router-dom';
+import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 
 interface PluginInfo {
   id: string;
@@ -111,10 +112,29 @@ const PluginManager: React.FC = () => {
           await window.plugins.reload();
           // Then update the UI list
           await loadPlugins();
+          toast({
+            title: 'Success',
+            description: 'Plugin was installed successfully',
+            variant: 'success',
+          });
+        } else {
+          toast({
+            title: 'Invalid Plugin Directory',
+            description:
+              'The selected directory does not contain a valid plugin structure',
+            variant: 'destructive',
+          });
         }
       }
     } catch (error) {
       console.error('Failed to install plugin:', error);
+      toast({
+        title: 'Installation Failed',
+        description:
+          error.message ||
+          'An unexpected error occurred while installing the plugin',
+        variant: 'destructive',
+      });
     } finally {
       setIsSelectingDirectory(false);
     }

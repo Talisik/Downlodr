@@ -900,7 +900,7 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200 ml-2"
+                              className="p-2 dark:text-gray-200 flex items-center justify-center"
                             >
                               {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1">
@@ -908,7 +908,7 @@ const StatusSpecificDownloads = () => {
                                   <Skeleton className="h-4 w-[70px] rounded-[3px]" />
                                 </div>
                               ) : (
-                                <div className="line-clamp-2 break-words ml-1">
+                                <div className="line-clamp-2 break-words">
                                   {formatFileSize(download.size)}
                                 </div>
                               )}
@@ -1060,9 +1060,11 @@ const StatusSpecificDownloads = () => {
                               className="p-2 dark:text-gray-200 ml-2"
                             >
                               {download.status === 'downloading' ? (
-                                <span className="m-1">{download.speed}</span>
+                                <span>{download.speed}</span>
                               ) : (
-                                <span className="m-1">—</span>
+                                <div className="flex justify-center w-full">
+                                  <span>—</span>
+                                </div>
                               )}{' '}
                             </td>
                           );
@@ -1111,11 +1113,15 @@ const StatusSpecificDownloads = () => {
                                       }}
                                     />
                                   ) : (
-                                    '—'
+                                    <div className="flex justify-center w-full">
+                                      <span>— </span>
+                                    </div>
                                   )}
                                 </div>
                               ) : (
-                                '—'
+                                <div className="flex justify-center w-full">
+                                  <span>—</span>
+                                </div>
                               )}
                             </td>
                           );
@@ -1128,7 +1134,9 @@ const StatusSpecificDownloads = () => {
                             >
                               {download.autoCaptionLocation === '' ||
                               download.autoCaptionLocation === null ? (
-                                '—'
+                                <div className="flex justify-center w-full">
+                                  <span>—</span>
+                                </div>
                               ) : download.autoCaptionLocation === undefined ? (
                                 <span className="text-gray-500">
                                   Not available
