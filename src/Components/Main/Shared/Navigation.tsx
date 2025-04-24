@@ -435,7 +435,18 @@ const Navigation = ({
               <span className="ml-2 text-sm font-semibold">Categories</span>
             )}
             {collapsed && (
-              <div className=" p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200">
+              <div
+                className="p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
+                onClick={() => {
+                  toggleCollapse();
+                  setTimeout(() => {
+                    setOpenSections((prev) => ({
+                      ...prev,
+                      category: true,
+                    }));
+                  }, 50);
+                }}
+              >
                 <BiLayer
                   size={16}
                   className="text-[#16161E]"
@@ -520,7 +531,18 @@ const Navigation = ({
               <span className="ml-2 text-sm font-semibold">Tags</span>
             )}
             {collapsed && (
-              <div className="p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200">
+              <div
+                className="p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
+                onClick={() => {
+                  toggleCollapse();
+                  setTimeout(() => {
+                    setOpenSections((prev) => ({
+                      ...prev,
+                      tag: true,
+                    }));
+                  }, 50);
+                }}
+              >
                 <BsTag size={16} className="text-[#16161E]" title="Tags" />
               </div>
             )}
