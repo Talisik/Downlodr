@@ -431,7 +431,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         className="w-4 h-4 text-primary rounded focus:ring-primary"
                       />
                       <label className="font-medium dark:text-gray-200 ">
-                        Get Transcript
+                        Get Closed Captions
                       </label>
                     </div>
                     <div className="flex items-center gap-1">
@@ -451,9 +451,8 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                     <MdOutlineInfo size={20} />
                     <div>
                       <p className="text-xs">
-                        Please note that transcripts and thumbnails may not be
-                        available for all websites. Availability depends on the
-                        source.
+                        Please note that Closed Captions and thumbnails may not
+                        be available for all websites.
                       </p>
                     </div>
                   </div>
