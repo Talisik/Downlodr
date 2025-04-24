@@ -449,7 +449,7 @@ const Navigation = ({
               >
                 <BiLayer
                   size={16}
-                  className="text-[#16161E]"
+                  className="text-[#16161E] dark:text-white"
                   title="Categories"
                 />
               </div>
@@ -543,7 +543,11 @@ const Navigation = ({
                   }, 50);
                 }}
               >
-                <BsTag size={16} className="text-[#16161E]" title="Tags" />
+                <BsTag
+                  size={16}
+                  className="text-[#16161E] dark:text-white"
+                  title="Tags"
+                />
               </div>
             )}
           </button>

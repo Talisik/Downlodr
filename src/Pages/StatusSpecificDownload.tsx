@@ -753,7 +753,7 @@ const StatusSpecificDownloads = () => {
     { id: 'speed', label: 'Speed', required: false },
     { id: 'dateAdded', label: 'Date Added', required: false },
     { id: 'source', label: 'Source', required: false },
-    { id: 'transcript', label: 'Captions', required: false },
+    { id: 'transcript', label: 'Closed Captions', required: false },
     { id: 'thumbnail', label: 'Thumbnail', required: false },
   ];
 

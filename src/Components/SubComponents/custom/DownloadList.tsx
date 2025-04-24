@@ -269,10 +269,22 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   // Handlers for column operations
   const handleColumnHeaderContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    // Close any active download context menu first
+    setContextMenu(null);
+
+    // Get the table's position
+    const tableRect = e.currentTarget.getBoundingClientRect();
+
+    // Calculate position relative to the table/header
+    const x = e.clientX - tableRect.left + 2;
+    const y = e.clientY - tableRect.top + window.scrollY + 2;
+
     setColumnHeaderContextMenu({
       visible: true,
-      x: e.clientX,
-      y: e.clientY,
+      x: x,
+      y: y,
     });
   };
 
@@ -429,6 +441,12 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   ) => {
     event.preventDefault();
     event.stopPropagation();
+
+    // Close any active column header context menu first
+    setColumnHeaderContextMenu({
+      ...columnHeaderContextMenu,
+      visible: false,
+    });
 
     setContextMenu({
       downloadId: download.id,
