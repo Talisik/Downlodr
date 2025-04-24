@@ -325,6 +325,8 @@ const StatusSpecificDownloads = () => {
     e.preventDefault();
     e.stopPropagation();
 
+    // Close any active download context menu first
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
     // Get the table's position
     const tableRect = e.currentTarget.getBoundingClientRect();
 
@@ -397,6 +399,12 @@ const StatusSpecificDownloads = () => {
   ) => {
     event.preventDefault();
     event.stopPropagation(); // Prevent the click outside handler from firing immediately
+
+    // Close any active column header context menu first
+    setColumnHeaderContextMenu({
+      ...columnHeaderContextMenu,
+      visible: false,
+    });
     setContextMenu({
       downloadId: allDownloads.id,
       x: event.clientX,
@@ -408,6 +416,7 @@ const StatusSpecificDownloads = () => {
       downloadStatus: allDownloads.status,
       controllerId: allDownloads.controllerId,
     });
+
     setSelectedDownloadId(allDownloads.id);
   };
 
