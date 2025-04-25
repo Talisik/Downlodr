@@ -11,8 +11,13 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { HiChevronDown, HiChevronRight } from 'react-icons/hi';
-import { FiDownload, FiFolder } from 'react-icons/fi';
+import {
+  FiChevronDown,
+  FiDownload,
+  FiFolder,
+  FiChevronLeft,
+  FiChevronRight,
+} from 'react-icons/fi';
 import { BiLayer } from 'react-icons/bi';
 import { BsTag, BsHourglassSplit } from 'react-icons/bs';
 import useDownloadStore from '../../../Store/downloadStore';
@@ -27,7 +32,15 @@ import { MdPlayArrow } from 'react-icons/md';
 // import { toast } from 'react-hot-toast';
 import { toast } from '../../../Components/SubComponents/shadcn/hooks/use-toast';
 
-const Navigation = ({ className }: { className?: string }) => {
+const Navigation = ({
+  className,
+  collapsed,
+  toggleCollapse,
+}: {
+  className?: string;
+  collapsed?: boolean;
+  toggleCollapse?: () => void;
+}) => {
   // states for opening and closing navigation sections
   const [openSections, setOpenSections] = useState({
     status: true,
@@ -204,129 +217,199 @@ const Navigation = ({ className }: { className?: string }) => {
   return (
     <nav
       ref={navRef}
-      className={`${className} border-solid border-r border-gray-200 dark:border-componentBorder`}
+      className={`${className} border-solid border-r border-gray-200 dark:border-componentBorder transition-all duration-300 ${
+        collapsed ? 'w-[70px]' : ''
+      } relative overflow-x-hidden`}
     >
-      <div className="p-2 space-y-2 ml-2 mt-2">
+      <div
+        className={`${collapsed ? 'px-1' : 'p-2 ml-2'} mt-2 space-y-2 pb-20`}
+      >
         {/* Status Section */}
         <div>
           <button
             onClick={() => toggleSection('status')}
-            className="w-full flex items-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
+            className={`w-full flex items-center ${
+              collapsed
+                ? 'justify-center hover:none dark:hover:none cursor-default'
+                : 'hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+            } p-2`}
           >
-            {openSections.status ? (
-              <HiChevronDown size={18} />
-            ) : (
-              <HiChevronRight size={18} />
+            {!collapsed &&
+              (openSections.status ? (
+                <FiChevronDown size={18} />
+              ) : (
+                <FiChevronRight size={18} />
+              ))}
+            {!collapsed && (
+              <span className="ml-2 text-sm font-semibold">Status</span>
             )}
-            <span className="ml-2 text-sm font-semibold">Status</span>
           </button>
-
-          {openSections.status && (
-            <div className="ml-2 space-y-1 mt-1">
+          {/* Show items regardless of openSections when collapsed */}
+          {(openSections.status || collapsed) && (
+            <div
+              className={`${
+                collapsed ? 'flex flex-col items-center' : 'ml-2'
+              } space-y-1 mt-1`}
+            >
               <NavLink
                 to="/status/all"
                 className={({ isActive }) =>
-                  `nav-link ${
+                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
                     isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    collapsed
+                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                      : 'items-center'
+                  }`
                 }
+                title={collapsed ? 'All' : ''}
               >
                 <FiFolder size={16} className="text-primary flex-shrink-0" />
-                <span className="ml-2 text-[14px]">All</span>
+                {!collapsed && <span className="ml-2 text-[14px]">All</span>}
               </NavLink>
+
               <NavLink
                 to="/status/fetching-metadata"
                 className={({ isActive }) =>
-                  `nav-link ${
+                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
                     isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    collapsed
+                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                      : 'items-center'
+                  }`
                 }
+                title={collapsed ? 'Fetching Metadata' : ''}
               >
                 <TbDeviceTabletSearch
                   size={17}
                   className="text-blue-500 flex-shrink-0"
                 />
-                <span className="ml-2 text-[14px]">Fetching Metadata</span>
+                {!collapsed && (
+                  <span className="ml-2 text-[14px]">Loading Metadata</span>
+                )}
               </NavLink>
+
               <NavLink
                 to="/status/to-download"
                 className={({ isActive }) =>
-                  `nav-link ${
+                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
                     isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    collapsed
+                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                      : 'items-center'
+                  }`
                 }
+                title={collapsed ? 'Start Download' : ''}
               >
                 <FiDownload size={16} className="text-primary flex-shrink-0" />
-                <span className="ml-2 text-[14px] ">Start Download</span>
+                {!collapsed && (
+                  <span className="ml-2 text-[14px]">Starting Download</span>
+                )}
               </NavLink>
+
               <NavLink
                 to="/status/downloading"
                 className={({ isActive }) =>
-                  `nav-link ${
+                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
                     isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    collapsed
+                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                      : 'items-center'
+                  }`
                 }
+                title={collapsed ? 'Downloading' : ''}
               >
                 <BsHourglassSplit
                   size={16}
                   className="text-primary flex-shrink-0"
                 />
-                <span className="ml-2 text-[14px]">Downloading</span>
+                {!collapsed && (
+                  <span className="ml-2 text-[14px]">Downloading</span>
+                )}
               </NavLink>
 
               <NavLink
                 to="/status/paused"
                 className={({ isActive }) =>
-                  `nav-link ${
+                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
                     isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    collapsed
+                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                      : 'items-center'
+                  }`
                 }
+                title={collapsed ? 'Paused' : ''}
               >
                 <PiPauseBold
                   size={16}
                   className="text-blue-500 flex-shrink-0"
                 />
-                <span className="ml-2 text-[14px]">Paused</span>
+                {!collapsed && <span className="ml-2 text-[14px]">Paused</span>}
               </NavLink>
+
               <NavLink
                 to="/status/initializing"
                 className={({ isActive }) =>
-                  `nav-link ${
+                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
                     isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    collapsed
+                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                      : 'items-center'
+                  }`
                 }
+                title={collapsed ? 'Initializing' : ''}
               >
                 <HiMiniArrowPath
                   size={17}
                   className="text-blue-500 flex-shrink-0"
                 />
-                <span className="ml-2 text-[14px]">Initializing</span>
+                {!collapsed && (
+                  <span className="ml-2 text-[14px]">Initializing</span>
+                )}
               </NavLink>
 
               <NavLink
                 to="/status/failed"
                 className={({ isActive }) =>
-                  `nav-link ${
+                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
                     isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    collapsed
+                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                      : 'items-center'
+                  }`
                 }
+                title={collapsed ? 'Failed' : ''}
               >
                 <CgClose size={17} className="text-red-500 flex-shrink-0" />
-                <span className="ml-2 text-[14px]">Failed</span>
+                {!collapsed && <span className="ml-2 text-[14px]">Failed</span>}
               </NavLink>
+
               <NavLink
                 to="/status/finished"
                 className={({ isActive }) =>
-                  `nav-link ${
+                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
                     isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    collapsed
+                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                      : 'items-center'
+                  }`
                 }
+                title={collapsed ? 'Finished' : ''}
               >
                 <MdPlayArrow
                   size={18}
                   className="text-green-500 flex-shrink-0"
                 />
-                <span className="ml-2 text-[14px]">Finished</span>
+                {!collapsed && (
+                  <span className="ml-2 text-[14px]">Finished</span>
+                )}
               </NavLink>
             </div>
           )}
@@ -336,17 +419,44 @@ const Navigation = ({ className }: { className?: string }) => {
         <div>
           <button
             onClick={() => toggleSection('category')}
-            className="w-full flex items-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
+            className={`w-full flex items-center ${
+              collapsed
+                ? 'justify-center'
+                : 'hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 p-2'
+            } `}
           >
-            {openSections.category ? (
-              <HiChevronDown size={18} />
-            ) : (
-              <HiChevronRight size={18} />
+            {!collapsed &&
+              (openSections.category ? (
+                <FiChevronDown size={18} />
+              ) : (
+                <FiChevronRight size={18} />
+              ))}
+            {!collapsed && (
+              <span className="ml-2 text-sm font-semibold">Categories</span>
             )}
-            <span className="ml-2 text-sm font-semibold">Categories</span>
+            {collapsed && (
+              <div
+                className="p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
+                onClick={() => {
+                  toggleCollapse();
+                  setTimeout(() => {
+                    setOpenSections((prev) => ({
+                      ...prev,
+                      category: true,
+                    }));
+                  }, 50);
+                }}
+              >
+                <BiLayer
+                  size={16}
+                  className="text-[#16161E] dark:text-white"
+                  title="Categories"
+                />
+              </div>
+            )}
           </button>
 
-          {openSections.category && (
+          {openSections.category && !collapsed && (
             <div className="ml-2 space-y-1 mt-1">
               <NavLink
                 to="/category/all"
@@ -405,17 +515,44 @@ const Navigation = ({ className }: { className?: string }) => {
         <div>
           <button
             onClick={() => toggleSection('tag')}
-            className="w-full flex items-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
+            className={`w-full flex items-center ${
+              collapsed
+                ? 'justify-center'
+                : 'p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 '
+            }`}
           >
-            {openSections.tag ? (
-              <HiChevronDown size={18} />
-            ) : (
-              <HiChevronRight size={18} />
+            {!collapsed &&
+              (openSections.tag ? (
+                <FiChevronDown size={18} />
+              ) : (
+                <FiChevronRight size={18} />
+              ))}
+            {!collapsed && (
+              <span className="ml-2 text-sm font-semibold">Tags</span>
             )}
-            <span className="ml-2 text-sm font-semibold">Tags</span>
+            {collapsed && (
+              <div
+                className="p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
+                onClick={() => {
+                  toggleCollapse();
+                  setTimeout(() => {
+                    setOpenSections((prev) => ({
+                      ...prev,
+                      tag: true,
+                    }));
+                  }, 50);
+                }}
+              >
+                <BsTag
+                  size={16}
+                  className="text-[#16161E] dark:text-white"
+                  title="Tags"
+                />
+              </div>
+            )}
           </button>
 
-          {openSections.tag && (
+          {openSections.tag && !collapsed && (
             <div className="ml-2 space-y-1 mt-1">
               <NavLink
                 to="/tags/all"
@@ -462,6 +599,28 @@ const Navigation = ({ className }: { className?: string }) => {
             </div>
           )}
         </div>
+      </div>
+
+      {/* close and open toggle */}
+      <div
+        className="fixed bottom-4 z-10 ml-3"
+        style={{
+          width: collapsed ? '70px' : '205px',
+          transform: 'translateX(-50%)',
+          left: collapsed ? '35px' : '102.5px',
+        }}
+      >
+        <button
+          onClick={toggleCollapse}
+          className={`flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700`}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? (
+            <FiChevronRight size={22} />
+          ) : (
+            <FiChevronLeft size={22} />
+          )}
+        </button>
       </div>
 
       {contextMenu && (

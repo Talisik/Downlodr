@@ -179,7 +179,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     { id: 'source', label: 'Source', required: false },
     { id: 'name', label: 'Title', required: true },
     { id: 'dateAdded', label: 'Date Added', required: false },
-    { id: 'transcript', label: 'Closed Captions', required: false },
+    { id: 'transcript', label: 'Closed Caption', required: false },
     { id: 'thumbnail', label: 'Thumbnail', required: false },
     { id: 'status', label: 'Status', required: true },
   ];

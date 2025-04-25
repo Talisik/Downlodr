@@ -325,6 +325,8 @@ const StatusSpecificDownloads = () => {
     e.preventDefault();
     e.stopPropagation();
 
+    // Close any active download context menu first
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
     // Get the table's position
     const tableRect = e.currentTarget.getBoundingClientRect();
 
@@ -397,6 +399,12 @@ const StatusSpecificDownloads = () => {
   ) => {
     event.preventDefault();
     event.stopPropagation(); // Prevent the click outside handler from firing immediately
+
+    // Close any active column header context menu first
+    setColumnHeaderContextMenu({
+      ...columnHeaderContextMenu,
+      visible: false,
+    });
     setContextMenu({
       downloadId: allDownloads.id,
       x: event.clientX,
@@ -408,6 +416,7 @@ const StatusSpecificDownloads = () => {
       downloadStatus: allDownloads.status,
       controllerId: allDownloads.controllerId,
     });
+
     setSelectedDownloadId(allDownloads.id);
   };
 
@@ -738,7 +747,7 @@ const StatusSpecificDownloads = () => {
       speed: 'Speed',
       dateAdded: 'Date Added',
       thumbnail: 'Thumbnail',
-      transcript: 'Closed Captions',
+      transcript: 'Captions',
       source: 'Source',
     };
 
@@ -1086,7 +1095,9 @@ const StatusSpecificDownloads = () => {
                               className="p-2 dark:text-gray-200 ml-2"
                             >
                               {download.status === 'fetching metadata' ? (
-                                <div className="h-10 w-16 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+                                <div className="space-y-1 flex justify-center items-center">
+                                  <Skeleton className="h-8 w-[50px] rounded-[3px]" />
+                                </div>
                               ) : download.status === 'finished' &&
                                 download.thumnailsLocation &&
                                 download.thumnailsLocation !== '—' ? (
@@ -1132,8 +1143,12 @@ const StatusSpecificDownloads = () => {
                               style={{ width: column.width }}
                               className="p-2 dark:text-gray-200 ml-2"
                             >
-                              {download.autoCaptionLocation === '' ||
-                              download.autoCaptionLocation === null ? (
+                              {download.status === 'fetching metadata' ? (
+                                <div className="space-y-1 flex justify-center items-center">
+                                  <Skeleton className="h-8 w-[50px] rounded-[3px]" />
+                                </div>
+                              ) : download.autoCaptionLocation === '' ||
+                                download.autoCaptionLocation === null ? (
                                 <div className="flex justify-center w-full">
                                   <span>—</span>
                                 </div>

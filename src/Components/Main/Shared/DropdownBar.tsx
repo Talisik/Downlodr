@@ -296,6 +296,13 @@ const DropdownBar = ({ className }: { className?: string }) => {
     <div
       className={`${className} flex items-center justify-between relative z-48 py-4`}
       ref={dropdownRef}
+      data-active-dropdown={activeMenu !== null}
+      onClick={(e) => {
+        // Only close if clicking the DropdownBar itself, not its children
+        if (e.currentTarget === e.target) {
+          setActiveMenu(null);
+        }
+      }}
     >
       <div className="flex items-center gap-4">
         <div className="relative">
@@ -305,7 +312,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
                 ? 'bg-gray-100 dark:bg-gray-700 font-semibold'
                 : ''
             }`}
-            onClick={() => setActiveMenu(activeMenu === 'file' ? null : 'file')}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveMenu(activeMenu === 'file' ? null : 'file');
+            }}
           >
             File
           </button>
@@ -314,7 +324,8 @@ const DropdownBar = ({ className }: { className?: string }) => {
               <div className="mx-1">
                 <button
                   className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setDownloadModalOpen(true);
                     setActiveMenu(null);
                   }}
@@ -327,7 +338,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
                 <NavLink
                   to="/history"
                   className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
-                  onClick={() => setActiveMenu(null)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenu(null);
+                  }}
                 >
                   <MdOutlineHistory size={18} />
                   <span> History</span>
@@ -336,7 +350,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
               <div className="mx-1">
                 <button
                   className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
-                  onClick={() => window.downlodrFunctions.closeApp()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.downlodrFunctions.closeApp();
+                  }}
                 >
                   <RxExit />
                   <span>Exit</span>
@@ -347,7 +364,8 @@ const DropdownBar = ({ className }: { className?: string }) => {
         </div>
         <button
           className="px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             setSettingsModalOpen(true);
             setActiveMenu(null);
           }}
@@ -361,7 +379,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
                 ? 'bg-gray-100 dark:bg-gray-700 font-semibold'
                 : ''
             }`}
-            onClick={() => setActiveMenu(activeMenu === 'help' ? null : 'help')}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveMenu(activeMenu === 'help' ? null : 'help');
+            }}
           >
             Help
           </button>
@@ -370,7 +391,8 @@ const DropdownBar = ({ className }: { className?: string }) => {
               <div className="mx-1">
                 <button
                   className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setHelpModalOpen(true);
                     setActiveMenu(null);
                   }}
@@ -382,7 +404,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
               <div className="mx-1">
                 <button
                   className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
-                  onClick={handleCheckForUpdates}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCheckForUpdates();
+                  }}
                 >
                   <RxUpdate size={16} />
                   <span>Check for Updates</span>
@@ -391,7 +416,8 @@ const DropdownBar = ({ className }: { className?: string }) => {
               <div className="mx-1">
                 <button
                   className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setAboutModalOpen(true);
                     setActiveMenu(null);
                   }}
@@ -408,7 +434,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
             <NavLink
               to="/plugin-manager"
               className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
-              onClick={() => setActiveMenu(null)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveMenu(null);
+              }}
             >
               <span> Plugins</span>
             </NavLink>
@@ -433,6 +462,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
               }
             }}
             onFocus={() => {
+              setActiveMenu(null);
               if (searchTerm.trim() !== '') {
                 setShowResults(true);
               }
@@ -447,7 +477,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
               <div
                 key={download.id}
                 className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm truncate"
-                onClick={() => handleOpenVideo(download)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenVideo(download);
+                }}
                 title={download.name}
               >
                 {download.name}
