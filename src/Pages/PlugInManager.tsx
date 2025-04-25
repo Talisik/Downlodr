@@ -252,9 +252,9 @@ const PluginManager: React.FC = () => {
                   {searchResults.map((plugin) => (
                     <NavLink
                       key={plugin.id}
-                      to="/plugin-details"
+                      to="/plugins/details"
                       state={{ plugin }}
-                      className="block px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm"
+                      className="block px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover cursor-pointer text-sm"
                       onClick={() => setShowResults(false)}
                     >
                       <div className="font-medium truncate" title={plugin.name}>
@@ -332,7 +332,7 @@ const PluginManager: React.FC = () => {
                     <hr className="solid my-4 w-full border-t border-divider dark:border-componentBorder" />
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                       <div className="flex gap-2 flex-wrap">
-                        <NavLink to="/plugin-details" state={{ plugin }}>
+                        <NavLink to="/plugins/details" state={{ plugin }}>
                           <Button
                             variant="outline"
                             className="border-2 px-4 h-8"

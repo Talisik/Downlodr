@@ -10,7 +10,9 @@
 import React, { useState, useEffect } from 'react';
 import { FaExternalLinkAlt } from 'react-icons/fa';
 import { IoIosArrowForward, IoMdArrowBack } from 'react-icons/io';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, NavLink } from 'react-router-dom';
+
+import { Button } from '../../Components/SubComponents/shadcn/components/ui/button';
 
 interface PluginInfo {
   id: string;
@@ -215,6 +217,13 @@ const PluginDetails = () => {
           />
         </div>
         {/* end */}
+      </div>
+      <div className="mt-4 p-4 border-t border-gray-200 dark:border-gray-700">
+        <NavLink to="/plugins">
+          <Button variant="outline" className="border-2 px-4 h-8">
+            Back to Plugins
+          </Button>
+        </NavLink>
       </div>
     </div>
   );

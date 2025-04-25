@@ -15,7 +15,7 @@ import {
 } from 'react-router-dom';
 import { ThemeProvider } from './Components/ThemeProvider';
 import MainLayout from './Layout/MainLayout';
-// import AllDownloads from './Pages/AllDownloads';
+import PluginLayout from './Layout/PluginLayout';
 import History from './Pages/History';
 import PluginManager from './Pages/PlugInManager';
 import NotFound from './Pages/SubPages/NotFound';
@@ -50,8 +50,6 @@ const App = () => {
         <Routes>
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Navigate to="/status/all" replace />} />
-            <Route path="/plugin-manager" element={<PluginManager />} />
-            <Route path="/plugin-details" element={<PluginDetails />} />
             <Route path="/history" element={<History />} />
             <Route path="/category/:categoryId" element={<CategoryPage />} />
             <Route path="/tags/:tagId" element={<TagPage />} />
@@ -60,6 +58,11 @@ const App = () => {
               element={<StatusSpecificDownloads />}
             />
             <Route path="*" element={<NotFound />} />
+          </Route>
+
+          <Route path="/plugins" element={<PluginLayout />}>
+            <Route index element={<PluginManager />} />
+            <Route path="details" element={<PluginDetails />} />
           </Route>
         </Routes>
       </Router>

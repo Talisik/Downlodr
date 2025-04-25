@@ -39,7 +39,7 @@ const AccordionSection: React.FC<AccordionSectionProps> = ({
     <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        className="w-full p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-darkModeHover/50 transition-colors"
       >
         <span className="text-md dark:text-gray-300">{title}</span>
         <IoChevronDownOutline

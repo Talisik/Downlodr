@@ -56,7 +56,7 @@ const MainLayout = () => {
   return (
     <ErrorBoundary>
       <div className="h-screen flex flex-col bg-white dark:bg-darkMode text-gray-900 dark:text-gray-100">
-        <TitleBar className="h-10 p-2 bg-titleBar dark:bg-darkMode border-b border-gray-200 dark:border-componentBorder" />
+        <TitleBar className="h-10 p-2 bg-titleBar dark:bg-[#1F2937] border-b border-gray-200 dark:border-componentBorder" />
         <DropdownBar className="h-11 pl-4 bg-nav-main dark:bg-darkMode border-b border-gray-200 dark:border-componentBorder" />
         <TaskBar className="py-[9px] pr-[24px] pl-[8px] bg-nav-main dark:bg-darkMode border-b border-gray-200 dark:border-componentBorder" />
         <div className="flex flex-1 overflow-hidden h-[calc(100vh-120px)]">

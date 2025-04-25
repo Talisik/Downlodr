@@ -15,7 +15,7 @@ import React, { useState } from 'react';
 import { GoDownload } from 'react-icons/go';
 import { VscPlayCircle } from 'react-icons/vsc';
 import { PiStopCircle } from 'react-icons/pi';
-import { useLocation } from 'react-router-dom';
+import { useLocation, NavLink } from 'react-router-dom';
 import DownloadModal from '../Modal/DownloadModal';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
@@ -49,7 +49,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <div className="flex justify-end space-x-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
           >
             Cancel
           </button>
@@ -387,18 +387,37 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   return (
     <>
       <div className={`${className} flex items-center justify-between`}>
-        <div className="flex items-center h-full px-4 space-x-2">
+        <div className="flex items-center h-full px-2 space-x-2">
+          <div className="flex w-[189px] items-start justify-between">
+            <NavLink
+              to="/status/all"
+              className={({ isActive }) =>
+                `px-3 py-1 rounded flex gap-1 font-semibold ${
+                  isActive || location.pathname.startsWith('/status/')
+                    ? 'bg-[#F5F5F5] text-[#F45513] dark:bg-[#3E3E46] dark:text-white'
+                    : 'hover:bg-gray-100 dark:hover:bg-darkModeHover dark:text-gray-200'
+                }`
+              }
+              end={false}
+            >
+              <span>Downloads</span>
+            </NavLink>
+            <NavLink
+              to="/plugins"
+              className={({ isActive }) =>
+                `px-3 py-1 rounded flex gap-1 font-semibold ${
+                  isActive
+                    ? 'bg-[#F5F5F5] text-[#F45513] dark:bg-[#3E3E46] dark:text-white'
+                    : 'hover:bg-gray-100 dark:hover:bg-darkModeHover dark:text-gray-200'
+                }`
+              }
+            >
+              <span>Plugins</span>
+            </NavLink>
+            <div className="h-6 w-[1.5px] bg-gray-300 dark:bg-gray-600 self-center"></div>
+          </div>
           <button
-            className="primary-custom-btn px-[6px] py-[8px] sm:px-[8px] sm:py-[8px] mr-2 sm:mr-4 flex items-center gap-1 sm:gap-2 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
-            onClick={handleOpenDownloadModal}
-          >
-            <GoDownload size={12} className="sm:w-[14px] sm:h-[14px]" />
-            <span className="hidden sm:inline">Add URL</span>
-            <span className="sm:hidden"> Add URL</span>
-          </button>
-
-          <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={handlePlaySelected}
           >
             {' '}
@@ -406,13 +425,13 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           </button>
 
           <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={handleStopSelected}
           >
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
           </button>
           <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={() => handleStopAll()}
           >
             {' '}
@@ -422,6 +441,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
         <div className="px-4 flex items-center">
           {/* This is the regular downloads Remove button */}
+          <button
+            className="primary-custom-btn px-[6px] py-[8px] sm:px-[8px] sm:py-[8px] mr-2 sm:mr-4 flex items-center gap-1 sm:gap-2 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
+            onClick={handleOpenDownloadModal}
+          >
+            <GoDownload size={12} className="sm:w-[14px] sm:h-[14px]" />
+            <span className="hidden sm:inline">Add URL</span>
+            <span className="sm:hidden"> Add URL</span>
+          </button>
           {selectedDownloads.length > 0 &&
             location.pathname.includes('/status/') && (
               <button
