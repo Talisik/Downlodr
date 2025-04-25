@@ -1095,7 +1095,9 @@ const StatusSpecificDownloads = () => {
                               className="p-2 dark:text-gray-200 ml-2"
                             >
                               {download.status === 'fetching metadata' ? (
-                                <div className="h-10 w-16 bg-gray-200 dark:bg-gray-700 animate-pulse rounded"></div>
+                                <div className="space-y-1 flex justify-center items-center">
+                                  <Skeleton className="h-8 w-[50px] rounded-[3px]" />
+                                </div>
                               ) : download.status === 'finished' &&
                                 download.thumnailsLocation &&
                                 download.thumnailsLocation !== '—' ? (
@@ -1141,8 +1143,12 @@ const StatusSpecificDownloads = () => {
                               style={{ width: column.width }}
                               className="p-2 dark:text-gray-200 ml-2"
                             >
-                              {download.autoCaptionLocation === '' ||
-                              download.autoCaptionLocation === null ? (
+                              {download.status === 'fetching metadata' ? (
+                                <div className="space-y-1 flex justify-center items-center">
+                                  <Skeleton className="h-8 w-[50px] rounded-[3px]" />
+                                </div>
+                              ) : download.autoCaptionLocation === '' ||
+                                download.autoCaptionLocation === null ? (
                                 <div className="flex justify-center w-full">
                                   <span>—</span>
                                 </div>
