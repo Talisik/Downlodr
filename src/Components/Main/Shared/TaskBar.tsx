@@ -439,25 +439,34 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           </button>
         </div>
 
-        <div className="px-4 flex items-center">
+        <div className="pl-4 flex items-center">
           {/* This is the regular downloads Remove button */}
           <button
-            className="primary-custom-btn px-[6px] py-[8px] sm:px-[8px] sm:py-[8px] mr-2 sm:mr-4 flex items-center gap-1 sm:gap-2 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
+            className={`primary-custom-btn px-3 py-2 rounded flex gap-1 font-semibold mr-4 ${
+              selectedDownloads.length > 0 &&
+              location.pathname.includes('/status/')
+                ? 'text-gray-200 dark:hover:text-black'
+                : 'cursor-not-allowed text-gray-400 dark:text-gray-500 !bg-gray-200 hover:!bg-gray-200 !dark:bg-darkModeHover hover:!dark:bg-darkModeHover'
+            }`}
+            onClick={() => setShowStopConfirmation(true)}
+            disabled={
+              !(
+                selectedDownloads.length > 0 &&
+                location.pathname.includes('/status/')
+              )
+            }
+          >
+            <LuTrash size={15} className="mt-[0.9px]" /> Remove
+          </button>
+
+          <button
+            className="primary-custom-btn px-[6px] py-[8px] sm:px-[8px] sm:py-[8px] flex items-center gap-1 sm:gap-2 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
             onClick={handleOpenDownloadModal}
           >
             <GoDownload size={12} className="sm:w-[14px] sm:h-[14px]" />
             <span className="hidden sm:inline">Add URL</span>
             <span className="sm:hidden"> Add URL</span>
           </button>
-          {selectedDownloads.length > 0 &&
-            location.pathname.includes('/status/') && (
-              <button
-                className="primary-custom-btn px-3 py-2 rounded flex gap-1 font-semibold text-gray-200 dark:hover:text-black"
-                onClick={() => setShowStopConfirmation(true)}
-              >
-                <LuTrash size={15} className="mt-[0.9px]" /> Remove
-              </button>
-            )}
 
           {/* Portal target for History-specific Remove button */}
           <div id="taskbar-portal"></div>

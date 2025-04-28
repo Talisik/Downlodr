@@ -853,7 +853,7 @@ const StatusSpecificDownloads = () => {
               {allDownloads.map((download) => (
                 <React.Fragment key={download.id}>
                   <tr
-                    className={`border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-600 cursor-pointer ${
+                    className={`border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover cursor-pointer ${
                       selectedDownloadId === download.id
                         ? 'bg-blue-50 dark:bg-gray-600'
                         : 'dark:bg-darkMode'
@@ -1036,7 +1036,7 @@ const StatusSpecificDownloads = () => {
                                         e.stopPropagation();
                                         handlePause(download.id);
                                       }}
-                                      className="hover:bg-gray-100 dark:hover:bg-gray-600 p-1 rounded-full"
+                                      className="hover:bg-gray-100 dark:hover:bg-darkModeHover p-1 rounded-full"
                                     >
                                       <AnimatedCircularProgressBar
                                         status={download.status}

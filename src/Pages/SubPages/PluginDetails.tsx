@@ -216,14 +216,6 @@ const PluginDetails = () => {
             onClick={() => handleUninstall(plugin.id)}
           />
         </div>
-        {/* end */}
-      </div>
-      <div className="mt-4 p-4 border-t border-gray-200 dark:border-gray-700">
-        <NavLink to="/plugins">
-          <Button variant="outline" className="border-2 px-4 h-8">
-            Back to Plugins
-          </Button>
-        </NavLink>
       </div>
     </div>
   );

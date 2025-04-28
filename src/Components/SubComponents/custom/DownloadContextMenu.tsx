@@ -792,7 +792,16 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                 location: downloadLocation,
                 status: downloadStatus,
               };
-              console.log(contextData);
+
+              // Log which menu item was clicked
+              console.log('Plugin menu item clicked:', {
+                id: item.id,
+                label: item.label,
+                pluginId: item.pluginId,
+                handlerId: item.handlerId,
+              });
+              console.log('Context data:', contextData);
+
               // Find and execute the handler directly if it's a rendered plugin with handlerId
               if (
                 item.handlerId &&

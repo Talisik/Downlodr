@@ -324,6 +324,37 @@ const useDownloadStore = create<DownloadStore>()(
         getTranscript,
         getThumbnail,
       ) => {
+        // Add detailed console logging for all parameters
+        console.log('=== Download Parameters ===');
+        console.log('Video Information:');
+        console.log('- videoUrl:', videoUrl);
+        console.log('- name:', name);
+        console.log('- downloadName:', downloadName);
+        console.log('- extractorKey:', extractorKey);
+
+        console.log('\nDownload Status:');
+        console.log('- size:', size);
+        console.log('- speed:', speed);
+        console.log('- timeLeft:', timeLeft);
+        console.log('- progress:', progress);
+        console.log('- status:', status);
+        console.log('- DateAdded:', DateAdded);
+
+        console.log('\nFile Information:');
+        console.log('- location:', location);
+        console.log('- ext:', ext);
+        console.log('- formatId:', formatId);
+        console.log('- audioExt:', audioExt);
+        console.log('- audioFormatId:', audioFormatId);
+        console.log('- limitRate:', limitRate);
+
+        console.log('\nAdditional Options:');
+        console.log('- getTranscript:', getTranscript);
+        console.log('- getThumbnail:', getThumbnail);
+        console.log('- automatic_caption:', automatic_caption);
+        console.log('- thumbnails:', thumbnails);
+        console.log('=== End Download Parameters ===');
+
         if (!location || !downloadName) {
           console.error('Invalid path parameters:', { location, downloadName });
           return;
