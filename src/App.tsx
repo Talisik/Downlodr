@@ -28,6 +28,7 @@ import StatusSpecificDownloads from './Pages/StatusSpecificDownload';
 import { useEffect } from 'react';
 import { useMainStore } from './Store/mainStore';
 import { PluginLoader } from './plugins/PluginLoader';
+import FormatSelectorManager from './plugins/components/FormatSelectorManager';
 
 const App = () => {
   const { settings } = useMainStore();
@@ -69,6 +70,7 @@ const App = () => {
       <Toaster />
       <UpdateNotification />
       <PluginLoader />
+      <FormatSelectorManager />
     </ThemeProvider>
   );
 };

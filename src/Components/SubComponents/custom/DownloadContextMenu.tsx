@@ -47,7 +47,7 @@ import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
 import { MenuItem } from '../../../plugins/types';
 import { usePluginState } from '../../../plugins/Hooks/usePluginState';
-import { pluginRegistry } from '../../../plugins/registry';
+// import FormatConverterMenu from './FormatConverterMenu';
 
 // Interface representing the props for the DownloadContextMenu component
 interface DownloadContextMenuProps {
@@ -241,6 +241,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const [showStopConfirmation, setShowStopConfirmation] = useState(false); // State to track visibility of the stop confirmation modal
   const [showRenameModal, setShowRenameModal] = useState(false); // State to track visibility of the rename modal
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false); // State to track visibility of the remove confirmation modal
+  // const [showFormatConverterMenu, setShowFormatConverterMenu] = useState(false); // State to track visibility of format converter menu
   const renameDownload = useDownloadStore((state) => state.renameDownload); // Function to rename a download
   const { settings } = useMainStore();
   const {
@@ -343,7 +344,34 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     setShowTagMenu(false); // Close tag menu
     setShowCategoryMenu(!showCategoryMenu);
   };
+  /*
+  // Function to handle opening format converter menu
+  const handleFormatConverterClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowTagMenu(false); // Close tag menu
+    setShowCategoryMenu(false); // Close category menu
+    setShowFormatConverterMenu(!showFormatConverterMenu);
+  };
 
+  // Function to handle format conversion
+  const handleConvert = (
+    downloadId: string,
+    format: string,
+    keepOriginal: boolean,
+  ) => {
+    // Here you would implement the actual conversion logic
+    // This could call an API or dispatch an action to your state management
+    console.log(
+      `Converting ${downloadId} to ${format}${
+        keepOriginal ? ' (keeping original)' : ''
+      }`,
+    );
+
+    // Close menus
+    setShowFormatConverterMenu(false);
+    onClose();
+  };
+*/
   // Function to confirm stopping the download
   const handleStopConfirm = () => {
     onStop(downloadId, downloadLocation, controllerId);
@@ -508,6 +536,45 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             </span>
           </button>
 
+          {/* Add Format Converter option 
+          <div className="relative">
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+              onClick={handleFormatConverterClick}
+            >
+              <span className="flex items-center space-x-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M17 15h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-2"></path>
+                  <path d="M7 15H5a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h2"></path>
+                  <line x1="8" y1="9" x2="16" y2="9"></line>
+                  <line x1="8" y1="15" x2="16" y2="15"></line>
+                </svg>
+                <span>Format converter</span>
+              </span>
+              <span className="ml-auto">
+                <GoChevronRight size={20} />
+              </span>
+            </button>
+
+            {showFormatConverterMenu && (
+              <FormatConverterMenu
+                downloadId={downloadId}
+                menuPositionClass={getTagMenuPositionClass()}
+                onConvert={handleConvert}
+              />
+            )}
+          </div>
+*/}
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
@@ -758,7 +825,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     );
   };
 
-  // Example of how to call the menu item action with context data
+  /*
   function handleMenuItemClick(menuItemId: string) {
     const downloadInfo = allDownloads.find((d) => d.id === downloadId);
 
@@ -769,7 +836,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       window.plugins.executeMenuItem(menuItemId, { id: downloadId });
     }
   }
-
+*/
   const renderPluginMenuItems = () => {
     if (!pluginMenuItems || pluginMenuItems.length === 0) return null;
     return (

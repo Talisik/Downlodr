@@ -12,8 +12,8 @@ const PluginLayout = () => {
           className="flex w-[189px] items-start justify-between pr-[24px] pl-[16px]"
           style={{
             gap: '12px',
-            paddingBottom: '12.5px',
-            paddingTop: '12.5px',
+            paddingBottom: '8px',
+            paddingTop: '8px',
           }}
         >
           <NavLink

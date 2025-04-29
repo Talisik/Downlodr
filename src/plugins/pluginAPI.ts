@@ -11,6 +11,8 @@ import {
   FormatProvider,
   SettingsPage,
   NotificationOptions,
+  FormatSelectorOptions,
+  FormatSelectorResult,
 } from './types';
 import useDownloadStore from '../Store/downloadStore';
 import { formatFileSize } from '../Pages/StatusSpecificDownload';
@@ -87,6 +89,25 @@ export function createPluginAPI(pluginId: string): PluginAPI {
         duration: options.duration,
         variant: variant,
       });
+    },
+
+    showFormatSelector: async (
+      options: FormatSelectorOptions,
+    ): Promise<FormatSelectorResult | null> => {
+      console.log(`Plugin ${pluginId} requesting format selector:`, options);
+
+      if (!window.formatSelectorManager) {
+        console.error('Format selector manager not available');
+        return null;
+      }
+
+      try {
+        // Call the format selector manager to show the UI
+        return await window.formatSelectorManager.showFormatSelector(options);
+      } catch (error) {
+        console.error('Error showing format selector:', error);
+        return null;
+      }
     },
   };
 
@@ -197,6 +218,23 @@ function createUIAPI(pluginId: string): UIAPI {
     },
     showNotification: (options: any) => {
       // Show notification
+    },
+    showFormatSelector: async (
+      options: FormatSelectorOptions,
+    ): Promise<FormatSelectorResult | null> => {
+      console.log(`Plugin ${pluginId} requesting format selector:`, options);
+
+      if (!window.formatSelectorManager) {
+        console.error('Format selector manager not available');
+        return null;
+      }
+
+      try {
+        return await window.formatSelectorManager.showFormatSelector(options);
+      } catch (error) {
+        console.error('Error showing format selector:', error);
+        return null;
+      }
     },
   };
 }

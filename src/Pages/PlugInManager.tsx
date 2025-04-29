@@ -116,6 +116,7 @@ const PluginManager: React.FC = () => {
             title: 'Success',
             description: 'Plugin was installed successfully',
             variant: 'success',
+            duration: 3000,
           });
         } else {
           toast({
@@ -123,6 +124,7 @@ const PluginManager: React.FC = () => {
             description:
               'The selected directory does not contain a valid plugin structure',
             variant: 'destructive',
+            duration: 3000,
           });
         }
       }
@@ -134,6 +136,7 @@ const PluginManager: React.FC = () => {
           error.message ||
           'An unexpected error occurred while installing the plugin',
         variant: 'destructive',
+        duration: 3000,
       });
     } finally {
       setIsSelectingDirectory(false);
