@@ -445,7 +445,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             className={`px-3 py-1 rounded flex gap-1 mr-4 text-sm rounded-md flex gap-2 text-sm ${
               selectedDownloads.length > 0 &&
               location.pathname.includes('/status/')
-                ? 'bg-black text-gray-200 dark:hover:text-black'
+                ? 'bg-black text-gray-200 hover:!bg-[#3E3E46]'
                 : 'cursor-not-allowed text-gray-400 dark:text-gray-500 !bg-gray-200 hover:!bg-gray-200 !dark:bg-darkModeHover hover:!dark:bg-darkModeHover'
             }`}
             onClick={() => setShowStopConfirmation(true)}
