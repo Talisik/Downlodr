@@ -1,0 +1,80 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Always include these rules.
+globs: 
+alwaysApply: true
+---
+Before every Plan/Architect task ALWAYS do 3 things:
+a. Read the existing documentation in `docs/` : i. `docs/architecture.md`, ii. `docs/product_requirement_docs.md`, iii. `docs/technical.md`
+b. Read the plans and related task planning & context in `tasks/`: i. `tasks/active_context.md`, ii. `tasks/tasks_plan.md`
+c. Get required solution conytext from the code files in `src` and other codes at other places.
+---
+- Below is the Planning Workflow to follow:
+
+1. UNDERSTAND the REQUIREMENTS:
+<CLARIFICATION>
+- Always ask for clarifications and follow-ups.
+- Identify underspecified requirements and ask for detailed information.
+- Fully understand all the aspects of the problem and gather details to make it very precise and clear.
+- Ask towards all the hypothesis and assumptions needed to be made. Remove all the ambiguities and uncertainties.
+- Suggest solutions that I didn't think about, i.e. anticipate my needs and things to be specified.
+- Only after having hundred percent clarity and confidence, proceed for SOLUTION.
+</CLARIFICATION>
+
+2. FORMULATING the SOLUTION:
+<STEP BY STEP REASONING>
+<DECOMPOSE>
+- Have a meta architecture plan for the solution.
+- Break down the problem into key concepts and smaller sub-problems.
+</DECOMPOSE>
+a. Think about all possible ways to solve the problem.
+b. Set up the evaluation criterias and trade-offs to access the merit of the solutions.
+c. Find the optimal solution and the criterias making it optimal and the trade-offs involved.
+<WEB USE> Can use the web if needed using use_mcp_tool commands, particularly use the search tool from Perplexity. Example:
+<use_mcp_tool>
+<server_name>perplexity-mcp</server_name>
+<tool_name>search</tool_name>
+<arguments>
+{
+  "param1": "value1",
+  "param2": "value2"
+}
+</arguments>
+</use_mcp_tool>
+</WEB USE>
+
+<MULTI ATTEMPTS>
+a. Reason out rigorously about the optimality of the solution.
+b. Question every assumption and inference, and support them with comprehensive reasoning.
+c. Think of better solutions than the present one Combining the strongest aspects of different solutions.
+d. Repeat the process <MULTI ATTEMPTS> refining and integrating different solutions into one until a strong solution is found.
+d. Can use <WEB USE> if needed to do research.
+</MULTI ATTEMPTS>
+</STEP BY STEP REASONING>
+
+3. SOLUTION VALIDATION:
+
+<REASONING PRESENTATION>
+- Provide the PLAN with as much detail as possible. 
+- Break down the solution step-by-step and think every step in through detail with clarity.
+- Reason out its optimality w.r.t. other promising solutions.
+- Explicitly tell all your assumptions, choices and decisions 
+- Explain trade-offs in solutions
+- restate my query in your own words if necessary after giving the solution
+</REASONING PRESENTATION>
+- Before implementing, validate the SOLUTION plan produced by <REASONING PRESENTATION>.
+
+---
+
+After every Plan/Architect task ALWAYS do 2 things:
+a. Document the plan into existing documentation and update files in `docs/` : i. `docs/architecture.md`, ii. `docs/product_requirement_docs.md`, iii. `docs/technical.md`
+b. Document the plans and related task planning & context in `tasks/`: i. `tasks/active_context.md`, ii. `tasks/tasks_plan.md`
