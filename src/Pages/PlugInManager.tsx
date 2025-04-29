@@ -106,8 +106,9 @@ const PluginManager: React.FC = () => {
       setIsSelectingDirectory(true);
       const pluginPath = await window.ytdlp.selectDownloadDirectory();
       if (pluginPath) {
-        const success = await window.plugins.install(pluginPath);
-        if (success) {
+        const result = await window.plugins.install(pluginPath);
+
+        if (result === true) {
           // First reload the plugins in the main process
           await window.plugins.reload();
           // Then update the UI list
@@ -116,6 +117,16 @@ const PluginManager: React.FC = () => {
             title: 'Success',
             description: 'Plugin was installed successfully',
             variant: 'success',
+            duration: 3000,
+          });
+        } else if (
+          typeof result === 'string' &&
+          result === 'already-installed'
+        ) {
+          toast({
+            title: 'Plugin Already Installed',
+            description: 'This plugin is already installed',
+            variant: 'default',
             duration: 3000,
           });
         } else {

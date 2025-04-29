@@ -106,7 +106,13 @@ export class PluginManager {
 
     // Install plugin
     ipcMain.handle('plugins:install', async (event, pluginPath) => {
-      return await this.installPlugin(pluginPath);
+      try {
+        // Assuming pluginManager is your instance of PluginManager
+        return await this.installPlugin(pluginPath);
+      } catch (error) {
+        console.error('Failed to install plugin via IPC:', error);
+        return false;
+      }
     });
     /*
     // Uninstall plugin
@@ -222,7 +228,7 @@ export class PluginManager {
     }
   }
 
-  async installPlugin(pluginPath: string): Promise<boolean> {
+  async installPlugin(pluginPath: string): Promise<boolean | string> {
     try {
       // Check if the path exists
       if (!fs.existsSync(pluginPath)) {
@@ -245,8 +251,29 @@ export class PluginManager {
       // Create destination directory
       const destDir = path.join(this.pluginsDir, pluginId);
 
-      // Remove existing plugin with same ID if it exists
+      // Check if plugin with same ID already exists
       if (fs.existsSync(destDir)) {
+        // Compare manifest version to check if it's the same plugin
+        try {
+          const existingManifestPath = path.join(destDir, 'manifest.json');
+          if (fs.existsSync(existingManifestPath)) {
+            const existingManifest = JSON.parse(
+              fs.readFileSync(existingManifestPath, 'utf8'),
+            );
+
+            // If same plugin ID and version, it's already installed
+            if (existingManifest.version === manifest.version) {
+              console.log(
+                `Plugin ${pluginId} is already installed with the same version`,
+              );
+              return 'already-installed';
+            }
+          }
+        } catch (err) {
+          console.error('Error checking existing plugin:', err);
+        }
+
+        // If different version or can't determine, remove existing and continue with installation
         fs.rmSync(destDir, { recursive: true });
       }
 

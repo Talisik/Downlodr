@@ -87,7 +87,7 @@ declare global {
       getCode: (
         pluginId: string,
       ) => Promise<{ code: string; manifest: any; error?: string }>;
-      install: (pluginPath: string) => Promise<boolean>;
+      install: (pluginPath: string) => Promise<boolean | string>;
       uninstall: (pluginId: string) => Promise<boolean>;
       getMenuItems: (context: any) => Promise<MenuItem[]>;
       executeMenuItem: (id: string, contextData?: any) => Promise<void>;
