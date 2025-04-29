@@ -33,6 +33,7 @@ A plugin consists of two main files:
 ### manifest.json
 json
    ```
+   <pre>
 {
 "id": "com.example.myplugin",
 "name": "My Plugin",
@@ -44,23 +45,29 @@ json
 "minAppVersion": "1.0.0",
 "icon": "🔌"
 }
+</pre>
    ```
 
 Required fields:
    ```
+   <pre>
 - `id`: Unique identifier for your plugin (use reverse domain notation)
 - `name`: Human-readable name 
 - `version`: Plugin version using semantic versioning
 - `description`: Short description of plugin functionality
 - `main`: Entry point JavaScript file (relative to plugin directory)
 - `author`: Plugin author name or organization
+</pre>
    ```
 
 Optional fields:
    ```
+   
 - `license`: License under which the plugin is distributed
 - `minAppVersion`: Minimum app version required
 - `icon`: Emoji or path to icon image
+</pre>   
+```
 
 ### index.js
 
@@ -68,6 +75,7 @@ The main JavaScript file must export an object with at least these properties:
 
 javascript
    ```
+   <pre>   
 const myPlugin = {
 id: "com.example.myplugin",
 name: "My Plugin",
@@ -87,6 +95,7 @@ console.log("My plugin unloaded!");
 }
 };
 module.exports = myPlugin;
+</pre>   
    ```
 
 ## Creating Your First Plugin
@@ -175,12 +184,14 @@ The plugin API is provided to your plugin through the `initialize(api)` method.
 
 javascript
    ```
+   <pre>   
 api: {
 downloads: DownloadAPI,
 ui: UIAPI,
 formats: FormatAPI,
 utilities: UtilityAPI
 }
+</pre>   
    ```
 
 ### DownloadAPI
@@ -189,6 +200,7 @@ Methods for interacting with downloads:
 
 javascript
    ```
+   <pre>   
 downloads: {
 // Register a new download source
 registerDownloadSource: (source: DownloadSource) => void,
@@ -203,6 +215,7 @@ pauseDownload: (id: string) => Promise<boolean>,
 // Get information about a URL
 getInfo: (url: string) => Promise<DownloadInfo>
 }
+</pre>   
    ```
 
 ### UIAPI
@@ -211,6 +224,7 @@ Methods for modifying the UI:
 
 javascript
    ```
+   <pre>   
 ui: {
 // Register a menu item
 registerMenuItem: (menuItem: MenuItem) => Promise<string>,
@@ -225,6 +239,7 @@ showNotification: (options: NotificationOptions) => void,
 // Show a format selector dialog
 showFormatSelector: (options: FormatSelectorOptions) => Promise<FormatSelectorResult | null>
 }
+</pre>   
    ```
 
 ### FormatAPI
@@ -233,12 +248,14 @@ Methods for handling formats:
 
 javascript
    ```
+   <pre>   
 formats: {
 // Register a format handler
 registerFormatHandler: (handler: FormatHandler) => string,
 // Get supported formats
 getSupportedFormats: () => string[]
 }
+</pre>   
    ```
 
 ### UtilityAPI
@@ -247,6 +264,7 @@ Utility functions:
 
 javascript
    ```
+   <pre>   
 utilities: {
 // Format file size (bytes to human-readable string)
 formatFileSize: (size: number) => string,
@@ -255,6 +273,7 @@ openExternalLink: (url: string) => Promise<void>,
 // Show dialog to select a directory
 selectDirectory: () => Promise<string>
 }
+</pre>   
    ```
 
 ## Type Definitions
@@ -263,6 +282,7 @@ selectDirectory: () => Promise<string>
 
 typescript
    ```
+   <pre>   
 interface MenuItem {
 id?: string;
 label: string;
@@ -274,24 +294,28 @@ submenu?: MenuItem[];
 order?: number;
 context?: 'download' | 'main' | 'all';
 }
+</pre>   
    ```
 
 ### NotificationOptions
 
 typescript
    ```
+   <pre>   
 interface NotificationOptions {
 title: string;
 message: string;
 type?: 'info' | 'warning' | 'error' | 'success';
 duration?: number;
 }
+</pre>   
    ```
 
 ### FormatSelectorOptions
 
 typescript
    ```
+   <pre>   
 interface FormatSelectorOptions {
 title?: string;
 formats: FormatOption[];
@@ -303,12 +327,14 @@ label: string;
 value: string;
 default?: boolean;
 }
+</pre>   
  ```
 
 ### DownloadOptions
 
 typescript
    ```
+   <pre>   
 interface DownloadOptions {
 name: string;
 downloadName?: string;
@@ -328,6 +354,7 @@ thumbnails?: any;
 getTranscript?: boolean;
 getThumbnail?: boolean;
 }
+</pre>   
    ```
 
 ## Examples
@@ -338,6 +365,7 @@ The format converter plugin allows users to convert downloaded videos to differe
 
 javascript
    ```
+   <pre>   
 const formatConverter = {
 id: 'formatConverter',
 name: 'Format Converter',
@@ -394,12 +422,14 @@ await this.api.ui.unregisterMenuItem(id);
 }
 };
 module.exports = formatConverter;
+</pre>   
    ```
 
 ### Example 2: Custom Download Source
 
 javascript
    ```
+   <pre>   
 const customSource = {
 id: 'custom-source-plugin',
 name: 'Custom Source Plugin',
@@ -436,6 +466,7 @@ console.log('Custom Source Plugin initialized');
 }
 };
 module.exports = customSource;
+</pre>   
    ```
 
 ## Best Practices
