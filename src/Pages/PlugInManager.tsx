@@ -130,14 +130,19 @@ const PluginManager: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to install plugin:', error);
-      toast({
-        title: 'Installation Failed',
-        description:
-          error.message ||
-          'An unexpected error occurred while installing the plugin',
-        variant: 'destructive',
-        duration: 3000,
-      });
+      if (
+        !error.message?.includes('Cannot read properties') &&
+        !error.message?.includes('dialog:openDirectory')
+      ) {
+        toast({
+          title: 'Installation Failed',
+          description:
+            error.message ||
+            'An unexpected error occurred while installing the plugin',
+          variant: 'destructive',
+          duration: 3000,
+        });
+      }
     } finally {
       setIsSelectingDirectory(false);
     }
