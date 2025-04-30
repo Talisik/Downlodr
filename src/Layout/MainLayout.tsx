@@ -62,7 +62,7 @@ const MainLayout = () => {
         <div className="flex flex-1 overflow-hidden h-[calc(100vh-120px)]">
           <Navigation
             className={`${
-              navCollapsed ? 'w-[60px]' : 'w-[205px]'
+              navCollapsed ? 'w-[60px]' : 'w-[206px]'
             } overflow-y-auto h-full transition-all duration-300`}
             collapsed={navCollapsed}
             toggleCollapse={toggleNavCollapse}

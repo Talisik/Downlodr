@@ -23,6 +23,7 @@ import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import { LuTrash } from 'react-icons/lu';
 import TaskBarPluginItems from '../../SubComponents/custom/TaskBarPluginItems';
+import PageNavigation from './PageNavigation';
 
 interface TaskBarProps {
   className?: string;
@@ -389,33 +390,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     <>
       <div className={`${className} flex items-center justify-between`}>
         <div className="flex items-center h-full px-2 space-x-2">
-          <div className="flex w-[189px] items-start justify-between">
-            <NavLink
-              to="/status/all"
-              className={({ isActive }) =>
-                `px-3 py-1 rounded flex gap-1 font-semibold ${
-                  isActive || location.pathname.startsWith('/status/')
-                    ? 'bg-[#F5F5F5] text-[#F45513] dark:bg-[#3E3E46] dark:text-white'
-                    : 'hover:bg-gray-100 dark:hover:bg-darkModeHover dark:text-gray-200'
-                }`
-              }
-              end={false}
-            >
-              <span>Downloads</span>
-            </NavLink>
-            <NavLink
-              to="/plugins"
-              className={({ isActive }) =>
-                `px-3 py-1 rounded flex gap-1 font-semibold ${
-                  isActive
-                    ? 'bg-[#F5F5F5] text-[#F45513] dark:bg-[#3E3E46] dark:text-white'
-                    : 'hover:bg-gray-100 dark:hover:bg-darkModeHover dark:text-gray-200'
-                }`
-              }
-            >
-              <span>Plugins</span>
-            </NavLink>
-            <div className="h-6 w-[1.5px] bg-gray-300 dark:bg-gray-600 self-center"></div>
+          <div className="gap-1 flex">
+            <PageNavigation />
+
+            <div className="h-6 w-[1.5px] bg-gray-300 dark:bg-gray-600 self-center ml-3"></div>
           </div>
           <button
             className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
