@@ -100,7 +100,7 @@ const TaskBarPluginItems: React.FC = () => {
   };
 
   return (
-    <div className="flex gap-2 items-center">
+    <div className="flex gap-2">
       <TooltipProvider>
         {taskBarItems.map((item) => (
           <Tooltip key={item.id}>
@@ -110,12 +110,9 @@ const TaskBarPluginItems: React.FC = () => {
                 onClick={() => handleItemClick(item)}
                 aria-label={item.label}
               >
-                <span className="text-sm font-medium">{item.label}</span>{' '}
+                <span className="text-sm">{item.label}</span>{' '}
               </button>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>{item.tooltip || item.label}</p>
-            </TooltipContent>
           </Tooltip>
         ))}
       </TooltipProvider>

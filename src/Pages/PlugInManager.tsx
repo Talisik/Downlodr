@@ -337,7 +337,7 @@ const PluginManager: React.FC = () => {
             {plugins.map((plugin) => (
               <div
                 key={plugin.id}
-                className="border-2 p-4 dark:border-componentBorder rounded-lg shadow-sm border-t-4 border-t-[#F45513] dark:border-t-[#F45513]"
+                className="bg-[#FFFFFF] dark:bg-darkMode rounded-md p-4 shadow-sm ring-1 ring-gray-200  border-l-4 border-l-[#FFFFFF] dark:border-l-4 dark:border-l-darkMode hover:border-l-4 hover:border-l-[#F45513] hover:dark:border-l-[#F45513]"
               >
                 <div className="flex">
                   <div className="w-full">
