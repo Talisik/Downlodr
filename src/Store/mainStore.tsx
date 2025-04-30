@@ -28,6 +28,7 @@ interface SelectedDownload {
   id: string; // Unique identifier for the selected download
   controllerId?: string; // ID of the controller managing the download
   location?: string; // Location of the download
+  videoUrl: string;
 }
 
 // Main interface for the main store
@@ -117,6 +118,7 @@ export const useMainStore = create<MainStore>()(
             id,
             controllerId: undefined as string | undefined,
             location: undefined as string | undefined,
+            videoUrl: undefined as string | undefined,
           }));
           return {
             selectedRowIds: rows,

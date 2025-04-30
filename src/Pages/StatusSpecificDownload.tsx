@@ -642,6 +642,7 @@ const StatusSpecificDownloads = () => {
       return {
         id,
         controllerId: download?.controllerId,
+        videoUrl: download?.videoUrl,
         location: download?.location
           ? await window.downlodrFunctions.joinDownloadPath(
               download.location,
@@ -672,6 +673,7 @@ const StatusSpecificDownloads = () => {
       return {
         id,
         controllerId: download?.controllerId,
+        videoUrl: download?.videoUrl,
         location: download?.location
           ? await window.downlodrFunctions.joinDownloadPath(
               download.location,

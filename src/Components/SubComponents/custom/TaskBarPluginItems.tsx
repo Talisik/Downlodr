@@ -88,6 +88,7 @@ const TaskBarPluginItems: React.FC = () => {
       window.PluginHandlers[item.handlerId]
     ) {
       console.log(`Executing taskbar item with handler: ${item.handlerId}`);
+      console.log(downloadsData);
       window.PluginHandlers[item.handlerId](downloadsData);
     } else {
       console.error(
@@ -109,11 +110,7 @@ const TaskBarPluginItems: React.FC = () => {
                 onClick={() => handleItemClick(item)}
                 aria-label={item.label}
               >
-                {item.icon ? (
-                  item.icon
-                ) : (
-                  <span className="text-sm font-medium">{item.label}</span>
-                )}
+                <span className="text-sm font-medium">{item.label}</span>{' '}
               </button>
             </TooltipTrigger>
             <TooltipContent>
