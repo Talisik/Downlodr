@@ -35,6 +35,8 @@ export interface UIAPI {
   showFormatSelector: (
     options: FormatSelectorOptions,
   ) => Promise<FormatSelectorResult | null>;
+  registerTaskBarItem: (item: TaskBarItem) => Promise<string>;
+  unregisterTaskBarItem: (id: string) => Promise<boolean>;
 }
 
 export interface FormatAPI {
@@ -180,4 +182,14 @@ export interface FormatOption {
 export interface FormatSelectorResult {
   selectedFormat: string;
   keepOriginal: boolean;
+}
+
+export interface TaskBarItem {
+  id: string;
+  label: string;
+  icon?: React.ReactNode;
+  tooltip?: string;
+  onClick?: (contextData?: any) => void;
+  pluginId?: string; // Will be filled automatically
+  handlerId?: string;
 }

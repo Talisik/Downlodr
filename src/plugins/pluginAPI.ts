@@ -13,6 +13,7 @@ import {
   NotificationOptions,
   FormatSelectorOptions,
   FormatSelectorResult,
+  TaskBarItem,
 } from './types';
 import useDownloadStore from '../Store/downloadStore';
 import { formatFileSize } from '../Pages/StatusSpecificDownload';
@@ -108,6 +109,40 @@ export function createPluginAPI(pluginId: string): PluginAPI {
         console.error('Error showing format selector:', error);
         return null;
       }
+    },
+
+    registerTaskBarItem: async (taskBarItem: TaskBarItem) => {
+      console.log(
+        `Plugin ${pluginId} registering taskbar item via IPC:`,
+        taskBarItem,
+      );
+
+      // Create a unique handler ID
+      const handlerId = `${pluginId}:taskbar:${Date.now()}`;
+
+      // Store the handler locally in renderer process
+      window.PluginHandlers = window.PluginHandlers || {};
+
+      if (taskBarItem.onClick) {
+        window.PluginHandlers[handlerId] = taskBarItem.onClick;
+      }
+
+      // Create a serializable version without function properties
+      const serializableItem = {
+        ...taskBarItem,
+        pluginId,
+        handlerId,
+        id: taskBarItem.id || `${pluginId}-taskbar-${Date.now()}`,
+        onClick: undefined as unknown as (contextData?: any) => void,
+      };
+
+      // Register the item without the onClick function
+      return await window.plugins.registerTaskBarItem(serializableItem);
+    },
+
+    unregisterTaskBarItem: async (id: string) => {
+      console.log(`Plugin ${pluginId} unregistering taskbar item: ${id}`);
+      return await window.plugins.unregisterTaskBarItem(id);
     },
   };
 
@@ -235,6 +270,14 @@ function createUIAPI(pluginId: string): UIAPI {
         console.error('Error showing format selector:', error);
         return null;
       }
+    },
+    registerTaskBarItem: (taskBarItem: TaskBarItem) => {
+      // Store taskbar item in a global registry
+      return Promise.resolve(`${pluginId}:taskbar:${Date.now()}`);
+    },
+    unregisterTaskBarItem: (id: string) => {
+      // Remove taskbar item
+      return Promise.resolve(true);
     },
   };
 }

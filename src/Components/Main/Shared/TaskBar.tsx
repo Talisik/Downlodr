@@ -22,6 +22,7 @@ import { useMainStore } from '../../../Store/mainStore';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import { LuTrash } from 'react-icons/lu';
+import TaskBarPluginItems from '../../SubComponents/custom/TaskBarPluginItems';
 
 interface TaskBarProps {
   className?: string;
@@ -438,7 +439,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
           </button>
         </div>
-
+        {/* Right side with plugin taskbar items */}
+        <div className="flex items-center mr-4">
+          <TaskBarPluginItems />
+        </div>
         <div className="pl-4 flex items-center">
           {/* This is the regular downloads Remove button */}
           <button

@@ -115,6 +115,12 @@ declare global {
       ) => () => void;
       getPluginLocation: (pluginId: string) => Promise<string | null>;
       openPluginFolder: (pluginId: string) => Promise<boolean>;
+
+      // TaskBar items
+      registerTaskBarItem: (item: TaskBarItem) => Promise<string>;
+      unregisterTaskBarItem: (id: string) => Promise<boolean>;
+      getTaskBarItems: () => Promise<TaskBarItem[]>;
+      executeTaskBarItem: (id: string, contextData?: any) => Promise<boolean>;
     };
     PluginHandlers?: Record<string, (contextData?: any) => void>;
   }
@@ -134,6 +140,16 @@ interface MenuItem {
   context?: string;
   pluginId?: string;
   onClick: (contextData?: any) => void;
+  handlerId?: string;
+}
+
+interface TaskBarItem {
+  id: string;
+  label: string;
+  icon?: React.ReactNode;
+  tooltip?: string;
+  pluginId?: string;
+  onClick?: (contextData?: any) => void;
   handlerId?: string;
 }
 
