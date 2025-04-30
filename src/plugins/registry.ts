@@ -54,9 +54,22 @@ export class PluginRegistry {
   }
 
   getTaskBarItems(): TaskBarItem[] {
-    return this.taskBarItems.filter(
+    // First filter by enabled state
+    const filteredItems = this.taskBarItems.filter(
       (item) => this.enabledPlugins[item.pluginId || ''] !== false,
     );
+
+    // Create a map to deduplicate items
+    const itemMap = new Map();
+
+    // Deduplicate items using a unique key
+    for (const item of filteredItems) {
+      const key = `${item.pluginId || ''}:${item.id}`;
+      itemMap.set(key, item);
+    }
+
+    // Return the deduplicated items
+    return Array.from(itemMap.values());
   }
 
   executeTaskBarItemAction(id: string, contextData?: any): void {
