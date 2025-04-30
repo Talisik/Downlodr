@@ -55,6 +55,7 @@ export class PluginRegistry {
 
   getTaskBarItems(): TaskBarItem[] {
     // First filter by enabled state
+    // First filter by enabled state
     const filteredItems = this.taskBarItems.filter(
       (item) => this.enabledPlugins[item.pluginId || ''] !== false,
     );
@@ -64,7 +65,7 @@ export class PluginRegistry {
 
     // Deduplicate items using a unique key
     for (const item of filteredItems) {
-      const key = `${item.pluginId || ''}:${item.id}`;
+      const key = `${item.pluginId.trim()}:${item.label.trim()}`;
       itemMap.set(key, item);
     }
 
