@@ -169,6 +169,23 @@ export class PluginManager {
         return false;
       }
     });
+
+    // Execute taskbar item
+    ipcMain.handle(
+      'plugins:executeTaskBarItem',
+      (event, itemId, contextData) => {
+        try {
+          // Execute the taskbar item with the provided context data
+          // This is a fallback for non-renderer plugins
+          console.log(`Executing taskbar item: ${itemId}`);
+          // Your implementation for executing the taskbar item from the main process
+          return true;
+        } catch (error) {
+          console.error(`Error executing taskbar item ${itemId}:`, error);
+          return false;
+        }
+      },
+    );
   }
 
   // Security check to limit file access to appropriate directories
