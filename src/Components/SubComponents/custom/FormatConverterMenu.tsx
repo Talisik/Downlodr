@@ -70,7 +70,7 @@ const FormatConverterMenu: React.FC<FormatConverterMenuProps> = ({
             </label>
           </div>
         ))}
-
+        {/* 
         <div className="border-t border-gray-200 dark:border-gray-700 my-2 pt-2">
           <div className="flex items-center">
             <input
@@ -88,7 +88,7 @@ const FormatConverterMenu: React.FC<FormatConverterMenuProps> = ({
             </label>
           </div>
         </div>
-
+*/}
         <div className="text-right">
           <button
             onClick={handleConvert}

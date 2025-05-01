@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from '../shadcn/components/ui/tooltip';
 import { TaskBarItem } from '../../../plugins/types';
+import { SiConvertio } from 'react-icons/si';
 
 // Using the global TaskBarItem interface instead of redefining it
 const TaskBarPluginItems: React.FC = () => {
@@ -16,6 +17,7 @@ const TaskBarPluginItems: React.FC = () => {
   const enabledPlugins = usePluginState();
   const { selectedDownloads } = useMainStore();
   const { toast } = useToast();
+  const clearAllSelections = useMainStore((state) => state.clearAllSelections);
 
   const fetchTaskBarItems = async () => {
     try {
@@ -69,7 +71,7 @@ const TaskBarPluginItems: React.FC = () => {
       toast({
         variant: 'destructive',
         title: 'No Downloads Selected',
-        description: 'Please select downloads to use this feature',
+        description: 'Please select downloads to use plugin',
         duration: 3000,
       });
       return;
@@ -90,6 +92,7 @@ const TaskBarPluginItems: React.FC = () => {
       console.log(`Executing taskbar item with handler: ${item.handlerId}`);
       console.log(downloadsData);
       window.PluginHandlers[item.handlerId](downloadsData);
+      clearAllSelections();
     } else {
       console.error(
         `No handler found for taskbar item ${item.id} (looking for handlerId: ${item.handlerId})`,
@@ -106,10 +109,11 @@ const TaskBarPluginItems: React.FC = () => {
           <Tooltip key={item.id}>
             <TooltipTrigger asChild>
               <button
-                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-2 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
                 onClick={() => handleItemClick(item)}
                 aria-label={item.label}
               >
+                <SiConvertio size={14} className="mt-1" />
                 <span className="text-sm">{item.label}</span>{' '}
               </button>
             </TooltipTrigger>

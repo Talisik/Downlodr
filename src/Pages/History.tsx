@@ -244,7 +244,7 @@ const History = () => {
       return createPortal(
         <button
           onClick={handleDeleteSelected}
-          className="bg-[#FF3B30] hover:bg-black dark:hover:bg-darkModeHover px-3 py-2 rounded flex gap-1 font-semibold text-gray-200"
+          className="ml-2 primary-custom-btn px-[6px] py-[4px] sm:px-[8px] sm:py-[4px] flex items-center gap-1 sm:gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
         >
           <LuTrash size={15} className="mt-[0.9px]" /> Remove from History
         </button>,

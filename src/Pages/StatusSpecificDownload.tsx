@@ -938,6 +938,12 @@ const StatusSpecificDownloads = () => {
                                     <div className="space-y-1">
                                       <Skeleton className="h-8 w-[50px] rounded-[3px]" />
                                     </div>
+                                  ) : download.status === 'finished' ? (
+                                    <div className="ml-1 font-medium">
+                                      {download.ext ||
+                                        download.audioExt ||
+                                        'Unknown'}
+                                    </div>
                                   ) : (
                                     <FormatSelector
                                       download={download}

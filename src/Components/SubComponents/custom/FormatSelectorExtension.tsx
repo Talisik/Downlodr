@@ -116,7 +116,7 @@ const FormatSelectorExtension: React.FC<FormatSelectorExtensionProps> = ({
               </label>
             </div>
           ))}
-
+          {/* 
           <div className="border-t border-gray-200 dark:border-gray-700 my-2 pt-2">
             <div className="flex items-center">
               <input
@@ -134,6 +134,7 @@ const FormatSelectorExtension: React.FC<FormatSelectorExtensionProps> = ({
               </label>
             </div>
           </div>
+          */}
         </div>
 
         {/* Footer */}

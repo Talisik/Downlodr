@@ -383,6 +383,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
   // opens download modal
   const handleOpenDownloadModal = () => {
+    clearAllSelections();
     setDownloadModalOpen(true);
   };
 
@@ -417,11 +418,12 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
           </button>
         </div>
-        {/* Right side with plugin taskbar items */}
-        <div className="flex items-center mr-4">
-          <TaskBarPluginItems />
-        </div>
         <div className="pl-4 flex items-center">
+          <div className="mr-4">
+            {' '}
+            <TaskBarPluginItems />
+          </div>
+
           {/* This is the regular downloads Remove button */}
           <button
             className={`px-3 py-1 rounded flex gap-1 mr-4 text-sm rounded-md flex gap-2 text-sm ${
