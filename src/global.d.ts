@@ -68,8 +68,10 @@ declare global {
       toggle: () => void; // Toggles the visibility of the developer tools
     };
     updateAPI: {
-      onUpdateAvailable: (callback: (updateInfo: UpdateInfo) => void) => void;
-      checkForUpdates: () => Promise<UpdateInfo>; // Changed return type from void to UpdateInfo
+      onUpdateAvailable: (
+        callback: (updateInfo: UpdateInfo) => void,
+      ) => () => void;
+      checkForUpdates: () => Promise<UpdateInfo>;
     };
     backgroundSettings: {
       getRunInBackground: () => Promise<boolean>;
@@ -87,7 +89,7 @@ declare global {
       getCode: (
         pluginId: string,
       ) => Promise<{ code: string; manifest: any; error?: string }>;
-      install: (pluginPath: string) => Promise<boolean>;
+      install: (pluginPath: string) => Promise<boolean | string>;
       uninstall: (pluginId: string) => Promise<boolean>;
       getMenuItems: (context: any) => Promise<MenuItem[]>;
       executeMenuItem: (id: string, contextData?: any) => Promise<void>;
@@ -115,6 +117,12 @@ declare global {
       ) => () => void;
       getPluginLocation: (pluginId: string) => Promise<string | null>;
       openPluginFolder: (pluginId: string) => Promise<boolean>;
+
+      // TaskBar items
+      registerTaskBarItem: (item: TaskBarItem) => Promise<string>;
+      unregisterTaskBarItem: (id: string) => Promise<boolean>;
+      getTaskBarItems: () => Promise<TaskBarItem[]>;
+      executeTaskBarItem: (id: string, contextData?: any) => Promise<boolean>;
     };
     PluginHandlers?: Record<string, (contextData?: any) => void>;
   }
@@ -134,6 +142,16 @@ interface MenuItem {
   context?: string;
   pluginId?: string;
   onClick: (contextData?: any) => void;
+  handlerId?: string;
+}
+
+interface TaskBarItem {
+  id: string;
+  label: string;
+  icon?: React.ReactNode;
+  tooltip?: string;
+  pluginId?: string;
+  onClick?: (contextData?: any) => void;
   handlerId?: string;
 }
 

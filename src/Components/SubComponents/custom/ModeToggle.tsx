@@ -59,7 +59,7 @@ export function ModeToggle() {
         <div className="fixed right-[inherit] w-32 rounded-md bg-white dark:bg-darkModeCompliment shadow-lg ring-1 ring-black ring-opacity-5 z-[100]">
           <div className="py-1" role="menu">
             <button
-              className="block w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="block w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-darkModeHover"
               onClick={() => {
                 setTheme('light');
                 setIsOpen(false);
@@ -68,7 +68,7 @@ export function ModeToggle() {
               Light
             </button>
             <button
-              className="block w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="block w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-darkModeHover"
               onClick={() => {
                 setTheme('dark');
                 setIsOpen(false);
@@ -77,7 +77,7 @@ export function ModeToggle() {
               Dark
             </button>
             <button
-              className="block w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="block w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-darkModeHover"
               onClick={() => {
                 setTheme('system');
                 setIsOpen(false);

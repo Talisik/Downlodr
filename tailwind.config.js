@@ -54,6 +54,7 @@ module.exports = {
         lightGray: '#EDEDED',
         darkMode: '#16161E',
         darkModeCompliment: '#21212d',
+        darkModeHover: '#3E3E46',
         inputDarkMode: '#FEF9F426',
         skeleton: '#E8EDF1',
         border: '#E4E4E7',

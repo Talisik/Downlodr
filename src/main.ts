@@ -70,7 +70,7 @@ const createWindow = () => {
     height: 680,
     frame: false,
     autoHideMenuBar: true,
-    minWidth: 650,
+    minWidth: 800,
     minHeight: 600,
     webPreferences: {
       contextIsolation: true,
@@ -965,4 +965,26 @@ ipcMain.handle('get-thumbnail-data-url', async (_event, imagePath) => {
     console.error('Error creating thumbnail data URL:', error);
     return null;
   }
+});
+
+// Add these new IPC handlers for taskbar items
+ipcMain.handle('plugins:register-taskbar-item', (event, taskBarItem) => {
+  console.log('Main process registering taskbar item:', taskBarItem);
+  return pluginRegistry.registerTaskBarItem(taskBarItem);
+});
+
+ipcMain.handle('plugins:unregister-taskbar-item', (event, id) => {
+  console.log('Main process unregistering taskbar item:', id);
+  pluginRegistry.unregisterTaskBarItem(id);
+  return true;
+});
+
+ipcMain.handle('plugins:taskbar-items', (event) => {
+  return pluginRegistry.getTaskBarItems();
+});
+
+ipcMain.handle('plugins:execute-taskbar-item', (event, id, contextData) => {
+  console.log('Executing taskbar item action:', id, contextData);
+  pluginRegistry.executeTaskBarItemAction(id, contextData);
+  return true;
 });

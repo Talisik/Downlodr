@@ -10,7 +10,9 @@
 import React, { useState, useEffect } from 'react';
 import { FaExternalLinkAlt } from 'react-icons/fa';
 import { IoIosArrowForward, IoMdArrowBack } from 'react-icons/io';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, NavLink } from 'react-router-dom';
+
+import { Button } from '../../Components/SubComponents/shadcn/components/ui/button';
 
 interface PluginInfo {
   id: string;
@@ -135,8 +137,8 @@ const PluginDetails = () => {
   }
 
   return (
-    <div className="w-full h-full">
-      <div className="h-full space-y-4 mx-8 border-x-2 border-gray-200 px-6 py-4">
+    <div className="w-full h-screen flex justify-center overflow-hidden">
+      <div className="h-full space-y-4 w-3/4 max-w-3xl border-x-2 border-gray-200 px-6 pt-8 shadow-md overflow-y-auto">
         <div className="flex gap-2 flex-wrap ">
           <button
             onClick={handleGoBack}
@@ -167,7 +169,13 @@ const PluginDetails = () => {
         <div>
           <div>
             <p className="text-sm font-medium">Description</p>
-            <p>{plugin.description}</p>
+            <div>
+              {plugin.description.split('\n').map((paragraph, index) => (
+                <p key={index} className="mb-2">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
           </div>
         </div>
         <hr className="solid my-4 w-full border-t border-divider dark:border-gray-700" />
@@ -206,7 +214,7 @@ const PluginDetails = () => {
             }}
           />
         </div>
-        <hr className="solid my-4 w-full border-t border-divider dark:border-gray-700" />
+        <hr className="solid my-4 w-full border-t border-divider dark:border-gray-700 mb-4" />
         <div className="flex justify-between flex-wrap">
           <p>Remove Extension</p>
           <IoIosArrowForward
@@ -214,7 +222,6 @@ const PluginDetails = () => {
             onClick={() => handleUninstall(plugin.id)}
           />
         </div>
-        {/* end */}
       </div>
     </div>
   );

@@ -244,7 +244,7 @@ const History = () => {
       return createPortal(
         <button
           onClick={handleDeleteSelected}
-          className="bg-[#FF3B30] hover:bg-black dark:hover:bg-gray-700 px-3 py-2 rounded flex gap-1 font-semibold text-gray-200"
+          className="ml-2 primary-custom-btn px-[6px] py-[4px] sm:px-[8px] sm:py-[4px] flex items-center gap-1 sm:gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
         >
           <LuTrash size={15} className="mt-[0.9px]" /> Remove from History
         </button>,
@@ -289,7 +289,7 @@ const History = () => {
           {sortedlogs.map((product) => (
             <tr
               key={product.id}
-              className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-darkModeHover"
               onContextMenu={(e) => handleRowClick(e, product)}
             >
               <td className="w-8 p-2">
@@ -341,7 +341,7 @@ const History = () => {
         >
           <button
             onClick={() => handleRedownload(hoveredVideo)}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover text-sm"
           >
             <span className="flex items-center space-x-2">
               <VscPlayCircle size={18} />
@@ -358,7 +358,7 @@ const History = () => {
                 hoveredVideo.id,
               )
             }
-            className="text-sm w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="text-sm w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover"
           >
             <span className="flex items-center space-x-2">
               <LuTrash size={16} />
@@ -384,7 +384,7 @@ const History = () => {
               setSortOrder('newest');
               setShowSortMenu(false);
             }}
-            className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+            className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover ${
               sortOrder === 'newest' ? 'bg-gray-100 dark:bg-gray-700' : ''
             }`}
           >
@@ -395,7 +395,7 @@ const History = () => {
               setSortOrder('oldest');
               setShowSortMenu(false);
             }}
-            className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+            className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover ${
               sortOrder === 'oldest' ? 'bg-gray-100 dark:bg-gray-700' : ''
             }`}
           >

@@ -603,7 +603,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           {allDownloads.map((download) => (
             <React.Fragment key={download.id}>
               <tr
-                className={`border-b hover:bg-gray-50 dark:border-white dark:hover:bg-gray-700 cursor-pointer ${
+                className={`border-b hover:bg-gray-50 dark:border-white dark:hover:bg-darkModeHover cursor-pointer ${
                   selectedDownloadId === download.id
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'

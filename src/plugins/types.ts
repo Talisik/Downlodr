@@ -32,6 +32,11 @@ export interface UIAPI {
   registerFormatProvider: (provider: FormatProvider) => string;
   registerSettingsPage: (page: SettingsPage) => string;
   showNotification: (options: NotificationOptions) => void;
+  showFormatSelector: (
+    options: FormatSelectorOptions,
+  ) => Promise<FormatSelectorResult | null>;
+  registerTaskBarItem: (item: TaskBarItem) => Promise<string>;
+  unregisterTaskBarItem: (id: string) => Promise<boolean>;
 }
 
 export interface FormatAPI {
@@ -159,4 +164,32 @@ export interface NotifItem {
   submenu?: MenuItem[];
   order?: number;
   context?: 'download' | 'main' | 'all';
+}
+
+export interface FormatSelectorOptions {
+  title?: string;
+  formats: FormatOption[];
+  keepOriginal?: boolean;
+}
+
+export interface FormatOption {
+  id: string;
+  label: string;
+  value: string;
+  default?: boolean;
+}
+
+export interface FormatSelectorResult {
+  selectedFormat: string;
+  keepOriginal: boolean;
+}
+
+export interface TaskBarItem {
+  id: string;
+  label: string;
+  icon?: React.ReactNode;
+  tooltip?: string;
+  onClick?: (contextData?: any) => void;
+  pluginId?: string; // Will be filled automatically
+  handlerId?: string;
 }

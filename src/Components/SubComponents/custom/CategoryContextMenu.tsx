@@ -88,7 +88,7 @@ const CategoryContextMenu: React.FC<CategoryContextMenuProps> = ({
             onClick={() => {
               setIsRenaming(true);
             }}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 dark:text-gray-200"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
           >
             <MdEdit className="text-gray-600 dark:text-gray-400" />
             <span>Rename</span>
@@ -98,7 +98,7 @@ const CategoryContextMenu: React.FC<CategoryContextMenuProps> = ({
               onDelete(categoryName);
               onClose();
             }}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 text-red-600 dark:text-red-400"
           >
             <MdDelete />
             <span>Delete</span>

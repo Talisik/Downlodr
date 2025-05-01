@@ -358,7 +358,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         </div>
       )}
       <div
-        className={`bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 ${
+        className={`bg-white dark:bg-[#434343] rounded-lg pt-6 pr-6 pl-6 ${
           isValidUrl && isPlaylist ? 'w-full max-w-[800px]' : 'w-full max-w-xl'
         }`}
       >
@@ -393,7 +393,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         e.preventDefault();
                         window.downlodrFunctions.showInputContextMenu();
                       }}
-                      className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
+                      className="flex-1 border rounded-md px-3 py-2 dark:text-black outline-none dark:border-transparent"
                     />
                   </div>
                 </div>
@@ -409,7 +409,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                       value={downloadFolder}
                       onClick={handleDirectory}
                       placeholder="Download Destination Folder"
-                      className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
+                      className="flex-1 border rounded-md px-3 py-2 dark:text-black outline-none dark:border-transparent"
                       readOnly
                     />
                   </div>
@@ -513,9 +513,9 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             </div>
           )}
         </div>
-        <hr className="solid mt-4 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
+        <hr className="solid mt-4 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-[#434343]" />
 
-        <div className="bg-[#FEF9F4] dark:dark:bg-darkMode flex gap-3 justify-end -mx-6 px-4 py-2 rounded-b-md">
+        <div className="bg-[#FEF9F4] dark:dark:bg-[#39383E] flex gap-3 justify-end -mx-6 px-4 py-2 rounded-b-md">
           <button
             type="button"
             className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90"
@@ -527,7 +527,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
           <button
             type="button"
             onClick={handleClose}
-            className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
+            className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:bg-white dark:text-black dark:hover:bg-darkModeHover dark:hover:text-white font-medium"
           >
             Cancel
           </button>

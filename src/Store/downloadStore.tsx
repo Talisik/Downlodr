@@ -408,6 +408,8 @@ const useDownloadStore = create<DownloadStore>()(
                           download.size,
                         status: result.data.status || download.status,
                         elapsed: result.data.elapsed || download.elapsed,
+                        ext: ext,
+                        audioExt: audioExt,
                       }
                     : download,
                 ),
@@ -475,7 +477,7 @@ const useDownloadStore = create<DownloadStore>()(
               progress,
               location: finalLocation, // Use the subfolder path for the download location
               status: 'downloading',
-              ext,
+              ext: ext,
               formatId,
               backupExt: ext,
               backupFormatId: formatId,
@@ -485,7 +487,7 @@ const useDownloadStore = create<DownloadStore>()(
               tags: [],
               category: [],
               extractorKey,
-              audioExt: '',
+              audioExt: audioExt,
               audioFormatId: '',
               isLive: false,
               elapsed: null,
@@ -498,6 +500,29 @@ const useDownloadStore = create<DownloadStore>()(
             },
           ],
         }));
+
+        console.log('Download parameters:', {
+          videoUrl,
+          name,
+          downloadName,
+          size,
+          speed,
+          timeLeft,
+          DateAdded,
+          progress,
+          location,
+          status,
+          ext,
+          formatId,
+          audioExt,
+          audioFormatId,
+          extractorKey,
+          limitRate,
+          automatic_caption,
+          thumbnails,
+          getTranscript,
+          getThumbnail,
+        });
       },
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
