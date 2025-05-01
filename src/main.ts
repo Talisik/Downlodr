@@ -14,13 +14,17 @@ import {
   Tray,
   nativeImage,
   Notification,
+  protocol,
 } from 'electron';
 import path from 'path';
 import started from 'electron-squirrel-startup';
 import os from 'os';
 import * as YTDLP from 'yt-dlp-helper';
 import fs, { existsSync } from 'fs';
+import https from 'https';
 import { checkForUpdates } from './DataFunctions/updateChecker';
+import { PluginManager } from './plugins/pluginManager';
+import { pluginRegistry } from './plugins/registry';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -56,16 +60,18 @@ let normalTrayIcon: Electron.NativeImage;
 let alertTrayIcon: Electron.NativeImage;
 let isDownloadComplete = false;
 
+let pluginManager: PluginManager;
+
 // Function to create the main application window
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 1100,
+    width: 1200,
     height: 680,
     frame: false,
     autoHideMenuBar: true,
-    minWidth: 550,
-    minHeight: 450,
+    minWidth: 650,
+    minHeight: 600,
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
@@ -130,6 +136,7 @@ const createWindow = () => {
   });
 
   // Prevent navigation to external URLs
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   mainWindow.webContents.on('will-navigate', (event, url) => {
     event.preventDefault();
   });
@@ -249,6 +256,13 @@ ipcMain.handle('joinDownloadPath', async (event, downloadPath, fileName) => {
   return path.join(normalizedPath, fileName);
 });
 
+ipcMain.handle('createFolder', async (_event, dirPath) => {
+  if (!fs.existsSync(dirPath)) {
+    await fs.promises.mkdir(dirPath, { recursive: true });
+  }
+  return true;
+});
+
 // Function for getting default download folder from each OS
 ipcMain.handle('getDownloadFolder', async () => {
   try {
@@ -287,8 +301,6 @@ ipcMain.handle('validatePath', async (event, folderPath) => {
       console.error('Path is not a directory:', resolvedPath);
       return false;
     }
-
-    // Check if the directory is accessible
     await fs.promises.access(
       resolvedPath,
       fs.constants.R_OK | fs.constants.W_OK,
@@ -400,6 +412,7 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
     if (!info) {
       throw new Error('No info returned from YTDLP.getInfo');
     }
+    console.log(info);
     return info;
   } catch (error) {
     console.error('Error fetching video info:', error);
@@ -504,7 +517,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
 });
 
 // once the app opens
-app.on('ready', () => {
+app.on('ready', async () => {
   createWindow();
   createTray();
   updateCloseHandler();
@@ -529,6 +542,60 @@ app.on('ready', () => {
       );
     }
   }, UPDATE_CHECK_INTERVAL);
+
+  // Create plugin manager instance
+  pluginManager = new PluginManager();
+
+  // Load plugins
+  await pluginManager.loadPlugins();
+
+  // Set up IPC handlers AFTER app is ready
+  pluginManager.setupIPC();
+
+  // Register a custom protocol with better security
+  protocol.registerFileProtocol('app-image', (request, callback) => {
+    try {
+      const filePath = decodeURIComponent(
+        request.url.slice('app-image://'.length),
+      );
+
+      // Security check: Validate the file exists and is an image
+      if (!fs.existsSync(filePath)) {
+        throw new Error('File does not exist');
+      }
+
+      // Check file extension to ensure it's an image
+      const ext = path.extname(filePath).toLowerCase();
+      const allowedExtensions = [
+        '.jpg',
+        '.jpeg',
+        '.png',
+        '.gif',
+        '.webp',
+        '.bmp',
+        '.svg',
+      ];
+
+      if (!allowedExtensions.includes(ext)) {
+        throw new Error('Not an allowed image type');
+      }
+
+      return callback(filePath);
+    } catch (error) {
+      console.error('Error in protocol handler:', error);
+      // Return a placeholder or error image instead
+      callback({ path: path.join(__dirname, 'assets', 'error-image.png') });
+    }
+  });
+
+  // Listen for plugin state changes
+  ipcMain.on('plugins:stateChanged', (event, { pluginId, enabled }) => {
+    // Update the registry's knowledge of enabled plugins
+    pluginRegistry.updateEnabledStates(pluginManager.getEnabledPlugins());
+  });
+
+  // Initial loading of enabled states into the registry
+  pluginRegistry.updateEnabledStates(pluginManager.getEnabledPlugins());
 });
 
 // Change this to keep app running in background
@@ -588,6 +655,22 @@ ipcMain.handle('openExternalLink', async (_event, link: string) => {
   } catch (error) {
     console.error('Failed to open external link:', error);
     throw error;
+  }
+});
+
+ipcMain.handle('ensureDirectoryExists', async (event, dirPath) => {
+  try {
+    try {
+      await fs.promises.access(dirPath, fs.constants.F_OK);
+      return true; // Directory already exists
+    } catch (error) {
+      // Directory doesn't exist, create it
+      await fs.promises.mkdir(dirPath, { recursive: true });
+      return true;
+    }
+  } catch (error) {
+    console.error('Error creating directory:', error);
+    return false;
   }
 });
 
@@ -725,6 +808,161 @@ ipcMain.handle('get-file-size', async (_event, filePath) => {
     return stats.size; // Returns size in bytes
   } catch (error) {
     console.error('Error getting file size:', error);
+    return null;
+  }
+});
+
+// Add IPC handlers for plugin management
+/*
+ipcMain.handle('plugins:list', () => {
+  return pluginManager.getPlugins();
+});
+
+ipcMain.handle('plugins:install', async (_event, pluginPath) => {
+  return await pluginManager.installPlugin(pluginPath);
+});
+
+ipcMain.handle('plugins:uninstall', async (_event, pluginId) => {
+  return await pluginManager.unloadPlugin(pluginId);
+});
+*/
+// Add a handler to get plugin menu items
+ipcMain.handle('plugins:menu-items', (event, context) => {
+  return pluginRegistry.getMenuItems(context);
+});
+
+/*ipcMain.handle('plugins:loadUnzipped', async (_event, pluginDirPath) => {
+  return await pluginManager.loadUnzippedPlugin(pluginDirPath);
+});
+*/
+ipcMain.handle('plugins:execute-menu-item', (event, id, contextData) => {
+  console.log('Executing menu item action:', id, contextData);
+  pluginRegistry.executeMenuItemAction(id, contextData);
+  return true;
+});
+
+// Add these new IPC handlers
+ipcMain.handle('plugins:register-menu-item', (event, menuItem) => {
+  console.log('Main process registering menu item:', menuItem);
+  return pluginRegistry.registerMenuItem(menuItem);
+});
+
+ipcMain.handle('plugins:unregister-menu-item', (event, id) => {
+  console.log('Main process unregistering menu item:', id);
+  pluginRegistry.unregisterMenuItem(id);
+  return true;
+});
+
+// Add to main.ts where you set up your other IPC handlers
+ipcMain.handle('plugins:get-data-path', (event, pluginId) => {
+  const pluginDataDir = path.join(
+    app.getPath('userData'),
+    'plugin-data',
+    pluginId,
+  );
+  // Ensure the directory exists
+  if (!fs.existsSync(pluginDataDir)) {
+    fs.mkdirSync(pluginDataDir, { recursive: true });
+  }
+  return pluginDataDir;
+});
+
+// Add a handler for save file dialog if you want to implement that option
+ipcMain.handle('plugins:save-file-dialog', (event, options) => {
+  return dialog.showSaveDialog(
+    BrowserWindow.fromWebContents(event.sender),
+    options,
+  );
+});
+
+// Update the reload handler
+ipcMain.handle('plugins:reload', async (event) => {
+  console.log('Reloading plugins...');
+
+  // Clear existing registry items before reloading
+  pluginRegistry.clearAllRegistrations();
+
+  // Only reload the plugins from disk, don't re-setup IPC handlers
+  await pluginManager.loadPlugins();
+
+  // Notify renderer that plugins have been reloaded
+  event.sender.send('plugins:reloaded');
+
+  return true;
+});
+
+// When uninstalling a specific plugin
+ipcMain.handle('plugins:uninstall', async (event, pluginId) => {
+  // Clear registrations specific to this plugin
+  pluginRegistry.clearAllRegistrations(pluginId);
+
+  const success = await pluginManager.unloadPlugin(pluginId);
+  if (success) {
+    await pluginManager.loadPlugins();
+    event.sender.send('plugins:reloaded');
+  }
+  return success;
+});
+
+ipcMain.handle('plugins:loadUnzipped', async (event, pluginDirPath) => {
+  if (!pluginManager) {
+    console.error('Plugin manager not initialized');
+    return false;
+  }
+  return await pluginManager.loadUnzippedPlugin(pluginDirPath);
+});
+
+// Add this near your other ipcMain handlers
+ipcMain.handle('downloadFile', async (_event, url, outputPath) => {
+  try {
+    return new Promise((resolve, reject) => {
+      const file = fs.createWriteStream(outputPath);
+      https
+        .get(url, (response) => {
+          response.pipe(file);
+
+          file.on('finish', () => {
+            file.close();
+            resolve({ success: true, path: outputPath });
+          });
+        })
+        .on('error', (err) => {
+          fs.unlink(outputPath, (unlinkErr) => {
+            // Ignoring deletion errors since the download already failed
+            if (unlinkErr)
+              console.error('Failed to delete incomplete file:', unlinkErr);
+          });
+          reject({ success: false, error: err.message });
+        });
+    });
+  } catch (error) {
+    console.error('Error downloading file:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Add this near your other ipcMain handlers
+ipcMain.handle('get-thumbnail-data-url', async (_event, imagePath) => {
+  try {
+    if (!fs.existsSync(imagePath)) {
+      return null;
+    }
+
+    // Read the file as a buffer
+    const buffer = await fs.promises.readFile(imagePath);
+
+    // Determine MIME type based on file extension
+    const ext = path.extname(imagePath).toLowerCase();
+    let mimeType = 'image/jpeg'; // Default
+
+    if (ext === '.png') mimeType = 'image/png';
+    else if (ext === '.gif') mimeType = 'image/gif';
+    else if (ext === '.webp') mimeType = 'image/webp';
+
+    // Convert to base64 and return as data URL
+    return `data:${mimeType};base64,${buffer.toString('base64')}`;
+  } catch (error) {
+    console.error('Error creating thumbnail data URL:', error);
     return null;
   }
 });

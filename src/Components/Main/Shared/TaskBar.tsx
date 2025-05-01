@@ -15,6 +15,7 @@ import React, { useState } from 'react';
 import { GoDownload } from 'react-icons/go';
 import { VscPlayCircle } from 'react-icons/vsc';
 import { PiStopCircle } from 'react-icons/pi';
+import { useLocation } from 'react-router-dom';
 import DownloadModal from '../Modal/DownloadModal';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
@@ -69,6 +70,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
   const [showStopConfirmation, setShowStopConfirmation] = useState(false);
   const { toast } = useToast();
+  const location = useLocation(); // Get current location
 
   // Get the max download limit and current downloads from stores
   const { settings } = useMainStore();
@@ -292,6 +294,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           settings.defaultDownloadSpeed === 0
             ? ''
             : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+          downloadInfo.automaticCaption,
+          downloadInfo.thumbnails,
+          downloadInfo.getTranscript || false,
+          downloadInfo.getThumbnail || false,
         );
         // remove the current download from the saved list for forDownloads
         removeFromForDownloads(selectedDownload.id);
@@ -417,9 +423,9 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         <div className="px-4 flex items-center">
           {/* This is the regular downloads Remove button */}
           {selectedDownloads.length > 0 &&
-            !window.location.pathname.includes('history') && (
+            location.pathname.includes('/status/') && (
               <button
-                className="bg-[#FF3B30] hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded flex gap-1 font-semibold text-gray-200"
+                className="primary-custom-btn px-3 py-2 rounded flex gap-1 font-semibold text-gray-200 dark:hover:text-black"
                 onClick={() => setShowStopConfirmation(true)}
               >
                 <LuTrash size={15} className="mt-[0.9px]" /> Remove

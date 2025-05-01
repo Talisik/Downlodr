@@ -22,6 +22,7 @@ import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
+import { MdOutlineInfo } from 'react-icons/md';
 
 interface DownloadModalProps {
   isOpen: boolean;
@@ -42,6 +43,9 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   const [isValidUrl, setIsValidUrl] = useState<boolean>(false);
 
   // Store
+  const [getTranscript, setGetTranscript] = useState<boolean>(false);
+  const [getThumbnail, setGetThumbnail] = useState<boolean>(false);
+
   const { setDownload } = useDownloadStore();
   const { settings } = useMainStore();
   const [downloadFolder, setDownloadFolder] = useState<string>(
@@ -52,7 +56,6 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       ? ''
       : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
 
-  // Add this useEffect to listen for settings changes
   useEffect(() => {
     setDownloadFolder(settings.defaultLocation);
   }, [settings.defaultLocation]);
@@ -76,6 +79,25 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   );
   const [isValidatingUrl, setIsValidatingUrl] = useState<boolean>(false);
 
+  // New state to track if directory selection is in progress
+  const [isSelectingDirectory, setIsSelectingDirectory] =
+    useState<boolean>(false);
+
+  // set download folder location
+  const handleDirectory = async () => {
+    // Prevent multiple dialogs from being opened
+    if (isSelectingDirectory) return;
+
+    try {
+      setIsSelectingDirectory(true);
+      const path = await window.ytdlp.selectDownloadDirectory();
+      if (path) {
+        setDownloadFolder(path);
+      }
+    } finally {
+      setIsSelectingDirectory(false);
+    }
+  };
   // URL validation with playlist check
   const isYouTubeLink = (url: string): 'playlist' | 'video' | 'invalid' => {
     const videoPattern = /^https:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/;
@@ -238,7 +260,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         const selectedVideosList = playlistVideos.filter((video) =>
           selectedVideos.has(video.id),
         );
-        // If link is a YT playlist link, checks if there is atleast one video selected for download
+        // If link is a YT playlist link, checks if there is at least one video selected for download
         if (selectedVideosList.length === 0) {
           toast({
             variant: 'destructive',
@@ -249,14 +271,19 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
           return;
         }
 
-        // Download each selected video
+        // Download each selected video with user preferences
         for (const video of selectedVideosList) {
-          //console.log(video.url);
-          setDownload(video.url, downloadFolder, maxDownload);
+          setDownload(video.url, downloadFolder, maxDownload, {
+            getTranscript,
+            getThumbnail,
+          });
         }
       } else {
-        // Single video download
-        setDownload(videoUrl, downloadFolder, maxDownload);
+        // Single video download with user preferences
+        setDownload(videoUrl, downloadFolder, maxDownload, {
+          getTranscript,
+          getThumbnail,
+        });
       }
       // Cleaning up modal
       resetModal();
@@ -289,12 +316,6 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     setDownloadFolder(settings.defaultLocation);
   };
 
-  // set download folder location
-  const handleDirectory = async () => {
-    const path = await window.ytdlp.selectDownloadDirectory();
-    setDownloadFolder(path);
-  };
-
   // Close Modal
   const handleClose = () => {
     resetModal();
@@ -323,9 +344,21 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         }
       }}
     >
-      {' '}
+      {/* Directory selection overlay - blocks all app interaction */}
+      {isSelectingDirectory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] cursor-not-allowed flex items-center justify-center">
+          <div className="bg-white dark:bg-darkMode p-4 rounded-lg shadow-lg max-w-md text-center">
+            <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
+              Directory Selection In Progress
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300">
+              Please complete the directory selection dialog before continuing.
+            </p>
+          </div>
+        </div>
+      )}
       <div
-        className={`bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 ${
+        className={`bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 ${
           isValidUrl && isPlaylist ? 'w-full max-w-[800px]' : 'w-full max-w-xl'
         }`}
       >
@@ -346,7 +379,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             <form onSubmit={(e) => e.preventDefault()} className={'w-full'}>
               <div className="space-y-4">
                 <div>
-                  <label className="block dark:text-gray-200">
+                  <label className="block dark:text-gray-200 font-medium">
                     Download link
                   </label>
                   <div className="flex gap-2">
@@ -366,7 +399,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 <div>
-                  <label className="block dark:text-gray-200">
+                  <label className="block dark:text-gray-200 font-medium">
                     Save file to
                   </label>
                   <div className="flex gap-2">
@@ -379,6 +412,49 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                       className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
                       readOnly
                     />
+                  </div>
+                </div>
+                <div className="">
+                  <div className="flex items-center gap-2">
+                    <label className="block dark:text-gray-200 text-nowrap font-bold">
+                      Additional Options
+                    </label>
+                    <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
+                  </div>
+                  <div className="flex items-center gap-4 mt-3">
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        id="run-in-background"
+                        checked={getTranscript}
+                        onChange={(e) => setGetTranscript(e.target.checked)}
+                        className="w-4 h-4 text-primary rounded focus:ring-primary"
+                      />
+                      <label className="font-medium dark:text-gray-200 ">
+                        Get Closed Captions
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        id="run-in-background"
+                        checked={getThumbnail}
+                        onChange={(e) => setGetThumbnail(e.target.checked)}
+                        className="w-4 h-4 text-primary rounded focus:ring-primary"
+                      />
+                      <label className="font-medium dark:text-gray-200 ">
+                        Get Thumbnail
+                      </label>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-4">
+                    <MdOutlineInfo size={20} />
+                    <div>
+                      <p className="text-xs">
+                        Please note that Closed Captions and thumbnails may not
+                        be available for all websites.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -437,9 +513,9 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             </div>
           )}
         </div>
-        <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
+        <hr className="solid mt-4 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
 
-        <div className="flex gap-3 justify-end">
+        <div className="bg-[#FEF9F4] dark:dark:bg-darkMode flex gap-3 justify-end -mx-6 px-4 py-2 rounded-b-md">
           <button
             type="button"
             className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90"

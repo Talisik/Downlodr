@@ -52,10 +52,7 @@ export const useResizableColumns = (
       if (!currentColumn) return;
 
       // Calculate the new width, ensuring it respects the minimum width
-      const newWidth = Math.max(
-        currentColumn.minWidth || 10,
-        startWidth + diff,
-      );
+      const newWidth = Math.max(currentColumn.minWidth || 5, startWidth + diff);
 
       // Update the columns state with the new width
       setColumns((prevColumns) =>

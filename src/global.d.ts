@@ -31,6 +31,17 @@ declare global {
       fileExists: (path: string) => Promise<boolean>; // Checks if a file exists at the specified path
       getFileSize: (path: string) => Promise<number | null>; // Gets the size of a file in bytes
       showInputContextMenu: () => void; // Shows the input field context menu (right-click menu)
+      invokeMainProcess: (channel: string, ...args: any[]) => Promise<any>;
+      downloadFile: (
+        url: string,
+        outputPath: string,
+      ) => Promise<{
+        success: boolean;
+        path?: string;
+        error?: string;
+      }>;
+      ensureDirectoryExists: (dirPath: string) => Promise<boolean>; // Creates directory if it doesn't exist
+      getThumbnailDataUrl: (path: string) => Promise<string | null>;
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist
@@ -71,7 +82,59 @@ declare global {
         location: string;
       }) => void;
     };
+    plugins: {
+      list: () => Promise<PluginInfo[]>;
+      getCode: (
+        pluginId: string,
+      ) => Promise<{ code: string; manifest: any; error?: string }>;
+      install: (pluginPath: string) => Promise<boolean>;
+      uninstall: (pluginId: string) => Promise<boolean>;
+      getMenuItems: (context: any) => Promise<MenuItem[]>;
+      executeMenuItem: (id: string, contextData?: any) => Promise<void>;
+      loadUnzipped: (pluginDirPath: string) => Promise<boolean>;
+      writeFile: (
+        filePath: string,
+        content: string,
+      ) => Promise<{ success: boolean; error?: string }>;
+      readFile: (
+        filePath: string,
+      ) => Promise<{ content: string; error?: string }>;
+
+      // Add these new methods
+      registerMenuItem: (menuItem: MenuItem) => Promise<string>;
+      unregisterMenuItem: (id: string) => Promise<boolean>;
+      reload: () => Promise<boolean>;
+      onReloaded: (callback: () => void) => () => void;
+      getEnabledPlugins: () => Promise<Record<string, boolean>>;
+      setPluginEnabled: (
+        pluginId: string,
+        enabled: boolean,
+      ) => Promise<boolean>;
+      onPluginStateChanged: (
+        callback: (data: { pluginId: string; enabled: boolean }) => void,
+      ) => () => void;
+      getPluginLocation: (pluginId: string) => Promise<string | null>;
+      openPluginFolder: (pluginId: string) => Promise<boolean>;
+    };
+    PluginHandlers?: Record<string, (contextData?: any) => void>;
   }
+}
+
+interface PluginInfo {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+}
+
+interface MenuItem {
+  id: string;
+  label: string;
+  context?: string;
+  pluginId?: string;
+  onClick: (contextData?: any) => void;
+  handlerId?: string;
 }
 
 export {};

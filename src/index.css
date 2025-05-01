@@ -61,13 +61,13 @@ body {
   text-align: left;
   text-underline-position: from-font;
   text-decoration-skip-ink: none;
-  @apply rounded w-[98%];
+  @apply rounded w-[100%];
 }
 
 .nav-link.active {
   @apply bg-gray-100;
   @apply dark:bg-gray-700;
-  @apply rounded w-[98%];
+  @apply rounded w-[100%];
 
 }
 
@@ -78,7 +78,7 @@ body {
 .nav-link:not(.active):hover {
   @apply bg-gray-100;
   @apply dark:bg-gray-700;
-  @apply rounded w-[98%];
+  @apply rounded w-[100%];
 }
 
 /*Navigation end*/

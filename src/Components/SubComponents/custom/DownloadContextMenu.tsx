@@ -45,6 +45,9 @@ import { PlayCircle } from 'lucide-react';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
+import { MenuItem } from '../../../plugins/types';
+import { usePluginState } from '../../../plugins/Hooks/usePluginState';
+import { pluginRegistry } from '../../../plugins/registry';
 
 // Interface representing the props for the DownloadContextMenu component
 interface DownloadContextMenuProps {
@@ -240,8 +243,38 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false); // State to track visibility of the remove confirmation modal
   const renameDownload = useDownloadStore((state) => state.renameDownload); // Function to rename a download
   const { settings } = useMainStore();
-  const { downloading, addDownload, removeFromForDownloads, forDownloads } =
-    useDownloadStore();
+  const {
+    downloading,
+    addDownload,
+    removeFromForDownloads,
+    forDownloads,
+    finishedDownloads,
+  } = useDownloadStore();
+  const allDownloads = [...forDownloads, ...downloading, ...finishedDownloads]; //Plugins
+  const [pluginMenuItems, setPluginMenuItems] = useState<MenuItem[]>([]);
+  const enabledPlugins = usePluginState();
+
+  const fetchPluginMenuItems = async () => {
+    try {
+      // Option 1: Using the window.plugins API with filtering
+      const items = await window.plugins.getMenuItems('download');
+      const filteredItems = (items || []).filter(
+        (item) => !item.pluginId || enabledPlugins[item.pluginId] !== false,
+      ) as MenuItem[];
+
+      // OR Option 2: Using the registry directly (if it exposes a method)
+      // const filteredItems = pluginRegistry.getMenuItems('download');
+
+      setPluginMenuItems(filteredItems);
+    } catch (error) {
+      console.error('Failed to fetch plugin menu items:', error);
+      setPluginMenuItems([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchPluginMenuItems();
+  }, [enabledPlugins]);
 
   // Effect to position the context menu based on the provided coordinates
   React.useEffect(() => {
@@ -298,6 +331,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
   // Function to handle opening tag menu
   const handleTagMenuClick = (e: React.MouseEvent) => {
+    console.log(pluginMenuItems);
     e.stopPropagation();
     setShowCategoryMenu(false); // Close category menu
     setShowTagMenu(!showTagMenu);
@@ -376,6 +410,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       settings.defaultDownloadSpeed === 0
         ? ''
         : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+      currentDownload.automaticCaption,
+      currentDownload.thumbnails,
+      currentDownload.getTranscript || false,
+      currentDownload.getThumbnail || false,
     );
 
     removeFromForDownloads(currentDownload.id); // Remove from forDownloads after starting
@@ -720,6 +758,67 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     );
   };
 
+  // Example of how to call the menu item action with context data
+  function handleMenuItemClick(menuItemId: string) {
+    const downloadInfo = allDownloads.find((d) => d.id === downloadId);
+
+    if (downloadInfo) {
+      // Use the IPC channel instead of direct call
+      window.plugins.executeMenuItem(menuItemId, downloadInfo);
+    } else {
+      window.plugins.executeMenuItem(menuItemId, { id: downloadId });
+    }
+  }
+
+  const renderPluginMenuItems = () => {
+    if (!pluginMenuItems || pluginMenuItems.length === 0) return null;
+    return (
+      <>
+        {/* Divider if there are other menu items */}
+        <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+
+        {/* Plugin menu items */}
+        {pluginMenuItems.map((item) => (
+          <button
+            key={item.id || item.label}
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            onClick={() => {
+              // Get the necessary data for the context
+              const contextData = {
+                name: downloadName,
+                downloadId,
+                videoUrl: allDownloads.find((d) => d.id === downloadId)
+                  ?.videoUrl,
+                location: downloadLocation,
+                status: downloadStatus,
+              };
+              console.log(contextData);
+              // Find and execute the handler directly if it's a rendered plugin with handlerId
+              if (
+                item.handlerId &&
+                window.PluginHandlers &&
+                window.PluginHandlers[item.handlerId]
+              ) {
+                // Call the handler directly
+                window.PluginHandlers[item.handlerId](contextData);
+              } else {
+                // Fall back to the IPC method for non-renderer plugins
+                window.plugins.executeMenuItem(item.id || '', contextData);
+              }
+
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              {item.icon && <span>{item.icon}</span>}
+              <span>{item.label}</span>
+            </span>
+          </button>
+        ))}
+      </>
+    );
+  };
+
   return (
     <>
       <div
@@ -731,6 +830,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         }}
       >
         {renderMenuOptions()}
+        {renderPluginMenuItems()}
       </div>
 
       <RenameModal

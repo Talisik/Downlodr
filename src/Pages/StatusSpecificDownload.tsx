@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * A custom React Page Component for Status-Specific Downloads
  * This component dynamically displays downloads filtered by their status,
@@ -49,9 +51,8 @@ const formatRelativeTime = (dateString: string) => {
   }
 };
 
-const formatFileSize = (bytes: number | undefined): string => {
+export const formatFileSize = (bytes: number | undefined): string => {
   if (!bytes) return '—';
-  console.log(bytes);
   const KB = 1024;
   const MB = KB * 1024;
   const GB = MB * 1024;
@@ -83,6 +84,9 @@ const StatusSpecificDownloads = () => {
   // Get status from URL parameters
   const { status } = useParams<{ status: string }>();
   const currentStatus = status ? statusMapping[status] || status : '';
+  const [thumbnailDataUrls, setThumbnailDataUrls] = useState<
+    Record<string, string>
+  >({});
 
   // Set page title based on status
   useEffect(() => {
@@ -152,7 +156,9 @@ const StatusSpecificDownloads = () => {
       { id: 'format', width: 80, minWidth: 80 },
       { id: 'status', width: 110, minWidth: 110 },
       { id: 'speed', width: 70, minWidth: 70 },
-      { id: 'dateAdded', width: 90, minWidth: 90 },
+      { id: 'dateAdded', width: 100, minWidth: 100 },
+      { id: 'transcript', width: 20, minWidth: 20 },
+      { id: 'thumbnail', width: 10, minWidth: 10 },
       { id: 'source', width: 20, minWidth: 20 },
     ],
     visibleColumns,
@@ -242,6 +248,20 @@ const StatusSpecificDownloads = () => {
             ? sourceA.localeCompare(sourceB)
             : sourceB.localeCompare(sourceA);
         }
+        case 'thumbnail': {
+          const sourceA = a.extractorKey || '';
+          const sourceB = b.extractorKey || '';
+          return sortDirection === 'asc'
+            ? sourceA.localeCompare(sourceB)
+            : sourceB.localeCompare(sourceA);
+        }
+        case 'transcript': {
+          const sourceA = a.extractorKey || '';
+          const sourceB = b.extractorKey || '';
+          return sortDirection === 'asc'
+            ? sourceA.localeCompare(sourceB)
+            : sourceB.localeCompare(sourceA);
+        }
         default: {
           return sortDirection === 'asc'
             ? new Date(a.DateAdded).getTime() - new Date(b.DateAdded).getTime()
@@ -305,6 +325,8 @@ const StatusSpecificDownloads = () => {
     e.preventDefault();
     e.stopPropagation();
 
+    // Close any active download context menu first
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
     // Get the table's position
     const tableRect = e.currentTarget.getBoundingClientRect();
 
@@ -355,9 +377,6 @@ const StatusSpecificDownloads = () => {
           `[data-download-id="${contextMenu.downloadId}"]`,
         );
 
-      // Close the context menu if:
-      // 1. Clicking outside both table and details panel, OR
-      // 2. Clicking on a different row than the one with the context menu
       if (
         (!isClickInsideTable &&
           !isClickInsideDetailsPanel &&
@@ -374,17 +393,30 @@ const StatusSpecificDownloads = () => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [contextMenu.downloadId]);
 
-  const handleContextMenu = (event: React.MouseEvent, allDownloads: any) => {
+  const handleContextMenu = async (
+    event: React.MouseEvent,
+    allDownloads: any,
+  ) => {
     event.preventDefault();
     event.stopPropagation(); // Prevent the click outside handler from firing immediately
+
+    // Close any active column header context menu first
+    setColumnHeaderContextMenu({
+      ...columnHeaderContextMenu,
+      visible: false,
+    });
     setContextMenu({
       downloadId: allDownloads.id,
       x: event.clientX,
       y: event.clientY,
-      downloadLocation: `${allDownloads.location}${allDownloads.name}`,
+      downloadLocation: await window.downlodrFunctions.joinDownloadPath(
+        allDownloads.location,
+        allDownloads.name,
+      ),
       downloadStatus: allDownloads.status,
       controllerId: allDownloads.controllerId,
     });
+
     setSelectedDownloadId(allDownloads.id);
   };
 
@@ -414,6 +446,10 @@ const StatusSpecificDownloads = () => {
         currentDownload.backupAudioFormatId,
         currentDownload.extractorKey,
         '',
+        currentDownload.automaticCaption,
+        currentDownload.thumbnails,
+        currentDownload.getTranscript || false,
+        currentDownload.getThumbnail || false,
       );
       deleteDownloading(downloadId);
       toast({
@@ -600,18 +636,26 @@ const StatusSpecificDownloads = () => {
 
     setSelectedRowIds(newSelected);
 
-    // Update selectedDownloads with full download info
-    const selectedDownloadsData = newSelected.map((id) => {
+    // Create promises for each download
+    const promises = newSelected.map(async (id) => {
       const download = allDownloads.find((d) => d.id === id);
       return {
         id,
         controllerId: download?.controllerId,
         location: download?.location
-          ? `${download.location}${download.name}`
+          ? await window.downlodrFunctions.joinDownloadPath(
+              download.location,
+              download.name,
+            )
           : undefined,
       };
     });
-    setSelectedDownloads(selectedDownloadsData);
+
+    // Resolve all promises before updating state
+    Promise.all(promises).then((resolvedData) => {
+      setSelectedDownloads(resolvedData);
+    });
+    console.log(selectedDownload);
   };
 
   const handleSelectAll = () => {
@@ -622,18 +666,26 @@ const StatusSpecificDownloads = () => {
 
     setSelectedRowIds(newSelected);
 
-    // Update selectedDownloads with full download info
-    const selectedDownloadsData = newSelected.map((id) => {
+    // Create promises for each download
+    const promises = newSelected.map(async (id) => {
       const download = allDownloads.find((d) => d.id === id);
       return {
         id,
         controllerId: download?.controllerId,
         location: download?.location
-          ? `${download.location}${download.name}`
+          ? await window.downlodrFunctions.joinDownloadPath(
+              download.location,
+              download.name,
+            )
           : undefined,
       };
     });
-    setSelectedDownloads(selectedDownloadsData);
+
+    // Resolve all promises before updating state
+    Promise.all(promises).then((resolvedData) => {
+      setSelectedDownloads(resolvedData);
+    });
+    console.log(selectedDownload);
   };
 
   const handleCloseContextMenu = () => {
@@ -685,7 +737,7 @@ const StatusSpecificDownloads = () => {
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
-  // Add a column display name mapping
+  // column display name mapping
   const getColumnDisplayName = (columnId: string): string => {
     const columnMappings: Record<string, string> = {
       name: 'Title',
@@ -694,14 +746,14 @@ const StatusSpecificDownloads = () => {
       status: 'Status',
       speed: 'Speed',
       dateAdded: 'Date Added',
+      thumbnail: 'Thumbnail',
+      transcript: 'Captions',
       source: 'Source',
-      // Add any other columns here
     };
 
     return columnMappings[columnId] || columnId;
   };
 
-  // Column options configuration - consistent with SettingsModal
   const columnOptions = [
     { id: 'name', label: 'Title', required: true },
     { id: 'size', label: 'Size', required: false },
@@ -710,12 +762,32 @@ const StatusSpecificDownloads = () => {
     { id: 'speed', label: 'Speed', required: false },
     { id: 'dateAdded', label: 'Date Added', required: false },
     { id: 'source', label: 'Source', required: false },
+    { id: 'transcript', label: 'Closed Captions', required: false },
+    { id: 'thumbnail', label: 'Thumbnail', required: false },
   ];
 
-  // Make sure we're passing the selectedDownload correctly
   const selectedDownload = selectedDownloadId
     ? allDownloads.find((d) => d.id === selectedDownloadId)
     : null;
+
+  // Add this effect to load thumbnails for displayed downloads
+  useEffect(() => {
+    // Load thumbnails for visible downloads
+    allDownloads.forEach((download) => {
+      if (download.thumnailsLocation && !thumbnailDataUrls[download.id]) {
+        window.downlodrFunctions
+          .getThumbnailDataUrl(download.thumnailsLocation)
+          .then((dataUrl: any) => {
+            if (dataUrl) {
+              setThumbnailDataUrls((prev) => ({
+                ...prev,
+                [download.id]: dataUrl,
+              }));
+            }
+          });
+      }
+    });
+  }, [allDownloads, thumbnailDataUrls]);
 
   return (
     <div className="flex flex-col h-full">
@@ -837,7 +909,7 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200 ml-2"
+                              className="p-2 dark:text-gray-200 flex items-center justify-center"
                             >
                               {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1">
@@ -845,7 +917,7 @@ const StatusSpecificDownloads = () => {
                                   <Skeleton className="h-4 w-[70px] rounded-[3px]" />
                                 </div>
                               ) : (
-                                <div className="line-clamp-2 break-words ml-1">
+                                <div className="line-clamp-2 break-words">
                                   {formatFileSize(download.size)}
                                 </div>
                               )}
@@ -922,19 +994,27 @@ const StatusSpecificDownloads = () => {
                                     >
                                       <FaPlay
                                         className="mr-3 text-green-600 hover:text-green-400 transition-colors duration-200"
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                           e.stopPropagation();
                                           handleViewDownload(
-                                            `${download.location}${download.name}`,
+                                            await window.downlodrFunctions.joinDownloadPath(
+                                              download.location,
+                                              download.name,
+                                            ),
                                           );
                                         }}
                                       />
                                       <span
                                         className="hover:text-green-400 transition-colors"
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                           e.stopPropagation();
                                           handleViewFolder(
-                                            `${download.location},${download.location}${download.name}`,
+                                            `${
+                                              download.location
+                                            },${await window.downlodrFunctions.joinDownloadPath(
+                                              download.location,
+                                              download.name,
+                                            )}`,
                                           );
                                         }}
                                       >
@@ -989,9 +1069,11 @@ const StatusSpecificDownloads = () => {
                               className="p-2 dark:text-gray-200 ml-2"
                             >
                               {download.status === 'downloading' ? (
-                                <span className="m-1">{download.speed}</span>
+                                <span>{download.speed}</span>
                               ) : (
-                                <span className="m-1">—</span>
+                                <div className="flex justify-center w-full">
+                                  <span>—</span>
+                                </div>
                               )}{' '}
                             </td>
                           );
@@ -1003,6 +1085,89 @@ const StatusSpecificDownloads = () => {
                               className="p-2 dark:text-gray-200 ml-2"
                             >
                               {formatRelativeTime(download.DateAdded)}
+                            </td>
+                          );
+                        case 'thumbnail':
+                          return (
+                            <td
+                              key={column.id}
+                              style={{ width: column.width }}
+                              className="p-2 dark:text-gray-200 ml-2"
+                            >
+                              {download.status === 'fetching metadata' ? (
+                                <div className="space-y-1 flex justify-center items-center">
+                                  <Skeleton className="h-8 w-[50px] rounded-[3px]" />
+                                </div>
+                              ) : download.status === 'finished' &&
+                                download.thumnailsLocation &&
+                                download.thumnailsLocation !== '—' ? (
+                                <div className="flex items-center">
+                                  {thumbnailDataUrls[download.id] ? (
+                                    <img
+                                      src={thumbnailDataUrls[download.id]}
+                                      alt="Thumbnail"
+                                      className="ml-4 h-10 w-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+                                      onClick={() =>
+                                        handleViewDownload(
+                                          download.thumnailsLocation,
+                                        )
+                                      }
+                                      title="Click to view full thumbnail"
+                                      onError={(e) => {
+                                        console.error(
+                                          'Failed to load thumbnail:',
+                                          download.thumnailsLocation,
+                                        );
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.parentElement.innerHTML =
+                                          'Unable to load';
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="flex justify-center w-full">
+                                      <span>— </span>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="flex justify-center w-full">
+                                  <span>—</span>
+                                </div>
+                              )}
+                            </td>
+                          );
+                        case 'transcript':
+                          return (
+                            <td
+                              key={column.id}
+                              style={{ width: column.width }}
+                              className="p-2 dark:text-gray-200 ml-2"
+                            >
+                              {download.status === 'fetching metadata' ? (
+                                <div className="space-y-1 flex justify-center items-center">
+                                  <Skeleton className="h-8 w-[50px] rounded-[3px]" />
+                                </div>
+                              ) : download.autoCaptionLocation === '' ||
+                                download.autoCaptionLocation === null ? (
+                                <div className="flex justify-center w-full">
+                                  <span>—</span>
+                                </div>
+                              ) : download.autoCaptionLocation === undefined ? (
+                                <span className="text-gray-500">
+                                  Not available
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() =>
+                                    handleViewDownload(
+                                      download.autoCaptionLocation,
+                                    )
+                                  }
+                                  className="text-blue-500 hover:underline ml-2"
+                                >
+                                  Available
+                                </button>
+                              )}
                             </td>
                           );
                         case 'source':

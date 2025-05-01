@@ -45,14 +45,14 @@ const ColumnHeaderContextMenu: React.FC<ColumnHeaderContextMenuProps> = ({
     <div
       ref={menuRef}
       className="justify-start absolute bg-white dark:bg-darkMode border-2 py-2 dark:border-gray-700 rounded-md shadow-lg z-50 min-w-[149px]"
-      style={{ left: position.x, top: position.y }}
+      style={{ left: position.x + 60, top: position.y + 140 }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Column options */}
       {columnOptions.map((column) => (
         <div
           key={column.id}
-          className="flex items-center pr-8 pl-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          className="flex items-center pr-4 pl-4 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
         >
           <input
             type="checkbox"
@@ -68,7 +68,7 @@ const ColumnHeaderContextMenu: React.FC<ColumnHeaderContextMenuProps> = ({
           />
           <label
             htmlFor={`header-column-${column.id}`}
-            className={`font-medium text-[14px] leading-[22px] tracking-normal dark:text-gray-200 ${
+            className={`font-medium text-[12px] leading-[22px] tracking-normal dark:text-gray-200 ${
               column.required ? 'font-semibold' : ''
             }`}
           >
