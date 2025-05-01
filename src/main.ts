@@ -70,7 +70,7 @@ const createWindow = () => {
     height: 680,
     frame: false,
     autoHideMenuBar: true,
-    minWidth: 650,
+    minWidth: 800,
     minHeight: 600,
     webPreferences: {
       contextIsolation: true,

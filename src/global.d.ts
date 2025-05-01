@@ -68,8 +68,10 @@ declare global {
       toggle: () => void; // Toggles the visibility of the developer tools
     };
     updateAPI: {
-      onUpdateAvailable: (callback: (updateInfo: UpdateInfo) => void) => void;
-      checkForUpdates: () => Promise<UpdateInfo>; // Changed return type from void to UpdateInfo
+      onUpdateAvailable: (
+        callback: (updateInfo: UpdateInfo) => void,
+      ) => () => void;
+      checkForUpdates: () => Promise<UpdateInfo>;
     };
     backgroundSettings: {
       getRunInBackground: () => Promise<boolean>;
