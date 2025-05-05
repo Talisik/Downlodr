@@ -37,6 +37,9 @@ export interface UIAPI {
   ) => Promise<FormatSelectorResult | null>;
   registerTaskBarItem: (item: TaskBarItem) => Promise<string>;
   unregisterTaskBarItem: (id: string) => Promise<boolean>;
+  showPluginSidePanel: (
+    options: PluginSidePanelOptions,
+  ) => Promise<PluginSidePanelResult | null>;
 }
 
 export interface FormatAPI {
@@ -192,4 +195,16 @@ export interface TaskBarItem {
   onClick?: (contextData?: any) => void;
   pluginId?: string; // Will be filled automatically
   handlerId?: string;
+}
+
+export interface PluginSidePanelOptions {
+  title?: string;
+  content: React.ReactNode | string;
+  width?: number | string;
+  closable?: boolean;
+}
+
+export interface PluginSidePanelResult {
+  closed: boolean;
+  data?: any;
 }

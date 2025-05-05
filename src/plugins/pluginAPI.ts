@@ -14,6 +14,8 @@ import {
   FormatSelectorOptions,
   FormatSelectorResult,
   TaskBarItem,
+  PluginSidePanelOptions,
+  PluginSidePanelResult,
 } from './types';
 import useDownloadStore from '../Store/downloadStore';
 import { formatFileSize } from '../Pages/StatusSpecificDownload';
@@ -143,6 +145,25 @@ export function createPluginAPI(pluginId: string): PluginAPI {
     unregisterTaskBarItem: async (id: string) => {
       console.log(`Plugin ${pluginId} unregistering taskbar item: ${id}`);
       return await window.plugins.unregisterTaskBarItem(id);
+    },
+
+    showPluginSidePanel: async (
+      options: PluginSidePanelOptions,
+    ): Promise<PluginSidePanelResult | null> => {
+      console.log(`Plugin ${pluginId} requesting side panel:`, options);
+
+      if (!window.pluginSidePanelManager) {
+        console.error('Plugin side panel manager not available');
+        return null;
+      }
+
+      try {
+        // Call the plugin side panel manager to show the UI
+        return await window.pluginSidePanelManager.showPluginSidePanel(options);
+      } catch (error) {
+        console.error('Error showing plugin side panel:', error);
+        return null;
+      }
     },
   };
 
@@ -278,6 +299,24 @@ function createUIAPI(pluginId: string): UIAPI {
     unregisterTaskBarItem: (id: string) => {
       // Remove taskbar item
       return Promise.resolve(true);
+    },
+    showPluginSidePanel: async (
+      options: PluginSidePanelOptions,
+    ): Promise<PluginSidePanelResult | null> => {
+      console.log(`Plugin ${pluginId} requesting side panel:`, options);
+
+      if (!window.pluginSidePanelManager) {
+        console.error('Plugin side panel manager not available');
+        return null;
+      }
+
+      try {
+        // Call the plugin side panel manager to show the UI
+        return await window.pluginSidePanelManager.showPluginSidePanel(options);
+      } catch (error) {
+        console.error('Error showing plugin side panel:', error);
+        return null;
+      }
     },
   };
 }
