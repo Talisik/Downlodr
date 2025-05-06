@@ -227,7 +227,7 @@ const PluginManager: React.FC = () => {
           {/* Directory selection overlay - blocks all app interaction */}
           {isSelectingDirectory && (
             <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] cursor-not-allowed flex items-center justify-center">
-              <div className="bg-white dark:bg-darkMode p-4 rounded-lg shadow-lg max-w-md text-center">
+              <div className="bg-white dark:bg-darkMode p-4 rounded-md shadow-lg max-w-md text-center">
                 <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
                   Directory Selection In Progress
                 </h3>
@@ -337,7 +337,7 @@ const PluginManager: React.FC = () => {
             {plugins.map((plugin) => (
               <div
                 key={plugin.id}
-                className="bg-[#FFFFFF] dark:bg-darkMode rounded-md p-4 shadow-sm ring-1 ring-gray-200  border-l-4 border-l-[#FFFFFF] dark:border-l-4 dark:border-l-darkMode hover:border-l-4 hover:border-l-[#F45513] hover:dark:border-l-[#F45513]"
+                className="bg-[#FFFFFF] dark:bg-darkMode rounded-sm p-4 shadow-sm ring-1 ring-gray-200  border-l-4 border-l-[#FFFFFF] dark:border-l-4 dark:border-l-darkMode hover:border-l-4 hover:border-l-[#F45513] hover:dark:border-l-[#F45513]"
               >
                 <div className="flex">
                   <div className="w-full">

@@ -123,6 +123,7 @@ declare global {
       unregisterTaskBarItem: (id: string) => Promise<boolean>;
       getTaskBarItems: () => Promise<TaskBarItem[]>;
       executeTaskBarItem: (id: string, contextData?: any) => Promise<boolean>;
+      saveFileDialog: (options: SaveDialogOptions) => Promise<SaveDialogResult>;
     };
     PluginHandlers?: Record<string, (contextData?: any) => void>;
   }

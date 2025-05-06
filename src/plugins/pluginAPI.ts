@@ -16,6 +16,8 @@ import {
   TaskBarItem,
   PluginSidePanelOptions,
   PluginSidePanelResult,
+  SaveDialogOptions,
+  SaveDialogResult,
 } from './types';
 import useDownloadStore from '../Store/downloadStore';
 import { formatFileSize } from '../Pages/StatusSpecificDownload';
@@ -163,6 +165,20 @@ export function createPluginAPI(pluginId: string): PluginAPI {
       } catch (error) {
         console.error('Error showing plugin side panel:', error);
         return null;
+      }
+    },
+
+    showSaveFileDialog: async (
+      options: SaveDialogOptions,
+    ): Promise<SaveDialogResult> => {
+      console.log(`Plugin ${pluginId} requesting save file dialog:`, options);
+
+      try {
+        // Use the IPC method to show the dialog from the main process
+        return await window.plugins.saveFileDialog(options);
+      } catch (error) {
+        console.error('Error showing save file dialog:', error);
+        return { canceled: true };
       }
     },
   };
@@ -316,6 +332,19 @@ function createUIAPI(pluginId: string): UIAPI {
       } catch (error) {
         console.error('Error showing plugin side panel:', error);
         return null;
+      }
+    },
+    showSaveFileDialog: async (
+      options: SaveDialogOptions,
+    ): Promise<SaveDialogResult> => {
+      console.log(`Plugin ${pluginId} requesting save file dialog:`, options);
+
+      try {
+        // Use the IPC method to show the dialog from the main process
+        return await window.plugins.saveFileDialog(options);
+      } catch (error) {
+        console.error('Error showing save file dialog:', error);
+        return { canceled: true };
       }
     },
   };
