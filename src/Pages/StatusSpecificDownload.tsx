@@ -799,7 +799,7 @@ const StatusSpecificDownloads = () => {
           <table className="min-w-full">
             <thead>
               <tr
-                className="border-b text-left dark:border-componentBorder"
+                className="border-b-2 text-left dark:border-componentBorder"
                 onContextMenu={handleColumnHeaderContextMenu}
               >
                 <th className="w-8 p-2">
@@ -855,7 +855,7 @@ const StatusSpecificDownloads = () => {
               {allDownloads.map((download) => (
                 <React.Fragment key={download.id}>
                   <tr
-                    className={`border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover cursor-pointer ${
+                    className={`border-b-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover cursor-pointer ${
                       selectedDownloadId === download.id
                         ? 'bg-blue-50 dark:bg-gray-600'
                         : 'dark:bg-darkMode'

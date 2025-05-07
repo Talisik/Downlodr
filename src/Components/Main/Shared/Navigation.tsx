@@ -217,7 +217,7 @@ const Navigation = ({
   return (
     <nav
       ref={navRef}
-      className={`${className} border-solid border-r border-gray-200 dark:border-componentBorder transition-all duration-300 ${
+      className={`${className} border-solid border-r-2 border-gray-200 dark:border-componentBorder transition-all duration-300 ${
         collapsed ? 'w-[70px]' : ''
       } relative overflow-x-hidden`}
     >

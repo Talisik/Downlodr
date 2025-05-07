@@ -45,7 +45,10 @@ const UpdateNotification: React.FC = () => {
 
     // Clean up the listener when the component unmounts
     return () => {
-      if (removeListener) removeListener();
+      if (removeListener) {
+        console.log('Removing update listener');
+        removeListener();
+      }
     };
   }, []);
 

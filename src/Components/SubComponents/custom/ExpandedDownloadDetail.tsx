@@ -64,7 +64,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
 
   return (
     <div
-      className={`w-full bg-detailsTab dark:border-t dark:bg-gray-800 border-t border-gray-300 dark:border-[#BCBCBC] ${
+      className={`w-full bg-detailsTab dark:bg-gray-800 border-t-2 border-gray-300 dark:border-[#BCBCBC] ${
         isExpanded ? 'h-auto' : 'h-auto'
       } flex flex-col shadow-lg transition-all duration-300`}
     >

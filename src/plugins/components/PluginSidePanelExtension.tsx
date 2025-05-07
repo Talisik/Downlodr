@@ -115,16 +115,16 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
     ? typeof options.width === 'number'
       ? `${options.width}px`
       : options.width
-    : '320px';
+    : '250px';
 
   return (
     <div
-      className="fixed right-0 top-0 h-full bg-white dark:bg-gray-800 shadow-lg z-40 flex flex-col"
-      style={{ width: panelWidth }}
+      className="fixed right-0 top-0 h-full bg-white dark:bg-gray-800 shadow-lg z-40 flex flex-col border-2 border-[#D1D5DB]"
+      style={{ width: '300px' }}
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+      <div className="bg-titleBar dark:bg-[#1F2937] px-2 py-1 pt-[11px] border-b-2 border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 flex items-center justify-center h-full my-auto">
           {options.title || 'Plugin Panel'}
         </h3>
         {options.closable !== false && (
@@ -133,9 +133,9 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              viewBox="0 0 28 28"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
