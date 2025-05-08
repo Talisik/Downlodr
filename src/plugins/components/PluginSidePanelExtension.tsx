@@ -119,11 +119,11 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
 
   return (
     <div
-      className="fixed right-0 top-0 h-full bg-white dark:bg-gray-800 shadow-lg z-40 flex flex-col border-2 border-[#D1D5DB]"
+      className="fixed right-0 top-0 h-full bg-white dark:bg-darkMode shadow-lg z-40 flex flex-col border-2 border-[#D1D5DB] dark:border-darkModeCompliment"
       style={{ width: '300px' }}
     >
       {/* Header */}
-      <div className="bg-titleBar dark:bg-[#1F2937] px-2 py-1 pt-[11px] border-b-2 border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <div className="bg-titleBar dark:bg-darkMode px-2 py-1 pt-[11px] border-b-2 border-gray-200 dark:border-darkModeCompliment flex items-center justify-between">
         <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 flex items-center justify-center h-full my-auto">
           {options.title || 'Plugin Panel'}
         </h3>

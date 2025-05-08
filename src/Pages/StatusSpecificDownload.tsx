@@ -450,6 +450,7 @@ const StatusSpecificDownloads = () => {
         currentDownload.thumbnails,
         currentDownload.getTranscript || false,
         currentDownload.getThumbnail || false,
+        currentDownload.duration || 60,
       );
       deleteDownloading(downloadId);
       toast({
@@ -797,15 +798,15 @@ const StatusSpecificDownloads = () => {
       <div className="flex-grow overflow-auto">
         <div className="min-w-full">
           <table className="min-w-full">
-            <thead>
+            <thead className="dark:bg-darkModeCompliment">
               <tr
-                className="border-b-2 text-left dark:border-componentBorder"
+                className="border-b border-t text-left dark:border-darkModeBorderColor"
                 onContextMenu={handleColumnHeaderContextMenu}
               >
                 <th className="w-8 p-2">
                   <input
                     type="checkbox"
-                    className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
+                    className="ml-2 rounded border-gray-900 dark:border-blue dark:checked:bg-blue-500"
                     checked={selectedRowIds.length === allDownloads.length}
                     onChange={handleSelectAll}
                   />

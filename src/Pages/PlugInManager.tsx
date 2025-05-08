@@ -221,8 +221,8 @@ const PluginManager: React.FC = () => {
   };
 
   return (
-    <div className="h-full w-full bg-[#FBFBFB] dark:bg-darkMode">
-      <div className="p-4">
+    <div className="h-full w-full bg-[#FBFBFB] dark:bg-darkModeDropdown">
+      <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           {/* Directory selection overlay - blocks all app interaction */}
           {isSelectingDirectory && (
@@ -239,10 +239,10 @@ const PluginManager: React.FC = () => {
             </div>
           )}
           <div className="flex items-center gap-2">
-            <h1 className="text-[20px] font-medium">Plugins</h1>
+            <h1 className="text-[20px] font-medium mr-4">Plugins</h1>
             {/* Search Bar with increased width */}
             <div ref={searchRef} className="relative">
-              <div className="flex items-center bg-[#FFFFFF] dark:bg-[#30303C] rounded-md border border-[#D1D5DB] dark:border-none px-2">
+              <div className="flex items-center bg-[#FFFFFF] dark:bg-darkModeDropdown rounded-md border dark:border-2 border-[#D1D5DB] dark:border-darkModeCompliment px-2">
                 <FiSearch className="text-gray-500 dark:text-gray-400 h-4 w-4 mr-1" />
                 <input
                   type="text"
@@ -267,7 +267,7 @@ const PluginManager: React.FC = () => {
 
               {/* Search Results Dropdown */}
               {showResults && searchResults.length > 0 && (
-                <div className="absolute top-full left-0 mt-1 w-full max-h-60 overflow-y-auto bg-white dark:bg-gray-800 rounded-md shadow-lg z-10">
+                <div className="absolute top-full left-0 mt-1 w-full max-h-60 overflow-y-auto bg-white dark:bg-darkModeCompliment rounded-md shadow-lg z-10">
                   {searchResults.map((plugin) => (
                     <NavLink
                       key={plugin.id}
@@ -291,7 +291,7 @@ const PluginManager: React.FC = () => {
               {showResults &&
                 searchTerm.trim() !== '' &&
                 searchResults.length === 0 && (
-                  <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10">
+                  <div className="absolute top-full left-0 mt-1 w-60 bg-white dark:bg-darkModeCompliment rounded-md shadow-lg z-10">
                     <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
                       No plugins found
                     </div>
@@ -337,7 +337,7 @@ const PluginManager: React.FC = () => {
             {plugins.map((plugin) => (
               <div
                 key={plugin.id}
-                className="bg-[#FFFFFF] dark:bg-darkMode rounded-sm p-4 shadow-sm ring-1 ring-gray-200  border-l-4 border-l-[#FFFFFF] dark:border-l-4 dark:border-l-darkMode hover:border-l-4 hover:border-l-[#F45513] hover:dark:border-l-[#F45513]"
+                className="w-sm bg-[#FFFFFF] dark:bg-darkMode rounded-sm p-4 shadow-sm ring-1 ring-gray-200 dark:ring-darkModeCompliment border-l-4 border-l-[#FFFFFF] dark:border-l-4 dark:border-l-darkMode hover:border-l-4 hover:border-l-[#F45513] hover:dark:border-l-[#F45513]"
               >
                 <div className="flex">
                   <div className="w-full">
@@ -348,20 +348,20 @@ const PluginManager: React.FC = () => {
                     <p className="mt-2 text-sm line-clamp-2">
                       {plugin.description}
                     </p>
-                    <hr className="solid my-4 w-full border-t border-divider dark:border-componentBorder" />
+                    <hr className="solid my-4 w-full border-t border-divider dark:border-darkModeCompliment" />
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                      <div className="flex gap-2 flex-wrap">
+                      <div className="flex gap-2 flex-wrap ">
                         <NavLink to="/plugins/details" state={{ plugin }}>
                           <Button
                             variant="outline"
-                            className="border-2 px-4 h-8"
+                            className="border-darkModeCompliment border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
                           >
                             Details
                           </Button>
                         </NavLink>
                         <Button
                           variant="outline"
-                          className="border-2 px-4 h-8"
+                          className="border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
                           onClick={() => handleUninstall(plugin.id)}
                         >
                           Remove

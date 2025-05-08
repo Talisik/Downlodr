@@ -14,9 +14,9 @@ const PageNavigation: React.FC<PageNavigationProps> = ({ className = '' }) => {
         to="/status/all"
         className={({ isActive }) =>
           `px-3 py-1 rounded flex gap-1 font-semibold ${
-            isActive && !location.pathname.startsWith('/plugin/')
-              ? 'bg-[#F5F5F5] text-[#F45513] dark:bg-[#3E3E46] dark:text-white'
-              : 'hover:bg-gray-100 dark:hover:bg-darkModeHover dark:text-gray-200'
+            isActive || !location.pathname.startsWith('/plugins')
+              ? 'bg-[#F5F5F5] text-[#F45513] dark:bg-darkModeCompliment'
+              : 'hover:bg-gray-100 dark:hover:bg-darkModeCompliment dark:text-gray-200'
           }`
         }
         end={false}
@@ -28,8 +28,8 @@ const PageNavigation: React.FC<PageNavigationProps> = ({ className = '' }) => {
         className={({ isActive }) =>
           `px-3 py-1 rounded flex gap-1 font-semibold ${
             isActive
-              ? 'bg-[#F5F5F5] text-[#F45513] dark:bg-[#3E3E46] dark:text-white'
-              : 'hover:bg-gray-100 dark:hover:bg-darkModeHover dark:text-gray-200'
+              ? 'bg-[#F5F5F5] text-[#F45513] dark:bg-darkModeCompliment'
+              : 'hover:bg-gray-100 dark:hover:bg-darkModeCompliment dark:text-gray-200'
           }`
         }
       >

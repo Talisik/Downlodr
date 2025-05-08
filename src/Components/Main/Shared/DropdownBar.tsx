@@ -172,9 +172,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
       <div className="flex items-center gap-4">
         <div className="relative">
           <button
-            className={`px-3 py-1 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded font-semibold ${
+            className={`px-3 py-1 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded font-semibold ${
               activeMenu === 'file'
-                ? 'bg-gray-100 dark:bg-darkModeHover font-semibold'
+                ? 'bg-gray-100 dark:bg-darkModeCompliment font-semibold'
                 : ''
             }`}
             onClick={(e) => {
@@ -185,10 +185,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
             File
           </button>
           {activeMenu === 'file' && (
-            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setDownloadModalOpen(true);
@@ -202,7 +202,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
               <div className="mx-1">
                 <NavLink
                   to="/history"
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenu(null);
@@ -214,7 +214,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
               </div>
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     window.downlodrFunctions.closeApp();
@@ -228,7 +228,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
           )}
         </div>
         <button
-          className="px-3 py-1 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded font-semibold"
+          className="px-3 py-1 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded font-semibold"
           onClick={(e) => {
             e.stopPropagation();
             setSettingsModalOpen(true);
@@ -239,9 +239,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
         </button>
         <div className="relative">
           <button
-            className={`px-3 py-1 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded font-semibold ${
+            className={`px-3 py-1 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded font-semibold ${
               activeMenu === 'help'
-                ? 'bg-gray-100 dark:bg-darkModeHover font-semibold'
+                ? 'bg-gray-100 dark:bg-darkModeCompliment font-semibold'
                 : ''
             }`}
             onClick={(e) => {
@@ -252,10 +252,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
             Help
           </button>
           {activeMenu === 'help' && (
-            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setHelpModalOpen(true);
@@ -268,7 +268,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
               </div>
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleCheckForUpdates();
@@ -280,7 +280,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
               </div>
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setAboutModalOpen(true);
@@ -297,7 +297,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
       </div>
       {/* Search Bar with increased width */}
       <div ref={searchRef} className="relative my-10 mr-6 w-1/4">
-        <div className="flex items-center dark:bg-[#30303C] rounded-md border border-[#D1D5DB] dark:border-none px-2">
+        <div className="flex items-center dark:bg-darkModeDropdown rounded-md border border-[#D1D5DB] dark:border-none px-2">
           <FiSearch className="text-gray-500 dark:text-gray-400 h-4 w-4 mr-1" />
           <input
             type="text"
@@ -327,7 +327,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
             {searchResults.map((download) => (
               <div
                 key={download.id}
-                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover cursor-pointer text-sm truncate"
+                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment cursor-pointer text-sm truncate"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleOpenVideo(download);

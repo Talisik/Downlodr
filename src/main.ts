@@ -850,7 +850,6 @@ ipcMain.handle('plugins:execute-menu-item', (event, id, contextData) => {
   return true;
 });
 
-// Add these new IPC handlers
 ipcMain.handle('plugins:register-menu-item', (event, menuItem) => {
   console.log('Main process registering menu item:', menuItem);
   return pluginRegistry.registerMenuItem(menuItem);
@@ -862,7 +861,6 @@ ipcMain.handle('plugins:unregister-menu-item', (event, id) => {
   return true;
 });
 
-// Add to main.ts where you set up your other IPC handlers
 ipcMain.handle('plugins:get-data-path', (event, pluginId) => {
   const pluginDataDir = path.join(
     app.getPath('userData'),
