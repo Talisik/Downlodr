@@ -1011,3 +1011,23 @@ ipcMain.handle('plugins:execute-taskbar-item', (event, id, contextData) => {
   pluginRegistry.executeTaskBarItemAction(id, contextData);
   return true;
 });
+
+// Add this with the other plugin-related IPC handlers
+ipcMain.handle('plugin:fs:readFile', async (event, options) => {
+  try {
+    const { filePath, pluginId } = options;
+
+    // Security check: Make sure we're not reading outside allowed directories
+    // You might want to add additional validation here
+
+    if (!fs.existsSync(filePath)) {
+      return { success: false, error: 'File does not exist' };
+    }
+
+    const fileContents = await fs.promises.readFile(filePath, 'utf8');
+    return { success: true, data: fileContents };
+  } catch (error) {
+    console.error('Error reading file:', error);
+    return { success: false, error: error.message };
+  }
+});

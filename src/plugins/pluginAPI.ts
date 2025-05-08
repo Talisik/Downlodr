@@ -383,6 +383,31 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
       return await window.ytdlp.selectDownloadDirectory();
     },
 
+    // Add file reading API
+    readFileContents: async (
+      filePath: string,
+    ): Promise<{ success: boolean; data?: string; error?: string }> => {
+      console.log(`Plugin ${pluginId} requesting to read file: ${filePath}`);
+
+      try {
+        const result = await window.plugins.readFileContents({
+          filePath,
+          pluginId,
+        });
+
+        return {
+          success: true,
+          data: result.data,
+        };
+      } catch (error) {
+        console.error('Error reading file contents:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    },
+
     // Add file writing API
     writeFile: async (options: WriteFileOptions): Promise<WriteFileResult> => {
       console.log(`Plugin ${pluginId} requesting to write file:`, options);

@@ -89,11 +89,13 @@ interface Downloading extends BaseDownload {
 // Interface for finished downloads
 export interface FinishedDownloads extends BaseDownload {
   status: string; // Status of the finished download
+  transcriptLocation: string;
 }
 
 // Interface for historical downloads
 export interface HistoryDownloads extends BaseDownload {
   status: string; // Status of the historical download
+  transcriptLocation: string;
 }
 
 // Main interface for the download store
@@ -214,6 +216,7 @@ const useDownloadStore = create<DownloadStore>()(
                   const updatedDownload = {
                     ...download,
                     size: actualFileSize || download.size,
+                    transcriptLocation: download.autoCaptionLocation || '',
                   };
                   set((state) => ({
                     finishedDownloads: state.finishedDownloads.some(
@@ -251,6 +254,7 @@ const useDownloadStore = create<DownloadStore>()(
               const updatedDownload = {
                 ...download,
                 size: actualFileSize || download.size,
+                transcriptLocation: download.autoCaptionLocation || '',
               };
 
               set((state) => ({

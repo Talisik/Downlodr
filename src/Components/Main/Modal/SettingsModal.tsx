@@ -486,7 +486,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         {/* Button commands */}
         <hr className="solid mt-2 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
 
-        <div className="flex gap-3 p-0 dark:bg-darkMode">
+        <div className="flex gap-3 p-0">
           <div className="ml-auto flex gap-3">
             <button
               type="button"

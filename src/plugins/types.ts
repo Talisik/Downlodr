@@ -51,11 +51,14 @@ export interface FormatAPI {
 export interface UtilityAPI {
   formatFileSize: (size: number) => string;
   openExternalLink: (url: string) => Promise<void>;
-  selectDirectory: () => Promise<string>;
+  selectDirectory: () => Promise<string | null>;
   writeFile: (options: WriteFileOptions) => Promise<WriteFileResult>;
   saveFileWithDialog: (
     options: SaveFileDialogOptions,
   ) => Promise<WriteFileResult>;
+  readFileContents: (
+    filePath: string,
+  ) => Promise<{ success: boolean; data?: string; error?: string }>;
 }
 
 export interface FormatProvider {

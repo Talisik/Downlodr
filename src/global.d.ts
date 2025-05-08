@@ -97,7 +97,11 @@ declare global {
       writeFile: (options: WriteFileOptions) => Promise<WriteFileResult>;
       readFile: (
         filePath: string,
-      ) => Promise<{ content: string; error?: string }>;
+      ) => Promise<{ success: boolean; data?: string; error?: string }>;
+      readFileContents: (options: {
+        filePath: string;
+        pluginId?: string;
+      }) => Promise<{ success: boolean; data?: string; error?: string }>;
 
       // Add these new methods
       registerMenuItem: (menuItem: MenuItem) => Promise<string>;

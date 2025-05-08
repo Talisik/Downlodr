@@ -168,9 +168,6 @@ contextBridge.exposeInMainWorld('plugins', {
   // Safe file operations for plugins
   writeFile: (options: any) => ipcRenderer.invoke('plugins:writeFile', options),
 
-  readFile: (filePath: string) =>
-    ipcRenderer.invoke('plugin:fs:readFile', { filePath }),
-
   registerMenuItem: (menuItem: any) =>
     ipcRenderer.invoke('plugins:register-menu-item', menuItem),
   unregisterMenuItem: (id: any) =>
@@ -213,4 +210,7 @@ contextBridge.exposeInMainWorld('plugins', {
 
   executeTaskBarItem: (id: string, contextData?: any) =>
     ipcRenderer.invoke('plugins:execute-taskbar-item', id, contextData),
+
+  readFile: (filePath: string) =>
+    ipcRenderer.invoke('plugin:fs:readFile', { filePath }),
 });
