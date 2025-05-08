@@ -967,7 +967,7 @@ ipcMain.handle('get-thumbnail-data-url', async (_event, imagePath) => {
     return null;
   }
 });
-
+/*
 // In main.ts or wherever you set up your IPC handlers
 ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
   const browserWindow = BrowserWindow.fromWebContents(event.sender);
@@ -991,7 +991,7 @@ ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
     return { canceled: true };
   }
 });
-
+*/
 // Add these new IPC handlers for taskbar items
 ipcMain.handle('plugins:register-taskbar-item', (event, taskBarItem) => {
   console.log('Main process registering taskbar item:', taskBarItem);

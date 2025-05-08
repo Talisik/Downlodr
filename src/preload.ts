@@ -166,8 +166,8 @@ contextBridge.exposeInMainWorld('plugins', {
     ipcRenderer.invoke('plugins:loadUnzipped', pluginDirPath),
 
   // Safe file operations for plugins
-  writeFile: (filePath: string, content: string) =>
-    ipcRenderer.invoke('plugin:fs:writeFile', { filePath, content }),
+  writeFile: (options: any) => ipcRenderer.invoke('plugins:writeFile', options),
+
   readFile: (filePath: string) =>
     ipcRenderer.invoke('plugin:fs:readFile', { filePath }),
 

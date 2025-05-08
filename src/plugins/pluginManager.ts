@@ -1,5 +1,5 @@
 // src/plugins/pluginManager.ts
-import { app, ipcMain, shell } from 'electron';
+import { app, ipcMain, shell, dialog } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { validatePlugin } from './security';
@@ -186,6 +186,128 @@ export class PluginManager {
         }
       },
     );
+
+    // Modified writeFile handler
+    ipcMain.handle('plugins:writeFile', async (event, options) => {
+      try {
+        const {
+          pluginId,
+          fileName,
+          content,
+          fileType,
+          directory,
+          overwrite,
+          customPath,
+        } = options;
+
+        let finalPath;
+
+        // If customPath is provided, use it directly (plugin is requesting to write to a specific location)
+        if (customPath) {
+          // For security, you may want to restrict certain paths or require confirmation
+          finalPath = customPath;
+        } else {
+          // Create plugin-specific data directory
+          const pluginDataDir = path.join(
+            app.getPath('userData'),
+            'plugin-data',
+            pluginId,
+          );
+          if (!fs.existsSync(pluginDataDir)) {
+            fs.mkdirSync(pluginDataDir, { recursive: true });
+          }
+
+          // Determine final directory (with optional subdirectory)
+          let targetDir = pluginDataDir;
+          if (directory) {
+            // Sanitize directory name to prevent path traversal
+            const sanitizedDir = directory
+              .replace(/\.\./g, '')
+              .replace(/[/\\]/g, '-');
+            targetDir = path.join(pluginDataDir, sanitizedDir);
+            if (!fs.existsSync(targetDir)) {
+              fs.mkdirSync(targetDir, { recursive: true });
+            }
+          }
+
+          // Sanitize filename
+          const sanitizedFileName = fileName
+            .replace(/\.\./g, '')
+            .replace(/[/\\]/g, '-');
+          // Add appropriate extension based on fileType if not already present
+          let finalFileName = sanitizedFileName;
+          if (fileType && !finalFileName.endsWith(`.${fileType}`)) {
+            finalFileName += `.${fileType}`;
+          }
+
+          finalPath = path.join(targetDir, finalFileName);
+        }
+
+        // Check if file exists and handle overwrite option
+        if (fs.existsSync(finalPath) && overwrite !== true) {
+          return {
+            success: false,
+            error: 'File already exists and overwrite option is not enabled',
+          };
+        }
+
+        // Ensure the directory exists
+        const dirPath = path.dirname(finalPath);
+        if (!fs.existsSync(dirPath)) {
+          fs.mkdirSync(dirPath, { recursive: true });
+        }
+
+        // Write the file
+        fs.writeFileSync(finalPath, content, 'utf8');
+
+        return {
+          success: true,
+          filePath: finalPath,
+        };
+      } catch (error) {
+        console.error('Error writing file:', error);
+        return {
+          success: false,
+          error: error.message || 'Unknown error occurred while writing file',
+        };
+      }
+    });
+
+    // Add save file dialog handler
+    ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
+      try {
+        const { pluginId, content, defaultPath, filters, title } = options;
+
+        // Show save dialog
+        const result = await dialog.showSaveDialog({
+          title: title || 'Save File',
+          defaultPath: defaultPath,
+          filters: filters || [{ name: 'All Files', extensions: ['*'] }],
+          properties: ['createDirectory'],
+        });
+
+        if (result.canceled || !result.filePath) {
+          return {
+            success: false,
+            error: 'File save was canceled',
+          };
+        }
+
+        // Write the file to the user-selected location
+        fs.writeFileSync(result.filePath, content, 'utf8');
+
+        return {
+          success: true,
+          filePath: result.filePath,
+        };
+      } catch (error) {
+        console.error('Error in save file dialog:', error);
+        return {
+          success: false,
+          error: error.message || 'Unknown error occurred while saving file',
+        };
+      }
+    });
   }
 
   // Security check to limit file access to appropriate directories

@@ -18,6 +18,9 @@ import {
   PluginSidePanelResult,
   SaveDialogOptions,
   SaveDialogResult,
+  WriteFileOptions,
+  WriteFileResult,
+  SaveFileDialogOptions,
 } from './types';
 import useDownloadStore from '../Store/downloadStore';
 import { formatFileSize } from '../Pages/StatusSpecificDownload';
@@ -91,7 +94,7 @@ export function createPluginAPI(pluginId: string): PluginAPI {
       toast({
         title: options.title,
         description: options.message,
-        duration: options.duration,
+        duration: options.duration || 3000,
         variant: variant,
       });
     },
@@ -175,10 +178,13 @@ export function createPluginAPI(pluginId: string): PluginAPI {
 
       try {
         // Use the IPC method to show the dialog from the main process
-        return await window.plugins.saveFileDialog(options);
+        return await window.plugins.saveFileDialog({
+          ...options,
+          pluginId,
+        });
       } catch (error) {
         console.error('Error showing save file dialog:', error);
-        return { canceled: true };
+        return { canceled: true, success: false };
       }
     },
   };
@@ -341,10 +347,13 @@ function createUIAPI(pluginId: string): UIAPI {
 
       try {
         // Use the IPC method to show the dialog from the main process
-        return await window.plugins.saveFileDialog(options);
+        return await window.plugins.saveFileDialog({
+          ...options,
+          pluginId,
+        });
       } catch (error) {
         console.error('Error showing save file dialog:', error);
-        return { canceled: true };
+        return { canceled: true, success: false };
       }
     },
   };
@@ -371,6 +380,44 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
     },
     selectDirectory: async () => {
       return await window.ytdlp.selectDownloadDirectory();
+    },
+
+    // Add file writing API
+    writeFile: async (options: WriteFileOptions): Promise<WriteFileResult> => {
+      console.log(`Plugin ${pluginId} requesting to write file:`, options);
+
+      try {
+        return await window.plugins.writeFile({
+          ...options,
+          pluginId,
+        });
+      } catch (error) {
+        console.error('Error writing file:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    },
+
+    saveFileWithDialog: async (
+      options: SaveFileDialogOptions,
+    ): Promise<WriteFileResult> => {
+      console.log(`Plugin ${pluginId} requesting to save file with dialog`);
+
+      try {
+        // This will show a file save dialog to the user
+        return await window.plugins.saveFileDialog({
+          ...options,
+          pluginId,
+        });
+      } catch (error) {
+        console.error('Error saving file with dialog:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
     },
   };
 }
