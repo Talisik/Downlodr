@@ -237,8 +237,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     >
       {/* Directory selection overlay - blocks all app interaction */}
       {isSelectingDirectory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] cursor-not-allowed flex items-center justify-center">
-          <div className="bg-white dark:bg-darkMode p-4 rounded-lg shadow-lg max-w-md text-center">
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-[9999] cursor-not-allowed flex items-center justify-center">
+          <div className="bg-white dark:bg-darkModeDropdown p-4 rounded-lg shadow-lg max-w-md text-center">
             <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
               Directory Selection In Progress
             </h3>
@@ -248,7 +248,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
       )}
-      <div className="bg-white dark:bg-darkMode rounded-lg pt-4 pr-6 pl-6 pb-4 max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto">
+      <div className="bg-white border border-darkModeCompliment dark:bg-darkModeDropdown rounded-lg pt-4 pr-6 pl-6 pb-4 max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto">
         {/* Left side - Form */}
         <div className="w-full">
           <div className="flex justify-between items-center mb-6">
@@ -484,9 +484,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Button commands */}
-        <hr className="solid mt-2 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
+        <hr className="solid mt-2 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
 
-        <div className="flex gap-3 p-0">
+        <div className="flex gap-3 p-0 dark:bg-darkMode">
           <div className="ml-auto flex gap-3">
             <button
               type="button"

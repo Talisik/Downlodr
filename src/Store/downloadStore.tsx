@@ -57,6 +57,7 @@ export interface BaseDownload {
   thumnailsLocation: string;
   getTranscript: boolean;
   getThumbnail: boolean;
+  duration: number;
 }
 
 // Interface for downloads that are currently being processed
@@ -128,6 +129,7 @@ interface DownloadStore {
     thumbnails: any,
     getTranscript: boolean,
     getThumbnail: boolean,
+    duration: number,
   ) => void; // Add a new download
   setDownload: (
     videoUrl: string,
@@ -323,6 +325,7 @@ const useDownloadStore = create<DownloadStore>()(
         thumbnails,
         getTranscript,
         getThumbnail,
+        duration,
       ) => {
         if (!location || !downloadName) {
           console.error('Invalid path parameters:', { location, downloadName });
@@ -497,6 +500,7 @@ const useDownloadStore = create<DownloadStore>()(
               thumnailsLocation: outputPath,
               getTranscript,
               getThumbnail,
+              duration: duration,
             },
           ],
         }));
@@ -522,6 +526,7 @@ const useDownloadStore = create<DownloadStore>()(
           thumbnails,
           getTranscript,
           getThumbnail,
+          duration,
         });
       },
 
@@ -577,6 +582,7 @@ const useDownloadStore = create<DownloadStore>()(
               // Store the user preferences
               getTranscript: options.getTranscript,
               getThumbnail: options.getThumbnail,
+              duration: 0,
             },
           ],
         }));
@@ -604,7 +610,7 @@ const useDownloadStore = create<DownloadStore>()(
           ) {
             thumbnail = info.data.thumbnails[0];
           }
-
+          console.log(info);
           // Process formats using the service
           const { formatOptions, defaultFormatId, defaultExt } =
             await VideoFormatService.processVideoFormats(info);
@@ -637,9 +643,9 @@ const useDownloadStore = create<DownloadStore>()(
                     location: location,
                     automaticCaption: caption,
                     thumbnails: thumbnail,
-                    // Keep the user preferences
                     getTranscript: options.getTranscript,
                     getThumbnail: options.getThumbnail,
+                    duration: info.data?.duration,
                   }
                 : download,
             ),

@@ -121,6 +121,7 @@ export interface DownloadOptions {
   thumbnails?: any;
   getTranscript?: boolean;
   getThumbnail?: boolean;
+  duration: number;
 }
 
 export interface DownloadInfo {

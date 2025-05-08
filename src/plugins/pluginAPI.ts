@@ -240,6 +240,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         options.thumbnails,
         options.getTranscript || false,
         options.getThumbnail || false,
+        options.duration || 60,
       );
 
       return options.name; // Return ID
