@@ -314,15 +314,25 @@ ipcMain.handle('validatePath', async (event, folderPath) => {
 });
 
 // open directory to choose location, add path sep to work with different OS
-ipcMain.handle('dialog:openDirectory', async () => {
-  const result = await dialog.showOpenDialog({
+ipcMain.handle('dialog:openDirectory', async (event) => {
+  // Get the parent browser window
+  const browserWindow = BrowserWindow.fromWebContents(event.sender);
+
+  const result = await dialog.showOpenDialog(browserWindow, {
     properties: ['openDirectory'],
+    // Explicitly set modal behavior
+    // modal: true,
   });
+
+  // Process the result as before
+  if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+    return null;
+  }
+
   return result.filePaths[0].endsWith(path.sep)
     ? result.filePaths[0]
     : result.filePaths[0] + path.sep;
 });
-
 // open folder with optional file highlighting
 ipcMain.handle('open-folder', async (_, folderPath, filePath = null) => {
   try {
@@ -489,7 +499,6 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
       e.sender.send(`ytdlp:download:status:${id}`, chunk);
       console.log(chunk);
 
-      // Add this code where download status is set to 'finished'#
       if (chunk != null) {
         if (chunk.data.status === 'finished') {
           console.log('Download complete, updating tray icon...');
@@ -841,7 +850,6 @@ ipcMain.handle('plugins:execute-menu-item', (event, id, contextData) => {
   return true;
 });
 
-// Add these new IPC handlers
 ipcMain.handle('plugins:register-menu-item', (event, menuItem) => {
   console.log('Main process registering menu item:', menuItem);
   return pluginRegistry.registerMenuItem(menuItem);
@@ -853,7 +861,6 @@ ipcMain.handle('plugins:unregister-menu-item', (event, id) => {
   return true;
 });
 
-// Add to main.ts where you set up your other IPC handlers
 ipcMain.handle('plugins:get-data-path', (event, pluginId) => {
   const pluginDataDir = path.join(
     app.getPath('userData'),
@@ -865,14 +872,6 @@ ipcMain.handle('plugins:get-data-path', (event, pluginId) => {
     fs.mkdirSync(pluginDataDir, { recursive: true });
   }
   return pluginDataDir;
-});
-
-// Add a handler for save file dialog if you want to implement that option
-ipcMain.handle('plugins:save-file-dialog', (event, options) => {
-  return dialog.showSaveDialog(
-    BrowserWindow.fromWebContents(event.sender),
-    options,
-  );
 });
 
 // Update the reload handler
@@ -966,7 +965,31 @@ ipcMain.handle('get-thumbnail-data-url', async (_event, imagePath) => {
     return null;
   }
 });
+/*
+// In main.ts or wherever you set up your IPC handlers
+ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
+  const browserWindow = BrowserWindow.fromWebContents(event.sender);
 
+  // Security check: validate options
+  const sanitizedOptions = {
+    title: typeof options.title === 'string' ? options.title : 'Save File',
+    defaultPath:
+      typeof options.defaultPath === 'string'
+        ? options.defaultPath
+        : app.getPath('downloads'),
+    filters: Array.isArray(options.filters) ? options.filters : undefined,
+    message: typeof options.message === 'string' ? options.message : undefined,
+  };
+
+  try {
+    const result = await dialog.showSaveDialog(browserWindow, sanitizedOptions);
+    return result;
+  } catch (error) {
+    console.error('Error showing save dialog:', error);
+    return { canceled: true };
+  }
+});
+*/
 // Add these new IPC handlers for taskbar items
 ipcMain.handle('plugins:register-taskbar-item', (event, taskBarItem) => {
   console.log('Main process registering taskbar item:', taskBarItem);
@@ -987,4 +1010,24 @@ ipcMain.handle('plugins:execute-taskbar-item', (event, id, contextData) => {
   console.log('Executing taskbar item action:', id, contextData);
   pluginRegistry.executeTaskBarItemAction(id, contextData);
   return true;
+});
+
+// Add this with the other plugin-related IPC handlers
+ipcMain.handle('plugin:fs:readFile', async (event, options) => {
+  try {
+    const { filePath, pluginId } = options;
+
+    // Security check: Make sure we're not reading outside allowed directories
+    // You might want to add additional validation here
+
+    if (!fs.existsSync(filePath)) {
+      return { success: false, error: 'File does not exist' };
+    }
+
+    const fileContents = await fs.promises.readFile(filePath, 'utf8');
+    return { success: true, data: fileContents };
+  } catch (error) {
+    console.error('Error reading file:', error);
+    return { success: false, error: error.message };
+  }
 });

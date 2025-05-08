@@ -64,7 +64,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
 
   return (
     <div
-      className={`w-full bg-detailsTab dark:border-t dark:bg-gray-800 border-t border-gray-300 dark:border-[#BCBCBC] ${
+      className={`w-full bg-detailsTab dark:bg-darkModeCompliment border-t-2 border-gray-300 dark:border-darkModeBorderColor ${
         isExpanded ? 'h-auto' : 'h-auto'
       } flex flex-col shadow-lg transition-all duration-300`}
     >
@@ -171,7 +171,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
 
       {/* Status bar - always visible */}
       <div
-        className="sticky bottom-0 left-0 right-0 py-1 border-t dark:border-t border-gray-300 dark:border-[#BCBCBC] flex justify-between mt-auto cursor-pointer"
+        className="sticky bottom-0 left-0 right-0 py-1 border-t dark:border-t border-gray-300 dark:border-darkModeBorderColor flex justify-between mt-auto cursor-pointer"
         onClick={toggleExpanded}
       >
         {/* Toggle button */}

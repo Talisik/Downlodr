@@ -37,6 +37,10 @@ export interface UIAPI {
   ) => Promise<FormatSelectorResult | null>;
   registerTaskBarItem: (item: TaskBarItem) => Promise<string>;
   unregisterTaskBarItem: (id: string) => Promise<boolean>;
+  showPluginSidePanel: (
+    options: PluginSidePanelOptions,
+  ) => Promise<PluginSidePanelResult | null>;
+  showSaveFileDialog: (options: SaveDialogOptions) => Promise<SaveDialogResult>;
 }
 
 export interface FormatAPI {
@@ -47,7 +51,14 @@ export interface FormatAPI {
 export interface UtilityAPI {
   formatFileSize: (size: number) => string;
   openExternalLink: (url: string) => Promise<void>;
-  selectDirectory: () => Promise<string>;
+  selectDirectory: () => Promise<string | null>;
+  writeFile: (options: WriteFileOptions) => Promise<WriteFileResult>;
+  saveFileWithDialog: (
+    options: SaveFileDialogOptions,
+  ) => Promise<WriteFileResult>;
+  readFileContents: (
+    filePath: string,
+  ) => Promise<{ success: boolean; data?: string; error?: string }>;
 }
 
 export interface FormatProvider {
@@ -113,6 +124,7 @@ export interface DownloadOptions {
   thumbnails?: any;
   getTranscript?: boolean;
   getThumbnail?: boolean;
+  duration: number;
 }
 
 export interface DownloadInfo {
@@ -192,4 +204,60 @@ export interface TaskBarItem {
   onClick?: (contextData?: any) => void;
   pluginId?: string; // Will be filled automatically
   handlerId?: string;
+}
+
+export interface PluginSidePanelOptions {
+  title?: string;
+  content: React.ReactNode | string;
+  width?: number | string;
+  closable?: boolean;
+  callbacks?: {
+    onBrowse?: () => void;
+    onCancel?: () => void;
+    onConvert?: (format: string) => void;
+    onFormatChange?: (format: string) => void;
+    [key: string]: ((...args: any[]) => void) | undefined;
+  };
+}
+
+export interface PluginSidePanelResult {
+  closed: boolean;
+  data?: any;
+}
+
+export interface SaveDialogOptions {
+  defaultPath?: string;
+  content: string;
+  filters?: Array<{ name: string; extensions: string[] }>;
+  title?: string;
+  pluginId?: string;
+}
+
+export interface SaveDialogResult {
+  success: boolean;
+  filePath?: string;
+  canceled?: boolean;
+  error?: string;
+}
+
+export interface WriteFileOptions {
+  fileName: string;
+  content: string;
+  fileType?: 'txt' | 'json' | 'docx' | string;
+  directory?: string; // Optional subdirectory within plugin data directory
+  overwrite?: boolean; // Whether to overwrite existing file, defaults to false
+  customPath?: string; // Allow custom path (will require permission)
+}
+
+export interface SaveFileDialogOptions {
+  defaultPath?: string;
+  content: string;
+  filters?: Array<{ name: string; extensions: string[] }>;
+  title?: string;
+}
+
+export interface WriteFileResult {
+  success: boolean;
+  filePath?: string;
+  error?: string;
 }

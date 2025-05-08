@@ -94,13 +94,14 @@ declare global {
       getMenuItems: (context: any) => Promise<MenuItem[]>;
       executeMenuItem: (id: string, contextData?: any) => Promise<void>;
       loadUnzipped: (pluginDirPath: string) => Promise<boolean>;
-      writeFile: (
-        filePath: string,
-        content: string,
-      ) => Promise<{ success: boolean; error?: string }>;
+      writeFile: (options: WriteFileOptions) => Promise<WriteFileResult>;
       readFile: (
         filePath: string,
-      ) => Promise<{ content: string; error?: string }>;
+      ) => Promise<{ success: boolean; data?: string; error?: string }>;
+      readFileContents: (options: {
+        filePath: string;
+        pluginId?: string;
+      }) => Promise<{ success: boolean; data?: string; error?: string }>;
 
       // Add these new methods
       registerMenuItem: (menuItem: MenuItem) => Promise<string>;
@@ -123,6 +124,7 @@ declare global {
       unregisterTaskBarItem: (id: string) => Promise<boolean>;
       getTaskBarItems: () => Promise<TaskBarItem[]>;
       executeTaskBarItem: (id: string, contextData?: any) => Promise<boolean>;
+      saveFileDialog: (options: SaveDialogOptions) => Promise<SaveDialogResult>;
     };
     PluginHandlers?: Record<string, (contextData?: any) => void>;
   }
@@ -153,6 +155,37 @@ interface TaskBarItem {
   pluginId?: string;
   onClick?: (contextData?: any) => void;
   handlerId?: string;
+}
+
+interface WriteFileOptions {
+  fileName: string;
+  content: string;
+  fileType?: string;
+  directory?: string;
+  overwrite?: boolean;
+  customPath?: string;
+  pluginId: string;
+}
+
+interface WriteFileResult {
+  success: boolean;
+  filePath?: string;
+  error?: string;
+}
+
+interface SaveDialogOptions {
+  defaultPath?: string;
+  content: string;
+  filters?: Array<{ name: string; extensions: string[] }>;
+  title?: string;
+  pluginId: string;
+}
+
+interface SaveDialogResult {
+  success: boolean;
+  filePath?: string;
+  canceled?: boolean;
+  error?: string;
 }
 
 export {};

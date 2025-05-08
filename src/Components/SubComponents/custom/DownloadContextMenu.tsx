@@ -442,6 +442,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       currentDownload.thumbnails,
       currentDownload.getTranscript || false,
       currentDownload.getThumbnail || false,
+      currentDownload.duration || 0,
     );
 
     removeFromForDownloads(currentDownload.id); // Remove from forDownloads after starting
@@ -850,7 +851,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             key={item.id || item.label}
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              // Get the necessary data for the context
+              console.log(
+                allDownloads.find((d) => d.id === downloadId)
+                  ?.autoCaptionLocation,
+              );
               const contextData = {
                 name: downloadName,
                 downloadId,
@@ -858,6 +862,12 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                   ?.videoUrl,
                 location: downloadLocation,
                 status: downloadStatus,
+                duration: allDownloads.find((d) => d.id === downloadId)
+                  ?.duration,
+                size: allDownloads.find((d) => d.id === downloadId)?.size,
+                ext: allDownloads.find((d) => d.id === downloadId)?.ext,
+                captionLocation: allDownloads.find((d) => d.id === downloadId)
+                  ?.autoCaptionLocation,
               };
 
               // Log which menu item was clicked

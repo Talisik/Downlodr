@@ -29,6 +29,7 @@ import { useEffect } from 'react';
 import { useMainStore } from './Store/mainStore';
 import { PluginLoader } from './plugins/PluginLoader';
 import FormatSelectorManager from './plugins/components/FormatSelectorManager';
+import PluginSidePanelManager from './plugins/components/PluginSidePanelManager';
 
 const App = () => {
   const { settings } = useMainStore();
@@ -71,6 +72,7 @@ const App = () => {
       <UpdateNotification />
       <PluginLoader />
       <FormatSelectorManager />
+      <PluginSidePanelManager />
     </ThemeProvider>
   );
 };
