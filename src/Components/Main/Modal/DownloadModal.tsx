@@ -467,7 +467,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                 <Skeleton className="h-4 flex-1 rounded-[3px] h-full" />
               ) : (
                 <div className="video-section">
-                  <div className="sticky top-0 bg-white dark:bg-darkMode pb-4 z-10">
+                  <div className="sticky top-0 bg-white dark:bg-darkModeDropdown pb-4 z-10">
                     <div className="select-all flex items-center">
                       <input
                         type="checkbox"
