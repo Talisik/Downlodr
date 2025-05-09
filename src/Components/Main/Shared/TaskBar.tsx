@@ -427,11 +427,11 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
           {/* This is the regular downloads Remove button */}
           <button
-            className={`px-3 py-1 rounded flex gap-1 mr-4 text-sm rounded-md flex gap-2 text-sm ${
+            className={`px-3 py-1 mr-4 rounded-md flex gap-2 text-sm ${
               selectedDownloads.length > 0 &&
               location.pathname.includes('/status/')
-                ? 'bg-black text-gray-200 hover:!bg-[#3E3E46]'
-                : 'cursor-not-allowed text-gray-400 dark:text-gray-500 !bg-gray-200 hover:!bg-gray-200 !dark:bg-darkModeHover hover:!dark:bg-darkModeHover'
+                ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark'
+                : 'cursor-not-allowed text-gray-400 bg-gray-200 hover:bg-gray-200 dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark'
             }`}
             onClick={() => setShowStopConfirmation(true)}
             disabled={

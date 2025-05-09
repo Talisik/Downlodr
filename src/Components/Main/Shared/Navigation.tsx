@@ -614,7 +614,7 @@ const Navigation = ({
       >
         <button
           onClick={toggleCollapse}
-          className={`flex items-center justify-center w-10 h-10 rounded-full bg-white dark:darkModeLight shadow-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment dark:text-black border border-gray-200 dark:border-gray-700`}
+          className={`flex items-center justify-center w-10 h-10 rounded-full bg-white dark:darkModeLight shadow-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment dark:text-black dark:hover:text-white border border-gray-200 dark:border-gray-700`}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? (

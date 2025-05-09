@@ -62,6 +62,12 @@ module.exports = {
         border: '#E4E4E7',
         detailsTab: '#EDEDED',
         componentBorder:'#BCBCBC',
+        availableStatus: '#34C759', // Status Available and Download Icon
+        notAvailableStatus: '#787575',
+        darkModeNotAvailableStatus: '#C6C6C6',
+        darkModeButtonDefault: '#71717A',
+        darkModeButtonActive: '#E4E4E7',
+        darkModeButtonHover: '#D4D4D8',
       },
     },
   },
