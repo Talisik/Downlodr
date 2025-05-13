@@ -1,31 +1,32 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/plugins/pluginAPI.ts
+import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
+import { formatFileSize } from '../Pages/StatusSpecificDownload';
+import useDownloadStore from '../Store/downloadStore';
 import {
-  PluginAPI,
   DownloadAPI,
-  UIAPI,
   FormatAPI,
-  UtilityAPI,
-  MenuItem,
   FormatProvider,
-  SettingsPage,
-  NotificationOptions,
   FormatSelectorOptions,
   FormatSelectorResult,
-  TaskBarItem,
+  MenuItem,
+  NotificationOptions,
+  PluginAPI,
+  PluginModalOptions,
+  PluginModalResult,
   PluginSidePanelOptions,
   PluginSidePanelResult,
   SaveDialogOptions,
   SaveDialogResult,
+  SaveFileDialogOptions,
+  SettingsPage,
+  TaskBarItem,
+  UIAPI,
+  UtilityAPI,
   WriteFileOptions,
   WriteFileResult,
-  SaveFileDialogOptions,
 } from './types';
-import useDownloadStore from '../Store/downloadStore';
-import { formatFileSize } from '../Pages/StatusSpecificDownload';
-import { pluginRegistry } from './registry';
-import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 
 export function createPluginAPI(pluginId: string): PluginAPI {
   // Create UI API
@@ -167,6 +168,25 @@ export function createPluginAPI(pluginId: string): PluginAPI {
         return await window.pluginSidePanelManager.showPluginSidePanel(options);
       } catch (error) {
         console.error('Error showing plugin side panel:', error);
+        return null;
+      }
+    },
+
+    showPluginModal: async (
+      options: PluginModalOptions,
+    ): Promise<PluginModalResult | null> => {
+      console.log(`Plugin ${pluginId} requesting modal:`, options);
+
+      if (!window.pluginModalManager) {
+        console.error('Plugin modal manager not available');
+        return null;
+      }
+
+      try {
+        // Call the plugin modal manager to show the UI
+        return await window.pluginModalManager.showPluginModal(options);
+      } catch (error) {
+        console.error('Error showing plugin modal:', error);
         return null;
       }
     },
@@ -338,6 +358,24 @@ function createUIAPI(pluginId: string): UIAPI {
         return await window.pluginSidePanelManager.showPluginSidePanel(options);
       } catch (error) {
         console.error('Error showing plugin side panel:', error);
+        return null;
+      }
+    },
+    showPluginModal: async (
+      options: PluginModalOptions,
+    ): Promise<PluginModalResult | null> => {
+      console.log(`Plugin ${pluginId} requesting modal:`, options);
+
+      if (!window.pluginModalManager) {
+        console.error('Plugin modal manager not available');
+        return null;
+      }
+
+      try {
+        // Call the plugin modal manager to show the UI
+        return await window.pluginModalManager.showPluginModal(options);
+      } catch (error) {
+        console.error('Error showing plugin modal:', error);
         return null;
       }
     },
