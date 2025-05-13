@@ -392,7 +392,7 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
       try {
         const result = await window.plugins.readFileContents({
           filePath,
-          pluginId,
+          // pluginId,
         });
 
         return {

@@ -965,7 +965,7 @@ ipcMain.handle('get-thumbnail-data-url', async (_event, imagePath) => {
     return null;
   }
 });
-/*
+
 // In main.ts or wherever you set up your IPC handlers
 ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
   const browserWindow = BrowserWindow.fromWebContents(event.sender);
@@ -989,7 +989,7 @@ ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
     return { canceled: true };
   }
 });
-*/
+
 // Add these new IPC handlers for taskbar items
 ipcMain.handle('plugins:register-taskbar-item', (event, taskBarItem) => {
   console.log('Main process registering taskbar item:', taskBarItem);
@@ -1028,6 +1028,44 @@ ipcMain.handle('plugin:fs:readFile', async (event, options) => {
     return { success: true, data: fileContents };
   } catch (error) {
     console.error('Error reading file:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Add this with the other plugin-related IPC handlers
+ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
+  try {
+    const { filePath, pluginId } = options;
+    console.log('got this', options);
+    // Security check: Make sure we're not reading outside allowed directories
+    // Get the plugin's data directory as a safe base path
+    const pluginDataDir = path.join(
+      app.getPath('userData'),
+      'plugin-data',
+      pluginId || '',
+    );
+
+    // Ensure the requested path is within the plugin's data directory or another safe location
+    const normalizedPath = path.normalize(filePath);
+    if (
+      !normalizedPath.startsWith(pluginDataDir) &&
+      !normalizedPath.startsWith(app.getPath('downloads'))
+    ) {
+      return {
+        success: false,
+        error: 'Access denied: Path is outside allowed directories',
+      };
+    }
+
+    if (!fs.existsSync(normalizedPath)) {
+      return { success: false, error: 'File does not exist' };
+    }
+
+    const fileContents = await fs.promises.readFile(normalizedPath, 'utf8');
+    console.log(fileContents);
+    return { success: true, data: fileContents };
+  } catch (error) {
+    console.error('Error reading file contents:', error);
     return { success: false, error: error.message };
   }
 });
