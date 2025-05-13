@@ -212,7 +212,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
         <p className="text-gray-600 dark:text-gray-300 px-4 flex items-center text-[11px]">
           <svg
             className="w-3 h-3 mr-1"
-            fill="blue"
+            fill="#34C759"
             viewBox="0 0 20 20"
             xmlns="http://www.w3.org/2000/svg"
           >

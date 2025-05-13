@@ -13,16 +13,17 @@
  */
 import React, { useState } from 'react';
 import { GoDownload } from 'react-icons/go';
-import { VscPlayCircle } from 'react-icons/vsc';
+import { LuTrash } from 'react-icons/lu';
 import { PiStopCircle } from 'react-icons/pi';
-import { useLocation, NavLink } from 'react-router-dom';
-import DownloadModal from '../Modal/DownloadModal';
+import { VscPlayCircle } from 'react-icons/vsc';
+import { useLocation } from 'react-router-dom';
+import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
-import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
-import { processFileName } from '../../../DataFunctions/FilterName';
-import { LuTrash } from 'react-icons/lu';
 import TaskBarPluginItems from '../../SubComponents/custom/TaskBarPluginItems';
+import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
+import { cn } from '../../SubComponents/shadcn/lib/utils';
+import DownloadModal from '../Modal/DownloadModal';
 import PageNavigation from './PageNavigation';
 
 interface TaskBarProps {
@@ -390,7 +391,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
   return (
     <>
-      <div className={`${className} flex items-center justify-between`}>
+      {/* <div classNamep={`${className} flex items-center justify-between`}> */}
+      <div className={cn('flex items-center justify-between', className)}>
         <div className="flex items-center h-full px-2 space-x-2">
           <div className="gap-1 flex">
             <PageNavigation />
@@ -427,12 +429,13 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
           {/* This is the regular downloads Remove button */}
           <button
-            className={`px-3 py-1 rounded flex gap-1 mr-4 text-sm rounded-md flex gap-2 text-sm ${
+            className={cn(
+              'px-3 py-1 mr-4 rounded-md flex gap-2 text-sm',
               selectedDownloads.length > 0 &&
-              location.pathname.includes('/status/')
-                ? 'bg-black text-gray-200 hover:!bg-[#3E3E46]'
-                : 'cursor-not-allowed text-gray-400 dark:text-gray-500 !bg-gray-200 hover:!bg-gray-200 !dark:bg-darkModeHover hover:!dark:bg-darkModeHover'
-            }`}
+                location.pathname.includes('/status/')
+                ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark'
+                : 'cursor-not-allowed text-gray-400 bg-gray-200 hover:bg-gray-200 dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault',
+            )}
             onClick={() => setShowStopConfirmation(true)}
             disabled={
               !(
