@@ -23,6 +23,7 @@ import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skele
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 import useDownloadStore from '../Store/downloadStore';
 import { useMainStore } from '../Store/mainStore';
+import { usePluginStore } from '../Store/pluginStore';
 
 // Reuse helper functions from AllDownloads
 const formatRelativeTime = (dateString: string) => {
@@ -87,7 +88,10 @@ const StatusSpecificDownloads = () => {
   const [thumbnailDataUrls, setThumbnailDataUrls] = useState<
     Record<string, string>
   >({});
-
+  const { updateIsOpenPluginSidebar } = usePluginStore();
+  const handleClosePanel = () => {
+    updateIsOpenPluginSidebar(false);
+  };
   // Set page title based on status
   useEffect(() => {
     document.title = `${
@@ -399,7 +403,7 @@ const StatusSpecificDownloads = () => {
   ) => {
     event.preventDefault();
     event.stopPropagation(); // Prevent the click outside handler from firing immediately
-
+    handleClosePanel();
     // Close any active column header context menu first
     setColumnHeaderContextMenu({
       ...columnHeaderContextMenu,

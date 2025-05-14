@@ -4,6 +4,7 @@
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 import { formatFileSize } from '../Pages/StatusSpecificDownload';
 import useDownloadStore from '../Store/downloadStore';
+import { usePluginStore } from '../Store/pluginStore';
 import {
   DownloadAPI,
   FormatAPI,
@@ -207,6 +208,16 @@ export function createPluginAPI(pluginId: string): PluginAPI {
         return { canceled: true, success: false };
       }
     },
+
+    closePluginPanel: () => {
+      if (window.pluginSidePanelManager) {
+        // If there's an active request, close it
+        const updateIsOpenPluginSidebar =
+          usePluginStore.getState().updateIsOpenPluginSidebar;
+        updateIsOpenPluginSidebar(false);
+        console.log(`Plugin ${pluginId} closed the panel programmatically`);
+      }
+    },
   };
 
   return {
@@ -395,6 +406,15 @@ function createUIAPI(pluginId: string): UIAPI {
         return { canceled: true, success: false };
       }
     },
+    closePluginPanel: () => {
+      if (window.pluginSidePanelManager) {
+        // If there's an active request, close it
+        const updateIsOpenPluginSidebar =
+          usePluginStore.getState().updateIsOpenPluginSidebar;
+        updateIsOpenPluginSidebar(false);
+        console.log(`Plugin ${pluginId} closed the panel programmatically`);
+      }
+    },
   };
 }
 
@@ -430,7 +450,7 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
       try {
         const result = await window.plugins.readFileContents({
           filePath,
-          pluginId,
+          // pluginId,
         });
 
         return {
