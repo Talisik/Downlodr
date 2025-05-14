@@ -143,7 +143,7 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
 
   return (
     <div
-      className="fixed right-0 top-0 h-full bg-white dark:bg-darkMode shadow-lg z-40 flex flex-col border-2 border-[#D1D5DB] dark:border-darkModeCompliment"
+      className="fixed right-0 top-0 h-full bg-white shadow-lg z-40 flex flex-col border-2 border-[#D1D5DB] dark:border-darkModeCompliment"
       style={{ width: '300px' }}
     >
       {/* Header */}
