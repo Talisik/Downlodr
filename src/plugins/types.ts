@@ -41,6 +41,7 @@ export interface UIAPI {
     options: PluginSidePanelOptions,
   ) => Promise<PluginSidePanelResult | null>;
   showSaveFileDialog: (options: SaveDialogOptions) => Promise<SaveDialogResult>;
+  closePluginPanel: () => void;
 }
 
 export interface FormatAPI {

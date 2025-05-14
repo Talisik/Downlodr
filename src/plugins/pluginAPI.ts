@@ -1,31 +1,31 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/plugins/pluginAPI.ts
+import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
+import { formatFileSize } from '../Pages/StatusSpecificDownload';
+import useDownloadStore from '../Store/downloadStore';
+import { usePluginStore } from '../Store/pluginStore';
 import {
-  PluginAPI,
   DownloadAPI,
-  UIAPI,
   FormatAPI,
-  UtilityAPI,
-  MenuItem,
   FormatProvider,
-  SettingsPage,
-  NotificationOptions,
   FormatSelectorOptions,
   FormatSelectorResult,
-  TaskBarItem,
+  MenuItem,
+  NotificationOptions,
+  PluginAPI,
   PluginSidePanelOptions,
   PluginSidePanelResult,
   SaveDialogOptions,
   SaveDialogResult,
+  SaveFileDialogOptions,
+  SettingsPage,
+  TaskBarItem,
+  UIAPI,
+  UtilityAPI,
   WriteFileOptions,
   WriteFileResult,
-  SaveFileDialogOptions,
 } from './types';
-import useDownloadStore from '../Store/downloadStore';
-import { formatFileSize } from '../Pages/StatusSpecificDownload';
-import { pluginRegistry } from './registry';
-import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 
 export function createPluginAPI(pluginId: string): PluginAPI {
   // Create UI API
@@ -185,6 +185,16 @@ export function createPluginAPI(pluginId: string): PluginAPI {
       } catch (error) {
         console.error('Error showing save file dialog:', error);
         return { canceled: true, success: false };
+      }
+    },
+
+    closePluginPanel: () => {
+      if (window.pluginSidePanelManager) {
+        // If there's an active request, close it
+        const updateIsOpenPluginSidebar =
+          usePluginStore.getState().updateIsOpenPluginSidebar;
+        updateIsOpenPluginSidebar(false);
+        console.log(`Plugin ${pluginId} closed the panel programmatically`);
       }
     },
   };
@@ -355,6 +365,15 @@ function createUIAPI(pluginId: string): UIAPI {
       } catch (error) {
         console.error('Error showing save file dialog:', error);
         return { canceled: true, success: false };
+      }
+    },
+    closePluginPanel: () => {
+      if (window.pluginSidePanelManager) {
+        // If there's an active request, close it
+        const updateIsOpenPluginSidebar =
+          usePluginStore.getState().updateIsOpenPluginSidebar;
+        updateIsOpenPluginSidebar(false);
+        console.log(`Plugin ${pluginId} closed the panel programmatically`);
       }
     },
   };

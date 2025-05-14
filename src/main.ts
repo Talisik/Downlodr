@@ -7,21 +7,21 @@
 import {
   app,
   BrowserWindow,
-  ipcMain,
   dialog,
-  shell,
+  ipcMain,
   Menu,
-  Tray,
   nativeImage,
   Notification,
   protocol,
+  shell,
+  Tray,
 } from 'electron';
-import path from 'path';
 import started from 'electron-squirrel-startup';
-import os from 'os';
-import * as YTDLP from 'yt-dlp-helper';
 import fs, { existsSync } from 'fs';
 import https from 'https';
+import os from 'os';
+import path from 'path';
+import * as YTDLP from 'yt-dlp-helper';
 import { checkForUpdates } from './DataFunctions/updateChecker';
 import { PluginManager } from './plugins/pluginManager';
 import { pluginRegistry } from './plugins/registry';
@@ -1066,6 +1066,18 @@ ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
     return { success: true, data: fileContents };
   } catch (error) {
     console.error('Error reading file contents:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Handle closing the plugin panel
+ipcMain.handle('plugins:close-panel', async () => {
+  try {
+    // Send an event to the renderer to close the panel
+    mainWindow.webContents.send('plugin:close-panel');
+    return { success: true };
+  } catch (error) {
+    console.error('Error closing plugin panel:', error);
     return { success: false, error: error.message };
   }
 });

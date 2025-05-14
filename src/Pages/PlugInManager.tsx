@@ -354,7 +354,7 @@ const PluginManager: React.FC = () => {
                         <NavLink to="/plugins/details" state={{ plugin }}>
                           <Button
                             variant="outline"
-                            className="border-darkModeCompliment border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
+                            className="dark:border-darkModeCompliment border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
                           >
                             Details
                           </Button>

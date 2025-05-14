@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { usePluginStore } from '../../../Store/pluginStore';
 
 interface PageNavigationProps {
   className?: string;
@@ -7,6 +8,11 @@ interface PageNavigationProps {
 
 const PageNavigation: React.FC<PageNavigationProps> = ({ className = '' }) => {
   const location = useLocation();
+  const { updateIsOpenPluginSidebar } = usePluginStore();
+
+  const handleClosePanel = () => {
+    updateIsOpenPluginSidebar(false);
+  };
 
   return (
     <div className={`flex items-center ${className} gap-2`}>
@@ -32,6 +38,7 @@ const PageNavigation: React.FC<PageNavigationProps> = ({ className = '' }) => {
               : 'hover:bg-gray-100 dark:hover:bg-darkModeCompliment dark:text-gray-200'
           }`
         }
+        onClick={handleClosePanel}
       >
         <span>Plugins</span>
       </NavLink>

@@ -851,13 +851,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             key={item.id || item.label}
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              const captionLocation = allDownloads.find(
-                (d) => d.id === downloadId,
-              )?.autoCaptionLocation;
-              const fileCont = window.plugins.readFileContents({
-                filePath: captionLocation,
-              });
-              console.log(fileCont);
               const contextData = {
                 name: downloadName,
                 downloadId,
