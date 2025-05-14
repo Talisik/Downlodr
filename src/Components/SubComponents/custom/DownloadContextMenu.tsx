@@ -909,7 +909,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                   {typeof item.icon === 'string' && isSvgString(item.icon) ? (
                     <span
                       dangerouslySetInnerHTML={{ __html: item.icon }}
-                      className="text-black"
+                      className="text-black dark:text-white"
                     />
                   ) : (
                     <span>{item.icon}</span>

@@ -73,7 +73,7 @@ const PluginModalExtension: React.FC<PluginModalExtensionProps> = ({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="py-4">
+        <div>
           {typeof content === 'string' ? (
             <div dangerouslySetInnerHTML={{ __html: content }} />
           ) : (
