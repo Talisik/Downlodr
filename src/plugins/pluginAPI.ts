@@ -14,6 +14,8 @@ import {
   MenuItem,
   NotificationOptions,
   PluginAPI,
+  PluginModalOptions,
+  PluginModalResult,
   PluginSidePanelOptions,
   PluginSidePanelResult,
   SaveDialogOptions,
@@ -167,6 +169,25 @@ export function createPluginAPI(pluginId: string): PluginAPI {
         return await window.pluginSidePanelManager.showPluginSidePanel(options);
       } catch (error) {
         console.error('Error showing plugin side panel:', error);
+        return null;
+      }
+    },
+
+    showPluginModal: async (
+      options: PluginModalOptions,
+    ): Promise<PluginModalResult | null> => {
+      console.log(`Plugin ${pluginId} requesting modal:`, options);
+
+      if (!window.pluginModalManager) {
+        console.error('Plugin modal manager not available');
+        return null;
+      }
+
+      try {
+        // Call the plugin modal manager to show the UI
+        return await window.pluginModalManager.showPluginModal(options);
+      } catch (error) {
+        console.error('Error showing plugin modal:', error);
         return null;
       }
     },
@@ -348,6 +369,24 @@ function createUIAPI(pluginId: string): UIAPI {
         return await window.pluginSidePanelManager.showPluginSidePanel(options);
       } catch (error) {
         console.error('Error showing plugin side panel:', error);
+        return null;
+      }
+    },
+    showPluginModal: async (
+      options: PluginModalOptions,
+    ): Promise<PluginModalResult | null> => {
+      console.log(`Plugin ${pluginId} requesting modal:`, options);
+
+      if (!window.pluginModalManager) {
+        console.error('Plugin modal manager not available');
+        return null;
+      }
+
+      try {
+        // Call the plugin modal manager to show the UI
+        return await window.pluginModalManager.showPluginModal(options);
+      } catch (error) {
+        console.error('Error showing plugin modal:', error);
         return null;
       }
     },

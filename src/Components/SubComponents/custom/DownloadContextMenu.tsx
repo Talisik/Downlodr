@@ -29,24 +29,24 @@
  * @returns JSX.Element - The rendered context menu component.
  */
 
-import React, { useState, useEffect } from 'react';
-import TagMenu from './TagsMenu';
-import CategoryMenu from './CategoryMenu';
+import { PlayCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { BiRightArrow } from 'react-icons/bi';
+import { GoChevronRight } from 'react-icons/go';
+import { HiOutlineStopCircle } from 'react-icons/hi2';
 import { IoPauseCircleOutline } from 'react-icons/io5';
 import { LiaFileVideoSolid, LiaTagsSolid } from 'react-icons/lia';
-import { HiOutlineStopCircle } from 'react-icons/hi2';
-import { BiRightArrow } from 'react-icons/bi';
-import { LuTrash, LuFolderOpen } from 'react-icons/lu';
-import { GoChevronRight } from 'react-icons/go';
-import { VscDebugStart } from 'react-icons/vsc';
-import useDownloadStore from '../../../Store/downloadStore';
+import { LuFolderOpen, LuTrash } from 'react-icons/lu';
 import { MdEdit } from 'react-icons/md';
-import { PlayCircle } from 'lucide-react';
+import { VscDebugStart } from 'react-icons/vsc';
 import { processFileName } from '../../../DataFunctions/FilterName';
+import { usePluginState } from '../../../plugins/Hooks/usePluginState';
+import { MenuItem } from '../../../plugins/types';
+import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
-import { MenuItem } from '../../../plugins/types';
-import { usePluginState } from '../../../plugins/Hooks/usePluginState';
+import CategoryMenu from './CategoryMenu';
+import TagMenu from './TagsMenu';
 // import FormatConverterMenu from './FormatConverterMenu';
 
 // Interface representing the props for the DownloadContextMenu component
@@ -271,6 +271,11 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       console.error('Failed to fetch plugin menu items:', error);
       setPluginMenuItems([]);
     }
+  };
+
+  // Helper function to check if a string is an SVG
+  const isSvgString = (str: string): boolean => {
+    return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
   };
 
   useEffect(() => {
@@ -838,6 +843,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     }
   }
 */
+
   const renderPluginMenuItems = () => {
     if (!pluginMenuItems || pluginMenuItems.length === 0) return null;
     return (
@@ -864,6 +870,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                 ext: allDownloads.find((d) => d.id === downloadId)?.ext,
                 captionLocation: allDownloads.find((d) => d.id === downloadId)
                   ?.autoCaptionLocation,
+                thumbnailLocation: allDownloads.find((d) => d.id === downloadId)
+                  ?.thumnailsLocation,
               };
 
               // Log which menu item was clicked
@@ -892,7 +900,18 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             }}
           >
             <span className="flex items-center space-x-2">
-              {item.icon && <span>{item.icon}</span>}
+              {item.icon && (
+                <span className="inline-flex items-center justify-center w-5 h-5 mr-2">
+                  {typeof item.icon === 'string' && isSvgString(item.icon) ? (
+                    <span
+                      dangerouslySetInnerHTML={{ __html: item.icon }}
+                      className="text-black dark:text-white"
+                    />
+                  ) : (
+                    <span>{item.icon}</span>
+                  )}
+                </span>
+              )}
               <span>{item.label}</span>
             </span>
           </button>
