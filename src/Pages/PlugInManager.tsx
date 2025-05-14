@@ -106,8 +106,9 @@ const PluginManager: React.FC = () => {
       setIsSelectingDirectory(true);
       const pluginPath = await window.ytdlp.selectDownloadDirectory();
       if (pluginPath) {
-        const success = await window.plugins.install(pluginPath);
-        if (success) {
+        const result = await window.plugins.install(pluginPath);
+
+        if (result === true) {
           // First reload the plugins in the main process
           await window.plugins.reload();
           // Then update the UI list
@@ -116,6 +117,17 @@ const PluginManager: React.FC = () => {
             title: 'Success',
             description: 'Plugin was installed successfully',
             variant: 'success',
+            duration: 3000,
+          });
+        } else if (
+          typeof result === 'string' &&
+          result === 'already-installed'
+        ) {
+          toast({
+            title: 'Plugin Already Installed',
+            description: 'This plugin is already installed',
+            variant: 'default',
+            duration: 3000,
           });
         } else {
           toast({
@@ -123,18 +135,25 @@ const PluginManager: React.FC = () => {
             description:
               'The selected directory does not contain a valid plugin structure',
             variant: 'destructive',
+            duration: 3000,
           });
         }
       }
     } catch (error) {
       console.error('Failed to install plugin:', error);
-      toast({
-        title: 'Installation Failed',
-        description:
-          error.message ||
-          'An unexpected error occurred while installing the plugin',
-        variant: 'destructive',
-      });
+      if (
+        !error.message?.includes('Cannot read properties') &&
+        !error.message?.includes('dialog:openDirectory')
+      ) {
+        toast({
+          title: 'Installation Failed',
+          description:
+            error.message ||
+            'An unexpected error occurred while installing the plugin',
+          variant: 'destructive',
+          duration: 3000,
+        });
+      }
     } finally {
       setIsSelectingDirectory(false);
     }
@@ -202,13 +221,13 @@ const PluginManager: React.FC = () => {
   };
 
   return (
-    <div className="h-full w-full bg-[#FBFBFB] dark:bg-darkMode">
-      <div className="p-4">
+    <div className="h-full w-full bg-[#FBFBFB] dark:bg-darkModeDropdown">
+      <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           {/* Directory selection overlay - blocks all app interaction */}
           {isSelectingDirectory && (
             <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] cursor-not-allowed flex items-center justify-center">
-              <div className="bg-white dark:bg-darkMode p-4 rounded-lg shadow-lg max-w-md text-center">
+              <div className="bg-white dark:bg-darkMode p-4 rounded-md shadow-lg max-w-md text-center">
                 <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
                   Directory Selection In Progress
                 </h3>
@@ -220,10 +239,10 @@ const PluginManager: React.FC = () => {
             </div>
           )}
           <div className="flex items-center gap-2">
-            <h1 className="text-[20px] font-medium">Plugins</h1>
+            <h1 className="text-[20px] font-medium mr-4">Plugins</h1>
             {/* Search Bar with increased width */}
             <div ref={searchRef} className="relative">
-              <div className="flex items-center bg-[#FFFFFF] dark:bg-[#30303C] rounded-md border border-[#D1D5DB] dark:border-none px-2">
+              <div className="flex items-center bg-[#FFFFFF] dark:bg-darkModeDropdown rounded-md border dark:border-2 border-[#D1D5DB] dark:border-darkModeCompliment px-2">
                 <FiSearch className="text-gray-500 dark:text-gray-400 h-4 w-4 mr-1" />
                 <input
                   type="text"
@@ -248,13 +267,13 @@ const PluginManager: React.FC = () => {
 
               {/* Search Results Dropdown */}
               {showResults && searchResults.length > 0 && (
-                <div className="absolute top-full left-0 mt-1 w-full max-h-60 overflow-y-auto bg-white dark:bg-gray-800 rounded-md shadow-lg z-10">
+                <div className="absolute top-full left-0 mt-1 w-full max-h-60 overflow-y-auto bg-white dark:bg-darkModeCompliment rounded-md shadow-lg z-10">
                   {searchResults.map((plugin) => (
                     <NavLink
                       key={plugin.id}
-                      to="/plugin-details"
+                      to="/plugins/details"
                       state={{ plugin }}
-                      className="block px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm"
+                      className="block px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover cursor-pointer text-sm"
                       onClick={() => setShowResults(false)}
                     >
                       <div className="font-medium truncate" title={plugin.name}>
@@ -272,7 +291,7 @@ const PluginManager: React.FC = () => {
               {showResults &&
                 searchTerm.trim() !== '' &&
                 searchResults.length === 0 && (
-                  <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10">
+                  <div className="absolute top-full left-0 mt-1 w-60 bg-white dark:bg-darkModeCompliment rounded-md shadow-lg z-10">
                     <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
                       No plugins found
                     </div>
@@ -318,7 +337,7 @@ const PluginManager: React.FC = () => {
             {plugins.map((plugin) => (
               <div
                 key={plugin.id}
-                className="border-2 p-4 dark:border-componentBorder rounded-lg shadow-sm border-t-4 border-t-[#F45513] dark:border-t-[#F45513]"
+                className="w-sm bg-[#FFFFFF] dark:bg-darkMode rounded-sm p-4 shadow-sm ring-1 ring-gray-200 dark:ring-darkModeCompliment border-l-4 border-l-[#FFFFFF] dark:border-l-4 dark:border-l-darkMode hover:border-l-4 hover:border-l-[#F45513] hover:dark:border-l-[#F45513]"
               >
                 <div className="flex">
                   <div className="w-full">
@@ -329,20 +348,20 @@ const PluginManager: React.FC = () => {
                     <p className="mt-2 text-sm line-clamp-2">
                       {plugin.description}
                     </p>
-                    <hr className="solid my-4 w-full border-t border-divider dark:border-componentBorder" />
+                    <hr className="solid my-4 w-full border-t border-divider dark:border-darkModeCompliment" />
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                      <div className="flex gap-2 flex-wrap">
-                        <NavLink to="/plugin-details" state={{ plugin }}>
+                      <div className="flex gap-2 flex-wrap ">
+                        <NavLink to="/plugins/details" state={{ plugin }}>
                           <Button
                             variant="outline"
-                            className="border-2 px-4 h-8"
+                            className="border-darkModeCompliment border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
                           >
                             Details
                           </Button>
                         </NavLink>
                         <Button
                           variant="outline"
-                          className="border-2 px-4 h-8"
+                          className="border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
                           onClick={() => handleUninstall(plugin.id)}
                         >
                           Remove

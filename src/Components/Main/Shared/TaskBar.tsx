@@ -15,13 +15,15 @@ import React, { useState } from 'react';
 import { GoDownload } from 'react-icons/go';
 import { VscPlayCircle } from 'react-icons/vsc';
 import { PiStopCircle } from 'react-icons/pi';
-import { useLocation } from 'react-router-dom';
+import { useLocation, NavLink } from 'react-router-dom';
 import DownloadModal from '../Modal/DownloadModal';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import { LuTrash } from 'react-icons/lu';
+import TaskBarPluginItems from '../../SubComponents/custom/TaskBarPluginItems';
+import PageNavigation from './PageNavigation';
 
 interface TaskBarProps {
   className?: string;
@@ -49,7 +51,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <div className="flex justify-end space-x-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
           >
             Cancel
           </button>
@@ -298,6 +300,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           downloadInfo.thumbnails,
           downloadInfo.getTranscript || false,
           downloadInfo.getThumbnail || false,
+          downloadInfo.duration || 60,
         );
         // remove the current download from the saved list for forDownloads
         removeFromForDownloads(selectedDownload.id);
@@ -381,24 +384,21 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
   // opens download modal
   const handleOpenDownloadModal = () => {
+    clearAllSelections();
     setDownloadModalOpen(true);
   };
 
   return (
     <>
       <div className={`${className} flex items-center justify-between`}>
-        <div className="flex items-center h-full px-4 space-x-2">
-          <button
-            className="primary-custom-btn px-[6px] py-[8px] sm:px-[8px] sm:py-[8px] mr-2 sm:mr-4 flex items-center gap-1 sm:gap-2 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
-            onClick={handleOpenDownloadModal}
-          >
-            <GoDownload size={12} className="sm:w-[14px] sm:h-[14px]" />
-            <span className="hidden sm:inline">Add URL</span>
-            <span className="sm:hidden"> Add URL</span>
-          </button>
+        <div className="flex items-center h-full px-2 space-x-2">
+          <div className="gap-1 flex">
+            <PageNavigation />
 
+            <div className="h-6 w-[1.5px] bg-gray-300 dark:bg-gray-600 self-center ml-3"></div>
+          </div>
           <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={handlePlaySelected}
           >
             {' '}
@@ -406,31 +406,51 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           </button>
 
           <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={handleStopSelected}
           >
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
           </button>
           <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={() => handleStopAll()}
           >
             {' '}
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
           </button>
         </div>
+        <div className="pl-4 flex items-center">
+          <div className="mr-4">
+            {' '}
+            <TaskBarPluginItems />
+          </div>
 
-        <div className="px-4 flex items-center">
           {/* This is the regular downloads Remove button */}
-          {selectedDownloads.length > 0 &&
-            location.pathname.includes('/status/') && (
-              <button
-                className="primary-custom-btn px-3 py-2 rounded flex gap-1 font-semibold text-gray-200 dark:hover:text-black"
-                onClick={() => setShowStopConfirmation(true)}
-              >
-                <LuTrash size={15} className="mt-[0.9px]" /> Remove
-              </button>
-            )}
+          <button
+            className={`px-3 py-1 rounded flex gap-1 mr-4 text-sm rounded-md flex gap-2 text-sm ${
+              selectedDownloads.length > 0 &&
+              location.pathname.includes('/status/')
+                ? 'bg-black text-gray-200 hover:!bg-[#3E3E46]'
+                : 'cursor-not-allowed text-gray-400 dark:text-gray-500 !bg-gray-200 hover:!bg-gray-200 !dark:bg-darkModeHover hover:!dark:bg-darkModeHover'
+            }`}
+            onClick={() => setShowStopConfirmation(true)}
+            disabled={
+              !(
+                selectedDownloads.length > 0 &&
+                location.pathname.includes('/status/')
+              )
+            }
+          >
+            <LuTrash size={15} className="mt-[2px]" /> Remove
+          </button>
+
+          <button
+            className="primary-custom-btn px-[6px] py-[4px] sm:px-[8px] sm:py-[4px] flex items-center gap-1 sm:gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
+            onClick={handleOpenDownloadModal}
+          >
+            <GoDownload className="sm:w-[14px] sm:h-[14px]" />
+            <span className="hidden sm:inline text-sm">Add URL</span>
+          </button>
 
           {/* Portal target for History-specific Remove button */}
           <div id="taskbar-portal"></div>

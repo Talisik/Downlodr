@@ -1,5 +1,5 @@
 // src/plugins/pluginManager.ts
-import { app, ipcMain, shell } from 'electron';
+import { app, ipcMain, shell, dialog } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { validatePlugin } from './security';
@@ -106,7 +106,13 @@ export class PluginManager {
 
     // Install plugin
     ipcMain.handle('plugins:install', async (event, pluginPath) => {
-      return await this.installPlugin(pluginPath);
+      try {
+        // Assuming pluginManager is your instance of PluginManager
+        return await this.installPlugin(pluginPath);
+      } catch (error) {
+        console.error('Failed to install plugin via IPC:', error);
+        return false;
+      }
     });
     /*
     // Uninstall plugin
@@ -161,6 +167,145 @@ export class PluginManager {
       } catch (error) {
         console.error(`Error setting plugin ${pluginId} state:`, error);
         return false;
+      }
+    });
+
+    // Execute taskbar item
+    ipcMain.handle(
+      'plugins:executeTaskBarItem',
+      (event, itemId, contextData) => {
+        try {
+          // Execute the taskbar item with the provided context data
+          // This is a fallback for non-renderer plugins
+          console.log(`Executing taskbar item: ${itemId}`);
+          // Your implementation for executing the taskbar item from the main process
+          return true;
+        } catch (error) {
+          console.error(`Error executing taskbar item ${itemId}:`, error);
+          return false;
+        }
+      },
+    );
+
+    // Modified writeFile handler
+    ipcMain.handle('plugins:writeFile', async (event, options) => {
+      try {
+        const {
+          pluginId,
+          fileName,
+          content,
+          fileType,
+          directory,
+          overwrite,
+          customPath,
+        } = options;
+
+        let finalPath;
+
+        // If customPath is provided, use it directly (plugin is requesting to write to a specific location)
+        if (customPath) {
+          // For security, you may want to restrict certain paths or require confirmation
+          finalPath = customPath;
+        } else {
+          // Create plugin-specific data directory
+          const pluginDataDir = path.join(
+            app.getPath('userData'),
+            'plugin-data',
+            pluginId,
+          );
+          if (!fs.existsSync(pluginDataDir)) {
+            fs.mkdirSync(pluginDataDir, { recursive: true });
+          }
+
+          // Determine final directory (with optional subdirectory)
+          let targetDir = pluginDataDir;
+          if (directory) {
+            // Sanitize directory name to prevent path traversal
+            const sanitizedDir = directory
+              .replace(/\.\./g, '')
+              .replace(/[/\\]/g, '-');
+            targetDir = path.join(pluginDataDir, sanitizedDir);
+            if (!fs.existsSync(targetDir)) {
+              fs.mkdirSync(targetDir, { recursive: true });
+            }
+          }
+
+          // Sanitize filename
+          const sanitizedFileName = fileName
+            .replace(/\.\./g, '')
+            .replace(/[/\\]/g, '-');
+          // Add appropriate extension based on fileType if not already present
+          let finalFileName = sanitizedFileName;
+          if (fileType && !finalFileName.endsWith(`.${fileType}`)) {
+            finalFileName += `.${fileType}`;
+          }
+
+          finalPath = path.join(targetDir, finalFileName);
+        }
+
+        // Check if file exists and handle overwrite option
+        if (fs.existsSync(finalPath) && overwrite !== true) {
+          return {
+            success: false,
+            error: 'File already exists and overwrite option is not enabled',
+          };
+        }
+
+        // Ensure the directory exists
+        const dirPath = path.dirname(finalPath);
+        if (!fs.existsSync(dirPath)) {
+          fs.mkdirSync(dirPath, { recursive: true });
+        }
+
+        // Write the file
+        fs.writeFileSync(finalPath, content, 'utf8');
+
+        return {
+          success: true,
+          filePath: finalPath,
+        };
+      } catch (error) {
+        console.error('Error writing file:', error);
+        return {
+          success: false,
+          error: error.message || 'Unknown error occurred while writing file',
+        };
+      }
+    });
+
+    // Add save file dialog handler
+    ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
+      try {
+        const { pluginId, content, defaultPath, filters, title } = options;
+
+        // Show save dialog
+        const result = await dialog.showSaveDialog({
+          title: title || 'Save File',
+          defaultPath: defaultPath,
+          filters: filters || [{ name: 'All Files', extensions: ['*'] }],
+          properties: ['createDirectory'],
+        });
+
+        if (result.canceled || !result.filePath) {
+          return {
+            success: false,
+            error: 'File save was canceled',
+          };
+        }
+
+        // Write the file to the user-selected location
+        fs.writeFileSync(result.filePath, content, 'utf8');
+
+        return {
+          success: true,
+          filePath: result.filePath,
+        };
+      } catch (error) {
+        console.error('Error in save file dialog:', error);
+        return {
+          success: false,
+          error: error.message || 'Unknown error occurred while saving file',
+        };
       }
     });
   }
@@ -222,7 +367,7 @@ export class PluginManager {
     }
   }
 
-  async installPlugin(pluginPath: string): Promise<boolean> {
+  async installPlugin(pluginPath: string): Promise<boolean | string> {
     try {
       // Check if the path exists
       if (!fs.existsSync(pluginPath)) {
@@ -245,8 +390,29 @@ export class PluginManager {
       // Create destination directory
       const destDir = path.join(this.pluginsDir, pluginId);
 
-      // Remove existing plugin with same ID if it exists
+      // Check if plugin with same ID already exists
       if (fs.existsSync(destDir)) {
+        // Compare manifest version to check if it's the same plugin
+        try {
+          const existingManifestPath = path.join(destDir, 'manifest.json');
+          if (fs.existsSync(existingManifestPath)) {
+            const existingManifest = JSON.parse(
+              fs.readFileSync(existingManifestPath, 'utf8'),
+            );
+
+            // If same plugin ID and version, it's already installed
+            if (existingManifest.version === manifest.version) {
+              console.log(
+                `Plugin ${pluginId} is already installed with the same version`,
+              );
+              return 'already-installed';
+            }
+          }
+        } catch (err) {
+          console.error('Error checking existing plugin:', err);
+        }
+
+        // If different version or can't determine, remove existing and continue with installation
         fs.rmSync(destDir, { recursive: true });
       }
 

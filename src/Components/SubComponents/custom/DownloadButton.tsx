@@ -37,6 +37,7 @@ interface DownloadButtonProps {
     thumbnails: any;
     getTranscript: boolean;
     getThumbnail: boolean;
+    duration: number;
   };
 }
 
@@ -93,6 +94,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
       download.thumbnails,
       download.getTranscript || false,
       download.getThumbnail || false,
+      download.duration || 60,
     );
     // remove the current download from the saved list for forDownloads
     removeFromForDownloads(download.id);

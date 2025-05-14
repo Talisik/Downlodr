@@ -11,6 +11,16 @@ import {
   FormatProvider,
   SettingsPage,
   NotificationOptions,
+  FormatSelectorOptions,
+  FormatSelectorResult,
+  TaskBarItem,
+  PluginSidePanelOptions,
+  PluginSidePanelResult,
+  SaveDialogOptions,
+  SaveDialogResult,
+  WriteFileOptions,
+  WriteFileResult,
+  SaveFileDialogOptions,
 } from './types';
 import useDownloadStore from '../Store/downloadStore';
 import { formatFileSize } from '../Pages/StatusSpecificDownload';
@@ -84,9 +94,98 @@ export function createPluginAPI(pluginId: string): PluginAPI {
       toast({
         title: options.title,
         description: options.message,
-        duration: options.duration,
+        duration: options.duration || 3000,
         variant: variant,
       });
+    },
+
+    showFormatSelector: async (
+      options: FormatSelectorOptions,
+    ): Promise<FormatSelectorResult | null> => {
+      console.log(`Plugin ${pluginId} requesting format selector:`, options);
+
+      if (!window.formatSelectorManager) {
+        console.error('Format selector manager not available');
+        return null;
+      }
+
+      try {
+        // Call the format selector manager to show the UI
+        return await window.formatSelectorManager.showFormatSelector(options);
+      } catch (error) {
+        console.error('Error showing format selector:', error);
+        return null;
+      }
+    },
+
+    registerTaskBarItem: async (taskBarItem: TaskBarItem) => {
+      console.log(
+        `Plugin ${pluginId} registering taskbar item via IPC:`,
+        taskBarItem,
+      );
+
+      // Create a unique handler ID
+      const handlerId = `${pluginId}:taskbar:${Date.now()}`;
+
+      // Store the handler locally in renderer process
+      window.PluginHandlers = window.PluginHandlers || {};
+
+      if (taskBarItem.onClick) {
+        window.PluginHandlers[handlerId] = taskBarItem.onClick;
+      }
+
+      // Create a serializable version without function properties
+      const serializableItem = {
+        ...taskBarItem,
+        pluginId,
+        handlerId,
+        id: taskBarItem.id || `${pluginId}-taskbar-${Date.now()}`,
+        onClick: undefined as unknown as (contextData?: any) => void,
+      };
+
+      // Register the item without the onClick function
+      return await window.plugins.registerTaskBarItem(serializableItem);
+    },
+
+    unregisterTaskBarItem: async (id: string) => {
+      console.log(`Plugin ${pluginId} unregistering taskbar item: ${id}`);
+      return await window.plugins.unregisterTaskBarItem(id);
+    },
+
+    showPluginSidePanel: async (
+      options: PluginSidePanelOptions,
+    ): Promise<PluginSidePanelResult | null> => {
+      console.log(`Plugin ${pluginId} requesting side panel:`, options);
+
+      if (!window.pluginSidePanelManager) {
+        console.error('Plugin side panel manager not available');
+        return null;
+      }
+
+      try {
+        // Call the plugin side panel manager to show the UI
+        return await window.pluginSidePanelManager.showPluginSidePanel(options);
+      } catch (error) {
+        console.error('Error showing plugin side panel:', error);
+        return null;
+      }
+    },
+
+    showSaveFileDialog: async (
+      options: SaveDialogOptions,
+    ): Promise<SaveDialogResult> => {
+      console.log(`Plugin ${pluginId} requesting save file dialog:`, options);
+
+      try {
+        // Use the IPC method to show the dialog from the main process
+        return await window.plugins.saveFileDialog({
+          ...options,
+          pluginId,
+        });
+      } catch (error) {
+        console.error('Error showing save file dialog:', error);
+        return { canceled: true, success: false };
+      }
     },
   };
 
@@ -141,6 +240,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         options.thumbnails,
         options.getTranscript || false,
         options.getThumbnail || false,
+        options.duration || 60,
       );
 
       return options.name; // Return ID
@@ -198,6 +298,65 @@ function createUIAPI(pluginId: string): UIAPI {
     showNotification: (options: any) => {
       // Show notification
     },
+    showFormatSelector: async (
+      options: FormatSelectorOptions,
+    ): Promise<FormatSelectorResult | null> => {
+      console.log(`Plugin ${pluginId} requesting format selector:`, options);
+
+      if (!window.formatSelectorManager) {
+        console.error('Format selector manager not available');
+        return null;
+      }
+
+      try {
+        return await window.formatSelectorManager.showFormatSelector(options);
+      } catch (error) {
+        console.error('Error showing format selector:', error);
+        return null;
+      }
+    },
+    registerTaskBarItem: (taskBarItem: TaskBarItem) => {
+      // Store taskbar item in a global registry
+      return Promise.resolve(`${pluginId}:taskbar:${Date.now()}`);
+    },
+    unregisterTaskBarItem: (id: string) => {
+      // Remove taskbar item
+      return Promise.resolve(true);
+    },
+    showPluginSidePanel: async (
+      options: PluginSidePanelOptions,
+    ): Promise<PluginSidePanelResult | null> => {
+      console.log(`Plugin ${pluginId} requesting side panel:`, options);
+
+      if (!window.pluginSidePanelManager) {
+        console.error('Plugin side panel manager not available');
+        return null;
+      }
+
+      try {
+        // Call the plugin side panel manager to show the UI
+        return await window.pluginSidePanelManager.showPluginSidePanel(options);
+      } catch (error) {
+        console.error('Error showing plugin side panel:', error);
+        return null;
+      }
+    },
+    showSaveFileDialog: async (
+      options: SaveDialogOptions,
+    ): Promise<SaveDialogResult> => {
+      console.log(`Plugin ${pluginId} requesting save file dialog:`, options);
+
+      try {
+        // Use the IPC method to show the dialog from the main process
+        return await window.plugins.saveFileDialog({
+          ...options,
+          pluginId,
+        });
+      } catch (error) {
+        console.error('Error showing save file dialog:', error);
+        return { canceled: true, success: false };
+      }
+    },
   };
 }
 
@@ -222,6 +381,69 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
     },
     selectDirectory: async () => {
       return await window.ytdlp.selectDownloadDirectory();
+    },
+
+    // Add file reading API
+    readFileContents: async (
+      filePath: string,
+    ): Promise<{ success: boolean; data?: string; error?: string }> => {
+      console.log(`Plugin ${pluginId} requesting to read file: ${filePath}`);
+
+      try {
+        const result = await window.plugins.readFileContents({
+          filePath,
+          pluginId,
+        });
+
+        return {
+          success: true,
+          data: result.data,
+        };
+      } catch (error) {
+        console.error('Error reading file contents:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    },
+
+    // Add file writing API
+    writeFile: async (options: WriteFileOptions): Promise<WriteFileResult> => {
+      console.log(`Plugin ${pluginId} requesting to write file:`, options);
+
+      try {
+        return await window.plugins.writeFile({
+          ...options,
+          pluginId,
+        });
+      } catch (error) {
+        console.error('Error writing file:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    },
+
+    saveFileWithDialog: async (
+      options: SaveFileDialogOptions,
+    ): Promise<WriteFileResult> => {
+      console.log(`Plugin ${pluginId} requesting to save file with dialog`);
+
+      try {
+        // This will show a file save dialog to the user
+        return await window.plugins.saveFileDialog({
+          ...options,
+          pluginId,
+        });
+      } catch (error) {
+        console.error('Error saving file with dialog:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
     },
   };
 }

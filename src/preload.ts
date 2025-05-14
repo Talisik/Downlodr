@@ -117,7 +117,10 @@ contextBridge.exposeInMainWorld('electronDevTools', {
 
 contextBridge.exposeInMainWorld('updateAPI', {
   onUpdateAvailable: (callback: any) => {
-    ipcRenderer.on('update-available', (_, updateInfo) => callback(updateInfo));
+    const wrappedCallback = (_: any, updateInfo: any) => callback(updateInfo);
+    ipcRenderer.on('update-available', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('update-available', wrappedCallback);
   },
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
 });
@@ -163,10 +166,7 @@ contextBridge.exposeInMainWorld('plugins', {
     ipcRenderer.invoke('plugins:loadUnzipped', pluginDirPath),
 
   // Safe file operations for plugins
-  writeFile: (filePath: string, content: string) =>
-    ipcRenderer.invoke('plugin:fs:writeFile', { filePath, content }),
-  readFile: (filePath: string) =>
-    ipcRenderer.invoke('plugin:fs:readFile', { filePath }),
+  writeFile: (options: any) => ipcRenderer.invoke('plugins:writeFile', options),
 
   registerMenuItem: (menuItem: any) =>
     ipcRenderer.invoke('plugins:register-menu-item', menuItem),
@@ -198,4 +198,19 @@ contextBridge.exposeInMainWorld('plugins', {
     ipcRenderer.invoke('plugins:get-location', pluginId),
   openPluginFolder: (pluginId: string) =>
     ipcRenderer.invoke('plugins:open-folder', pluginId),
+
+  // TaskBar items
+  registerTaskBarItem: (item: any) =>
+    ipcRenderer.invoke('plugins:register-taskbar-item', item),
+
+  unregisterTaskBarItem: (id: string) =>
+    ipcRenderer.invoke('plugins:unregister-taskbar-item', id),
+
+  getTaskBarItems: () => ipcRenderer.invoke('plugins:taskbar-items'),
+
+  executeTaskBarItem: (id: string, contextData?: any) =>
+    ipcRenderer.invoke('plugins:execute-taskbar-item', id, contextData),
+
+  readFile: (filePath: string) =>
+    ipcRenderer.invoke('plugin:fs:readFile', { filePath }),
 });

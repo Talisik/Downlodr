@@ -450,6 +450,7 @@ const StatusSpecificDownloads = () => {
         currentDownload.thumbnails,
         currentDownload.getTranscript || false,
         currentDownload.getThumbnail || false,
+        currentDownload.duration || 60,
       );
       deleteDownloading(downloadId);
       toast({
@@ -642,6 +643,7 @@ const StatusSpecificDownloads = () => {
       return {
         id,
         controllerId: download?.controllerId,
+        videoUrl: download?.videoUrl,
         location: download?.location
           ? await window.downlodrFunctions.joinDownloadPath(
               download.location,
@@ -672,6 +674,7 @@ const StatusSpecificDownloads = () => {
       return {
         id,
         controllerId: download?.controllerId,
+        videoUrl: download?.videoUrl,
         location: download?.location
           ? await window.downlodrFunctions.joinDownloadPath(
               download.location,
@@ -795,15 +798,15 @@ const StatusSpecificDownloads = () => {
       <div className="flex-grow overflow-auto">
         <div className="min-w-full">
           <table className="min-w-full">
-            <thead>
+            <thead className="dark:bg-darkModeCompliment">
               <tr
-                className="border-b text-left dark:border-componentBorder"
+                className="border-b border-t text-left dark:border-darkModeBorderColor"
                 onContextMenu={handleColumnHeaderContextMenu}
               >
                 <th className="w-8 p-2">
                   <input
                     type="checkbox"
-                    className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
+                    className="ml-2 rounded border-gray-900 dark:border-blue dark:checked:bg-blue-500"
                     checked={selectedRowIds.length === allDownloads.length}
                     onChange={handleSelectAll}
                   />
@@ -853,7 +856,7 @@ const StatusSpecificDownloads = () => {
               {allDownloads.map((download) => (
                 <React.Fragment key={download.id}>
                   <tr
-                    className={`border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-600 cursor-pointer ${
+                    className={`border-b-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover cursor-pointer ${
                       selectedDownloadId === download.id
                         ? 'bg-blue-50 dark:bg-gray-600'
                         : 'dark:bg-darkMode'
@@ -935,6 +938,12 @@ const StatusSpecificDownloads = () => {
                                   {download.status === 'fetching metadata' ? (
                                     <div className="space-y-1">
                                       <Skeleton className="h-8 w-[50px] rounded-[3px]" />
+                                    </div>
+                                  ) : download.status === 'finished' ? (
+                                    <div className="ml-1 font-medium">
+                                      {download.ext ||
+                                        download.audioExt ||
+                                        'Unknown'}
                                     </div>
                                   ) : (
                                     <FormatSelector
@@ -1036,7 +1045,7 @@ const StatusSpecificDownloads = () => {
                                         e.stopPropagation();
                                         handlePause(download.id);
                                       }}
-                                      className="hover:bg-gray-100 dark:hover:bg-gray-600 p-1 rounded-full"
+                                      className="hover:bg-gray-100 dark:hover:bg-darkModeHover p-1 rounded-full"
                                     >
                                       <AnimatedCircularProgressBar
                                         status={download.status}

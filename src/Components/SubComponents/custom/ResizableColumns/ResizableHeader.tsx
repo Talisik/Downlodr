@@ -52,7 +52,7 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
 }) => {
   return (
     <th
-      className={`relative p-2 font-semibold dark:text-gray-200 select-none ${
+      className={`relative px-2 font-semibold dark:text-gray-200 select-none${
         isDragging ? 'opacity-50 bg-blue-100 dark:bg-blue-900' : ''
       } ${isDragOver ? 'border-l-2 border-blue-500' : ''} ${className}`}
       style={{ width: `${width}px` }}
@@ -93,7 +93,7 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
           }}
           draggable={false}
         >
-          <div className="absolute right-[7px] top-0 h-full w-[3px] bg-gray-300 dark:bg-componentBorder group-hover:bg-blue-500" />
+          <div className="absolute right-[7px] mt-1 h-4/5 w-[2px] bg-gray-300 dark:bg-darkModeBorderColor group-hover:bg-blue-500  justify-center" />
         </div>
       )}
     </th>

@@ -57,6 +57,7 @@ export interface BaseDownload {
   thumnailsLocation: string;
   getTranscript: boolean;
   getThumbnail: boolean;
+  duration: number;
 }
 
 // Interface for downloads that are currently being processed
@@ -88,11 +89,13 @@ interface Downloading extends BaseDownload {
 // Interface for finished downloads
 export interface FinishedDownloads extends BaseDownload {
   status: string; // Status of the finished download
+  transcriptLocation: string;
 }
 
 // Interface for historical downloads
 export interface HistoryDownloads extends BaseDownload {
   status: string; // Status of the historical download
+  transcriptLocation: string;
 }
 
 // Main interface for the download store
@@ -128,6 +131,7 @@ interface DownloadStore {
     thumbnails: any,
     getTranscript: boolean,
     getThumbnail: boolean,
+    duration: number,
   ) => void; // Add a new download
   setDownload: (
     videoUrl: string,
@@ -212,6 +216,7 @@ const useDownloadStore = create<DownloadStore>()(
                   const updatedDownload = {
                     ...download,
                     size: actualFileSize || download.size,
+                    transcriptLocation: download.autoCaptionLocation || '',
                   };
                   set((state) => ({
                     finishedDownloads: state.finishedDownloads.some(
@@ -249,6 +254,7 @@ const useDownloadStore = create<DownloadStore>()(
               const updatedDownload = {
                 ...download,
                 size: actualFileSize || download.size,
+                transcriptLocation: download.autoCaptionLocation || '',
               };
 
               set((state) => ({
@@ -323,6 +329,7 @@ const useDownloadStore = create<DownloadStore>()(
         thumbnails,
         getTranscript,
         getThumbnail,
+        duration,
       ) => {
         if (!location || !downloadName) {
           console.error('Invalid path parameters:', { location, downloadName });
@@ -408,6 +415,8 @@ const useDownloadStore = create<DownloadStore>()(
                           download.size,
                         status: result.data.status || download.status,
                         elapsed: result.data.elapsed || download.elapsed,
+                        ext: ext,
+                        audioExt: audioExt,
                       }
                     : download,
                 ),
@@ -475,7 +484,7 @@ const useDownloadStore = create<DownloadStore>()(
               progress,
               location: finalLocation, // Use the subfolder path for the download location
               status: 'downloading',
-              ext,
+              ext: ext,
               formatId,
               backupExt: ext,
               backupFormatId: formatId,
@@ -485,7 +494,7 @@ const useDownloadStore = create<DownloadStore>()(
               tags: [],
               category: [],
               extractorKey,
-              audioExt: '',
+              audioExt: audioExt,
               audioFormatId: '',
               isLive: false,
               elapsed: null,
@@ -495,9 +504,34 @@ const useDownloadStore = create<DownloadStore>()(
               thumnailsLocation: outputPath,
               getTranscript,
               getThumbnail,
+              duration: duration,
             },
           ],
         }));
+
+        console.log('Download parameters:', {
+          videoUrl,
+          name,
+          downloadName,
+          size,
+          speed,
+          timeLeft,
+          DateAdded,
+          progress,
+          location,
+          status,
+          ext,
+          formatId,
+          audioExt,
+          audioFormatId,
+          extractorKey,
+          limitRate,
+          automatic_caption,
+          thumbnails,
+          getTranscript,
+          getThumbnail,
+          duration,
+        });
       },
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -552,6 +586,7 @@ const useDownloadStore = create<DownloadStore>()(
               // Store the user preferences
               getTranscript: options.getTranscript,
               getThumbnail: options.getThumbnail,
+              duration: 0,
             },
           ],
         }));
@@ -579,7 +614,7 @@ const useDownloadStore = create<DownloadStore>()(
           ) {
             thumbnail = info.data.thumbnails[0];
           }
-
+          console.log(info);
           // Process formats using the service
           const { formatOptions, defaultFormatId, defaultExt } =
             await VideoFormatService.processVideoFormats(info);
@@ -612,9 +647,9 @@ const useDownloadStore = create<DownloadStore>()(
                     location: location,
                     automaticCaption: caption,
                     thumbnails: thumbnail,
-                    // Keep the user preferences
                     getTranscript: options.getTranscript,
                     getThumbnail: options.getThumbnail,
+                    duration: info.data?.duration,
                   }
                 : download,
             ),

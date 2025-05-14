@@ -38,6 +38,7 @@ export async function downloadEnglishCaptions(
     let selectedCaption = undefined;
 
     for (const format of formatPreference) {
+      console.log(captionsData);
       selectedCaption = captionsData.find(
         (caption: any) => caption.ext === format,
       );

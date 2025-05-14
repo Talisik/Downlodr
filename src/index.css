@@ -66,18 +66,14 @@ body {
 
 .nav-link.active {
   @apply bg-gray-100;
-  @apply dark:bg-gray-700;
+  @apply dark:bg-darkModeCompliment;
   @apply rounded w-[100%];
 
 }
 
-.scheduler.active {
-  @apply text-primary;
-}
-
 .nav-link:not(.active):hover {
   @apply bg-gray-100;
-  @apply dark:bg-gray-700;
+  @apply dark:bg-darkModeCompliment;
   @apply rounded w-[100%];
 }
 

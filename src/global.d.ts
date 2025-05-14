@@ -68,8 +68,10 @@ declare global {
       toggle: () => void; // Toggles the visibility of the developer tools
     };
     updateAPI: {
-      onUpdateAvailable: (callback: (updateInfo: UpdateInfo) => void) => void;
-      checkForUpdates: () => Promise<UpdateInfo>; // Changed return type from void to UpdateInfo
+      onUpdateAvailable: (
+        callback: (updateInfo: UpdateInfo) => void,
+      ) => () => void;
+      checkForUpdates: () => Promise<UpdateInfo>;
     };
     backgroundSettings: {
       getRunInBackground: () => Promise<boolean>;
@@ -87,18 +89,19 @@ declare global {
       getCode: (
         pluginId: string,
       ) => Promise<{ code: string; manifest: any; error?: string }>;
-      install: (pluginPath: string) => Promise<boolean>;
+      install: (pluginPath: string) => Promise<boolean | string>;
       uninstall: (pluginId: string) => Promise<boolean>;
       getMenuItems: (context: any) => Promise<MenuItem[]>;
       executeMenuItem: (id: string, contextData?: any) => Promise<void>;
       loadUnzipped: (pluginDirPath: string) => Promise<boolean>;
-      writeFile: (
-        filePath: string,
-        content: string,
-      ) => Promise<{ success: boolean; error?: string }>;
+      writeFile: (options: WriteFileOptions) => Promise<WriteFileResult>;
       readFile: (
         filePath: string,
-      ) => Promise<{ content: string; error?: string }>;
+      ) => Promise<{ success: boolean; data?: string; error?: string }>;
+      readFileContents: (options: {
+        filePath: string;
+        pluginId?: string;
+      }) => Promise<{ success: boolean; data?: string; error?: string }>;
 
       // Add these new methods
       registerMenuItem: (menuItem: MenuItem) => Promise<string>;
@@ -115,6 +118,13 @@ declare global {
       ) => () => void;
       getPluginLocation: (pluginId: string) => Promise<string | null>;
       openPluginFolder: (pluginId: string) => Promise<boolean>;
+
+      // TaskBar items
+      registerTaskBarItem: (item: TaskBarItem) => Promise<string>;
+      unregisterTaskBarItem: (id: string) => Promise<boolean>;
+      getTaskBarItems: () => Promise<TaskBarItem[]>;
+      executeTaskBarItem: (id: string, contextData?: any) => Promise<boolean>;
+      saveFileDialog: (options: SaveDialogOptions) => Promise<SaveDialogResult>;
     };
     PluginHandlers?: Record<string, (contextData?: any) => void>;
   }
@@ -135,6 +145,47 @@ interface MenuItem {
   pluginId?: string;
   onClick: (contextData?: any) => void;
   handlerId?: string;
+}
+
+interface TaskBarItem {
+  id: string;
+  label: string;
+  icon?: React.ReactNode;
+  tooltip?: string;
+  pluginId?: string;
+  onClick?: (contextData?: any) => void;
+  handlerId?: string;
+}
+
+interface WriteFileOptions {
+  fileName: string;
+  content: string;
+  fileType?: string;
+  directory?: string;
+  overwrite?: boolean;
+  customPath?: string;
+  pluginId: string;
+}
+
+interface WriteFileResult {
+  success: boolean;
+  filePath?: string;
+  error?: string;
+}
+
+interface SaveDialogOptions {
+  defaultPath?: string;
+  content: string;
+  filters?: Array<{ name: string; extensions: string[] }>;
+  title?: string;
+  pluginId: string;
+}
+
+interface SaveDialogResult {
+  success: boolean;
+  filePath?: string;
+  canceled?: boolean;
+  error?: string;
 }
 
 export {};

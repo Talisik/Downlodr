@@ -38,22 +38,25 @@ module.exports = {
       },
       colors: {
         ...colors, // Spread the default colors
-        // Add your custom colors here
         titleBar: {
           DEFAULT: '#FEF9F4',
-          dark: '#16161E',
+          dark: '#09090B',
         },
         body:{
           DEFAULT: '#fff',
-          dark: '#16161E',
+          dark: '#09090B',
         },
         primary: '#F45513',
         secondary: '#202020',
         divider: '#D1D5DB',
         tabs: '#fef9f4',
         lightGray: '#EDEDED',
-        darkMode: '#16161E',
-        darkModeCompliment: '#21212d',
+        darkMode: '#09090B',
+        darkModeCompliment: '#272727',
+        darkModeBorderColor: '#434347',
+        darkModeDropdown: '#18181B',
+        darkModeLight: '#D4D4D8',
+        darkModeHover: '#3E3E46',
         inputDarkMode: '#FEF9F426',
         skeleton: '#E8EDF1',
         border: '#E4E4E7',

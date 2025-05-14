@@ -15,7 +15,7 @@ import {
 } from 'react-router-dom';
 import { ThemeProvider } from './Components/ThemeProvider';
 import MainLayout from './Layout/MainLayout';
-// import AllDownloads from './Pages/AllDownloads';
+import PluginLayout from './Layout/PluginLayout';
 import History from './Pages/History';
 import PluginManager from './Pages/PlugInManager';
 import NotFound from './Pages/SubPages/NotFound';
@@ -28,6 +28,8 @@ import StatusSpecificDownloads from './Pages/StatusSpecificDownload';
 import { useEffect } from 'react';
 import { useMainStore } from './Store/mainStore';
 import { PluginLoader } from './plugins/PluginLoader';
+import FormatSelectorManager from './plugins/components/FormatSelectorManager';
+import PluginSidePanelManager from './plugins/components/PluginSidePanelManager';
 
 const App = () => {
   const { settings } = useMainStore();
@@ -50,8 +52,6 @@ const App = () => {
         <Routes>
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Navigate to="/status/all" replace />} />
-            <Route path="/plugin-manager" element={<PluginManager />} />
-            <Route path="/plugin-details" element={<PluginDetails />} />
             <Route path="/history" element={<History />} />
             <Route path="/category/:categoryId" element={<CategoryPage />} />
             <Route path="/tags/:tagId" element={<TagPage />} />
@@ -61,11 +61,18 @@ const App = () => {
             />
             <Route path="*" element={<NotFound />} />
           </Route>
+
+          <Route path="/plugins" element={<PluginLayout />}>
+            <Route index element={<PluginManager />} />
+            <Route path="details" element={<PluginDetails />} />
+          </Route>
         </Routes>
       </Router>
       <Toaster />
       <UpdateNotification />
       <PluginLoader />
+      <FormatSelectorManager />
+      <PluginSidePanelManager />
     </ThemeProvider>
   );
 };

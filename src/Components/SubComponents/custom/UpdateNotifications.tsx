@@ -31,16 +31,25 @@ const UpdateNotification: React.FC = () => {
 
   useEffect(() => {
     // Only add the listener if we're in an Electron environment
-    console.log(window.updateAPI);
-    if (window.updateAPI.onUpdateAvailable) {
+    let removeListener: (() => void) | undefined;
+
+    if (window.updateAPI?.onUpdateAvailable) {
       // Listen for update notifications from the main process
-      window.updateAPI.onUpdateAvailable((info) => {
+      removeListener = window.updateAPI.onUpdateAvailable((info) => {
         if (info.hasUpdate) {
           setUpdateInfo(info);
           setOpen(true);
         }
       });
     }
+
+    // Clean up the listener when the component unmounts
+    return () => {
+      if (removeListener) {
+        console.log('Removing update listener');
+        removeListener();
+      }
+    };
   }, []);
 
   if (!updateInfo) {
@@ -85,7 +94,7 @@ const UpdateNotification: React.FC = () => {
             <Button
               variant="default"
               size="sm"
-              className="h-8 px-4 py-4.8 text-sm dark:text-gray-200"
+              className="h-8 px-4 py-4.8 text-sm text-black dark:text-gray-200"
             >
               Later
             </Button>

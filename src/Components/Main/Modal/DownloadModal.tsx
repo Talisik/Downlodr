@@ -336,7 +336,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[8999]"
+      className="fixed inset-0 bg-black bg-opacity-60 dark:bg-opacity-50 flex items-center justify-center h-full z-[8999]"
       onClick={(e) => {
         // Only close if clicking the overlay background
         if (e.target === e.currentTarget) {
@@ -346,9 +346,9 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     >
       {/* Directory selection overlay - blocks all app interaction */}
       {isSelectingDirectory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] cursor-not-allowed flex items-center justify-center">
-          <div className="bg-white dark:bg-darkMode p-4 rounded-lg shadow-lg max-w-md text-center">
-            <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-[9999] cursor-not-allowed flex items-center justify-center">
+          <div className="bg-white dark:bg-darkModeDropdown p-4 rounded-lg shadow-lg max-w-md text-center">
+            <h3 className="text-lg font-medium mb-2 dark:text-darkModeLight">
               Directory Selection In Progress
             </h3>
             <p className="text-gray-600 dark:text-gray-300">
@@ -358,12 +358,12 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         </div>
       )}
       <div
-        className={`bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 ${
+        className={`bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment pt-6 pr-6 pl-6 ${
           isValidUrl && isPlaylist ? 'w-full max-w-[800px]' : 'w-full max-w-xl'
         }`}
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold dark:text-gray-200">
+          <h2 className="text-xl font-semibold dark:text-darkModeLight">
             {isPlaylist ? 'Playlist Download' : 'New Download'}
           </h2>
           <button
@@ -379,7 +379,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             <form onSubmit={(e) => e.preventDefault()} className={'w-full'}>
               <div className="space-y-4">
                 <div>
-                  <label className="block dark:text-gray-200 font-medium">
+                  <label className="block dark:text-darkModeLight font-medium">
                     Download link
                   </label>
                   <div className="flex gap-2">
@@ -393,13 +393,13 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         e.preventDefault();
                         window.downlodrFunctions.showInputContextMenu();
                       }}
-                      className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
+                      className="flex-1 border rounded-md px-3 py-2 dark:text-black outline-none dark:border-transparent"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block dark:text-gray-200 font-medium">
+                  <label className="block dark:text-darkModeLight font-medium">
                     Save file to
                   </label>
                   <div className="flex gap-2">
@@ -409,14 +409,14 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                       value={downloadFolder}
                       onClick={handleDirectory}
                       placeholder="Download Destination Folder"
-                      className="flex-1 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
+                      className="flex-1 border rounded-md px-3 py-2 dark:text-black outline-none dark:border-transparent"
                       readOnly
                     />
                   </div>
                 </div>
                 <div className="">
                   <div className="flex items-center gap-2">
-                    <label className="block dark:text-gray-200 text-nowrap font-bold">
+                    <label className="block dark:text-darkModeLight text-nowrap font-bold">
                       Additional Options
                     </label>
                     <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
@@ -430,7 +430,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         onChange={(e) => setGetTranscript(e.target.checked)}
                         className="w-4 h-4 text-primary rounded focus:ring-primary"
                       />
-                      <label className="font-medium dark:text-gray-200 ">
+                      <label className="font-medium dark:text-darkModeLight ">
                         Get Closed Captions
                       </label>
                     </div>
@@ -442,7 +442,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         onChange={(e) => setGetThumbnail(e.target.checked)}
                         className="w-4 h-4 text-primary rounded focus:ring-primary"
                       />
-                      <label className="font-medium dark:text-gray-200 ">
+                      <label className="font-medium dark:text-darkModeLight ">
                         Get Thumbnail
                       </label>
                     </div>
@@ -467,7 +467,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                 <Skeleton className="h-4 flex-1 rounded-[3px] h-full" />
               ) : (
                 <div className="video-section">
-                  <div className="sticky top-0 bg-white dark:bg-darkMode pb-4 z-10">
+                  <div className="sticky top-0 bg-white dark:bg-darkModeDropdown pb-4 z-10">
                     <div className="select-all flex items-center">
                       <input
                         type="checkbox"
@@ -475,7 +475,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         onChange={handleSelectAll}
                         className="mr-2"
                       />
-                      <label className="dark:text-gray-200 font-medium">
+                      <label className="dark:text-darkModeLight font-medium">
                         {videoTitle}
                       </label>
                     </div>
@@ -498,7 +498,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                           className="w-24 h-16 object-cover rounded"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium dark:text-gray-200 truncate">
+                          <h4 className="font-medium dark:text-darkModeLight truncate">
                             {video.title}
                           </h4>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -513,9 +513,16 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             </div>
           )}
         </div>
-        <hr className="solid mt-4 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
+        <hr className="solid mt-4 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
 
-        <div className="bg-[#FEF9F4] dark:dark:bg-darkMode flex gap-3 justify-end -mx-6 px-4 py-2 rounded-b-md">
+        <div className="bg-[#FEF9F4] dark:dark:bg-darkMode flex gap-3 justify-end -mx-6 px-4 py-3 rounded-b-md">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="px-2 py-2 rounded-md hover:bg-gray-50 dark:bg-darkModeCompliment dark:text-darkModeLight dark:hover:bg-darkModeHover dark:hover:text-white font-medium"
+          >
+            Cancel
+          </button>
           <button
             type="button"
             className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90"
@@ -523,13 +530,6 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             onClick={handleDownload}
           >
             Fetch Download
-          </button>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
-          >
-            Cancel
           </button>
         </div>
       </div>

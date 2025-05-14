@@ -52,7 +52,7 @@ const ColumnHeaderContextMenu: React.FC<ColumnHeaderContextMenuProps> = ({
       {columnOptions.map((column) => (
         <div
           key={column.id}
-          className="flex items-center pr-4 pl-4 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          className="flex items-center pr-4 pl-4 py-1 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
         >
           <input
             type="checkbox"

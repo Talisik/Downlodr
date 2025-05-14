@@ -217,7 +217,7 @@ const Navigation = ({
   return (
     <nav
       ref={navRef}
-      className={`${className} border-solid border-r border-gray-200 dark:border-componentBorder transition-all duration-300 ${
+      className={`${className} transition-all duration-300 ${
         collapsed ? 'w-[70px]' : ''
       } relative overflow-x-hidden`}
     >
@@ -255,8 +255,8 @@ const Navigation = ({
                 to="/status/all"
                 className={({ isActive }) =>
                   `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
                     collapsed
                       ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
                       : 'items-center'
@@ -272,8 +272,8 @@ const Navigation = ({
                 to="/status/fetching-metadata"
                 className={({ isActive }) =>
                   `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
                     collapsed
                       ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
                       : 'items-center'
@@ -294,8 +294,8 @@ const Navigation = ({
                 to="/status/to-download"
                 className={({ isActive }) =>
                   `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
                     collapsed
                       ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
                       : 'items-center'
@@ -313,8 +313,8 @@ const Navigation = ({
                 to="/status/downloading"
                 className={({ isActive }) =>
                   `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
                     collapsed
                       ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
                       : 'items-center'
@@ -335,8 +335,8 @@ const Navigation = ({
                 to="/status/paused"
                 className={({ isActive }) =>
                   `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
                     collapsed
                       ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
                       : 'items-center'
@@ -355,8 +355,8 @@ const Navigation = ({
                 to="/status/initializing"
                 className={({ isActive }) =>
                   `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
                     collapsed
                       ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
                       : 'items-center'
@@ -377,8 +377,8 @@ const Navigation = ({
                 to="/status/failed"
                 className={({ isActive }) =>
                   `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
                     collapsed
                       ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
                       : 'items-center'
@@ -394,8 +394,8 @@ const Navigation = ({
                 to="/status/finished"
                 className={({ isActive }) =>
                   `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700 flex ${
+                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
                     collapsed
                       ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
                       : 'items-center'
@@ -462,8 +462,8 @@ const Navigation = ({
                 to="/category/all"
                 className={({ isActive }) =>
                   `nav-link ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment`
                 }
               >
                 <BiLayer size={16} className="text-orange-500 flex-shrink-0" />
@@ -473,8 +473,8 @@ const Navigation = ({
                 to="/category/uncategorized"
                 className={({ isActive }) =>
                   `nav-link ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment`
                 }
               >
                 <BiLayer size={16} className="text-blue-500 flex-shrink-0" />
@@ -486,10 +486,10 @@ const Navigation = ({
                   to={`/category/${encodeURIComponent(category)}`}
                   className={({ isActive }) =>
                     `nav-link ${
-                      isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                    } dark:text-gray-200 dark:hover:bg-gray-700 ${
+                      isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                    } dark:text-gray-200 dark:hover:bg-darkModeCompliment ${
                       dragOverItem === category
-                        ? 'bg-gray-200 dark:bg-gray-700'
+                        ? 'bg-gray-200 dark:bg-darkModeCompliment'
                         : ''
                     }`
                   }
@@ -558,8 +558,8 @@ const Navigation = ({
                 to="/tags/all"
                 className={({ isActive }) =>
                   `nav-link ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment`
                 }
               >
                 <BsTag size={16} className="text-orange-500 flex-shrink-0" />
@@ -569,8 +569,8 @@ const Navigation = ({
                 to="/tags/untagged"
                 className={({ isActive }) =>
                   `nav-link ${
-                    isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                  } dark:text-gray-200 dark:hover:bg-gray-700`
+                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment`
                 }
               >
                 <BsTag size={16} className="text-blue-500 flex-shrink-0" />
@@ -582,9 +582,11 @@ const Navigation = ({
                   to={`/tags/${encodeURIComponent(tag)}`}
                   className={({ isActive }) =>
                     `nav-link ${
-                      isActive ? 'bg-gray-100 dark:bg-gray-700' : ''
-                    } dark:text-gray-200 dark:hover:bg-gray-700 ${
-                      dragOverItem === tag ? 'bg-gray-200 dark:bg-gray-700' : ''
+                      isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                    } dark:text-gray-200 dark:hover:bg-darkModeCompliment ${
+                      dragOverItem === tag
+                        ? 'bg-gray-200 dark:bg-darkModeCompliment'
+                        : ''
                     }`
                   }
                   onContextMenu={(e) => handleTagContextMenu(e, tag)}
@@ -612,7 +614,7 @@ const Navigation = ({
       >
         <button
           onClick={toggleCollapse}
-          className={`flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700`}
+          className={`flex items-center justify-center w-10 h-10 rounded-full bg-white dark:darkModeLight shadow-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment dark:text-black border border-gray-200 dark:border-gray-700`}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? (

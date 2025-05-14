@@ -152,7 +152,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   // Function to get formatted file size
   const formatFileSize = (bytes: number | undefined): string => {
     if (!bytes) return '—';
-    console.log(bytes);
     const KB = 1024;
     const MB = KB * 1024;
     const GB = MB * 1024;
@@ -558,7 +557,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       <table className="w-full">
         <thead>
           <tr
-            className="border-b text-left dark:border-white"
+            className="border-b text-left dark:border-darkModeCompliment"
             onContextMenu={handleColumnHeaderContextMenu}
           >
             <th className="w-8 p-2">
@@ -603,7 +602,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           {allDownloads.map((download) => (
             <React.Fragment key={download.id}>
               <tr
-                className={`border-b hover:bg-gray-50 dark:border-white dark:hover:bg-gray-700 cursor-pointer ${
+                className={`border-b hover:bg-gray-50 dark:border-darkModeCompliment dark:hover:bg-darkModeHover cursor-pointer ${
                   selectedDownloadId === download.id
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'

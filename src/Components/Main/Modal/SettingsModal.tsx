@@ -10,10 +10,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from 'react';
 import { IoMdClose } from 'react-icons/io';
-import { GrUpdate } from 'react-icons/gr';
 import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
 import { useMainStore } from '../../../Store/mainStore';
-import { Button } from '../../../Components/SubComponents/shadcn/components/ui/button';
 import { toast } from '../../../Components/SubComponents/shadcn/hooks/use-toast';
 import { usePluginStore } from '../../../Store/pluginStore';
 
@@ -239,8 +237,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     >
       {/* Directory selection overlay - blocks all app interaction */}
       {isSelectingDirectory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] cursor-not-allowed flex items-center justify-center">
-          <div className="bg-white dark:bg-darkMode p-4 rounded-lg shadow-lg max-w-md text-center">
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-[9999] cursor-not-allowed flex items-center justify-center">
+          <div className="bg-white dark:bg-darkModeDropdown p-4 rounded-lg shadow-lg max-w-md text-center">
             <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
               Directory Selection In Progress
             </h3>
@@ -250,7 +248,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
       )}
-      <div className="bg-white dark:bg-darkMode rounded-lg pt-4 pr-6 pl-6 pb-4 max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto">
+      <div className="bg-white border border-darkModeCompliment dark:bg-darkModeDropdown rounded-lg pt-4 pr-6 pl-6 pb-4 max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto">
         {/* Left side - Form */}
         <div className="w-full">
           <div className="flex justify-between items-center mb-6">
@@ -406,8 +404,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 application
               </div>
             </div>
-
-            {/* Add the background running toggle after the connection limits section */}
+            {/* 
             <div className="pt-4">
               <div className="flex items-center gap-2 mb-2">
                 <label className="block dark:text-gray-200 text-nowrap font-bold">
@@ -415,13 +412,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 </label>
                 <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
               </div>
-
+ 
               <div className="flex gap-2 flex-wrap justify-between">
                 <span className="mt-2 text-xs font-medium ml-2">
                   Note: Plugins is an experimental feature and might not work as
                   expected.
                 </span>
-                {/*checkbox */}
                 <div className="flex items-center gap-2 self-end sm:self-auto">
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -439,10 +435,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
                   </label>
                 </div>
-                {/* end of checkbox */}
               </div>
             </div>
-
+            */}
             {/* Add column visibility section */}
             <div className="pt-4">
               <div className="flex items-center gap-2 mb-2">
@@ -489,7 +484,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Button commands */}
-        <hr className="solid mt-2 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-gray-700" />
+        <hr className="solid mt-2 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
 
         <div className="flex gap-3 p-0">
           <div className="ml-auto flex gap-3">
@@ -503,7 +498,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             <button
               type="button"
               onClick={handleClose}
-              className="px-2 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
+              className="px-2 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
             >
               Cancel
             </button>

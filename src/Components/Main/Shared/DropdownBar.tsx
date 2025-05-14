@@ -23,11 +23,8 @@ import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import useDownloadStore, {
   HistoryDownloads,
 } from '../../../Store/downloadStore';
-import { useMainStore } from '../../../Store/mainStore';
-import { usePluginStore } from '../../../Store/pluginStore';
 import AboutModal from '../Modal/AboutModal';
 import HelpModal from '../Modal/HelpModal';
-import { processFileName } from '../../../DataFunctions/FilterName';
 import { FiSearch, FiBook } from 'react-icons/fi';
 import { MdOutlineHistory } from 'react-icons/md';
 import { AiOutlineExclamationCircle } from 'react-icons/ai';
@@ -45,19 +42,13 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const { toast } = useToast();
 
   // Store
-  const { settings } = useMainStore();
-  const { downloading, historyDownloads } = useDownloadStore();
+  const { historyDownloads } = useDownloadStore();
 
   // Search
   const [searchTerm, setSearchTerm] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState<HistoryDownloads[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
-
-  // Plug-ins:
-  const showPlugin = true;
-  const pluginVals = ['2', '2'];
-  const { settingsPlugin } = usePluginStore();
 
   // Filter search results when search term changes
   useEffect(() => {
@@ -128,132 +119,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Handles stopping all current downloads
-  const handleStopAll = async () => {
-    console.log('Stopping all downloads');
-    const { deleteDownloading } = useDownloadStore.getState();
-
-    if (downloading && downloading.length > 0) {
-      for (const download of downloading) {
-        console.log(`Attempting to stop download: ${download.id}`);
-
-        if (download.controllerId) {
-          try {
-            const success = await window.ytdlp.killController(
-              download.controllerId,
-            );
-            if (success) {
-              deleteDownloading(download.id);
-              console.log(
-                `Controller with ID ${download.controllerId} has been terminated.`,
-              );
-              toast({
-                variant: 'success',
-                title: 'Download Stopped',
-                description: 'Your download has stopped successfully',
-                duration: 3000,
-              });
-            } else {
-              toast({
-                variant: 'destructive',
-                title: 'Stop Download Error',
-                description: `Could not stop current download with controller ${download.controllerId}`,
-                duration: 3000,
-              });
-              // setCurrentDownloadId(download.id);
-            }
-          } catch (error) {
-            toast({
-              variant: 'destructive',
-              title: 'Stop Download Error',
-              description: `Could not stop current download with controller ${download.controllerId}`,
-              duration: 3000,
-            });
-          }
-        } else {
-          toast({
-            variant: 'destructive',
-            title: 'Stop Download Error',
-            description: `Could not stop current download with controller ${download.controllerId}`,
-            duration: 3000,
-          });
-        }
-      }
-      // Clear selected downloads after stopping all
-      // setSelectedDownloading([]);
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'No Downloads Found',
-        description: `No current downloads to delete`,
-        duration: 3000,
-      });
-    }
-    // setSelectedDownloading([]);
-  };
-
-  // Handles starting all for downloads
-  const handleStartAll = async () => {
-    const { addDownload, forDownloads, removeFromForDownloads, downloading } =
-      useDownloadStore.getState();
-    if (forDownloads.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: 'No Downloads Available',
-        description: 'No downloads available to start',
-        duration: 3000,
-      });
-      return;
-    }
-
-    if (
-      downloading.length >= settings.maxDownloadNum ||
-      forDownloads.length > settings.maxDownloadNum
-    ) {
-      toast({
-        variant: 'destructive',
-        title: 'Download limit reached',
-        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
-        duration: 7000,
-      });
-      return;
-    }
-
-    for (const downloadInfo of forDownloads) {
-      const processedName = await processFileName(
-        downloadInfo.location,
-        downloadInfo.name,
-        downloadInfo.ext || downloadInfo.audioExt,
-      );
-
-      addDownload(
-        downloadInfo.videoUrl,
-        `${processedName}.${downloadInfo.ext}`,
-        `${processedName}.${downloadInfo.ext}`,
-        downloadInfo.size,
-        downloadInfo.speed,
-        downloadInfo.timeLeft,
-        new Date().toISOString(),
-        downloadInfo.progress,
-        downloadInfo.location,
-        'downloading',
-        downloadInfo.ext,
-        downloadInfo.formatId,
-        downloadInfo.audioExt,
-        downloadInfo.audioFormatId,
-        downloadInfo.extractorKey,
-        settings.defaultDownloadSpeed === 0
-          ? ''
-          : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
-        downloadInfo.automaticCaption,
-        downloadInfo.thumbnails,
-        downloadInfo.getTranscript || false,
-        downloadInfo.getThumbnail || false,
-      );
-      removeFromForDownloads(downloadInfo.id);
-    }
-  };
-
   const handleCheckForUpdates = async () => {
     console.log('Check for updates button clicked');
     console.log('updateAPI available:', !!window.updateAPI?.checkForUpdates);
@@ -307,9 +172,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
       <div className="flex items-center gap-4">
         <div className="relative">
           <button
-            className={`px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold ${
+            className={`px-3 py-1 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded font-semibold ${
               activeMenu === 'file'
-                ? 'bg-gray-100 dark:bg-gray-700 font-semibold'
+                ? 'bg-gray-100 dark:bg-darkModeCompliment font-semibold'
                 : ''
             }`}
             onClick={(e) => {
@@ -320,10 +185,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
             File
           </button>
           {activeMenu === 'file' && (
-            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setDownloadModalOpen(true);
@@ -337,7 +202,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
               <div className="mx-1">
                 <NavLink
                   to="/history"
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenu(null);
@@ -349,7 +214,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
               </div>
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     window.downlodrFunctions.closeApp();
@@ -363,7 +228,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
           )}
         </div>
         <button
-          className="px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
+          className="px-3 py-1 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded font-semibold"
           onClick={(e) => {
             e.stopPropagation();
             setSettingsModalOpen(true);
@@ -374,9 +239,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
         </button>
         <div className="relative">
           <button
-            className={`px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold ${
+            className={`px-3 py-1 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded font-semibold ${
               activeMenu === 'help'
-                ? 'bg-gray-100 dark:bg-gray-700 font-semibold'
+                ? 'bg-gray-100 dark:bg-darkModeCompliment font-semibold'
                 : ''
             }`}
             onClick={(e) => {
@@ -387,10 +252,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
             Help
           </button>
           {activeMenu === 'help' && (
-            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkMode border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setHelpModalOpen(true);
@@ -403,7 +268,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
               </div>
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleCheckForUpdates();
@@ -415,7 +280,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
               </div>
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setAboutModalOpen(true);
@@ -429,24 +294,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
             </div>
           )}
         </div>
-        <div className="relative">
-          {pluginVals.length > 0 && settingsPlugin.isShowPlugin && (
-            <NavLink
-              to="/plugin-manager"
-              className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded font-semibold"
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveMenu(null);
-              }}
-            >
-              <span> Plugins</span>
-            </NavLink>
-          )}
-        </div>
       </div>
       {/* Search Bar with increased width */}
       <div ref={searchRef} className="relative my-10 mr-6 w-1/4">
-        <div className="flex items-center dark:bg-[#30303C] rounded-md border border-[#D1D5DB] dark:border-none px-2">
+        <div className="flex items-center dark:bg-darkModeDropdown rounded-md border border-[#D1D5DB] dark:border-none px-2">
           <FiSearch className="text-gray-500 dark:text-gray-400 h-4 w-4 mr-1" />
           <input
             type="text"
@@ -476,7 +327,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
             {searchResults.map((download) => (
               <div
                 key={download.id}
-                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm truncate"
+                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment cursor-pointer text-sm truncate"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleOpenVideo(download);
