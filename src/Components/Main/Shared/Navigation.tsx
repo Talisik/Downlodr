@@ -9,25 +9,25 @@
  * @returns JSX.Element - The rendered component displaying a Navigation
  *
  */
-import React, { useState, useRef, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { BiLayer } from 'react-icons/bi';
+import { BsHourglassSplit, BsTag } from 'react-icons/bs';
+import { CgClose } from 'react-icons/cg';
 import {
   FiChevronDown,
-  FiDownload,
-  FiFolder,
   FiChevronLeft,
   FiChevronRight,
+  FiDownload,
+  FiFolder,
 } from 'react-icons/fi';
-import { BiLayer } from 'react-icons/bi';
-import { BsTag, BsHourglassSplit } from 'react-icons/bs';
+import { HiMiniArrowPath } from 'react-icons/hi2';
+import { MdPlayArrow } from 'react-icons/md';
+import { PiPauseBold } from 'react-icons/pi';
+import { TbDeviceTabletSearch } from 'react-icons/tb';
+import { NavLink } from 'react-router-dom';
 import useDownloadStore from '../../../Store/downloadStore';
 import CategoryContextMenu from '../../SubComponents/custom/CategoryContextMenu';
 import TagContextMenu from '../../SubComponents/custom/TagContextMenu';
-import { TbDeviceTabletSearch } from 'react-icons/tb';
-import { PiPauseBold } from 'react-icons/pi';
-import { HiMiniArrowPath } from 'react-icons/hi2';
-import { CgClose } from 'react-icons/cg';
-import { MdPlayArrow } from 'react-icons/md';
 
 // import { toast } from 'react-hot-toast';
 import { toast } from '../../../Components/SubComponents/shadcn/hooks/use-toast';
@@ -286,7 +286,9 @@ const Navigation = ({
                   className="text-blue-500 flex-shrink-0"
                 />
                 {!collapsed && (
-                  <span className="ml-2 text-[14px]">Loading Metadata</span>
+                  <span className="ml-2 text-[14px] whitespace-nowrap">
+                    Loading Metadata
+                  </span>
                 )}
               </NavLink>
 
@@ -305,7 +307,9 @@ const Navigation = ({
               >
                 <FiDownload size={16} className="text-primary flex-shrink-0" />
                 {!collapsed && (
-                  <span className="ml-2 text-[14px]">Starting Download</span>
+                  <span className="ml-2 text-[14px] whitespace-nowrap">
+                    Starting Download
+                  </span>
                 )}
               </NavLink>
 
