@@ -76,7 +76,7 @@
     "react-router-dom": "^7.1.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "yt-dlp-helper": "github:Talisik/yt-dlp-helper",
+    "yt-dlp-helper": "https://github.com/Talisik/yt-dlp-helper.git",
     "zustand": "^5.0.3"
   }
 }
