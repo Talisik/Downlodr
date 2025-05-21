@@ -290,8 +290,17 @@ const History = () => {
           {sortedlogs.map((product) => (
             <tr
               key={product.id}
-              className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-darkModeHover"
+              className={`border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-darkModeHover cursor-pointer
+                ${
+                  selectedItems.length > 0 &&
+                  product.id === selectedItems[selectedItems.length - 1]
+                    ? 'bg-blue-50 dark:bg-gray-600'
+                    : 'dark:bg-darkMode'
+                }`}
               onContextMenu={(e) => handleRowClick(e, product)}
+              onClick={() => {
+                handleCheckboxChange(product.id);
+              }}
             >
               <td className="w-8 p-2">
                 <input

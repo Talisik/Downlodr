@@ -78,7 +78,7 @@ interface DownloadContextMenuProps {
     id?: string,
     controllerId?: string,
   ) => void; // Function to remove the download
-  onViewDownload: (downloadLocation?: string) => void; // Function to view the download
+  onViewDownload: (downloadLocation?: string, downloadId?: string) => void; // Function to view the download
   onAddTag: (downloadId: string, tag: string) => void; // Function to add a tag to the download
   onRemoveTag: (downloadId: string, tag: string) => void; // Function to remove a tag from the download
   currentTags: string[]; // Array of current tags for the download
@@ -448,6 +448,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       currentDownload.getTranscript || false,
       currentDownload.getThumbnail || false,
       currentDownload.duration || 0,
+      true,
     );
 
     removeFromForDownloads(currentDownload.id); // Remove from forDownloads after starting
@@ -520,7 +521,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewDownload(downloadLocation);
+              onViewDownload(downloadLocation, downloadId);
               onClose();
             }}
           >

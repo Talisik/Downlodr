@@ -302,6 +302,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           downloadInfo.getTranscript || false,
           downloadInfo.getThumbnail || false,
           downloadInfo.duration || 60,
+          true,
         );
         // remove the current download from the saved list for forDownloads
         removeFromForDownloads(selectedDownload.id);
