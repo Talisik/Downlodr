@@ -175,7 +175,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     );
     const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))]
       .map((id) => validDownloads.find((d) => d.id === id))
-      .filter((d): d is (typeof validDownloads)[0] => d !== undefined);
+      .filter(
+        (d): d is (typeof validDownloads)[0] =>
+          d !== undefined && d.status === 'to download',
+      );
 
     // removes the selected options to ensure no errors possible
     clearAllSelections();
@@ -243,7 +246,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     );
     const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))]
       .map((id) => validDownloads.find((d) => d.id === id))
-      .filter((d): d is (typeof validDownloads)[0] => d !== undefined);
+      .filter(
+        (d): d is (typeof validDownloads)[0] =>
+          d !== undefined && d.status === 'to download',
+      );
 
     // Clear selections immediately after filtering
     clearAllSelections();
@@ -438,12 +444,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                 : 'cursor-not-allowed text-gray-400 bg-gray-200 hover:bg-gray-200 dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault',
             )}
             onClick={() => setShowStopConfirmation(true)}
-            disabled={
-              !(
-                selectedDownloads.length > 0 &&
-                location.pathname.includes('/status/')
-              )
-            }
+            disabled={!(selectedDownloads.length > 0)}
           >
             <LuTrash size={15} className="mt-[2px]" /> Remove
           </button>

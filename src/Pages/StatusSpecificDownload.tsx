@@ -26,6 +26,7 @@ import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skele
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 import useDownloadStore from '../Store/downloadStore';
 import { useMainStore } from '../Store/mainStore';
+import { usePluginStore } from '../Store/pluginStore';
 // Reuse helper functions from AllDownloads
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -141,6 +142,7 @@ const StatusSpecificDownloads = () => {
 
   // Get visible columns from the store
   const visibleColumns = useMainStore((state) => state.visibleColumns);
+  const { updateIsOpenPluginSidebar } = usePluginStore();
 
   // Downloads
   const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
@@ -442,6 +444,7 @@ const StatusSpecificDownloads = () => {
     event.preventDefault();
     event.stopPropagation(); // Prevent the click outside handler from firing immediately
     // Close any active column header context menu first
+    updateIsOpenPluginSidebar(false);
     setColumnHeaderContextMenu({
       ...columnHeaderContextMenu,
       visible: false,
@@ -733,21 +736,30 @@ const StatusSpecificDownloads = () => {
           duration: 3000,
         });
       } else {
-        // Pass the specific download to the modal function
-        const downloadItem: DownloadItem = {
-          id: download.id,
-          videoUrl: download.videoUrl,
-          location: download.location,
-          name: download.name,
-          ext: download.ext,
-          downloadName: download.downloadName,
-          extractorKey: download.extractorKey,
-          status: download.status,
-          download: {
-            ...download,
-          },
-        };
-        handleFileNotExistModal(downloadItem);
+        if (download.status === 'finished') {
+          // Pass the specific download to the modal function
+          const downloadItem: DownloadItem = {
+            id: download.id,
+            videoUrl: download.videoUrl,
+            location: download.location,
+            name: download.name,
+            ext: download.ext,
+            downloadName: download.downloadName,
+            extractorKey: download.extractorKey,
+            status: download.status,
+            download: {
+              ...download,
+            },
+          };
+          handleFileNotExistModal(downloadItem);
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to remove download',
+            duration: 3000,
+          });
+        }
       }
     } catch (error) {
       deleteDownload(downloadId);
@@ -1002,6 +1014,7 @@ const StatusSpecificDownloads = () => {
                     }`}
                     onContextMenu={(e) => handleContextMenu(e, download)}
                     onClick={() => {
+                      updateIsOpenPluginSidebar(false);
                       handleRowClick(download.id);
                       handleCheckboxChange(download.id);
                     }}
