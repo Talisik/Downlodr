@@ -429,36 +429,39 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           </button>
         </div>
         <div className="pl-4 flex items-center">
-          <div className="mr-4">
-            {' '}
-            <TaskBarPluginItems />
-          </div>
-
+          {location.pathname.includes('/status') && (
+            <div className="mr-4">
+              <TaskBarPluginItems />
+            </div>
+          )}
+          {/* Portal target for History-specific Remove button */}
+          <div id="taskbar-portal"></div>
           {/* This is the regular downloads Remove button */}
-          <button
-            className={cn(
-              'px-3 py-1 mr-4 rounded-md flex gap-2 text-sm',
-              selectedDownloads.length > 0 &&
-                location.pathname.includes('/status/')
-                ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark'
-                : 'cursor-not-allowed text-gray-400 bg-gray-200 hover:bg-gray-200 dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault',
-            )}
-            onClick={() => setShowStopConfirmation(true)}
-            disabled={!(selectedDownloads.length > 0)}
-          >
-            <LuTrash size={15} className="mt-[2px]" /> Remove
-          </button>
-
+          {(location.pathname.includes('/status/') ||
+            location.pathname.includes('/tags/') ||
+            location.pathname.includes('/category/')) && (
+            <button
+              className={cn(
+                'px-3 py-1 mr-4 rounded-md flex gap-2 text-sm',
+                selectedDownloads.length > 0 &&
+                  location.pathname.includes('/status/')
+                  ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark'
+                  : 'cursor-not-allowed text-gray-400 bg-gray-200 hover:bg-gray-200 dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault',
+              )}
+              onClick={() => setShowStopConfirmation(true)}
+              disabled={!(selectedDownloads.length > 0)}
+            >
+              <LuTrash size={15} className="mt-[2px]" />{' '}
+              <span className="hidden md:inline text-sm">Remove</span>
+            </button>
+          )}
           <button
             className="primary-custom-btn px-[6px] py-[4px] sm:px-[8px] sm:py-[4px] flex items-center gap-1 sm:gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
             onClick={handleOpenDownloadModal}
           >
-            <GoDownload className="sm:w-[14px] sm:h-[14px]" />
-            <span className="hidden sm:inline text-sm">Add URL</span>
+            <GoDownload className="mt-[2px]" />
+            <span className="hidden md:inline text-sm">Add URL</span>
           </button>
-
-          {/* Portal target for History-specific Remove button */}
-          <div id="taskbar-portal"></div>
         </div>
       </div>
       <DownloadModal

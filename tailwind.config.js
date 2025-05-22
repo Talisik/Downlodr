@@ -12,13 +12,22 @@ module.exports = {
   ],
   prefix: '',
   theme: {
+    screens: {
+      'xs': '475px',
+      'sm': '640px',
+      'md': '900px',
+      'lg': '950px',
+      '2xl': '1400px',
+    },
     container: {
       center: true,
       padding: '2rem',
       screens: {
-        '2xl': '1400px',
         'xs': '475px',
         'sm': '640px',
+        'md': '830px',
+        'lg': '950px',
+        '2xl': '1400px',
       },
     },
     extend: {

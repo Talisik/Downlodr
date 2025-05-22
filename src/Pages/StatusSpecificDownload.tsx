@@ -160,7 +160,7 @@ const StatusSpecificDownloads = () => {
   } = useResizableColumns(
     [
       { id: 'name', width: 110, minWidth: 110 },
-      { id: 'size', width: 60, minWidth: 60 },
+      { id: 'size', width: 90, minWidth: 90 },
       { id: 'format', width: 80, minWidth: 80 },
       { id: 'status', width: 110, minWidth: 110 },
       { id: 'speed', width: 70, minWidth: 70 },
@@ -1067,7 +1067,7 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200 flex items-center justify-center"
+                              className="px-2 py-2 dark:text-gray-200 text-left"
                             >
                               {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1">
@@ -1075,9 +1075,9 @@ const StatusSpecificDownloads = () => {
                                   <Skeleton className="h-4 w-[70px] rounded-[3px]" />
                                 </div>
                               ) : (
-                                <div className="line-clamp-2 break-words">
+                                <span className="whitespace-nowrap overflow-hidden">
                                   {formatFileSize(download.size)}
-                                </div>
+                                </span>
                               )}
                             </td>
                           );
@@ -1235,7 +1235,9 @@ const StatusSpecificDownloads = () => {
                               className="p-2 dark:text-gray-200 ml-2"
                             >
                               {download.status === 'downloading' ? (
-                                <span>{download.speed}</span>
+                                <span className="whitespace-nowrap overflow-hidden">
+                                  {download.speed}
+                                </span>
                               ) : (
                                 <div className="flex justify-center w-full">
                                   <span>—</span>
@@ -1258,21 +1260,21 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200 ml-2"
+                              className="p-2 dark:text-gray-200 text-center"
                             >
                               {download.status === 'fetching metadata' ? (
-                                <div className="space-y-1 flex justify-center items-center">
+                                <div className="flex justify-center w-full">
                                   <Skeleton className="h-8 w-[50px] rounded-[3px]" />
                                 </div>
                               ) : download.status === 'finished' &&
                                 download.thumnailsLocation &&
                                 download.thumnailsLocation !== '—' ? (
-                                <div className="flex items-center">
+                                <div className="flex justify-center items-center w-full">
                                   {thumbnailDataUrls[download.id] ? (
                                     <img
                                       src={thumbnailDataUrls[download.id]}
                                       alt="Thumbnail"
-                                      className="ml-4 h-10 w-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+                                      className="h-10 w-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
                                       onClick={() =>
                                         handleViewDownload(
                                           download.thumnailsLocation,
@@ -1290,9 +1292,7 @@ const StatusSpecificDownloads = () => {
                                       }}
                                     />
                                   ) : (
-                                    <div className="flex justify-center w-full">
-                                      <span>— </span>
-                                    </div>
+                                    <span>—</span>
                                   )}
                                 </div>
                               ) : (
