@@ -13,9 +13,9 @@ import { IoMdClose } from 'react-icons/io';
 import { IoChevronDownOutline } from 'react-icons/io5';
 import {
   Tabs,
+  TabsContent,
   TabsList,
   TabsTrigger,
-  TabsContent,
 } from '../../SubComponents/shadcn/components/ui/tabs';
 
 interface HelpModalProps {
@@ -39,7 +39,7 @@ const AccordionSection: React.FC<AccordionSectionProps> = ({
     <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-darkModeHover/50 transition-colors"
+        className="w-full p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
       >
         <span className="text-md dark:text-gray-300">{title}</span>
         <IoChevronDownOutline
@@ -71,15 +71,15 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
         }
       }}
     >
-      <div className="bg-white dark:bg-darkMode rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto relative">
-        <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-darkMode z-10">
+      <div className="bg-white dark:bg-darkModeDropdown rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto relative border border-darkModeCompliment">
+        <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-darkModeDropdown z-10">
           <h2 className="text-xl font-semibold dark:text-white pl-2 pt-1">
             Help Guide
           </h2>
@@ -207,7 +207,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                           </li>
                           <li>
                             For pending downloads, only the download record is
-                            saved; no file has been saved to the drive yet.
+                            no file has been saved to the drive yet.
                           </li>
                         </ul>
                       </ul>
@@ -227,7 +227,10 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                     content={
                       <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
                         <li>History is a record of all your past downloads</li>
-                        <li>Unlike status pages, History:</li>
+                        <li>
+                          Unlike status pages (All/Downloading/Finished),
+                          History:
+                        </li>
                         <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-sm">
                           <li>Doesn't show download progress or controls</li>
                           <li>Only keeps track of what you've downloaded</li>

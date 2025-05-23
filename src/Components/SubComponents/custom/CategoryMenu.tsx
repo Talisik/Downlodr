@@ -104,7 +104,7 @@ const CategoryMenu: React.FC<CategoryMenuProps> = ({
         {availableCategories.map((category) => (
           <button
             key={category}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 dark:text-gray-200"
             onClick={(e) => {
               e.stopPropagation();
               handleCategoryClick(category);

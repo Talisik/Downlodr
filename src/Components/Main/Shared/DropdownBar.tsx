@@ -13,21 +13,21 @@
  * @returns JSX.Element - The rendered component displaying a DropdownBar
  *
  */
-import React, { useState, useRef, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { AiOutlineExclamationCircle } from 'react-icons/ai';
+import { FiBook, FiSearch } from 'react-icons/fi';
 import { IoIosAdd } from 'react-icons/io';
+import { MdOutlineHistory } from 'react-icons/md';
 import { RxExit, RxUpdate } from 'react-icons/rx';
-import DownloadModal from '../Modal/DownloadModal';
-import SettingsModal from '../Modal/SettingsModal';
-import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
+import { NavLink } from 'react-router-dom';
 import useDownloadStore, {
   HistoryDownloads,
 } from '../../../Store/downloadStore';
+import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import AboutModal from '../Modal/AboutModal';
+import DownloadModal from '../Modal/DownloadModal';
 import HelpModal from '../Modal/HelpModal';
-import { FiSearch, FiBook } from 'react-icons/fi';
-import { MdOutlineHistory } from 'react-icons/md';
-import { AiOutlineExclamationCircle } from 'react-icons/ai';
+import SettingsModal from '../Modal/SettingsModal';
 
 const DropdownBar = ({ className }: { className?: string }) => {
   // Dropdown element states

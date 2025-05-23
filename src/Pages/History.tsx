@@ -8,13 +8,13 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useRef, useState } from 'react';
-import useDownloadStore from '../Store/downloadStore';
-import { useMainStore } from '../Store/mainStore';
-import { HiChevronUpDown } from 'react-icons/hi2';
 import { createPortal } from 'react-dom';
+import { HiChevronUpDown } from 'react-icons/hi2';
 import { LuTrash } from 'react-icons/lu';
 import { VscPlayCircle } from 'react-icons/vsc';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
+import useDownloadStore from '../Store/downloadStore';
+import { useMainStore } from '../Store/mainStore';
 
 interface FileExistsMap {
   [key: string]: boolean;
@@ -246,7 +246,8 @@ const History = () => {
           onClick={handleDeleteSelected}
           className="ml-2 primary-custom-btn px-[6px] py-[4px] sm:px-[8px] sm:py-[4px] flex items-center gap-1 sm:gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
         >
-          <LuTrash size={15} className="mt-[0.9px]" /> Remove from History
+          <LuTrash size={15} className="mt-[0.9px]" />{' '}
+          <span className="hidden md:inline">Remove from History</span>
         </button>,
         portalContainer,
       );
@@ -337,34 +338,38 @@ const History = () => {
             top: hoveredVideo.position.top,
             left: hoveredVideo.position.left,
           }}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 min-w-[100px] max-w-[200px] border-2 dark:border-gray-500 border-gray-200"
+          className="bg-white dark:bg-darkModeCompliment rounded-lg shadow-lg py-1 min-w-[100px] max-w-[200px] border-2 dark:border-gray-500 border-gray-200"
         >
-          <button
-            onClick={() => handleRedownload(hoveredVideo)}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover text-sm"
-          >
-            <span className="flex items-center space-x-2">
-              <VscPlayCircle size={18} />
-              <span>Redownload video</span>
-            </span>{' '}
-          </button>
-          <button
-            onClick={async () =>
-              handleDelete(
-                await window.downlodrFunctions.joinDownloadPath(
-                  hoveredVideo.location,
-                  hoveredVideo.name,
-                ),
-                hoveredVideo.id,
-              )
-            }
-            className="text-sm w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover"
-          >
-            <span className="flex items-center space-x-2">
-              <LuTrash size={16} />
-              <span>Remove from History</span>
-            </span>{' '}
-          </button>
+          <div className="px-2">
+            <button
+              onClick={() => handleRedownload(hoveredVideo)}
+              className="w-full text-left py-2 rounded-md hover:bg-gray-100 dark:hover:bg-darkModeHover text-sm"
+            >
+              <span className="flex items-center space-x-2 px-2">
+                <VscPlayCircle size={18} />
+                <span>Redownload video</span>
+              </span>
+            </button>
+          </div>
+          <div className="px-2">
+            <button
+              onClick={async () =>
+                handleDelete(
+                  await window.downlodrFunctions.joinDownloadPath(
+                    hoveredVideo.location,
+                    hoveredVideo.name,
+                  ),
+                  hoveredVideo.id,
+                )
+              }
+              className="w-full text-left py-2 rounded-md hover:bg-gray-100 dark:hover:bg-darkModeHover text-sm"
+            >
+              <span className="flex items-center space-x-2 px-2">
+                <LuTrash size={16} />
+                <span>Remove from History</span>
+              </span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -377,36 +382,40 @@ const History = () => {
             top: sortMenuPosition.y,
             left: sortMenuPosition.x,
           }}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 min-w-[100px] border-2 dark:border-gray-500 border-gray-200 z-50"
+          className="bg-white dark:bg-darkModeCompliment rounded-lg shadow-lg py-1 min-w-[100px] border-2 dark:border-gray-500 border-gray-200 z-50"
         >
-          <button
-            onClick={() => {
-              setSortOrder('newest');
-              setShowSortMenu(false);
-            }}
-            className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover ${
-              sortOrder === 'newest' ? 'bg-gray-100 dark:bg-gray-700' : ''
-            }`}
-          >
-            Newest
-          </button>
-          <button
-            onClick={() => {
-              setSortOrder('oldest');
-              setShowSortMenu(false);
-            }}
-            className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover ${
-              sortOrder === 'oldest' ? 'bg-gray-100 dark:bg-gray-700' : ''
-            }`}
-          >
-            Oldest
-          </button>
+          <div className="px-2">
+            <button
+              onClick={() => {
+                setSortOrder('newest');
+                setShowSortMenu(false);
+              }}
+              className={`w-full text-left py-2 rounded-md hover:bg-gray-100 dark:hover:bg-darkModeHover ${
+                sortOrder === 'newest' ? 'bg-gray-100 dark:bg-gray-700' : ''
+              }`}
+            >
+              <span className="px-2">Newest</span>
+            </button>
+          </div>
+          <div className="px-2 mt-1">
+            <button
+              onClick={() => {
+                setSortOrder('oldest');
+                setShowSortMenu(false);
+              }}
+              className={`w-full text-left py-2 rounded-md hover:bg-gray-100 dark:hover:bg-darkModeHover ${
+                sortOrder === 'oldest' ? 'bg-gray-100 dark:bg-gray-700' : ''
+              }`}
+            >
+              <span className="px-2">Oldest</span>
+            </button>
+          </div>
         </div>
       )}
 
       {isErrorVisible && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl">
+          <div className="bg-white dark:bg-darkModeCompliment p-6 rounded-lg shadow-xl">
             <h3 className="text-lg font-semibold mb-2">{errorTitle}</h3>
             <p className="text-gray-600 dark:text-gray-400">{errorMessage}</p>
             <button

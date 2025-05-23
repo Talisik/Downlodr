@@ -7,29 +7,23 @@
  * - ThemeProvider: A custom component for managing theme settings.
  * - Various page components: AllDownloads, Downloading, History, etc.
  */
+import { useEffect } from 'react';
 import {
+  Navigate,
+  Route,
   HashRouter as Router,
   Routes,
-  Route,
-  Navigate,
 } from 'react-router-dom';
+import UpdateNotification from './Components/SubComponents/custom/UpdateNotifications';
+import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
 import { ThemeProvider } from './Components/ThemeProvider';
 import MainLayout from './Layout/MainLayout';
-import PluginLayout from './Layout/PluginLayout';
 import History from './Pages/History';
-import PluginManager from './Pages/PlugInManager';
-import NotFound from './Pages/SubPages/NotFound';
-import CategoryPage from './Pages/SubPages/CategoryPage';
-import TagPage from './Pages/SubPages/TagsPage';
-import PluginDetails from './Pages/SubPages/PluginDetails';
-import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
-import UpdateNotification from './Components/SubComponents/custom/UpdateNotifications';
 import StatusSpecificDownloads from './Pages/StatusSpecificDownload';
-import { useEffect } from 'react';
+import CategoryPage from './Pages/SubPages/CategoryPage';
+import NotFound from './Pages/SubPages/NotFound';
+import TagPage from './Pages/SubPages/TagsPage';
 import { useMainStore } from './Store/mainStore';
-import { PluginLoader } from './plugins/PluginLoader';
-import FormatSelectorManager from './plugins/components/FormatSelectorManager';
-import PluginSidePanelManager from './plugins/components/PluginSidePanelManager';
 
 const App = () => {
   const { settings } = useMainStore();
@@ -61,18 +55,10 @@ const App = () => {
             />
             <Route path="*" element={<NotFound />} />
           </Route>
-
-          <Route path="/plugins" element={<PluginLayout />}>
-            <Route index element={<PluginManager />} />
-            <Route path="details" element={<PluginDetails />} />
-          </Route>
         </Routes>
       </Router>
       <Toaster />
       <UpdateNotification />
-      <PluginLoader />
-      <FormatSelectorManager />
-      <PluginSidePanelManager />
     </ThemeProvider>
   );
 };

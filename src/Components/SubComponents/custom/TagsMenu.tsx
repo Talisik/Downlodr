@@ -85,7 +85,7 @@ const TagMenu: React.FC<TagMenuProps> = ({
         {availableTags.map((tag) => (
           <button
             key={tag}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 dark:text-gray-200"
             onClick={(e) => {
               e.stopPropagation();
               if (currentTags.includes(tag)) {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Main process entry point for the Electron application.
  * This file is responsible for creating the main application window,
@@ -7,24 +8,21 @@
 import {
   app,
   BrowserWindow,
-  ipcMain,
   dialog,
-  shell,
+  ipcMain,
   Menu,
-  Tray,
   nativeImage,
   Notification,
-  protocol,
+  shell,
+  Tray,
 } from 'electron';
-import path from 'path';
 import started from 'electron-squirrel-startup';
-import os from 'os';
-import * as YTDLP from 'yt-dlp-helper';
 import fs, { existsSync } from 'fs';
 import https from 'https';
+import os from 'os';
+import path from 'path';
+import * as YTDLP from 'yt-dlp-helper';
 import { checkForUpdates } from './DataFunctions/updateChecker';
-import { PluginManager } from './plugins/pluginManager';
-import { pluginRegistry } from './plugins/registry';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -60,8 +58,6 @@ let normalTrayIcon: Electron.NativeImage;
 let alertTrayIcon: Electron.NativeImage;
 let isDownloadComplete = false;
 
-let pluginManager: PluginManager;
-
 // Function to create the main application window
 const createWindow = () => {
   // Create the browser window.
@@ -70,8 +66,8 @@ const createWindow = () => {
     height: 680,
     frame: false,
     autoHideMenuBar: true,
-    minWidth: 800,
-    minHeight: 600,
+    minWidth: 550,
+    minHeight: 450,
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
@@ -248,19 +244,81 @@ ipcMain.on('openExternalLink', (_event, link: string) => {
   shell.openExternal(link);
 });
 
+ipcMain.handle('ensureDirectoryExists', async (event, dirPath) => {
+  try {
+    try {
+      await fs.promises.access(dirPath, fs.constants.F_OK);
+      return true; // Directory already exists
+    } catch (error) {
+      // Directory doesn't exist, create it
+      await fs.promises.mkdir(dirPath, { recursive: true });
+      return true;
+    }
+  } catch (error) {
+    console.error('Error creating directory:', error);
+    return false;
+  }
+});
+
+ipcMain.handle('get-thumbnail-data-url', async (_event, imagePath) => {
+  try {
+    if (!fs.existsSync(imagePath)) {
+      return null;
+    }
+
+    // Read the file as a buffer
+    const buffer = await fs.promises.readFile(imagePath);
+
+    // Determine MIME type based on file extension
+    const ext = path.extname(imagePath).toLowerCase();
+    let mimeType = 'image/jpeg'; // Default
+
+    if (ext === '.png') mimeType = 'image/png';
+    else if (ext === '.gif') mimeType = 'image/gif';
+    else if (ext === '.webp') mimeType = 'image/webp';
+
+    // Convert to base64 and return as data URL
+    return `data:${mimeType};base64,${buffer.toString('base64')}`;
+  } catch (error) {
+    console.error('Error creating thumbnail data URL:', error);
+    return null;
+  }
+});
+
+ipcMain.handle('downloadFile', async (_event, url, outputPath) => {
+  try {
+    return new Promise((resolve, reject) => {
+      const file = fs.createWriteStream(outputPath);
+      https
+        .get(url, (response: any) => {
+          response.pipe(file);
+
+          file.on('finish', () => {
+            file.close();
+            resolve({ success: true, path: outputPath });
+          });
+        })
+        .on('error', (err: any) => {
+          fs.unlink(outputPath, (unlinkErr) => {
+            // Ignoring deletion errors since the download already failed
+            if (unlinkErr)
+              console.error('Failed to delete incomplete file:', unlinkErr);
+          });
+          reject({ success: false, error: err.message });
+        });
+    });
+  } catch (error) {
+    console.error('Error downloading file:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Functions for Download Verification
 ipcMain.handle('joinDownloadPath', async (event, downloadPath, fileName) => {
   const normalizedPath = downloadPath.endsWith(path.sep)
     ? downloadPath
     : downloadPath + path.sep;
   return path.join(normalizedPath, fileName);
-});
-
-ipcMain.handle('createFolder', async (_event, dirPath) => {
-  if (!fs.existsSync(dirPath)) {
-    await fs.promises.mkdir(dirPath, { recursive: true });
-  }
-  return true;
 });
 
 // Function for getting default download folder from each OS
@@ -301,6 +359,8 @@ ipcMain.handle('validatePath', async (event, folderPath) => {
       console.error('Path is not a directory:', resolvedPath);
       return false;
     }
+
+    // Check if the directory is accessible
     await fs.promises.access(
       resolvedPath,
       fs.constants.R_OK | fs.constants.W_OK,
@@ -315,7 +375,6 @@ ipcMain.handle('validatePath', async (event, folderPath) => {
 
 // open directory to choose location, add path sep to work with different OS
 ipcMain.handle('dialog:openDirectory', async (event) => {
-  // Get the parent browser window
   const browserWindow = BrowserWindow.fromWebContents(event.sender);
 
   const result = await dialog.showOpenDialog(browserWindow, {
@@ -323,16 +382,11 @@ ipcMain.handle('dialog:openDirectory', async (event) => {
     // Explicitly set modal behavior
     // modal: true,
   });
-
-  // Process the result as before
-  if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
-    return null;
-  }
-
   return result.filePaths[0].endsWith(path.sep)
     ? result.filePaths[0]
     : result.filePaths[0] + path.sep;
 });
+
 // open folder with optional file highlighting
 ipcMain.handle('open-folder', async (_, folderPath, filePath = null) => {
   try {
@@ -422,7 +476,6 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
     if (!info) {
       throw new Error('No info returned from YTDLP.getInfo');
     }
-    console.log(info);
     return info;
   } catch (error) {
     console.error('Error fetching video info:', error);
@@ -499,6 +552,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
       e.sender.send(`ytdlp:download:status:${id}`, chunk);
       console.log(chunk);
 
+      // Add this code where download status is set to 'finished'#
       if (chunk != null) {
         if (chunk.data.status === 'finished') {
           console.log('Download complete, updating tray icon...');
@@ -526,7 +580,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
 });
 
 // once the app opens
-app.on('ready', async () => {
+app.on('ready', () => {
   createWindow();
   createTray();
   updateCloseHandler();
@@ -551,60 +605,6 @@ app.on('ready', async () => {
       );
     }
   }, UPDATE_CHECK_INTERVAL);
-
-  // Create plugin manager instance
-  pluginManager = new PluginManager();
-
-  // Load plugins
-  await pluginManager.loadPlugins();
-
-  // Set up IPC handlers AFTER app is ready
-  pluginManager.setupIPC();
-
-  // Register a custom protocol with better security
-  protocol.registerFileProtocol('app-image', (request, callback) => {
-    try {
-      const filePath = decodeURIComponent(
-        request.url.slice('app-image://'.length),
-      );
-
-      // Security check: Validate the file exists and is an image
-      if (!fs.existsSync(filePath)) {
-        throw new Error('File does not exist');
-      }
-
-      // Check file extension to ensure it's an image
-      const ext = path.extname(filePath).toLowerCase();
-      const allowedExtensions = [
-        '.jpg',
-        '.jpeg',
-        '.png',
-        '.gif',
-        '.webp',
-        '.bmp',
-        '.svg',
-      ];
-
-      if (!allowedExtensions.includes(ext)) {
-        throw new Error('Not an allowed image type');
-      }
-
-      return callback(filePath);
-    } catch (error) {
-      console.error('Error in protocol handler:', error);
-      // Return a placeholder or error image instead
-      callback({ path: path.join(__dirname, 'assets', 'error-image.png') });
-    }
-  });
-
-  // Listen for plugin state changes
-  ipcMain.on('plugins:stateChanged', (event, { pluginId, enabled }) => {
-    // Update the registry's knowledge of enabled plugins
-    pluginRegistry.updateEnabledStates(pluginManager.getEnabledPlugins());
-  });
-
-  // Initial loading of enabled states into the registry
-  pluginRegistry.updateEnabledStates(pluginManager.getEnabledPlugins());
 });
 
 // Change this to keep app running in background
@@ -664,22 +664,6 @@ ipcMain.handle('openExternalLink', async (_event, link: string) => {
   } catch (error) {
     console.error('Failed to open external link:', error);
     throw error;
-  }
-});
-
-ipcMain.handle('ensureDirectoryExists', async (event, dirPath) => {
-  try {
-    try {
-      await fs.promises.access(dirPath, fs.constants.F_OK);
-      return true; // Directory already exists
-    } catch (error) {
-      // Directory doesn't exist, create it
-      await fs.promises.mkdir(dirPath, { recursive: true });
-      return true;
-    }
-  } catch (error) {
-    console.error('Error creating directory:', error);
-    return false;
   }
 });
 
@@ -818,216 +802,5 @@ ipcMain.handle('get-file-size', async (_event, filePath) => {
   } catch (error) {
     console.error('Error getting file size:', error);
     return null;
-  }
-});
-
-// Add IPC handlers for plugin management
-/*
-ipcMain.handle('plugins:list', () => {
-  return pluginManager.getPlugins();
-});
-
-ipcMain.handle('plugins:install', async (_event, pluginPath) => {
-  return await pluginManager.installPlugin(pluginPath);
-});
-
-ipcMain.handle('plugins:uninstall', async (_event, pluginId) => {
-  return await pluginManager.unloadPlugin(pluginId);
-});
-*/
-// Add a handler to get plugin menu items
-ipcMain.handle('plugins:menu-items', (event, context) => {
-  return pluginRegistry.getMenuItems(context);
-});
-
-/*ipcMain.handle('plugins:loadUnzipped', async (_event, pluginDirPath) => {
-  return await pluginManager.loadUnzippedPlugin(pluginDirPath);
-});
-*/
-ipcMain.handle('plugins:execute-menu-item', (event, id, contextData) => {
-  console.log('Executing menu item action:', id, contextData);
-  pluginRegistry.executeMenuItemAction(id, contextData);
-  return true;
-});
-
-ipcMain.handle('plugins:register-menu-item', (event, menuItem) => {
-  console.log('Main process registering menu item:', menuItem);
-  return pluginRegistry.registerMenuItem(menuItem);
-});
-
-ipcMain.handle('plugins:unregister-menu-item', (event, id) => {
-  console.log('Main process unregistering menu item:', id);
-  pluginRegistry.unregisterMenuItem(id);
-  return true;
-});
-
-ipcMain.handle('plugins:get-data-path', (event, pluginId) => {
-  const pluginDataDir = path.join(
-    app.getPath('userData'),
-    'plugin-data',
-    pluginId,
-  );
-  // Ensure the directory exists
-  if (!fs.existsSync(pluginDataDir)) {
-    fs.mkdirSync(pluginDataDir, { recursive: true });
-  }
-  return pluginDataDir;
-});
-
-// Update the reload handler
-ipcMain.handle('plugins:reload', async (event) => {
-  console.log('Reloading plugins...');
-
-  // Clear existing registry items before reloading
-  pluginRegistry.clearAllRegistrations();
-
-  // Only reload the plugins from disk, don't re-setup IPC handlers
-  await pluginManager.loadPlugins();
-
-  // Notify renderer that plugins have been reloaded
-  event.sender.send('plugins:reloaded');
-
-  return true;
-});
-
-// When uninstalling a specific plugin
-ipcMain.handle('plugins:uninstall', async (event, pluginId) => {
-  // Clear registrations specific to this plugin
-  pluginRegistry.clearAllRegistrations(pluginId);
-
-  const success = await pluginManager.unloadPlugin(pluginId);
-  if (success) {
-    await pluginManager.loadPlugins();
-    event.sender.send('plugins:reloaded');
-  }
-  return success;
-});
-
-ipcMain.handle('plugins:loadUnzipped', async (event, pluginDirPath) => {
-  if (!pluginManager) {
-    console.error('Plugin manager not initialized');
-    return false;
-  }
-  return await pluginManager.loadUnzippedPlugin(pluginDirPath);
-});
-
-// Add this near your other ipcMain handlers
-ipcMain.handle('downloadFile', async (_event, url, outputPath) => {
-  try {
-    return new Promise((resolve, reject) => {
-      const file = fs.createWriteStream(outputPath);
-      https
-        .get(url, (response) => {
-          response.pipe(file);
-
-          file.on('finish', () => {
-            file.close();
-            resolve({ success: true, path: outputPath });
-          });
-        })
-        .on('error', (err) => {
-          fs.unlink(outputPath, (unlinkErr) => {
-            // Ignoring deletion errors since the download already failed
-            if (unlinkErr)
-              console.error('Failed to delete incomplete file:', unlinkErr);
-          });
-          reject({ success: false, error: err.message });
-        });
-    });
-  } catch (error) {
-    console.error('Error downloading file:', error);
-    return { success: false, error: error.message };
-  }
-});
-
-// Add this near your other ipcMain handlers
-ipcMain.handle('get-thumbnail-data-url', async (_event, imagePath) => {
-  try {
-    if (!fs.existsSync(imagePath)) {
-      return null;
-    }
-
-    // Read the file as a buffer
-    const buffer = await fs.promises.readFile(imagePath);
-
-    // Determine MIME type based on file extension
-    const ext = path.extname(imagePath).toLowerCase();
-    let mimeType = 'image/jpeg'; // Default
-
-    if (ext === '.png') mimeType = 'image/png';
-    else if (ext === '.gif') mimeType = 'image/gif';
-    else if (ext === '.webp') mimeType = 'image/webp';
-
-    // Convert to base64 and return as data URL
-    return `data:${mimeType};base64,${buffer.toString('base64')}`;
-  } catch (error) {
-    console.error('Error creating thumbnail data URL:', error);
-    return null;
-  }
-});
-/*
-// In main.ts or wherever you set up your IPC handlers
-ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
-  const browserWindow = BrowserWindow.fromWebContents(event.sender);
-
-  // Security check: validate options
-  const sanitizedOptions = {
-    title: typeof options.title === 'string' ? options.title : 'Save File',
-    defaultPath:
-      typeof options.defaultPath === 'string'
-        ? options.defaultPath
-        : app.getPath('downloads'),
-    filters: Array.isArray(options.filters) ? options.filters : undefined,
-    message: typeof options.message === 'string' ? options.message : undefined,
-  };
-
-  try {
-    const result = await dialog.showSaveDialog(browserWindow, sanitizedOptions);
-    return result;
-  } catch (error) {
-    console.error('Error showing save dialog:', error);
-    return { canceled: true };
-  }
-});
-*/
-// Add these new IPC handlers for taskbar items
-ipcMain.handle('plugins:register-taskbar-item', (event, taskBarItem) => {
-  console.log('Main process registering taskbar item:', taskBarItem);
-  return pluginRegistry.registerTaskBarItem(taskBarItem);
-});
-
-ipcMain.handle('plugins:unregister-taskbar-item', (event, id) => {
-  console.log('Main process unregistering taskbar item:', id);
-  pluginRegistry.unregisterTaskBarItem(id);
-  return true;
-});
-
-ipcMain.handle('plugins:taskbar-items', (event) => {
-  return pluginRegistry.getTaskBarItems();
-});
-
-ipcMain.handle('plugins:execute-taskbar-item', (event, id, contextData) => {
-  console.log('Executing taskbar item action:', id, contextData);
-  pluginRegistry.executeTaskBarItemAction(id, contextData);
-  return true;
-});
-
-// Add this with the other plugin-related IPC handlers
-ipcMain.handle('plugin:fs:readFile', async (event, options) => {
-  try {
-    const { filePath, pluginId } = options;
-
-    // Security check: Make sure we're not reading outside allowed directories
-    // You might want to add additional validation here
-
-    if (!fs.existsSync(filePath)) {
-      return { success: false, error: 'File does not exist' };
-    }
-
-    const fileContents = await fs.promises.readFile(filePath, 'utf8');
-    return { success: true, data: fileContents };
-  } catch (error) {
-    console.error('Error reading file:', error);
-    return { success: false, error: error.message };
   }
 });

@@ -13,16 +13,16 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 // import { LuDownload, LuArrowDown, LuArrowUp } from 'react-icons/lu';
-import { HiChevronUpDown } from 'react-icons/hi2';
 import { FaPlay } from 'react-icons/fa';
+import { HiChevronUpDown } from 'react-icons/hi2';
 import useDownloadStore, { BaseDownload } from '../../../Store/downloadStore';
-import DownloadContextMenu from './DownloadContextMenu';
+import { useMainStore } from '../../../Store/mainStore';
+import { Skeleton } from '../shadcn/components/ui/skeleton';
 import { toast } from '../shadcn/hooks/use-toast';
+import ColumnHeaderContextMenu from './ColumnHeaderContextMenu';
+import DownloadContextMenu from './DownloadContextMenu';
 import ResizableHeader from './ResizableColumns/ResizableHeader';
 import { useResizableColumns } from './ResizableColumns/useResizableColumns';
-import { Skeleton } from '../shadcn/components/ui/skeleton';
-import { useMainStore } from '../../../Store/mainStore';
-import ColumnHeaderContextMenu from './ColumnHeaderContextMenu';
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -250,40 +250,49 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   };
 
   const handleCheckboxChange = (downloadId: string) => {
+    // Update local state for UI purposes
     setSelectedRowIds((prev) =>
       prev.includes(downloadId)
         ? prev.filter((id) => id !== downloadId)
         : [...prev, downloadId],
     );
+
+    // Update the global selected downloads state
+    const download = allDownloads.find((d) => d.id === downloadId);
+    if (download) {
+      const { selectedDownloads, setSelectedDownloads, clearAllSelections } =
+        useMainStore.getState();
+
+      // If already selected, remove it; otherwise add it
+      if (selectedDownloads.some((d) => d.id === downloadId)) {
+        setSelectedDownloads(
+          selectedDownloads.filter((d) => d.id !== downloadId),
+        );
+      } else {
+        setSelectedDownloads([...selectedDownloads, download]);
+      }
+    }
   };
 
   const handleSelectAll = () => {
     if (selectedRowIds.length === allDownloads.length) {
       setSelectedRowIds([]);
+      // Clear global selection state
+      useMainStore.getState().clearAllSelections();
     } else {
       setSelectedRowIds(allDownloads.map((d) => d.id));
+      // Set all downloads in global selection state
+      useMainStore.getState().setSelectedDownloads(allDownloads);
     }
   };
 
   // Handlers for column operations
   const handleColumnHeaderContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-
-    // Close any active download context menu first
-    setContextMenu(null);
-
-    // Get the table's position
-    const tableRect = e.currentTarget.getBoundingClientRect();
-
-    // Calculate position relative to the table/header
-    const x = e.clientX - tableRect.left + 2;
-    const y = e.clientY - tableRect.top + window.scrollY + 2;
-
     setColumnHeaderContextMenu({
       visible: true,
-      x: x,
-      y: y,
+      x: e.clientX,
+      y: e.clientY,
     });
   };
 
@@ -441,12 +450,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     event.preventDefault();
     event.stopPropagation();
 
-    // Close any active column header context menu first
-    setColumnHeaderContextMenu({
-      ...columnHeaderContextMenu,
-      visible: false,
-    });
-
     setContextMenu({
       downloadId: download.id,
       x: event.clientX,
@@ -557,7 +560,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       <table className="w-full">
         <thead>
           <tr
-            className="border-b text-left dark:border-darkModeCompliment"
+            className="border-b text-left dark:border-white"
             onContextMenu={handleColumnHeaderContextMenu}
           >
             <th className="w-8 p-2">
@@ -602,13 +605,16 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           {allDownloads.map((download) => (
             <React.Fragment key={download.id}>
               <tr
-                className={`border-b hover:bg-gray-50 dark:border-darkModeCompliment dark:hover:bg-darkModeHover cursor-pointer ${
+                className={`border-b hover:bg-gray-50 dark:border-white dark:hover:bg-gray-700 cursor-pointer ${
                   selectedDownloadId === download.id
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'
                 }`}
                 onContextMenu={(e) => handleContextMenu(e, download)}
-                onClick={() => handleRowClick(download.id)}
+                onClick={() => {
+                  handleRowClick(download.id);
+                  handleCheckboxChange(download.id);
+                }}
                 draggable={true}
                 data-download-id={download.id}
                 onDragStart={(e) => {
@@ -626,7 +632,11 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                     type="checkbox"
                     className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                     checked={selectedRowIds.includes(download.id)}
-                    onChange={() => handleCheckboxChange(download.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      handleCheckboxChange(download.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </td>
                 {displayColumns.map((column) => {

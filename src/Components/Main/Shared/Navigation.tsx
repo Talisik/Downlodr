@@ -9,25 +9,25 @@
  * @returns JSX.Element - The rendered component displaying a Navigation
  *
  */
-import React, { useState, useRef, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { BiLayer } from 'react-icons/bi';
+import { BsHourglassSplit, BsTag } from 'react-icons/bs';
+import { CgClose } from 'react-icons/cg';
 import {
   FiChevronDown,
-  FiDownload,
-  FiFolder,
   FiChevronLeft,
   FiChevronRight,
+  FiDownload,
+  FiFolder,
 } from 'react-icons/fi';
-import { BiLayer } from 'react-icons/bi';
-import { BsTag, BsHourglassSplit } from 'react-icons/bs';
+import { HiMiniArrowPath } from 'react-icons/hi2';
+import { MdPlayArrow } from 'react-icons/md';
+import { PiPauseBold } from 'react-icons/pi';
+import { TbDeviceTabletSearch } from 'react-icons/tb';
+import { NavLink } from 'react-router-dom';
 import useDownloadStore from '../../../Store/downloadStore';
 import CategoryContextMenu from '../../SubComponents/custom/CategoryContextMenu';
 import TagContextMenu from '../../SubComponents/custom/TagContextMenu';
-import { TbDeviceTabletSearch } from 'react-icons/tb';
-import { PiPauseBold } from 'react-icons/pi';
-import { HiMiniArrowPath } from 'react-icons/hi2';
-import { CgClose } from 'react-icons/cg';
-import { MdPlayArrow } from 'react-icons/md';
 
 // import { toast } from 'react-hot-toast';
 import { toast } from '../../../Components/SubComponents/shadcn/hooks/use-toast';
@@ -222,13 +222,15 @@ const Navigation = ({
       } relative overflow-x-hidden`}
     >
       <div
-        className={`${collapsed ? 'px-1' : 'p-2 ml-2'} mt-2 space-y-2 pb-20`}
+        className={`${
+          collapsed ? 'px-1 whitespace-nowrap' : 'p-2 ml-2 whitespace-nowrap'
+        } space-y-2 pb-20 mt-0 md:mt-2`}
       >
         {/* Status Section */}
         <div>
           <button
             onClick={() => toggleSection('status')}
-            className={`w-full flex items-center ${
+            className={`w-full flex items-center whitespace-nowrap ${
               collapsed
                 ? 'justify-center hover:none dark:hover:none cursor-default'
                 : 'hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
@@ -286,7 +288,9 @@ const Navigation = ({
                   className="text-blue-500 flex-shrink-0"
                 />
                 {!collapsed && (
-                  <span className="ml-2 text-[14px]">Loading Metadata</span>
+                  <span className="ml-2 text-[14px] whitespace-nowrap">
+                    Loading Metadata
+                  </span>
                 )}
               </NavLink>
 
@@ -305,7 +309,9 @@ const Navigation = ({
               >
                 <FiDownload size={16} className="text-primary flex-shrink-0" />
                 {!collapsed && (
-                  <span className="ml-2 text-[14px]">Starting Download</span>
+                  <span className="ml-2 text-[14px] whitespace-nowrap">
+                    Starting Download
+                  </span>
                 )}
               </NavLink>
 
@@ -614,7 +620,7 @@ const Navigation = ({
       >
         <button
           onClick={toggleCollapse}
-          className={`flex items-center justify-center w-10 h-10 rounded-full bg-white dark:darkModeLight shadow-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment dark:text-black border border-gray-200 dark:border-gray-700`}
+          className={`flex items-center justify-center w-10 h-10 rounded-full bg-white dark:darkModeLight shadow-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment dark:text-black dark:hover:text-white border border-gray-200 dark:border-gray-700`}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? (

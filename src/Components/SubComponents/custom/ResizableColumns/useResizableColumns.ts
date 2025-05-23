@@ -11,7 +11,7 @@
  *   - startResizing: A function to initiate the resizing process for a specific column.
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 // Interface representing a column in the table
 interface Column {

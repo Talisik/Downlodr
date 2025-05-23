@@ -13,18 +13,19 @@
  */
 import React, { useState } from 'react';
 import { GoDownload } from 'react-icons/go';
-import { VscPlayCircle } from 'react-icons/vsc';
+import { LuTrash } from 'react-icons/lu';
 import { PiStopCircle } from 'react-icons/pi';
-import { useLocation, NavLink } from 'react-router-dom';
-import DownloadModal from '../Modal/DownloadModal';
+import { VscPlayCircle } from 'react-icons/vsc';
+import { useLocation } from 'react-router-dom';
+import FileNotExistModal, {
+  DownloadItem,
+} from '../../../Components/SubComponents/custom/FileNotExistModal';
+import { cn } from '../../../Components/SubComponents/shadcn/lib/utils';
+import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
-import { processFileName } from '../../../DataFunctions/FilterName';
-import { LuTrash } from 'react-icons/lu';
-import TaskBarPluginItems from '../../SubComponents/custom/TaskBarPluginItems';
-import PageNavigation from './PageNavigation';
-
+import DownloadModal from '../Modal/DownloadModal';
 interface TaskBarProps {
   className?: string;
 }
@@ -45,13 +46,17 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onKeyDown={(e) => e.key === 'Escape' && onClose()}
+    >
       <div className="bg-white dark:bg-darkMode rounded-lg p-6 max-w-sm w-full mx-4">
         <p className="text-gray-800 dark:text-gray-200 mb-4">{message}</p>
         <div className="flex justify-end space-x-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
+            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
           >
             Cancel
           </button>
@@ -71,8 +76,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // Handle state for modal
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
   const [showStopConfirmation, setShowStopConfirmation] = useState(false);
+  const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
+  const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
+
   const { toast } = useToast();
-  const location = useLocation(); // Get current location
 
   // Get the max download limit and current downloads from stores
   const { settings } = useMainStore();
@@ -82,6 +89,37 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
 
+  // Add this hook to get the correct path
+  const location = useLocation();
+
+  const handleFileNotExistModal = async () => {
+    const missing = [];
+
+    // Check each selected download to see if it exists
+    for (const download of selectedDownloads) {
+      if (download.status === 'finished' && download.location) {
+        const exists = await window.downlodrFunctions.fileExists(
+          download.location,
+        );
+        if (!exists) {
+          missing.push(download);
+        }
+      }
+    }
+
+    // Set the missing files and show the modal if any were found
+    if (missing.length > 0) {
+      setMissingFiles(missing);
+      setShowFileNotExistModal(true);
+    } else {
+      toast({
+        variant: 'default',
+        title: 'All Files Exist',
+        description: 'All selected files exist at their locations',
+        duration: 3000,
+      });
+    }
+  };
   const handleStopConfirm = () => {
     handleRemoveSelected();
     setShowStopConfirmation(false);
@@ -301,6 +339,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           downloadInfo.getTranscript || false,
           downloadInfo.getThumbnail || false,
           downloadInfo.duration || 60,
+          true,
         );
         // remove the current download from the saved list for forDownloads
         removeFromForDownloads(selectedDownload.id);
@@ -391,59 +430,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   return (
     <>
       <div className={`${className} flex items-center justify-between`}>
-        <div className="flex items-center h-full px-2 space-x-2">
-          <div className="gap-1 flex">
-            <PageNavigation />
-
-            <div className="h-6 w-[1.5px] bg-gray-300 dark:bg-gray-600 self-center ml-3"></div>
-          </div>
-          <button
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
-            onClick={handlePlaySelected}
-          >
-            {' '}
-            <VscPlayCircle size={18} className="mt-[0.9px]" /> Start
-          </button>
-
-          <button
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
-            onClick={handleStopSelected}
-          >
-            <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
-          </button>
-          <button
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
-            onClick={() => handleStopAll()}
-          >
-            {' '}
-            <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
-          </button>
-        </div>
-        <div className="pl-4 flex items-center">
-          <div className="mr-4">
-            {' '}
-            <TaskBarPluginItems />
-          </div>
-
-          {/* This is the regular downloads Remove button */}
-          <button
-            className={`px-3 py-1 rounded flex gap-1 mr-4 text-sm rounded-md flex gap-2 text-sm ${
-              selectedDownloads.length > 0 &&
-              location.pathname.includes('/status/')
-                ? 'bg-black text-gray-200 hover:!bg-[#3E3E46]'
-                : 'cursor-not-allowed text-gray-400 dark:text-gray-500 !bg-gray-200 hover:!bg-gray-200 !dark:bg-darkModeHover hover:!dark:bg-darkModeHover'
-            }`}
-            onClick={() => setShowStopConfirmation(true)}
-            disabled={
-              !(
-                selectedDownloads.length > 0 &&
-                location.pathname.includes('/status/')
-              )
-            }
-          >
-            <LuTrash size={15} className="mt-[2px]" /> Remove
-          </button>
-
+        <div className="flex items-center h-full px-4 space-x-2">
           <button
             className="primary-custom-btn px-[6px] py-[4px] sm:px-[8px] sm:py-[4px] flex items-center gap-1 sm:gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
             onClick={handleOpenDownloadModal}
@@ -451,6 +438,56 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             <GoDownload className="sm:w-[14px] sm:h-[14px]" />
             <span className="hidden sm:inline text-sm">Add URL</span>
           </button>
+
+          <button
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            onClick={handlePlaySelected}
+          >
+            {' '}
+            <VscPlayCircle size={18} className="mt-[0.9px]" /> Start
+          </button>
+
+          <button
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            onClick={handleStopSelected}
+          >
+            <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
+          </button>
+          <button
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            onClick={() => handleStopAll()}
+          >
+            {' '}
+            <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
+          </button>
+        </div>
+
+        <div className="pl-4 flex items-center">
+          {/* This is the regular downloads Remove button */}
+          {(location.pathname.includes('/status/') ||
+            location.pathname.includes('/tags/') ||
+            location.pathname.includes('/category/')) && (
+            <button
+              className={cn(
+                'px-3 py-1 rounded-md flex gap-2 text-sm',
+                selectedDownloads.length > 0 &&
+                  (location.pathname.includes('/status/') ||
+                    location.pathname.includes('/tags/') ||
+                    location.pathname.includes('/category/'))
+                  ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark'
+                  : 'cursor-not-allowed text-gray-400 bg-gray-200 hover:bg-gray-200 dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault',
+              )}
+              onClick={() => {
+                console.log(selectedDownloads.length);
+                console.log(location.pathname);
+                setShowStopConfirmation(true);
+              }}
+              disabled={!(selectedDownloads.length > 0)}
+            >
+              <LuTrash size={15} className="mt-[2px]" />
+              <span className="hidden sm:inline text-sm">Remove</span>{' '}
+            </button>
+          )}
 
           {/* Portal target for History-specific Remove button */}
           <div id="taskbar-portal"></div>
@@ -465,6 +502,11 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         onClose={() => setShowStopConfirmation(false)}
         onConfirm={handleStopConfirm}
         message="Are you sure you want to stop and remove this download?"
+      />
+      <FileNotExistModal
+        isOpen={showFileNotExistModal}
+        onClose={() => setShowFileNotExistModal(false)}
+        selectedDownloads={missingFiles}
       />
     </>
   );

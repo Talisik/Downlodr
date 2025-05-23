@@ -16,13 +16,13 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
+import { MdOutlineInfo } from 'react-icons/md';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
-import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
-import { MdOutlineInfo } from 'react-icons/md';
+import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 
 interface DownloadModalProps {
   isOpen: boolean;

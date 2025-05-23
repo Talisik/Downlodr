@@ -33,9 +33,6 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
   fileExists: (path: string) => ipcRenderer.invoke('file-exists', path),
   getFileSize: (path: string) => ipcRenderer.invoke('get-file-size', path),
   showInputContextMenu: () => ipcRenderer.send('show-input-context-menu'),
-  invokeMainProcess: (channel: any, ...args: any) => {
-    return ipcRenderer.invoke(channel, ...args);
-  },
   downloadFile: (url: string, outputPath: string) =>
     ipcRenderer.invoke('downloadFile', url, outputPath),
   ensureDirectoryExists: (dirPath: string) =>
@@ -117,10 +114,7 @@ contextBridge.exposeInMainWorld('electronDevTools', {
 
 contextBridge.exposeInMainWorld('updateAPI', {
   onUpdateAvailable: (callback: any) => {
-    const wrappedCallback = (_: any, updateInfo: any) => callback(updateInfo);
-    ipcRenderer.on('update-available', wrappedCallback);
-    return () =>
-      ipcRenderer.removeListener('update-available', wrappedCallback);
+    ipcRenderer.on('update-available', (_, updateInfo) => callback(updateInfo));
   },
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
 });
@@ -147,70 +141,4 @@ contextBridge.exposeInMainWorld('notifications', {
   notifyDownloadFinished: (downloadInfo: any) => {
     ipcRenderer.send('download-finished', downloadInfo);
   },
-});
-
-// Plugin control functions
-contextBridge.exposeInMainWorld('plugins', {
-  list: () => ipcRenderer.invoke('plugins:list'),
-  getCode: (pluginId: string) =>
-    ipcRenderer.invoke('plugins:get-code', pluginId),
-  install: (pluginPath: string) =>
-    ipcRenderer.invoke('plugins:install', pluginPath),
-  uninstall: (pluginId: string) =>
-    ipcRenderer.invoke('plugins:uninstall', pluginId),
-  getMenuItems: (context: any) =>
-    ipcRenderer.invoke('plugins:menu-items', context),
-  executeMenuItem: (id: any, contextData?: any) =>
-    ipcRenderer.invoke('plugins:execute-menu-item', id, contextData),
-  loadUnzipped: (pluginDirPath: any) =>
-    ipcRenderer.invoke('plugins:loadUnzipped', pluginDirPath),
-
-  // Safe file operations for plugins
-  writeFile: (options: any) => ipcRenderer.invoke('plugins:writeFile', options),
-
-  registerMenuItem: (menuItem: any) =>
-    ipcRenderer.invoke('plugins:register-menu-item', menuItem),
-  unregisterMenuItem: (id: any) =>
-    ipcRenderer.invoke('plugins:unregister-menu-item', id),
-
-  getPluginDataPath: (pluginId: string) =>
-    ipcRenderer.invoke('plugins:get-data-path', pluginId),
-  saveFileDialog: (options: any) =>
-    ipcRenderer.invoke('plugins:save-file-dialog', options),
-  reload: () => ipcRenderer.invoke('plugins:reload'),
-  onReloaded: (callback: () => void) => {
-    ipcRenderer.on('plugins:reloaded', callback);
-    return () => {
-      ipcRenderer.removeListener('plugins:reloaded', callback);
-    };
-  },
-  getEnabledPlugins: () => ipcRenderer.invoke('plugins:getEnabled'),
-  setPluginEnabled: (pluginId: string, enabled: boolean) =>
-    ipcRenderer.invoke('plugins:setEnabled', pluginId, enabled),
-  onPluginStateChanged: (callback: any) => {
-    const subscription = (_event: any, data: any) => callback(data);
-    ipcRenderer.on('plugins:stateChanged', subscription);
-    return () => {
-      ipcRenderer.removeListener('plugins:stateChanged', subscription);
-    };
-  },
-  getPluginLocation: (pluginId: string) =>
-    ipcRenderer.invoke('plugins:get-location', pluginId),
-  openPluginFolder: (pluginId: string) =>
-    ipcRenderer.invoke('plugins:open-folder', pluginId),
-
-  // TaskBar items
-  registerTaskBarItem: (item: any) =>
-    ipcRenderer.invoke('plugins:register-taskbar-item', item),
-
-  unregisterTaskBarItem: (id: string) =>
-    ipcRenderer.invoke('plugins:unregister-taskbar-item', id),
-
-  getTaskBarItems: () => ipcRenderer.invoke('plugins:taskbar-items'),
-
-  executeTaskBarItem: (id: string, contextData?: any) =>
-    ipcRenderer.invoke('plugins:execute-taskbar-item', id, contextData),
-
-  readFile: (filePath: string) =>
-    ipcRenderer.invoke('plugin:fs:readFile', { filePath }),
 });

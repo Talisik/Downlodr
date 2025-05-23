@@ -7,22 +7,22 @@
  *
  * @returns JSX.Element - The rendered component displaying status-filtered downloads.
  */
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';
-import { FaPlay } from 'react-icons/fa6';
-import useDownloadStore from '../Store/downloadStore';
+import { VscPlayCircle } from 'react-icons/vsc';
+import { useParams } from 'react-router-dom';
+import ColumnHeaderContextMenu from '../Components/SubComponents/custom/ColumnHeaderContextMenu';
+import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
 import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
 import ExpandedDownloadDetails from '../Components/SubComponents/custom/ExpandedDownloadDetail';
-import { useResizableColumns } from '../Components/SubComponents/custom/ResizableColumns/useResizableColumns';
-import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
+import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
 import { AnimatedCircularProgressBar } from '../Components/SubComponents/custom/RadialProgress';
-import { useMainStore } from '../Store/mainStore';
-import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
+import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
+import { useResizableColumns } from '../Components/SubComponents/custom/ResizableColumns/useResizableColumns';
 import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
-import ColumnHeaderContextMenu from '../Components/SubComponents/custom/ColumnHeaderContextMenu';
-import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
+import useDownloadStore from '../Store/downloadStore';
+import { useMainStore } from '../Store/mainStore';
 
 // Reuse helper functions from AllDownloads
 const formatRelativeTime = (dateString: string) => {
@@ -399,7 +399,6 @@ const StatusSpecificDownloads = () => {
   ) => {
     event.preventDefault();
     event.stopPropagation(); // Prevent the click outside handler from firing immediately
-
     // Close any active column header context menu first
     setColumnHeaderContextMenu({
       ...columnHeaderContextMenu,
@@ -451,6 +450,7 @@ const StatusSpecificDownloads = () => {
         currentDownload.getTranscript || false,
         currentDownload.getThumbnail || false,
         currentDownload.duration || 60,
+        true,
       );
       deleteDownloading(downloadId);
       toast({
@@ -644,6 +644,9 @@ const StatusSpecificDownloads = () => {
         id,
         controllerId: download?.controllerId,
         videoUrl: download?.videoUrl,
+        downloadName: download?.downloadName,
+        status: download?.status,
+        download: download,
         location: download?.location
           ? await window.downlodrFunctions.joinDownloadPath(
               download.location,
@@ -675,6 +678,9 @@ const StatusSpecificDownloads = () => {
         id,
         controllerId: download?.controllerId,
         videoUrl: download?.videoUrl,
+        downloadName: download?.downloadName,
+        status: download?.status,
+        download: download,
         location: download?.location
           ? await window.downlodrFunctions.joinDownloadPath(
               download.location,
@@ -712,7 +718,7 @@ const StatusSpecificDownloads = () => {
     setExpandedRowId(downloadId === expandedRowId ? null : downloadId);
 
     // Update selected row IDs for highlighting
-    setSelectedRowIds([downloadId]);
+    // setSelectedRowIds([downloadId]);
   };
 
   // Find current tags for the selected download
@@ -862,7 +868,10 @@ const StatusSpecificDownloads = () => {
                         : 'dark:bg-darkMode'
                     }`}
                     onContextMenu={(e) => handleContextMenu(e, download)}
-                    onClick={() => handleRowClick(download.id)}
+                    onClick={() => {
+                      handleRowClick(download.id);
+                      handleCheckboxChange(download.id);
+                    }}
                     data-download-id={download.id}
                     draggable={true}
                     onDragStart={(e) => {
@@ -1001,7 +1010,8 @@ const StatusSpecificDownloads = () => {
                                         color: getStatusColor(download.status),
                                       }}
                                     >
-                                      <FaPlay
+                                      <VscPlayCircle
+                                        size={18}
                                         className="mr-3 text-green-600 hover:text-green-400 transition-colors duration-200"
                                         onClick={async (e) => {
                                           e.stopPropagation();
@@ -1162,7 +1172,7 @@ const StatusSpecificDownloads = () => {
                                   <span>—</span>
                                 </div>
                               ) : download.autoCaptionLocation === undefined ? (
-                                <span className="text-gray-500">
+                                <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center">
                                   Not available
                                 </span>
                               ) : (
@@ -1172,7 +1182,7 @@ const StatusSpecificDownloads = () => {
                                       download.autoCaptionLocation,
                                     )
                                   }
-                                  className="text-blue-500 hover:underline ml-2"
+                                  className="text-availableStatus hover:underline ml-2 flex justify-center items-center hover:text-green-400 transition-colors duration-200 w-full"
                                 >
                                   Available
                                 </button>

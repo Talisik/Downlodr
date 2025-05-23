@@ -9,25 +9,14 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { FiExternalLink } from 'react-icons/fi';
 import { IoMdClose } from 'react-icons/io';
 import DownlodrLogo from '../../../Assets/Logo/DownlodrLogo-NoName.svg';
-import { FiExternalLink } from 'react-icons/fi';
 
 interface AboutModalProps {
   isOpen: boolean;
   onClose: () => void;
-}
-
-// Define the update info type
-interface UpdateInfo {
-  hasUpdate: boolean;
-  latestVersion: string;
-  currentVersion: string;
-  releaseUrl: string;
-  releaseNotes: string;
-  downloadUrl: string;
-  publishedAt: Date;
 }
 
 const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
@@ -91,7 +80,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[8999]"
+      className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center h-full z-[8999]"
       onClick={(e) => {
         // Only close if clicking the overlay background
         if (e.target === e.currentTarget) {
@@ -102,7 +91,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
       <div
         ref={navRef}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-darkMode rounded-lg pt-6 pr-6 pl-6 pb-4 max-w-md w-full mx-4"
+        className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment pt-6 pr-6 pl-6 pb-4 max-w-md w-full mx-4"
       >
         {/* Left side - Form */}
         <div className="w-full">
@@ -206,7 +195,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
           <button
             type="button"
             onClick={handleClose}
-            className="px-2 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
+            className="px-2 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
           >
             Close
           </button>

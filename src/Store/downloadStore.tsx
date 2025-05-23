@@ -13,10 +13,10 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { VideoFormatService } from '../DataFunctions/GetDownloadMetaData';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 import { downloadEnglishCaptions } from '../DataFunctions/captionsHelper';
+import { VideoFormatService } from '../DataFunctions/GetDownloadMetaData';
 
 // give unique id to downloads
 function uuidv4() {
@@ -58,6 +58,7 @@ export interface BaseDownload {
   getTranscript: boolean;
   getThumbnail: boolean;
   duration: number;
+  isCreateFolder: boolean;
 }
 
 // Interface for downloads that are currently being processed
@@ -132,6 +133,7 @@ interface DownloadStore {
     getTranscript: boolean,
     getThumbnail: boolean,
     duration: number,
+    isCreateFolder: boolean,
   ) => void; // Add a new download
   setDownload: (
     videoUrl: string,
@@ -330,61 +332,67 @@ const useDownloadStore = create<DownloadStore>()(
         getTranscript,
         getThumbnail,
         duration,
+        isCreateFolder,
       ) => {
         if (!location || !downloadName) {
           console.error('Invalid path parameters:', { location, downloadName });
           return;
         }
-
-        // Create a sanitized name for the subfolder
-        const sanitizedTitle = name.replace(/[\\/:*?"<>.|]/g, '_');
-
-        // Create initial subfolder path
-        let subfolderPath = await window.downlodrFunctions.joinDownloadPath(
+        let finalLocation = await window.downlodrFunctions.joinDownloadPath(
           location,
-          sanitizedTitle,
-        );
-
-        // Check if folder already exists and append counter if needed
-        let counter = 1;
-        let folderExists = await window.downlodrFunctions.fileExists(
-          subfolderPath,
-        );
-
-        while (folderExists) {
-          // Create a new path with counter appended
-          const newFolderName = `${sanitizedTitle} (${counter})`;
-          subfolderPath = await window.downlodrFunctions.joinDownloadPath(
-            location,
-            newFolderName,
-          );
-
-          // Check if this new path exists
-          folderExists = await window.downlodrFunctions.fileExists(
-            subfolderPath,
-          );
-          counter++;
-        }
-
-        // Ensure directory exists
-        const dirCreated = await window.downlodrFunctions.ensureDirectoryExists(
-          subfolderPath,
-        );
-        if (!dirCreated) {
-          console.error('Failed to create subfolder:', subfolderPath);
-        }
-
-        // Use subfolder path if created successfully, otherwise use original location
-        const finalLocation = dirCreated ? subfolderPath : location;
-        const subFolder = await window.downlodrFunctions.joinDownloadPath(
-          finalLocation,
           downloadName,
         );
+        let zustandLocation = location;
+        if (isCreateFolder) {
+          // Create a sanitized name for the subfolder
+          const sanitizedTitle = name.replace(/[\\/:*?"<>.|]/g, '_');
+
+          // Create initial subfolder path
+          let subfolderPath = await window.downlodrFunctions.joinDownloadPath(
+            location,
+            sanitizedTitle,
+          );
+
+          // Check if folder already exists and append counter if needed
+          let counter = 1;
+          let folderExists = await window.downlodrFunctions.fileExists(
+            subfolderPath,
+          );
+
+          while (folderExists) {
+            // Create a new path with counter appended
+            const newFolderName = `${sanitizedTitle} (${counter})`;
+            subfolderPath = await window.downlodrFunctions.joinDownloadPath(
+              location,
+              newFolderName,
+            );
+
+            // Check if this new path exists
+            folderExists = await window.downlodrFunctions.fileExists(
+              subfolderPath,
+            );
+            counter++;
+          }
+
+          // Ensure directory exists
+          const dirCreated =
+            await window.downlodrFunctions.ensureDirectoryExists(subfolderPath);
+          if (!dirCreated) {
+            console.error('Failed to create subfolder:', subfolderPath);
+          }
+
+          // Use subfolder path if created successfully, otherwise use original location
+          zustandLocation = dirCreated ? subfolderPath : location;
+          finalLocation = await window.downlodrFunctions.joinDownloadPath(
+            zustandLocation,
+            downloadName,
+          );
+        }
         // Create a download ID before starting the download
         const downloadId = (window as any).ytdlp.download(
           {
             url: videoUrl,
-            outputFilepath: subFolder,
+            outputFilepath: finalLocation,
             videoFormat: formatId,
             remuxVideo: ext,
             audioExt: audioExt,
@@ -426,47 +434,51 @@ const useDownloadStore = create<DownloadStore>()(
           },
         );
         let captionsPath = '';
-        console.log(automatic_caption, getTranscript);
-        if (automatic_caption && getTranscript) {
-          captionsPath = await downloadEnglishCaptions(
-            automatic_caption,
-            finalLocation,
-            downloadName,
-          );
+        let thumbnailPath = ' ';
+        if (isCreateFolder) {
+          if (automatic_caption && getTranscript) {
+            captionsPath = await downloadEnglishCaptions(
+              automatic_caption,
+              zustandLocation,
+              downloadName,
+            );
 
-          if (captionsPath) {
-            console.log(`Successfully downloaded captions to: ${captionsPath}`);
-          } else {
-            console.log('Could not download English captions');
-          }
-        } else {
-          captionsPath = '';
-          console.log('No transcript requested or available');
-        }
-        const outputPath = await window.downlodrFunctions.joinDownloadPath(
-          finalLocation,
-          `thumb1.jpg`,
-        );
-        if (thumbnails && getThumbnail) {
-          console.log(thumbnails);
-
-          try {
-            // Extract the URL from the thumbnails object
-            const thumbnailUrl = thumbnails.url;
-            if (thumbnailUrl) {
-              await window.downlodrFunctions.downloadFile(
-                thumbnailUrl,
-                outputPath,
+            if (captionsPath) {
+              console.log(
+                `Successfully downloaded captions to: ${captionsPath}`,
               );
-              console.log(`Thumbnail downloaded to: ${outputPath}`);
             } else {
-              console.log('Thumbnail URL not found in object');
+              console.log('Could not download English captions');
             }
-          } catch (error) {
-            console.log('Error downloading thumbnail:', error);
+          } else {
+            captionsPath = '';
+            console.log('No transcript requested or available');
           }
-        } else {
-          console.log('No thumbnail requested or available');
+          thumbnailPath = await window.downlodrFunctions.joinDownloadPath(
+            zustandLocation,
+            `thumb1.jpg`,
+          );
+          if (thumbnails && getThumbnail) {
+            console.log(thumbnails);
+
+            try {
+              // Extract the URL from the thumbnails object
+              const thumbnailUrl = thumbnails.url;
+              if (thumbnailUrl) {
+                await window.downlodrFunctions.downloadFile(
+                  thumbnailUrl,
+                  thumbnailPath,
+                );
+                console.log(`Thumbnail downloaded to: ${thumbnailPath}`);
+              } else {
+                console.log('Thumbnail URL not found in object');
+              }
+            } catch (error) {
+              console.log('Error downloading thumbnail:', error);
+            }
+          } else {
+            console.log('No thumbnail requested or available');
+          }
         }
         // Add the download to state with the final location
         set((state) => ({
@@ -482,7 +494,7 @@ const useDownloadStore = create<DownloadStore>()(
               timeLeft,
               DateAdded,
               progress,
-              location: finalLocation, // Use the subfolder path for the download location
+              location: zustandLocation, // Use the subfolder path for the download location
               status: 'downloading',
               ext: ext,
               formatId,
@@ -501,10 +513,11 @@ const useDownloadStore = create<DownloadStore>()(
               automaticCaption: automatic_caption,
               thumbnails: thumbnails,
               autoCaptionLocation: captionsPath,
-              thumnailsLocation: outputPath,
+              thumnailsLocation: thumbnailPath,
               getTranscript,
               getThumbnail,
               duration: duration,
+              isCreateFolder: isCreateFolder,
             },
           ],
         }));
@@ -587,6 +600,7 @@ const useDownloadStore = create<DownloadStore>()(
               getTranscript: options.getTranscript,
               getThumbnail: options.getThumbnail,
               duration: 0,
+              isCreateFolder: null,
             },
           ],
         }));

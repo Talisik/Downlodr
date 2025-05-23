@@ -11,7 +11,7 @@
 
 // Interface for download settings
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 interface DownloadSettings {
   defaultLocation: string; // Default location for downloads
@@ -29,6 +29,10 @@ interface SelectedDownload {
   controllerId?: string; // ID of the controller managing the download
   location?: string; // Location of the download
   videoUrl: string;
+  downloadName: string;
+  status: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  download: any;
 }
 
 // Main interface for the main store
@@ -119,6 +123,10 @@ export const useMainStore = create<MainStore>()(
             controllerId: undefined as string | undefined,
             location: undefined as string | undefined,
             videoUrl: undefined as string | undefined,
+            downloadName: undefined as string | undefined,
+            status: undefined as string | undefined,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            download: undefined as any | undefined,
           }));
           return {
             selectedRowIds: rows,

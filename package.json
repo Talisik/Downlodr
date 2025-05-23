@@ -1,7 +1,7 @@
 {
   "name": "downlodr",
   "productName": "Downlodr",
-  "version": "1.3.3",
+  "version": "1.3.6",
   "description": "Downlodr is a powerful, user-friendly video downloading solution that supports over 1,800 platforms, including YouTube, Vimeo, and many more. Downlodr provides a seamless experience for managing your video downloads.",
   "main": ".vite/build/main.js",
   "scripts": {
@@ -58,7 +58,6 @@
     "@radix-ui/react-switch": "^1.1.2",
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-toast": "^1.2.4",
-    "@radix-ui/react-tooltip": "^1.2.4",
     "@tanstack/react-query": "^5.64.1",
     "@vitejs/plugin-react": "^4.3.4",
     "axios": "^1.8.4",
@@ -75,7 +74,7 @@
     "react-router-dom": "^7.1.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "yt-dlp-helper": "https://x-token-auth:ATCTT3xFfGN0aai6a2HGXTJW6CWXqLhBk5vfHpij4Os2gmIex7kwMzc_7XZbal4HeB6AMVFXfScbWkg0QyXhrovJqrVVL0nBxoDu8Ery_jME3Sun6RU9pTA1g3PvYpcUfhN60r90JtfqSj5ZniLEDBfKSJxn5Ps-GJdr7gV1epm2oTpKIXn8N-8=C4687B75@bitbucket.org/metawhale/yt-dlp-helper.git",
+    "yt-dlp-helper": "github:Talisik/yt-dlp-helper",
     "zustand": "^5.0.3"
   }
 }

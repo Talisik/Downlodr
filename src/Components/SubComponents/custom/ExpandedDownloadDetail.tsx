@@ -64,9 +64,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
 
   return (
     <div
-      className={`w-full bg-detailsTab dark:bg-darkModeCompliment border-t-2 border-gray-300 dark:border-darkModeBorderColor ${
-        isExpanded ? 'h-auto' : 'h-auto'
-      } flex flex-col shadow-lg transition-all duration-300`}
+      className={`w-full bg-detailsTab dark:border-t dark:bg-darkModeCompliment border-t border-gray-300 dark:border-darkModeBorderColor h-auto flex flex-col shadow-lg transition-all duration-300`}
     >
       {/* Progress Bar - Always visible */}
       <div className="px-4 pt-2 pb-1">
@@ -95,89 +93,97 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
         </div>
       </div>
 
-      {/* The rest of your details component */}
-      {isExpanded && (
-        <div className="px-4 pb-2">
-          <div className="flex flex-col md:flex-row py-2 justify-center">
-            {/* Transfer section - now takes 40% of the space */}
-            <div className="p-3 w-full md:w-2/5">
-              <p className="text-[12px] mb-3">Transfer</p>
-              <div className="text-[12px]">
-                <div className="mb-1">
-                  <span className="font-semibold ">Download Time: </span>
-                  {isEmpty ? '' : formatElapsedTime(download.elapsed)}
-                </div>
-                <div className="mb-1">
-                  <span className="font-semibold ">Downloaded:</span>{' '}
-                  {isEmpty ? '' : formatFileSize(download.size)}
-                </div>
-                <div className="mb-1">
-                  <span className="font-semibold ">Download speed: </span>
-                  {isEmpty
-                    ? ''
-                    : download.progress === 100
-                    ? `${download.speed} avg.`
-                    : download.speed || 0}
-                </div>
-                <div>
-                  <span className="font-semibold ">ETA: </span>
-                  {isEmpty
-                    ? ''
-                    : download.progress === 100
-                    ? '∞'
-                    : download.timeLeft || ''}
-                </div>
+      {/* The rest of your details component - now using CSS for visibility */}
+      <div
+        className={`px-4 pb-2 overflow-hidden transition-all duration-300 ${
+          isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <div className="flex flex-col md:flex-row py-2 justify-center">
+          {/* Transfer section - now takes 40% of the space */}
+          <div className="p-3 w-full md:w-2/5">
+            <p className="text-[12px] mb-3">Transfer</p>
+            <div className="text-[12px]">
+              <div className="mb-1">
+                <span className="font-semibold ">Download Time: </span>
+                {isEmpty ? '' : formatElapsedTime(download.elapsed)}
+              </div>
+              <div className="mb-1">
+                <span className="font-semibold ">Downloaded:</span>{' '}
+                {isEmpty ? '' : formatFileSize(download.size)}
+              </div>
+              <div className="mb-1">
+                <span className="font-semibold ">Download speed: </span>
+                {isEmpty
+                  ? ''
+                  : download.progress === 100
+                  ? `${download.speed} avg.`
+                  : download.speed || 0}
+              </div>
+              <div>
+                <span className="font-semibold ">ETA: </span>
+                {isEmpty
+                  ? ''
+                  : download.progress === 100
+                  ? '∞'
+                  : download.timeLeft || ''}
               </div>
             </div>
+          </div>
 
-            {/* Centered divider - thicker and shorter */}
-            <div className="hidden md:flex items-center justify-center">
-              <div className="w-0.5 h-3/4 bg-gray-300 dark:bg-gray-600 mx-8"></div>
-            </div>
+          {/* Centered divider - thicker and shorter */}
+          <div className="hidden md:flex items-center justify-center">
+            <div className="w-0.5 h-3/4 bg-gray-300 dark:bg-gray-600 mx-8"></div>
+          </div>
 
-            {/* File information section - now takes 60% of the space */}
-            <div className="p-3 w-full md:w-3/5">
-              <h3 className="text-[12px] mb-3">File information</h3>
-              <div className="text-[12px]">
-                <div className="mb-1">
-                  <span className="font-semibold ">Total Size: </span>{' '}
-                  {isEmpty ? '' : formatFileSize(download.size)}
-                </div>
-                <div className="mb-1">
-                  <span className="font-semibold ">Added On: </span>
-                  {isEmpty
-                    ? ''
-                    : download.DateAdded
-                    ? new Date(download.DateAdded).toLocaleString()
-                    : ''}
-                </div>
-                <div className="mb-1">
-                  <span className="font-semibold ">Save Path: </span>
-                  {isEmpty ? '' : download.location || ''}
-                </div>
-                <div>
-                  <span className="font-semibold ">Created On: </span>
-                  {isEmpty
-                    ? ''
-                    : download.DateAdded
-                    ? new Date(download.DateAdded).toLocaleString()
-                    : ''}
-                </div>
+          {/* File information section - now takes 60% of the space */}
+          <div className="p-3 w-full md:w-3/5">
+            <h3 className="text-[12px] mb-3">File information</h3>
+            <div className="text-[12px]">
+              <div className="mb-1">
+                <span className="font-semibold ">Total Size: </span>{' '}
+                {isEmpty ? '' : formatFileSize(download.size)}
+              </div>
+              <div className="mb-1">
+                <span className="font-semibold ">Added On: </span>
+                {isEmpty
+                  ? ''
+                  : download.DateAdded
+                  ? new Date(download.DateAdded).toLocaleString()
+                  : ''}
+              </div>
+              <div className="mb-1">
+                <span className="font-semibold ">Save Path: </span>
+                {isEmpty ? '' : download.location || ''}
+              </div>
+              <div>
+                <span className="font-semibold ">Created On: </span>
+                {isEmpty
+                  ? ''
+                  : download.DateAdded
+                  ? new Date(download.DateAdded).toLocaleString()
+                  : ''}
               </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Status bar - always visible */}
       <div
         className="sticky bottom-0 left-0 right-0 py-1 border-t dark:border-t border-gray-300 dark:border-darkModeBorderColor flex justify-between mt-auto cursor-pointer"
-        onClick={toggleExpanded}
+        onClick={(e) => {
+          e.stopPropagation(); // Prevent double toggle from parent div click
+          toggleExpanded();
+        }}
       >
         {/* Toggle button */}
         <button
           className="ml-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-          onClick={toggleExpanded}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent double toggle from parent div click
+            toggleExpanded();
+          }}
         >
           {isExpanded ? (
             <svg
@@ -212,7 +218,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
         <p className="text-gray-600 dark:text-gray-300 px-4 flex items-center text-[11px]">
           <svg
             className="w-3 h-3 mr-1"
-            fill="blue"
+            fill="#34C759"
             viewBox="0 0 20 20"
             xmlns="http://www.w3.org/2000/svg"
           >
