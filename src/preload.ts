@@ -213,4 +213,10 @@ contextBridge.exposeInMainWorld('plugins', {
 
   readFile: (filePath: string) =>
     ipcRenderer.invoke('plugin:fs:readFile', { filePath }),
+
+  readFileContents: (options: { filePath: string; pluginId?: string }) =>
+    ipcRenderer.invoke('plugin:readFileContents', { options }),
+
+  // Close plugin panel
+  closePluginPanel: () => ipcRenderer.invoke('plugins:close-panel'),
 });

@@ -13,16 +13,20 @@
  */
 import React, { useState } from 'react';
 import { GoDownload } from 'react-icons/go';
-import { VscPlayCircle } from 'react-icons/vsc';
+import { LuTrash } from 'react-icons/lu';
 import { PiStopCircle } from 'react-icons/pi';
-import { useLocation, NavLink } from 'react-router-dom';
-import DownloadModal from '../Modal/DownloadModal';
+import { VscPlayCircle } from 'react-icons/vsc';
+import { useLocation } from 'react-router-dom';
+import FileNotExistModal, {
+  DownloadItem,
+} from '../../../Components/SubComponents/custom/FileNotExistModal';
+import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
-import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
-import { processFileName } from '../../../DataFunctions/FilterName';
-import { LuTrash } from 'react-icons/lu';
 import TaskBarPluginItems from '../../SubComponents/custom/TaskBarPluginItems';
+import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
+import { cn } from '../../SubComponents/shadcn/lib/utils';
+import DownloadModal from '../Modal/DownloadModal';
 import PageNavigation from './PageNavigation';
 
 interface TaskBarProps {
@@ -73,7 +77,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const [showStopConfirmation, setShowStopConfirmation] = useState(false);
   const { toast } = useToast();
   const location = useLocation(); // Get current location
-
+  const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
+  const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
   // Get the max download limit and current downloads from stores
   const { settings } = useMainStore();
   const { downloading } = useDownloadStore();
@@ -174,7 +179,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     );
     const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))]
       .map((id) => validDownloads.find((d) => d.id === id))
-      .filter((d): d is (typeof validDownloads)[0] => d !== undefined);
+      .filter(
+        (d): d is (typeof validDownloads)[0] =>
+          d !== undefined && d.status === 'to download',
+      );
 
     // removes the selected options to ensure no errors possible
     clearAllSelections();
@@ -242,7 +250,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     );
     const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))]
       .map((id) => validDownloads.find((d) => d.id === id))
-      .filter((d): d is (typeof validDownloads)[0] => d !== undefined);
+      .filter(
+        (d): d is (typeof validDownloads)[0] =>
+          d !== undefined && d.status === 'to download',
+      );
 
     // Clear selections immediately after filtering
     clearAllSelections();
@@ -301,6 +312,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           downloadInfo.getTranscript || false,
           downloadInfo.getThumbnail || false,
           downloadInfo.duration || 60,
+          true,
         );
         // remove the current download from the saved list for forDownloads
         removeFromForDownloads(selectedDownload.id);
@@ -308,7 +320,35 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     }
   };
 
-  // Remove the finished download from device drive and downloads log
+  const handleFileNotExistModal = async () => {
+    const missing = [];
+
+    // Check each selected download to see if it exists
+    for (const download of selectedDownloads) {
+      if (download.status === 'finished' && download.location) {
+        const exists = await window.downlodrFunctions.fileExists(
+          download.location,
+        );
+        if (!exists) {
+          missing.push(download);
+        }
+      }
+    }
+
+    // Set the missing files and show the modal if any were found
+    if (missing.length > 0) {
+      setMissingFiles(missing);
+      setShowFileNotExistModal(true);
+    } else {
+      toast({
+        variant: 'default',
+        title: 'All Files Exist',
+        description: 'All selected files exist at their locations',
+        duration: 3000,
+      });
+    }
+  };
+
   const handleRemoveSelected = async () => {
     if (selectedDownloads.length === 0) {
       toast({
@@ -342,21 +382,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             duration: 3000,
           });
         } else {
-          toast({
-            variant: 'destructive',
-            title: 'Deletion Failed',
-            description: `Failed to delete file: ${download.location}`,
-            duration: 3000,
-          });
+          handleFileNotExistModal();
         }
       } catch (error) {
-        console.error('Error deleting file:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Deletion Failed',
-          description: `Error deleting file: ${download.location}`,
-          duration: 3000,
-        });
+        handleFileNotExistModal();
       }
     };
 
@@ -390,7 +419,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
   return (
     <>
-      <div className={`${className} flex items-center justify-between`}>
+      {/* <div classNamep={`${className} flex items-center justify-between`}> */}
+      <div className={cn('flex items-center justify-between', className)}>
         <div className="flex items-center h-full px-2 space-x-2">
           <div className="gap-1 flex">
             <PageNavigation />
@@ -420,40 +450,39 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           </button>
         </div>
         <div className="pl-4 flex items-center">
-          <div className="mr-4">
-            {' '}
-            <TaskBarPluginItems />
-          </div>
-
+          {location.pathname.includes('/status') && (
+            <div className="mr-4">
+              <TaskBarPluginItems />
+            </div>
+          )}
+          {/* Portal target for History-specific Remove button */}
+          <div id="taskbar-portal"></div>
           {/* This is the regular downloads Remove button */}
-          <button
-            className={`px-3 py-1 rounded flex gap-1 mr-4 text-sm rounded-md flex gap-2 text-sm ${
-              selectedDownloads.length > 0 &&
-              location.pathname.includes('/status/')
-                ? 'bg-black text-gray-200 hover:!bg-[#3E3E46]'
-                : 'cursor-not-allowed text-gray-400 dark:text-gray-500 !bg-gray-200 hover:!bg-gray-200 !dark:bg-darkModeHover hover:!dark:bg-darkModeHover'
-            }`}
-            onClick={() => setShowStopConfirmation(true)}
-            disabled={
-              !(
+          {(location.pathname.includes('/status/') ||
+            location.pathname.includes('/tags/') ||
+            location.pathname.includes('/category/')) && (
+            <button
+              className={cn(
+                'px-3 py-1 mr-4 rounded-md flex gap-2 text-sm',
                 selectedDownloads.length > 0 &&
-                location.pathname.includes('/status/')
-              )
-            }
-          >
-            <LuTrash size={15} className="mt-[2px]" /> Remove
-          </button>
-
+                  location.pathname.includes('/status/')
+                  ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark'
+                  : 'cursor-not-allowed text-gray-400 bg-gray-200 hover:bg-gray-200 dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault',
+              )}
+              onClick={() => setShowStopConfirmation(true)}
+              disabled={!(selectedDownloads.length > 0)}
+            >
+              <LuTrash size={15} className="mt-[2px]" />{' '}
+              <span className="hidden md:inline text-sm">Remove</span>
+            </button>
+          )}
           <button
             className="primary-custom-btn px-[6px] py-[4px] sm:px-[8px] sm:py-[4px] flex items-center gap-1 sm:gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
             onClick={handleOpenDownloadModal}
           >
-            <GoDownload className="sm:w-[14px] sm:h-[14px]" />
-            <span className="hidden sm:inline text-sm">Add URL</span>
+            <GoDownload className="mt-[2px]" />
+            <span className="hidden md:inline text-sm">Add URL</span>
           </button>
-
-          {/* Portal target for History-specific Remove button */}
-          <div id="taskbar-portal"></div>
         </div>
       </div>
       <DownloadModal
@@ -465,6 +494,11 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         onClose={() => setShowStopConfirmation(false)}
         onConfirm={handleStopConfirm}
         message="Are you sure you want to stop and remove this download?"
+      />
+      <FileNotExistModal
+        isOpen={showFileNotExistModal}
+        onClose={() => setShowFileNotExistModal(false)}
+        selectedDownloads={missingFiles}
       />
     </>
   );

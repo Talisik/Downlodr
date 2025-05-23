@@ -70,7 +70,7 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
     >
       {/* Main header content - draggable */}
       <div
-        className="flex items-center w-full cursor-grab active:cursor-grabbing p-1 mr-1"
+        className="flex items-center w-full cursor-grab active:cursor-grabbing p-1 mr-1 whitespace-nowrap overflow-hidden"
         draggable={onDragStart ? true : false}
         onDragStart={() =>
           index !== undefined &&

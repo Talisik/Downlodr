@@ -13,16 +13,17 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 // import { LuDownload, LuArrowDown, LuArrowUp } from 'react-icons/lu';
-import { HiChevronUpDown } from 'react-icons/hi2';
 import { FaPlay } from 'react-icons/fa';
+import { HiChevronUpDown } from 'react-icons/hi2';
 import useDownloadStore, { BaseDownload } from '../../../Store/downloadStore';
-import DownloadContextMenu from './DownloadContextMenu';
+import { useMainStore } from '../../../Store/mainStore';
+import { Skeleton } from '../shadcn/components/ui/skeleton';
 import { toast } from '../shadcn/hooks/use-toast';
+import ColumnHeaderContextMenu from './ColumnHeaderContextMenu';
+import DownloadContextMenu from './DownloadContextMenu';
+import FileNotExistModal, { DownloadItem } from './FileNotExistModal';
 import ResizableHeader from './ResizableColumns/ResizableHeader';
 import { useResizableColumns } from './ResizableColumns/useResizableColumns';
-import { Skeleton } from '../shadcn/components/ui/skeleton';
-import { useMainStore } from '../../../Store/mainStore';
-import ColumnHeaderContextMenu from './ColumnHeaderContextMenu';
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -250,40 +251,66 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   };
 
   const handleCheckboxChange = (downloadId: string) => {
+    // Update local state for UI purposes
     setSelectedRowIds((prev) =>
       prev.includes(downloadId)
         ? prev.filter((id) => id !== downloadId)
         : [...prev, downloadId],
     );
+
+    // Update the global selected downloads state
+    const download = allDownloads.find((d) => d.id === downloadId);
+    if (download) {
+      const { selectedDownloads, setSelectedDownloads, clearAllSelections } =
+        useMainStore.getState();
+
+      // If already selected, remove it; otherwise add it
+      if (selectedDownloads.some((d) => d.id === downloadId)) {
+        setSelectedDownloads(
+          selectedDownloads.filter((d) => d.id !== downloadId),
+        );
+      } else {
+        setSelectedDownloads([
+          ...selectedDownloads,
+          {
+            download,
+            id: download.id,
+            videoUrl: download.videoUrl,
+            downloadName: download.name,
+            status: download.status,
+          },
+        ]);
+      }
+    }
   };
 
   const handleSelectAll = () => {
     if (selectedRowIds.length === allDownloads.length) {
       setSelectedRowIds([]);
+      // Clear global selection state
+      useMainStore.getState().clearAllSelections();
     } else {
       setSelectedRowIds(allDownloads.map((d) => d.id));
+      // Set all downloads in global selection state
+      useMainStore.getState().setSelectedDownloads(
+        allDownloads.map((download) => ({
+          download,
+          id: download.id,
+          videoUrl: download.videoUrl,
+          downloadName: download.name,
+          status: download.status,
+        })),
+      );
     }
   };
 
   // Handlers for column operations
   const handleColumnHeaderContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-
-    // Close any active download context menu first
-    setContextMenu(null);
-
-    // Get the table's position
-    const tableRect = e.currentTarget.getBoundingClientRect();
-
-    // Calculate position relative to the table/header
-    const x = e.clientX - tableRect.left + 2;
-    const y = e.clientY - tableRect.top + window.scrollY + 2;
-
     setColumnHeaderContextMenu({
       visible: true,
-      x: x,
-      y: y,
+      x: e.clientX,
+      y: e.clientY,
     });
   };
 
@@ -441,12 +468,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     event.preventDefault();
     event.stopPropagation();
 
-    // Close any active column header context menu first
-    setColumnHeaderContextMenu({
-      ...columnHeaderContextMenu,
-      visible: false,
-    });
-
     setContextMenu({
       downloadId: download.id,
       x: event.clientX,
@@ -489,14 +510,79 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       });
     }
   };
-  // Handles viewing a download.
-  // downloadLocation - The location of the download file.
-  const handleViewDownload = (downloadLocation?: string) => {
+
+  // Add these new state variables for the modal
+  const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
+  const [missingFile, setMissingFile] = useState<DownloadItem | null>(null);
+
+  // Update handleViewDownload to check if the file exists
+  const handleViewDownload = async (
+    downloadLocation?: string,
+    downloadId?: string,
+  ) => {
     if (downloadLocation) {
-      window.downlodrFunctions.openVideo(downloadLocation);
+      try {
+        const exists = await window.downlodrFunctions.fileExists(
+          downloadLocation,
+        );
+
+        if (exists) {
+          window.downlodrFunctions.openVideo(downloadLocation);
+        } else {
+          // If file doesn't exist, find the download and show the modal
+          if (downloadId) {
+            const download = allDownloads.find((d) => d.id === downloadId);
+            if (download) {
+              // Prepare download item for the modal
+              const downloadItem: DownloadItem = {
+                id: download.id,
+                videoUrl: download.videoUrl,
+                location: downloadLocation,
+                name: download.name,
+                ext: download.ext || '',
+                downloadName: download.name,
+                extractorKey: download.extractorKey || '',
+                status: download.status,
+                download: {
+                  ...download,
+                },
+              };
+
+              setMissingFile(downloadItem);
+              setShowFileNotExistModal(true);
+            }
+          } else {
+            // Simple toast if we don't have the download details
+            toast({
+              variant: 'destructive',
+              title: 'File Not Found',
+              description: 'The file does not exist at the specified location',
+              duration: 3000,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error viewing download:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description:
+            error?.message || String(error) || 'Failed to view download',
+          duration: 5000,
+        });
+      }
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'No Download Location',
+        description: 'Invalid Download Location',
+        duration: 3000,
+      });
     }
+
     setContextMenu(null);
   };
+
   // Handles viewing the folder containing the download.
   // downloadLocation - The location of the download file.
   const handleViewFolder = (downloadLocation?: string, filePath?: string) => {
@@ -557,7 +643,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       <table className="w-full">
         <thead>
           <tr
-            className="border-b text-left dark:border-darkModeCompliment"
+            className="border-b text-left dark:border-white"
             onContextMenu={handleColumnHeaderContextMenu}
           >
             <th className="w-8 p-2">
@@ -602,13 +688,16 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           {allDownloads.map((download) => (
             <React.Fragment key={download.id}>
               <tr
-                className={`border-b hover:bg-gray-50 dark:border-darkModeCompliment dark:hover:bg-darkModeHover cursor-pointer ${
+                className={`border-b hover:bg-gray-50 dark:border-white dark:hover:bg-gray-700 cursor-pointer ${
                   selectedDownloadId === download.id
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'
                 }`}
                 onContextMenu={(e) => handleContextMenu(e, download)}
-                onClick={() => handleRowClick(download.id)}
+                onClick={() => {
+                  handleRowClick(download.id);
+                  handleCheckboxChange(download.id);
+                }}
                 draggable={true}
                 data-download-id={download.id}
                 onDragStart={(e) => {
@@ -626,7 +715,11 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                     type="checkbox"
                     className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                     checked={selectedRowIds.includes(download.id)}
-                    onChange={() => handleCheckboxChange(download.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      handleCheckboxChange(download.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </td>
                 {displayColumns.map((column) => {
@@ -972,6 +1065,14 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           currentCategories={[]}
         />
       )}
+
+      {/* Add the FileNotExistModal component */}
+      <FileNotExistModal
+        isOpen={showFileNotExistModal}
+        onClose={() => setShowFileNotExistModal(false)}
+        selectedDownloads={missingFile ? [missingFile] : []}
+        download={missingFile}
+      />
     </div>
   );
 };

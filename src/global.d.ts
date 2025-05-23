@@ -127,6 +127,15 @@ declare global {
       saveFileDialog: (options: SaveDialogOptions) => Promise<SaveDialogResult>;
     };
     PluginHandlers?: Record<string, (contextData?: any) => void>;
+    formatSelectorManager?: {
+      showFormatSelector: (options: any) => Promise<any>;
+    };
+    pluginSidePanelManager?: {
+      showPluginSidePanel: (options: any) => Promise<any>;
+    };
+    pluginModalManager?: {
+      showPluginModal: (options: any) => Promise<any>;
+    };
   }
 }
 

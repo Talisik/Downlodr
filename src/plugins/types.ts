@@ -40,7 +40,11 @@ export interface UIAPI {
   showPluginSidePanel: (
     options: PluginSidePanelOptions,
   ) => Promise<PluginSidePanelResult | null>;
+  showPluginModal: (
+    options: PluginModalOptions,
+  ) => Promise<PluginModalResult | null>;
   showSaveFileDialog: (options: SaveDialogOptions) => Promise<SaveDialogResult>;
+  closePluginPanel: () => void;
 }
 
 export interface FormatAPI {
@@ -222,6 +226,28 @@ export interface PluginSidePanelOptions {
 
 export interface PluginSidePanelResult {
   closed: boolean;
+  data?: any;
+}
+
+export interface PluginModalOptions {
+  title?: string;
+  content: React.ReactNode | string;
+  width?: number | string;
+  height?: number | string;
+  closable?: boolean;
+  centered?: boolean;
+  footer?: React.ReactNode | null;
+  callbacks?: {
+    onOk?: () => void;
+    onCancel?: () => void;
+    onClose?: () => void;
+    [key: string]: ((...args: any[]) => void) | undefined;
+  };
+}
+
+export interface PluginModalResult {
+  closed: boolean;
+  confirmed?: boolean;
   data?: any;
 }
 

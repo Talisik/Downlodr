@@ -11,16 +11,18 @@
 
 // Interface for download settings
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 interface PluginSettings {
   isShowPlugin: boolean;
+  isOpenPluginSidebar: boolean;
 }
 
 // Main interface for the main store
 interface PluginStore {
   settingsPlugin: PluginSettings; // Current download settings
   updateIsShowPlugin: (value: boolean) => void;
+  updateIsOpenPluginSidebar: (value: boolean) => void;
 }
 
 // Create the main store with persistence
@@ -29,11 +31,19 @@ export const usePluginStore = create<PluginStore>()(
     (set, get) => ({
       settingsPlugin: {
         isShowPlugin: false,
+        isOpenPluginSidebar: false,
       },
 
       updateIsShowPlugin: (value) =>
         set({
           settingsPlugin: { ...get().settingsPlugin, isShowPlugin: value },
+        }),
+      updateIsOpenPluginSidebar: (value) =>
+        set({
+          settingsPlugin: {
+            ...get().settingsPlugin,
+            isOpenPluginSidebar: value,
+          },
         }),
     }),
     {

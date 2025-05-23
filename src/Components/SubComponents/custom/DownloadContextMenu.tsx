@@ -29,24 +29,24 @@
  * @returns JSX.Element - The rendered context menu component.
  */
 
-import React, { useState, useEffect } from 'react';
-import TagMenu from './TagsMenu';
-import CategoryMenu from './CategoryMenu';
+import { PlayCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { BiRightArrow } from 'react-icons/bi';
+import { GoChevronRight } from 'react-icons/go';
+import { HiOutlineStopCircle } from 'react-icons/hi2';
 import { IoPauseCircleOutline } from 'react-icons/io5';
 import { LiaFileVideoSolid, LiaTagsSolid } from 'react-icons/lia';
-import { HiOutlineStopCircle } from 'react-icons/hi2';
-import { BiRightArrow } from 'react-icons/bi';
-import { LuTrash, LuFolderOpen } from 'react-icons/lu';
-import { GoChevronRight } from 'react-icons/go';
-import { VscDebugStart } from 'react-icons/vsc';
-import useDownloadStore from '../../../Store/downloadStore';
+import { LuFolderOpen, LuTrash } from 'react-icons/lu';
 import { MdEdit } from 'react-icons/md';
-import { PlayCircle } from 'lucide-react';
+import { VscDebugStart } from 'react-icons/vsc';
 import { processFileName } from '../../../DataFunctions/FilterName';
+import { usePluginState } from '../../../plugins/Hooks/usePluginState';
+import { MenuItem } from '../../../plugins/types';
+import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
-import { MenuItem } from '../../../plugins/types';
-import { usePluginState } from '../../../plugins/Hooks/usePluginState';
+import CategoryMenu from './CategoryMenu';
+import TagMenu from './TagsMenu';
 // import FormatConverterMenu from './FormatConverterMenu';
 
 // Interface representing the props for the DownloadContextMenu component
@@ -78,7 +78,7 @@ interface DownloadContextMenuProps {
     id?: string,
     controllerId?: string,
   ) => void; // Function to remove the download
-  onViewDownload: (downloadLocation?: string) => void; // Function to view the download
+  onViewDownload: (downloadLocation?: string, downloadId?: string) => void; // Function to view the download
   onAddTag: (downloadId: string, tag: string) => void; // Function to add a tag to the download
   onRemoveTag: (downloadId: string, tag: string) => void; // Function to remove a tag from the download
   currentTags: string[]; // Array of current tags for the download
@@ -273,6 +273,11 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     }
   };
 
+  // Helper function to check if a string is an SVG
+  const isSvgString = (str: string): boolean => {
+    return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
+  };
+
   useEffect(() => {
     fetchPluginMenuItems();
   }, [enabledPlugins]);
@@ -443,6 +448,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       currentDownload.getTranscript || false,
       currentDownload.getThumbnail || false,
       currentDownload.duration || 0,
+      true,
     );
 
     removeFromForDownloads(currentDownload.id); // Remove from forDownloads after starting
@@ -515,7 +521,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewDownload(downloadLocation);
+              onViewDownload(downloadLocation, downloadId);
               onClose();
             }}
           >
@@ -838,6 +844,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     }
   }
 */
+
   const renderPluginMenuItems = () => {
     if (!pluginMenuItems || pluginMenuItems.length === 0) return null;
     return (
@@ -851,10 +858,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             key={item.id || item.label}
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              console.log(
-                allDownloads.find((d) => d.id === downloadId)
-                  ?.autoCaptionLocation,
-              );
               const contextData = {
                 name: downloadName,
                 downloadId,
@@ -868,6 +871,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                 ext: allDownloads.find((d) => d.id === downloadId)?.ext,
                 captionLocation: allDownloads.find((d) => d.id === downloadId)
                   ?.autoCaptionLocation,
+                thumbnailLocation: allDownloads.find((d) => d.id === downloadId)
+                  ?.thumnailsLocation,
               };
 
               // Log which menu item was clicked
@@ -896,7 +901,18 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             }}
           >
             <span className="flex items-center space-x-2">
-              {item.icon && <span>{item.icon}</span>}
+              {item.icon && (
+                <span className="inline-flex items-center justify-center w-5 h-5 mr-2">
+                  {typeof item.icon === 'string' && isSvgString(item.icon) ? (
+                    <span
+                      dangerouslySetInnerHTML={{ __html: item.icon }}
+                      className="text-black dark:text-white"
+                    />
+                  ) : (
+                    <span>{item.icon}</span>
+                  )}
+                </span>
+              )}
               <span>{item.label}</span>
             </span>
           </button>

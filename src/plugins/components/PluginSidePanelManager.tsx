@@ -1,72 +1,122 @@
-import React, { useState, useCallback } from 'react';
-import PluginSidePanelExtension from './PluginSidePanelExtension';
+import React, { useEffect, useState } from 'react';
+import { usePluginStore } from '../../Store/pluginStore';
 import { PluginSidePanelOptions, PluginSidePanelResult } from '../types';
+import PluginSidePanelExtension from './PluginSidePanelExtension';
 
 interface PluginSidePanelRequest {
+  id: string;
   options: PluginSidePanelOptions;
-  resolve: (result: PluginSidePanelResult | null) => void;
+  resolve: (result: PluginSidePanelResult) => void;
 }
 
-// Create a component that manages plugin side panel requests
 const PluginSidePanelManager: React.FC = () => {
-  const [currentRequest, setCurrentRequest] =
-    useState<PluginSidePanelRequest | null>(null);
-
-  // Create a function to show the plugin side panel
-  const showPluginSidePanel = useCallback(
-    (
-      options: PluginSidePanelOptions,
-    ): Promise<PluginSidePanelResult | null> => {
-      return new Promise((resolve) => {
-        setCurrentRequest({ options, resolve });
-      });
-    },
+  const [requestQueue, setRequestQueue] = useState<PluginSidePanelRequest[]>(
     [],
   );
+  const [currentRequest, setCurrentRequest] =
+    useState<PluginSidePanelRequest | null>(null);
+  const { settingsPlugin, updateIsOpenPluginSidebar } = usePluginStore();
+  const isOpen = settingsPlugin.isOpenPluginSidebar;
 
-  // Handle close
-  const handleClose = useCallback(() => {
-    if (currentRequest) {
-      currentRequest.resolve({ closed: true });
-      setCurrentRequest(null);
+  // Listen for store changes and update panel visibility accordingly
+  useEffect(() => {
+    if (!isOpen && currentRequest) {
+      // If the store indicates the panel should be closed, close it
+      handleClose();
     }
-  }, [currentRequest]);
+  }, [isOpen]);
 
-  // Handle action
-  const handleAction = useCallback(
-    (result: PluginSidePanelResult) => {
-      if (currentRequest) {
-        currentRequest.resolve(result);
-        setCurrentRequest(null);
-      }
-    },
-    [currentRequest],
-  );
-
-  // Expose the showPluginSidePanel method to the window
-  React.useEffect(() => {
+  // Setup the global manager when the component mounts
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       window.pluginSidePanelManager = {
-        showPluginSidePanel,
+        showPluginSidePanel: (options: PluginSidePanelOptions) => {
+          return new Promise<PluginSidePanelResult>((resolve) => {
+            const request: PluginSidePanelRequest = {
+              id: `panel_${Date.now()}`,
+              options,
+              resolve,
+            };
+            setRequestQueue((queue) => [...queue, request]);
+          });
+        },
       };
     }
 
     return () => {
-      if (typeof window !== 'undefined' && window.pluginSidePanelManager) {
+      if (typeof window !== 'undefined') {
         delete window.pluginSidePanelManager;
       }
     };
-  }, [showPluginSidePanel]);
+  }, []);
 
-  // Render the plugin side panel if there's a request
-  return currentRequest ? (
-    <PluginSidePanelExtension
-      isOpen={!!currentRequest}
-      onClose={handleClose}
-      options={currentRequest.options}
-      onAction={handleAction}
-    />
-  ) : null;
+  // Process the queue whenever it changes or when currentRequest becomes null
+  useEffect(() => {
+    if (!currentRequest && requestQueue.length > 0) {
+      const nextRequest = requestQueue[0];
+      setCurrentRequest(nextRequest);
+      setRequestQueue(requestQueue.slice(1));
+      updateIsOpenPluginSidebar(true);
+    }
+  }, [requestQueue, currentRequest, updateIsOpenPluginSidebar]);
+
+  // Handle closing the panel
+  const handleClose = () => {
+    if (currentRequest) {
+      currentRequest.resolve({
+        closed: true,
+      });
+      setCurrentRequest(null);
+      updateIsOpenPluginSidebar(false);
+    }
+  };
+
+  // Handle message events for panel closing
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'closePanel') {
+        handleClose();
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  // Handle close panel events from IPC
+  useEffect(() => {
+    const handleClosePanel = () => {
+      handleClose();
+    };
+
+    // Add event listener for plugin:close-panel
+    if (typeof window !== 'undefined') {
+      window.addEventListener('plugin:close-panel', handleClosePanel);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('plugin:close-panel', handleClosePanel);
+      }
+    };
+  }, []);
+
+  return (
+    <>
+      {currentRequest && (
+        <PluginSidePanelExtension
+          isOpen={isOpen}
+          onClose={handleClose}
+          options={currentRequest.options}
+          onAction={(result) => {
+            currentRequest.resolve(result);
+            setCurrentRequest(null);
+            updateIsOpenPluginSidebar(false);
+          }}
+        />
+      )}
+    </>
+  );
 };
 
 export default PluginSidePanelManager;
@@ -77,7 +127,7 @@ declare global {
     pluginSidePanelManager?: {
       showPluginSidePanel: (
         options: PluginSidePanelOptions,
-      ) => Promise<PluginSidePanelResult | null>;
+      ) => Promise<PluginSidePanelResult>;
     };
   }
 }

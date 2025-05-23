@@ -13,21 +13,24 @@
  * @returns JSX.Element - The rendered component displaying a DropdownBar
  *
  */
-import React, { useState, useRef, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { AiOutlineExclamationCircle } from 'react-icons/ai';
+import { FiBook, FiSearch } from 'react-icons/fi';
 import { IoIosAdd } from 'react-icons/io';
+import { MdOutlineHistory } from 'react-icons/md';
 import { RxExit, RxUpdate } from 'react-icons/rx';
-import DownloadModal from '../Modal/DownloadModal';
-import SettingsModal from '../Modal/SettingsModal';
-import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
+import { NavLink } from 'react-router-dom';
 import useDownloadStore, {
   HistoryDownloads,
 } from '../../../Store/downloadStore';
+import FileNotExistModal, {
+  DownloadItem,
+} from '../../SubComponents/custom/FileNotExistModal';
+import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import AboutModal from '../Modal/AboutModal';
+import DownloadModal from '../Modal/DownloadModal';
 import HelpModal from '../Modal/HelpModal';
-import { FiSearch, FiBook } from 'react-icons/fi';
-import { MdOutlineHistory } from 'react-icons/md';
-import { AiOutlineExclamationCircle } from 'react-icons/ai';
+import SettingsModal from '../Modal/SettingsModal';
 
 const DropdownBar = ({ className }: { className?: string }) => {
   // Dropdown element states
@@ -49,6 +52,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState<HistoryDownloads[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Add this new state for the modal
+  const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
+  const [missingFile, setMissingFile] = useState<DownloadItem | null>(null);
 
   // Filter search results when search term changes
   useEffect(() => {
@@ -82,21 +89,46 @@ const DropdownBar = ({ className }: { className?: string }) => {
     };
   }, []);
 
-  // Handle opening the video file
+  // Update the handleOpenVideo function to check if the file exists first
   const handleOpenVideo = async (download: HistoryDownloads) => {
     try {
       const filePath = await window.downlodrFunctions.joinDownloadPath(
         download.location,
         download.downloadName,
       );
-      window.downlodrFunctions.openVideo(filePath);
+
+      // Check if the file exists before trying to open it
+      const exists = await window.downlodrFunctions.fileExists(filePath);
+
+      if (exists) {
+        window.downlodrFunctions.openVideo(filePath);
+      } else {
+        // If the file doesn't exist, prepare the download item for the modal
+        const downloadItem: DownloadItem = {
+          id: download.id,
+          videoUrl: download.videoUrl,
+          location: filePath,
+          name: download.name,
+          ext: download.ext,
+          downloadName: download.downloadName,
+          extractorKey: download.extractorKey,
+          status: download.status,
+          download: {
+            ...download,
+          },
+        };
+
+        // Set the missing file and show the modal
+        setMissingFile(downloadItem);
+        setShowFileNotExistModal(true);
+      }
     } catch (error) {
       console.error('Error opening file:', error);
       toast({
         variant: 'destructive',
         title: 'Error Opening File',
-        description: 'An error occurred while trying to open the file',
-        duration: 3000,
+        description: error?.message || String(error) || 'Failed to open file',
+        duration: 5000,
       });
     }
 
@@ -370,6 +402,14 @@ const DropdownBar = ({ className }: { className?: string }) => {
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setDownloadModalOpen(false)}
+      />
+
+      {/* Add the FileNotExistModal component at the end */}
+      <FileNotExistModal
+        isOpen={showFileNotExistModal}
+        onClose={() => setShowFileNotExistModal(false)}
+        selectedDownloads={missingFile ? [missingFile] : []}
+        download={missingFile}
       />
     </div>
   );

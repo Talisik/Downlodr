@@ -51,6 +51,15 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
           });
         }
 
+        // Add onClose to the callback proxy
+        callbackProxy['closePanel'] = () => {
+          try {
+            onClose();
+          } catch (error) {
+            console.error('Error in plugin close panel callback:', error);
+          }
+        };
+
         // Inject the callback proxy into the iframe
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (iframe.contentWindow as any).__pluginCallbacks = callbackProxy;
@@ -81,6 +90,14 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
                 });
               });
               
+              // Close panel handler - add this to any close buttons in the panel
+              const closePanelBtns = document.querySelectorAll('.close-panel-btn');
+              if (closePanelBtns.length > 0 && window.__pluginCallbacks && window.__pluginCallbacks.closePanel) {
+                closePanelBtns.forEach(btn => {
+                  btn.addEventListener('click', window.__pluginCallbacks.closePanel);
+                });
+              }
+              
               // Browse button handler
               const browseBtn = document.querySelector('.browse-btn');
               if (browseBtn && window.__pluginCallbacks && window.__pluginCallbacks.onBrowse) {
@@ -100,13 +117,20 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
                   window.__pluginCallbacks.onConvert(selectedFormat);
                 });
               }
+              
+              // Make closePanel available globally within the iframe
+              window.closePanel = function() {
+                if (window.__pluginCallbacks && window.__pluginCallbacks.closePanel) {
+                  window.__pluginCallbacks.closePanel();
+                }
+              };
             });
           `;
 
         iframe.contentDocument.head.appendChild(script);
       };
     }
-  }, [options.content, options.callbacks]);
+  }, [options.content, options.callbacks, onClose]);
 
   if (!isOpen) return null;
 
@@ -119,7 +143,7 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
 
   return (
     <div
-      className="fixed right-0 top-0 h-full bg-white dark:bg-darkMode shadow-lg z-40 flex flex-col border-2 border-[#D1D5DB] dark:border-darkModeCompliment"
+      className="fixed right-0 top-0 h-full bg-white shadow-lg z-40 flex flex-col border-2 border-[#D1D5DB] dark:border-darkModeCompliment"
       style={{ width: '300px' }}
     >
       {/* Header */}

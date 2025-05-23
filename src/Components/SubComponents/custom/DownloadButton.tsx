@@ -10,9 +10,9 @@
  */
 
 import React from 'react';
+import { IoMdDownload } from 'react-icons/io';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
-import { IoMdDownload } from 'react-icons/io';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
 
@@ -95,6 +95,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
       download.getTranscript || false,
       download.getThumbnail || false,
       download.duration || 60,
+      true,
     );
     // remove the current download from the saved list for forDownloads
     removeFromForDownloads(download.id);
