@@ -1,0 +1,105 @@
+name: Weekly Build
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    # Run every Sunday at 2 AM UTC
+    - cron: '0 2 * * 0'
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+      
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      
+      - name: Build Electron app
+        run: yarn make
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: appu-windows-${{ github.run_number }}
+          path: out/make/**/*
+          retention-days: 30
+  
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: appu-windows-${{ github.run_number }}
+          path: ./artifacts
+      
+      - name: Get version from package.json
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+      
+      - name: Get commit info
+        id: commit
+        run: |
+          echo "sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+          echo "message=$(git log -1 --pretty=format:'%s')" >> $GITHUB_OUTPUT
+      
+      - name: Extract changelog for current version
+        id: changelog
+        run: |
+          # Extract unreleased changes from CHANGELOG.md
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          awk '/^## \[Unreleased\]/{flag=1; next} /^## \[/{flag=0} flag && /^### |^- /' CHANGELOG.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }} - ${{ steps.commit.outputs.message }}
+          body: |
+            Automated weekly build of APPU for Windows
+            
+            Version: ${{ steps.version.outputs.version }}
+            Built on: ${{ steps.date.outputs.date }}
+            Commit: ${{ steps.commit.outputs.sha }} - ${{ steps.commit.outputs.message }}
+
+            ## Download Latest Installer
+            - [Windows 10 / 11 Installer](https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/appu-${{ steps.version.outputs.version }}-x64.exe)
+            
+            ## Changes in this release
+            ${{ steps.changelog.outputs.changelog }}
+          
+          files: ./artifacts/**/*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
