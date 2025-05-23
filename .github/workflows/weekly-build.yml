@@ -93,7 +93,7 @@ jobs:
             Commit: ${{ steps.commit.outputs.sha }} - ${{ steps.commit.outputs.message }}
 
             ## Download Latest Installer
-            - [Windows 10 / 11 Installer](https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/appu-${{ steps.version.outputs.version }}-x64.exe)
+            - [Windows 10 / 11 Installer](https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}-exp/Downlodr-${{ steps.version.outputs.version }}-x64.exe)            
             
             ## Changes in this release
             ${{ steps.changelog.outputs.changelog }}
