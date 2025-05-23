@@ -719,7 +719,6 @@ const StatusSpecificDownloads = () => {
         description: 'Download has been deleted successfully',
         duration: 3000,
       });
-
       return;
     }
 
@@ -736,12 +735,12 @@ const StatusSpecificDownloads = () => {
           duration: 3000,
         });
       } else {
-        if (download.status === 'finished') {
-          // Pass the specific download to the modal function
+        // This is the key difference - we're passing downloadLocation instead of download.location
+        if (download) {
           const downloadItem: DownloadItem = {
             id: download.id,
             videoUrl: download.videoUrl,
-            location: download.location,
+            location: downloadLocation, // Use downloadLocation instead of download.location
             name: download.name,
             ext: download.ext,
             downloadName: download.downloadName,
@@ -752,17 +751,26 @@ const StatusSpecificDownloads = () => {
             },
           };
           handleFileNotExistModal(downloadItem);
-        } else {
-          toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Failed to remove download',
-            duration: 3000,
-          });
         }
       }
     } catch (error) {
-      deleteDownload(downloadId);
+      // Same fix in the catch block
+      if (download) {
+        const downloadItem: DownloadItem = {
+          id: download.id,
+          videoUrl: download.videoUrl,
+          location: downloadLocation, // Use downloadLocation instead of download.location
+          name: download.name,
+          ext: download.ext,
+          downloadName: download.downloadName,
+          extractorKey: download.extractorKey,
+          status: download.status,
+          download: {
+            ...download,
+          },
+        };
+        handleFileNotExistModal(downloadItem);
+      }
       console.error('Error deleting file:', error);
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });

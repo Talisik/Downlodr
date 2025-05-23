@@ -17,6 +17,9 @@ import { LuTrash } from 'react-icons/lu';
 import { PiStopCircle } from 'react-icons/pi';
 import { VscPlayCircle } from 'react-icons/vsc';
 import { useLocation } from 'react-router-dom';
+import FileNotExistModal, {
+  DownloadItem,
+} from '../../../Components/SubComponents/custom/FileNotExistModal';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
@@ -74,7 +77,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const [showStopConfirmation, setShowStopConfirmation] = useState(false);
   const { toast } = useToast();
   const location = useLocation(); // Get current location
-
+  const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
+  const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
   // Get the max download limit and current downloads from stores
   const { settings } = useMainStore();
   const { downloading } = useDownloadStore();
@@ -316,7 +320,35 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     }
   };
 
-  // Remove the finished download from device drive and downloads log
+  const handleFileNotExistModal = async () => {
+    const missing = [];
+
+    // Check each selected download to see if it exists
+    for (const download of selectedDownloads) {
+      if (download.status === 'finished' && download.location) {
+        const exists = await window.downlodrFunctions.fileExists(
+          download.location,
+        );
+        if (!exists) {
+          missing.push(download);
+        }
+      }
+    }
+
+    // Set the missing files and show the modal if any were found
+    if (missing.length > 0) {
+      setMissingFiles(missing);
+      setShowFileNotExistModal(true);
+    } else {
+      toast({
+        variant: 'default',
+        title: 'All Files Exist',
+        description: 'All selected files exist at their locations',
+        duration: 3000,
+      });
+    }
+  };
+
   const handleRemoveSelected = async () => {
     if (selectedDownloads.length === 0) {
       toast({
@@ -350,21 +382,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             duration: 3000,
           });
         } else {
-          toast({
-            variant: 'destructive',
-            title: 'Deletion Failed',
-            description: `Failed to delete file: ${download.location}`,
-            duration: 3000,
-          });
+          handleFileNotExistModal();
         }
       } catch (error) {
-        console.error('Error deleting file:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Deletion Failed',
-          description: `Error deleting file: ${download.location}`,
-          duration: 3000,
-        });
+        handleFileNotExistModal();
       }
     };
 
@@ -473,6 +494,11 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         onClose={() => setShowStopConfirmation(false)}
         onConfirm={handleStopConfirm}
         message="Are you sure you want to stop and remove this download?"
+      />
+      <FileNotExistModal
+        isOpen={showFileNotExistModal}
+        onClose={() => setShowFileNotExistModal(false)}
+        selectedDownloads={missingFiles}
       />
     </>
   );
