@@ -381,21 +381,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             duration: 3000,
           });
         } else {
-          toast({
-            variant: 'destructive',
-            title: 'Deletion Failed',
-            description: `Failed to delete file: ${download.location}`,
-            duration: 3000,
-          });
+          handleFileNotExistModal();
         }
       } catch (error) {
-        console.error('Error deleting file:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Deletion Failed',
-          description: `Error deleting file: ${download.location}`,
-          duration: 3000,
-        });
+        handleFileNotExistModal();
       }
     };
 

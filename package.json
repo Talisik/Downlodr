@@ -52,12 +52,14 @@
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.4",
     "@radix-ui/react-avatar": "^1.1.2",
+    "@radix-ui/react-dialog": "^1.1.13",
     "@radix-ui/react-separator": "^1.1.1",
     "@radix-ui/react-slider": "^1.2.2",
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-switch": "^1.1.2",
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-toast": "^1.2.4",
+    "@radix-ui/react-tooltip": "^1.2.4",
     "@tanstack/react-query": "^5.64.1",
     "@vitejs/plugin-react": "^4.3.4",
     "axios": "^1.8.4",
@@ -74,7 +76,7 @@
     "react-router-dom": "^7.1.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "yt-dlp-helper": "github:Talisik/yt-dlp-helper",
+    "yt-dlp-helper": "https://github.com/Talisik/yt-dlp-helper.git",
     "zustand": "^5.0.3"
   }
 }

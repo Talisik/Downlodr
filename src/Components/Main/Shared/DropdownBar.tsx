@@ -20,15 +20,18 @@ import { IoIosAdd } from 'react-icons/io';
 import { MdOutlineHistory } from 'react-icons/md';
 import { RxExit, RxUpdate } from 'react-icons/rx';
 import { NavLink } from 'react-router-dom';
+import FileNotExistModal, {
+  DownloadItem,
+} from '../../../Components/SubComponents/custom/FileNotExistModal';
 import useDownloadStore, {
   HistoryDownloads,
 } from '../../../Store/downloadStore';
+import { useMainStore } from '../../../Store/mainStore';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import AboutModal from '../Modal/AboutModal';
 import DownloadModal from '../Modal/DownloadModal';
 import HelpModal from '../Modal/HelpModal';
 import SettingsModal from '../Modal/SettingsModal';
-
 const DropdownBar = ({ className }: { className?: string }) => {
   // Dropdown element states
   const [activeMenu, setActiveMenu] = useState<'file' | 'help' | null>(null);
@@ -49,6 +52,11 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState<HistoryDownloads[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Downloads
+  const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
+  const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
+  const selectedDownloads = useMainStore((state) => state.selectedDownloads);
 
   // Filter search results when search term changes
   useEffect(() => {
@@ -82,24 +90,127 @@ const DropdownBar = ({ className }: { className?: string }) => {
     };
   }, []);
 
-  // Handle opening the video file
-  const handleOpenVideo = async (download: HistoryDownloads) => {
-    try {
-      const filePath = await window.downlodrFunctions.joinDownloadPath(
-        download.location,
-        download.downloadName,
-      );
-      window.downlodrFunctions.openVideo(filePath);
-    } catch (error) {
-      console.error('Error opening file:', error);
+  const handleFileNotExistModal = async (
+    contextDownload: DownloadItem | null = null,
+  ) => {
+    const missing = [];
+
+    // If a specific download is provided via context menu, check only that one
+    const downloadsToCheck = contextDownload
+      ? [contextDownload]
+      : selectedDownloads;
+
+    // Check each download to see if it exists
+    for (const download of downloadsToCheck) {
+      if (download.status === 'finished' && download.location) {
+        const exists = await window.downlodrFunctions.fileExists(
+          download.location,
+        );
+        if (!exists) {
+          missing.push(download);
+        }
+      }
+    }
+
+    // Set the missing files and show the modal if any were found
+    if (missing.length > 0) {
+      setMissingFiles(missing);
+      setShowFileNotExistModal(true);
+    } else {
       toast({
-        variant: 'destructive',
-        title: 'Error Opening File',
-        description: 'An error occurred while trying to open the file',
+        variant: 'default',
+        title: 'All Files Exist',
+        description: 'All selected files exist at their locations',
         duration: 3000,
       });
     }
-
+  };
+  // Handle opening the video file
+  const handleOpenVideo = async (download: HistoryDownloads) => {
+    if (download.location) {
+      const downloadLocation = await window.downlodrFunctions.joinDownloadPath(
+        download.location,
+        download.downloadName,
+      );
+      try {
+        const exists = await window.downlodrFunctions.fileExists(
+          downloadLocation,
+        );
+        if (exists) {
+          window.downlodrFunctions.openVideo(downloadLocation);
+        } else {
+          // If the file doesn't exist, find the download and show the modal
+          if (download.id) {
+            const foundDownload = historyDownloads.find(
+              (d) => d.id === download.id,
+            );
+            if (foundDownload) {
+              // Pass the specific download to the modal function
+              const downloadItem: DownloadItem = {
+                id: foundDownload.id,
+                videoUrl: foundDownload.videoUrl,
+                location: downloadLocation,
+                name: foundDownload.name,
+                ext: foundDownload.ext,
+                downloadName: foundDownload.downloadName,
+                extractorKey: foundDownload.extractorKey,
+                status: foundDownload.status,
+                download: {
+                  ...foundDownload,
+                },
+              };
+              handleFileNotExistModal(downloadItem);
+            }
+          } else {
+            // In case we don't have the download ID, show a simple toast
+            if (download.id) {
+              const foundDownload = historyDownloads.find(
+                (d) => d.id === download.id,
+              );
+              if (foundDownload) {
+                // Pass the specific download to the modal function
+                const downloadItem: DownloadItem = {
+                  id: foundDownload.id,
+                  videoUrl: foundDownload.videoUrl,
+                  location: foundDownload.location,
+                  name: foundDownload.name,
+                  ext: foundDownload.ext,
+                  downloadName: foundDownload.downloadName,
+                  extractorKey: foundDownload.extractorKey,
+                  status: foundDownload.status,
+                  download: {
+                    ...foundDownload,
+                  },
+                };
+                handleFileNotExistModal(downloadItem);
+              }
+            }
+            toast({
+              variant: 'destructive',
+              title: 'File Not Found',
+              description: `The file does not exist at the specified location`,
+              duration: 3000,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error viewing download:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description:
+            error?.message || String(error) || 'Failed to view download',
+          duration: 5000,
+        });
+      }
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'No Download Location',
+        description: 'Invalid Download Location',
+        duration: 3000,
+      });
+    }
     setShowResults(false);
     setSearchTerm('');
   };
@@ -370,6 +481,11 @@ const DropdownBar = ({ className }: { className?: string }) => {
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setDownloadModalOpen(false)}
+      />
+      <FileNotExistModal
+        isOpen={showFileNotExistModal}
+        onClose={() => setShowFileNotExistModal(false)}
+        selectedDownloads={missingFiles}
       />
     </div>
   );

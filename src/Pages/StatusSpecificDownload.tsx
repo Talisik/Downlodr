@@ -3,7 +3,7 @@
 /**
  * A custom React Page Component for Status-Specific Downloads
  * This component dynamically displays downloads filtered by their status,
- * reusing the UI structure from the AllDownloads component.
+ * reusing the UI structure from the AllDownloads component...
  *
  * @returns JSX.Element - The rendered component displaying status-filtered downloads.
  */
@@ -15,6 +15,9 @@ import ColumnHeaderContextMenu from '../Components/SubComponents/custom/ColumnHe
 import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
 import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
 import ExpandedDownloadDetails from '../Components/SubComponents/custom/ExpandedDownloadDetail';
+import FileNotExistModal, {
+  DownloadItem,
+} from '../Components/SubComponents/custom/FileNotExistModal';
 import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
 import { AnimatedCircularProgressBar } from '../Components/SubComponents/custom/RadialProgress';
 import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
@@ -23,7 +26,6 @@ import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skele
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 import useDownloadStore from '../Store/downloadStore';
 import { useMainStore } from '../Store/mainStore';
-
 // Reuse helper functions from AllDownloads
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -104,7 +106,7 @@ const StatusSpecificDownloads = () => {
   );
   const deleteDownload = useDownloadStore((state) => state.deleteDownload);
 
-  // Add sorting state
+  // Sorting state
   const [sortColumn, setSortColumn] = useState<string>('dateAdded');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
@@ -140,6 +142,10 @@ const StatusSpecificDownloads = () => {
   // Get visible columns from the store
   const visibleColumns = useMainStore((state) => state.visibleColumns);
 
+  // Downloads
+  const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
+  const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
+  const selectedDownloads = useMainStore((state) => state.selectedDownloads);
   // Call the hook with visible column IDs
   const {
     columns,
@@ -276,6 +282,42 @@ const StatusSpecificDownloads = () => {
       visibleColumns.includes(column.id) ||
       ['name', 'status', 'format'].includes(column.id),
   );
+
+  const handleFileNotExistModal = async (
+    contextDownload: DownloadItem | null = null,
+  ) => {
+    const missing = [];
+
+    // If a specific download is provided via context menu, check only that one
+    const downloadsToCheck = contextDownload
+      ? [contextDownload]
+      : selectedDownloads;
+
+    // Check each download to see if it exists
+    for (const download of downloadsToCheck) {
+      if (download.status === 'finished' && download.location) {
+        const exists = await window.downlodrFunctions.fileExists(
+          download.location,
+        );
+        if (!exists) {
+          missing.push(download);
+        }
+      }
+    }
+
+    // Set the missing files and show the modal if any were found
+    if (missing.length > 0) {
+      setMissingFiles(missing);
+      setShowFileNotExistModal(true);
+    } else {
+      toast({
+        variant: 'default',
+        title: 'All Files Exist',
+        description: 'All selected files exist at their locations',
+        duration: 3000,
+      });
+    }
+  };
 
   // Map the displayColumns to have correct indices for drag and drop
   const displayColumnsWithIndices = displayColumns.map((column, index) => ({
@@ -491,10 +533,85 @@ const StatusSpecificDownloads = () => {
 
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
-
-  const handleViewDownload = (downloadLocation?: string) => {
+  const handleViewDownload = async (
+    downloadLocation?: string,
+    downloadId?: string,
+  ) => {
     if (downloadLocation) {
-      window.downlodrFunctions.openVideo(downloadLocation);
+      try {
+        const exists = await window.downlodrFunctions.fileExists(
+          downloadLocation,
+        );
+        if (exists) {
+          window.downlodrFunctions.openVideo(downloadLocation);
+        } else {
+          // If the file doesn't exist, find the download and show the modal
+          if (downloadId) {
+            const download = allDownloads.find((d) => d.id === downloadId);
+            if (download) {
+              // Pass the specific download to the modal function
+              const downloadItem: DownloadItem = {
+                id: download.id,
+                videoUrl: download.videoUrl,
+                location: downloadLocation,
+                name: download.name,
+                ext: download.ext,
+                downloadName: download.downloadName,
+                extractorKey: download.extractorKey,
+                status: download.status,
+                download: {
+                  ...download,
+                },
+              };
+              handleFileNotExistModal(downloadItem);
+            }
+          } else {
+            // In case we don't have the download ID, show a simple toast
+            if (downloadId) {
+              const download = allDownloads.find((d) => d.id === downloadId);
+              if (download) {
+                // Pass the specific download to the modal function
+                const downloadItem: DownloadItem = {
+                  id: download.id,
+                  videoUrl: download.videoUrl,
+                  location: download.location,
+                  name: download.name,
+                  ext: download.ext,
+                  downloadName: download.downloadName,
+                  extractorKey: download.extractorKey,
+                  status: download.status,
+                  download: {
+                    ...download,
+                  },
+                };
+                handleFileNotExistModal(downloadItem);
+              }
+            }
+            toast({
+              variant: 'destructive',
+              title: 'File Not Found',
+              description: `The file does not exist at the specified location WHAAS ${downloadId}`,
+              duration: 3000,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error viewing download:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description:
+            error?.message || String(error) || 'Failed to view download',
+          duration: 5000,
+        });
+      }
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'No Download Location',
+        description: 'Invalid Download Location',
+        duration: 3000,
+      });
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
@@ -616,12 +733,21 @@ const StatusSpecificDownloads = () => {
           duration: 3000,
         });
       } else {
-        toast({
-          variant: 'destructive',
-          title: 'Deletion Failed',
-          description: 'Failed to delete file',
-          duration: 3000,
-        });
+        // Pass the specific download to the modal function
+        const downloadItem: DownloadItem = {
+          id: download.id,
+          videoUrl: download.videoUrl,
+          location: downloadLocation,
+          name: download.name,
+          ext: download.ext,
+          downloadName: download.downloadName,
+          extractorKey: download.extractorKey,
+          status: download.status,
+          download: {
+            ...download,
+          },
+        };
+        handleFileNotExistModal(downloadItem);
       }
     } catch (error) {
       deleteDownload(downloadId);
@@ -742,6 +868,13 @@ const StatusSpecificDownloads = () => {
         // Normal case with separate parameters
         window.downlodrFunctions.openFolder(downloadLocation, filePath);
       }
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to pause/resume download',
+        duration: 3000,
+      });
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
@@ -1020,6 +1153,7 @@ const StatusSpecificDownloads = () => {
                                               download.location,
                                               download.name,
                                             ),
+                                            download.id,
                                           );
                                         }}
                                       />
@@ -1277,6 +1411,12 @@ const StatusSpecificDownloads = () => {
         onToggleColumn={handleToggleColumn}
         onClose={handleCloseColumnHeaderContextMenu}
         columnOptions={columnOptions}
+      />
+      <FileNotExistModal
+        isOpen={showFileNotExistModal}
+        onClose={() => setShowFileNotExistModal(false)}
+        selectedDownloads={missingFiles}
+        download={missingFiles.length === 1 ? missingFiles[0] : null}
       />
     </div>
   );
