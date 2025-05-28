@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaArrowCircleUp } from 'react-icons/fa';
 import {
   AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogAction,
   AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '../shadcn/components/ui/alert-dialog';
 import { Button } from '../shadcn/components/ui/button';
-import { Badge } from '../shadcn/components/ui/badge';
-import { toast } from '../shadcn/hooks/use-toast';
 
 // Define the update info type
 interface UpdateInfo {
@@ -30,6 +28,8 @@ const UpdateNotification: React.FC = () => {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    console.log('UpdateNotification mounting/re-mounting');
+
     // Only add the listener if we're in an Electron environment
     let removeListener: (() => void) | undefined;
 
@@ -45,6 +45,7 @@ const UpdateNotification: React.FC = () => {
 
     // Clean up the listener when the component unmounts
     return () => {
+      console.log('UpdateNotification unmounting');
       if (removeListener) {
         console.log('Removing update listener');
         removeListener();
@@ -103,7 +104,7 @@ const UpdateNotification: React.FC = () => {
             <Button
               onClick={handleDownload}
               size="sm"
-              className="h-7 px-3 py-2 text-sm"
+              className="h-8 px-4 py-4.8 text-sm "
             >
               Download Now
             </Button>

@@ -123,6 +123,7 @@ contextBridge.exposeInMainWorld('updateAPI', {
       ipcRenderer.removeListener('update-available', wrappedCallback);
   },
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  getCurrentVersion: () => ipcRenderer.invoke('get-current-version'),
 });
 
 // Add these to your existing preload API exposures

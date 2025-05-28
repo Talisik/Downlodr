@@ -8,12 +8,11 @@
  *
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
-import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
 import { useMainStore } from '../../../Store/mainStore';
-import { toast } from '../../../Components/SubComponents/shadcn/hooks/use-toast';
 import { usePluginStore } from '../../../Store/pluginStore';
+import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -136,31 +135,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       (bite) => bite.biteUnitVal === settings.defaultDownloadSpeedBit,
     );
     return option ? option.biteDisplayName : 'Kilo byte (KB)';
-  };
-
-  const handleCheckForUpdates = async () => {
-    console.log('Check for updates button clicked');
-    console.log('updateAPI available:', !!window.updateAPI?.checkForUpdates);
-    if (window.updateAPI?.checkForUpdates) {
-      try {
-        console.log('Calling checkForUpdates...');
-        const result = await window.updateAPI.checkForUpdates();
-        console.log('Update check result:', result);
-        if (!result.hasUpdate) {
-          toast({
-            title: "You're up to date!",
-            description: `You're using the latest version (v${result.currentVersion}).`,
-            duration: 3000,
-          });
-        }
-        onClose();
-      } catch (error) {
-        console.error('Error checking for updates:', error);
-      }
-    } else {
-      console.error('updateAPI is not available');
-      onClose();
-    }
   };
 
   useEffect(() => {

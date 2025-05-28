@@ -1081,3 +1081,9 @@ ipcMain.handle('plugins:close-panel', async () => {
     return { success: false, error: error.message };
   }
 });
+
+// Add this handler to get version without GitHub API call
+ipcMain.handle('get-current-version', async () => {
+  // Get version from package.json or app.getVersion()
+  return app.getVersion();
+});
