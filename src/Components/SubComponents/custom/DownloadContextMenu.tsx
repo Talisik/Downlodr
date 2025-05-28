@@ -728,6 +728,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             onClick={(e) => {
               e.stopPropagation();
               setShowRenameModal(true);
+              onClose();
             }}
           >
             <span className="flex items-center space-x-2">
@@ -873,15 +874,12 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                   ?.autoCaptionLocation,
                 thumbnailLocation: allDownloads.find((d) => d.id === downloadId)
                   ?.thumnailsLocation,
+                extractorKey: allDownloads.find((d) => d.id === downloadId)
+                  ?.extractorKey,
               };
 
               // Log which menu item was clicked
-              console.log('Plugin menu item clicked:', {
-                id: item.id,
-                label: item.label,
-                pluginId: item.pluginId,
-                handlerId: item.handlerId,
-              });
+
               console.log('Context data:', contextData);
 
               // Find and execute the handler directly if it's a rendered plugin with handlerId
