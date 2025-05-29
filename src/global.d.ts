@@ -147,6 +147,7 @@ interface PluginInfo {
   version: string;
   description: string;
   author: string;
+  icon: string;
 }
 
 interface MenuItem {

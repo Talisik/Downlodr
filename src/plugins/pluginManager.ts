@@ -1,7 +1,7 @@
 // src/plugins/pluginManager.ts
-import { app, ipcMain, shell, dialog } from 'electron';
-import path from 'path';
+import { app, dialog, ipcMain, shell } from 'electron';
 import fs from 'fs';
+import path from 'path';
 import { validatePlugin } from './security';
 
 export class PluginManager {
@@ -352,6 +352,7 @@ export class PluginManager {
                 description: manifest.description || '',
                 author: manifest.author || 'Unknown',
                 enabled: this.enabledPlugins[pluginId],
+                icon: manifest.icon || 'Unknown',
               };
             }
             return null;
