@@ -213,6 +213,7 @@ export interface TaskBarItem {
 export interface PluginSidePanelOptions {
   title?: string;
   content: React.ReactNode | string;
+  icon?: any;
   width?: number | string;
   closable?: boolean;
   callbacks?: {

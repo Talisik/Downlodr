@@ -37,7 +37,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: appu-windows-${{ github.run_number }}
+          name: downlodr-windows-${{ github.run_number }}
           path: out/make/**/*
           retention-days: 30
   
@@ -55,7 +55,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: appu-windows-${{ github.run_number }}
+          name: downlodr-windows-${{ github.run_number }}
           path: ./artifacts
       
       - name: Get version from package.json
@@ -86,7 +86,7 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}-exp
           name: Experimental build v${{ steps.version.outputs.version }} - ${{ steps.commit.outputs.message }}
           body: |
-            Automated weekly build of APPU for Windows
+            Automated weekly build of downlodr for Windows
             
             Version: ${{ steps.version.outputs.version }}
             Built on: ${{ steps.date.outputs.date }}

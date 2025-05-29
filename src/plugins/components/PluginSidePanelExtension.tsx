@@ -51,7 +51,6 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
           });
         }
 
-        // Add onClose to the callback proxy
         callbackProxy['closePanel'] = () => {
           try {
             onClose();
@@ -132,6 +131,11 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
     }
   }, [options.content, options.callbacks, onClose]);
 
+  // Helper function to check if a string is an SVG
+  const isSvgString = (str: string): boolean => {
+    return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
+  };
+
   if (!isOpen) return null;
 
   // Calculate panel width
@@ -148,6 +152,18 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
     >
       {/* Header */}
       <div className="bg-titleBar dark:bg-darkMode px-2 py-1 pt-[11px] border-b-2 border-gray-200 dark:border-darkModeCompliment flex items-center justify-between">
+        {options.icon && (
+          <span className="inline-flex items-center justify-center w-5 h-5 mr-2">
+            {typeof options.icon === 'string' && isSvgString(options.icon) ? (
+              <span
+                dangerouslySetInnerHTML={{ __html: options.icon }}
+                className="text-black dark:text-white"
+              />
+            ) : (
+              <span>{options.icon}</span>
+            )}
+          </span>
+        )}
         <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 flex items-center justify-center h-full my-auto">
           {options.title || 'Plugin Panel'}
         </h3>

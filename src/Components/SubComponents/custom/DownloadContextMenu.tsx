@@ -728,7 +728,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             onClick={(e) => {
               e.stopPropagation();
               setShowRenameModal(true);
-              onClose();
             }}
           >
             <span className="flex items-center space-x-2">
