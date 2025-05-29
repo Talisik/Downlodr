@@ -305,13 +305,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   <div className="flex items-center gap-2 mb-2">
                     <input
                       type="checkbox"
+                      id="connection-limits"
                       checked={isConnectionLimitEnabled}
                       onChange={(e) =>
                         setIsConnectionLimitEnabled(e.target.checked)
                       }
                       className="w-4 h-4 text-primary rounded focus:ring-primary"
                     />
-                    <label className="text-sm block dark:text-gray-200 text-nowrap font-bold">
+                    <label
+                      htmlFor="connection-limits"
+                      className="text-sm block dark:text-gray-200 text-nowrap font-bold cursor-pointer"
+                    >
                       Connection Limits
                     </label>
                     <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
@@ -368,7 +372,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 />
                 <label
                   htmlFor="run-in-background"
-                  className="dark:text-gray-200"
+                  className="dark:text-gray-200 cursor-pointer"
                 >
                   Run in background when window is closed
                 </label>
@@ -439,7 +443,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     />
                     <label
                       htmlFor={`column-${column.id}`}
-                      className={`dark:text-gray-200 mr-2 text-xs ${
+                      className={`dark:text-gray-200 mr-2 text-xs cursor-pointer ${
                         column.required ? 'font-semibold' : ''
                       }`}
                     >

@@ -16,13 +16,13 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
+import { MdOutlineInfo } from 'react-icons/md';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
-import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
-import { MdOutlineInfo } from 'react-icons/md';
+import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 
 interface DownloadModalProps {
   isOpen: boolean;
@@ -425,24 +425,30 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                     <div className="flex items-center gap-1">
                       <input
                         type="checkbox"
-                        id="run-in-background"
+                        id="get-transcript"
                         checked={getTranscript}
                         onChange={(e) => setGetTranscript(e.target.checked)}
                         className="w-4 h-4 text-primary rounded focus:ring-primary"
                       />
-                      <label className="font-medium dark:text-darkModeLight ">
+                      <label
+                        htmlFor="get-transcript"
+                        className="font-medium dark:text-darkModeLight cursor-pointer"
+                      >
                         Get Closed Captions
                       </label>
                     </div>
                     <div className="flex items-center gap-1">
                       <input
                         type="checkbox"
-                        id="run-in-background"
+                        id="get-thumbnail"
                         checked={getThumbnail}
                         onChange={(e) => setGetThumbnail(e.target.checked)}
                         className="w-4 h-4 text-primary rounded focus:ring-primary"
                       />
-                      <label className="font-medium dark:text-darkModeLight ">
+                      <label
+                        htmlFor="get-thumbnail"
+                        className="font-medium dark:text-darkModeLight cursor-pointer"
+                      >
                         Get Thumbnail
                       </label>
                     </div>
