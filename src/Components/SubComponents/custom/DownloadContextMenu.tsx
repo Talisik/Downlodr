@@ -25,6 +25,7 @@
  *   @param availableCategories - An array of all available categories in the system.
  *   @param onViewFolder - A function to view the folder containing the download.
  *   @param downloadName - The name of the download file.
+ *   @param onRename - A function to rename the download.
  *
  * @returns JSX.Element - The rendered context menu component.
  */
@@ -89,6 +90,7 @@ interface DownloadContextMenuProps {
   availableCategories: string[]; // Array of all available categories in the system
   onViewFolder: (downloadLocation?: string) => void; // Function to view the folder containing the download
   downloadName?: string; // Name of the download file
+  onRename: (downloadId: string, currentName: string) => void; // Add this
 }
 
 interface ConfirmModalProps {
@@ -144,11 +146,18 @@ const RenameModal: React.FC<RenameModalProps> = ({
 }) => {
   const [newName, setNewName] = useState(currentName);
 
+  // Reset the input when modal opens or currentName changes
+  useEffect(() => {
+    if (isOpen) {
+      setNewName(currentName);
+    }
+  }, [isOpen, currentName]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newName.trim()) {
+    if (newName.trim() && newName.trim().length <= 50) {
       onRename(newName.trim());
       toast({
         variant: 'success',
@@ -169,24 +178,31 @@ const RenameModal: React.FC<RenameModalProps> = ({
         className="bg-white dark:bg-darkMode rounded-lg p-6 max-w-sm w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-medium mb-4 dark:text-gray-200">Rename</h3>
+        <h3 className="text-lg font-medium mb-4 dark:text-gray-200">
+          Rename Download
+        </h3>
         <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
-          <label className="font-medium">New name</label>
+          <label className="font-medium dark:text-gray-200">New name</label>
           <input
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            className="w-full p-2 border rounded mb-4 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+            maxLength={50}
+            className="w-full p-2 border rounded mb-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
             autoFocus
             onClick={(e) => e.stopPropagation()}
           />
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            {newName.length}/50 characters
+          </div>
           <hr className="solid mb-2 -mx-6 w-[calc(100%+48px)] border-t-2 border-divider dark:border-gray-700" />
 
           <div className="flex justify-start space-x-2 mb-[-10px]">
             <button
               type="submit"
               onClick={(e) => e.stopPropagation()}
-              className="px-4 py-1 bg-primary text-white rounded"
+              className="px-4 py-1 bg-primary text-white rounded disabled:opacity-50"
+              disabled={!newName.trim() || newName.trim().length > 50}
             >
               Save
             </button>
@@ -229,6 +245,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   availableCategories = [],
   onViewFolder,
   downloadName = '',
+  onRename,
 }) => {
   const menuRef = React.useRef<HTMLDivElement>(null);
   const tagMenuRef = React.useRef<HTMLDivElement>(null);
@@ -239,10 +256,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     'right' | 'left' | 'top'
   >('right');
   const [showStopConfirmation, setShowStopConfirmation] = useState(false); // State to track visibility of the stop confirmation modal
-  const [showRenameModal, setShowRenameModal] = useState(false); // State to track visibility of the rename modal
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false); // State to track visibility of the remove confirmation modal
   // const [showFormatConverterMenu, setShowFormatConverterMenu] = useState(false); // State to track visibility of format converter menu
-  const renameDownload = useDownloadStore((state) => state.renameDownload); // Function to rename a download
   const { settings } = useMainStore();
   const {
     downloading,
@@ -384,12 +399,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     onClose();
   };
 
-  // Function to handle renaming the download
-  const handleRename = (newName: string) => {
-    renameDownload(downloadId, newName);
-    onClose();
-  };
-
   // Function to confirm removing the download
   const handleRemoveConfirm = () => {
     onRemove(downloadLocation, downloadId, controllerId);
@@ -460,7 +469,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     // Common options for tags and categories
     const commonOptions = (
       <>
-        {/* Tags and Categories are always available */}
         <div className="relative">
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
@@ -727,7 +735,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
               e.stopPropagation();
-              setShowRenameModal(true);
+              onRename(downloadId, downloadName);
+              onClose();
             }}
           >
             <span className="flex items-center space-x-2">
@@ -747,6 +756,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <span>Remove</span>
             </span>
           </button>
+          {commonOptions}
         </>
       );
     }
@@ -873,15 +883,12 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                   ?.autoCaptionLocation,
                 thumbnailLocation: allDownloads.find((d) => d.id === downloadId)
                   ?.thumnailsLocation,
+                extractorKey: allDownloads.find((d) => d.id === downloadId)
+                  ?.extractorKey,
               };
 
               // Log which menu item was clicked
-              console.log('Plugin menu item clicked:', {
-                id: item.id,
-                label: item.label,
-                pluginId: item.pluginId,
-                handlerId: item.handlerId,
-              });
+
               console.log('Context data:', contextData);
 
               // Find and execute the handler directly if it's a rendered plugin with handlerId
@@ -935,13 +942,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         {renderPluginMenuItems()}
       </div>
 
-      <RenameModal
-        isOpen={showRenameModal}
-        onClose={() => setShowRenameModal(false)}
-        onRename={handleRename}
-        currentName={downloadName}
-      />
-
       <ConfirmModal
         isOpen={showStopConfirmation}
         onClose={() => setShowStopConfirmation(false)}
@@ -959,4 +959,5 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   );
 };
 
+export { RenameModal };
 export default DownloadContextMenu;

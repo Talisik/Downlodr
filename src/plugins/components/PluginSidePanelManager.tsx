@@ -31,6 +31,14 @@ const PluginSidePanelManager: React.FC = () => {
     if (typeof window !== 'undefined') {
       window.pluginSidePanelManager = {
         showPluginSidePanel: (options: PluginSidePanelOptions) => {
+          // Add debug logging here
+          console.log('PluginSidePanelManager received options:', {
+            title: options.title,
+            icon: options.icon,
+            iconType: typeof options.icon,
+            hasIcon: !!options.icon,
+          });
+
           return new Promise<PluginSidePanelResult>((resolve) => {
             const request: PluginSidePanelRequest = {
               id: `panel_${Date.now()}`,
@@ -54,6 +62,12 @@ const PluginSidePanelManager: React.FC = () => {
   useEffect(() => {
     if (!currentRequest && requestQueue.length > 0) {
       const nextRequest = requestQueue[0];
+      console.log('Setting current request:', {
+        title: nextRequest.options.title,
+        icon: nextRequest.options.icon,
+        iconType: typeof nextRequest.options.icon,
+        hasIcon: !!nextRequest.options.icon,
+      });
       setCurrentRequest(nextRequest);
       setRequestQueue(requestQueue.slice(1));
       updateIsOpenPluginSidebar(true);

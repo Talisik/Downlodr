@@ -25,24 +25,31 @@ export class VideoFormatService {
   private static createAudioOptions(audioOnlyFormat: any): FormatOption[] {
     if (!audioOnlyFormat) return [];
 
-    return [
-      {
+    const audioOptions = [];
+
+    // Only add the original format if it's not mp4
+    if (audioOnlyFormat.audio_ext && audioOnlyFormat.audio_ext !== 'mp4') {
+      audioOptions.push({
         value: `audio-${audioOnlyFormat.format_id}-${audioOnlyFormat.audio_ext}`,
         label: `Audio Only (${audioOnlyFormat.audio_ext}) - ${
           audioOnlyFormat.format_note || audioOnlyFormat.ext
         }`,
         formatId: audioOnlyFormat.format_id,
         fileExtension: audioOnlyFormat.audio_ext,
-      },
-      {
-        value: `audio-${audioOnlyFormat.format_id}-mp3`,
-        label: `Audio Only (mp3) - ${
-          audioOnlyFormat.format_note || audioOnlyFormat.ext
-        }`,
-        formatId: audioOnlyFormat.format_id,
-        fileExtension: 'mp3',
-      },
-    ];
+      });
+    }
+
+    // Always add mp3 option
+    audioOptions.push({
+      value: `audio-${audioOnlyFormat.format_id}-mp3`,
+      label: `Audio Only (mp3) - ${
+        audioOnlyFormat.format_note || audioOnlyFormat.ext
+      }`,
+      formatId: audioOnlyFormat.format_id,
+      fileExtension: 'mp3',
+    });
+
+    return audioOptions;
   }
 
   private static processYoutubeFormats(formatsArray: any[]): ProcessedFormats {
@@ -74,11 +81,20 @@ export class VideoFormatService {
       }
     });
 
-    const audioOnlyFormat = formatsArray.find(
+    // Try to find audio format with fallback priority: medium > high > low
+    let audioOnlyFormat = formatsArray.find(
       (format: any) =>
         format.vcodec === 'none' &&
         format.format.includes('audio only (medium)'),
     );
+
+    if (!audioOnlyFormat) {
+      audioOnlyFormat = formatsArray.find(
+        (format: any) =>
+          format.vcodec === 'none' &&
+          format.format.includes('audio only (Default, high)'),
+      );
+    }
 
     const audioOptions = this.createAudioOptions(audioOnlyFormat);
     const formatOptions = Array.from(formatMap.entries())

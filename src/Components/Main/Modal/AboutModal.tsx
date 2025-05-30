@@ -9,10 +9,10 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { FiExternalLink } from 'react-icons/fi';
 import { IoMdClose } from 'react-icons/io';
 import DownlodrLogo from '../../../Assets/Logo/DownlodrLogo-NoName.svg';
-import { FiExternalLink } from 'react-icons/fi';
 
 interface AboutModalProps {
   isOpen: boolean;
@@ -46,10 +46,10 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
             }
           });
 
-          // Directly get the current version info
-          const updateInfo = await window.updateAPI.checkForUpdates();
-          if (updateInfo && updateInfo.currentVersion) {
-            setAppVersion(updateInfo.currentVersion);
+          // Get current version WITHOUT calling GitHub API
+          const currentVersion = await window.updateAPI.getCurrentVersion();
+          if (currentVersion) {
+            setAppVersion(currentVersion);
           }
         } catch (error) {
           console.error('Error getting version:', error);

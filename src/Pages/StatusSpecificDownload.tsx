@@ -13,7 +13,9 @@ import { VscPlayCircle } from 'react-icons/vsc';
 import { useParams } from 'react-router-dom';
 import ColumnHeaderContextMenu from '../Components/SubComponents/custom/ColumnHeaderContextMenu';
 import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
-import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
+import DownloadContextMenu, {
+  RenameModal,
+} from '../Components/SubComponents/custom/DownloadContextMenu';
 import ExpandedDownloadDetails from '../Components/SubComponents/custom/ExpandedDownloadDetail';
 import FileNotExistModal, {
   DownloadItem,
@@ -27,6 +29,7 @@ import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 import useDownloadStore from '../Store/downloadStore';
 import { useMainStore } from '../Store/mainStore';
 import { usePluginStore } from '../Store/pluginStore';
+
 // Reuse helper functions from AllDownloads
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -951,6 +954,29 @@ const StatusSpecificDownloads = () => {
     });
   }, [allDownloads, thumbnailDataUrls]);
 
+  // Add rename modal state
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameDownloadId, setRenameDownloadId] = useState<string>('');
+  const [renameCurrentName, setRenameCurrentName] = useState<string>('');
+
+  // Get renameDownload function from store
+  const renameDownload = useDownloadStore((state) => state.renameDownload);
+
+  // Add rename handler
+  const handleRename = (downloadId: string, currentName: string) => {
+    setRenameDownloadId(downloadId);
+    setRenameCurrentName(currentName);
+    setShowRenameModal(true);
+  };
+
+  // Add function to perform the rename
+  const performRename = (newName: string) => {
+    renameDownload(renameDownloadId, newName);
+    setShowRenameModal(false);
+    setRenameDownloadId('');
+    setRenameCurrentName('');
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Table container with scrolling */}
@@ -1419,6 +1445,7 @@ const StatusSpecificDownloads = () => {
             allDownloads.find((d) => d.id === contextMenu.downloadId)?.name ||
             ''
           }
+          onRename={handleRename}
         />
       )}
 
@@ -1438,6 +1465,18 @@ const StatusSpecificDownloads = () => {
         onClose={() => setShowFileNotExistModal(false)}
         selectedDownloads={missingFiles}
         download={missingFiles.length === 1 ? missingFiles[0] : null}
+      />
+
+      {/* Add the RenameModal */}
+      <RenameModal
+        isOpen={showRenameModal}
+        onClose={() => {
+          setShowRenameModal(false);
+          setRenameDownloadId('');
+          setRenameCurrentName('');
+        }}
+        onRename={performRename}
+        currentName={renameCurrentName}
       />
     </div>
   );

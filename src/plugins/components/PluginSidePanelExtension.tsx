@@ -51,7 +51,6 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
           });
         }
 
-        // Add onClose to the callback proxy
         callbackProxy['closePanel'] = () => {
           try {
             onClose();
@@ -132,6 +131,18 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
     }
   }, [options.content, options.callbacks, onClose]);
 
+  // Helper function to check if a string is an SVG
+  const isSvgString = (str: string): boolean => {
+    return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
+  };
+
+  // Add this debug line right before the return statement
+  console.log('Debug icon:', {
+    icon: options.icon,
+    type: typeof options.icon,
+    isSvg: typeof options.icon === 'string' ? isSvgString(options.icon) : false,
+  });
+
   if (!isOpen) return null;
 
   // Calculate panel width
@@ -148,29 +159,41 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
     >
       {/* Header */}
       <div className="bg-titleBar dark:bg-darkMode px-2 py-1 pt-[11px] border-b-2 border-gray-200 dark:border-darkModeCompliment flex items-center justify-between">
-        <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 flex items-center justify-center h-full my-auto">
-          {options.title || 'Plugin Panel'}
-        </h3>
-        {options.closable !== false && (
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        <div className="flex items-center flex-1">
+          {options.icon && (
+            <span className="inline-flex items-center justify-center w-5 h-5 mr-3 flex-shrink-0">
+              {typeof options.icon === 'string' && isSvgString(options.icon) ? (
+                <span
+                  dangerouslySetInnerHTML={{ __html: options.icon }}
+                  className="text-black dark:text-white [&>svg]:w-5 [&>svg]:h-5 [&>svg]:fill-current"
+                />
+              ) : (
+                <span className="text-black dark:text-white">
+                  {options.icon}
+                </span>
+              )}
+            </span>
+          )}
+          <span className="text-black dark:text-white font-semibold text-sm leading-6">
+            {options.title}
+          </span>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="text-black dark:text-white hover:text-red-500 ml-2 p-1 flex-shrink-0"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
           >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 28 28"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        )}
+            <path d="m18 6-12 12M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       {/* Content */}

@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Type definitions for global variables and functions used in the application.
@@ -72,6 +73,7 @@ declare global {
         callback: (updateInfo: UpdateInfo) => void,
       ) => () => void;
       checkForUpdates: () => Promise<UpdateInfo>;
+      getCurrentVersion: () => Promise<string>; // Gets current app version without GitHub API call
     };
     backgroundSettings: {
       getRunInBackground: () => Promise<boolean>;
@@ -145,6 +147,7 @@ interface PluginInfo {
   version: string;
   description: string;
   author: string;
+  icon: string;
 }
 
 interface MenuItem {
@@ -197,4 +200,5 @@ interface SaveDialogResult {
   error?: string;
 }
 
-export {};
+export { };
+

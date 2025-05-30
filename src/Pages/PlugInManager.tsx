@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/Components/Pages/PluginManager.tsx
-import React, { useState, useEffect, useRef } from 'react';
-import { Button } from '../Components/SubComponents/shadcn/components/ui/button';
-import { FiSearch } from 'react-icons/fi';
+import React, { useEffect, useRef, useState } from 'react';
 import { FaPlus } from 'react-icons/fa6';
-import NoPlugin from '../Assets/Images/extension_light_nobg 1.svg';
+import { FiSearch } from 'react-icons/fi';
 import { NavLink } from 'react-router-dom';
+import NoPlugin from '../Assets/Images/extension_light_nobg 1.svg';
+import { Button } from '../Components/SubComponents/shadcn/components/ui/button';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 
 interface PluginInfo {
@@ -14,7 +14,7 @@ interface PluginInfo {
   version: string;
   description: string;
   author: string;
-  icon?: any;
+  icon: any;
 }
 
 const PluginManager: React.FC = () => {
@@ -34,6 +34,39 @@ const PluginManager: React.FC = () => {
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState<PluginInfo[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Helper function to check if string is SVG
+  const isSvgString = (str: string): boolean => {
+    if (typeof str !== 'string') return false;
+    const trimmed = str.trim();
+    return trimmed.startsWith('<svg') && trimmed.endsWith('</svg>');
+  };
+
+  // Render icon helper function
+  const renderIcon = (icon: any, size: 'sm' | 'md' = 'sm') => {
+    const sizeClass = size === 'md' ? 'w-6 h-6' : 'w-5 h-5';
+
+    if (typeof icon === 'string' && isSvgString(icon)) {
+      return (
+        <div
+          dangerouslySetInnerHTML={{ __html: icon }}
+          className={`${sizeClass} flex items-center justify-center rounded-sm [&>svg]:w-full [&>svg]:h-full`}
+        />
+      );
+    } else if (icon) {
+      return <span>{icon}</span>;
+    } else {
+      return (
+        <div
+          className={`${sizeClass} bg-gray-300 dark:bg-gray-600 rounded-sm flex items-center justify-center`}
+        >
+          <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
+            P
+          </span>
+        </div>
+      );
+    }
+  };
 
   // Filter search results when search term changes
   useEffect(() => {
@@ -91,6 +124,10 @@ const PluginManager: React.FC = () => {
     try {
       setLoading(true);
       const installedPlugins = await window.plugins.list();
+
+      // Add this line to see what the plugin data contains
+      console.log('Loaded plugins:', installedPlugins);
+
       setPlugins(installedPlugins);
     } catch (error) {
       console.error('Failed to load plugins:', error);
@@ -251,11 +288,7 @@ const PluginManager: React.FC = () => {
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
-                    if (e.target.value.trim() !== '') {
-                      setShowResults(true);
-                    } else {
-                      setShowResults(false);
-                    }
+                    setShowResults(e.target.value.trim() !== '');
                   }}
                   onFocus={() => {
                     if (searchTerm.trim() !== '') {
@@ -276,11 +309,21 @@ const PluginManager: React.FC = () => {
                       className="block px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover cursor-pointer text-sm"
                       onClick={() => setShowResults(false)}
                     >
-                      <div className="font-medium truncate" title={plugin.name}>
-                        {plugin.name}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {plugin.description}
+                      <div className="flex items-center">
+                        <span className="inline-flex items-center justify-center w-5 h-5 mr-2 flex-shrink-0">
+                          {renderIcon(plugin.icon)}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div
+                            className="font-medium truncate"
+                            title={plugin.name}
+                          >
+                            {plugin.name}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {plugin.description}
+                          </div>
+                        </div>
                       </div>
                     </NavLink>
                   ))}
@@ -341,10 +384,14 @@ const PluginManager: React.FC = () => {
               >
                 <div className="flex">
                   <div className="w-full">
-                    <span>{plugin.icon}</span>
-                    <h3 className="text-lg text-[14px] font-bold truncate">
-                      {plugin.name}
-                    </h3>
+                    <div className="flex items-center mb-2">
+                      <span className="inline-flex items-center justify-center w-6 h-6 mr-2 flex-shrink-0">
+                        {renderIcon(plugin.icon, 'md')}
+                      </span>
+                      <h3 className="text-lg text-[14px] font-bold truncate">
+                        {plugin.name}
+                      </h3>
+                    </div>
                     <p className="mt-2 text-sm line-clamp-2">
                       {plugin.description}
                     </p>

@@ -7,12 +7,10 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { FaExternalLinkAlt } from 'react-icons/fa';
 import { IoIosArrowForward, IoMdArrowBack } from 'react-icons/io';
-import { useLocation, useNavigate, NavLink } from 'react-router-dom';
-
-import { Button } from '../../Components/SubComponents/shadcn/components/ui/button';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface PluginInfo {
   id: string;
@@ -20,15 +18,15 @@ interface PluginInfo {
   version: string;
   description: string;
   author: string;
-  icon?: any;
+  icon: any;
 }
 
 const PluginDetails = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const plugin = location.state?.plugin as PluginInfo | undefined;
-  const [plugins, setPlugins] = useState<PluginInfo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setPlugins] = useState<PluginInfo[]>([]);
+  const [, setLoading] = useState(true);
   const [enabledPlugins, setEnabledPlugins] = useState<Record<string, boolean>>(
     {},
   );
@@ -116,13 +114,32 @@ const PluginDetails = () => {
     navigate(-1);
   };
 
-  const handleOpenPluginFolder = async () => {
-    if (plugin) {
-      try {
-        await window.plugins.openPluginFolder(plugin.id);
-      } catch (error) {
-        console.error('Failed to open plugin folder:', error);
-      }
+  // Helper function to check if string is SVG
+  const isSvgString = (str: string): boolean => {
+    if (typeof str !== 'string') return false;
+    const trimmed = str.trim();
+    return trimmed.startsWith('<svg') && trimmed.endsWith('</svg>');
+  };
+
+  // Render icon helper function
+  const renderIcon = (icon: any) => {
+    if (typeof icon === 'string' && isSvgString(icon)) {
+      return (
+        <div
+          dangerouslySetInnerHTML={{ __html: icon }}
+          className="w-6 h-6 flex items-center justify-center rounded-sm [&>svg]:w-full [&>svg]:h-full"
+        />
+      );
+    } else if (icon) {
+      return <span>{icon}</span>;
+    } else {
+      return (
+        <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded-sm flex items-center justify-center">
+          <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
+            P
+          </span>
+        </div>
+      );
     }
   };
 
@@ -137,15 +154,18 @@ const PluginDetails = () => {
   }
 
   return (
-    <div className="w-full h-screen flex justify-center overflow-hidden">
-      <div className="h-full space-y-4 w-3/4 max-w-3xl border-x-2 border-gray-200 px-6 pt-8 shadow-md overflow-y-auto">
-        <div className="flex gap-2 flex-wrap ">
+    <div className="w-full min-h-screen flex justify-center">
+      <div className="min-h-screen space-y-4 w-3/4 max-w-3xl border-x-2 border-gray-200 px-6 pt-8 shadow-md overflow-y-auto">
+        <div className="flex gap-2 flex-wrap items-center">
           <button
             onClick={handleGoBack}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <IoMdArrowBack size={18} />
           </button>
+          <span className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0">
+            {renderIcon(plugin.icon)}
+          </span>
           <h3 className="text-lg font-medium">{plugin.name}</h3>
         </div>
         <div className="flex gap-2 flex-wrap justify-between">
