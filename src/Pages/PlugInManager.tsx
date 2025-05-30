@@ -50,7 +50,7 @@ const PluginManager: React.FC = () => {
       return (
         <div
           dangerouslySetInnerHTML={{ __html: icon }}
-          className={`${sizeClass} flex items-center justify-center bg-white rounded-sm [&>svg]:w-full [&>svg]:h-full`}
+          className={`${sizeClass} flex items-center justify-center rounded-sm [&>svg]:w-full [&>svg]:h-full`}
         />
       );
     } else if (icon) {

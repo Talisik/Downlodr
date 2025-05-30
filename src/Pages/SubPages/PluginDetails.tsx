@@ -127,7 +127,7 @@ const PluginDetails = () => {
       return (
         <div
           dangerouslySetInnerHTML={{ __html: icon }}
-          className="w-6 h-6 flex items-center justify-center bg-white rounded-sm [&>svg]:w-full [&>svg]:h-full"
+          className="w-6 h-6 flex items-center justify-center rounded-sm [&>svg]:w-full [&>svg]:h-full"
         />
       );
     } else if (icon) {
@@ -154,8 +154,8 @@ const PluginDetails = () => {
   }
 
   return (
-    <div className="w-full h-screen flex justify-center overflow-hidden">
-      <div className="h-full space-y-4 w-3/4 max-w-3xl border-x-2 border-gray-200 px-6 pt-8 shadow-md overflow-y-auto">
+    <div className="w-full min-h-screen flex justify-center">
+      <div className="min-h-screen space-y-4 w-3/4 max-w-3xl border-x-2 border-gray-200 px-6 pt-8 shadow-md overflow-y-auto">
         <div className="flex gap-2 flex-wrap items-center">
           <button
             onClick={handleGoBack}
