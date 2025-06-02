@@ -136,21 +136,7 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
     return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
   };
 
-  // Add this debug line right before the return statement
-  console.log('Debug icon:', {
-    icon: options.icon,
-    type: typeof options.icon,
-    isSvg: typeof options.icon === 'string' ? isSvgString(options.icon) : false,
-  });
-
   if (!isOpen) return null;
-
-  // Calculate panel width
-  const panelWidth = options.width
-    ? typeof options.width === 'number'
-      ? `${options.width}px`
-      : options.width
-    : '250px';
 
   return (
     <div

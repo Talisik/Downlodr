@@ -837,6 +837,8 @@ ipcMain.handle('plugins:uninstall', async (_event, pluginId) => {
 */
 // Add a handler to get plugin menu items
 ipcMain.handle('plugins:menu-items', (event, context) => {
+  console.log('me how');
+  console.log(context);
   return pluginRegistry.getMenuItems(context);
 });
 

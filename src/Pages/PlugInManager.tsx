@@ -14,7 +14,7 @@ interface PluginInfo {
   version: string;
   description: string;
   author: string;
-  icon: any;
+  icon: string;
 }
 
 const PluginManager: React.FC = () => {

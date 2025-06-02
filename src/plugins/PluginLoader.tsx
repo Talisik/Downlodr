@@ -116,7 +116,7 @@ export const PluginLoader: React.FC = () => {
         clearTimeout,
         exports: {},
         module: { exports: {} },
-        require: createSafeRequire(pluginId),
+        require: createSafeRequire(),
       };
 
       // Execute the plugin code within this sandbox
@@ -138,14 +138,25 @@ export const PluginLoader: React.FC = () => {
   }
 
   // Create a limited require function for plugins
-  function createSafeRequire(pluginId: string) {
-    return function safeRequire(module: string) {
+  function createSafeRequire() {
+    return async function safeRequire(module: string) {
       // Only allow specific modules to be required
       if (module === 'path') {
         // Provide a safe subset of path
         return {
           join: (...parts: string[]) => parts.join('/'),
           basename: (path: string) => path.split('/').pop(),
+        };
+      }
+
+      if (module === 'docx') {
+        // Allow docx for document generation
+        const docx = await import('docx');
+        return {
+          Document: docx.Document,
+          Paragraph: docx.Paragraph,
+          TextRun: docx.TextRun,
+          Packer: docx.Packer,
         };
       }
 

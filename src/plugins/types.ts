@@ -153,17 +153,85 @@ export interface FormatHandler {
 }
 
 export interface MenuItem {
+  /** Unique identifier for the menu item */
   id?: string;
+
+  /** Unique handler identifier for this specific menu item instance */
   handlerId?: string;
+
+  /** Display label for the menu item */
   label: string;
+
+  /** Icon for the menu item (SVG string, icon name, or path) */
   icon?: string;
+
+  /** Click handler function */
   onClick: (contextData?: any) => void;
+
+  /** Whether the menu item is disabled */
   disabled?: boolean;
+
+  /** ID of the plugin that registered this item */
   pluginId?: string;
+
+  /** Optional tooltip text */
   tooltip?: string;
+
+  /** Nested submenu items */
   submenu?: MenuItem[];
+
+  /** Display order for sorting menu items */
   order?: number;
+
+  /** Context where the menu item should appear */
   context?: 'download' | 'main' | 'all';
+
+  /** Optional keyboard shortcut */
+  shortcut?: string;
+
+  /** Optional separator before this item */
+  separator?: boolean;
+
+  /** Optional additional data for the item */
+  data?: Record<string, any>;
+}
+
+export interface MenuItemRegistration {
+  /** Unique identifier for the menu item */
+  id?: string;
+
+  /** Display label for the menu item */
+  label: string;
+
+  /** Icon for the menu item (SVG string, icon name, or path) */
+  icon?: string;
+
+  /** Click handler function */
+  onClick: (contextData?: any) => void;
+
+  /** Whether the menu item is disabled (defaults to false) */
+  disabled?: boolean;
+
+  /** Optional tooltip text */
+  tooltip?: string;
+
+  /** Nested submenu items */
+  submenu?: MenuItemRegistration[];
+
+  /** Display order for sorting menu items */
+  order?: number;
+
+  /** Context where the menu item should appear (defaults to 'all') */
+  context?: 'download' | 'main' | 'all';
+
+  /** Optional keyboard shortcut */
+  shortcut?: string;
+
+  /** Optional separator before this item */
+  separator?: boolean;
+
+  /** Optional additional data for the item */
+  data?: Record<string, any>;
 }
 
 export interface NotifItem {
@@ -205,9 +273,13 @@ export interface TaskBarItem {
   label: string;
   icon?: React.ReactNode;
   tooltip?: string;
+  context: string;
   onClick?: (contextData?: any) => void;
-  pluginId?: string; // Will be filled automatically
+  pluginId?: string;
   handlerId?: string;
+  enabled?: boolean;
+  shortcut?: string;
+  data?: Record<string, any>;
 }
 
 export interface PluginSidePanelOptions {
@@ -223,6 +295,18 @@ export interface PluginSidePanelOptions {
     onFormatChange?: (format: string) => void;
     [key: string]: ((...args: any[]) => void) | undefined;
   };
+}
+
+export interface PluginManifest {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  main: string;
+  author: string;
+  license: string;
+  minAppVersion: string;
+  icon: string;
 }
 
 export interface PluginSidePanelResult {
@@ -287,4 +371,39 @@ export interface WriteFileResult {
   success: boolean;
   filePath?: string;
   error?: string;
+}
+
+export interface PluginInfo {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  icon: string;
+}
+
+export interface TaskBarItemRegistration {
+  /** Unique identifier for the taskbar item */
+  id: string;
+
+  /** Display label for the taskbar item */
+  label: string;
+
+  /** Icon for the taskbar item (SVG string, icon name, or path) */
+  icon: string;
+
+  /** Context where the taskbar item should appear */
+  context: string;
+
+  /** Optional tooltip text */
+  tooltip?: string;
+
+  /** Whether the item is currently enabled/disabled (defaults to true) */
+  enabled?: boolean;
+
+  /** Optional keyboard shortcut */
+  shortcut?: string;
+
+  /** Optional additional data for the item */
+  data?: Record<string, any>;
 }

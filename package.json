@@ -66,6 +66,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "docx": "^9.5.0",
     "electron-squirrel-startup": "^1.0.1",
     "eslint-config-prettier": "^10.0.1",
     "glob": "^11.0.1",
