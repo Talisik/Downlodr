@@ -163,6 +163,14 @@ export const PluginLoader: React.FC = () => {
         };
       }
 
+      if (module === 'talisik-shortener') {
+        // Allow talisik-shortener for URL shortening
+        const talisikShortener = await import('talisik-shortener');
+        return {
+          TalisikClient: talisikShortener.TalisikClient,
+        };
+      }
+
       throw new Error(
         `Module '${module}' is not allowed to be required by plugins`,
       );
