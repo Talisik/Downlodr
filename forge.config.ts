@@ -7,6 +7,7 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import MakerNSIS from '@felixrieseberg/electron-forge-maker-nsis';
 import fs from 'fs/promises';
 import path from 'path';
+
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
@@ -14,14 +15,6 @@ const config: ForgeConfig = {
     name: 'Downlodr',
     executableName: 'Downlodr',
     extraResource: ['./src/Assets/AppLogo'],
-    afterCopy: [
-      async function (buildPath) {
-        await fs.copyFile(
-          path.resolve(__dirname, 'yt-dlp.exe'),
-          path.join(buildPath, 'yt-dlp.exe'),
-        );
-      },
-    ],
   },
   rebuildConfig: {},
   makers: [
@@ -63,6 +56,20 @@ const config: ForgeConfig = {
     // Cross-platform ZIP packages
     new MakerZIP({}, ['darwin', 'win32', 'linux']),
   ],
+  hooks: {
+    postPackage: async (forgeConfig, packageResult) => {
+      for (const outputPath of packageResult.outputPaths) {
+        try {
+          await fs.copyFile(
+            path.resolve(__dirname, 'yt-dlp.exe'),
+            path.join(outputPath, 'yt-dlp.exe'),
+          );
+        } catch (error) {
+          console.error(`Failed to copy yt-dlp for ${outputPath}:`, error);
+        }
+      }
+    },
+  },
   plugins: [
     new VitePlugin({
       build: [

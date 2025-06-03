@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   FormatOption,
   FormatSelectorOptions,
@@ -25,6 +25,7 @@ const FormatSelectorExtension: React.FC<FormatSelectorExtensionProps> = ({
     (options.formats.length > 0 ? options.formats[0].value : '');
 
   const [selectedFormat, setSelectedFormat] = useState<string>(defaultFormat);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [keepOriginal, setKeepOriginal] = useState<boolean>(
     options.keepOriginal || false,
   );
@@ -85,7 +86,7 @@ const FormatSelectorExtension: React.FC<FormatSelectorExtensionProps> = ({
 
       {/* Modal content */}
       <div
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md mx-4 z-10 overflow-hidden"
+        className="bg-white dark:bg-darkModeDropdown rounded-lg shadow-lg w-full max-w-md mx-4 z-10 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -138,7 +139,7 @@ const FormatSelectorExtension: React.FC<FormatSelectorExtensionProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-2">
+        <div className="px-6 py-3 bg-[#FEF9F4] dark:dark:bg-darkMode  border-t border-gray-200 dark:border-darkModeCompliment flex justify-end space-x-2">
           <button
             onClick={onClose}
             className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none"

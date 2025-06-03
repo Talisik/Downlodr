@@ -8,12 +8,10 @@
  *
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
-import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
 import { useMainStore } from '../../../Store/mainStore';
-import { toast } from '../../../Components/SubComponents/shadcn/hooks/use-toast';
-import { usePluginStore } from '../../../Store/pluginStore';
+import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -33,7 +31,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     updateRunInBackground,
   } = useMainStore();
 
-  const { settingsPlugin, updateIsShowPlugin } = usePluginStore();
   // Form submission
   const [biteUnit, setBiteUnit] = useState('');
   const [biteUnitVal, setBiteUnitVal] = useState(
@@ -68,9 +65,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
   // Misc
   const navRef = useRef<HTMLDivElement>(null);
-
-  // Add this state for the dummy plugin toggle
-  const [isShowPlugin, setIsShowPlugin] = useState(settingsPlugin.isShowPlugin);
 
   const resetSettingsModal = () => {
     // Reset all state values to their original store values
@@ -138,31 +132,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     return option ? option.biteDisplayName : 'Kilo byte (KB)';
   };
 
-  const handleCheckForUpdates = async () => {
-    console.log('Check for updates button clicked');
-    console.log('updateAPI available:', !!window.updateAPI?.checkForUpdates);
-    if (window.updateAPI?.checkForUpdates) {
-      try {
-        console.log('Calling checkForUpdates...');
-        const result = await window.updateAPI.checkForUpdates();
-        console.log('Update check result:', result);
-        if (!result.hasUpdate) {
-          toast({
-            title: "You're up to date!",
-            description: `You're using the latest version (v${result.currentVersion}).`,
-            duration: 3000,
-          });
-        }
-        onClose();
-      } catch (error) {
-        console.error('Error checking for updates:', error);
-      }
-    } else {
-      console.error('updateAPI is not available');
-      onClose();
-    }
-  };
-
   useEffect(() => {
     // Update the biteUnit whenever the store value changes
     setBiteUnit(getInitialBiteOption());
@@ -193,12 +162,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // Dummy function to handle toggle state
-  const handleToggle = () => {
-    setIsShowPlugin((prev) => !prev);
-    console.log(`Plugin is now ${!isShowPlugin ? 'enabled' : 'disabled'}`);
-  };
-
   // Modify handleSubmit to consider the checkbox
   const handleSubmit = () => {
     updateDefaultLocation(downloadLocation);
@@ -212,7 +175,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     // Add this line to save the background running setting
     console.log('Saving runInBackground value:', runInBackground);
     updateRunInBackground(runInBackground);
-    updateIsShowPlugin(isShowPlugin);
     // Also update the main process directly
     if (window.backgroundSettings?.setRunInBackground) {
       console.log('Sending to main process:', runInBackground);
@@ -331,13 +293,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   <div className="flex items-center gap-2 mb-2">
                     <input
                       type="checkbox"
+                      id="connection-limits"
                       checked={isConnectionLimitEnabled}
                       onChange={(e) =>
                         setIsConnectionLimitEnabled(e.target.checked)
                       }
                       className="w-4 h-4 text-primary rounded focus:ring-primary"
                     />
-                    <label className="text-sm block dark:text-gray-200 text-nowrap font-bold">
+                    <label
+                      htmlFor="connection-limits"
+                      className="text-sm block dark:text-gray-200 text-nowrap font-bold cursor-pointer"
+                    >
                       Connection Limits
                     </label>
                     <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
@@ -394,7 +360,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 />
                 <label
                   htmlFor="run-in-background"
-                  className="dark:text-gray-200"
+                  className="dark:text-gray-200 cursor-pointer"
                 >
                   Run in background when window is closed
                 </label>
@@ -465,7 +431,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     />
                     <label
                       htmlFor={`column-${column.id}`}
-                      className={`dark:text-gray-200 mr-2 text-xs ${
+                      className={`dark:text-gray-200 mr-2 text-xs cursor-pointer ${
                         column.required ? 'font-semibold' : ''
                       }`}
                     >

@@ -598,6 +598,7 @@ app.on('ready', async () => {
   });
 
   // Listen for plugin state changes
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   ipcMain.on('plugins:stateChanged', (event, { pluginId, enabled }) => {
     // Update the registry's knowledge of enabled plugins
     pluginRegistry.updateEnabledStates(pluginManager.getEnabledPlugins());
@@ -837,6 +838,8 @@ ipcMain.handle('plugins:uninstall', async (_event, pluginId) => {
 */
 // Add a handler to get plugin menu items
 ipcMain.handle('plugins:menu-items', (event, context) => {
+  console.log('me how');
+  console.log(context);
   return pluginRegistry.getMenuItems(context);
 });
 
@@ -1002,6 +1005,7 @@ ipcMain.handle('plugins:unregister-taskbar-item', (event, id) => {
   return true;
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 ipcMain.handle('plugins:taskbar-items', (event) => {
   return pluginRegistry.getTaskBarItems();
 });
@@ -1015,6 +1019,7 @@ ipcMain.handle('plugins:execute-taskbar-item', (event, id, contextData) => {
 // Add this with the other plugin-related IPC handlers
 ipcMain.handle('plugin:fs:readFile', async (event, options) => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { filePath, pluginId } = options;
 
     // Security check: Make sure we're not reading outside allowed directories
@@ -1080,4 +1085,10 @@ ipcMain.handle('plugins:close-panel', async () => {
     console.error('Error closing plugin panel:', error);
     return { success: false, error: error.message };
   }
+});
+
+// Add this handler to get version without GitHub API call
+ipcMain.handle('get-current-version', async () => {
+  // Get version from package.json or app.getVersion()
+  return app.getVersion();
 });

@@ -1,8 +1,8 @@
 // src/plugins/security.ts
 import fs from 'fs';
 import path from 'path';
-import { createReadStream, createWriteStream } from 'fs';
-import { createUnzip } from 'zlib';
+// import { createReadStream, createWriteStream } from 'fs';
+// import { createUnzip } from 'zlib';
 import yauzl from 'yauzl';
 
 export async function extractPlugin(
@@ -23,6 +23,7 @@ export async function extractPlugin(
       fs.mkdirSync(pluginDir, { recursive: true });
 
       // Extract files
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       zipfile.on('entry', (entry) => {
         // Extract file
         // ...

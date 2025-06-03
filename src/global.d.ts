@@ -1,10 +1,13 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Type definitions for global variables and functions used in the application.
  * This file extends the Window interface to include custom functions and properties
  * that are accessible in the renderer process.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { FormatSelectorResult, GetInfoResponse, MenuItem, PluginInfo, PluginManifest, PluginModalOptions, PluginSidePanelOptions, PluginSidePanelResult, TaskBarItem } from './plugins/types';
+import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult } from './schema/downlodrFunction';
+
 declare global {
   interface Window {
     downlodrFunctions: {
@@ -45,7 +48,7 @@ declare global {
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist
-      getInfo: (url: string) => Promise<any>; // Retrieves information about a video
+      getInfo: (url: string) => Promise<GetInfoResponse>; // Retrieves information about a video
       selectDownloadDirectory: () => Promise<string>; // Prompts the user to select a download directory
       download: (
         options: { url: string; outputFilepath: string; videoFormat: string },
@@ -72,6 +75,7 @@ declare global {
         callback: (updateInfo: UpdateInfo) => void,
       ) => () => void;
       checkForUpdates: () => Promise<UpdateInfo>;
+      getCurrentVersion: () => Promise<string>; // Gets current app version without GitHub API call
     };
     backgroundSettings: {
       getRunInBackground: () => Promise<boolean>;
@@ -88,10 +92,10 @@ declare global {
       list: () => Promise<PluginInfo[]>;
       getCode: (
         pluginId: string,
-      ) => Promise<{ code: string; manifest: any; error?: string }>;
+      ) => Promise<{ code: string; manifest: PluginManifest; error?: string }>;
       install: (pluginPath: string) => Promise<boolean | string>;
       uninstall: (pluginId: string) => Promise<boolean>;
-      getMenuItems: (context: any) => Promise<MenuItem[]>;
+      getMenuItems: (context: string) => Promise<MenuItem[]>;
       executeMenuItem: (id: string, contextData?: any) => Promise<void>;
       loadUnzipped: (pluginDirPath: string) => Promise<boolean>;
       writeFile: (options: WriteFileOptions) => Promise<WriteFileResult>;
@@ -103,7 +107,6 @@ declare global {
         pluginId?: string;
       }) => Promise<{ success: boolean; data?: string; error?: string }>;
 
-      // Add these new methods
       registerMenuItem: (menuItem: MenuItem) => Promise<string>;
       unregisterMenuItem: (id: string) => Promise<boolean>;
       reload: () => Promise<boolean>;
@@ -128,73 +131,17 @@ declare global {
     };
     PluginHandlers?: Record<string, (contextData?: any) => void>;
     formatSelectorManager?: {
-      showFormatSelector: (options: any) => Promise<any>;
+      showFormatSelector: (options: FormatSelectorOptions) => Promise<FormatSelectorResult>;
     };
     pluginSidePanelManager?: {
-      showPluginSidePanel: (options: any) => Promise<any>;
+      showPluginSidePanel: (options: PluginSidePanelOptions) => Promise<PluginSidePanelResult>;
     };
     pluginModalManager?: {
-      showPluginModal: (options: any) => Promise<any>;
+      showPluginModal: (options: PluginModalOptions) => Promise<PluginModalResult>;
     };
   }
 }
 
-interface PluginInfo {
-  id: string;
-  name: string;
-  version: string;
-  description: string;
-  author: string;
-}
 
-interface MenuItem {
-  id: string;
-  label: string;
-  context?: string;
-  pluginId?: string;
-  onClick: (contextData?: any) => void;
-  handlerId?: string;
-}
+export { };
 
-interface TaskBarItem {
-  id: string;
-  label: string;
-  icon?: React.ReactNode;
-  tooltip?: string;
-  pluginId?: string;
-  onClick?: (contextData?: any) => void;
-  handlerId?: string;
-}
-
-interface WriteFileOptions {
-  fileName: string;
-  content: string;
-  fileType?: string;
-  directory?: string;
-  overwrite?: boolean;
-  customPath?: string;
-  pluginId: string;
-}
-
-interface WriteFileResult {
-  success: boolean;
-  filePath?: string;
-  error?: string;
-}
-
-interface SaveDialogOptions {
-  defaultPath?: string;
-  content: string;
-  filters?: Array<{ name: string; extensions: string[] }>;
-  title?: string;
-  pluginId: string;
-}
-
-interface SaveDialogResult {
-  success: boolean;
-  filePath?: string;
-  canceled?: boolean;
-  error?: string;
-}
-
-export {};

@@ -13,8 +13,13 @@ import { VscPlayCircle } from 'react-icons/vsc';
 import { useParams } from 'react-router-dom';
 import ColumnHeaderContextMenu from '../Components/SubComponents/custom/ColumnHeaderContextMenu';
 import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
-import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
+import DownloadContextMenu, {
+  RenameModal,
+} from '../Components/SubComponents/custom/DownloadContextMenu';
 import ExpandedDownloadDetails from '../Components/SubComponents/custom/ExpandedDownloadDetail';
+import FileNotExistModal, {
+  DownloadItem,
+} from '../Components/SubComponents/custom/FileNotExistModal';
 import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
 import { AnimatedCircularProgressBar } from '../Components/SubComponents/custom/RadialProgress';
 import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
@@ -88,10 +93,7 @@ const StatusSpecificDownloads = () => {
   const [thumbnailDataUrls, setThumbnailDataUrls] = useState<
     Record<string, string>
   >({});
-  const { updateIsOpenPluginSidebar } = usePluginStore();
-  const handleClosePanel = () => {
-    updateIsOpenPluginSidebar(false);
-  };
+
   // Set page title based on status
   useEffect(() => {
     document.title = `${
@@ -108,7 +110,7 @@ const StatusSpecificDownloads = () => {
   );
   const deleteDownload = useDownloadStore((state) => state.deleteDownload);
 
-  // Add sorting state
+  // Sorting state
   const [sortColumn, setSortColumn] = useState<string>('dateAdded');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
@@ -143,7 +145,12 @@ const StatusSpecificDownloads = () => {
 
   // Get visible columns from the store
   const visibleColumns = useMainStore((state) => state.visibleColumns);
+  const { updateIsOpenPluginSidebar } = usePluginStore();
 
+  // Downloads
+  const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
+  const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
+  const selectedDownloads = useMainStore((state) => state.selectedDownloads);
   // Call the hook with visible column IDs
   const {
     columns,
@@ -156,7 +163,7 @@ const StatusSpecificDownloads = () => {
   } = useResizableColumns(
     [
       { id: 'name', width: 110, minWidth: 110 },
-      { id: 'size', width: 60, minWidth: 60 },
+      { id: 'size', width: 90, minWidth: 90 },
       { id: 'format', width: 80, minWidth: 80 },
       { id: 'status', width: 110, minWidth: 110 },
       { id: 'speed', width: 70, minWidth: 70 },
@@ -281,6 +288,42 @@ const StatusSpecificDownloads = () => {
       ['name', 'status', 'format'].includes(column.id),
   );
 
+  const handleFileNotExistModal = async (
+    contextDownload: DownloadItem | null = null,
+  ) => {
+    const missing = [];
+
+    // If a specific download is provided via context menu, check only that one
+    const downloadsToCheck = contextDownload
+      ? [contextDownload]
+      : selectedDownloads;
+
+    // Check each download to see if it exists
+    for (const download of downloadsToCheck) {
+      if (download.status === 'finished' && download.location) {
+        const exists = await window.downlodrFunctions.fileExists(
+          download.location,
+        );
+        if (!exists) {
+          missing.push(download);
+        }
+      }
+    }
+
+    // Set the missing files and show the modal if any were found
+    if (missing.length > 0) {
+      setMissingFiles(missing);
+      setShowFileNotExistModal(true);
+    } else {
+      toast({
+        variant: 'default',
+        title: 'All Files Exist',
+        description: 'All selected files exist at their locations',
+        duration: 3000,
+      });
+    }
+  };
+
   // Map the displayColumns to have correct indices for drag and drop
   const displayColumnsWithIndices = displayColumns.map((column, index) => ({
     ...column,
@@ -403,8 +446,8 @@ const StatusSpecificDownloads = () => {
   ) => {
     event.preventDefault();
     event.stopPropagation(); // Prevent the click outside handler from firing immediately
-    handleClosePanel();
     // Close any active column header context menu first
+    updateIsOpenPluginSidebar(false);
     setColumnHeaderContextMenu({
       ...columnHeaderContextMenu,
       visible: false,
@@ -455,6 +498,7 @@ const StatusSpecificDownloads = () => {
         currentDownload.getTranscript || false,
         currentDownload.getThumbnail || false,
         currentDownload.duration || 60,
+        true,
       );
       deleteDownloading(downloadId);
       toast({
@@ -495,10 +539,85 @@ const StatusSpecificDownloads = () => {
 
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
-
-  const handleViewDownload = (downloadLocation?: string) => {
+  const handleViewDownload = async (
+    downloadLocation?: string,
+    downloadId?: string,
+  ) => {
     if (downloadLocation) {
-      window.downlodrFunctions.openVideo(downloadLocation);
+      try {
+        const exists = await window.downlodrFunctions.fileExists(
+          downloadLocation,
+        );
+        if (exists) {
+          window.downlodrFunctions.openVideo(downloadLocation);
+        } else {
+          // If the file doesn't exist, find the download and show the modal
+          if (downloadId) {
+            const download = allDownloads.find((d) => d.id === downloadId);
+            if (download) {
+              // Pass the specific download to the modal function
+              const downloadItem: DownloadItem = {
+                id: download.id,
+                videoUrl: download.videoUrl,
+                location: downloadLocation,
+                name: download.name,
+                ext: download.ext,
+                downloadName: download.downloadName,
+                extractorKey: download.extractorKey,
+                status: download.status,
+                download: {
+                  ...download,
+                },
+              };
+              handleFileNotExistModal(downloadItem);
+            }
+          } else {
+            // In case we don't have the download ID, show a simple toast
+            if (downloadId) {
+              const download = allDownloads.find((d) => d.id === downloadId);
+              if (download) {
+                // Pass the specific download to the modal function
+                const downloadItem: DownloadItem = {
+                  id: download.id,
+                  videoUrl: download.videoUrl,
+                  location: download.location,
+                  name: download.name,
+                  ext: download.ext,
+                  downloadName: download.downloadName,
+                  extractorKey: download.extractorKey,
+                  status: download.status,
+                  download: {
+                    ...download,
+                  },
+                };
+                handleFileNotExistModal(downloadItem);
+              }
+            }
+            toast({
+              variant: 'destructive',
+              title: 'File Not Found',
+              description: `The file does not exist at the specified location WHAAS ${downloadId}`,
+              duration: 3000,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error viewing download:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description:
+            error?.message || String(error) || 'Failed to view download',
+          duration: 5000,
+        });
+      }
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'No Download Location',
+        description: 'Invalid Download Location',
+        duration: 3000,
+      });
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
@@ -603,7 +722,6 @@ const StatusSpecificDownloads = () => {
         description: 'Download has been deleted successfully',
         duration: 3000,
       });
-
       return;
     }
 
@@ -620,15 +738,42 @@ const StatusSpecificDownloads = () => {
           duration: 3000,
         });
       } else {
-        toast({
-          variant: 'destructive',
-          title: 'Deletion Failed',
-          description: 'Failed to delete file',
-          duration: 3000,
-        });
+        // This is the key difference - we're passing downloadLocation instead of download.location
+        if (download) {
+          const downloadItem: DownloadItem = {
+            id: download.id,
+            videoUrl: download.videoUrl,
+            location: downloadLocation, // Use downloadLocation instead of download.location
+            name: download.name,
+            ext: download.ext,
+            downloadName: download.downloadName,
+            extractorKey: download.extractorKey,
+            status: download.status,
+            download: {
+              ...download,
+            },
+          };
+          handleFileNotExistModal(downloadItem);
+        }
       }
     } catch (error) {
-      deleteDownload(downloadId);
+      // Same fix in the catch block
+      if (download) {
+        const downloadItem: DownloadItem = {
+          id: download.id,
+          videoUrl: download.videoUrl,
+          location: downloadLocation, // Use downloadLocation instead of download.location
+          name: download.name,
+          ext: download.ext,
+          downloadName: download.downloadName,
+          extractorKey: download.extractorKey,
+          status: download.status,
+          download: {
+            ...download,
+          },
+        };
+        handleFileNotExistModal(downloadItem);
+      }
       console.error('Error deleting file:', error);
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
@@ -648,6 +793,9 @@ const StatusSpecificDownloads = () => {
         id,
         controllerId: download?.controllerId,
         videoUrl: download?.videoUrl,
+        downloadName: download?.downloadName,
+        status: download?.status,
+        download: download,
         location: download?.location
           ? await window.downlodrFunctions.joinDownloadPath(
               download.location,
@@ -679,6 +827,9 @@ const StatusSpecificDownloads = () => {
         id,
         controllerId: download?.controllerId,
         videoUrl: download?.videoUrl,
+        downloadName: download?.downloadName,
+        status: download?.status,
+        download: download,
         location: download?.location
           ? await window.downlodrFunctions.joinDownloadPath(
               download.location,
@@ -716,7 +867,7 @@ const StatusSpecificDownloads = () => {
     setExpandedRowId(downloadId === expandedRowId ? null : downloadId);
 
     // Update selected row IDs for highlighting
-    setSelectedRowIds([downloadId]);
+    // setSelectedRowIds([downloadId]);
   };
 
   // Find current tags for the selected download
@@ -740,6 +891,13 @@ const StatusSpecificDownloads = () => {
         // Normal case with separate parameters
         window.downlodrFunctions.openFolder(downloadLocation, filePath);
       }
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to pause/resume download',
+        duration: 3000,
+      });
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
@@ -795,6 +953,29 @@ const StatusSpecificDownloads = () => {
       }
     });
   }, [allDownloads, thumbnailDataUrls]);
+
+  // Add rename modal state
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameDownloadId, setRenameDownloadId] = useState<string>('');
+  const [renameCurrentName, setRenameCurrentName] = useState<string>('');
+
+  // Get renameDownload function from store
+  const renameDownload = useDownloadStore((state) => state.renameDownload);
+
+  // Add rename handler
+  const handleRename = (downloadId: string, currentName: string) => {
+    setRenameDownloadId(downloadId);
+    setRenameCurrentName(currentName);
+    setShowRenameModal(true);
+  };
+
+  // Add function to perform the rename
+  const performRename = (newName: string) => {
+    renameDownload(renameDownloadId, newName);
+    setShowRenameModal(false);
+    setRenameDownloadId('');
+    setRenameCurrentName('');
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -866,7 +1047,11 @@ const StatusSpecificDownloads = () => {
                         : 'dark:bg-darkMode'
                     }`}
                     onContextMenu={(e) => handleContextMenu(e, download)}
-                    onClick={() => handleRowClick(download.id)}
+                    onClick={() => {
+                      updateIsOpenPluginSidebar(false);
+                      handleRowClick(download.id);
+                      handleCheckboxChange(download.id);
+                    }}
                     data-download-id={download.id}
                     draggable={true}
                     onDragStart={(e) => {
@@ -916,7 +1101,7 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200 flex items-center justify-center"
+                              className="px-2 py-2 dark:text-gray-200 text-left"
                             >
                               {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1">
@@ -924,9 +1109,9 @@ const StatusSpecificDownloads = () => {
                                   <Skeleton className="h-4 w-[70px] rounded-[3px]" />
                                 </div>
                               ) : (
-                                <div className="line-clamp-2 break-words">
+                                <span className="whitespace-nowrap overflow-hidden">
                                   {formatFileSize(download.size)}
-                                </div>
+                                </span>
                               )}
                             </td>
                           );
@@ -1015,6 +1200,7 @@ const StatusSpecificDownloads = () => {
                                               download.location,
                                               download.name,
                                             ),
+                                            download.id,
                                           );
                                         }}
                                       />
@@ -1083,7 +1269,9 @@ const StatusSpecificDownloads = () => {
                               className="p-2 dark:text-gray-200 ml-2"
                             >
                               {download.status === 'downloading' ? (
-                                <span>{download.speed}</span>
+                                <span className="whitespace-nowrap overflow-hidden">
+                                  {download.speed}
+                                </span>
                               ) : (
                                 <div className="flex justify-center w-full">
                                   <span>—</span>
@@ -1106,21 +1294,21 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200 ml-2"
+                              className="p-2 dark:text-gray-200 text-center"
                             >
                               {download.status === 'fetching metadata' ? (
-                                <div className="space-y-1 flex justify-center items-center">
+                                <div className="flex justify-center w-full">
                                   <Skeleton className="h-8 w-[50px] rounded-[3px]" />
                                 </div>
                               ) : download.status === 'finished' &&
                                 download.thumnailsLocation &&
                                 download.thumnailsLocation !== '—' ? (
-                                <div className="flex items-center">
+                                <div className="flex justify-center items-center w-full">
                                   {thumbnailDataUrls[download.id] ? (
                                     <img
                                       src={thumbnailDataUrls[download.id]}
                                       alt="Thumbnail"
-                                      className="ml-4 h-10 w-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+                                      className="h-10 w-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
                                       onClick={() =>
                                         handleViewDownload(
                                           download.thumnailsLocation,
@@ -1138,9 +1326,7 @@ const StatusSpecificDownloads = () => {
                                       }}
                                     />
                                   ) : (
-                                    <div className="flex justify-center w-full">
-                                      <span>— </span>
-                                    </div>
+                                    <span>—</span>
                                   )}
                                 </div>
                               ) : (
@@ -1259,6 +1445,7 @@ const StatusSpecificDownloads = () => {
             allDownloads.find((d) => d.id === contextMenu.downloadId)?.name ||
             ''
           }
+          onRename={handleRename}
         />
       )}
 
@@ -1272,6 +1459,24 @@ const StatusSpecificDownloads = () => {
         onToggleColumn={handleToggleColumn}
         onClose={handleCloseColumnHeaderContextMenu}
         columnOptions={columnOptions}
+      />
+      <FileNotExistModal
+        isOpen={showFileNotExistModal}
+        onClose={() => setShowFileNotExistModal(false)}
+        selectedDownloads={missingFiles}
+        download={missingFiles.length === 1 ? missingFiles[0] : null}
+      />
+
+      {/* Add the RenameModal */}
+      <RenameModal
+        isOpen={showRenameModal}
+        onClose={() => {
+          setShowRenameModal(false);
+          setRenameDownloadId('');
+          setRenameCurrentName('');
+        }}
+        onRename={performRename}
+        currentName={renameCurrentName}
       />
     </div>
   );
