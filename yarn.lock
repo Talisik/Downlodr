@@ -6851,10 +6851,10 @@ tailwindcss@^3.4.17:
     resolve "^1.22.8"
     sucrase "^3.35.0"
 
-talisik-shortener@^0.1.2:
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/talisik-shortener/-/talisik-shortener-0.1.2.tgz#b77bdde737ea04229088c05034cc07240f9c7ace"
-  integrity sha512-O1Khesu5wRHhlVZGHxi8SnGwjDcu6USrHH6ANXncUwqFXraRsLlyWEIyLePSuYQ2nTmQxoXFKYAJsIBwS4xrZg==
+talisik-shortener@^0.1.3:
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/talisik-shortener/-/talisik-shortener-0.1.3.tgz#0a234753030312d2677da5accb72cb46d1d4eaee"
+  integrity sha512-27HyADYLInnT2umWJiQXl1xyrP9epSaPFtCC2KpmUNw2ijp/1GUiJRtKzQwXnFDb/kQd5EYHxW7+D3Jva2KPzg==
 
 tar-stream@^2.2.0:
   version "2.2.0"
