@@ -6,6 +6,7 @@ import { validatePlugin } from './security';
 
 export class PluginManager {
   private pluginsDir: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private loadedPlugins: Map<string, any> = new Map();
   private enabledPlugins: Record<string, boolean> = {};
   private configPath: string;
@@ -270,9 +271,9 @@ export class PluginManager {
       }
     });
 
-    // Add save file dialog handler
     ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { pluginId, content, defaultPath, filters, title } = options;
 
         // Show save dialog
@@ -493,7 +494,7 @@ export class PluginManager {
       console.log(`Unloading plugin ${pluginId}`);
 
       // 1. Get plugin details before removal
-      const plugin = this.loadedPlugins.get(pluginId);
+      // const plugin = this.loadedPlugins.get(pluginId);
 
       // 2. Remove from memory
       this.loadedPlugins.delete(pluginId);
@@ -520,7 +521,6 @@ export class PluginManager {
 
   async loadPlugins() {
     try {
-      console.log('PLUGIN DIR:', this.pluginsDir);
       // Log the contents of the plugins directory
       if (fs.existsSync(this.pluginsDir)) {
         const files = fs.readdirSync(this.pluginsDir);
@@ -546,7 +546,6 @@ export class PluginManager {
           const manifestPath = path.join(pluginPath, 'manifest.json');
           const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
           this.loadedPlugins.set(manifest.id, { path: pluginPath, manifest });
-          console.log(`Plugin ${manifest.id} registered for loading`);
         } else {
           console.error(`Invalid plugin found at ${pluginPath}`);
         }

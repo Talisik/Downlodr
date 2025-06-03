@@ -2,10 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { createPluginAPI } from '../plugins/pluginAPI';
 
 export const PluginLoader: React.FC = () => {
-  const [pluginsLoaded, setPluginsLoaded] = useState(false);
-  const [enabledPlugins, setEnabledPlugins] = useState<Record<string, boolean>>(
-    {},
-  );
+  // const [pluginsLoaded, setPluginsLoaded] = useState(false);
+  // const [enabledPlugins, setEnabledPlugins] = useState<Record<string, boolean>>(
+  const [, setEnabledPlugins] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     // Load enabled state
@@ -66,6 +65,7 @@ export const PluginLoader: React.FC = () => {
           }
           */
           console.log(`Loading plugin: ${plugin.id}`);
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { code, manifest, error } = await window.plugins.getCode(
             plugin.id,
           );
@@ -106,9 +106,12 @@ export const PluginLoader: React.FC = () => {
       const sandbox = {
         // Provide limited globals
         console: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           log: (...args: any[]) => console.log(`[Plugin ${pluginId}]`, ...args),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           error: (...args: any[]) =>
             console.error(`[Plugin ${pluginId}]`, ...args),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           warn: (...args: any[]) =>
             console.warn(`[Plugin ${pluginId}]`, ...args),
         },

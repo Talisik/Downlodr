@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/plugins/registry.ts
 import { MenuItem, NotifItem, TaskBarItem } from './types';
 
@@ -75,6 +76,13 @@ export class PluginRegistry {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   executeTaskBarItemAction(id: string, contextData?: any): void {
+    console.log('Executing with contextData:', contextData);
+    console.log('ContextData type:', typeof contextData);
+    console.log(
+      'ContextData keys:',
+      contextData ? Object.keys(contextData) : 'none',
+    );
+
     const handler = this.taskBarActionHandlers.get(id);
     if (handler) {
       handler(contextData);
@@ -99,6 +107,7 @@ export class PluginRegistry {
       // Clear handlers from this plugin
       const handlersToRemove: string[] = [];
       this.menuItemHandlers.forEach((_, key) => {
+        console.log(this.menuItemHandlers);
         if (key.startsWith(pluginId)) {
           handlersToRemove.push(key);
         }
@@ -238,14 +247,6 @@ export class PluginRegistry {
     return uniqueItems;
   }
 
-  // not included
-  executeNotifItemAction(id: string, contextData?: string): void {
-    const handler = this.notifItemHandlers.get(id);
-    if (handler) {
-      handler(contextData);
-    }
-  }
-
   // Generic method to filter any plugin features by enabled state
   filterByEnabled<T extends { pluginId?: string }>(items: T[]): T[] {
     return items.filter(
@@ -259,16 +260,7 @@ export class PluginRegistry {
     return this.filterByEnabled(extensions);
   }
 
-  // not included
-  // Add a method to register extensions
-  registerExtension(extensionPoint: string, extension: string): void {
-    if (!this._extensions[extensionPoint]) {
-      this._extensions[extensionPoint] = [];
-    }
-    this._extensions[extensionPoint].push(extension);
-  }
-
-  // Add taskbar action handlers map
+  // taskbar action handlers map
   private taskBarActionHandlers = new Map<
     string,
     (contextData?: any) => void

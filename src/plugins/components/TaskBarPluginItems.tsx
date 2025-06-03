@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { SiConvertio } from 'react-icons/si';
-import { usePluginState } from '../../../plugins/Hooks/usePluginState';
-import { TaskBarItem } from '../../../plugins/types';
-import { useMainStore } from '../../../Store/mainStore';
 import {
   Tooltip,
   TooltipProvider,
   TooltipTrigger,
-} from '../shadcn/components/ui/tooltip';
-import { useToast } from '../shadcn/hooks/use-toast';
+} from '../../Components/SubComponents/shadcn/components/ui/tooltip';
+import { useToast } from '../../Components/SubComponents/shadcn/hooks/use-toast';
+import { useMainStore } from '../../Store/mainStore';
+import { usePluginState } from '../Hooks/usePluginState';
+import { TaskBarItem } from '../types';
 
 // Using the global TaskBarItem interface instead of redefining it
 const TaskBarPluginItems: React.FC = () => {

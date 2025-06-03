@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 interface VideoFormat {
   format_id: string;
   format_note?: string;

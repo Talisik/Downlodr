@@ -598,6 +598,7 @@ app.on('ready', async () => {
   });
 
   // Listen for plugin state changes
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   ipcMain.on('plugins:stateChanged', (event, { pluginId, enabled }) => {
     // Update the registry's knowledge of enabled plugins
     pluginRegistry.updateEnabledStates(pluginManager.getEnabledPlugins());
@@ -1004,6 +1005,7 @@ ipcMain.handle('plugins:unregister-taskbar-item', (event, id) => {
   return true;
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 ipcMain.handle('plugins:taskbar-items', (event) => {
   return pluginRegistry.getTaskBarItems();
 });
@@ -1017,6 +1019,7 @@ ipcMain.handle('plugins:execute-taskbar-item', (event, id, contextData) => {
 // Add this with the other plugin-related IPC handlers
 ipcMain.handle('plugin:fs:readFile', async (event, options) => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { filePath, pluginId } = options;
 
     // Security check: Make sure we're not reading outside allowed directories

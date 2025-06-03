@@ -23,7 +23,7 @@ import FileNotExistModal, {
 import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
-import TaskBarPluginItems from '../../SubComponents/custom/TaskBarPluginItems';
+import TaskBarPluginItems from '../../../plugins/components/TaskBarPluginItems';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { cn } from '../../SubComponents/shadcn/lib/utils';
 import DownloadModal from '../Modal/DownloadModal';

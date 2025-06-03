@@ -20,7 +20,7 @@ import { useMainStore } from '../../../Store/mainStore';
 import { Skeleton } from '../shadcn/components/ui/skeleton';
 import { toast } from '../shadcn/hooks/use-toast';
 import ColumnHeaderContextMenu from './ColumnHeaderContextMenu';
-import DownloadContextMenu from './DownloadContextMenu';
+import DownloadContextMenu, { RenameModal } from './DownloadContextMenu';
 import FileNotExistModal, { DownloadItem } from './FileNotExistModal';
 import ResizableHeader from './ResizableColumns/ResizableHeader';
 import { useResizableColumns } from './ResizableColumns/useResizableColumns';
@@ -638,6 +638,29 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     setSortConfig({ key, direction });
   };
 
+  // Add rename modal state
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameDownloadId, setRenameDownloadId] = useState<string>('');
+  const [renameCurrentName, setRenameCurrentName] = useState<string>('');
+
+  // Get renameDownload function from store
+  const renameDownload = useDownloadStore((state) => state.renameDownload);
+
+  // Add rename handler
+  const handleRename = (downloadId: string, currentName: string) => {
+    setRenameDownloadId(downloadId);
+    setRenameCurrentName(currentName);
+    setShowRenameModal(true);
+  };
+
+  // Add function to perform the rename
+  const performRename = (newName: string) => {
+    renameDownload(renameDownloadId, newName);
+    setShowRenameModal(false);
+    setRenameDownloadId('');
+    setRenameCurrentName('');
+  };
+
   return (
     <div className="w-full">
       <table className="w-full">
@@ -1031,6 +1054,10 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           data-context-menu
           position={{ x: contextMenu.x, y: contextMenu.y }}
           downloadId={contextMenu.downloadId}
+          downloadName={
+            allDownloads.find((d) => d.id === contextMenu.downloadId)?.name ||
+            ''
+          }
           onClose={() => setContextMenu(null)}
           onRemove={() =>
             handleRemove(contextMenu.downloadLocation, contextMenu.downloadId)
@@ -1051,6 +1078,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           availableTags={availableTags}
           availableCategories={availableCategories}
           controllerId={contextMenu.controllerId}
+          onRename={handleRename}
           // Empty functions for required props
           onPause={() => {
             /* hello */
@@ -1072,6 +1100,18 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         onClose={() => setShowFileNotExistModal(false)}
         selectedDownloads={missingFile ? [missingFile] : []}
         download={missingFile}
+      />
+
+      {/* Add the RenameModal */}
+      <RenameModal
+        isOpen={showRenameModal}
+        onClose={() => {
+          setShowRenameModal(false);
+          setRenameDownloadId('');
+          setRenameCurrentName('');
+        }}
+        onRename={performRename}
+        currentName={renameCurrentName}
       />
     </div>
   );
