@@ -425,10 +425,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           <div className="gap-1 flex">
             <PageNavigation />
 
-            <div className="h-6 w-[1.5px] bg-gray-300 dark:bg-gray-600 self-center ml-3"></div>
+            <div className="h-6 w-[1.5px] bg-gray-300 dark:bg-gray-600 self-center ml-1 md:ml-3"></div>
           </div>
           <button
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={handlePlaySelected}
           >
             {' '}
@@ -436,13 +436,13 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           </button>
 
           <button
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={handleStopSelected}
           >
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
           </button>
           <button
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={() => handleStopAll()}
           >
             {' '}

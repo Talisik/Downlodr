@@ -854,12 +854,12 @@ ipcMain.handle('plugins:execute-menu-item', (event, id, contextData) => {
 });
 
 ipcMain.handle('plugins:register-menu-item', (event, menuItem) => {
-  console.log('Main process registering menu item:', menuItem);
+  //console.log('Main process registering menu item:', menuItem);
   return pluginRegistry.registerMenuItem(menuItem);
 });
 
 ipcMain.handle('plugins:unregister-menu-item', (event, id) => {
-  console.log('Main process unregistering menu item:', id);
+  //console.log('Main process unregistering menu item:', id);
   pluginRegistry.unregisterMenuItem(id);
   return true;
 });
@@ -995,12 +995,12 @@ ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
 
 // Add these new IPC handlers for taskbar items
 ipcMain.handle('plugins:register-taskbar-item', (event, taskBarItem) => {
-  console.log('Main process registering taskbar item:', taskBarItem);
+  //console.log('Main process registering taskbar item:', taskBarItem);
   return pluginRegistry.registerTaskBarItem(taskBarItem);
 });
 
 ipcMain.handle('plugins:unregister-taskbar-item', (event, id) => {
-  console.log('Main process unregistering taskbar item:', id);
+  //console.log('Main process unregistering taskbar item:', id);
   pluginRegistry.unregisterTaskBarItem(id);
   return true;
 });

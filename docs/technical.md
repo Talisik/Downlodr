@@ -45,6 +45,7 @@
 - **TailwindCSS**: v3.4.17 - Utility-first CSS framework
 - **Radix UI**: Component primitives for accessible UI elements
 - **Lucide React**: Icon library
+- **React Icons**: Icon library
 - **React Router DOM**: Navigation management
 
 ### Core Functionality
@@ -208,3 +209,40 @@
 - Cross-platform parity
 - Advanced media processing features
 - Cloud integration capabilities
+
+### Update System Enhancement
+
+**Channel-Aware Version Management**
+
+The update system now supports channel-aware version checking to ensure users receive appropriate updates based on their current version channel:
+
+#### Implementation Details
+
+- **Channel Detection**: Automatically detects version channel from version suffix (e.g., `-exp`, `-stable`)
+- **Filtered Updates**: Only checks for updates within the same channel
+  - Experimental versions (`-exp`) only see experimental updates
+  - Stable versions (`-stable`) only see stable updates
+  - Versions without channels only see releases without channel suffixes
+- **Backward Compatibility**: Maintains compatibility with existing version formats
+
+#### Technical Components
+
+```typescript
+// Channel extraction from version string
+function getVersionChannel(version: string): string | null
+
+// Release filtering by channel
+function filterReleasesByChannel(releases: GitHubRelease[], targetChannel: string | null): GitHubRelease[]
+```
+
+#### Benefits
+
+- **User Safety**: Prevents accidental promotion between stability channels
+- **Development Workflow**: Allows parallel development of stable and experimental releases
+- **Controlled Distribution**: Enables targeted rollouts to specific user groups
+
+#### Usage Examples
+
+- Current version `1.3.9-exp` → Only checks releases tagged with `-exp`
+- Current version `1.3.9-stable` → Only checks releases tagged with `-stable`
+- Current version `1.3.9` → Only checks releases without channel suffixes

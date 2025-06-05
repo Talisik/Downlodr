@@ -522,7 +522,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         </div>
         <hr className="solid mt-4 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
 
-        <div className="bg-[#FEF9F4] dark:dark:bg-darkMode flex gap-3 justify-end -mx-6 px-4 py-3 rounded-b-md">
+        <div className="bg-[#FEF9F4] dark:dark:bg-darkMode flex gap-3 justify-end -mx-6 px-4 py-2 rounded-b-md">
           <button
             type="button"
             onClick={handleClose}
@@ -532,7 +532,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
           </button>
           <button
             type="button"
-            className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90"
+            className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90 cursor-pointer"
             disabled={!isValidUrl}
             onClick={handleDownload}
           >

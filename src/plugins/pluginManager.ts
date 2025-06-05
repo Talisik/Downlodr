@@ -1,5 +1,5 @@
 // src/plugins/pluginManager.ts
-import { app, dialog, ipcMain, shell } from 'electron';
+import { app, ipcMain, shell } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { validatePlugin } from './security';
@@ -271,7 +271,7 @@ export class PluginManager {
       }
     });
 
-    ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
+    /*ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { pluginId, content, defaultPath, filters, title } = options;
@@ -305,7 +305,7 @@ export class PluginManager {
           error: error.message || 'Unknown error occurred while saving file',
         };
       }
-    });
+    }); */
   }
 
   // Security check to limit file access to appropriate directories
