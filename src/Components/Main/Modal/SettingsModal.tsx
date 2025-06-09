@@ -30,6 +30,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setVisibleColumns,
     updateRunInBackground,
   } = useMainStore();
+
   // Form submission
   const [biteUnit, setBiteUnit] = useState('');
   const [biteUnitVal, setBiteUnitVal] = useState(
@@ -49,12 +50,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   // Update the state declaration for local visible columns
   const [localVisibleColumns, setLocalVisibleColumns] = useState<string[]>([]);
 
-  // Add this new state for the background running setting
+  // background running setting
   const [runInBackground, setRunInBackground] = useState(
     settings.runInBackground,
   ); // Default to true for backward compatibility
 
-  // Add this useEffect to sync with the mainStore's visibleColumns
+  // sync with the mainStore's visibleColumns
   useEffect(() => {
     if (isOpen) {
       // Reset the local state when the modal opens to match the store
@@ -80,7 +81,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     // Add this line to reset the background running setting
     setRunInBackground(settings.runInBackground ?? true);
   };
-
   // New state to track if directory selection is in progress
   const [isSelectingDirectory, setIsSelectingDirectory] =
     useState<boolean>(false);
@@ -175,7 +175,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     // Add this line to save the background running setting
     console.log('Saving runInBackground value:', runInBackground);
     updateRunInBackground(runInBackground);
-
     // Also update the main process directly
     if (window.backgroundSettings?.setRunInBackground) {
       console.log('Sending to main process:', runInBackground);
@@ -190,7 +189,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center h-full z-[8999]"
+      className="fixed inset-0 bg-black bg-opacity-60 dark:bg-opacity-50 flex items-center justify-center h-full z-[8999]"
       onClick={(e) => {
         // Only close if clicking the overlay background
         if (e.target === e.currentTarget) {
@@ -201,7 +200,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       {/* Directory selection overlay - blocks all app interaction */}
       {isSelectingDirectory && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-[9999] cursor-not-allowed flex items-center justify-center">
-          <div className="bg-white dark:bg-darkMode p-4 rounded-lg shadow-lg max-w-md text-center">
+          <div className="bg-white dark:bg-darkModeDropdown p-4 rounded-lg shadow-lg max-w-md text-center">
             <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
               Directory Selection In Progress
             </h3>
@@ -211,7 +210,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
       )}
-      <div className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment pt-6 pr-6 pl-6 max-w-xl w-full mx-4">
+      <div className="bg-white border border-darkModeCompliment dark:bg-darkModeDropdown rounded-lg pt-4 pr-6 pl-6 pb-4 max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto">
         {/* Left side - Form */}
         <div className="w-full">
           <div className="flex justify-between items-center mb-6">
@@ -245,11 +244,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               {/* End of Upload Button */}
               {/* URL Name */}
               <div>
-                <label className="block dark:text-gray-200 mt-6 mb-[-2]">
+                <label className="text-sm block dark:text-gray-200 mt-4 mb-[-2]">
                   Speed Limit:
                   {biteVal === 0 ? ` No limit` : ` (${biteVal} ${biteUnitVal})`}
                 </label>
-                <div className="flex gap-4 pt-2 items-center">
+                <div className="flex gap-4 items-center">
                   <div className="flex-1">
                     <Slider
                       defaultValue={[biteVal]}
@@ -289,18 +288,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               </div>
               {/* End of Schedule Name */}
               {/* Download Location Name */}
-              <div className="flex gap-4 pt-4">
+              <div className="flex gap-4 pt-2">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <input
                       type="checkbox"
+                      id="connection-limits"
                       checked={isConnectionLimitEnabled}
                       onChange={(e) =>
                         setIsConnectionLimitEnabled(e.target.checked)
                       }
                       className="w-4 h-4 text-primary rounded focus:ring-primary"
                     />
-                    <label className="block dark:text-gray-200 text-nowrap font-bold">
+                    <label
+                      htmlFor="connection-limits"
+                      className="text-sm block dark:text-gray-200 text-nowrap font-bold cursor-pointer"
+                    >
                       Connection Limits
                     </label>
                     <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
@@ -312,7 +315,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         : 'opacity-50 pointer-events-none'
                     }
                   >
-                    <div className="flex flex-row items-center gap-4">
+                    <div className="flex flex-row items-center gap-4 ml-2">
                       <label className="flex-1 dark:text-gray-200">
                         Maximum Active Downloads
                       </label>
@@ -344,7 +347,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
               </div>
 
-              <div className="flex items-center gap-2 mt-3">
+              <div className="flex items-center gap-2 mt-3 ml-2">
                 <input
                   type="checkbox"
                   id="run-in-background"
@@ -357,7 +360,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 />
                 <label
                   htmlFor="run-in-background"
-                  className="dark:text-gray-200"
+                  className="dark:text-gray-200 cursor-pointer"
                 >
                   Run in background when window is closed
                 </label>
@@ -367,7 +370,40 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 application
               </div>
             </div>
-
+            {/* 
+            <div className="pt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block dark:text-gray-200 text-nowrap font-bold">
+                  Plugins
+                </label>
+                <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
+              </div>
+ 
+              <div className="flex gap-2 flex-wrap justify-between">
+                <span className="mt-2 text-xs font-medium ml-2">
+                  Note: Plugins is an experimental feature and might not work as
+                  expected.
+                </span>
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={isShowPlugin}
+                      onChange={(e) => {
+                        console.log(
+                          'Checkbox toggled for plugin',
+                          e.target.checked,
+                        );
+                        setIsShowPlugin(e.target.checked);
+                      }}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+            */}
             {/* Add column visibility section */}
             <div className="pt-4">
               <div className="flex items-center gap-2 mb-2">
@@ -377,7 +413,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
               </div>
 
-              <div className="grid grid-cols-4 gap-1 mt-4">
+              <div className="grid grid-cols-4 gap-1 mt-2 ml-2">
                 {columnOptions.map((column) => (
                   <div key={column.id} className="flex items-center mr-2">
                     <input
@@ -395,7 +431,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     />
                     <label
                       htmlFor={`column-${column.id}`}
-                      className={`dark:text-gray-200 mr-2 ${
+                      className={`dark:text-gray-200 mr-2 text-xs cursor-pointer ${
                         column.required ? 'font-semibold' : ''
                       }`}
                     >
@@ -414,26 +450,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Button commands */}
-        <hr className="solid mt-4 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
+        <hr className="solid mt-2 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
 
-        <div className="bg-[#FEF9F4] dark:dark:bg-darkMode flex gap-3 justify-end -mx-6 px-4 py-3 rounded-b-md">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="bg-primary text-white px-2 py-2 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
-          >
-            Okay
-          </button>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-2 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
-          >
-            Cancel
-          </button>
+        <div className="flex gap-3 p-0">
+          <div className="ml-auto flex gap-3">
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className="bg-primary text-white text-sm px-2 py-1 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
+            >
+              Okay
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-2 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
+        {/* End of Button commands */}
       </div>
-      {/* End of Button commands */}
     </div>
   );
 };

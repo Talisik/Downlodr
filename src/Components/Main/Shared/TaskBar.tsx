@@ -51,7 +51,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       onClick={(e) => e.target === e.currentTarget && onClose()}
       onKeyDown={(e) => e.key === 'Escape' && onClose()}
     >
-      <div className="bg-white dark:bg-darkMode rounded-lg p-6 max-w-sm w-full mx-4">
+      <div className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-4">
         <p className="text-gray-800 dark:text-gray-200 mb-4">{message}</p>
         <div className="flex justify-end space-x-2">
           <button
@@ -421,15 +421,15 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       <div className={`${className} flex items-center justify-between`}>
         <div className="flex items-center h-full px-4 space-x-2">
           <button
-            className="primary-custom-btn px-[6px] py-[4px] sm:px-[8px] sm:py-[4px] flex items-center gap-1 sm:gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
+            className="primary-custom-btn px-[6px] py-[4px] flex items-center gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
             onClick={handleOpenDownloadModal}
           >
-            <GoDownload className="sm:w-[14px] sm:h-[14px]" />
-            <span className="hidden sm:inline text-sm">Add URL</span>
+            <GoDownload className="w-[14px] h-[14px]" />
+            <span className="text-sm">Add URL</span>
           </button>
 
           <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={handlePlaySelected}
           >
             {' '}
@@ -437,13 +437,13 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           </button>
 
           <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={handleStopSelected}
           >
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
           </button>
           <button
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={() => handleStopAll()}
           >
             {' '}

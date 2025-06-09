@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Type definitions for global variables and functions used in the application.
@@ -67,8 +68,10 @@ declare global {
       toggle: () => void; // Toggles the visibility of the developer tools
     };
     updateAPI: {
-      onUpdateAvailable: (callback: (updateInfo: UpdateInfo) => void) => void;
-      checkForUpdates: () => Promise<UpdateInfo>; // Changed return type from void to UpdateInfo
+      onUpdateAvailable: (
+        callback: (updateInfo: UpdateInfo) => void,
+      ) => () => void;      checkForUpdates: () => Promise<UpdateInfo>; // Changed return type from void to UpdateInfo
+      getCurrentVersion: () => Promise<string>; // Gets current app version without GitHub API call
     };
     backgroundSettings: {
       getRunInBackground: () => Promise<boolean>;

@@ -804,3 +804,8 @@ ipcMain.handle('get-file-size', async (_event, filePath) => {
     return null;
   }
 });
+
+ipcMain.handle('get-current-version', async () => {
+  // Get version from package.json or app.getVersion()
+  return app.getVersion();
+});

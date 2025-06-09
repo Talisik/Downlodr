@@ -25,6 +25,7 @@
  *   @param availableCategories - An array of all available categories in the system.
  *   @param onViewFolder - A function to view the folder containing the download.
  *   @param downloadName - The name of the download file.
+ *   @param onRename - A function to rename the download.
  *
  * @returns JSX.Element - The rendered context menu component.
  */
@@ -45,6 +46,7 @@ import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
 import CategoryMenu from './CategoryMenu';
 import TagMenu from './TagsMenu';
+// import FormatConverterMenu from './FormatConverterMenu';
 
 // Interface representing the props for the DownloadContextMenu component
 interface DownloadContextMenuProps {
@@ -86,6 +88,7 @@ interface DownloadContextMenuProps {
   availableCategories: string[]; // Array of all available categories in the system
   onViewFolder: (downloadLocation?: string) => void; // Function to view the folder containing the download
   downloadName?: string; // Name of the download file
+  onRename: (downloadId: string, currentName: string) => void; // Add this
 }
 
 interface ConfirmModalProps {
@@ -112,12 +115,12 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-darkMode rounded-lg p-6 max-w-sm w-full mx-4">
+      <div className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-4">
         <p className="text-gray-800 dark:text-gray-200 mb-4">{message}</p>
         <div className="flex justify-end space-x-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
           >
             Cancel
           </button>
@@ -141,11 +144,18 @@ const RenameModal: React.FC<RenameModalProps> = ({
 }) => {
   const [newName, setNewName] = useState(currentName);
 
+  // Reset the input when modal opens or currentName changes
+  useEffect(() => {
+    if (isOpen) {
+      setNewName(currentName);
+    }
+  }, [isOpen, currentName]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newName.trim()) {
+    if (newName.trim() && newName.trim().length <= 50) {
       onRename(newName.trim());
       toast({
         variant: 'success',
@@ -166,24 +176,31 @@ const RenameModal: React.FC<RenameModalProps> = ({
         className="bg-white dark:bg-darkMode rounded-lg p-6 max-w-sm w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-medium mb-4 dark:text-gray-200">Rename</h3>
+        <h3 className="text-lg font-medium mb-4 dark:text-gray-200">
+          Rename Download
+        </h3>
         <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
-          <label className="font-medium">New name</label>
+          <label className="font-medium dark:text-gray-200">New name</label>
           <input
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            className="w-full p-2 border rounded mb-4 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+            maxLength={50}
+            className="w-full p-2 border rounded mb-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
             autoFocus
             onClick={(e) => e.stopPropagation()}
           />
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            {newName.length}/50 characters
+          </div>
           <hr className="solid mb-2 -mx-6 w-[calc(100%+48px)] border-t-2 border-divider dark:border-gray-700" />
 
           <div className="flex justify-start space-x-2 mb-[-10px]">
             <button
               type="submit"
               onClick={(e) => e.stopPropagation()}
-              className="px-4 py-1 bg-primary text-white rounded"
+              className="px-4 py-1 bg-primary text-white rounded disabled:opacity-50"
+              disabled={!newName.trim() || newName.trim().length > 50}
             >
               Save
             </button>
@@ -193,7 +210,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
                 e.stopPropagation();
                 onClose();
               }}
-              className="px-4 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-200"
+              className="px-4 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
             >
               Cancel
             </button>
@@ -226,6 +243,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   availableCategories = [],
   onViewFolder,
   downloadName = '',
+  onRename,
 }) => {
   const menuRef = React.useRef<HTMLDivElement>(null);
   const tagMenuRef = React.useRef<HTMLDivElement>(null);
@@ -236,9 +254,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     'right' | 'left' | 'top'
   >('right');
   const [showStopConfirmation, setShowStopConfirmation] = useState(false); // State to track visibility of the stop confirmation modal
-  const [showRenameModal, setShowRenameModal] = useState(false); // State to track visibility of the rename modal
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false); // State to track visibility of the remove confirmation modal
-  const renameDownload = useDownloadStore((state) => state.renameDownload); // Function to rename a download
+  // const [showFormatConverterMenu, setShowFormatConverterMenu] = useState(false); // State to track visibility of format converter menu
   const { settings } = useMainStore();
   const { downloading, addDownload, removeFromForDownloads, forDownloads } =
     useDownloadStore();
@@ -309,17 +326,38 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     setShowTagMenu(false); // Close tag menu
     setShowCategoryMenu(!showCategoryMenu);
   };
+  /*
+  // Function to handle opening format converter menu
+  const handleFormatConverterClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowTagMenu(false); // Close tag menu
+    setShowCategoryMenu(false); // Close category menu
+    setShowFormatConverterMenu(!showFormatConverterMenu);
+  };
 
+  // Function to handle format conversion
+  const handleConvert = (
+    downloadId: string,
+    format: string,
+    keepOriginal: boolean,
+  ) => {
+    // Here you would implement the actual conversion logic
+    // This could call an API or dispatch an action to your state management
+    console.log(
+      `Converting ${downloadId} to ${format}${
+        keepOriginal ? ' (keeping original)' : ''
+      }`,
+    );
+
+    // Close menus
+    setShowFormatConverterMenu(false);
+    onClose();
+  };
+*/
   // Function to confirm stopping the download
   const handleStopConfirm = () => {
     onStop(downloadId, downloadLocation, controllerId);
     setShowStopConfirmation(false);
-    onClose();
-  };
-
-  // Function to handle renaming the download
-  const handleRename = (newName: string) => {
-    renameDownload(downloadId, newName);
     onClose();
   };
 
@@ -393,10 +431,9 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     // Common options for tags and categories
     const commonOptions = (
       <>
-        {/* Tags and Categories are always available */}
         <div className="relative">
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={handleTagMenuClick}
           >
             <span className="flex items-center space-x-2">
@@ -422,7 +459,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
         <div className="relative">
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={handleCategoryMenuClick}
           >
             <span className="flex items-center space-x-2">
@@ -452,7 +489,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       return (
         <>
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
               onViewDownload(downloadLocation, downloadId);
               onClose();
@@ -464,7 +501,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             </span>
           </button>
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
               onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
               onClose();
@@ -476,8 +513,47 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             </span>
           </button>
 
+          {/* Add Format Converter option 
+          <div className="relative">
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+              onClick={handleFormatConverterClick}
+            >
+              <span className="flex items-center space-x-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M17 15h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-2"></path>
+                  <path d="M7 15H5a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h2"></path>
+                  <line x1="8" y1="9" x2="16" y2="9"></line>
+                  <line x1="8" y1="15" x2="16" y2="15"></line>
+                </svg>
+                <span>Format converter</span>
+              </span>
+              <span className="ml-auto">
+                <GoChevronRight size={20} />
+              </span>
+            </button>
+
+            {showFormatConverterMenu && (
+              <FormatConverterMenu
+                downloadId={downloadId}
+                menuPositionClass={getTagMenuPositionClass()}
+                onConvert={handleConvert}
+              />
+            )}
+          </div>
+*/}
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
               e.stopPropagation();
               setShowRemoveConfirmation(true);
@@ -497,7 +573,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       return (
         <>
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
               onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
               onClose();
@@ -510,7 +586,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           </button>
 
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
               onPause(
                 downloadId,
@@ -527,7 +603,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             </span>
           </button>
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
               e.stopPropagation();
               setShowStopConfirmation(true);
@@ -547,7 +623,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       return (
         <>
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
               onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
               onClose();
@@ -560,7 +636,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           </button>
 
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
               onPause(
                 downloadId,
@@ -577,7 +653,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             </span>
           </button>
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
               e.stopPropagation();
               setShowStopConfirmation(true);
@@ -597,7 +673,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       return (
         <>
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={handleStartDownload}
           >
             <span className="flex items-center space-x-2">
@@ -606,7 +682,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             </span>
           </button>
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
               onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
               onClose();
@@ -618,10 +694,11 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             </span>
           </button>
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
               e.stopPropagation();
-              setShowRenameModal(true);
+              onRename(downloadId, downloadName);
+              onClose();
             }}
           >
             <span className="flex items-center space-x-2">
@@ -630,7 +707,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             </span>
           </button>
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
               e.stopPropagation();
               setShowRemoveConfirmation(true);
@@ -641,6 +718,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <span>Remove</span>
             </span>
           </button>
+          {commonOptions}
         </>
       );
     }
@@ -649,7 +727,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       return (
         <>
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
               onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
               onClose();
@@ -662,7 +740,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           </button>
 
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
               onPause(
                 downloadId,
@@ -679,7 +757,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             </span>
           </button>
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
               e.stopPropagation();
               setShowStopConfirmation(true);
@@ -691,7 +769,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             </span>
           </button>
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
               onForceStart(downloadId, downloadLocation, controllerId);
               onClose();
@@ -711,7 +789,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     return (
       <>
         <button
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-gray-700"
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
           onClick={() => {
             onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
             onClose();
@@ -726,6 +804,19 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     );
   };
 
+  /*
+  function handleMenuItemClick(menuItemId: string) {
+    const downloadInfo = allDownloads.find((d) => d.id === downloadId);
+
+    if (downloadInfo) {
+      // Use the IPC channel instead of direct call
+      window.plugins.executeMenuItem(menuItemId, downloadInfo);
+    } else {
+      window.plugins.executeMenuItem(menuItemId, { id: downloadId });
+    }
+  }
+*/
+
   return (
     <>
       <div
@@ -738,13 +829,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       >
         {renderMenuOptions()}
       </div>
-
-      <RenameModal
-        isOpen={showRenameModal}
-        onClose={() => setShowRenameModal(false)}
-        onRename={handleRename}
-        currentName={downloadName}
-      />
 
       <ConfirmModal
         isOpen={showStopConfirmation}
@@ -763,4 +847,5 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   );
 };
 
+export { RenameModal };
 export default DownloadContextMenu;

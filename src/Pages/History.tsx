@@ -324,7 +324,7 @@ const History = () => {
               <td className="p-4 text-gray-500 dark:text-gray-400">
                 {new Date(product.DateAdded).toLocaleDateString()}
               </td>
-              <td className="p-4">
+              <td className="p-1">
                 <a
                   onClick={() =>
                     window.downlodrFunctions.openExternalLink(product.videoUrl)

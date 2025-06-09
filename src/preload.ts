@@ -114,9 +114,13 @@ contextBridge.exposeInMainWorld('electronDevTools', {
 
 contextBridge.exposeInMainWorld('updateAPI', {
   onUpdateAvailable: (callback: any) => {
-    ipcRenderer.on('update-available', (_, updateInfo) => callback(updateInfo));
+    const wrappedCallback = (_: any, updateInfo: any) => callback(updateInfo);
+    ipcRenderer.on('update-available', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('update-available', wrappedCallback);
   },
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  getCurrentVersion: () => ipcRenderer.invoke('get-current-version'),
 });
 
 // Add these to your existing preload API exposures

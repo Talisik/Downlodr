@@ -20,7 +20,8 @@ import { useMainStore } from '../../../Store/mainStore';
 import { Skeleton } from '../shadcn/components/ui/skeleton';
 import { toast } from '../shadcn/hooks/use-toast';
 import ColumnHeaderContextMenu from './ColumnHeaderContextMenu';
-import DownloadContextMenu from './DownloadContextMenu';
+import DownloadContextMenu, { RenameModal } from './DownloadContextMenu';
+import FileNotExistModal, { DownloadItem } from './FileNotExistModal';
 import ResizableHeader from './ResizableColumns/ResizableHeader';
 import { useResizableColumns } from './ResizableColumns/useResizableColumns';
 
@@ -269,7 +270,16 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           selectedDownloads.filter((d) => d.id !== downloadId),
         );
       } else {
-        setSelectedDownloads([...selectedDownloads, download]);
+        setSelectedDownloads([
+          ...selectedDownloads,
+          {
+            download,
+            id: download.id,
+            videoUrl: download.videoUrl,
+            downloadName: download.name,
+            status: download.status,
+          },
+        ]);
       }
     }
   };
@@ -282,7 +292,15 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     } else {
       setSelectedRowIds(allDownloads.map((d) => d.id));
       // Set all downloads in global selection state
-      useMainStore.getState().setSelectedDownloads(allDownloads);
+      useMainStore.getState().setSelectedDownloads(
+        allDownloads.map((download) => ({
+          download,
+          id: download.id,
+          videoUrl: download.videoUrl,
+          downloadName: download.name,
+          status: download.status,
+        })),
+      );
     }
   };
 
@@ -492,14 +510,79 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       });
     }
   };
-  // Handles viewing a download.
-  // downloadLocation - The location of the download file.
-  const handleViewDownload = (downloadLocation?: string) => {
+
+  // Add these new state variables for the modal
+  const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
+  const [missingFile, setMissingFile] = useState<DownloadItem | null>(null);
+
+  // Update handleViewDownload to check if the file exists
+  const handleViewDownload = async (
+    downloadLocation?: string,
+    downloadId?: string,
+  ) => {
     if (downloadLocation) {
-      window.downlodrFunctions.openVideo(downloadLocation);
+      try {
+        const exists = await window.downlodrFunctions.fileExists(
+          downloadLocation,
+        );
+
+        if (exists) {
+          window.downlodrFunctions.openVideo(downloadLocation);
+        } else {
+          // If file doesn't exist, find the download and show the modal
+          if (downloadId) {
+            const download = allDownloads.find((d) => d.id === downloadId);
+            if (download) {
+              // Prepare download item for the modal
+              const downloadItem: DownloadItem = {
+                id: download.id,
+                videoUrl: download.videoUrl,
+                location: downloadLocation,
+                name: download.name,
+                ext: download.ext || '',
+                downloadName: download.name,
+                extractorKey: download.extractorKey || '',
+                status: download.status,
+                download: {
+                  ...download,
+                },
+              };
+
+              setMissingFile(downloadItem);
+              setShowFileNotExistModal(true);
+            }
+          } else {
+            // Simple toast if we don't have the download details
+            toast({
+              variant: 'destructive',
+              title: 'File Not Found',
+              description: 'The file does not exist at the specified location',
+              duration: 3000,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error viewing download:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description:
+            error?.message || String(error) || 'Failed to view download',
+          duration: 5000,
+        });
+      }
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'No Download Location',
+        description: 'Invalid Download Location',
+        duration: 3000,
+      });
     }
+
     setContextMenu(null);
   };
+
   // Handles viewing the folder containing the download.
   // downloadLocation - The location of the download file.
   const handleViewFolder = (downloadLocation?: string, filePath?: string) => {
@@ -553,6 +636,29 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     }
 
     setSortConfig({ key, direction });
+  };
+
+  // Add rename modal state
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameDownloadId, setRenameDownloadId] = useState<string>('');
+  const [renameCurrentName, setRenameCurrentName] = useState<string>('');
+
+  // Get renameDownload function from store
+  const renameDownload = useDownloadStore((state) => state.renameDownload);
+
+  // Add rename handler
+  const handleRename = (downloadId: string, currentName: string) => {
+    setRenameDownloadId(downloadId);
+    setRenameCurrentName(currentName);
+    setShowRenameModal(true);
+  };
+
+  // Add function to perform the rename
+  const performRename = (newName: string) => {
+    renameDownload(renameDownloadId, newName);
+    setShowRenameModal(false);
+    setRenameDownloadId('');
+    setRenameCurrentName('');
   };
 
   return (
@@ -948,6 +1054,10 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           data-context-menu
           position={{ x: contextMenu.x, y: contextMenu.y }}
           downloadId={contextMenu.downloadId}
+          downloadName={
+            allDownloads.find((d) => d.id === contextMenu.downloadId)?.name ||
+            ''
+          }
           onClose={() => setContextMenu(null)}
           onRemove={() =>
             handleRemove(contextMenu.downloadLocation, contextMenu.downloadId)
@@ -968,6 +1078,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           availableTags={availableTags}
           availableCategories={availableCategories}
           controllerId={contextMenu.controllerId}
+          onRename={handleRename}
           // Empty functions for required props
           onPause={() => {
             /* hello */
@@ -982,6 +1093,26 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           currentCategories={[]}
         />
       )}
+
+      {/* Add the FileNotExistModal component */}
+      <FileNotExistModal
+        isOpen={showFileNotExistModal}
+        onClose={() => setShowFileNotExistModal(false)}
+        selectedDownloads={missingFile ? [missingFile] : []}
+        download={missingFile}
+      />
+
+      {/* Add the RenameModal */}
+      <RenameModal
+        isOpen={showRenameModal}
+        onClose={() => {
+          setShowRenameModal(false);
+          setRenameDownloadId('');
+          setRenameCurrentName('');
+        }}
+        onRename={performRename}
+        currentName={renameCurrentName}
+      />
     </div>
   );
 };
