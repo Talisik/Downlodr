@@ -42,6 +42,26 @@ const PluginManager: React.FC = () => {
     return trimmed.startsWith('<svg') && trimmed.endsWith('</svg>');
   };
 
+  // Helper function to get first paragraph of description
+  const getFirstParagraph = (description: string): string => {
+    if (!description) return '';
+
+    // Split by double line breaks first (common paragraph separator)
+    const paragraphs = description.split(/\n\s*\n/);
+    if (paragraphs.length > 1 && paragraphs[0].trim()) {
+      return paragraphs[0].trim();
+    }
+
+    // If no double line breaks, try single line breaks
+    const lines = description.split('\n');
+    if (lines.length > 1 && lines[0].trim()) {
+      return lines[0].trim();
+    }
+
+    // If no line breaks, return the full description (will be truncated by CSS)
+    return description;
+  };
+
   // Render icon helper function
   const renderIcon = (icon: any, size: 'sm' | 'md' = 'sm') => {
     const sizeClass = size === 'md' ? 'w-6 h-6' : 'w-5 h-5';
@@ -321,7 +341,7 @@ const PluginManager: React.FC = () => {
                             {plugin.name}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {plugin.description}
+                            {getFirstParagraph(plugin.description)}
                           </div>
                         </div>
                       </div>
@@ -376,7 +396,7 @@ const PluginManager: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
             {plugins.map((plugin) => (
               <div
                 key={plugin.id}
@@ -392,8 +412,8 @@ const PluginManager: React.FC = () => {
                         {plugin.name}
                       </h3>
                     </div>
-                    <p className="mt-2 text-sm line-clamp-2">
-                      {plugin.description}
+                    <p className="mt-2 text-sm">
+                      {getFirstParagraph(plugin.description)}
                     </p>
                     <hr className="solid my-4 w-full border-t border-divider dark:border-darkModeCompliment" />
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
