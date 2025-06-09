@@ -19,7 +19,7 @@ const PageNavigation: React.FC<PageNavigationProps> = ({ className = '' }) => {
       <NavLink
         to="/status/all"
         className={({ isActive }) =>
-          `px-3 py-1 rounded flex gap-1 font-semibold ${
+          `px-1 md:px-3 py-1 rounded flex gap-1 font-semibold ${
             isActive || !location.pathname.startsWith('/plugins')
               ? 'bg-[#F5F5F5] text-[#F45513] dark:bg-darkModeCompliment'
               : 'hover:bg-gray-100 dark:hover:bg-darkModeCompliment dark:text-gray-200'

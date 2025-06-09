@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { PluginSidePanelOptions, PluginSidePanelResult } from '../types';
 // import { toast } from '../../Components/SubComponents/shadcn//hooks/use-toast';
 
@@ -16,27 +16,121 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
   options,
   // onAction,
 }) => {
-  // Create a ref to hold the iframe element
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Handle callbacks by injecting a script that connects them to UI elements
+  // Generate theme-aware content
+  const getThemedContent = (originalContent: string) => {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    const themeStyles = `
+      <style id="injected-theme">
+        :root {
+          --bg-primary: ${isDark ? '#09090B' : '#ffffff'};
+          --bg-secondary: ${isDark ? '#18181B' : '#f4f4f5'};
+          --text-primary: ${isDark ? '#ffffff' : '#01010b'};
+          --text-secondary: ${isDark ? '#71717A' : '#666'};
+          --text-tertiary: ${isDark ? '#52525B' : '#BCBCBC'};
+          --border-primary: ${isDark ? '#272727' : '#D1D5DB'};
+          --border-accent: #F45513;
+          --border-disabled: ${isDark ? '#3f3f46' : '#E0E0E0'};
+          --accent-primary: #F45513;
+          --accent-hover: #e56c10;
+          --bg-accent: #FEF9F4;
+          --bg-accent-hover: ${
+            isDark ? 'rgba(254, 249, 244, 0.8)' : 'rgba(252, 242, 236, 1)'
+          };
+          --text-on-accent: #fff;
+          --bg-hover: ${isDark ? '#3E3E46' : 'rgb(227, 227, 227)'};
+          --bg-disabled: ${isDark ? '#27272a' : '#cccccc'};
+          --text-disabled: ${isDark ? '#52525b' : '#666'};
+          --success-primary: #22C55E;
+          --error-primary: #FF3B30;
+          --text-on-success: #fff;
+          --text-on-error: #fff;
+          --bg-success-hover: rgba(255, 255, 255, 0.1);
+          --bg-progress-track: ${isDark ? '#272727' : '#D1D5DB'};
+          --bg-tooltip: ${isDark ? '#18181B' : '#333'};
+          --text-tooltip: ${isDark ? '#a1a1aa' : '#fff'};
+          --shadow-primary: ${
+            isDark ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)'
+          };
+          --shadow-success: ${
+            isDark ? 'rgba(34, 197, 94, 0.3)' : 'rgba(16, 185, 129, 0.3)'
+          };
+          --scrollbar-thumb: ${isDark ? '#52525b' : '#888'};
+          --scrollbar-thumb-hover: ${isDark ? '#71717a' : '#666'};
+        }
+        body {
+          background-color: ${isDark ? '#09090B' : '#fff'} !important;
+          color: ${isDark ? '#a1a1aa' : '#01010b'} !important;
+        }
+        ${isDark ? 'html { color-scheme: dark; }' : ''}
+      </style>
+    `;
+
+    // Inject the theme styles right after the opening <style> tag
+    if (originalContent.includes('<style>')) {
+      return originalContent.replace(
+        '<style>',
+        `<style>${themeStyles.replace(/<\/?style[^>]*>/g, '')}`,
+      );
+    } else if (originalContent.includes('</head>')) {
+      return originalContent.replace('</head>', `${themeStyles}</head>`);
+    } else {
+      // Fallback: prepend to the content
+      return `${themeStyles}${originalContent}`;
+    }
+  };
+
+  // State to hold the current themed content
+  const [themedContent, setThemedContent] = useState(() =>
+    typeof options.content === 'string'
+      ? getThemedContent(options.content)
+      : options.content,
+  );
+
+  // Update content when theme changes
   useEffect(() => {
-    if (
-      typeof options.content === 'string' &&
-      options.callbacks &&
-      iframeRef.current
-    ) {
+    if (typeof options.content === 'string') {
+      const newContent = getThemedContent(options.content);
+      setThemedContent(newContent);
+    }
+  }, [options.content]);
+
+  // Listen for theme changes
+  useEffect(() => {
+    const themeObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (
+          mutation.type === 'attributes' &&
+          mutation.attributeName === 'class'
+        ) {
+          if (typeof options.content === 'string') {
+            const newContent = getThemedContent(options.content);
+            setThemedContent(newContent);
+          }
+        }
+      });
+    });
+
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => {
+      themeObserver.disconnect();
+    };
+  }, [options.content]);
+
+  // Handle callbacks
+  useEffect(() => {
+    if (options.callbacks && iframeRef.current) {
       const iframe = iframeRef.current;
 
-      // Wait for iframe to load
       iframe.onload = () => {
-        if (!iframe.contentWindow) return;
-
-        // Create a secure proxy for callbacks
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const callbackProxy: Record<string, (...args: any[]) => any> = {};
 
-        // Add each callback to the proxy
         if (options.callbacks) {
           Object.entries(options.callbacks).forEach(([name, callback]) => {
             if (typeof callback === 'function') {
@@ -59,102 +153,23 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
           }
         };
 
-        // Inject the callback proxy into the iframe
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (iframe.contentWindow as any).__pluginCallbacks = callbackProxy;
-
-        // Inject connector script
-        const script = iframe.contentDocument.createElement('script');
-        script.textContent = `
-            // Connect button events to callbacks
-            document.addEventListener('DOMContentLoaded', () => {
-              // Format selection
-              let selectedFormat = 'md';
-              
-              document.querySelectorAll('.format-option').forEach(option => {
-                option.addEventListener('click', function() {
-                  document.querySelectorAll('.format-option').forEach(el => {
-                    el.classList.remove('bg-orange-100', 'dark:bg-orange-900', 'border-orange-500');
-                    el.classList.add('hover:bg-gray-50', 'dark:hover:bg-gray-800');
-                  });
-                  
-                  this.classList.add('bg-orange-100', 'dark:bg-orange-900', 'border-orange-500');
-                  this.classList.remove('hover:bg-gray-50', 'dark:hover:bg-gray-800');
-                  
-                  selectedFormat = this.getAttribute('data-format');
-                  
-                  if (window.__pluginCallbacks && window.__pluginCallbacks.onFormatChange) {
-                    window.__pluginCallbacks.onFormatChange(selectedFormat);
-                  }
-                });
-              });
-              
-              // Close panel handler - add this to any close buttons in the panel
-              const closePanelBtns = document.querySelectorAll('.close-panel-btn');
-              if (closePanelBtns.length > 0 && window.__pluginCallbacks && window.__pluginCallbacks.closePanel) {
-                closePanelBtns.forEach(btn => {
-                  btn.addEventListener('click', window.__pluginCallbacks.closePanel);
-                });
-              }
-              
-              // Browse button handler
-              const browseBtn = document.querySelector('.browse-btn');
-              if (browseBtn && window.__pluginCallbacks && window.__pluginCallbacks.onBrowse) {
-                browseBtn.addEventListener('click', window.__pluginCallbacks.onBrowse);
-              }
-              
-              // Cancel button handler
-              const cancelBtn = document.querySelector('.cancel-btn');
-              if (cancelBtn && window.__pluginCallbacks && window.__pluginCallbacks.onCancel) {
-                cancelBtn.addEventListener('click', window.__pluginCallbacks.onCancel);
-              }
-              
-              // Convert button handler
-              const convertBtn = document.querySelector('.convert-btn');
-              if (convertBtn && window.__pluginCallbacks && window.__pluginCallbacks.onConvert) {
-                convertBtn.addEventListener('click', () => {
-                  window.__pluginCallbacks.onConvert(selectedFormat);
-                });
-              }
-              
-              // Make closePanel available globally within the iframe
-              window.closePanel = function() {
-                if (window.__pluginCallbacks && window.__pluginCallbacks.closePanel) {
-                  window.__pluginCallbacks.closePanel();
-                }
-              };
-            });
-          `;
-
-        iframe.contentDocument.head.appendChild(script);
+        if (iframe.contentWindow) {
+          (iframe.contentWindow as any).__pluginCallbacks = callbackProxy;
+        }
       };
     }
-  }, [options.content, options.callbacks, onClose]);
+  }, [options.callbacks, onClose]);
 
   // Helper function to check if a string is an SVG
   const isSvgString = (str: string): boolean => {
     return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
   };
 
-  // Add this debug line right before the return statement
-  console.log('Debug icon:', {
-    icon: options.icon,
-    type: typeof options.icon,
-    isSvg: typeof options.icon === 'string' ? isSvgString(options.icon) : false,
-  });
-
   if (!isOpen) return null;
-
-  // Calculate panel width
-  const panelWidth = options.width
-    ? typeof options.width === 'number'
-      ? `${options.width}px`
-      : options.width
-    : '250px';
 
   return (
     <div
-      className="fixed right-0 top-0 h-full bg-white shadow-lg z-40 flex flex-col border-2 border-[#D1D5DB] dark:border-darkModeCompliment"
+      className="fixed right-0 top-0 h-full bg-white dark:bg-darkMode shadow-lg z-40 flex flex-col border-2 border-[#D1D5DB] dark:border-darkModeCompliment"
       style={{ width: '300px' }}
     >
       {/* Header */}
@@ -198,15 +213,15 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        {typeof options.content === 'string' ? (
+        {typeof themedContent === 'string' ? (
           <iframe
             ref={iframeRef}
             className="w-full h-full border-0"
-            srcDoc={options.content}
+            srcDoc={themedContent}
             sandbox="allow-scripts"
           />
         ) : (
-          options.content
+          themedContent
         )}
       </div>
     </div>

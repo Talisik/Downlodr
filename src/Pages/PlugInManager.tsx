@@ -14,7 +14,7 @@ interface PluginInfo {
   version: string;
   description: string;
   author: string;
-  icon: any;
+  icon: string;
 }
 
 const PluginManager: React.FC = () => {
@@ -258,7 +258,7 @@ const PluginManager: React.FC = () => {
   };
 
   return (
-    <div className="h-full w-full bg-[#FBFBFB] dark:bg-darkModeDropdown">
+    <div className="min-h-screen w-full bg-[#FBFBFB] dark:bg-darkModeDropdown">
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           {/* Directory selection overlay - blocks all app interaction */}

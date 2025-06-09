@@ -1,11 +1,12 @@
 // src/plugins/pluginManager.ts
-import { app, dialog, ipcMain, shell } from 'electron';
+import { app, ipcMain, shell } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { validatePlugin } from './security';
 
 export class PluginManager {
   private pluginsDir: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private loadedPlugins: Map<string, any> = new Map();
   private enabledPlugins: Record<string, boolean> = {};
   private configPath: string;
@@ -173,12 +174,9 @@ export class PluginManager {
     // Execute taskbar item
     ipcMain.handle(
       'plugins:executeTaskBarItem',
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       (event, itemId, contextData) => {
         try {
-          // Execute the taskbar item with the provided context data
-          // This is a fallback for non-renderer plugins
-          console.log(`Executing taskbar item: ${itemId}`);
-          // Your implementation for executing the taskbar item from the main process
           return true;
         } catch (error) {
           console.error(`Error executing taskbar item ${itemId}:`, error);
@@ -273,9 +271,9 @@ export class PluginManager {
       }
     });
 
-    // Add save file dialog handler
-    ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
+    /*ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { pluginId, content, defaultPath, filters, title } = options;
 
         // Show save dialog
@@ -307,7 +305,7 @@ export class PluginManager {
           error: error.message || 'Unknown error occurred while saving file',
         };
       }
-    });
+    }); */
   }
 
   // Security check to limit file access to appropriate directories
@@ -352,7 +350,12 @@ export class PluginManager {
                 description: manifest.description || '',
                 author: manifest.author || 'Unknown',
                 enabled: this.enabledPlugins[pluginId],
-                icon: manifest.icon || 'Unknown',
+                icon:
+                  manifest.icon ||
+                  `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19.5 12.5C19.5 13.88 18.38 15 17 15C15.62 15 14.5 13.88 14.5 12.5V11H13V12.5C13 13.88 11.88 15 10.5 15C9.12 15 8 13.88 8 12.5C8 11.12 9.12 10 10.5 10C11.88 10 13 11.12 13 12.5V11H14.5V12.5C14.5 11.12 15.62 10 17 10C18.38 10 19.5 11.12 19.5 12.5Z" fill="currentColor"/>
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4C4 2.89543 4.89543 2 6 2H10.5C10.5 3.38071 11.6193 4.5 13 4.5C14.3807 4.5 15.5 3.38071 15.5 2H18C19.1046 2 20 2.89543 20 4V6.5C18.6193 6.5 17.5 7.61929 17.5 9C17.5 10.3807 18.6193 11.5 20 11.5V18C20 19.1046 19.1046 20 18 20H15.5C15.5 18.6193 14.3807 17.5 13 17.5C11.6193 17.5 10.5 18.6193 10.5 20H6C4.89543 20 4 19.1046 4 18V11.5C5.38071 11.5 6.5 10.3807 6.5 9C6.5 7.61929 5.38071 6.5 4 6.5V4ZM6 4V6.5C5.38071 6.5 4.5 7.11929 4.5 7.75V9.25C4.5 9.88071 5.38071 10.5 6 10.5H6.5V11H6C5.38071 11 4.5 11.6193 4.5 12.25V13.75C4.5 14.3807 5.38071 15 6 15H10.5V15.5C10.5 16.1193 11.1193 16.75 11.75 16.75H13.25C13.8807 16.75 14.5 16.1193 14.5 15.5V15H15V15.5C15 16.1193 15.6193 16.75 16.25 16.75H17.75C18.3807 16.75 19 16.1193 19 15.5V15H18C17.3807 15 16.75 14.3807 16.75 13.75V12.25C16.75 11.6193 17.3807 11 18 11H19V10.5H18C17.3807 10.5 16.75 9.88071 16.75 9.25V7.75C16.75 7.11929 17.3807 6.5 18 6.5H19V6H18C17.3807 6 16.75 5.38071 16.75 4.75V3.25C16.75 2.61929 17.3807 2 18 2H15.5V2.5C15.5 3.11929 14.8807 3.75 14.25 3.75H12.75C12.1193 3.75 11.5 3.11929 11.5 2.5V2H10.5V2.5C10.5 3.11929 9.88071 3.75 9.25 3.75H7.75C7.11929 3.75 6.5 3.11929 6.5 2.5V2H6V4Z" fill="currentColor"/>
+                </svg>`,
               };
             }
             return null;
@@ -491,7 +494,7 @@ export class PluginManager {
       console.log(`Unloading plugin ${pluginId}`);
 
       // 1. Get plugin details before removal
-      const plugin = this.loadedPlugins.get(pluginId);
+      // const plugin = this.loadedPlugins.get(pluginId);
 
       // 2. Remove from memory
       this.loadedPlugins.delete(pluginId);
@@ -518,7 +521,6 @@ export class PluginManager {
 
   async loadPlugins() {
     try {
-      console.log('PLUGIN DIR:', this.pluginsDir);
       // Log the contents of the plugins directory
       if (fs.existsSync(this.pluginsDir)) {
         const files = fs.readdirSync(this.pluginsDir);
@@ -544,7 +546,6 @@ export class PluginManager {
           const manifestPath = path.join(pluginPath, 'manifest.json');
           const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
           this.loadedPlugins.set(manifest.id, { path: pluginPath, manifest });
-          console.log(`Plugin ${manifest.id} registered for loading`);
         } else {
           console.error(`Invalid plugin found at ${pluginPath}`);
         }

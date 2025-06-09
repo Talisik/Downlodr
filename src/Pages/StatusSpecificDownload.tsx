@@ -498,7 +498,7 @@ const StatusSpecificDownloads = () => {
         currentDownload.getTranscript || false,
         currentDownload.getThumbnail || false,
         currentDownload.duration || 60,
-        true,
+        false,
       );
       deleteDownloading(downloadId);
       toast({

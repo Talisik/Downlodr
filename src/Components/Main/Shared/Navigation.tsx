@@ -47,19 +47,12 @@ const Navigation = ({
     category: false,
     tag: false,
   });
-  // New state for All navigation dropdown
-  const [showStatusSubItems, setShowStatusSubItems] = useState(false);
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
-  };
-
-  // Toggle status sub-items on double click
-  const toggleStatusSubItems = () => {
-    setShowStatusSubItems((prev) => !prev);
   };
 
   // Context menu for Tags and Category

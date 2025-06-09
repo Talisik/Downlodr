@@ -11,7 +11,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { useMainStore } from '../../../Store/mainStore';
-import { usePluginStore } from '../../../Store/pluginStore';
 import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
 
 interface SettingsModalProps {
@@ -32,7 +31,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     updateRunInBackground,
   } = useMainStore();
 
-  const { settingsPlugin, updateIsShowPlugin } = usePluginStore();
   // Form submission
   const [biteUnit, setBiteUnit] = useState('');
   const [biteUnitVal, setBiteUnitVal] = useState(
@@ -67,9 +65,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
   // Misc
   const navRef = useRef<HTMLDivElement>(null);
-
-  // Add this state for the dummy plugin toggle
-  const [isShowPlugin, setIsShowPlugin] = useState(settingsPlugin.isShowPlugin);
 
   const resetSettingsModal = () => {
     // Reset all state values to their original store values
@@ -167,12 +162,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // Dummy function to handle toggle state
-  const handleToggle = () => {
-    setIsShowPlugin((prev) => !prev);
-    console.log(`Plugin is now ${!isShowPlugin ? 'enabled' : 'disabled'}`);
-  };
-
   // Modify handleSubmit to consider the checkbox
   const handleSubmit = () => {
     updateDefaultLocation(downloadLocation);
@@ -186,7 +175,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     // Add this line to save the background running setting
     console.log('Saving runInBackground value:', runInBackground);
     updateRunInBackground(runInBackground);
-    updateIsShowPlugin(isShowPlugin);
     // Also update the main process directly
     if (window.backgroundSettings?.setRunInBackground) {
       console.log('Sending to main process:', runInBackground);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/plugins/registry.ts
 import { MenuItem, NotifItem, TaskBarItem } from './types';
 
@@ -73,7 +74,15 @@ export class PluginRegistry {
     return Array.from(itemMap.values());
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   executeTaskBarItemAction(id: string, contextData?: any): void {
+    console.log('Executing with contextData:', contextData);
+    console.log('ContextData type:', typeof contextData);
+    console.log(
+      'ContextData keys:',
+      contextData ? Object.keys(contextData) : 'none',
+    );
+
     const handler = this.taskBarActionHandlers.get(id);
     if (handler) {
       handler(contextData);
@@ -98,6 +107,7 @@ export class PluginRegistry {
       // Clear handlers from this plugin
       const handlersToRemove: string[] = [];
       this.menuItemHandlers.forEach((_, key) => {
+        console.log(this.menuItemHandlers);
         if (key.startsWith(pluginId)) {
           handlersToRemove.push(key);
         }
@@ -128,13 +138,9 @@ export class PluginRegistry {
   registerMenuItem(item: MenuItem): string {
     const id = item.id || `menu-item-${Date.now()}`;
 
-    console.log('Registering menu item with ID:', id);
-    console.log('Has onClick handler:', !!item.onClick);
-
     // Store the onClick handler separately
     if (item.onClick) {
       this.menuItemHandlers.set(id, item.onClick);
-      console.log('Handler registered successfully');
     }
 
     const serializableItem = {
@@ -153,9 +159,6 @@ export class PluginRegistry {
   }
 
   getMenuItems(context?: string): Omit<MenuItem, 'onClick'>[] {
-    console.log(`Getting menu items for context: ${context}`);
-    console.log(`Total registered items: ${this.menuItems.length}`);
-
     // Filter by context first
     let filteredItems = context
       ? this.menuItems.filter(
@@ -170,10 +173,6 @@ export class PluginRegistry {
       return !item.pluginId || this.enabledPlugins[item.pluginId] !== false;
     });
 
-    filteredItems.forEach((item) => {
-      console.log(`Item key: ${item.pluginId}:${item.label}`);
-    });
-
     // Create a map to deduplicate items
     const itemMap = new Map();
 
@@ -185,23 +184,13 @@ export class PluginRegistry {
 
     const uniqueItems = Array.from(itemMap.values());
 
-    console.log(`Returning ${uniqueItems.length} items for context ${context}`);
-    console.log('Items:', uniqueItems);
-
     return uniqueItems;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   executeMenuItemAction(id: string, contextData?: any): void {
-    console.log('Executing menu item with ID:', id);
-    console.log(
-      'Available handlers:',
-      Array.from(this.menuItemHandlers.keys()),
-    );
     const handler = this.menuItemHandlers.get(id);
-    console.log('Handler found:', handler ? 'Yes' : 'No');
-    console.log(contextData);
     if (handler) {
-      console.log(contextData);
       handler(contextData);
     }
   }
@@ -209,13 +198,9 @@ export class PluginRegistry {
   registerNotifItem(item: NotifItem): string {
     const id = item.id || `notif-item-${Date.now()}`;
 
-    console.log('Registering notif item with ID:', id);
-    console.log('Has onClick handler:', !!item.onClick);
-
     // Store the onClick handler separately
     if (item.onClick) {
       this.notifItemHandlers.set(id, item.onClick);
-      console.log('Handler registered successfully');
     }
 
     const serializableItem = {
@@ -234,9 +219,6 @@ export class PluginRegistry {
   }
 
   getNotifItems(context?: string): Omit<NotifItem, 'onClick'>[] {
-    console.log(`Getting notif items for context: ${context}`);
-    console.log(`Total registered items: ${this.notifItems.length}`);
-
     // Filter by context first
     let filteredItems = context
       ? this.notifItems.filter(
@@ -251,11 +233,6 @@ export class PluginRegistry {
       return !item.pluginId || this.enabledPlugins[item.pluginId] !== false;
     });
 
-    // Add debug logging to see the generated keys
-    filteredItems.forEach((item) => {
-      console.log(`Item key: ${item.pluginId}:${item.title}`);
-    });
-
     // Create a map to deduplicate items
     const itemMap = new Map();
 
@@ -267,25 +244,7 @@ export class PluginRegistry {
 
     const uniqueItems = Array.from(itemMap.values());
 
-    console.log(`Returning ${uniqueItems.length} items for context ${context}`);
-    console.log('Items:', uniqueItems);
-
     return uniqueItems;
-  }
-
-  executeNotifItemAction(id: string, contextData?: any): void {
-    console.log('Executing notif item with ID:', id);
-    console.log(
-      'Available handlers:',
-      Array.from(this.notifItemHandlers.keys()),
-    );
-    const handler = this.notifItemHandlers.get(id);
-    console.log('Handler found:', handler ? 'Yes' : 'No');
-    console.log(contextData);
-    if (handler) {
-      console.log(contextData);
-      handler(contextData);
-    }
   }
 
   // Generic method to filter any plugin features by enabled state
@@ -301,15 +260,7 @@ export class PluginRegistry {
     return this.filterByEnabled(extensions);
   }
 
-  // Add a method to register extensions
-  registerExtension(extensionPoint: string, extension: any): void {
-    if (!this._extensions[extensionPoint]) {
-      this._extensions[extensionPoint] = [];
-    }
-    this._extensions[extensionPoint].push(extension);
-  }
-
-  // Add taskbar action handlers map
+  // taskbar action handlers map
   private taskBarActionHandlers = new Map<
     string,
     (contextData?: any) => void

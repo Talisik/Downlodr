@@ -14,7 +14,7 @@
  * @returns JSX.Element - The rendered tag menu component.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 
 interface TagMenuProps {
@@ -65,19 +65,29 @@ const TagMenu: React.FC<TagMenuProps> = ({
     >
       <div className="m-2 px-4 py-2 flex flex-row border rounded dark:border-gray-700">
         <GoPlus size={22} className="ml-[-10px] mr-2 dark:text-gray-200" />
-        <input
-          type="text"
-          placeholder="Add new tag..."
-          value={newTag}
-          onChange={(e) => setNewTag(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && newTag.trim()) {
-              onAddTag(downloadId, newTag.trim());
-              setNewTag('');
-            }
-          }}
-          className="w-full outline-none dark:bg-darkMode dark:text-gray-200"
-        />
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="Add new tag..."
+            value={newTag}
+            maxLength={10}
+            onChange={(e) => setNewTag(e.target.value)}
+            onKeyDown={(e) => {
+              if (
+                e.key === 'Enter' &&
+                newTag.trim() &&
+                newTag.trim().length <= 10
+              ) {
+                onAddTag(downloadId, newTag.trim());
+                setNewTag('');
+              }
+            }}
+            className="w-full outline-none dark:bg-darkMode dark:text-gray-200"
+          />
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            {newTag.length}/10 characters
+          </div>
+        </div>
       </div>
       <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider dark:border-gray-700" />
 

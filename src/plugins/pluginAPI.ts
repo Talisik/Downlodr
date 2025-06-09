@@ -33,11 +33,6 @@ export function createPluginAPI(pluginId: string): PluginAPI {
   // Create UI API
   const uiAPI: UIAPI = {
     registerMenuItem: (menuItem: MenuItem) => {
-      console.log(
-        `Plugin ${pluginId} registering menu item via IPC:`,
-        menuItem,
-      );
-
       // Create a serializable version (without the onClick function)
       const serializableMenuItem = {
         ...menuItem,
@@ -59,23 +54,18 @@ export function createPluginAPI(pluginId: string): PluginAPI {
     },
 
     unregisterMenuItem: (id: string) => {
-      console.log(`Plugin ${pluginId} unregistering menu item via IPC:`, id);
       return window.plugins.unregisterMenuItem(id);
     },
 
     registerFormatProvider: (provider: FormatProvider) => {
-      console.log(`Plugin ${pluginId} registering format provider:`, provider);
       return `${pluginId}:format:${Date.now()}`;
     },
 
     registerSettingsPage: (page: SettingsPage) => {
-      console.log(`Plugin ${pluginId} registering settings page:`, page);
       return `${pluginId}:settings:${Date.now()}`;
     },
 
     showNotification: (options: NotificationOptions) => {
-      console.log(`Plugin ${pluginId} showing notification:`, options);
-
       // Map NotificationOptions.type to toast variant
       let variant: 'default' | 'destructive' | 'success' = 'default';
       switch (options.type) {
@@ -104,8 +94,6 @@ export function createPluginAPI(pluginId: string): PluginAPI {
     showFormatSelector: async (
       options: FormatSelectorOptions,
     ): Promise<FormatSelectorResult | null> => {
-      console.log(`Plugin ${pluginId} requesting format selector:`, options);
-
       if (!window.formatSelectorManager) {
         console.error('Format selector manager not available');
         return null;
@@ -121,11 +109,6 @@ export function createPluginAPI(pluginId: string): PluginAPI {
     },
 
     registerTaskBarItem: async (taskBarItem: TaskBarItem) => {
-      console.log(
-        `Plugin ${pluginId} registering taskbar item via IPC:`,
-        taskBarItem,
-      );
-
       // Create a unique handler ID
       const handlerId = `${pluginId}:taskbar:${Date.now()}`;
 
@@ -150,15 +133,12 @@ export function createPluginAPI(pluginId: string): PluginAPI {
     },
 
     unregisterTaskBarItem: async (id: string) => {
-      console.log(`Plugin ${pluginId} unregistering taskbar item: ${id}`);
       return await window.plugins.unregisterTaskBarItem(id);
     },
 
     showPluginSidePanel: async (
       options: PluginSidePanelOptions,
     ): Promise<PluginSidePanelResult | null> => {
-      console.log(`Plugin ${pluginId} requesting side panel:`, options);
-
       if (!window.pluginSidePanelManager) {
         console.error('Plugin side panel manager not available');
         return null;
@@ -176,8 +156,6 @@ export function createPluginAPI(pluginId: string): PluginAPI {
     showPluginModal: async (
       options: PluginModalOptions,
     ): Promise<PluginModalResult | null> => {
-      console.log(`Plugin ${pluginId} requesting modal:`, options);
-
       if (!window.pluginModalManager) {
         console.error('Plugin modal manager not available');
         return null;
@@ -195,8 +173,6 @@ export function createPluginAPI(pluginId: string): PluginAPI {
     showSaveFileDialog: async (
       options: SaveDialogOptions,
     ): Promise<SaveDialogResult> => {
-      console.log(`Plugin ${pluginId} requesting save file dialog:`, options);
-
       try {
         // Use the IPC method to show the dialog from the main process
         return await window.plugins.saveFileDialog({
@@ -215,7 +191,6 @@ export function createPluginAPI(pluginId: string): PluginAPI {
         const updateIsOpenPluginSidebar =
           usePluginStore.getState().updateIsOpenPluginSidebar;
         updateIsOpenPluginSidebar(false);
-        console.log(`Plugin ${pluginId} closed the panel programmatically`);
       }
     },
   };
@@ -286,8 +261,6 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
       return true;
     },
     getInfo: async (url: string) => {
-      console.log(`Plugin ${pluginId} requesting info for URL: ${url}`);
-
       try {
         // Use the IPC handler instead of window.ytdlp
         const info = await window.downlodrFunctions.invokeMainProcess(
@@ -333,8 +306,6 @@ function createUIAPI(pluginId: string): UIAPI {
     showFormatSelector: async (
       options: FormatSelectorOptions,
     ): Promise<FormatSelectorResult | null> => {
-      console.log(`Plugin ${pluginId} requesting format selector:`, options);
-
       if (!window.formatSelectorManager) {
         console.error('Format selector manager not available');
         return null;
@@ -358,8 +329,6 @@ function createUIAPI(pluginId: string): UIAPI {
     showPluginSidePanel: async (
       options: PluginSidePanelOptions,
     ): Promise<PluginSidePanelResult | null> => {
-      console.log(`Plugin ${pluginId} requesting side panel:`, options);
-
       if (!window.pluginSidePanelManager) {
         console.error('Plugin side panel manager not available');
         return null;
@@ -376,8 +345,6 @@ function createUIAPI(pluginId: string): UIAPI {
     showPluginModal: async (
       options: PluginModalOptions,
     ): Promise<PluginModalResult | null> => {
-      console.log(`Plugin ${pluginId} requesting modal:`, options);
-
       if (!window.pluginModalManager) {
         console.error('Plugin modal manager not available');
         return null;
@@ -394,8 +361,6 @@ function createUIAPI(pluginId: string): UIAPI {
     showSaveFileDialog: async (
       options: SaveDialogOptions,
     ): Promise<SaveDialogResult> => {
-      console.log(`Plugin ${pluginId} requesting save file dialog:`, options);
-
       try {
         // Use the IPC method to show the dialog from the main process
         return await window.plugins.saveFileDialog({
@@ -413,7 +378,6 @@ function createUIAPI(pluginId: string): UIAPI {
         const updateIsOpenPluginSidebar =
           usePluginStore.getState().updateIsOpenPluginSidebar;
         updateIsOpenPluginSidebar(false);
-        console.log(`Plugin ${pluginId} closed the panel programmatically`);
       }
     },
   };
@@ -446,8 +410,6 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
     readFileContents: async (
       filePath: string,
     ): Promise<{ success: boolean; data?: string; error?: string }> => {
-      console.log(`Plugin ${pluginId} requesting to read file: ${filePath}`);
-
       try {
         const result = await window.plugins.readFileContents({
           filePath,
@@ -467,17 +429,13 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
       }
     },
 
-    // Add file writing API
     writeFile: async (options: WriteFileOptions): Promise<WriteFileResult> => {
-      console.log(`Plugin ${pluginId} requesting to write file:`, options);
-
       try {
         return await window.plugins.writeFile({
           ...options,
           pluginId,
         });
       } catch (error) {
-        console.error('Error writing file:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : String(error),
@@ -488,16 +446,12 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
     saveFileWithDialog: async (
       options: SaveFileDialogOptions,
     ): Promise<WriteFileResult> => {
-      console.log(`Plugin ${pluginId} requesting to save file with dialog`);
-
       try {
-        // This will show a file save dialog to the user
         return await window.plugins.saveFileDialog({
           ...options,
           pluginId,
         });
       } catch (error) {
-        console.error('Error saving file with dialog:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : String(error),

@@ -9,11 +9,11 @@
 import React from 'react';
 import { IoMdClose, IoMdRemove } from 'react-icons/io';
 import { PiBrowsers } from 'react-icons/pi';
+import { RxBox } from 'react-icons/rx';
 import downlodrLogoLight from '../../../Assets/Logo/Downlodr-Logo.svg';
 import downlodrLogoDark from '../../../Assets/Logo/Downlodr-LogoDark.svg';
 import { ModeToggle } from '../../../Components/SubComponents/custom/ModeToggle';
 import { useTheme } from '../../../Components/ThemeProvider';
-import { RxBox } from 'react-icons/rx';
 
 interface TitleBarProps {
   className?: string;

@@ -17,8 +17,7 @@ const FormatConverterMenu: React.FC<FormatConverterMenuProps> = ({
   onConvert,
 }) => {
   const [selectedFormat, setSelectedFormat] = useState('MP4');
-  const [keepOriginal, setKeepOriginal] = useState(false);
-
+  const keepOriginal = false;
   // Array of available formats
   const formats = ['MP4', 'MP3', 'MOV', 'AVI', 'MKV'];
 

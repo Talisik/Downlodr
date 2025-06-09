@@ -598,6 +598,7 @@ app.on('ready', async () => {
   });
 
   // Listen for plugin state changes
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   ipcMain.on('plugins:stateChanged', (event, { pluginId, enabled }) => {
     // Update the registry's knowledge of enabled plugins
     pluginRegistry.updateEnabledStates(pluginManager.getEnabledPlugins());
@@ -851,12 +852,12 @@ ipcMain.handle('plugins:execute-menu-item', (event, id, contextData) => {
 });
 
 ipcMain.handle('plugins:register-menu-item', (event, menuItem) => {
-  console.log('Main process registering menu item:', menuItem);
+  //console.log('Main process registering menu item:', menuItem);
   return pluginRegistry.registerMenuItem(menuItem);
 });
 
 ipcMain.handle('plugins:unregister-menu-item', (event, id) => {
-  console.log('Main process unregistering menu item:', id);
+  //console.log('Main process unregistering menu item:', id);
   pluginRegistry.unregisterMenuItem(id);
   return true;
 });
@@ -992,16 +993,17 @@ ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
 
 // Add these new IPC handlers for taskbar items
 ipcMain.handle('plugins:register-taskbar-item', (event, taskBarItem) => {
-  console.log('Main process registering taskbar item:', taskBarItem);
+  //console.log('Main process registering taskbar item:', taskBarItem);
   return pluginRegistry.registerTaskBarItem(taskBarItem);
 });
 
 ipcMain.handle('plugins:unregister-taskbar-item', (event, id) => {
-  console.log('Main process unregistering taskbar item:', id);
+  //console.log('Main process unregistering taskbar item:', id);
   pluginRegistry.unregisterTaskBarItem(id);
   return true;
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 ipcMain.handle('plugins:taskbar-items', (event) => {
   return pluginRegistry.getTaskBarItems();
 });
@@ -1015,6 +1017,7 @@ ipcMain.handle('plugins:execute-taskbar-item', (event, id, contextData) => {
 // Add this with the other plugin-related IPC handlers
 ipcMain.handle('plugin:fs:readFile', async (event, options) => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { filePath, pluginId } = options;
 
     // Security check: Make sure we're not reading outside allowed directories
@@ -1046,22 +1049,24 @@ ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
     );
 
     // Ensure the requested path is within the plugin's data directory or another safe location
-    const normalizedPath = path.normalize(filePath);
-    if (
-      !normalizedPath.startsWith(pluginDataDir) &&
-      !normalizedPath.startsWith(app.getPath('downloads'))
-    ) {
-      return {
-        success: false,
-        error: 'Access denied: Path is outside allowed directories',
-      };
+    // Normalize the path to fix double backslashes caused by JSON.stringify/parse
+    let adjustedPath;
+    if (typeof filePath === 'string') {
+      // Replace any escaped backslashes (\\) with single backslashes (\)
+      adjustedPath = filePath.replace(/\\\\/g, '\\');
+      console.log('Normalized file path:', adjustedPath);
     }
 
-    if (!fs.existsSync(normalizedPath)) {
+    const normalizedPath = path.normalize(adjustedPath);
+    const resolvedPath = path.resolve(normalizedPath);
+
+    if (!fs.existsSync(resolvedPath)) {
+      console.log('file doesnt exist');
       return { success: false, error: 'File does not exist' };
     }
+    console.log('path given to read:', resolvedPath);
 
-    const fileContents = await fs.promises.readFile(normalizedPath, 'utf8');
+    const fileContents = await fs.promises.readFile(resolvedPath, 'utf8');
     console.log(fileContents);
     return { success: true, data: fileContents };
   } catch (error) {

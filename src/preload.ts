@@ -8,6 +8,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { contextBridge, ipcRenderer } from 'electron';
+import { MenuItemRegistration, TaskBarItemRegistration } from './plugins/types';
 
 // downlodr exlusive functions
 contextBridge.exposeInMainWorld('downlodrFunctions', {
@@ -169,7 +170,7 @@ contextBridge.exposeInMainWorld('plugins', {
   // Safe file operations for plugins
   writeFile: (options: any) => ipcRenderer.invoke('plugins:writeFile', options),
 
-  registerMenuItem: (menuItem: any) =>
+  registerMenuItem: (menuItem: MenuItemRegistration) =>
     ipcRenderer.invoke('plugins:register-menu-item', menuItem),
   unregisterMenuItem: (id: any) =>
     ipcRenderer.invoke('plugins:unregister-menu-item', id),
@@ -201,7 +202,7 @@ contextBridge.exposeInMainWorld('plugins', {
     ipcRenderer.invoke('plugins:open-folder', pluginId),
 
   // TaskBar items
-  registerTaskBarItem: (item: any) =>
+  registerTaskBarItem: (item: TaskBarItemRegistration) =>
     ipcRenderer.invoke('plugins:register-taskbar-item', item),
 
   unregisterTaskBarItem: (id: string) =>

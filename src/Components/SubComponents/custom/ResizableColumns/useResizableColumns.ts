@@ -11,7 +11,7 @@
  *   - startResizing: A function to initiate the resizing process for a specific column.
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 // Interface representing a column in the table
 interface Column {
@@ -22,6 +22,7 @@ interface Column {
 
 export const useResizableColumns = (
   initialColumns: Column[],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   visibleColumnIds?: string[],
 ) => {
   // State to hold the current columns
@@ -101,13 +102,6 @@ export const useResizableColumns = (
   // Start dragging a column
   const startDragging = (columnId: string, index: number) => {
     setDragging({ columnId, index });
-  };
-
-  // Create a function to convert between display indices and original indices
-  const getVisibleColumns = () => {
-    if (!visibleColumnIds) return columns;
-    const visibleIdSet = new Set(visibleColumnIds);
-    return columns.filter((column) => visibleIdSet.has(column.id));
   };
 
   // Modified drag handlers

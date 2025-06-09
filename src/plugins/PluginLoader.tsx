@@ -2,10 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { createPluginAPI } from '../plugins/pluginAPI';
 
 export const PluginLoader: React.FC = () => {
-  const [pluginsLoaded, setPluginsLoaded] = useState(false);
-  const [enabledPlugins, setEnabledPlugins] = useState<Record<string, boolean>>(
-    {},
-  );
+  // const [pluginsLoaded, setPluginsLoaded] = useState(false);
+  // const [enabledPlugins, setEnabledPlugins] = useState<Record<string, boolean>>(
+  const [, setEnabledPlugins] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     // Load enabled state
@@ -66,6 +65,7 @@ export const PluginLoader: React.FC = () => {
           }
           */
           console.log(`Loading plugin: ${plugin.id}`);
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { code, manifest, error } = await window.plugins.getCode(
             plugin.id,
           );
@@ -106,9 +106,12 @@ export const PluginLoader: React.FC = () => {
       const sandbox = {
         // Provide limited globals
         console: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           log: (...args: any[]) => console.log(`[Plugin ${pluginId}]`, ...args),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           error: (...args: any[]) =>
             console.error(`[Plugin ${pluginId}]`, ...args),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           warn: (...args: any[]) =>
             console.warn(`[Plugin ${pluginId}]`, ...args),
         },
@@ -116,7 +119,7 @@ export const PluginLoader: React.FC = () => {
         clearTimeout,
         exports: {},
         module: { exports: {} },
-        require: createSafeRequire(pluginId),
+        require: createSafeRequire(),
       };
 
       // Execute the plugin code within this sandbox
@@ -138,14 +141,33 @@ export const PluginLoader: React.FC = () => {
   }
 
   // Create a limited require function for plugins
-  function createSafeRequire(pluginId: string) {
-    return function safeRequire(module: string) {
+  function createSafeRequire() {
+    return async function safeRequire(module: string) {
       // Only allow specific modules to be required
       if (module === 'path') {
         // Provide a safe subset of path
         return {
           join: (...parts: string[]) => parts.join('/'),
           basename: (path: string) => path.split('/').pop(),
+        };
+      }
+
+      if (module === 'docx') {
+        // Allow docx for document generation
+        const docx = await import('docx');
+        return {
+          Document: docx.Document,
+          Paragraph: docx.Paragraph,
+          TextRun: docx.TextRun,
+          Packer: docx.Packer,
+        };
+      }
+
+      if (module === 'talisik-shortener') {
+        // Allow talisik-shortener for URL shortening
+        const talisikShortener = await import('talisik-shortener');
+        return {
+          TalisikClient: talisikShortener.TalisikClient,
         };
       }
 

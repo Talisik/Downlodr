@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { usePluginState } from '../../../plugins/Hooks/usePluginState';
-import { useMainStore } from '../../../Store/mainStore';
-import { useToast } from '../shadcn/hooks/use-toast';
+import React, { useEffect, useState } from 'react';
 import {
   Tooltip,
-  TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '../shadcn/components/ui/tooltip';
-import { TaskBarItem } from '../../../plugins/types';
-import { SiConvertio } from 'react-icons/si';
+} from '../../Components/SubComponents/shadcn/components/ui/tooltip';
+import { useToast } from '../../Components/SubComponents/shadcn/hooks/use-toast';
+import { useMainStore } from '../../Store/mainStore';
+import { usePluginState } from '../Hooks/usePluginState';
+import { TaskBarItem } from '../types';
 
 // Using the global TaskBarItem interface instead of redefining it
 const TaskBarPluginItems: React.FC = () => {
@@ -19,6 +17,10 @@ const TaskBarPluginItems: React.FC = () => {
   const { toast } = useToast();
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
 
+  // Helper function to check if a string is an SVG
+  const isSvgString = (str: string): boolean => {
+    return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
+  };
   const fetchTaskBarItems = async () => {
     try {
       // Get taskbar items from plugin registry
@@ -103,18 +105,31 @@ const TaskBarPluginItems: React.FC = () => {
   };
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2 max-w-xs max-h-16 overflow-hidden">
       <TooltipProvider>
         {taskBarItems.map((item) => (
           <Tooltip key={item.id}>
             <TooltipTrigger asChild>
               <button
-                className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-2 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+                className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-2 py-1 rounded flex gap-1 font-semibold dark:text-gray-200 flex-shrink-0"
                 onClick={() => handleItemClick(item)}
                 aria-label={item.label}
               >
-                <SiConvertio size={14} className="mt-1" />
-                <span className="text-sm">{item.label}</span>{' '}
+                {item.icon && (
+                  <span className="inline-flex items-center justify-center w-3 h-3 mt-1 flex-shrink-0">
+                    {typeof item.icon === 'string' && isSvgString(item.icon) ? (
+                      <span
+                        dangerouslySetInnerHTML={{ __html: item.icon }}
+                        className="text-black dark:text-white [&>svg]:w-3 [&>svg]:h-3 [&>svg]:fill-current"
+                      />
+                    ) : (
+                      <span className="text-black dark:text-white">
+                        {item.icon}
+                      </span>
+                    )}
+                  </span>
+                )}
+                <span className="hidden lg:inline text-sm">{item.label}</span>{' '}
               </button>
             </TooltipTrigger>
           </Tooltip>

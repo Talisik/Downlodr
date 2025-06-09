@@ -19,17 +19,6 @@ interface AboutModalProps {
   onClose: () => void;
 }
 
-// Define the update info type
-interface UpdateInfo {
-  hasUpdate: boolean;
-  latestVersion: string;
-  currentVersion: string;
-  releaseUrl: string;
-  releaseNotes: string;
-  downloadUrl: string;
-  publishedAt: Date;
-}
-
 const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
   const [appVersion, setAppVersion] = useState('1.0.0');
   const navRef = useRef<HTMLDivElement>(null);
