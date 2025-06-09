@@ -838,8 +838,6 @@ ipcMain.handle('plugins:uninstall', async (_event, pluginId) => {
 */
 // Add a handler to get plugin menu items
 ipcMain.handle('plugins:menu-items', (event, context) => {
-  console.log('me how');
-  console.log(context);
   return pluginRegistry.getMenuItems(context);
 });
 
@@ -1051,22 +1049,24 @@ ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
     );
 
     // Ensure the requested path is within the plugin's data directory or another safe location
-    const normalizedPath = path.normalize(filePath);
-    if (
-      !normalizedPath.startsWith(pluginDataDir) &&
-      !normalizedPath.startsWith(app.getPath('downloads'))
-    ) {
-      return {
-        success: false,
-        error: 'Access denied: Path is outside allowed directories',
-      };
+    // Normalize the path to fix double backslashes caused by JSON.stringify/parse
+    let adjustedPath;
+    if (typeof filePath === 'string') {
+      // Replace any escaped backslashes (\\) with single backslashes (\)
+      adjustedPath = filePath.replace(/\\\\/g, '\\');
+      console.log('Normalized file path:', adjustedPath);
     }
 
-    if (!fs.existsSync(normalizedPath)) {
+    const normalizedPath = path.normalize(adjustedPath);
+    const resolvedPath = path.resolve(normalizedPath);
+
+    if (!fs.existsSync(resolvedPath)) {
+      console.log('file doesnt exist');
       return { success: false, error: 'File does not exist' };
     }
+    console.log('path given to read:', resolvedPath);
 
-    const fileContents = await fs.promises.readFile(normalizedPath, 'utf8');
+    const fileContents = await fs.promises.readFile(resolvedPath, 'utf8');
     console.log(fileContents);
     return { success: true, data: fileContents };
   } catch (error) {

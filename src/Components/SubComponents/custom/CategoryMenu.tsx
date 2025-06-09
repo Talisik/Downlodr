@@ -68,7 +68,7 @@ const CategoryMenu: React.FC<CategoryMenuProps> = ({
   };
 
   const handleNewCategory = (category: string) => {
-    if (category.trim()) {
+    if (category.trim() && category.trim().length <= 10) {
       if (currentCategories.length > 0) {
         onRemoveCategory(downloadId, currentCategories[0]);
       }
@@ -80,23 +80,29 @@ const CategoryMenu: React.FC<CategoryMenuProps> = ({
   return (
     <div
       ref={menuRef}
-      className={`absolute bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 min-w-[180px] z-50 ${menuPositionClass} dark:border-gray-700`}
+      className={`absolute bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 min-w-[185px] z-50 ${menuPositionClass} dark:border-gray-700`}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="m-2 px-4 py-2 flex flex-row border rounded dark:border-gray-700">
         <GoPlus size={22} className="ml-[-10px] mr-2 dark:text-gray-200" />
-        <input
-          type="text"
-          placeholder="Add new category..."
-          value={newCategory}
-          onChange={(e) => setNewCategory(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleNewCategory(newCategory);
-            }
-          }}
-          className="w-full outline-none dark:bg-darkMode dark:text-gray-200"
-        />
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="Add new category..."
+            value={newCategory}
+            maxLength={10}
+            onChange={(e) => setNewCategory(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleNewCategory(newCategory);
+              }
+            }}
+            className="w-full outline-none dark:bg-darkMode dark:text-gray-200"
+          />
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            {newCategory.length}/10 characters
+          </div>
+        </div>
       </div>
       <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider dark:border-gray-700" />
 
