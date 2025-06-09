@@ -16,7 +16,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { MdOutlineInfo } from 'react-icons/md';
 import useDownloadStore from '../../../Store/downloadStore';
@@ -41,6 +41,9 @@ interface Video {
 const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [isValidUrl, setIsValidUrl] = useState<boolean>(false);
+
+  // Ref for autofocusing the input
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Store
   const [getTranscript, setGetTranscript] = useState<boolean>(false);
@@ -332,6 +335,16 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     };
   }, [validationTimer]);
 
+  // Autofocus input when modal opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      // Small delay to ensure modal is fully rendered
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
   // Move the conditional return after all hooks
   if (!isOpen) return null;
 
@@ -385,6 +398,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                   </label>
                   <div className="flex gap-2">
                     <input
+                      ref={inputRef}
                       type="text"
                       placeholder="Paste link here"
                       disabled={isLoading}
