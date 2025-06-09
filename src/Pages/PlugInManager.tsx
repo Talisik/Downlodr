@@ -17,6 +17,44 @@ interface PluginInfo {
   icon: string;
 }
 
+interface ConfirmModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  message: string;
+}
+
+const ConfirmModal: React.FC<ConfirmModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  message,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-4">
+        <p className="text-gray-800 dark:text-gray-200 mb-4">{message}</p>
+        <div className="flex justify-end space-x-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PluginManager: React.FC = () => {
   //Plugins
   const [plugins, setPlugins] = useState<PluginInfo[]>([]);
@@ -27,7 +65,10 @@ const PluginManager: React.FC = () => {
   // New state to track if directory selection is in progress
   const [isSelectingDirectory, setIsSelectingDirectory] =
     useState<boolean>(false);
-  //Store
+
+  // Confirmation modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pluginToRemove, setPluginToRemove] = useState<string | null>(null);
 
   // Search
   const [searchTerm, setSearchTerm] = useState('');
@@ -217,17 +258,54 @@ const PluginManager: React.FC = () => {
   };
 
   const handleUninstall = async (pluginId: string) => {
+    setPluginToRemove(pluginId);
+    setShowConfirmModal(true);
+  };
+
+  const confirmUninstall = async () => {
+    if (!pluginToRemove) return;
+
+    const plugin = plugins.find((p) => p.id === pluginToRemove);
+    const pluginName = plugin ? plugin.name : 'this plugin';
+
     try {
-      const success = await window.plugins.uninstall(pluginId);
+      const success = await window.plugins.uninstall(pluginToRemove);
       if (success) {
         // First reload the plugins in the main process
         await window.plugins.reload();
         // Then update the UI list
         await loadPlugins();
+        toast({
+          title: 'Plugin Removed',
+          description: `${pluginName} has been successfully removed`,
+          variant: 'success',
+          duration: 3000,
+        });
+      } else {
+        toast({
+          title: 'Failed to Remove Plugin',
+          description: `Could not remove ${pluginName}. Please try again.`,
+          variant: 'destructive',
+          duration: 3000,
+        });
       }
     } catch (error) {
       console.error('Failed to uninstall plugin:', error);
+      toast({
+        title: 'Error',
+        description: `An error occurred while removing ${pluginName}`,
+        variant: 'destructive',
+        duration: 3000,
+      });
+    } finally {
+      setShowConfirmModal(false);
+      setPluginToRemove(null);
     }
+  };
+
+  const cancelUninstall = () => {
+    setShowConfirmModal(false);
+    setPluginToRemove(null);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -279,6 +357,18 @@ const PluginManager: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full bg-[#FBFBFB] dark:bg-darkModeDropdown">
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={cancelUninstall}
+        onConfirm={confirmUninstall}
+        message={`Are you sure you want to remove "${
+          pluginToRemove
+            ? plugins.find((p) => p.id === pluginToRemove)?.name ||
+              'this plugin'
+            : 'this plugin'
+        }"? This action cannot be undone.`}
+      />
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           {/* Directory selection overlay - blocks all app interaction */}
