@@ -229,7 +229,7 @@ const PluginDetails = () => {
             onClick={(e) => {
               e.stopPropagation();
               window.downlodrFunctions.openExternalLink(
-                'https://downlodr.com/',
+                'https://downlodr.com/plugin/',
               );
             }}
           />
