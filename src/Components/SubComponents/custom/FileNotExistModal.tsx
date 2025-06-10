@@ -83,7 +83,7 @@ const FileNotExistModal: React.FC<FileNotExistModalProps> = ({
           item.download.speed,
           item.download.timeLeft,
           new Date().toISOString(),
-          item.download.progress,
+          0,
           item.download.location,
           'downloading',
           item.download.ext,

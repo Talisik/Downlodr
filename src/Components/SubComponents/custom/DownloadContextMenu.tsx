@@ -41,6 +41,8 @@ import { LuFolderOpen, LuTrash } from 'react-icons/lu';
 import { MdEdit } from 'react-icons/md';
 import { VscDebugStart } from 'react-icons/vsc';
 import { processFileName } from '../../../DataFunctions/FilterName';
+import { usePluginState } from '../../../plugins/Hooks/usePluginState';
+import { MenuItem } from '../../../plugins/types';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { toast } from '../shadcn/hooks/use-toast';
@@ -257,8 +259,43 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false); // State to track visibility of the remove confirmation modal
   // const [showFormatConverterMenu, setShowFormatConverterMenu] = useState(false); // State to track visibility of format converter menu
   const { settings } = useMainStore();
-  const { downloading, addDownload, removeFromForDownloads, forDownloads } =
-    useDownloadStore();
+  const {
+    downloading,
+    addDownload,
+    removeFromForDownloads,
+    forDownloads,
+    finishedDownloads,
+  } = useDownloadStore();
+  const allDownloads = [...forDownloads, ...downloading, ...finishedDownloads]; //Plugins
+  const [pluginMenuItems, setPluginMenuItems] = useState<MenuItem[]>([]);
+  const enabledPlugins = usePluginState();
+
+  const fetchPluginMenuItems = async () => {
+    try {
+      // Option 1: Using the window.plugins API with filtering
+      const items = await window.plugins.getMenuItems('download');
+      const filteredItems = (items || []).filter(
+        (item) => !item.pluginId || enabledPlugins[item.pluginId] !== false,
+      ) as MenuItem[];
+
+      // OR Option 2: Using the registry directly (if it exposes a method)
+      // const filteredItems = pluginRegistry.getMenuItems('download');
+
+      setPluginMenuItems(filteredItems);
+    } catch (error) {
+      console.error('Failed to fetch plugin menu items:', error);
+      setPluginMenuItems([]);
+    }
+  };
+
+  // Helper function to check if a string is an SVG
+  const isSvgString = (str: string): boolean => {
+    return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
+  };
+
+  useEffect(() => {
+    fetchPluginMenuItems();
+  }, [enabledPlugins]);
 
   // Effect to position the context menu based on the provided coordinates
   React.useEffect(() => {
@@ -315,6 +352,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
   // Function to handle opening tag menu
   const handleTagMenuClick = (e: React.MouseEvent) => {
+    console.log(pluginMenuItems);
     e.stopPropagation();
     setShowCategoryMenu(false); // Close category menu
     setShowTagMenu(!showTagMenu);
@@ -817,6 +855,79 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   }
 */
 
+  const renderPluginMenuItems = () => {
+    if (!pluginMenuItems || pluginMenuItems.length === 0) return null;
+    return (
+      <>
+        {/* Divider if there are other menu items */}
+        <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+
+        {/* Plugin menu items */}
+        {pluginMenuItems.map((item) => (
+          <button
+            key={item.id || item.label}
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              const contextData = {
+                name: downloadName,
+                downloadId,
+                videoUrl: allDownloads.find((d) => d.id === downloadId)
+                  ?.videoUrl,
+                location: downloadLocation,
+                status: downloadStatus,
+                duration: allDownloads.find((d) => d.id === downloadId)
+                  ?.duration,
+                size: allDownloads.find((d) => d.id === downloadId)?.size,
+                ext: allDownloads.find((d) => d.id === downloadId)?.ext,
+                captionLocation: allDownloads.find((d) => d.id === downloadId)
+                  ?.autoCaptionLocation,
+                thumbnailLocation: allDownloads.find((d) => d.id === downloadId)
+                  ?.thumnailsLocation,
+                extractorKey: allDownloads.find((d) => d.id === downloadId)
+                  ?.extractorKey,
+              };
+
+              // Log which menu item was clicked
+
+              console.log('Context data:', contextData);
+
+              // Find and execute the handler directly if it's a rendered plugin with handlerId
+              if (
+                item.handlerId &&
+                window.PluginHandlers &&
+                window.PluginHandlers[item.handlerId]
+              ) {
+                // Call the handler directly
+                window.PluginHandlers[item.handlerId](contextData);
+              } else {
+                // Fall back to the IPC method for non-renderer plugins
+                window.plugins.executeMenuItem(item.id || '', contextData);
+              }
+
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              {item.icon && (
+                <span className="inline-flex items-center justify-center w-5 h-5 mr-2">
+                  {typeof item.icon === 'string' && isSvgString(item.icon) ? (
+                    <span
+                      dangerouslySetInnerHTML={{ __html: item.icon }}
+                      className="text-black dark:text-white"
+                    />
+                  ) : (
+                    <span>{item.icon}</span>
+                  )}
+                </span>
+              )}
+              <span>{item.label}</span>
+            </span>
+          </button>
+        ))}
+      </>
+    );
+  };
+
   return (
     <>
       <div
@@ -828,6 +939,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         }}
       >
         {renderMenuOptions()}
+        {renderPluginMenuItems()}
       </div>
 
       <ConfirmModal

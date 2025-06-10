@@ -18,12 +18,19 @@ import UpdateNotification from './Components/SubComponents/custom/UpdateNotifica
 import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
 import { ThemeProvider } from './Components/ThemeProvider';
 import MainLayout from './Layout/MainLayout';
+import PluginLayout from './Layout/PluginLayout';
 import History from './Pages/History';
+import PluginManager from './Pages/PlugInManager';
 import StatusSpecificDownloads from './Pages/StatusSpecificDownload';
 import CategoryPage from './Pages/SubPages/CategoryPage';
 import NotFound from './Pages/SubPages/NotFound';
+import PluginDetails from './Pages/SubPages/PluginDetails';
 import TagPage from './Pages/SubPages/TagsPage';
 import { useMainStore } from './Store/mainStore';
+import { PluginLoader } from './plugins/PluginLoader';
+import FormatSelectorManager from './plugins/components/FormatSelectorManager';
+import PluginModalManager from './plugins/components/PluginModalManager';
+import PluginSidePanelManager from './plugins/components/PluginSidePanelManager';
 
 const App = () => {
   const { settings } = useMainStore();
@@ -55,10 +62,19 @@ const App = () => {
             />
             <Route path="*" element={<NotFound />} />
           </Route>
+
+          <Route path="/plugins" element={<PluginLayout />}>
+            <Route index element={<PluginManager />} />
+            <Route path="details" element={<PluginDetails />} />
+          </Route>
         </Routes>
       </Router>
       <Toaster />
       <UpdateNotification />
+      <PluginLoader />
+      <FormatSelectorManager />
+      <PluginSidePanelManager />
+      <PluginModalManager />
     </ThemeProvider>
   );
 };

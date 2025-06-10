@@ -244,9 +244,9 @@ const History = () => {
       return createPortal(
         <button
           onClick={handleDeleteSelected}
-          className="ml-2 primary-custom-btn px-[6px] py-[4px] sm:px-[8px] sm:py-[4px] flex items-center gap-1 sm:gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
+          className="bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark px-3 py-1 mr-2 rounded-md flex gap-2 text-sm"
         >
-          <LuTrash size={15} className="mt-[0.9px]" />{' '}
+          <LuTrash size={15} className="mt-[1.5px]" />{' '}
           <span className="hidden md:inline">Remove from History</span>
         </button>,
         portalContainer,
@@ -298,7 +298,8 @@ const History = () => {
                     : 'dark:bg-darkMode'
                 }`}
               onContextMenu={(e) => handleRowClick(e, product)}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 handleCheckboxChange(product.id);
               }}
             >
@@ -306,11 +307,14 @@ const History = () => {
                 <input
                   type="checkbox"
                   checked={selectedItems.includes(product.id)}
-                  onChange={() => handleCheckboxChange(product.id)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    handleCheckboxChange(product.id);
+                  }}
                   className="rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
                 />
               </td>
-              <td className="p-2 dark:text-gray-200 w-4/6">
+              <td className="p-2 dark:text-gray-200 w-3/6">
                 <span
                   className={`${
                     fileExistsMap[product.id]
@@ -324,7 +328,7 @@ const History = () => {
               <td className="p-4 text-gray-500 dark:text-gray-400">
                 {new Date(product.DateAdded).toLocaleDateString()}
               </td>
-              <td className="p-1">
+              <td className="p-4">
                 <a
                   onClick={() =>
                     window.downlodrFunctions.openExternalLink(product.videoUrl)

@@ -33,8 +33,8 @@ interface DownloadButtonProps {
     formatId: string; // Format ID of the download
     audioFormatId: string; // Audio format ID
     extractorKey: string; // Key for the extractor
-    automaticCaption: any; // Add this property
-    thumbnails: any;
+    automaticCaption: string;
+    thumbnails: string;
     getTranscript: boolean;
     getThumbnail: boolean;
     duration: number;

@@ -1,9 +1,10 @@
 import { Component, ErrorInfo, ReactNode, useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import DropdownBar from '../Components/Main/Shared/DropdownBar';
-import Navigation from '../Components/Main/Shared/Navigation';
-import TaskBar from '../Components/Main/Shared/TaskBar';
 import TitleBar from '../Components/Main/Shared/TitleBar';
+import DropdownBar from '../Components/Main/Shared/DropdownBar';
+import TaskBar from '../Components/Main/Shared/TaskBar';
+import Navigation from '../Components/Main/Shared/Navigation';
+import { Outlet } from 'react-router-dom';
+import { HiChevronLeft } from 'react-icons/hi';
 
 // Error Boundary component
 class ErrorBoundary extends Component<
@@ -61,7 +62,7 @@ const MainLayout = () => {
         <div className="flex flex-1 overflow-hidden h-[calc(100vh-120px)]">
           <Navigation
             className={`${
-              navCollapsed ? 'w-[60px]' : 'w-[210px]'
+              navCollapsed ? 'w-[60px]' : 'w-[206px]'
             } overflow-y-auto h-full transition-all duration-300 border-solid border-r-2 border-gray-200 dark:border-darkModeCompliment `}
             collapsed={navCollapsed}
             toggleCollapse={toggleNavCollapse}

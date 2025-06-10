@@ -28,6 +28,7 @@ import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skele
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 import useDownloadStore from '../Store/downloadStore';
 import { useMainStore } from '../Store/mainStore';
+import { usePluginStore } from '../Store/pluginStore';
 
 // Reuse helper functions from AllDownloads
 const formatRelativeTime = (dateString: string) => {
@@ -144,6 +145,7 @@ const StatusSpecificDownloads = () => {
 
   // Get visible columns from the store
   const visibleColumns = useMainStore((state) => state.visibleColumns);
+  const { updateIsOpenPluginSidebar } = usePluginStore();
 
   // Downloads
   const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
@@ -445,6 +447,7 @@ const StatusSpecificDownloads = () => {
     event.preventDefault();
     event.stopPropagation(); // Prevent the click outside handler from firing immediately
     // Close any active column header context menu first
+    updateIsOpenPluginSidebar(false);
     setColumnHeaderContextMenu({
       ...columnHeaderContextMenu,
       visible: false,
@@ -506,7 +509,6 @@ const StatusSpecificDownloads = () => {
       });
     } else if (currentDownload && currentDownload.controllerId != '---') {
       try {
-        updateDownloadStatus(downloadId, 'paused');
         window.ytdlp
           .killController(currentDownload.controllerId)
           .then((response: { success: boolean; error?: string }) => {
@@ -1046,6 +1048,7 @@ const StatusSpecificDownloads = () => {
                     }`}
                     onContextMenu={(e) => handleContextMenu(e, download)}
                     onClick={() => {
+                      updateIsOpenPluginSidebar(false);
                       handleRowClick(download.id);
                       handleCheckboxChange(download.id);
                     }}

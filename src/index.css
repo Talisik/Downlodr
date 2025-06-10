@@ -1,7 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-  /* body */
+
+:root {
+  --card-bg: #f4f4f5;
+  --card-text: #01010b;
+}
+
+html.dark {
+  --card-bg: #09090b;
+  --card-text: #a1a1aa;
+}
+
+/* body */
 
 body {
   font-family: Roboto;
@@ -14,22 +25,22 @@ body {
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 7px;  /* Width of the scrollbar */
+  width: 7px; /* Width of the scrollbar */
   height: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;  /* Track background */
+  background: transparent; /* Track background */
   margin-bottom: 5px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;  /* Scrollbar color */
-  border-radius: 4px;  /* Rounded corners */
+  background: #888; /* Scrollbar color */
+  border-radius: 4px; /* Rounded corners */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #666;  /* Darker on hover */
+  background: #666; /* Darker on hover */
 }
 
 /* Hide scrollbar buttons */
@@ -61,51 +72,44 @@ body {
   text-align: left;
   text-underline-position: from-font;
   text-decoration-skip-ink: none;
-  @apply rounded w-[98%];
+  @apply rounded w-[100%];
 }
 
 .nav-link.active {
   @apply bg-gray-100;
-  @apply dark:bg-gray-700;
-  @apply rounded w-[98%];
-
-}
-
-.scheduler.active {
-  @apply text-primary;
+  @apply dark:bg-darkModeCompliment;
+  @apply rounded w-[100%];
 }
 
 .nav-link:not(.active):hover {
   @apply bg-gray-100;
-  @apply dark:bg-gray-700;
-  @apply rounded w-[98%];
+  @apply dark:bg-darkModeCompliment;
+  @apply rounded w-[100%];
 }
 
 /*Navigation end*/
 
-
 /* buttons */
 
-.primary-custom-btn{
-  @apply bg-primary text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex gap-2 text-sm
+.primary-custom-btn {
+  @apply bg-primary text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex gap-2 text-sm;
 }
 
-.primary-custom-btn:hover{
+.primary-custom-btn:hover {
   @apply bg-black  dark:bg-gray-100;
-
 }
 
 /* checkboxes */
 
-input[type="checkbox"] {
-  accent-color: #F45513;
+input[type='checkbox'] {
+  accent-color: #f45513;
   width: 14px;
   height: 14px;
   border-radius: 4px;
   padding: 1px;
 }
 
-input[type="checkbox"]:checked {
-  background-color: #F45513;
-  border-color: #F45513;
+input[type='checkbox']:checked {
+  background-color: #f45513;
+  border-color: #f45513;
 }

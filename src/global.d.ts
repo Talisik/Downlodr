@@ -5,7 +5,9 @@
  * This file extends the Window interface to include custom functions and properties
  * that are accessible in the renderer process.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { FormatSelectorResult, GetInfoResponse, MenuItem, PluginInfo, PluginManifest, PluginModalOptions, PluginSidePanelOptions, PluginSidePanelResult, TaskBarItem } from './plugins/types';
+import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult } from './schema/downlodrFunction';
+
 declare global {
   interface Window {
     downlodrFunctions: {
@@ -32,6 +34,7 @@ declare global {
       fileExists: (path: string) => Promise<boolean>; // Checks if a file exists at the specified path
       getFileSize: (path: string) => Promise<number | null>; // Gets the size of a file in bytes
       showInputContextMenu: () => void; // Shows the input field context menu (right-click menu)
+      invokeMainProcess: (channel: string, ...args: any[]) => Promise<any>;
       downloadFile: (
         url: string,
         outputPath: string,
@@ -45,7 +48,7 @@ declare global {
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist
-      getInfo: (url: string) => Promise<any>; // Retrieves information about a video
+      getInfo: (url: string) => Promise<GetInfoResponse>; // Retrieves information about a video
       selectDownloadDirectory: () => Promise<string>; // Prompts the user to select a download directory
       download: (
         options: { url: string; outputFilepath: string; videoFormat: string },
@@ -70,7 +73,8 @@ declare global {
     updateAPI: {
       onUpdateAvailable: (
         callback: (updateInfo: UpdateInfo) => void,
-      ) => () => void;      checkForUpdates: () => Promise<UpdateInfo>; // Changed return type from void to UpdateInfo
+      ) => () => void;
+      checkForUpdates: () => Promise<UpdateInfo>;
       getCurrentVersion: () => Promise<string>; // Gets current app version without GitHub API call
     };
     backgroundSettings: {
@@ -84,8 +88,60 @@ declare global {
         location: string;
       }) => void;
     };
+    plugins: {
+      list: () => Promise<PluginInfo[]>;
+      getCode: (
+        pluginId: string,
+      ) => Promise<{ code: string; manifest: PluginManifest; error?: string }>;
+      install: (pluginPath: string) => Promise<boolean | string>;
+      uninstall: (pluginId: string) => Promise<boolean>;
+      getMenuItems: (context: string) => Promise<MenuItem[]>;
+      executeMenuItem: (id: string, contextData?: any) => Promise<void>;
+      loadUnzipped: (pluginDirPath: string) => Promise<boolean>;
+      writeFile: (options: WriteFileOptions) => Promise<WriteFileResult>;
+      readFile: (
+        filePath: string,
+      ) => Promise<{ success: boolean; data?: string; error?: string }>;
+      readFileContents: (options: {
+        filePath: string;
+        pluginId?: string;
+      }) => Promise<{ success: boolean; data?: string; error?: string }>;
+
+      registerMenuItem: (menuItem: MenuItem) => Promise<string>;
+      unregisterMenuItem: (id: string) => Promise<boolean>;
+      reload: () => Promise<boolean>;
+      onReloaded: (callback: () => void) => () => void;
+      getEnabledPlugins: () => Promise<Record<string, boolean>>;
+      setPluginEnabled: (
+        pluginId: string,
+        enabled: boolean,
+      ) => Promise<boolean>;
+      onPluginStateChanged: (
+        callback: (data: { pluginId: string; enabled: boolean }) => void,
+      ) => () => void;
+      getPluginLocation: (pluginId: string) => Promise<string | null>;
+      openPluginFolder: (pluginId: string) => Promise<boolean>;
+
+      // TaskBar items
+      registerTaskBarItem: (item: TaskBarItem) => Promise<string>;
+      unregisterTaskBarItem: (id: string) => Promise<boolean>;
+      getTaskBarItems: () => Promise<TaskBarItem[]>;
+      executeTaskBarItem: (id: string, contextData?: any) => Promise<boolean>;
+      saveFileDialog: (options: SaveDialogOptions) => Promise<SaveDialogResult>;
+    };
+    PluginHandlers?: Record<string, (contextData?: any) => void>;
+    formatSelectorManager?: {
+      showFormatSelector: (options: FormatSelectorOptions) => Promise<FormatSelectorResult>;
+    };
+    pluginSidePanelManager?: {
+      showPluginSidePanel: (options: PluginSidePanelOptions) => Promise<PluginSidePanelResult>;
+    };
+    pluginModalManager?: {
+      showPluginModal: (options: PluginModalOptions) => Promise<PluginModalResult>;
+    };
   }
 }
+
 
 export { };
 

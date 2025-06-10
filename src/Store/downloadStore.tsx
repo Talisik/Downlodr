@@ -463,7 +463,7 @@ const useDownloadStore = create<DownloadStore>()(
 
             try {
               // Extract the URL from the thumbnails object
-              const thumbnailUrl = thumbnails;
+              const thumbnailUrl = thumbnails.url;
               if (thumbnailUrl) {
                 await window.downlodrFunctions.downloadFile(
                   thumbnailUrl,
@@ -621,10 +621,13 @@ const useDownloadStore = create<DownloadStore>()(
 
           // Only set thumbnail if thumbnail is requested
           let thumbnail = '—';
-          if (options.getThumbnail && info.data?.thumbnail) {
-            thumbnail = info.data.thumbnail;
+          if (
+            options.getThumbnail &&
+            info.data?.thumbnails &&
+            info.data.thumbnails.length > 0
+          ) {
+            thumbnail = info.data.thumbnails[0];
           }
-          console.log(thumbnail);
           console.log(info);
           // Process formats using the service
           const { formatOptions, defaultFormatId, defaultExt } =
@@ -855,25 +858,11 @@ const useDownloadStore = create<DownloadStore>()(
               ),
             }));
 
-          // Check if the new name already exists in availableCategories
-          const newNameExists = state.availableCategories.includes(newName);
-
-          let updatedAvailableCategories;
-          if (newNameExists) {
-            // If new name already exists, just remove the old name
-            updatedAvailableCategories = state.availableCategories.filter(
-              (cat) => cat !== oldName,
-            );
-          } else {
-            // If new name doesn't exist, replace old name with new name
-            updatedAvailableCategories = state.availableCategories.map((cat) =>
-              cat === oldName ? newName : cat,
-            );
-          }
-
           return {
             ...state,
-            availableCategories: updatedAvailableCategories,
+            availableCategories: state.availableCategories.map((cat) =>
+              cat === oldName ? newName : cat,
+            ),
             downloading: updateDownloads(state.downloading),
             finishedDownloads: updateDownloads(state.finishedDownloads),
             historyDownloads: updateDownloads(state.historyDownloads),
@@ -915,25 +904,11 @@ const useDownloadStore = create<DownloadStore>()(
               ),
             }));
 
-          // Check if the new name already exists in availableTags
-          const newNameExists = state.availableTags.includes(newName);
-
-          let updatedAvailableTags;
-          if (newNameExists) {
-            // If new name already exists, just remove the old name
-            updatedAvailableTags = state.availableTags.filter(
-              (tag) => tag !== oldName,
-            );
-          } else {
-            // If new name doesn't exist, replace old name with new name
-            updatedAvailableTags = state.availableTags.map((tag) =>
-              tag === oldName ? newName : tag,
-            );
-          }
-
           return {
             ...state,
-            availableTags: updatedAvailableTags,
+            availableTags: state.availableTags.map((tag) =>
+              tag === oldName ? newName : tag,
+            ),
             downloading: updateDownloads(state.downloading),
             finishedDownloads: updateDownloads(state.finishedDownloads),
             historyDownloads: updateDownloads(state.historyDownloads),
