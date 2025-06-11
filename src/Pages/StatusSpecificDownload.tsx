@@ -709,6 +709,7 @@ const StatusSpecificDownloads = () => {
     downloadLocation?: string,
     downloadId?: string,
     controllerId?: string,
+    deleteFolder?: boolean,
   ) => {
     if (!downloadLocation || !downloadId) return;
 
@@ -726,43 +727,70 @@ const StatusSpecificDownloads = () => {
     }
 
     try {
-      const success = await window.downlodrFunctions.deleteFile(
-        downloadLocation,
-      );
-      if (success) {
-        deleteDownload(downloadId);
-        toast({
-          variant: 'success',
-          title: 'File Deleted',
-          description: 'File has been deleted successfully',
-          duration: 3000,
-        });
+      let success = false;
+
+      if (deleteFolder) {
+        // Get the parent folder path
+        const folderPath = downloadLocation.replace(/(\/|\\)[^/\\]+$/, '');
+        success = await window.downlodrFunctions.deleteFolder(folderPath);
+
+        if (success) {
+          deleteDownload(downloadId);
+          toast({
+            variant: 'success',
+            title: 'Folder Deleted',
+            description:
+              'Folder and its contents have been deleted successfully',
+            duration: 3000,
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description:
+              'Failed to delete folder. It may not exist or be in use.',
+            duration: 3000,
+          });
+        }
       } else {
-        // This is the key difference - we're passing downloadLocation instead of download.location
-        if (download) {
-          const downloadItem: DownloadItem = {
-            id: download.id,
-            videoUrl: download.videoUrl,
-            location: downloadLocation, // Use downloadLocation instead of download.location
-            name: download.name,
-            ext: download.ext,
-            downloadName: download.downloadName,
-            extractorKey: download.extractorKey,
-            status: download.status,
-            download: {
-              ...download,
-            },
-          };
-          handleFileNotExistModal(downloadItem);
+        // Original file deletion logic
+        success = await window.downlodrFunctions.deleteFile(downloadLocation);
+
+        if (success) {
+          deleteDownload(downloadId);
+          toast({
+            variant: 'success',
+            title: 'File Deleted',
+            description: 'File has been deleted successfully',
+            duration: 3000,
+          });
+        } else {
+          // Handle file not found case
+          if (download) {
+            const downloadItem: DownloadItem = {
+              id: download.id,
+              videoUrl: download.videoUrl,
+              location: downloadLocation,
+              name: download.name,
+              ext: download.ext,
+              downloadName: download.downloadName,
+              extractorKey: download.extractorKey,
+              status: download.status,
+              download: {
+                ...download,
+              },
+            };
+            handleFileNotExistModal(downloadItem);
+          }
         }
       }
     } catch (error) {
-      // Same fix in the catch block
+      // Handle error case
       if (download) {
         const downloadItem: DownloadItem = {
           id: download.id,
           videoUrl: download.videoUrl,
-          location: downloadLocation, // Use downloadLocation instead of download.location
+          location: downloadLocation,
           name: download.name,
           ext: download.ext,
           downloadName: download.downloadName,
@@ -774,7 +802,7 @@ const StatusSpecificDownloads = () => {
         };
         handleFileNotExistModal(downloadItem);
       }
-      console.error('Error deleting file:', error);
+      console.error('Error deleting:', error);
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };

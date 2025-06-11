@@ -387,6 +387,34 @@ ipcMain.handle('deleteFile', async (event, filepath) => {
   }
 });
 
+ipcMain.handle('deleteFolder', async (event, filepath) => {
+  try {
+    // Normalize the folder path
+    const normalizedPath = path.normalize(filepath);
+
+    // Check if the folder exists
+    if (!fs.existsSync(normalizedPath)) {
+      console.error('Folder does not exist:', normalizedPath);
+      return false;
+    }
+
+    // Check if it's actually a directory
+    const stats = await fs.promises.stat(normalizedPath);
+    if (!stats.isDirectory()) {
+      console.error('Path is not a directory:', normalizedPath);
+      return false;
+    }
+
+    // Move the folder to trash
+    await shell.trashItem(normalizedPath);
+    console.log('Folder moved to trash successfully');
+    return true;
+  } catch (error) {
+    console.error('Failed to move folder to trash:', error);
+    return false;
+  }
+});
+
 // adjust pathname to ensure its safe
 ipcMain.handle('normalizePath', async (event, filepath) => {
   try {

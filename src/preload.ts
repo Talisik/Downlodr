@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
   maximizeApp: () => ipcRenderer.send('maximize-btn'),
   openVideo: (filePath: string) => ipcRenderer.invoke('openVideo', filePath),
   deleteFile: (filepath: string) => ipcRenderer.invoke('deleteFile', filepath),
+  deleteFolder: (folderpath: string) =>
+    ipcRenderer.invoke('deleteFolder', folderpath),
   normalizePath: (filepath: string) =>
     ipcRenderer.invoke('normalizePath', filepath),
   getDownloadFolder: () => ipcRenderer.invoke('getDownloadFolder'),

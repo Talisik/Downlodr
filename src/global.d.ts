@@ -20,6 +20,7 @@ declare global {
       //Downlodr functions
       openVideo: (videoPath: string) => Promise<void>; // Opens a video file
       deleteFile: (videoPath: string) => Promise<boolean>; // Deletes a specified file from storage/drive
+      deleteFolder: (folderPath: string) => Promise<boolean>; // Deletes a specified folder from storage/drive
       getDownloadFolder: () => Promise<string>; // Retrieves the default download folder path
       isValidPath: (videoPath: string) => Promise<boolean>; // Validates a given file path if it exists
       joinDownloadPath: (
