@@ -498,6 +498,7 @@ ipcMain.handle('kill-controller', async (_, id) => {
 // download video from link
 ipcMain.handle('ytdlp:download', async (e, id, args) => {
   try {
+    console.log(args);
     const controller = await YTDLP.download({
       // args needed for download
       args: {

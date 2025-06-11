@@ -388,6 +388,15 @@ const useDownloadStore = create<DownloadStore>()(
             downloadName,
           );
         }
+        console.log('Download Parameters:', {
+          videoUrl,
+          finalLocation,
+          formatId,
+          ext,
+          audioExt,
+          audioFormatId,
+          limitRate,
+        });
         // Create a download ID before starting the download
         const downloadId = (window as any).ytdlp.download(
           {
@@ -630,6 +639,7 @@ const useDownloadStore = create<DownloadStore>()(
           }
           console.log(info);
           // Process formats using the service
+          console.log(info);
           const { formatOptions, defaultFormatId, defaultExt } =
             await VideoFormatService.processVideoFormats(info);
 

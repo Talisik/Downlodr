@@ -340,27 +340,50 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     fetchPluginMenuItems();
   }, [enabledPlugins]);
 
-  // Effect to position the context menu based on the provided coordinates
+  // Simplified effect - just ensure menu stays within bounds if needed
   React.useEffect(() => {
     if (menuRef.current) {
-      const menuRect = menuRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const viewportWidth = window.innerWidth;
+      const checkAndAdjustPosition = () => {
+        if (menuRef.current) {
+          const menuRect = menuRef.current.getBoundingClientRect();
+          const viewportHeight = window.innerHeight;
+          const viewportWidth = window.innerWidth;
+          const margin = 10;
 
-      let { x, y } = position;
+          let needsAdjustment = false;
+          let newX = position.x;
+          let newY = position.y;
 
-      // Adjust vertical position if menu overflows bottom
-      if (y + menuRect.height > viewportHeight) {
-        y = Math.max(0, viewportHeight - menuRect.height);
-      }
+          // Only adjust if menu is actually overflowing
+          if (menuRect.bottom > viewportHeight - margin) {
+            newY = Math.max(margin, viewportHeight - menuRect.height - margin);
+            needsAdjustment = true;
+          }
 
-      // Adjust horizontal position if menu overflows right
-      if (x + menuRect.width > viewportWidth) {
-        x = Math.max(0, viewportWidth - menuRect.width);
-      }
+          if (menuRect.right > viewportWidth - margin) {
+            newX = Math.max(margin, viewportWidth - menuRect.width - margin);
+            needsAdjustment = true;
+          }
 
-      menuRef.current.style.left = `${x}px`;
-      menuRef.current.style.top = `${y}px`;
+          if (menuRect.left < margin) {
+            newX = margin;
+            needsAdjustment = true;
+          }
+
+          if (menuRect.top < margin) {
+            newY = margin;
+            needsAdjustment = true;
+          }
+
+          if (needsAdjustment) {
+            menuRef.current.style.left = `${newX}px`;
+            menuRef.current.style.top = `${newY}px`;
+          }
+        }
+      };
+
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(checkAndAdjustPosition);
     }
   }, [position]);
 
@@ -975,10 +998,12 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     <>
       <div
         ref={menuRef}
-        className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 z-50 dark:border-gray-700"
+        className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 z-50 dark:border-gray-700 min-w-[180px]"
         style={{
           left: `${position.x}px`,
           top: `${position.y}px`,
+          maxHeight: '80vh',
+          overflowY: 'auto',
         }}
       >
         {renderMenuOptions()}
