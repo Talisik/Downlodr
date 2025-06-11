@@ -122,19 +122,23 @@ const PluginDetails = () => {
   };
 
   // Render icon helper function
-  const renderIcon = (icon: any) => {
+  const renderIcon = (icon: any, size: 'sm' | 'md' = 'sm') => {
+    const sizeClass = size === 'md' ? 'w-6 h-6' : 'w-5 h-5';
+
     if (typeof icon === 'string' && isSvgString(icon)) {
       return (
         <div
           dangerouslySetInnerHTML={{ __html: icon }}
-          className="w-6 h-6 flex items-center justify-center rounded-sm [&>svg]:w-full [&>svg]:h-full"
+          className={`${sizeClass} flex items-center justify-center rounded-sm [&>svg]:w-full [&>svg]:h-full`}
         />
       );
     } else if (icon) {
       return <span>{icon}</span>;
     } else {
       return (
-        <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded-sm flex items-center justify-center">
+        <div
+          className={`${sizeClass} bg-gray-300 dark:bg-gray-600 rounded-sm flex items-center justify-center`}
+        >
           <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
             P
           </span>
