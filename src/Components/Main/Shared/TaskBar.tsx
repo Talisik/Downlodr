@@ -279,43 +279,60 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
   const handleStopConfirm = async () => {
     if (stopAction === 'selected') {
-      // Store selected downloads in a temporary variable and clear selections immediately
-      const { deleteDownloading, downloading } = useDownloadStore.getState();
-      // Filter selected downloads to only include those in forDownloads and remove duplicates
-      const validDownloads = selectedDownloads.filter((download) =>
-        downloading.some((fd) => fd.id === download.id),
-      );
-      const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))]
-        .map((id) => validDownloads.find((d) => d.id === id))
-        .filter((d) => d !== undefined && d.status !== 'to download');
+      const {
+        deleteDownloading,
+        downloading,
+        forDownloads,
+        removeFromForDownloads,
+      } = useDownloadStore.getState();
 
-      // removes the selected options to ensure no errors possible
+      // Store selected downloads in a temporary variable and clear selections immediately
+      const downloadsToStop = [...selectedDownloads];
       clearAllSelections();
-      // iterate through the listed unique downloads
-      for (const download of uniqueDownloads) {
-        if (download.controllerId) {
+
+      for (const download of downloadsToStop) {
+        const currentDownload = downloading.find((d) => d.id === download.id);
+        const currentForDownload = forDownloads.find(
+          (d) => d.id === download.id,
+        );
+
+        if (currentDownload?.status === 'paused') {
+          deleteDownloading(download.id);
+          toast({
+            variant: 'success',
+            title: 'Download Stopped',
+            description: 'Download has been stopped successfully',
+            duration: 3000,
+          });
+        } else if (currentForDownload?.status === 'to download') {
+          removeFromForDownloads(download.id);
+          toast({
+            variant: 'success',
+            title: 'Download Stopped',
+            description: 'Download has been stopped successfully',
+            duration: 3000,
+          });
+        } else if (currentDownload?.controllerId) {
           try {
-            // kill/stop the download
             const success = await window.ytdlp.killController(
-              download.controllerId,
+              currentDownload.controllerId,
             );
-            // if stopped download was successful, delete download log
             if (success) {
               deleteDownloading(download.id);
               console.log(
-                `Controller with ID ${download.controllerId} has been terminated.`,
+                `Controller with ID ${currentDownload.controllerId} has been terminated.`,
               );
               toast({
                 variant: 'success',
                 title: 'Download Stopped',
-                description: 'Your download has stopped successfully',
+                description: 'Download has been stopped successfully',
                 duration: 3000,
               });
             } else {
               toast({
                 variant: 'destructive',
                 title: 'Stop Download Error',
-                description: `Could not stop download with controller ${download.controllerId}`,
+                description: `Could not stop download with controller ${currentDownload.controllerId}`,
                 duration: 3000,
               });
             }
@@ -323,29 +340,43 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             toast({
               variant: 'destructive',
               title: 'Stop Download Error',
-              description: `Error stopping download with controller ${download.controllerId}`,
+              description: `Error stopping download with controller ${currentDownload.controllerId}`,
               duration: 3000,
             });
           }
         }
       }
     } else if (stopAction === 'all') {
-      // functions for deleting download log from store
-      const { deleteDownloading } = useDownloadStore.getState();
+      const {
+        deleteDownloading,
+        downloading,
+        forDownloads,
+        removeFromForDownloads,
+      } = useDownloadStore.getState();
 
-      // check if there are any current downloads
+      // Handle all downloads in forDownloads
+      forDownloads.forEach((download) => {
+        if (download.status === 'to download') {
+          removeFromForDownloads(download.id);
+        }
+      });
+
+      // Handle all active downloads
       if (downloading && downloading.length > 0) {
-        // iterate through current downloads
         for (const download of downloading) {
-          console.log(`Attempting to stop download: ${download.id}`);
-          // check if download has a controller
-          if (download.controllerId) {
+          if (download.status === 'paused') {
+            deleteDownloading(download.id);
+            toast({
+              variant: 'success',
+              title: 'Download Stopped',
+              description: 'Download has been stopped successfully',
+              duration: 3000,
+            });
+          } else if (download.controllerId) {
             try {
-              // kills/stops download
               const success = await window.ytdlp.killController(
                 download.controllerId,
               );
-              // if the download was stopped successfully then remove log of download
               if (success) {
                 deleteDownloading(download.id);
                 console.log(
@@ -353,15 +384,15 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                 );
                 toast({
                   variant: 'success',
-                  title: 'Download stopped',
-                  description: 'Your download has stopped successfully',
+                  title: 'Download Stopped',
+                  description: 'Download has been stopped successfully',
                   duration: 3000,
                 });
               } else {
                 toast({
                   variant: 'destructive',
                   title: 'Stop Download Error',
-                  description: `Could not stop current download with controller ${download.controllerId}`,
+                  description: `Could not stop download with controller ${download.controllerId}`,
                   duration: 3000,
                 });
               }
@@ -369,7 +400,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
               toast({
                 variant: 'destructive',
                 title: 'Stop Download Error',
-                description: `Could not stop current download with controller ${download.controllerId}`,
+                description: `Error stopping download with controller ${download.controllerId}`,
                 duration: 3000,
               });
             }
