@@ -78,7 +78,6 @@ interface DownloadContextMenuProps {
     downloadLocation?: string,
     id?: string,
     controllerId?: string,
-    deleteFolder?: boolean,
   ) => void; // Function to remove the download
   onViewDownload: (downloadLocation?: string, downloadId?: string) => void; // Function to view the download
   onAddTag: (downloadId: string, tag: string) => void; // Function to add a tag to the download
@@ -97,9 +96,8 @@ interface DownloadContextMenuProps {
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (deleteFolder?: boolean) => void;
+  onConfirm: () => void;
   message: string;
-  allowFolderDeletion?: boolean;
 }
 
 interface RenameModalProps {
@@ -114,64 +112,23 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onClose,
   onConfirm,
   message,
-  allowFolderDeletion = false,
 }) => {
-  const [deleteFolder, setDeleteFolder] = useState(false);
-
-  // Reset checkbox when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setDeleteFolder(false);
-    }
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div
-        className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-4"
-        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
-      >
+      <div className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-4">
         <p className="text-gray-800 dark:text-gray-200 mb-4">{message}</p>
-
-        {allowFolderDeletion && (
-          <div className="mb-4">
-            <label
-              className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300"
-              onClick={(e) => e.stopPropagation()} // Prevent label click from closing modal
-            >
-              <input
-                type="checkbox"
-                checked={deleteFolder}
-                onChange={(e) => {
-                  e.stopPropagation(); // Prevent checkbox change from closing modal
-                  setDeleteFolder(e.target.checked);
-                }}
-                onClick={(e) => e.stopPropagation()} // Prevent checkbox click from closing modal
-                className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-              />
-              <span>Delete Parent Folder</span>
-            </label>
-          </div>
-        )}
-
         <div className="flex justify-end space-x-2">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="px-3 py-1 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
           >
             Cancel
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onConfirm(deleteFolder);
-            }}
-            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
           >
             Confirm
           </button>
@@ -443,8 +400,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   };
 
   // Function to confirm removing the download
-  const handleRemoveConfirm = (deleteFolder?: boolean) => {
-    onRemove(downloadLocation, downloadId, controllerId, deleteFolder);
+  const handleRemoveConfirm = () => {
+    onRemove(downloadLocation, downloadId, controllerId);
     setShowRemoveConfirmation(false);
     onClose();
   };
@@ -997,7 +954,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         onClose={() => setShowRemoveConfirmation(false)}
         onConfirm={handleRemoveConfirm}
         message="Are you sure you want to remove this download?"
-        allowFolderDeletion={true}
       />
     </>
   );

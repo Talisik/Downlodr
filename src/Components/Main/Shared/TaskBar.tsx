@@ -11,7 +11,7 @@
  * @returns JSX.Element - The rendered component displaying a TaskBar
  *
  */
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { GoDownload } from 'react-icons/go';
 import { LuTrash } from 'react-icons/lu';
 import { PiStopCircle } from 'react-icons/pi';
@@ -38,14 +38,6 @@ interface ConfirmModalProps {
   onClose: () => void;
   onConfirm: () => void;
   message: string;
-}
-
-interface TaskBarConfirmModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: (deleteFolder?: boolean) => void;
-  message: string;
-  selectedCount: number;
 }
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -79,78 +71,6 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   );
 };
 
-const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  message,
-  selectedCount,
-}) => {
-  const [deleteFolder, setDeleteFolder] = useState(false);
-
-  // Reset checkbox when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setDeleteFolder(false);
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div
-        className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-2"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <p className="text-gray-800 dark:text-gray-200 mb-2">
-          {message} ({selectedCount} selected)
-        </p>
-
-        <div className="mb-4">
-          <label
-            className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <input
-              type="checkbox"
-              checked={deleteFolder}
-              onChange={(e) => {
-                e.stopPropagation();
-                setDeleteFolder(e.target.checked);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-            />
-            <span>Delete Parent Folder</span>
-          </label>
-        </div>
-
-        <div className="flex justify-end space-x-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="px-2 py-1 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onConfirm(deleteFolder);
-            }}
-            className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-          >
-            Remove {selectedCount} Download{selectedCount > 1 ? 's' : ''}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // Handle state for modal
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
@@ -166,9 +86,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // Handling selected downloads
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
-
-  // Add state for the confirmation modal
-  const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
 
   const handleStopConfirm = () => {
     handleRemoveSelected();
@@ -432,7 +349,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     }
   };
 
-  const handleRemoveSelected = async (deleteFolder?: boolean) => {
+  const handleRemoveSelected = async () => {
     if (selectedDownloads.length === 0) {
       toast({
         variant: 'destructive',
@@ -450,56 +367,22 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     const { deleteDownload, forDownloads } = useDownloadStore.getState();
 
     // Helper function to handle file deletion
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deleteFileSafely = async (download: any) => {
       try {
-        let success = false;
-
-        if (deleteFolder && download.location) {
-          // Get the parent folder path using path.dirname equivalent
-          const folderPath = download.location.substring(
-            0,
-            download.location.lastIndexOf('/') > 0
-              ? download.location.lastIndexOf('/')
-              : download.location.lastIndexOf('\\'),
-          );
-
-          success = await window.downlodrFunctions.deleteFolder(folderPath);
-
-          if (success) {
-            deleteDownload(download.id);
-            toast({
-              variant: 'success',
-              title: 'Folder Deleted',
-              description:
-                'Folder and its contents have been deleted successfully',
-              duration: 3000,
-            });
-          } else {
-            toast({
-              variant: 'destructive',
-              title: 'Error',
-              description:
-                'Failed to delete folder. It may not exist or be in use.',
-              duration: 3000,
-            });
-          }
+        const success = await window.downlodrFunctions.deleteFile(
+          download.location,
+        );
+        if (success) {
+          deleteDownload(download.id);
+          toast({
+            variant: 'success',
+            title: 'File Deleted',
+            description: 'File has been deleted successfully',
+            duration: 3000,
+          });
         } else {
-          // Original file deletion logic
-          success = await window.downlodrFunctions.deleteFile(
-            download.location,
-          );
-
-          if (success) {
-            deleteDownload(download.id);
-            toast({
-              variant: 'success',
-              title: 'File Deleted',
-              description: 'File has been deleted successfully',
-              duration: 3000,
-            });
-          } else {
-            handleFileNotExistModal();
-          }
+          handleFileNotExistModal();
         }
       } catch (error) {
         handleFileNotExistModal();
@@ -523,23 +406,9 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         continue;
       }
 
-      // Delete the file or folder
+      // Delete the file
       await deleteFileSafely(download);
     }
-  };
-
-  // Update the button click handler to show confirmation
-  const handleRemoveButtonClick = () => {
-    if (selectedDownloads.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: 'No Downloads Selected',
-        description: 'Please select downloads to remove',
-        duration: 3000,
-      });
-      return;
-    }
-    setShowRemoveConfirmation(true);
   };
 
   // opens download modal
@@ -549,7 +418,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   };
 
   return (
-    <div className="taskbar-container">
+    <>
       {/* <div classNamep={`${className} flex items-center justify-between`}> */}
       <div className={cn('flex items-center justify-between', className)}>
         <div className="flex items-center h-full px-2 space-x-2">
@@ -600,7 +469,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                   ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark'
                   : 'cursor-not-allowed text-gray-400 bg-gray-200 hover:bg-gray-200 dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault',
               )}
-              onClick={handleRemoveButtonClick}
+              onClick={() => setShowStopConfirmation(true)}
               disabled={!(selectedDownloads.length > 0)}
             >
               <LuTrash size={15} className="mt-[2px]" />{' '}
@@ -631,17 +500,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         onClose={() => setShowFileNotExistModal(false)}
         selectedDownloads={missingFiles}
       />
-      <TaskBarConfirmModal
-        isOpen={showRemoveConfirmation}
-        onClose={() => setShowRemoveConfirmation(false)}
-        onConfirm={(deleteFolder) => {
-          handleRemoveSelected(deleteFolder);
-          setShowRemoveConfirmation(false);
-        }}
-        message="Are you sure you want to remove these downloads?"
-        selectedCount={selectedDownloads.length}
-      />
-    </div>
+    </>
   );
 };
 
