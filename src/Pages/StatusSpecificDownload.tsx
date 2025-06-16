@@ -353,13 +353,6 @@ const StatusSpecificDownloads = () => {
     if (missing.length > 0) {
       setMissingFiles(missing);
       setShowFileNotExistModal(true);
-    } else {
-      toast({
-        variant: 'default',
-        title: 'All Files Exist',
-        description: 'All selected files exist at their locations',
-        duration: 3000,
-      });
     }
   };
 

@@ -142,11 +142,11 @@ const TaskBarPluginItems: React.FC = () => {
                 aria-label={item.label}
               >
                 {item.icon && (
-                  <span className="inline-flex items-center justify-center w-3 h-3 mt-1 flex-shrink-0">
+                  <span className="inline-flex items-center justify-center w-4 h-4 mt-1 flex-shrink-0">
                     {typeof item.icon === 'string' && isSvgString(item.icon) ? (
                       <span
                         dangerouslySetInnerHTML={{ __html: item.icon }}
-                        className="text-black dark:text-white [&>svg]:w-3 [&>svg]:h-3 [&>svg]:fill-current"
+                        className="text-black dark:text-white [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-none [&>svg]:stroke-current"
                       />
                     ) : (
                       <span className="text-black dark:text-white">
