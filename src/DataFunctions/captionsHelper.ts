@@ -76,10 +76,30 @@ export async function downloadEnglishCaptions(
     console.log(
       `Downloading ${captionLang} captions in ${selectedCaption.ext} format`,
     );
-    await window.downlodrFunctions.downloadFile(
+    const downloadResult = await window.downlodrFunctions.downloadFile(
       selectedCaption.url,
       outputPath,
     );
+
+    if (!downloadResult.success) {
+      console.log('Failed to download caption file');
+      return undefined;
+    }
+
+    // Validate the downloaded content
+    const fileSize = await window.downlodrFunctions.getFileSize(outputPath);
+    if (!fileSize || fileSize < 10) {
+      // Less than 10 bytes is likely empty/invalid
+      console.log('Downloaded caption file is empty or too small, deleting...');
+      await window.downlodrFunctions.deleteFile(outputPath);
+      return undefined;
+    }
+
+    // Additional content validation for VTT files
+    if (selectedCaption.ext === 'vtt') {
+      // Could add more sophisticated validation here if needed
+      // For now, size check should catch most empty files
+    }
 
     console.log(`Captions saved to ${outputPath}`);
     return outputPath;
