@@ -254,6 +254,16 @@ export interface FormatSelectorOptions {
   title?: string;
   formats: FormatOption[];
   keepOriginal?: boolean;
+  selectedItems?: Array<{
+    id: string;
+    name: string;
+    selected: boolean;
+  }>;
+  showItemSelection?: boolean;
+  showSelectAll?: boolean;
+  selectAllDefault?: boolean;
+  confirmButtonText?: string;
+  cancelButtonText?: string;
 }
 
 export interface FormatOption {
@@ -266,6 +276,11 @@ export interface FormatOption {
 export interface FormatSelectorResult {
   selectedFormat: string;
   keepOriginal: boolean;
+  selectedItems?: Array<{
+    id: string;
+    name: string;
+    selected: boolean;
+  }>;
 }
 
 export interface TaskBarItem {

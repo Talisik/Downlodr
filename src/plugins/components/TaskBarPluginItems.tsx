@@ -142,7 +142,7 @@ const TaskBarPluginItems: React.FC = () => {
                 aria-label={item.label}
               >
                 {item.icon && (
-                  <span className="inline-flex items-center justify-center w-4 h-4 mt-1 flex-shrink-0">
+                  <span className="inline-flex items-center justify-center w-4 h-4 flex-shrink-0">
                     {typeof item.icon === 'string' && isSvgString(item.icon) ? (
                       <span
                         dangerouslySetInnerHTML={{ __html: item.icon }}

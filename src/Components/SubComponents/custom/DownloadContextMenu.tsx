@@ -178,7 +178,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
               e.stopPropagation();
               onClose();
             }}
-            className="px-4 py-1 text-gray-600 bg-white dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded-md font-medium"
+            className="px-4 py-1 text-gray-600 bg-white hover:bg-gray-50 dark:hover:bg-darkModeHover dark:hover:text-gray-200 rounded-md font-medium"
           >
             Cancel
           </button>
@@ -295,7 +295,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
               e.stopPropagation();
               onConfirm(deleteFolder);
             }}
-            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-orange-700 font-medium"
+            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-white hover:text-black font-medium"
           >
             Remove
           </button>
