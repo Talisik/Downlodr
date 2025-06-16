@@ -599,14 +599,19 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         // If download is cancelled or paused, just remove it without stopping
         if (
           currentDownload?.status === 'cancelled' ||
-          currentDownload?.status === 'paused'
+          currentDownload?.status === 'paused' ||
+          currentDownload?.status === 'initializing'
         ) {
           deleteDownloading(download.id);
           toast({
             variant: 'success',
             title: 'Download Removed',
             description: `${
-              currentDownload.status === 'cancelled' ? 'Cancelled' : 'Paused'
+              currentDownload.status === 'cancelled'
+                ? 'Cancelled'
+                : currentDownload.status === 'paused'
+                ? 'Paused'
+                : 'Initializing'
             } download has been removed successfully`,
             duration: 3000,
           });

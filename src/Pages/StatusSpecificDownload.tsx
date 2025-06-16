@@ -201,9 +201,9 @@ const StatusSpecificDownloads = () => {
   } = useResizableColumns(
     [
       { id: 'name', width: 100, minWidth: 100 },
-      { id: 'size', width: 90, minWidth: 90 },
+      { id: 'size', width: 65, minWidth: 65 },
       { id: 'format', width: 80, minWidth: 80 },
-      { id: 'status', width: 100, minWidth: 100 },
+      { id: 'status', width: 110, minWidth: 110 },
       { id: 'speed', width: 90, minWidth: 90 },
       { id: 'dateAdded', width: 100, minWidth: 100 },
       { id: 'transcript', width: 20, minWidth: 20 },
@@ -572,11 +572,14 @@ const StatusSpecificDownloads = () => {
   //Context Menu actons
   const handlePause = (downloadId: string, downloadLocation?: string) => {
     // Get fresh state each time
+    console.log('hello pause');
     const { downloading, deleteDownloading } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
     const { updateDownloadStatus } = useDownloadStore.getState();
 
     if (currentDownload?.status === 'paused') {
+      console.log('hello pause yes');
+
       const { addDownload } = useDownloadStore.getState();
       addDownload(
         currentDownload.videoUrl,
@@ -610,7 +613,10 @@ const StatusSpecificDownloads = () => {
         duration: 3000,
       });
     } else if (currentDownload && currentDownload.controllerId != '---') {
+      console.log('hello pause no>');
+
       try {
+        updateDownloadStatus(downloadId, 'paused');
         window.ytdlp
           .killController(currentDownload.controllerId)
           .then((response: { success: boolean; error?: string }) => {
@@ -1209,7 +1215,7 @@ const StatusSpecificDownloads = () => {
                 className="border-b border-t text-left dark:border-darkModeBorderColor"
                 onContextMenu={handleColumnHeaderContextMenu}
               >
-                <th className="w-8 p-2">
+                <th className="w-6 p-2">
                   <input
                     type="checkbox"
                     className="ml-2 rounded border-gray-900 dark:border-blue dark:checked:bg-blue-500"
@@ -1222,7 +1228,7 @@ const StatusSpecificDownloads = () => {
                     return (
                       <th
                         key={column.id}
-                        className="w-20 p-2 font-semibold"
+                        className="w-18 p-2 font-semibold"
                       ></th>
                     );
                   }
