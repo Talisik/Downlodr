@@ -98,16 +98,50 @@ const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
       <div
-        className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-2"
+        className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-lg w-full mx-2"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-gray-800 dark:text-gray-200 mb-2">
-          {message} ({selectedCount} selected)
+        {/* Header with title and close button */}
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            Remove selected items
+          </h3>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Main message */}
+        <p className="text-gray-700 dark:text-gray-300 mb-4">
+          Are you sure you want to remove these downloads from the download
+          list?
         </p>
 
-        <div className="mb-4">
+        {/* Checkbox */}
+        <div className="mb-6">
           <label
             className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300"
             onClick={(e) => e.stopPropagation()}
@@ -122,17 +156,18 @@ const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
               onClick={(e) => e.stopPropagation()}
               className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
             />
-            <span>Delete Parent Folder</span>
+            <span>Also remove the downloaded folder</span>
           </label>
         </div>
 
-        <div className="flex justify-end space-x-2">
+        {/* Action buttons */}
+        <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-gray-800 -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9]">
           <button
             onClick={(e) => {
               e.stopPropagation();
               onClose();
             }}
-            className="px-2 py-1 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
+            className="px-4 py-1 text-gray-600 bg-white hover:bg-gray-100 dark:hover:bg-darkModeHover rounded-md font-medium"
           >
             Cancel
           </button>
@@ -141,9 +176,9 @@ const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
               e.stopPropagation();
               onConfirm(deleteFolder);
             }}
-            className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-orange-700 font-medium"
           >
-            Remove {selectedCount} Download{selectedCount > 1 ? 's' : ''}
+            Remove
           </button>
         </div>
       </div>
@@ -253,7 +288,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       });
       return;
     }
-
+    console.log('delete me');
     // Store selected downloads in a temporary variable and clear selections immediately
     const { deleteDownloading, downloading } = useDownloadStore.getState();
     // Filter selected downloads to only include those in forDownloads and remove duplicates
@@ -262,10 +297,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     );
     const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))]
       .map((id) => validDownloads.find((d) => d.id === id))
-      .filter(
-        (d): d is (typeof validDownloads)[0] =>
-          d !== undefined && d.status === 'to download',
-      );
+      .filter((d) => d !== undefined && d.status !== 'to download');
 
     // removes the selected options to ensure no errors possible
     clearAllSelections();
@@ -422,13 +454,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     if (missing.length > 0) {
       setMissingFiles(missing);
       setShowFileNotExistModal(true);
-    } else {
-      toast({
-        variant: 'default',
-        title: 'All Files Exist',
-        description: 'All selected files exist at their locations',
-        duration: 3000,
-      });
     }
   };
 
