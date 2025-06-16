@@ -98,7 +98,6 @@ const calculateContextMenuPosition = (
   const scrollX = window.scrollX || window.pageXOffset;
   const scrollY = window.scrollY || window.pageYOffset;
   const margin = 10; // Margin from viewport edges
-
   let x = clientX;
   let y = clientY;
 
@@ -201,11 +200,11 @@ const StatusSpecificDownloads = () => {
     dragOverIndex,
   } = useResizableColumns(
     [
-      { id: 'name', width: 110, minWidth: 110 },
+      { id: 'name', width: 100, minWidth: 100 },
       { id: 'size', width: 90, minWidth: 90 },
       { id: 'format', width: 80, minWidth: 80 },
-      { id: 'status', width: 110, minWidth: 110 },
-      { id: 'speed', width: 70, minWidth: 70 },
+      { id: 'status', width: 100, minWidth: 100 },
+      { id: 'speed', width: 90, minWidth: 90 },
       { id: 'dateAdded', width: 100, minWidth: 100 },
       { id: 'transcript', width: 20, minWidth: 20 },
       { id: 'thumbnail', width: 10, minWidth: 10 },
@@ -449,6 +448,28 @@ const StatusSpecificDownloads = () => {
     };
   }, []);
 
+  const getMenuItemCount = (downloadStatus: string, pluginCount: number) => {
+    // Base items for each status (adjust as needed for your menu)
+    let baseCount = 0;
+    switch (downloadStatus) {
+      case 'finished':
+        baseCount = 5; // Play, View Folder, Remove, Tags, Category
+        break;
+      case 'to download':
+        baseCount = 6; // Start, View Folder, Rename, Remove, Tags, Category
+        break;
+      case 'paused':
+      case 'downloading':
+      case 'initializing':
+        baseCount = 5; // View Folder, Pause/Start, Stop, Tags, Category
+        break;
+      default:
+        baseCount = 5;
+    }
+    // Plugins: if <=4, add all; if >4, add just 1 for the Plugins button
+    return baseCount + (pluginCount > 4 ? 1 : pluginCount);
+  };
+
   const handleContextMenu = async (
     event: React.MouseEvent,
     allDownloads: any,
@@ -473,7 +494,30 @@ const StatusSpecificDownloads = () => {
     const downloadId = allDownloads.id;
     const downloadStatus = allDownloads.status;
     const controllerId = allDownloads.controllerId;
-    const position = calculateContextMenuPosition(event.clientX, event.clientY);
+
+    // Get plugin count from the window.plugins API
+    const pluginCount = await window.plugins
+      .getMenuItems('download-context')
+      .then((items) => items.length);
+
+    // Calculate menu height
+    const itemHeight = 40; // px
+    const menuItemCount = getMenuItemCount(downloadStatus, pluginCount);
+    const menuHeight = menuItemCount * itemHeight;
+    const margin = 10;
+
+    // Calculate Y position
+    let y = event.clientY;
+    if (y + menuHeight > window.innerHeight - margin) {
+      y = Math.max(margin, window.innerHeight - menuHeight - margin);
+    }
+
+    // Calculate X position (keep your existing logic or use calculateContextMenuPosition for X)
+    let x = event.clientX;
+    const menuWidth = 220;
+    if (x + menuWidth > window.innerWidth - margin) {
+      x = Math.max(margin, window.innerWidth - menuWidth - margin);
+    }
 
     // Pre-fetch the download location to avoid async issues in timeout
     const downloadLocation = await window.downlodrFunctions.joinDownloadPath(
@@ -498,8 +542,8 @@ const StatusSpecificDownloads = () => {
           // Batch all state updates together
           setContextMenu({
             downloadId,
-            x: position.x,
-            y: position.y,
+            x,
+            y,
             downloadLocation,
             downloadStatus,
             controllerId,
@@ -515,8 +559,8 @@ const StatusSpecificDownloads = () => {
       // If no menu is open, show immediately (no blink)
       setContextMenu({
         downloadId,
-        x: position.x,
-        y: position.y,
+        x,
+        y,
         downloadLocation,
         downloadStatus,
         controllerId,
@@ -1443,7 +1487,7 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200 ml-2"
+                              className="p-2 dark:text-gray-200"
                             >
                               {download.status === 'downloading' ? (
                                 <span className="whitespace-nowrap overflow-hidden">

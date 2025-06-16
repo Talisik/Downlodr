@@ -472,14 +472,23 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           const viewportHeight = window.innerHeight;
           const viewportWidth = window.innerWidth;
           const margin = 10;
-
           let needsAdjustment = false;
           let newX = position.x;
           let newY = position.y;
 
+          // Calculate approximate menu height based on number of items
+          const itemHeight = 40; // approximate height of each menu item
+          const baseMenuHeight =
+            itemHeight * (downloadStatus === 'finished' ? 5 : 4); // base menu items
+          const pluginItemsHeight =
+            pluginMenuItems.length <= 4
+              ? pluginMenuItems.length * itemHeight // show all plugin items
+              : itemHeight; // show just the Plugins button
+          const totalMenuHeight = baseMenuHeight + pluginItemsHeight;
+
           // Only adjust if menu is actually overflowing
           if (menuRect.bottom > viewportHeight - margin) {
-            newY = Math.max(margin, viewportHeight - menuRect.height - margin);
+            newY = Math.max(margin, viewportHeight - totalMenuHeight - margin);
             needsAdjustment = true;
           }
 
@@ -508,7 +517,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       // Use requestAnimationFrame to ensure DOM is ready
       requestAnimationFrame(checkAndAdjustPosition);
     }
-  }, [position]);
+  }, [position, pluginMenuItems.length, downloadStatus]);
 
   // Function to handle opening tag menu
   const handleTagMenuClick = (e: React.MouseEvent) => {
@@ -574,9 +583,21 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
       // Position submenu to the right of the main menu
       let submenuX = menuRect.right + 1;
-      const submenuY = buttonRect.top;
+      let submenuY = buttonRect.top;
 
-      // Check if submenu would overflow viewport and adjust if needed
+      // Always align submenu to the TOP of the plugin button
+      // Calculate the height of the submenu
+      const submenuHeight = Math.min(pluginMenuItems.length * 40, 300); // approximate height
+      // If the submenu would overflow the bottom, shift up
+      if (submenuY + submenuHeight > window.innerHeight - 10) {
+        submenuY = Math.max(10, window.innerHeight - submenuHeight - 10);
+      }
+      // If the submenu would overflow the top, shift down
+      if (submenuY < 10) {
+        submenuY = 10;
+      }
+
+      // Check if submenu would overflow viewport horizontally and adjust if needed
       const submenuWidth = 200; // approximate width
       if (submenuX + submenuWidth > window.innerWidth) {
         submenuX = menuRect.left - submenuWidth - 1; // Position to the left instead
