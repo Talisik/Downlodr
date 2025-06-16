@@ -490,10 +490,10 @@ const PluginManager: React.FC = () => {
             {plugins.map((plugin) => (
               <div
                 key={plugin.id}
-                className="w-sm bg-[#FFFFFF] dark:bg-darkMode rounded-sm p-4 shadow-sm ring-1 ring-gray-200 dark:ring-darkModeCompliment border-l-4 border-l-[#FFFFFF] dark:border-l-4 dark:border-l-darkMode hover:border-l-4 hover:border-l-[#F45513] hover:dark:border-l-[#F45513]"
+                className="w-sm bg-[#FFFFFF] dark:bg-darkMode rounded-sm p-4 shadow-sm ring-1 ring-gray-200 dark:ring-darkModeCompliment border-l-4 border-l-[#FFFFFF] dark:border-l-4 dark:border-l-darkMode hover:border-l-4 hover:border-l-[#F45513] hover:dark:border-l-[#F45513] h-58 flex flex-col"
               >
-                <div className="flex">
-                  <div className="w-full">
+                <div className="flex-1 flex flex-col">
+                  <div className="flex-1">
                     <div className="flex items-center mb-2">
                       <span className="inline-flex items-center justify-center w-6 h-6 mr-2 flex-shrink-0">
                         {renderIcon(plugin.icon, 'md')}
@@ -502,39 +502,39 @@ const PluginManager: React.FC = () => {
                         {plugin.name}
                       </h3>
                     </div>
-                    <p className="mt-2 text-sm">
+                    <p className="mt-2 text-sm line-clamp-3 overflow-hidden h-16">
                       {getFirstParagraph(plugin.description)}
                     </p>
-                    <hr className="solid my-4 w-full border-t border-divider dark:border-darkModeCompliment" />
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                      <div className="flex gap-2 flex-wrap ">
-                        <NavLink to="/plugins/details" state={{ plugin }}>
-                          <Button
-                            variant="outline"
-                            className="dark:border-darkModeCompliment border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
-                          >
-                            Details
-                          </Button>
-                        </NavLink>
+                  </div>
+                  <hr className="solid my-4 w-full border-t border-divider dark:border-darkModeCompliment" />
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div className="flex gap-2 flex-wrap ">
+                      <NavLink to="/plugins/details" state={{ plugin }}>
                         <Button
                           variant="outline"
-                          className="border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
-                          onClick={() => handleUninstall(plugin.id)}
+                          className="dark:border-darkModeCompliment border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
                         >
-                          Remove
+                          Details
                         </Button>
-                      </div>
-                      <div className="flex items-center gap-2 self-end sm:self-auto">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            checked={enabledPlugins[plugin.id] || false}
-                            onChange={() => handleToggle(plugin.id)}
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
-                        </label>
-                      </div>
+                      </NavLink>
+                      <Button
+                        variant="outline"
+                        className="border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
+                        onClick={() => handleUninstall(plugin.id)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={enabledPlugins[plugin.id] || false}
+                          onChange={() => handleToggle(plugin.id)}
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
+                      </label>
                     </div>
                   </div>
                 </div>

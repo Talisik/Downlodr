@@ -168,6 +168,12 @@ const DropdownBar = ({ className }: { className?: string }) => {
         }
         setActiveMenu(null);
       } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Rate limit reached for checking version',
+          description: `Please check again later`,
+          duration: 3000,
+        });
         console.error('Error checking for updates:', error);
       }
     } else {

@@ -78,6 +78,7 @@ interface DownloadContextMenuProps {
     downloadLocation?: string,
     id?: string,
     controllerId?: string,
+    deleteFolder?: boolean,
   ) => void; // Function to remove the download
   onViewDownload: (downloadLocation?: string, downloadId?: string) => void; // Function to view the download
   onAddTag: (downloadId: string, tag: string) => void; // Function to add a tag to the download
@@ -96,8 +97,9 @@ interface DownloadContextMenuProps {
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (deleteFolder?: boolean) => void;
   message: string;
+  allowFolderDeletion?: boolean;
 }
 
 interface RenameModalProps {
@@ -112,23 +114,64 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onClose,
   onConfirm,
   message,
+  allowFolderDeletion = false,
 }) => {
+  const [deleteFolder, setDeleteFolder] = useState(false);
+
+  // Reset checkbox when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setDeleteFolder(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-4">
+      <div
+        className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-4"
+        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
+      >
         <p className="text-gray-800 dark:text-gray-200 mb-4">{message}</p>
+
+        {allowFolderDeletion && (
+          <div className="mb-4">
+            <label
+              className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300"
+              onClick={(e) => e.stopPropagation()} // Prevent label click from closing modal
+            >
+              <input
+                type="checkbox"
+                checked={deleteFolder}
+                onChange={(e) => {
+                  e.stopPropagation(); // Prevent checkbox change from closing modal
+                  setDeleteFolder(e.target.checked);
+                }}
+                onClick={(e) => e.stopPropagation()} // Prevent checkbox click from closing modal
+                className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+              />
+              <span>Delete Parent Folder</span>
+            </label>
+          </div>
+        )}
+
         <div className="flex justify-end space-x-2">
           <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="px-3 py-1 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
           >
             Cancel
           </button>
           <button
-            onClick={onConfirm}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            onClick={(e) => {
+              e.stopPropagation();
+              onConfirm(deleteFolder);
+            }}
+            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
           >
             Confirm
           </button>
@@ -297,27 +340,50 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     fetchPluginMenuItems();
   }, [enabledPlugins]);
 
-  // Effect to position the context menu based on the provided coordinates
+  // Simplified effect - just ensure menu stays within bounds if needed
   React.useEffect(() => {
     if (menuRef.current) {
-      const menuRect = menuRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const viewportWidth = window.innerWidth;
+      const checkAndAdjustPosition = () => {
+        if (menuRef.current) {
+          const menuRect = menuRef.current.getBoundingClientRect();
+          const viewportHeight = window.innerHeight;
+          const viewportWidth = window.innerWidth;
+          const margin = 10;
 
-      let { x, y } = position;
+          let needsAdjustment = false;
+          let newX = position.x;
+          let newY = position.y;
 
-      // Adjust vertical position if menu overflows bottom
-      if (y + menuRect.height > viewportHeight) {
-        y = Math.max(0, viewportHeight - menuRect.height);
-      }
+          // Only adjust if menu is actually overflowing
+          if (menuRect.bottom > viewportHeight - margin) {
+            newY = Math.max(margin, viewportHeight - menuRect.height - margin);
+            needsAdjustment = true;
+          }
 
-      // Adjust horizontal position if menu overflows right
-      if (x + menuRect.width > viewportWidth) {
-        x = Math.max(0, viewportWidth - menuRect.width);
-      }
+          if (menuRect.right > viewportWidth - margin) {
+            newX = Math.max(margin, viewportWidth - menuRect.width - margin);
+            needsAdjustment = true;
+          }
 
-      menuRef.current.style.left = `${x}px`;
-      menuRef.current.style.top = `${y}px`;
+          if (menuRect.left < margin) {
+            newX = margin;
+            needsAdjustment = true;
+          }
+
+          if (menuRect.top < margin) {
+            newY = margin;
+            needsAdjustment = true;
+          }
+
+          if (needsAdjustment) {
+            menuRef.current.style.left = `${newX}px`;
+            menuRef.current.style.top = `${newY}px`;
+          }
+        }
+      };
+
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(checkAndAdjustPosition);
     }
   }, [position]);
 
@@ -400,8 +466,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   };
 
   // Function to confirm removing the download
-  const handleRemoveConfirm = () => {
-    onRemove(downloadLocation, downloadId, controllerId);
+  const handleRemoveConfirm = (deleteFolder?: boolean) => {
+    onRemove(downloadLocation, downloadId, controllerId, deleteFolder);
     setShowRemoveConfirmation(false);
     onClose();
   };
@@ -932,10 +998,12 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     <>
       <div
         ref={menuRef}
-        className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 z-50 dark:border-gray-700"
+        className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 z-50 dark:border-gray-700 min-w-[180px]"
         style={{
           left: `${position.x}px`,
           top: `${position.y}px`,
+          maxHeight: '80vh',
+          overflowY: 'auto',
         }}
       >
         {renderMenuOptions()}
@@ -954,6 +1022,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         onClose={() => setShowRemoveConfirmation(false)}
         onConfirm={handleRemoveConfirm}
         message="Are you sure you want to remove this download?"
+        allowFolderDeletion={true}
       />
     </>
   );
