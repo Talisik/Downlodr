@@ -48,7 +48,7 @@ interface TaskBarConfirmModalProps {
   selectedCount: number;
 }
 
-const ConfirmModal: React.FC<ConfirmModalProps> = ({
+const StopModal: React.FC<ConfirmModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
@@ -57,21 +57,64 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment rounded-lg p-6 max-w-sm w-full mx-4">
-        <p className="text-gray-800 dark:text-gray-200 mb-4">{message}</p>
-        <div className="flex justify-end space-x-2">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-lg w-full mx-2"
+        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
+      >
+        {/* Header with title and close button */}
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            Stop Download
+          </h3>
           <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Main message */}
+        <p className="text-gray-700 dark:text-gray-300 mb-4">{message}</p>
+
+        {/* Action buttons */}
+        <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-gray-800 -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9]">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="px-4 py-1 text-gray-600 bg-white hover:bg-gray-50 dark:hover:bg-darkModeHover dark:hover:text-gray-200 rounded-md font-medium"
           >
             Cancel
           </button>
           <button
-            onClick={onConfirm}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            onClick={(e) => {
+              e.stopPropagation();
+              onConfirm();
+            }}
+            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-orange-700 font-medium"
           >
-            Confirm
+            Stop
           </button>
         </div>
       </div>
@@ -167,7 +210,7 @@ const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
               e.stopPropagation();
               onClose();
             }}
-            className="px-4 py-1 text-gray-600 bg-white hover:bg-gray-100 dark:hover:bg-darkModeHover rounded-md font-medium"
+            className="px-4 py-1 text-gray-600 bg-white hover:bg-gray-50 dark:hover:bg-darkModeHover dark:hover:text-gray-200 rounded-md font-medium"
           >
             Cancel
           </button>
@@ -176,7 +219,7 @@ const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
               e.stopPropagation();
               onConfirm(deleteFolder);
             }}
-            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-orange-700 font-medium"
+            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-white hover:text-black font-medium"
           >
             Remove
           </button>
@@ -190,6 +233,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // Handle state for modal
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
   const [showStopConfirmation, setShowStopConfirmation] = useState(false);
+  const [stopAction, setStopAction] = useState<'selected' | 'all' | null>(null);
   const { toast } = useToast();
   const location = useLocation(); // Get current location
   const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
@@ -205,79 +249,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // Add state for the confirmation modal
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
 
-  const handleStopConfirm = () => {
-    handleRemoveSelected();
-    setShowStopConfirmation(false);
-  };
-  // Stopping all current downloads via killController
-  const handleStopAll = async () => {
-    // functions for deleting download log from store
-    const { deleteDownloading } = useDownloadStore.getState();
-
-    // check if there are any current downloads
-    if (downloading && downloading.length > 0) {
-      // iterate through current downloads
-      for (const download of downloading) {
-        console.log(`Attempting to stop download: ${download.id}`);
-        // check if download has a controller
-        if (download.controllerId) {
-          try {
-            // kills/stops download
-            const success = await window.ytdlp.killController(
-              download.controllerId,
-            );
-            // if the download was stopped successfully then remove log of download
-            if (success) {
-              deleteDownloading(download.id);
-              console.log(
-                `Controller with ID ${download.controllerId} has been terminated.`,
-              );
-              toast({
-                variant: 'success',
-                title: 'Download stopped',
-                description: 'Your download has stopped successfully',
-                duration: 3000,
-              });
-            } else {
-              toast({
-                variant: 'destructive',
-                title: 'Stop Download Error',
-                description: `Could not stop current download with controller ${download.controllerId}`,
-                duration: 3000,
-              });
-              // setCurrentDownloadId(download.id);
-            }
-          } catch (error) {
-            toast({
-              variant: 'destructive',
-              title: 'Stop Download Error',
-              description: `Could not stop current download with controller ${download.controllerId}`,
-              duration: 3000,
-            });
-          }
-        } else {
-          toast({
-            variant: 'destructive',
-            title: 'Stop Download Error',
-            description: `Could not stop current download with controller ${download.controllerId}`,
-            duration: 3000,
-          });
-        }
-      }
-      // Clear selected downloads after stopping all
-      // setSelectedDownloading([]);
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'No Downloads Found',
-        description: `No current downloads to delete`,
-        duration: 3000,
-      });
-    }
-    // setSelectedDownloading([]);
-  };
-
-  // Stopping selected current downloads via killController
   const handleStopSelected = async () => {
     if (selectedDownloads.length === 0) {
       toast({
@@ -288,59 +259,126 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       });
       return;
     }
-    console.log('delete me');
-    // Store selected downloads in a temporary variable and clear selections immediately
-    const { deleteDownloading, downloading } = useDownloadStore.getState();
-    // Filter selected downloads to only include those in forDownloads and remove duplicates
-    const validDownloads = selectedDownloads.filter((download) =>
-      downloading.some((fd) => fd.id === download.id),
-    );
-    const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))]
-      .map((id) => validDownloads.find((d) => d.id === id))
-      .filter((d) => d !== undefined && d.status !== 'to download');
+    setStopAction('selected');
+    setShowStopConfirmation(true);
+  };
 
-    // removes the selected options to ensure no errors possible
-    clearAllSelections();
-    // iterate through the listed unique downloads
-    for (const download of uniqueDownloads) {
-      if (download.controllerId) {
-        try {
-          // kill/stop the download
-          const success = await window.ytdlp.killController(
-            download.controllerId,
-          );
-          // if stopped download was successful, delete download log
-          if (success) {
-            deleteDownloading(download.id);
-            console.log(
-              `Controller with ID ${download.controllerId} has been terminated.`,
+  const handleStopAll = async () => {
+    if (downloading.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'No Downloads Found',
+        description: `No current downloads to stop`,
+        duration: 3000,
+      });
+      return;
+    }
+    setStopAction('all');
+    setShowStopConfirmation(true);
+  };
+
+  const handleStopConfirm = async () => {
+    if (stopAction === 'selected') {
+      // Store selected downloads in a temporary variable and clear selections immediately
+      const { deleteDownloading, downloading } = useDownloadStore.getState();
+      // Filter selected downloads to only include those in forDownloads and remove duplicates
+      const validDownloads = selectedDownloads.filter((download) =>
+        downloading.some((fd) => fd.id === download.id),
+      );
+      const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))]
+        .map((id) => validDownloads.find((d) => d.id === id))
+        .filter((d) => d !== undefined && d.status !== 'to download');
+
+      // removes the selected options to ensure no errors possible
+      clearAllSelections();
+      // iterate through the listed unique downloads
+      for (const download of uniqueDownloads) {
+        if (download.controllerId) {
+          try {
+            // kill/stop the download
+            const success = await window.ytdlp.killController(
+              download.controllerId,
             );
-            toast({
-              variant: 'success',
-              title: 'Download Stopped',
-              description: 'Your download has stopped successfully',
-              duration: 3000,
-            });
-          } else {
+            // if stopped download was successful, delete download log
+            if (success) {
+              deleteDownloading(download.id);
+              console.log(
+                `Controller with ID ${download.controllerId} has been terminated.`,
+              );
+              toast({
+                variant: 'success',
+                title: 'Download Stopped',
+                description: 'Your download has stopped successfully',
+                duration: 3000,
+              });
+            } else {
+              toast({
+                variant: 'destructive',
+                title: 'Stop Download Error',
+                description: `Could not stop download with controller ${download.controllerId}`,
+                duration: 3000,
+              });
+            }
+          } catch (error) {
             toast({
               variant: 'destructive',
               title: 'Stop Download Error',
-              description: `Could not stop download with controller ${download.controllerId}`,
+              description: `Error stopping download with controller ${download.controllerId}`,
               duration: 3000,
             });
           }
-        } catch (error) {
-          toast({
-            variant: 'destructive',
-            title: 'Stop Download Error',
-            description: `Error stopping download with controller ${download.controllerId}`,
-            duration: 3000,
-          });
         }
       }
-      // clear selected download
-      clearAllSelections();
+    } else if (stopAction === 'all') {
+      // functions for deleting download log from store
+      const { deleteDownloading } = useDownloadStore.getState();
+
+      // check if there are any current downloads
+      if (downloading && downloading.length > 0) {
+        // iterate through current downloads
+        for (const download of downloading) {
+          console.log(`Attempting to stop download: ${download.id}`);
+          // check if download has a controller
+          if (download.controllerId) {
+            try {
+              // kills/stops download
+              const success = await window.ytdlp.killController(
+                download.controllerId,
+              );
+              // if the download was stopped successfully then remove log of download
+              if (success) {
+                deleteDownloading(download.id);
+                console.log(
+                  `Controller with ID ${download.controllerId} has been terminated.`,
+                );
+                toast({
+                  variant: 'success',
+                  title: 'Download stopped',
+                  description: 'Your download has stopped successfully',
+                  duration: 3000,
+                });
+              } else {
+                toast({
+                  variant: 'destructive',
+                  title: 'Stop Download Error',
+                  description: `Could not stop current download with controller ${download.controllerId}`,
+                  duration: 3000,
+                });
+              }
+            } catch (error) {
+              toast({
+                variant: 'destructive',
+                title: 'Stop Download Error',
+                description: `Could not stop current download with controller ${download.controllerId}`,
+                duration: 3000,
+              });
+            }
+          }
+        }
+      }
     }
+    setShowStopConfirmation(false);
+    setStopAction(null);
   };
 
   // Start downloading selected downloads
@@ -458,6 +496,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   };
 
   const handleRemoveSelected = async (deleteFolder?: boolean) => {
+    console.log('triiged remove');
     if (selectedDownloads.length === 0) {
       toast({
         variant: 'destructive',
@@ -472,7 +511,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     const downloadsToRemove = [...selectedDownloads];
     clearAllSelections();
 
-    const { deleteDownload, forDownloads } = useDownloadStore.getState();
+    const { deleteDownload, forDownloads, downloading, deleteDownloading } =
+      useDownloadStore.getState();
 
     // Helper function to handle file deletion
     const deleteFileSafely = async (download: any) => {
@@ -533,7 +573,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
     // Process each download
     for (const download of downloadsToRemove) {
-      if (!download.location || !download.id) continue;
+      if (!download.location || !download.id) {
+        console.log(',oo');
+        continue;
+      }
 
       // Check if it's a pending download
       const isPending = forDownloads.some((d) => d.id === download.id);
@@ -546,6 +589,63 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           duration: 3000,
         });
         continue;
+      }
+
+      // Check if it's a currently downloading file
+      const isDownloading = downloading.some((d) => d.id === download.id);
+      if (isDownloading) {
+        const currentDownload = downloading.find((d) => d.id === download.id);
+
+        // If download is cancelled or paused, just remove it without stopping
+        if (
+          currentDownload?.status === 'cancelled' ||
+          currentDownload?.status === 'paused'
+        ) {
+          deleteDownloading(download.id);
+          toast({
+            variant: 'success',
+            title: 'Download Removed',
+            description: `${
+              currentDownload.status === 'cancelled' ? 'Cancelled' : 'Paused'
+            } download has been removed successfully`,
+            duration: 3000,
+          });
+          continue;
+        }
+
+        // For active downloads, stop them first
+        if (download.controllerId) {
+          try {
+            const success = await window.ytdlp.killController(
+              download.controllerId,
+            );
+            if (success) {
+              deleteDownloading(download.id);
+              toast({
+                variant: 'success',
+                title: 'Download Stopped',
+                description: 'Download has been stopped successfully',
+                duration: 3000,
+              });
+            } else {
+              toast({
+                variant: 'destructive',
+                title: 'Stop Download Error',
+                description: `Could not stop download with controller ${download.controllerId}`,
+                duration: 3000,
+              });
+              continue; // Skip deletion if we couldn't stop the download
+            }
+          } catch (error) {
+            toast({
+              variant: 'destructive',
+              title: 'Stop Download Error',
+              description: `Error stopping download with controller ${download.controllerId}`,
+              duration: 3000,
+            });
+            continue; // Skip deletion if we couldn't stop the download
+          }
+        }
       }
 
       // Delete the file or folder
@@ -645,11 +745,18 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         isOpen={isDownloadModalOpen}
         onClose={() => setDownloadModalOpen(false)}
       />
-      <ConfirmModal
+      <StopModal
         isOpen={showStopConfirmation}
-        onClose={() => setShowStopConfirmation(false)}
+        onClose={() => {
+          setShowStopConfirmation(false);
+          setStopAction(null);
+        }}
         onConfirm={handleStopConfirm}
-        message="Are you sure you want to stop and remove this download?"
+        message={
+          stopAction === 'all'
+            ? 'Are you sure you want to stop all downloads?'
+            : 'Are you sure you want to stop the selected downloads?'
+        }
       />
       <FileNotExistModal
         isOpen={showFileNotExistModal}

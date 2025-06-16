@@ -773,7 +773,10 @@ const StatusSpecificDownloads = () => {
 
     // Get the download status
     const download = allDownloads.find((d) => d.id === downloadId);
-    if (download?.status === 'to download') {
+    if (!download) return;
+
+    // Handle pending downloads
+    if (download.status === 'to download') {
       deleteDownload(downloadId);
       toast({
         variant: 'success',
@@ -782,6 +785,44 @@ const StatusSpecificDownloads = () => {
         duration: 3000,
       });
       return;
+    }
+
+    // Handle cancelled or paused downloads
+    if (download.status === 'cancelled' || download.status === 'paused') {
+      deleteDownload(downloadId);
+      toast({
+        variant: 'success',
+        title: 'Download Removed',
+        description: `${
+          download.status === 'cancelled' ? 'Cancelled' : 'Paused'
+        } download has been removed successfully`,
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Handle active downloads
+    if (download.status === 'downloading' && controllerId) {
+      try {
+        const success = await window.ytdlp.killController(controllerId);
+        if (!success) {
+          toast({
+            variant: 'destructive',
+            title: 'Stop Download Error',
+            description: `Could not stop download with controller ${controllerId}`,
+            duration: 3000,
+          });
+          return;
+        }
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Stop Download Error',
+          description: `Error stopping download with controller ${controllerId}`,
+          duration: 3000,
+        });
+        return;
+      }
     }
 
     try {
@@ -824,42 +865,38 @@ const StatusSpecificDownloads = () => {
           });
         } else {
           // Handle file not found case
-          if (download) {
-            const downloadItem: DownloadItem = {
-              id: download.id,
-              videoUrl: download.videoUrl,
-              location: downloadLocation,
-              name: download.name,
-              ext: download.ext,
-              downloadName: download.downloadName,
-              extractorKey: download.extractorKey,
-              status: download.status,
-              download: {
-                ...download,
-              },
-            };
-            handleFileNotExistModal(downloadItem);
-          }
+          const downloadItem: DownloadItem = {
+            id: download.id,
+            videoUrl: download.videoUrl,
+            location: downloadLocation,
+            name: download.name,
+            ext: download.ext,
+            downloadName: download.downloadName,
+            extractorKey: download.extractorKey,
+            status: download.status,
+            download: {
+              ...download,
+            },
+          };
+          handleFileNotExistModal(downloadItem);
         }
       }
     } catch (error) {
       // Handle error case
-      if (download) {
-        const downloadItem: DownloadItem = {
-          id: download.id,
-          videoUrl: download.videoUrl,
-          location: downloadLocation,
-          name: download.name,
-          ext: download.ext,
-          downloadName: download.downloadName,
-          extractorKey: download.extractorKey,
-          status: download.status,
-          download: {
-            ...download,
-          },
-        };
-        handleFileNotExistModal(downloadItem);
-      }
+      const downloadItem: DownloadItem = {
+        id: download.id,
+        videoUrl: download.videoUrl,
+        location: downloadLocation,
+        name: download.name,
+        ext: download.ext,
+        downloadName: download.downloadName,
+        extractorKey: download.extractorKey,
+        status: download.status,
+        download: {
+          ...download,
+        },
+      };
+      handleFileNotExistModal(downloadItem);
       console.error('Error deleting:', error);
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
