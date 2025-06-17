@@ -64,7 +64,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
     >
       <div
         className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-lg w-full mx-2"
-        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header with title and close button */}
         <div className="flex justify-between items-center mb-4">
@@ -78,19 +78,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
             }}
             className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <IoMdClose size={20} />
           </button>
         </div>
 
@@ -98,7 +86,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
         <p className="text-gray-700 dark:text-gray-300 mb-4">{message}</p>
 
         {/* Action buttons */}
-        <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-gray-800 -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9]">
+        <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -113,7 +101,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
               e.stopPropagation();
               onConfirm();
             }}
-            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-orange-700 font-medium"
+            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-white hover:text-black font-medium"
           >
             Stop
           </button>
