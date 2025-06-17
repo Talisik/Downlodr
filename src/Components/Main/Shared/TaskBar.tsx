@@ -711,7 +711,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
   return (
     <div className="taskbar-container">
-      {/* <div classNamep={`${className} flex items-center justify-between`}> */}
       <div className={cn('flex items-center justify-between', className)}>
         <div className="flex items-center h-full px-2 space-x-2">
           <div className="gap-1 flex">
@@ -719,6 +718,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
             <div className="h-6 w-[1.5px] bg-gray-300 dark:bg-gray-600 self-center ml-1 md:ml-3"></div>
           </div>
+
           <button
             className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={handlePlaySelected}
@@ -733,6 +733,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           >
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
           </button>
+
           <button
             className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
             onClick={() => handleStopAll()}
@@ -741,6 +742,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
           </button>
         </div>
+
         <div className="pl-4 flex items-center">
           {location.pathname.includes('/status') && (
             <div className="mr-4">
@@ -758,7 +760,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                 'px-3 py-1 mr-4 rounded-md flex gap-2 text-sm',
                 selectedDownloads.length > 0 &&
                   location.pathname.includes('/status/')
-                  ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark'
+                  ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-body-dark dark:bg-darkModeButtonActive hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark'
                   : 'cursor-not-allowed text-gray-400 bg-gray-200 hover:bg-gray-200 dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault',
               )}
               onClick={handleRemoveButtonClick}

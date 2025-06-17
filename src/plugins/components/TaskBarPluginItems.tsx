@@ -5,6 +5,7 @@ import {
   TooltipTrigger,
 } from '../../Components/SubComponents/shadcn/components/ui/tooltip';
 import { useToast } from '../../Components/SubComponents/shadcn/hooks/use-toast';
+import { cn } from '../../Components/SubComponents/shadcn/lib/utils';
 import { useMainStore } from '../../Store/mainStore';
 import { usePluginState } from '../Hooks/usePluginState';
 import { TaskBarItem } from '../types';
@@ -12,6 +13,7 @@ import { TaskBarItem } from '../types';
 // Using the global TaskBarItem interface instead of redefining it
 const TaskBarPluginItems: React.FC = () => {
   const [taskBarItems, setTaskBarItems] = useState<TaskBarItem[]>([]);
+  const [pluginsInitialized, setPluginsInitialized] = useState(false);
   const enabledPlugins = usePluginState();
   const { selectedDownloads } = useMainStore();
   const { toast } = useToast();
@@ -52,17 +54,29 @@ const TaskBarPluginItems: React.FC = () => {
   };
 
   useEffect(() => {
+    // Wait for plugins to be fully initialized before fetching
+    const initTimer = setTimeout(() => {
+      setPluginsInitialized(true);
+    }, 80);
+
+    return () => clearTimeout(initTimer);
+  }, []);
+
+  useEffect(() => {
+    if (!pluginsInitialized) return;
+
     fetchTaskBarItems();
 
     // Set up listener for plugin reloaded events
     const unsubscribe = window.plugins.onReloaded(() => {
-      fetchTaskBarItems();
+      // Small delay to ensure plugins are fully reloaded
+      setTimeout(fetchTaskBarItems, 100);
     });
 
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [enabledPlugins]);
+  }, [enabledPlugins, pluginsInitialized]);
 
   if (taskBarItems.length === 0) {
     return null;
@@ -155,7 +169,11 @@ const TaskBarPluginItems: React.FC = () => {
                     )}
                   </span>
                 )}
-                <span className="hidden lg:inline text-sm">{item.label}</span>{' '}
+                <span
+                  className={cn('text-sm', item.icon && 'hidden lg:inline')}
+                >
+                  {item.label}
+                </span>{' '}
               </button>
             </TooltipTrigger>
           </Tooltip>
