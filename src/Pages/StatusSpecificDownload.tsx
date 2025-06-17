@@ -1215,10 +1215,10 @@ const StatusSpecificDownloads = () => {
                 className="border-b border-t text-left dark:border-darkModeBorderColor"
                 onContextMenu={handleColumnHeaderContextMenu}
               >
-                <th className="w-6 p-2">
+                <th className="w-6 px-2 py-1">
                   <input
                     type="checkbox"
-                    className="ml-2 rounded border-gray-900 dark:border-blue dark:checked:bg-blue-500"
+                    className="mt-2 ml-2 rounded border-gray-900 dark:border-blue dark:checked:bg-blue-500 dark:bg-darkModeCompliment"
                     checked={selectedRowIds.length === allDownloads.length}
                     onChange={handleSelectAll}
                   />

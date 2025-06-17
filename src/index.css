@@ -107,9 +107,20 @@ input[type='checkbox'] {
   height: 14px;
   border-radius: 4px;
   padding: 1px;
+  background-color: white;
+}
+
+html.dark input[type='checkbox'] {
+  background-color: #09090B !important;
+  border: 1px solid #27272A;
 }
 
 input[type='checkbox']:checked {
-  background-color: #f45513;
-  border-color: #f45513;
+  background-color: #f45513 !important;
+  border-color: #f45513 !important;
+}
+
+input[type='checkbox']:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(244, 85, 19, 0.2);
 }

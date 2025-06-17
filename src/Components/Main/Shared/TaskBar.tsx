@@ -13,6 +13,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { GoDownload } from 'react-icons/go';
+import { IoMdClose } from 'react-icons/io';
 import { LuTrash } from 'react-icons/lu';
 import { PiStopCircle } from 'react-icons/pi';
 import { VscPlayCircle } from 'react-icons/vsc';
@@ -161,19 +162,7 @@ const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
             }}
             className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <IoMdClose size={20} />
           </button>
         </div>
 
@@ -204,7 +193,7 @@ const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
         </div>
 
         {/* Action buttons */}
-        <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-gray-800 -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9]">
+        <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -759,12 +748,21 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
               className={cn(
                 'px-3 py-1 mr-4 rounded-md flex gap-2 text-sm',
                 selectedDownloads.length > 0 &&
-                  location.pathname.includes('/status/')
+                  (location.pathname.includes('/status/') ||
+                    location.pathname.includes('/tags/') ||
+                    location.pathname.includes('/category/'))
                   ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-body-dark dark:bg-darkModeButtonActive hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark'
                   : 'cursor-not-allowed text-gray-400 bg-gray-200 hover:bg-gray-200 dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault',
               )}
               onClick={handleRemoveButtonClick}
-              disabled={!(selectedDownloads.length > 0)}
+              disabled={
+                !(
+                  selectedDownloads.length > 0 &&
+                  (location.pathname.includes('/status/') ||
+                    location.pathname.includes('/tags/') ||
+                    location.pathname.includes('/category/'))
+                )
+              }
             >
               <LuTrash size={15} className="mt-[2px]" />{' '}
               <span className="hidden md:inline text-sm">Remove</span>
