@@ -414,15 +414,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
   const fetchPluginMenuItems = async () => {
     try {
-      // Option 1: Using the window.plugins API with filtering
       const items = await window.plugins.getMenuItems('download');
       const filteredItems = (items || []).filter(
         (item) => !item.pluginId || enabledPlugins[item.pluginId] !== false,
       ) as MenuItem[];
-
-      // OR Option 2: Using the registry directly (if it exposes a method)
-      // const filteredItems = pluginRegistry.getMenuItems('download');
-
       setPluginMenuItems(filteredItems);
     } catch (error) {
       console.error('Failed to fetch plugin menu items:', error);
@@ -430,17 +425,33 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     }
   };
 
+  // Listen for plugins ready event
+  useEffect(() => {
+    const handlePluginsReady = () => {
+      fetchPluginMenuItems();
+    };
+
+    window.addEventListener('pluginsReady', handlePluginsReady);
+
+    // Initial fetch
+    fetchPluginMenuItems();
+
+    return () => {
+      window.removeEventListener('pluginsReady', handlePluginsReady);
+    };
+  }, []);
+
+  // Handle plugin state changes
+  useEffect(() => {
+    fetchPluginMenuItems();
+  }, [enabledPlugins]);
+
   // Helper function to check if a string is an SVG
   const isSvgString = (str: string): boolean => {
     return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
   };
 
   useEffect(() => {
-    fetchPluginMenuItems();
-  }, [enabledPlugins]);
-
-  // Simplified effect - just ensure menu stays within bounds if needed
-  React.useEffect(() => {
     if (menuRef.current) {
       const checkAndAdjustPosition = () => {
         if (menuRef.current) {

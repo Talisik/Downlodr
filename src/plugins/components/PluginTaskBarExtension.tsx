@@ -10,10 +10,9 @@ import { useMainStore } from '../../Store/mainStore';
 import { usePluginState } from '../Hooks/usePluginState';
 import { TaskBarItem } from '../types';
 
-// Using the global TaskBarItem interface instead of redefining it
-const TaskBarPluginItems: React.FC = () => {
+const PluginTaskBarExtension: React.FC = () => {
   const [taskBarItems, setTaskBarItems] = useState<TaskBarItem[]>([]);
-  const [pluginsInitialized, setPluginsInitialized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const enabledPlugins = usePluginState();
   const { selectedDownloads } = useMainStore();
   const { toast } = useToast();
@@ -23,8 +22,10 @@ const TaskBarPluginItems: React.FC = () => {
   const isSvgString = (str: string): boolean => {
     return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
   };
+
   const fetchTaskBarItems = async () => {
     try {
+      setIsLoading(true);
       // Get taskbar items from plugin registry
       const items = await window.plugins.getTaskBarItems();
 
@@ -50,35 +51,46 @@ const TaskBarPluginItems: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch taskbar items:', error);
       setTaskBarItems([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Listen for plugins ready event
   useEffect(() => {
-    // Wait for plugins to be fully initialized before fetching
-    const initTimer = setTimeout(() => {
-      setPluginsInitialized(true);
-    }, 80);
+    const handlePluginsReady = () => {
+      fetchTaskBarItems();
+    };
 
-    return () => clearTimeout(initTimer);
-  }, []);
+    window.addEventListener('pluginsReady', handlePluginsReady);
 
-  useEffect(() => {
-    if (!pluginsInitialized) return;
-
+    // Initial fetch
     fetchTaskBarItems();
 
-    // Set up listener for plugin reloaded events
+    return () => {
+      window.removeEventListener('pluginsReady', handlePluginsReady);
+    };
+  }, []);
+
+  // Handle plugin state changes
+  useEffect(() => {
+    if (!isLoading) {
+      fetchTaskBarItems();
+    }
+  }, [enabledPlugins]);
+
+  // Set up plugin reload listener
+  useEffect(() => {
     const unsubscribe = window.plugins.onReloaded(() => {
-      // Small delay to ensure plugins are fully reloaded
-      setTimeout(fetchTaskBarItems, 100);
+      fetchTaskBarItems();
     });
 
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [enabledPlugins, pluginsInitialized]);
+  }, []);
 
-  if (taskBarItems.length === 0) {
+  if (isLoading || taskBarItems.length === 0) {
     return null;
   }
 
@@ -183,4 +195,4 @@ const TaskBarPluginItems: React.FC = () => {
   );
 };
 
-export default TaskBarPluginItems;
+export default PluginTaskBarExtension;

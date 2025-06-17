@@ -24,7 +24,7 @@ import FileNotExistModal, {
 import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
-import TaskBarPluginItems from '../../../plugins/components/TaskBarPluginItems';
+import PluginTaskBarExtension from '../../../plugins/components/PluginTaskBarExtension';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { cn } from '../../SubComponents/shadcn/lib/utils';
 import DownloadModal from '../Modal/DownloadModal';
@@ -723,7 +723,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         <div className="pl-4 flex items-center">
           {location.pathname.includes('/status') && (
             <div className="mr-4">
-              <TaskBarPluginItems />
+              <PluginTaskBarExtension />
             </div>
           )}
           {/* Portal target for History-specific Remove button */}
