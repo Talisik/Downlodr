@@ -217,7 +217,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
   // Get the max download limit and current downloads from stores
   const { settings } = useMainStore();
-  const { downloading } = useDownloadStore();
+  const { downloading, forDownloads } = useDownloadStore();
 
   // Handling selected downloads
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
@@ -225,6 +225,24 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
   // Add state for the confirmation modal
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
+
+  // Check if any selected downloads are in "to download" status (for Start button)
+  const hasForDownloadStatus = selectedDownloads.some((download) =>
+    forDownloads.some(
+      (fd) => fd.id === download.id && fd.status === 'to download',
+    ),
+  );
+
+  // Check if any selected downloads are in "downloading" or "initializing" status (for Stop button)
+  const hasActiveDownloadStatus = selectedDownloads.some((download) =>
+    downloading.some(
+      (d) =>
+        d.id === download.id &&
+        (d.status === 'downloading' ||
+          d.status === 'initializing' ||
+          d.status === 'paused'),
+    ),
+  );
 
   const handleStopSelected = async () => {
     if (selectedDownloads.length === 0) {
@@ -689,7 +707,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   return (
     <div className="taskbar-container">
       <div className={cn('flex items-center justify-between', className)}>
-        <div className="flex items-center h-full px-2 space-x-2">
+        <div className="flex items-center h-full px-2 space-x-0 md:space-x-2">
           <div className="gap-1 flex">
             <PageNavigation />
 
@@ -697,23 +715,41 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           </div>
 
           <button
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className={cn(
+              'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
+              hasForDownloadStatus
+                ? 'dark:text-gray-100'
+                : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
+            )}
             onClick={handlePlaySelected}
+            disabled={!hasForDownloadStatus}
           >
             {' '}
             <VscPlayCircle size={18} className="mt-[0.9px]" /> Start
           </button>
 
           <button
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className={cn(
+              'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
+              hasActiveDownloadStatus
+                ? 'dark:text-gray-100'
+                : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
+            )}
             onClick={handleStopSelected}
+            disabled={!hasActiveDownloadStatus}
           >
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
           </button>
 
           <button
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+            className={cn(
+              'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
+              hasActiveDownloadStatus
+                ? 'dark:text-gray-100'
+                : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
+            )}
             onClick={() => handleStopAll()}
+            disabled={!hasActiveDownloadStatus}
           >
             {' '}
             <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All

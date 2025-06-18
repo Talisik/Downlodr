@@ -64,7 +64,7 @@ body {
 /*Navigation*/
 
 .nav-link {
-  @apply block w-4/5 text-left px-3 py-2 rounded flex flex-row;
+  @apply block w-4/5 text-left px-2 md:px-3 py-2 rounded flex flex-row;
   font-family: Roboto;
   font-size: 14px;
   font-weight: 600;

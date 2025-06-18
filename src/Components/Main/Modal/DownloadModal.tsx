@@ -503,7 +503,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                     <MdOutlineInfo size={19} color="#A1A1AA" />
                     <div>
                       <p className="text-xs text-[#A1A1AA]">
-                        Please note that Closed Captions and thumbnails may not
+                        Please note that Closed Captions and Thumbnails may not
                         be available for all websites.
                       </p>
                     </div>
