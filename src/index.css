@@ -101,7 +101,7 @@ body {
 
 /* checkboxes */
 
-input[type='checkbox'] {
+input[type='checkbox']:not(.sr-only) {
   appearance: none;
   background-color: white;
   width: 16px;
@@ -113,7 +113,7 @@ input[type='checkbox'] {
   cursor: pointer;
 }
 
-html.dark input[type='checkbox'] {
+html.dark input[type='checkbox']:not(.sr-only) {
   appearance: none;
   background-color: #616163cc;
   width: 16px;
@@ -125,12 +125,12 @@ html.dark input[type='checkbox'] {
   cursor: pointer;
 }
 
-input[type='checkbox']:checked {
+input[type='checkbox']:not(.sr-only):checked {
   background-color: #f45513;
   border-color: #f45513;
 }
 
-input[type='checkbox']:checked::after {
+input[type='checkbox']:not(.sr-only):checked::after {
   content: '';
   position: absolute;
   left: 4px;
@@ -142,12 +142,12 @@ input[type='checkbox']:checked::after {
   transform: rotate(45deg);
 }
 
-html.dark input[type='checkbox']:checked {
+html.dark input[type='checkbox']:not(.sr-only):checked {
   background-color: #f45513;
   border-color: #f45513;
 }
 
-html.dark input[type='checkbox']:checked::after {
+html.dark input[type='checkbox']:not(.sr-only):checked::after {
   content: '';
   position: absolute;
   left: 4px;
@@ -159,7 +159,7 @@ html.dark input[type='checkbox']:checked::after {
   transform: rotate(45deg);
 }
 
-input[type='checkbox']:focus {
+input[type='checkbox']:not(.sr-only):focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(244, 85, 19, 0.2);
 }
