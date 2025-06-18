@@ -102,22 +102,61 @@ body {
 /* checkboxes */
 
 input[type='checkbox'] {
-  accent-color: #f45513;
-  width: 14px;
-  height: 14px;
+  appearance: none;
+  background-color: white;
+  width: 16px;
+  height: 16px;
   border-radius: 4px;
   padding: 1px;
-  background-color: white;
+  border: 1px solid #27272ACC;
+  position: relative;
+  cursor: pointer;
 }
 
 html.dark input[type='checkbox'] {
-  background-color: #09090B !important;
-  border: 1px solid #27272A;
+  appearance: none;
+  background-color: #616163cc;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  padding: 1px;
+  border: 1px solid #27272ACC;
+  position: relative;
+  cursor: pointer;
 }
 
 input[type='checkbox']:checked {
-  background-color: #f45513 !important;
-  border-color: #f45513 !important;
+  background-color: #f45513;
+  border-color: #f45513;
+}
+
+input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1.5px;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+html.dark input[type='checkbox']:checked {
+  background-color: #f45513;
+  border-color: #f45513;
+}
+
+html.dark input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1.5px;
+  width: 5px;
+  height: 9px;
+  border: solid #0e0e0ecc;
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
 }
 
 input[type='checkbox']:focus {

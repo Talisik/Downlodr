@@ -444,6 +444,22 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         id="get-transcript"
                         checked={getTranscript}
                         onChange={(e) => setGetTranscript(e.target.checked)}
+                        style={{
+                          width: 14,
+                          height: 14,
+                          marginBottom: 0.5,
+                          ...(document.documentElement.classList.contains(
+                            'dark',
+                          ) && {
+                            backgroundColor: getTranscript
+                              ? '#D4D4D8'
+                              : '#09090B',
+                            borderColor: getTranscript
+                              ? '#D4D4D8'
+                              : '#27272ACC',
+                            accentColor: '#ffffff',
+                          }),
+                        }}
                         className=""
                       />
                       <label
@@ -459,6 +475,20 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         id="get-thumbnail"
                         checked={getThumbnail}
                         onChange={(e) => setGetThumbnail(e.target.checked)}
+                        style={{
+                          width: 14,
+                          height: 14,
+                          marginBottom: 0.5,
+                          ...(document.documentElement.classList.contains(
+                            'dark',
+                          ) && {
+                            backgroundColor: getThumbnail
+                              ? '#D4D4D8'
+                              : '#09090B',
+                            borderColor: getThumbnail ? '#D4D4D8' : '#27272ACC',
+                            accentColor: '#ffffff',
+                          }),
+                        }}
                         className=""
                       />
                       <label
@@ -495,6 +525,14 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         type="checkbox"
                         checked={selectAll}
                         onChange={handleSelectAll}
+                        style={{
+                          ...(document.documentElement.classList.contains(
+                            'dark',
+                          ) && {
+                            backgroundColor: selectAll ? '#D4D4D8' : '#09090B',
+                            borderColor: selectAll ? '#D4D4D8' : '#27272ACC',
+                          }),
+                        }}
                         className="mr-2"
                       />
                       <label className="dark:text-darkModeLight font-medium">
@@ -512,6 +550,19 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                           type="checkbox"
                           checked={selectedVideos.has(video.id)}
                           onChange={() => handleVideoSelect(video.id)}
+                          style={{
+                            ...(document.documentElement.classList.contains(
+                              'dark',
+                            ) && {
+                              backgroundColor: selectedVideos.has(video.id)
+                                ? '#D4D4D8'
+                                : '#09090B',
+                              borderColor: selectedVideos.has(video.id)
+                                ? '#D4D4D8'
+                                : '#27272ACC',
+                              accentColor: '#ffffff',
+                            }),
+                          }}
                           className="flex-none"
                         />
                         <img

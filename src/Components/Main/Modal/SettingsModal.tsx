@@ -427,6 +427,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         column.required ? null : handleToggleColumn(column.id)
                       }
                       disabled={column.required}
+                      style={{
+                        width: '13.5px',
+                        height: '13.5px',
+                        marginBottom: '0.5px',
+                        marginLeft: '0.5px',
+                        accentColor: '#3b82f6',
+                        transform: 'scale(0.9)',
+                        transformOrigin: 'center',
+                      }}
                       className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500 mr-2"
                     />
                     <label
@@ -450,21 +459,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Button commands */}
-        <hr className="solid mt-2 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
+        <hr className="solid mt-2 mb-3 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
 
         <div className="flex gap-3 p-0">
           <div className="ml-auto flex gap-3">
             <button
               type="button"
               onClick={handleSubmit}
-              className="bg-primary text-white text-sm px-2 py-1 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
+              className="h-8 w-12 bg-primary text-white text-sm px-2 py-1 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
             >
               Okay
             </button>
             <button
               type="button"
               onClick={handleClose}
-              className="px-2 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
+              className="h-8 w-16 px-2 py-1 text-sm border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
             >
               Cancel
             </button>

@@ -1218,7 +1218,15 @@ const StatusSpecificDownloads = () => {
                 <th className="w-6 px-2 py-1">
                   <input
                     type="checkbox"
-                    className="mt-2 ml-2 rounded border-gray-900 dark:border-blue dark:checked:bg-blue-500 dark:bg-darkModeCompliment"
+                    className="mt-2 ml-2 rounded"
+                    style={{
+                      ...(document.documentElement.classList.contains(
+                        'dark',
+                      ) && {
+                        backgroundColor: '#D4D4D8',
+                        borderColor: '#6b7280',
+                      }),
+                    }}
                     checked={selectedRowIds.length === allDownloads.length}
                     onChange={handleSelectAll}
                   />
@@ -1294,7 +1302,7 @@ const StatusSpecificDownloads = () => {
                     <td className="w-8 p-2">
                       <input
                         type="checkbox"
-                        className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
+                        className="ml-2 mt-1 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                         checked={selectedRowIds.includes(download.id)}
                         onChange={() => handleCheckboxChange(download.id)}
                       />
