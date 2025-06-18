@@ -10,6 +10,7 @@
  */
 
 // Interface for download settings
+import { TaskBarButtonsVisibility } from 'src/plugins/types';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
@@ -56,6 +57,10 @@ interface MainStore {
   visibleColumns: string[];
   setVisibleColumns: (columns: string[]) => void;
   updateRunInBackground: (value: boolean) => void;
+  taskBarButtonsVisibility: TaskBarButtonsVisibility; // State for task bar buttons visibility
+  setTaskBarButtonsVisibility: (
+    visibility: Partial<TaskBarButtonsVisibility>,
+  ) => void; // Set the visibility of the task bar buttons
 }
 
 // Create the main store with persistence
@@ -153,6 +158,20 @@ export const useMainStore = create<MainStore>()(
 
       // Set visible columns
       setVisibleColumns: (columns) => set({ visibleColumns: columns }),
+
+      // Default task bar buttons visibility
+      taskBarButtonsVisibility: {
+        start: true,
+        stop: true,
+        stopAll: true,
+      },
+      setTaskBarButtonsVisibility: (visibility) =>
+        set((state) => ({
+          taskBarButtonsVisibility: {
+            ...state.taskBarButtonsVisibility,
+            ...visibility,
+          },
+        })),
     }),
     {
       name: 'download-settings-storage', // Name of the storage

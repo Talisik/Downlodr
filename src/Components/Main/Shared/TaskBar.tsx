@@ -228,7 +228,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
   const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
   // Get the max download limit and current downloads from stores
-  const { settings } = useMainStore();
+  const { settings, taskBarButtonsVisibility } = useMainStore();
   const { downloading } = useDownloadStore();
 
   // Handling selected downloads
@@ -708,28 +708,34 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             <div className="h-6 w-[1.5px] bg-gray-300 dark:bg-gray-600 self-center ml-1 md:ml-3"></div>
           </div>
 
-          <button
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
-            onClick={handlePlaySelected}
-          >
-            {' '}
-            <VscPlayCircle size={18} className="mt-[0.9px]" /> Start
-          </button>
+          {taskBarButtonsVisibility.start && (
+            <button
+              className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+              onClick={handlePlaySelected}
+            >
+              {' '}
+              <VscPlayCircle size={18} className="mt-[0.9px]" /> Start
+            </button>
+          )}
 
-          <button
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
-            onClick={handleStopSelected}
-          >
-            <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
-          </button>
+          {taskBarButtonsVisibility.stop && (
+            <button
+              className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+              onClick={handleStopSelected}
+            >
+              <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
+            </button>
+          )}
 
-          <button
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
-            onClick={() => handleStopAll()}
-          >
-            {' '}
-            <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
-          </button>
+          {taskBarButtonsVisibility.stopAll && (
+            <button
+              className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+              onClick={() => handleStopAll()}
+            >
+              {' '}
+              <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
+            </button>
+          )}
         </div>
 
         <div className="pl-4 flex items-center">

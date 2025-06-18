@@ -62,7 +62,7 @@ export interface BaseDownload {
 }
 
 // Interface for downloads that are currently being processed
-interface ForDownload extends BaseDownload {
+export interface ForDownload extends BaseDownload {
   status: string; // Current status of the download
   downloadStart: boolean; // Indicates if the download has started
   formatId: string; // ID of the selected format

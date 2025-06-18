@@ -4,6 +4,7 @@
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 import { formatFileSize } from '../Pages/StatusSpecificDownload';
 import useDownloadStore from '../Store/downloadStore';
+import { useMainStore } from '../Store/mainStore';
 import { usePluginStore } from '../Store/pluginStore';
 import {
   DownloadAPI,
@@ -193,6 +194,11 @@ export function createPluginAPI(pluginId: string): PluginAPI {
         updateIsOpenPluginSidebar(false);
       }
     },
+
+    setTaskBarButtonsVisibility: (visibility) => {
+      const { setTaskBarButtonsVisibility } = useMainStore.getState();
+      setTaskBarButtonsVisibility(visibility);
+    },
   };
 
   return {
@@ -207,6 +213,10 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
   return {
     registerDownloadSource: (source: any) => {
       // Register a new download source
+    },
+    getAllDownloads: () => {
+      const { downloading, forDownloads } = useDownloadStore.getState();
+      return { downloading, forDownloads };
     },
     getActiveDownloads: () => {
       // Map store downloads to the Download interface expected by plugins
@@ -252,13 +262,253 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
 
       return options.name; // Return ID
     },
-    cancelDownload: async (id: any) => {
-      // Logic to cancel a download
-      return true;
+    cancelDownload: async (id: string) => {
+      const {
+        deleteDownloading,
+        downloading,
+        forDownloads,
+        removeFromForDownloads,
+      } = useDownloadStore.getState();
+
+      try {
+        // Check if given id is a pending download
+        const pendingDownload = forDownloads.find((d) => d.id === id);
+        if (pendingDownload && pendingDownload.status === 'to download') {
+          removeFromForDownloads(id);
+          return true;
+        }
+
+        // Check if given id is an active download
+        const activeDownload = downloading.find((d) => d.id === id);
+        if (activeDownload) {
+          if (activeDownload.status === 'paused') {
+            deleteDownloading(id);
+            return true;
+          } else if (activeDownload.controllerId) {
+            const success = await window.ytdlp.killController(
+              activeDownload.controllerId,
+            );
+            if (success) {
+              deleteDownloading(id);
+              console.log(
+                `Controller with ID ${activeDownload.controllerId} has been terminated.`,
+              );
+              return true;
+            } else {
+              console.error(
+                `Could not stop download with controller ${activeDownload.controllerId}`,
+              );
+              return false;
+            }
+          }
+        }
+
+        // Download not found
+        console.warn(`Download with id ${id} not found`);
+        return false;
+      } catch (error) {
+        console.error(`Error canceling download ${id}:`, error);
+        return false;
+      }
     },
-    pauseDownload: async (id: any) => {
-      // Logic to pause a download
-      return true;
+    stopAllDownloads: async () => {
+      const {
+        deleteDownloading,
+        downloading,
+        forDownloads,
+        removeFromForDownloads,
+      } = useDownloadStore.getState();
+
+      try {
+        // Handle all pending downloads
+        forDownloads.forEach((download) => {
+          if (download.status === 'to download') {
+            removeFromForDownloads(download.id);
+          }
+        });
+
+        console.log('--------------------------------');
+        console.log('Stopping all downloads');
+        console.log({ downloading });
+
+        // Handle all active downloads
+        if (downloading && downloading.length > 0) {
+          for (const download of downloading) {
+            if (download.status === 'paused') {
+              deleteDownloading(download.id);
+            } else if (download.controllerId) {
+              try {
+                const success = await window.ytdlp.killController(
+                  download.controllerId,
+                );
+
+                if (success) {
+                  deleteDownloading(download.id);
+                  console.log(
+                    `Controller with ID ${download.controllerId} has been terminated.`,
+                  );
+                } else {
+                  console.error(
+                    `Could not stop download with controller ${download.controllerId}`,
+                  );
+                }
+              } catch (error) {
+                console.error(
+                  `Error stopping download with controller ${download.controllerId}:`,
+                  error,
+                );
+              }
+            }
+          }
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Error stopping all downloads:', error);
+        return false;
+      }
+    },
+    pauseDownload: async (downloadId?: string) => {
+      const {
+        downloading,
+        deleteDownloading,
+        updateDownloadStatus,
+        addDownload,
+      } = useDownloadStore.getState();
+
+      try {
+        // If no downloadId is provided, find the first item with status 'downloading'
+        const currentDownload =
+          downloadId && downloading.some((d) => d.id === downloadId)
+            ? downloading.find((d) => d.id === downloadId)
+            : downloading.find(
+                (d) => d.status?.trim().toLowerCase() === 'downloading',
+              );
+
+        console.log('--------------------------------');
+        console.log('Pausing download: ', currentDownload);
+
+        if (!currentDownload) {
+          console.warn('No download found to pause');
+          toast({
+            variant: 'destructive',
+            title: 'No Download Found',
+            description: 'No active download found to pause',
+            duration: 3000,
+          });
+          return;
+        }
+
+        // If the download is already paused, resume it
+        if (currentDownload.status === 'paused') {
+          console.log('Resuming paused download:', currentDownload.id);
+
+          addDownload(
+            currentDownload.videoUrl,
+            currentDownload.name,
+            currentDownload.downloadName,
+            currentDownload.size,
+            currentDownload.speed,
+            currentDownload.timeLeft,
+            new Date().toISOString(),
+            currentDownload.progress,
+            currentDownload.location,
+            'downloading',
+            currentDownload.backupExt,
+            currentDownload.backupFormatId,
+            currentDownload.backupAudioExt,
+            currentDownload.backupAudioFormatId,
+            currentDownload.extractorKey,
+            '',
+            currentDownload.automaticCaption,
+            currentDownload.thumbnails,
+            currentDownload.getTranscript || false,
+            currentDownload.getThumbnail || false,
+            currentDownload.duration || 60,
+            false,
+          );
+
+          deleteDownloading(currentDownload.id);
+
+          toast({
+            variant: 'success',
+            title: 'Download Resumed',
+            description: 'Download has been resumed successfully',
+            duration: 3000,
+          });
+          return;
+        }
+
+        // If the download is active and has a controllerId, pause it
+        if (
+          currentDownload &&
+          currentDownload.controllerId
+        ) {
+          console.log('Pausing active download:', currentDownload.id);
+
+          try {
+            updateDownloadStatus(currentDownload.id, 'paused');
+
+            const response = await window.ytdlp.killController(
+              currentDownload.controllerId,
+            );
+
+            if (response) {
+              setTimeout(() => {
+                updateDownloadStatus(currentDownload.id, 'paused');
+              }, 1200);
+
+              toast({
+                variant: 'success',
+                title: 'Download Paused',
+                description: 'Download has been paused successfully',
+                duration: 3000,
+              });
+            } else {
+              updateDownloadStatus(currentDownload.id, 'downloading');
+
+              toast({
+                variant: 'destructive',
+                title: 'Pause Failed',
+                description: 'Failed to pause the download controller',
+                duration: 3000,
+              });
+            }
+          } catch (error) {
+            updateDownloadStatus(currentDownload.id, 'downloading');
+
+            toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: 'Failed to pause/resume download',
+              duration: 3000,
+            });
+
+            console.error('Error in pause operation:', error);
+          }
+          return;
+        }
+
+        // Handle the case where the download doesn't have a valid controllerId
+        console.warn(
+          'Download found but no valid controllerId:',
+          currentDownload,
+        );
+        toast({
+          variant: 'destructive',
+          title: 'Invalid Download',
+          description: 'Download does not have a valid controller ID',
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error('Error in pauseDownload:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'An unexpected error occurred',
+          duration: 3000,
+        });
+      }
     },
     getInfo: async (url: string) => {
       try {
@@ -379,6 +629,10 @@ function createUIAPI(pluginId: string): UIAPI {
           usePluginStore.getState().updateIsOpenPluginSidebar;
         updateIsOpenPluginSidebar(false);
       }
+    },
+    setTaskBarButtonsVisibility: (visibility) => {
+      const { setTaskBarButtonsVisibility } = useMainStore.getState();
+      setTaskBarButtonsVisibility(visibility);
     },
   };
 }

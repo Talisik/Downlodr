@@ -1,3 +1,5 @@
+import { ForDownload } from "src/Store/downloadStore";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface DownlodrPlugin {
   id: string;
@@ -19,10 +21,12 @@ export interface PluginAPI {
 
 export interface DownloadAPI {
   registerDownloadSource: (source: DownloadSource) => void;
+  getAllDownloads: () => any;
   getActiveDownloads: () => Download[];
   addDownload: (url: string, options: DownloadOptions) => Promise<string>;
   cancelDownload?: (id: string) => Promise<boolean>;
-  pauseDownload?: (id: string) => Promise<boolean>;
+  pauseDownload?: (downloadId?: string) => void;
+  stopAllDownloads?: () => Promise<boolean>;
   getInfo: (url: string) => Promise<DownloadInfo>;
 }
 
@@ -45,6 +49,9 @@ export interface UIAPI {
   ) => Promise<PluginModalResult | null>;
   showSaveFileDialog: (options: SaveDialogOptions) => Promise<SaveDialogResult>;
   closePluginPanel: () => void;
+  setTaskBarButtonsVisibility: (
+    visibility: Partial<TaskBarButtonsVisibility>,
+  ) => void;
 }
 
 export interface FormatAPI {
@@ -295,6 +302,9 @@ export interface TaskBarItem {
   enabled?: boolean;
   shortcut?: string;
   data?: Record<string, any>;
+  buttonStyle?: React.CSSProperties | string;
+  iconStyle?: React.CSSProperties | string;
+  labelStyle?: React.CSSProperties | string;
 }
 
 export interface PluginSidePanelOptions {
@@ -421,4 +431,19 @@ export interface TaskBarItemRegistration {
 
   /** Optional additional data for the item */
   data?: Record<string, any>;
+
+  /** Optional button style */
+  buttonStyle?: React.CSSProperties | string;
+
+  /** Optional icon style */
+  iconStyle?: React.CSSProperties | string;
+
+  /** Optional label style */
+  labelStyle?: React.CSSProperties | string;
+}
+
+export interface TaskBarButtonsVisibility {
+  start: boolean;
+  stop: boolean;
+  stopAll: boolean;
 }
