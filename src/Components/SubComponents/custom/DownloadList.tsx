@@ -19,8 +19,7 @@ import useDownloadStore, { BaseDownload } from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { Skeleton } from '../shadcn/components/ui/skeleton';
 import { toast } from '../shadcn/hooks/use-toast';
-import ColumnHeaderContextMenu from './ColumnHeaderContextMenu';
-import DownloadContextMenu, { RenameModal } from './DownloadContextMenu';
+// import { RenameModal } from './DownloadContextMenu';
 import FileNotExistModal, { DownloadItem } from './FileNotExistModal';
 import ResizableHeader from './ResizableColumns/ResizableHeader';
 import { useResizableColumns } from './ResizableColumns/useResizableColumns';
@@ -251,57 +250,68 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   };
 
   const handleCheckboxChange = (downloadId: string) => {
-    // Update local state for UI purposes
-    setSelectedRowIds((prev) =>
-      prev.includes(downloadId)
-        ? prev.filter((id) => id !== downloadId)
-        : [...prev, downloadId],
-    );
+    const newSelected = selectedRowIds.includes(downloadId)
+      ? selectedRowIds.filter((id) => id !== downloadId)
+      : [...selectedRowIds, downloadId];
 
-    // Update the global selected downloads state
-    const download = allDownloads.find((d) => d.id === downloadId);
-    if (download) {
-      const { selectedDownloads, setSelectedDownloads, clearAllSelections } =
-        useMainStore.getState();
+    setSelectedRowIds(newSelected);
 
-      // If already selected, remove it; otherwise add it
-      if (selectedDownloads.some((d) => d.id === downloadId)) {
-        setSelectedDownloads(
-          selectedDownloads.filter((d) => d.id !== downloadId),
-        );
-      } else {
-        setSelectedDownloads([
-          ...selectedDownloads,
-          {
-            download,
-            id: download.id,
-            videoUrl: download.videoUrl,
-            downloadName: download.name,
-            status: download.status,
-          },
-        ]);
-      }
-    }
+    // Create promises for each download
+    const promises = newSelected.map(async (id) => {
+      const download = allDownloads.find((d) => d.id === id);
+      return {
+        id,
+        controllerId: download?.controllerId,
+        videoUrl: download?.videoUrl,
+        downloadName: download?.downloadName,
+        status: download?.status,
+        download: download,
+        location: download?.location
+          ? await window.downlodrFunctions.joinDownloadPath(
+              download.location,
+              download.name,
+            )
+          : undefined,
+      };
+    });
+
+    // Resolve all promises before updating state
+    Promise.all(promises).then((resolvedData) => {
+      useMainStore.getState().setSelectedDownloads(resolvedData);
+    });
   };
 
   const handleSelectAll = () => {
-    if (selectedRowIds.length === allDownloads.length) {
-      setSelectedRowIds([]);
-      // Clear global selection state
-      useMainStore.getState().clearAllSelections();
-    } else {
-      setSelectedRowIds(allDownloads.map((d) => d.id));
-      // Set all downloads in global selection state
-      useMainStore.getState().setSelectedDownloads(
-        allDownloads.map((download) => ({
-          download,
-          id: download.id,
-          videoUrl: download.videoUrl,
-          downloadName: download.name,
-          status: download.status,
-        })),
-      );
-    }
+    const newSelected =
+      selectedRowIds.length === allDownloads.length
+        ? []
+        : allDownloads.map((download) => download.id);
+
+    setSelectedRowIds(newSelected);
+
+    // Create promises for each download
+    const promises = newSelected.map(async (id) => {
+      const download = allDownloads.find((d) => d.id === id);
+      return {
+        id,
+        controllerId: download?.controllerId,
+        videoUrl: download?.videoUrl,
+        downloadName: download?.downloadName,
+        status: download?.status,
+        download: download,
+        location: download?.location
+          ? await window.downlodrFunctions.joinDownloadPath(
+              download.location,
+              download.name,
+            )
+          : undefined,
+      };
+    });
+
+    // Resolve all promises before updating state
+    Promise.all(promises).then((resolvedData) => {
+      useMainStore.getState().setSelectedDownloads(resolvedData);
+    });
   };
 
   // Handlers for column operations
@@ -484,79 +494,212 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   const handleRemove = async (
     downloadLocation?: string,
     downloadId?: string,
+    controllerId?: string,
+    deleteFolder?: boolean,
   ) => {
     if (!downloadLocation || !downloadId) return;
-    try {
-      const success = await window.downlodrFunctions.deleteFile(
-        downloadLocation,
-      );
-      if (success) {
-        deleteDownload(downloadId);
-        setContextMenu(null);
-        toast({
-          variant: 'success',
-          title: 'File Deleted',
-          description: 'File has been deleted successfully',
-          duration: 3000,
-        });
-      }
-    } catch (error) {
-      console.error('Error deleting file:', error);
+
+    // Get the download status
+    const download = downloads.find((d) => d.id === downloadId);
+    if (!download) return;
+
+    // Handle pending downloads
+    if (download.status === 'to download') {
+      deleteDownload(downloadId);
       toast({
-        variant: 'destructive',
-        title: 'Deletion Failed',
-        description: 'Failed to delete file',
+        variant: 'success',
+        title: 'Download Deleted',
+        description: 'Download has been deleted successfully',
         duration: 3000,
       });
+      return;
     }
+
+    // Handle cancelled or paused downloads
+    if (download.status === 'cancelled' || download.status === 'paused') {
+      deleteDownload(downloadId);
+      toast({
+        variant: 'success',
+        title: 'Download Removed',
+        description: `${
+          download.status === 'cancelled' ? 'Cancelled' : 'Paused'
+        } download has been removed successfully`,
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Handle active downloads
+    if (download.status === 'downloading' && controllerId) {
+      try {
+        const success = await window.ytdlp.killController(controllerId);
+        if (!success) {
+          toast({
+            variant: 'destructive',
+            title: 'Stop Download Error',
+            description: `Could not stop download with controller ${controllerId}`,
+            duration: 3000,
+          });
+          return;
+        }
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Stop Download Error',
+          description: `Error stopping download with controller ${controllerId}`,
+          duration: 3000,
+        });
+        return;
+      }
+    }
+
+    try {
+      let success = false;
+
+      if (deleteFolder) {
+        // Get the parent folder path
+        const folderPath = downloadLocation.replace(/(\/|\\)[^/\\]+$/, '');
+        success = await window.downlodrFunctions.deleteFolder(folderPath);
+
+        if (success) {
+          deleteDownload(downloadId);
+          toast({
+            variant: 'success',
+            title: 'Folder Deleted',
+            description:
+              'Folder and its contents have been deleted successfully',
+            duration: 3000,
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description:
+              'Failed to delete folder. It may not exist or be in use.',
+            duration: 3000,
+          });
+        }
+      } else {
+        // Original file deletion logic
+        success = await window.downlodrFunctions.deleteFile(downloadLocation);
+
+        if (success) {
+          deleteDownload(downloadId);
+          toast({
+            variant: 'success',
+            title: 'File Deleted',
+            description: 'File has been deleted successfully',
+            duration: 3000,
+          });
+        } else {
+          // Handle file not found case
+          const downloadItem: DownloadItem = {
+            id: download.id,
+            videoUrl: download.videoUrl,
+            location: downloadLocation,
+            name: download.name,
+            ext: download.ext,
+            downloadName: download.downloadName,
+            extractorKey: download.extractorKey,
+            status: download.status,
+            download: {
+              ...download,
+            },
+          };
+          handleFileNotExistModal(downloadItem);
+        }
+      }
+    } catch (error) {
+      // Handle error case
+      const downloadItem: DownloadItem = {
+        id: download.id,
+        videoUrl: download.videoUrl,
+        location: downloadLocation,
+        name: download.name,
+        ext: download.ext,
+        downloadName: download.downloadName,
+        extractorKey: download.extractorKey,
+        status: download.status,
+        download: {
+          ...download,
+        },
+      };
+      handleFileNotExistModal(downloadItem);
+      console.error('Error deleting:', error);
+    }
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
-  // Add these new state variables for the modal
+  // Add state for file not exist modal
   const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
-  const [missingFile, setMissingFile] = useState<DownloadItem | null>(null);
+  const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
+
+  // Add handleFileNotExistModal function
+  const handleFileNotExistModal = async (downloadItem: DownloadItem) => {
+    setMissingFiles([downloadItem]);
+    setShowFileNotExistModal(true);
+  };
 
   // Update handleViewDownload to check if the file exists
   const handleViewDownload = async (
     downloadLocation?: string,
     downloadId?: string,
   ) => {
+    console.log(downloadLocation, downloadId);
     if (downloadLocation) {
       try {
         const exists = await window.downlodrFunctions.fileExists(
           downloadLocation,
         );
-
         if (exists) {
           window.downlodrFunctions.openVideo(downloadLocation);
         } else {
-          // If file doesn't exist, find the download and show the modal
+          // If the file doesn't exist, find the download and show the modal
           if (downloadId) {
-            const download = allDownloads.find((d) => d.id === downloadId);
+            const download = downloads.find((d) => d.id === downloadId);
             if (download) {
-              // Prepare download item for the modal
+              // Pass the specific download to the modal function
               const downloadItem: DownloadItem = {
                 id: download.id,
                 videoUrl: download.videoUrl,
                 location: downloadLocation,
                 name: download.name,
-                ext: download.ext || '',
-                downloadName: download.name,
-                extractorKey: download.extractorKey || '',
+                ext: download.ext,
+                downloadName: download.downloadName,
+                extractorKey: download.extractorKey,
                 status: download.status,
                 download: {
                   ...download,
                 },
               };
-
-              setMissingFile(downloadItem);
-              setShowFileNotExistModal(true);
+              handleFileNotExistModal(downloadItem);
             }
           } else {
-            // Simple toast if we don't have the download details
+            // In case we don't have the download ID, show a simple toast
+            if (downloadId) {
+              const download = downloads.find((d) => d.id === downloadId);
+              if (download) {
+                // Pass the specific download to the modal function
+                const downloadItem: DownloadItem = {
+                  id: download.id,
+                  videoUrl: download.videoUrl,
+                  location: download.location,
+                  name: download.name,
+                  ext: download.ext,
+                  downloadName: download.downloadName,
+                  extractorKey: download.extractorKey,
+                  status: download.status,
+                  download: {
+                    ...download,
+                  },
+                };
+                handleFileNotExistModal(downloadItem);
+              }
+            }
             toast({
               variant: 'destructive',
               title: 'File Not Found',
-              description: 'The file does not exist at the specified location',
+              description: `The file does not exist at the specified location`,
               duration: 3000,
             });
           }
@@ -579,18 +722,30 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         duration: 3000,
       });
     }
-
-    setContextMenu(null);
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
   // Handles viewing the folder containing the download.
   // downloadLocation - The location of the download file.
   const handleViewFolder = (downloadLocation?: string, filePath?: string) => {
     if (downloadLocation) {
-      window.downlodrFunctions.openFolder(downloadLocation, filePath);
+      // Check if the location contains a comma (indicating old format)
+      if (downloadLocation.includes(',') && !filePath) {
+        const [folderPath, filePathFromString] = downloadLocation.split(',');
+        window.downlodrFunctions.openFolder(folderPath, filePathFromString);
+      } else {
+        // Normal case with separate parameters
+        window.downlodrFunctions.openFolder(downloadLocation, filePath);
+      }
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to open folder',
+        duration: 3000,
+      });
     }
-    // Always close the context menu after clicking
-    setContextMenu(null);
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
   // Enhance drag handlers with better visual cues
@@ -857,20 +1012,27 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                                 >
                                   <FaPlay
                                     className="mr-3 text-green-600 hover:text-green-400 transition-colors duration-200"
-                                    onClick={(e) => {
+                                    onClick={async (e) => {
                                       e.stopPropagation();
                                       handleViewDownload(
-                                        `${download.location}${download.name}`,
+                                        await window.downlodrFunctions.joinDownloadPath(
+                                          download.location,
+                                          download.name,
+                                        ),
+                                        download.id,
                                       );
                                     }}
                                   />
                                   <span
                                     className="hover:text-green-400 transition-colors"
-                                    onClick={(e) => {
+                                    onClick={async (e) => {
                                       e.stopPropagation();
                                       handleViewFolder(
                                         download.location,
-                                        `${download.location}${download.name}`,
+                                        await window.downlodrFunctions.joinDownloadPath(
+                                          download.location,
+                                          download.name,
+                                        ),
                                       );
                                     }}
                                   >
@@ -1035,74 +1197,15 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         </tbody>
       </table>
 
-      {/* Column header context menu */}
-      <ColumnHeaderContextMenu
-        position={{
-          x: columnHeaderContextMenu.x,
-          y: columnHeaderContextMenu.y,
-        }}
-        visible={columnHeaderContextMenu.visible}
-        visibleColumns={visibleColumns}
-        onToggleColumn={handleToggleColumn}
-        onClose={handleCloseColumnHeaderContextMenu}
-        columnOptions={columnMenuOptions}
-      />
-
-      {/* Context menu for download options */}
-      {contextMenu && (
-        <DownloadContextMenu
-          data-context-menu
-          position={{ x: contextMenu.x, y: contextMenu.y }}
-          downloadId={contextMenu.downloadId}
-          downloadName={
-            allDownloads.find((d) => d.id === contextMenu.downloadId)?.name ||
-            ''
-          }
-          onClose={() => setContextMenu(null)}
-          onRemove={() =>
-            handleRemove(contextMenu.downloadLocation, contextMenu.downloadId)
-          }
-          onViewDownload={() =>
-            handleViewDownload(contextMenu.downloadLocation)
-          }
-          onViewFolder={() =>
-            handleViewFolder(
-              contextMenu.downloadLocation?.split(',')[0],
-              contextMenu.downloadLocation,
-            )
-          }
-          onAddTag={addTag}
-          onRemoveTag={removeTag}
-          onAddCategory={addCategory}
-          onRemoveCategory={removeCategory}
-          availableTags={availableTags}
-          availableCategories={availableCategories}
-          controllerId={contextMenu.controllerId}
-          onRename={handleRename}
-          // Empty functions for required props
-          onPause={() => {
-            /* hello */
-          }}
-          onStop={() => {
-            /* hello */
-          }}
-          onForceStart={() => {
-            /* hello */
-          }}
-          currentTags={[]}
-          currentCategories={[]}
-        />
-      )}
-
-      {/* Add the FileNotExistModal component */}
+      {/* Add FileNotExistModal */}
       <FileNotExistModal
         isOpen={showFileNotExistModal}
         onClose={() => setShowFileNotExistModal(false)}
-        selectedDownloads={missingFile ? [missingFile] : []}
-        download={missingFile}
+        selectedDownloads={missingFiles}
+        download={missingFiles.length === 1 ? missingFiles[0] : null}
       />
 
-      {/* Add the RenameModal */}
+      {/* Add the RenameModal 
       <RenameModal
         isOpen={showRenameModal}
         onClose={() => {
@@ -1113,6 +1216,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         onRename={performRename}
         currentName={renameCurrentName}
       />
+      */}
     </div>
   );
 };

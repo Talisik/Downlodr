@@ -247,7 +247,9 @@ const Navigation = ({
       } relative overflow-x-hidden`}
     >
       <div
-        className={`${collapsed ? 'px-1' : 'p-2 ml-2'} mt-2 space-y-2 pb-20`}
+        className={`${
+          collapsed ? 'px-1' : 'p-2 ml-0 md:ml-2'
+        } mt-2 space-y-2 pb-20`}
       >
         {/* Status Section */}
         <div>

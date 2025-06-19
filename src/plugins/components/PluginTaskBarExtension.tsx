@@ -5,13 +5,14 @@ import {
   TooltipTrigger,
 } from '../../Components/SubComponents/shadcn/components/ui/tooltip';
 import { useToast } from '../../Components/SubComponents/shadcn/hooks/use-toast';
+import { cn } from '../../Components/SubComponents/shadcn/lib/utils';
 import { useMainStore } from '../../Store/mainStore';
 import { usePluginState } from '../Hooks/usePluginState';
 import { TaskBarItem } from '../types';
 
-// Using the global TaskBarItem interface instead of redefining it
-const TaskBarPluginItems: React.FC = () => {
+const PluginTaskBarExtension: React.FC = () => {
   const [taskBarItems, setTaskBarItems] = useState<TaskBarItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const enabledPlugins = usePluginState();
   const { selectedDownloads } = useMainStore();
   const { toast } = useToast();
@@ -21,8 +22,10 @@ const TaskBarPluginItems: React.FC = () => {
   const isSvgString = (str: string): boolean => {
     return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
   };
+
   const fetchTaskBarItems = async () => {
     try {
+      setIsLoading(true);
       // Get taskbar items from plugin registry
       const items = await window.plugins.getTaskBarItems();
 
@@ -48,13 +51,36 @@ const TaskBarPluginItems: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch taskbar items:', error);
       setTaskBarItems([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Listen for plugins ready event
   useEffect(() => {
+    const handlePluginsReady = () => {
+      fetchTaskBarItems();
+    };
+
+    window.addEventListener('pluginsReady', handlePluginsReady);
+
+    // Initial fetch
     fetchTaskBarItems();
 
-    // Set up listener for plugin reloaded events
+    return () => {
+      window.removeEventListener('pluginsReady', handlePluginsReady);
+    };
+  }, []);
+
+  // Handle plugin state changes
+  useEffect(() => {
+    if (!isLoading) {
+      fetchTaskBarItems();
+    }
+  }, [enabledPlugins]);
+
+  // Set up plugin reload listener
+  useEffect(() => {
     const unsubscribe = window.plugins.onReloaded(() => {
       fetchTaskBarItems();
     });
@@ -62,9 +88,9 @@ const TaskBarPluginItems: React.FC = () => {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [enabledPlugins]);
+  }, []);
 
-  if (taskBarItems.length === 0) {
+  if (isLoading || taskBarItems.length === 0) {
     return null;
   }
 
@@ -142,11 +168,11 @@ const TaskBarPluginItems: React.FC = () => {
                 aria-label={item.label}
               >
                 {item.icon && (
-                  <span className="inline-flex items-center justify-center w-3 h-3 mt-1 flex-shrink-0">
+                  <span className="inline-flex items-center justify-center w-4 h-4 flex-shrink-0">
                     {typeof item.icon === 'string' && isSvgString(item.icon) ? (
                       <span
                         dangerouslySetInnerHTML={{ __html: item.icon }}
-                        className="text-black dark:text-white [&>svg]:w-3 [&>svg]:h-3 [&>svg]:fill-current"
+                        className="text-black dark:text-white [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-none [&>svg]:stroke-current"
                       />
                     ) : (
                       <span className="text-black dark:text-white">
@@ -155,7 +181,11 @@ const TaskBarPluginItems: React.FC = () => {
                     )}
                   </span>
                 )}
-                <span className="hidden lg:inline text-sm">{item.label}</span>{' '}
+                <span
+                  className={cn('text-sm', item.icon && 'hidden lg:inline')}
+                >
+                  {item.label}
+                </span>{' '}
               </button>
             </TooltipTrigger>
           </Tooltip>
@@ -165,4 +195,4 @@ const TaskBarPluginItems: React.FC = () => {
   );
 };
 
-export default TaskBarPluginItems;
+export default PluginTaskBarExtension;

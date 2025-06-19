@@ -13,9 +13,9 @@ import { IoMdClose } from 'react-icons/io';
 import { IoChevronDownOutline } from 'react-icons/io5';
 import {
   Tabs,
+  TabsContent,
   TabsList,
   TabsTrigger,
-  TabsContent,
 } from '../../SubComponents/shadcn/components/ui/tabs';
 
 interface HelpModalProps {
@@ -78,8 +78,8 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
         }
       }}
     >
-      <div className="bg-white dark:bg-darkMode rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto relative">
-        <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-darkMode z-10">
+      <div className="bg-white dark:bg-darkModeDropdown rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto relative">
+        <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-darkModeDropdown z-10">
           <h2 className="text-xl font-semibold dark:text-white pl-2 pt-1">
             Help Guide
           </h2>

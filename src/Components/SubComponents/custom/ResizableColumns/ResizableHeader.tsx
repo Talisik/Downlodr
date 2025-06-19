@@ -52,10 +52,10 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
 }) => {
   return (
     <th
-      className={`relative px-2 font-semibold dark:text-gray-200 select-none${
+      className={`relative pl-2 font-semibold dark:text-gray-200 select-none${
         isDragging ? 'opacity-50 bg-blue-100 dark:bg-blue-900' : ''
       } ${isDragOver ? 'border-l-2 border-blue-500' : ''} ${className}`}
-      style={{ width: `${width}px` }}
+      style={{ width: `${width}px`, minWidth: `${width}px` }}
       onDragOver={(e) => {
         if (index !== undefined && onDragOver) {
           e.preventDefault();
@@ -85,7 +85,7 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
       {/* Resize handle - not draggable, only show if not the last column */}
       {!isLastColumn && (
         <div
-          className="absolute right-0 top-0 h-full w-6 cursor-col-resize hover:bg-blue-500/20 group -mr-3"
+          className="absolute right-0 top-0 h-full w-4 cursor-col-resize hover:bg-blue-500/20 group -mr-3"
           onMouseDown={(e) => {
             // Prevent drag start when trying to resize
             e.stopPropagation();
@@ -93,7 +93,7 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
           }}
           draggable={false}
         >
-          <div className="absolute right-[7px] mt-1 h-4/5 w-[2px] bg-gray-300 dark:bg-darkModeBorderColor group-hover:bg-blue-500  justify-center" />
+          <div className="absolute right-[9px] mt-1 h-4/5 w-[2px] bg-gray-300 dark:bg-darkModeBorderColor group-hover:bg-blue-500 justify-center" />
         </div>
       )}
     </th>

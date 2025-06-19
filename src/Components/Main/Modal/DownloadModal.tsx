@@ -19,6 +19,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { MdOutlineInfo } from 'react-icons/md';
+import { Button } from '../../../Components/SubComponents/shadcn/components/ui/button';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
@@ -376,8 +377,8 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
           isValidUrl && isPlaylist ? 'w-full max-w-[800px]' : 'w-full max-w-xl'
         }`}
       >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold dark:text-darkModeLight">
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-semibold dark:text-darkModeLight mb-4">
             {isPlaylist ? 'Playlist Download' : 'New Download'}
           </h2>
           <button
@@ -393,10 +394,10 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
             <form onSubmit={(e) => e.preventDefault()} className={'w-full'}>
               <div className="space-y-4">
                 <div>
-                  <label className="block dark:text-darkModeLight font-medium">
+                  <label className="block dark:text-darkModeLight">
                     Download link
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-1.5">
                     <input
                       ref={inputRef}
                       type="text"
@@ -408,30 +409,30 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         e.preventDefault();
                         window.downlodrFunctions.showInputContextMenu();
                       }}
-                      className="flex-1 border rounded-md px-3 py-2 dark:text-black outline-none dark:border-transparent"
+                      className="dark:text-darkModeLight flex-1 border rounded-md px-3 py-2 dark:text-black outline-none dark:border-[#27272ACC] dark:bg-[#09090B]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block dark:text-darkModeLight font-medium">
+                  <label className="block dark:text-darkModeLight">
                     Save file to
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-1.5">
                     <input
                       type="text"
                       // disabled={isValidUrl}
                       value={downloadFolder}
                       onClick={handleDirectory}
                       placeholder="Download Destination Folder"
-                      className="flex-1 border rounded-md px-3 py-2 dark:text-black outline-none dark:border-transparent"
+                      className="dark:text-darkModeLight flex-1 border rounded-md px-3 py-2 dark:text-black outline-none dark:border-[#27272ACC] dark:bg-[#09090B]"
                       readOnly
                     />
                   </div>
                 </div>
                 <div className="">
                   <div className="flex items-center gap-2">
-                    <label className="block dark:text-darkModeLight text-nowrap font-bold">
+                    <label className="block dark:text-darkModeLight text-nowrap font-medium">
                       Additional Options
                     </label>
                     <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
@@ -443,7 +444,23 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         id="get-transcript"
                         checked={getTranscript}
                         onChange={(e) => setGetTranscript(e.target.checked)}
-                        className="w-4 h-4 text-primary rounded focus:ring-primary"
+                        style={{
+                          width: 14,
+                          height: 14,
+                          marginBottom: 0.5,
+                          ...(document.documentElement.classList.contains(
+                            'dark',
+                          ) && {
+                            backgroundColor: getTranscript
+                              ? '#D4D4D8'
+                              : '#09090B',
+                            borderColor: getTranscript
+                              ? '#D4D4D8'
+                              : '#27272ACC',
+                            accentColor: '#ffffff',
+                          }),
+                        }}
+                        className=""
                       />
                       <label
                         htmlFor="get-transcript"
@@ -458,7 +475,21 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         id="get-thumbnail"
                         checked={getThumbnail}
                         onChange={(e) => setGetThumbnail(e.target.checked)}
-                        className="w-4 h-4 text-primary rounded focus:ring-primary"
+                        style={{
+                          width: 14,
+                          height: 14,
+                          marginBottom: 0.5,
+                          ...(document.documentElement.classList.contains(
+                            'dark',
+                          ) && {
+                            backgroundColor: getThumbnail
+                              ? '#D4D4D8'
+                              : '#09090B',
+                            borderColor: getThumbnail ? '#D4D4D8' : '#27272ACC',
+                            accentColor: '#ffffff',
+                          }),
+                        }}
+                        className=""
                       />
                       <label
                         htmlFor="get-thumbnail"
@@ -468,11 +499,11 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                       </label>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-4">
-                    <MdOutlineInfo size={20} />
+                  <div className="flex items-center gap-1.5 mt-4">
+                    <MdOutlineInfo size={19} color="#A1A1AA" />
                     <div>
-                      <p className="text-xs">
-                        Please note that Closed Captions and thumbnails may not
+                      <p className="text-xs text-[#A1A1AA]">
+                        Please note that Closed Captions and Thumbnails may not
                         be available for all websites.
                       </p>
                     </div>
@@ -494,6 +525,14 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         type="checkbox"
                         checked={selectAll}
                         onChange={handleSelectAll}
+                        style={{
+                          ...(document.documentElement.classList.contains(
+                            'dark',
+                          ) && {
+                            backgroundColor: selectAll ? '#D4D4D8' : '#09090B',
+                            borderColor: selectAll ? '#D4D4D8' : '#27272ACC',
+                          }),
+                        }}
                         className="mr-2"
                       />
                       <label className="dark:text-darkModeLight font-medium">
@@ -511,6 +550,19 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                           type="checkbox"
                           checked={selectedVideos.has(video.id)}
                           onChange={() => handleVideoSelect(video.id)}
+                          style={{
+                            ...(document.documentElement.classList.contains(
+                              'dark',
+                            ) && {
+                              backgroundColor: selectedVideos.has(video.id)
+                                ? '#D4D4D8'
+                                : '#09090B',
+                              borderColor: selectedVideos.has(video.id)
+                                ? '#D4D4D8'
+                                : '#27272ACC',
+                              accentColor: '#ffffff',
+                            }),
+                          }}
                           className="flex-none"
                         />
                         <img
@@ -536,22 +588,20 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         </div>
         <hr className="solid mt-4 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
 
-        <div className="bg-[#FEF9F4] dark:dark:bg-darkMode flex gap-3 justify-end -mx-6 px-4 py-2 rounded-b-md">
-          <button
-            type="button"
+        <div className="bg-[#FEF9F4] dark:bg-darkMode flex gap-3 justify-end -mx-6 px-4 py-3 rounded-b-md">
+          <Button
             onClick={handleClose}
-            className="px-2 py-2 rounded-md hover:bg-gray-50 dark:bg-darkModeCompliment dark:text-darkModeLight dark:hover:bg-darkModeHover dark:hover:text-white font-medium"
+            className="h-8 px-2 py-0.5 rounded-md hover:bg-gray-50 dark:bg-darkModeCompliment dark:text-darkModeLight dark:hover:bg-darkModeHover dark:hover:text-white font-medium"
           >
             Cancel
-          </button>
-          <button
-            type="button"
-            className="bg-primary text-white px-2 py-2 rounded-md hover:bg-primary/90 cursor-pointer"
+          </Button>
+          <Button
+            className="h-8 px-2 py-0.5 bg-primary dark:bg-primary dark:text-darkModeLight  dark:hover:bg-primary/90 text-white rounded-md hover:bg-primary/90 cursor-pointer"
             disabled={!isValidUrl}
             onClick={handleDownload}
           >
             Fetch Download
-          </button>
+          </Button>
         </div>
       </div>
     </div>

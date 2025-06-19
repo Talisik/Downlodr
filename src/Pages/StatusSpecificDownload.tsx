@@ -13,17 +13,23 @@ import { VscPlayCircle } from 'react-icons/vsc';
 import { useParams } from 'react-router-dom';
 import ColumnHeaderContextMenu from '../Components/SubComponents/custom/ColumnHeaderContextMenu';
 import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
-import DownloadContextMenu, {
+/*import DownloadContextMenu, {
+  ConfirmModal as RemoveModal,
   RenameModal,
-} from '../Components/SubComponents/custom/DownloadContextMenu';
+  StopModal,
+} from '../Components/SubComponents/custom/DownloadContextMenu'; */
+import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
 import ExpandedDownloadDetails from '../Components/SubComponents/custom/ExpandedDownloadDetail';
 import FileNotExistModal, {
   DownloadItem,
 } from '../Components/SubComponents/custom/FileNotExistModal';
 import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
 import { AnimatedCircularProgressBar } from '../Components/SubComponents/custom/RadialProgress';
+import RemoveModal from '../Components/SubComponents/custom/RemoveModal';
+import RenameModal from '../Components/SubComponents/custom/RenameModal';
 import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
 import { useResizableColumns } from '../Components/SubComponents/custom/ResizableColumns/useResizableColumns';
+import StopModal from '../Components/SubComponents/custom/StopModal';
 import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 import useDownloadStore from '../Store/downloadStore';
@@ -98,7 +104,6 @@ const calculateContextMenuPosition = (
   const scrollX = window.scrollX || window.pageXOffset;
   const scrollY = window.scrollY || window.pageYOffset;
   const margin = 10; // Margin from viewport edges
-
   let x = clientX;
   let y = clientY;
 
@@ -201,12 +206,12 @@ const StatusSpecificDownloads = () => {
     dragOverIndex,
   } = useResizableColumns(
     [
-      { id: 'name', width: 110, minWidth: 110 },
-      { id: 'size', width: 90, minWidth: 90 },
-      { id: 'format', width: 80, minWidth: 80 },
+      { id: 'name', width: 100, minWidth: 100 },
+      { id: 'size', width: 65, minWidth: 65 },
+      { id: 'format', width: 90, minWidth: 90 },
       { id: 'status', width: 110, minWidth: 110 },
-      { id: 'speed', width: 70, minWidth: 70 },
-      { id: 'dateAdded', width: 100, minWidth: 100 },
+      { id: 'speed', width: 100, minWidth: 100 },
+      { id: 'dateAdded', width: 110, minWidth: 110 },
       { id: 'transcript', width: 20, minWidth: 20 },
       { id: 'thumbnail', width: 10, minWidth: 10 },
       { id: 'source', width: 20, minWidth: 20 },
@@ -353,13 +358,6 @@ const StatusSpecificDownloads = () => {
     if (missing.length > 0) {
       setMissingFiles(missing);
       setShowFileNotExistModal(true);
-    } else {
-      toast({
-        variant: 'default',
-        title: 'All Files Exist',
-        description: 'All selected files exist at their locations',
-        duration: 3000,
-      });
     }
   };
 
@@ -456,6 +454,28 @@ const StatusSpecificDownloads = () => {
     };
   }, []);
 
+  const getMenuItemCount = (downloadStatus: string, pluginCount: number) => {
+    // Base items for each status (adjust as needed for your menu)
+    let baseCount = 0;
+    switch (downloadStatus) {
+      case 'finished':
+        baseCount = 5; // Play, View Folder, Remove, Tags, Category
+        break;
+      case 'to download':
+        baseCount = 6; // Start, View Folder, Rename, Remove, Tags, Category
+        break;
+      case 'paused':
+      case 'downloading':
+      case 'initializing':
+        baseCount = 5; // View Folder, Pause/Start, Stop, Tags, Category
+        break;
+      default:
+        baseCount = 5;
+    }
+    // Plugins: if <=4, add all; if >4, add just 1 for the Plugins button
+    return baseCount + (pluginCount > 4 ? 1 : pluginCount);
+  };
+
   const handleContextMenu = async (
     event: React.MouseEvent,
     allDownloads: any,
@@ -480,7 +500,30 @@ const StatusSpecificDownloads = () => {
     const downloadId = allDownloads.id;
     const downloadStatus = allDownloads.status;
     const controllerId = allDownloads.controllerId;
-    const position = calculateContextMenuPosition(event.clientX, event.clientY);
+
+    // Get plugin count from the window.plugins API
+    const pluginCount = await window.plugins
+      .getMenuItems('download-context')
+      .then((items) => items.length);
+
+    // Calculate menu height
+    const itemHeight = 40; // px
+    const menuItemCount = getMenuItemCount(downloadStatus, pluginCount);
+    const menuHeight = menuItemCount * itemHeight;
+    const margin = 10;
+
+    // Calculate Y position
+    let y = event.clientY;
+    if (y + menuHeight > window.innerHeight - margin) {
+      y = Math.max(margin, window.innerHeight - menuHeight - margin);
+    }
+
+    // Calculate X position (keep your existing logic or use calculateContextMenuPosition for X)
+    let x = event.clientX;
+    const menuWidth = 220;
+    if (x + menuWidth > window.innerWidth - margin) {
+      x = Math.max(margin, window.innerWidth - menuWidth - margin);
+    }
 
     // Pre-fetch the download location to avoid async issues in timeout
     const downloadLocation = await window.downlodrFunctions.joinDownloadPath(
@@ -505,8 +548,8 @@ const StatusSpecificDownloads = () => {
           // Batch all state updates together
           setContextMenu({
             downloadId,
-            x: position.x,
-            y: position.y,
+            x,
+            y,
             downloadLocation,
             downloadStatus,
             controllerId,
@@ -522,8 +565,8 @@ const StatusSpecificDownloads = () => {
       // If no menu is open, show immediately (no blink)
       setContextMenu({
         downloadId,
-        x: position.x,
-        y: position.y,
+        x,
+        y,
         downloadLocation,
         downloadStatus,
         controllerId,
@@ -535,11 +578,14 @@ const StatusSpecificDownloads = () => {
   //Context Menu actons
   const handlePause = (downloadId: string, downloadLocation?: string) => {
     // Get fresh state each time
+    console.log('hello pause');
     const { downloading, deleteDownloading } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
     const { updateDownloadStatus } = useDownloadStore.getState();
 
     if (currentDownload?.status === 'paused') {
+      console.log('hello pause yes');
+
       const { addDownload } = useDownloadStore.getState();
       addDownload(
         currentDownload.videoUrl,
@@ -573,7 +619,10 @@ const StatusSpecificDownloads = () => {
         duration: 3000,
       });
     } else if (currentDownload && currentDownload.controllerId != '---') {
+      console.log('hello pause no>');
+
       try {
+        updateDownloadStatus(downloadId, 'paused');
         window.ytdlp
           .killController(currentDownload.controllerId)
           .then((response: { success: boolean; error?: string }) => {
@@ -780,7 +829,10 @@ const StatusSpecificDownloads = () => {
 
     // Get the download status
     const download = allDownloads.find((d) => d.id === downloadId);
-    if (download?.status === 'to download') {
+    if (!download) return;
+
+    // Handle pending downloads
+    if (download.status === 'to download') {
       deleteDownload(downloadId);
       toast({
         variant: 'success',
@@ -789,6 +841,44 @@ const StatusSpecificDownloads = () => {
         duration: 3000,
       });
       return;
+    }
+
+    // Handle cancelled or paused downloads
+    if (download.status === 'cancelled' || download.status === 'paused') {
+      deleteDownload(downloadId);
+      toast({
+        variant: 'success',
+        title: 'Download Removed',
+        description: `${
+          download.status === 'cancelled' ? 'Cancelled' : 'Paused'
+        } download has been removed successfully`,
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Handle active downloads
+    if (download.status === 'downloading' && controllerId) {
+      try {
+        const success = await window.ytdlp.killController(controllerId);
+        if (!success) {
+          toast({
+            variant: 'destructive',
+            title: 'Stop Download Error',
+            description: `Could not stop download with controller ${controllerId}`,
+            duration: 3000,
+          });
+          return;
+        }
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Stop Download Error',
+          description: `Error stopping download with controller ${controllerId}`,
+          duration: 3000,
+        });
+        return;
+      }
     }
 
     try {
@@ -831,42 +921,38 @@ const StatusSpecificDownloads = () => {
           });
         } else {
           // Handle file not found case
-          if (download) {
-            const downloadItem: DownloadItem = {
-              id: download.id,
-              videoUrl: download.videoUrl,
-              location: downloadLocation,
-              name: download.name,
-              ext: download.ext,
-              downloadName: download.downloadName,
-              extractorKey: download.extractorKey,
-              status: download.status,
-              download: {
-                ...download,
-              },
-            };
-            handleFileNotExistModal(downloadItem);
-          }
+          const downloadItem: DownloadItem = {
+            id: download.id,
+            videoUrl: download.videoUrl,
+            location: downloadLocation,
+            name: download.name,
+            ext: download.ext,
+            downloadName: download.downloadName,
+            extractorKey: download.extractorKey,
+            status: download.status,
+            download: {
+              ...download,
+            },
+          };
+          handleFileNotExistModal(downloadItem);
         }
       }
     } catch (error) {
       // Handle error case
-      if (download) {
-        const downloadItem: DownloadItem = {
-          id: download.id,
-          videoUrl: download.videoUrl,
-          location: downloadLocation,
-          name: download.name,
-          ext: download.ext,
-          downloadName: download.downloadName,
-          extractorKey: download.extractorKey,
-          status: download.status,
-          download: {
-            ...download,
-          },
-        };
-        handleFileNotExistModal(downloadItem);
-      }
+      const downloadItem: DownloadItem = {
+        id: download.id,
+        videoUrl: download.videoUrl,
+        location: downloadLocation,
+        name: download.name,
+        ext: download.ext,
+        downloadName: download.downloadName,
+        extractorKey: download.extractorKey,
+        status: download.status,
+        download: {
+          ...download,
+        },
+      };
+      handleFileNotExistModal(downloadItem);
       console.error('Error deleting:', error);
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
@@ -1060,6 +1146,19 @@ const StatusSpecificDownloads = () => {
   const [renameDownloadId, setRenameDownloadId] = useState<string>('');
   const [renameCurrentName, setRenameCurrentName] = useState<string>('');
 
+  // Add remove modal state
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [removeDownloadId, setRemoveDownloadId] = useState<string>('');
+  const [removeDownloadLocation, setRemoveDownloadLocation] =
+    useState<string>('');
+  const [removeControllerId, setRemoveControllerId] = useState<string>('');
+
+  // Add stop modal state
+  const [showStopModal, setShowStopModal] = useState(false);
+  const [stopDownloadId, setStopDownloadId] = useState<string>('');
+  const [stopDownloadLocation, setStopDownloadLocation] = useState<string>('');
+  const [stopControllerId, setStopControllerId] = useState<string>('');
+
   // Get renameDownload function from store
   const renameDownload = useDownloadStore((state) => state.renameDownload);
 
@@ -1070,12 +1169,59 @@ const StatusSpecificDownloads = () => {
     setShowRenameModal(true);
   };
 
+  // Add remove handler
+  const handleShowRemoveModal = (
+    downloadId: string,
+    downloadLocation?: string,
+    controllerId?: string,
+  ) => {
+    setRemoveDownloadId(downloadId);
+    setRemoveDownloadLocation(downloadLocation || '');
+    setRemoveControllerId(controllerId || '');
+    setShowRemoveModal(true);
+  };
+
+  // Add stop handler
+  const handleShowStopModal = (
+    downloadId: string,
+    downloadLocation?: string,
+    controllerId?: string,
+  ) => {
+    setStopDownloadId(downloadId);
+    setStopDownloadLocation(downloadLocation || '');
+    setStopControllerId(controllerId || '');
+    setShowStopModal(true);
+  };
+
   // Add function to perform the rename
   const performRename = (newName: string) => {
     renameDownload(renameDownloadId, newName);
     setShowRenameModal(false);
     setRenameDownloadId('');
     setRenameCurrentName('');
+  };
+
+  // Add function to perform the remove
+  const performRemove = (deleteFolder?: boolean) => {
+    handleRemove(
+      removeDownloadLocation,
+      removeDownloadId,
+      removeControllerId,
+      deleteFolder,
+    );
+    setShowRemoveModal(false);
+    setRemoveDownloadId('');
+    setRemoveDownloadLocation('');
+    setRemoveControllerId('');
+  };
+
+  // Add function to perform the stop
+  const performStop = () => {
+    handleStop(stopDownloadId, stopDownloadLocation, stopControllerId);
+    setShowStopModal(false);
+    setStopDownloadId('');
+    setStopDownloadLocation('');
+    setStopControllerId('');
   };
 
   // Update click outside handler to clean up timeouts
@@ -1129,16 +1275,24 @@ const StatusSpecificDownloads = () => {
       {/* Table container with scrolling */}
       <div className="flex-grow overflow-auto">
         <div className="min-w-full">
-          <table className="min-w-full">
+          <table className="min-w-full table-fixed">
             <thead className="dark:bg-darkModeCompliment">
               <tr
                 className="border-b border-t text-left dark:border-darkModeBorderColor"
                 onContextMenu={handleColumnHeaderContextMenu}
               >
-                <th className="w-8 p-2">
+                <th className="w-6 px-2 py-1">
                   <input
                     type="checkbox"
-                    className="ml-2 rounded border-gray-900 dark:border-blue dark:checked:bg-blue-500"
+                    className="mt-2 ml-2 rounded"
+                    style={{
+                      ...(document.documentElement.classList.contains(
+                        'dark',
+                      ) && {
+                        backgroundColor: '#D4D4D8',
+                        borderColor: '#6b7280',
+                      }),
+                    }}
                     checked={selectedRowIds.length === allDownloads.length}
                     onChange={handleSelectAll}
                   />
@@ -1148,7 +1302,7 @@ const StatusSpecificDownloads = () => {
                     return (
                       <th
                         key={column.id}
-                        className="w-20 p-2 font-semibold"
+                        className="w-18 p-2 font-semibold"
                       ></th>
                     );
                   }
@@ -1173,7 +1327,7 @@ const StatusSpecificDownloads = () => {
                       isLastColumn={displayIndex === displayColumns.length - 1}
                     >
                       <div
-                        className="flex items-center cursor-pointer"
+                        className="flex items-center cursor-pointer whitespace-nowrap"
                         onClick={() => handleSortClick(column.id)}
                       >
                         {getColumnDisplayName(column.id)}
@@ -1214,7 +1368,7 @@ const StatusSpecificDownloads = () => {
                     <td className="w-8 p-2">
                       <input
                         type="checkbox"
-                        className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
+                        className="ml-2 mt-1 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                         checked={selectedRowIds.includes(download.id)}
                         onChange={() => handleCheckboxChange(download.id)}
                       />
@@ -1413,7 +1567,7 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200 ml-2"
+                              className="p-2 dark:text-gray-200"
                             >
                               {download.status === 'downloading' ? (
                                 <span className="whitespace-nowrap overflow-hidden">
@@ -1488,7 +1642,7 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200 ml-2"
+                              className="p-2 dark:text-gray-200"
                             >
                               {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1 flex justify-center items-center">
@@ -1500,7 +1654,10 @@ const StatusSpecificDownloads = () => {
                                   <span>—</span>
                                 </div>
                               ) : download.autoCaptionLocation === undefined ? (
-                                <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center">
+                                <span
+                                  className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center
+"
+                                >
                                   Not available
                                 </span>
                               ) : (
@@ -1593,6 +1750,8 @@ const StatusSpecificDownloads = () => {
             ''
           }
           onRename={handleRename}
+          onShowRemoveModal={handleShowRemoveModal}
+          onShowStopModal={handleShowStopModal}
         />
       )}
 
@@ -1624,6 +1783,33 @@ const StatusSpecificDownloads = () => {
         }}
         onRename={performRename}
         currentName={renameCurrentName}
+      />
+
+      {/* Add the RemoveModal */}
+      <RemoveModal
+        isOpen={showRemoveModal}
+        onClose={() => {
+          setShowRemoveModal(false);
+          setRemoveDownloadId('');
+          setRemoveDownloadLocation('');
+          setRemoveControllerId('');
+        }}
+        onConfirm={performRemove}
+        message="Are you sure you want to remove this download?"
+        allowFolderDeletion={true}
+      />
+
+      {/* Add the StopModal */}
+      <StopModal
+        isOpen={showStopModal}
+        onClose={() => {
+          setShowStopModal(false);
+          setStopDownloadId('');
+          setStopDownloadLocation('');
+          setStopControllerId('');
+        }}
+        onConfirm={performStop}
+        message="Are you sure you want to stop this download?"
       />
     </div>
   );
