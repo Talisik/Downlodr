@@ -149,6 +149,12 @@ contextBridge.exposeInMainWorld('appControl', {
   offClipboardChange: () => {
     ipcRenderer.removeAllListeners('clipboard-changed');
   },
+  startClipboardMonitoring: () =>
+    ipcRenderer.invoke('start-clipboard-monitoring'),
+  stopClipboardMonitoring: () =>
+    ipcRenderer.invoke('stop-clipboard-monitoring'),
+  isClipboardMonitoringActive: () =>
+    ipcRenderer.invoke('is-clipboard-monitoring-active'),
 });
 
 // Change this from a separate exposure to include both functions

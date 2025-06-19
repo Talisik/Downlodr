@@ -25,6 +25,7 @@ const ClipboardLinkDetector: React.FC = () => {
     settings.defaultDownloadSpeed === 0
       ? ''
       : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
+
   // Debug: Log settings on component mount
   useEffect(() => {
     console.log('ClipboardLinkDetector mounted, settings:', {
@@ -58,6 +59,7 @@ const ClipboardLinkDetector: React.FC = () => {
     (clipboardText: string) => {
       // Check if clipboard monitoring is enabled
       if (!settings.enableClipboardMonitoring) {
+        console.log('Clipboard monitoring disabled, ignoring change');
         return;
       }
 
@@ -115,7 +117,13 @@ const ClipboardLinkDetector: React.FC = () => {
         isProcessing.current = false;
       }
     },
-    [toast, settings.enableClipboardMonitoring],
+    [
+      toast,
+      settings.enableClipboardMonitoring,
+      setDownload,
+      downloadFolder,
+      maxDownload,
+    ],
   );
 
   // Fallback clipboard check using browser API (with debouncing)
@@ -197,32 +205,85 @@ const ClipboardLinkDetector: React.FC = () => {
     [checkClipboard, debouncedCheck],
   );
 
+  // Initialize clipboard monitoring on component mount if enabled
   useEffect(() => {
-    // Only set up monitoring if it's enabled
-    if (!settings.enableClipboardMonitoring) {
-      console.log('Clipboard monitoring disabled in settings');
-      return;
+    if (settings.enableClipboardMonitoring) {
+      console.log('Initializing clipboard monitoring on mount...');
+
+      // Start main process clipboard monitoring
+      if (window.appControl && window.appControl.startClipboardMonitoring) {
+        window.appControl.startClipboardMonitoring().then(() => {
+          console.log('Main process clipboard monitoring started on mount');
+        });
+      }
+
+      // Set up Electron clipboard monitoring
+      if (window.appControl && window.appControl.onClipboardChange) {
+        console.log('Setting up Electron clipboard monitoring on mount');
+        window.appControl.onClipboardChange(handleClipboardChange);
+      }
+
+      // Add event listeners for immediate detection (fallback)
+      document.addEventListener('copy', handleCopy);
+      document.addEventListener('keydown', handleKeyDown);
     }
+  }, []); // Only run on mount
 
-    console.log('Setting up clipboard monitoring...');
+  // Separate effect for setting up/tearing down monitoring based on settings
+  useEffect(() => {
+    console.log(
+      'Clipboard monitoring setting changed:',
+      settings.enableClipboardMonitoring,
+    );
 
-    // Set up Electron clipboard monitoring
-    if (window.appControl && window.appControl.onClipboardChange) {
-      console.log('Setting up Electron clipboard monitoring');
-      window.appControl.onClipboardChange(handleClipboardChange);
+    if (settings.enableClipboardMonitoring) {
+      console.log('Setting up clipboard monitoring...');
+
+      // Start main process clipboard monitoring
+      if (window.appControl && window.appControl.startClipboardMonitoring) {
+        window.appControl.startClipboardMonitoring().then(() => {
+          console.log('Main process clipboard monitoring started');
+        });
+      }
+
+      // Set up Electron clipboard monitoring
+      if (window.appControl && window.appControl.onClipboardChange) {
+        console.log('Setting up Electron clipboard monitoring');
+        window.appControl.onClipboardChange(handleClipboardChange);
+      } else {
+        console.log('Electron clipboard monitoring not available');
+      }
+
+      // Add event listeners for immediate detection (fallback)
+      document.addEventListener('copy', handleCopy);
+      document.addEventListener('keydown', handleKeyDown);
+
+      console.log('Clipboard monitoring setup complete');
     } else {
-      console.log('Electron clipboard monitoring not available');
+      console.log('Tearing down clipboard monitoring...');
+
+      // Stop main process clipboard monitoring
+      if (window.appControl && window.appControl.stopClipboardMonitoring) {
+        window.appControl.stopClipboardMonitoring().then(() => {
+          console.log('Main process clipboard monitoring stopped');
+        });
+      }
+
+      // Clean up Electron clipboard monitoring
+      if (window.appControl && window.appControl.offClipboardChange) {
+        window.appControl.offClipboardChange();
+      }
+
+      // Remove event listeners
+      document.removeEventListener('copy', handleCopy);
+      document.removeEventListener('keydown', handleKeyDown);
+
+      console.log('Clipboard monitoring teardown complete');
     }
 
-    // Add event listeners for immediate detection (fallback)
-    document.addEventListener('copy', handleCopy);
-    document.addEventListener('keydown', handleKeyDown);
-
-    console.log('Clipboard monitoring setup complete');
-
-    // Cleanup on unmount
+    // Cleanup function for component unmount
     return () => {
-      console.log('Cleaning up clipboard monitoring...');
+      console.log('Component unmounting, cleaning up clipboard monitoring...');
       if (window.appControl && window.appControl.offClipboardChange) {
         window.appControl.offClipboardChange();
       }
@@ -230,10 +291,10 @@ const ClipboardLinkDetector: React.FC = () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [
+    settings.enableClipboardMonitoring,
     handleClipboardChange,
     handleCopy,
     handleKeyDown,
-    settings.enableClipboardMonitoring,
   ]);
 
   // This component doesn't render anything

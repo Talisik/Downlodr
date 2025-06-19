@@ -149,6 +149,9 @@ declare global {
       getClipboardText: () => Promise<string>;
       onClipboardChange: (callback: (text: string) => void) => void;
       offClipboardChange: () => void;
+      startClipboardMonitoring: () => Promise<boolean>;
+      stopClipboardMonitoring: () => Promise<boolean>;
+      isClipboardMonitoringActive: () => Promise<boolean>;
     };
   }
 }

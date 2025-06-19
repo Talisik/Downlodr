@@ -570,6 +570,23 @@ ipcMain.handle('get-clipboard-text', () => {
   return clipboard.readText();
 });
 
+// Add IPC handlers to control clipboard monitoring
+ipcMain.handle('start-clipboard-monitoring', () => {
+  console.log('Renderer requested to start clipboard monitoring');
+  startClipboardMonitoring();
+  return true;
+});
+
+ipcMain.handle('stop-clipboard-monitoring', () => {
+  console.log('Renderer requested to stop clipboard monitoring');
+  stopClipboardMonitoring();
+  return true;
+});
+
+ipcMain.handle('is-clipboard-monitoring-active', () => {
+  return isMonitoring;
+});
+
 // Set up clipboard monitoring
 let clipboardInterval: NodeJS.Timeout | null = null;
 let lastClipboardText = '';
@@ -610,11 +627,13 @@ const startClipboardMonitoring = () => {
 };
 
 const stopClipboardMonitoring = () => {
+  console.log('Stopping clipboard monitoring...');
   isMonitoring = false;
   if (clipboardInterval) {
     clearInterval(clipboardInterval);
     clipboardInterval = null;
   }
+  console.log('Clipboard monitoring stopped');
 };
 
 // Pause monitoring when app is not focused (optional optimization)
@@ -633,7 +652,8 @@ app.on('ready', async () => {
   updateCloseHandler();
 
   // Start clipboard monitoring
-  startClipboardMonitoring();
+  // Don't start automatically - let the renderer control it
+  // startClipboardMonitoring();
 
   // Check for updates when app starts
   setTimeout(async () => {
