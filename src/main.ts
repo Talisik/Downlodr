@@ -106,12 +106,12 @@ const createWindow = () => {
       }
     }
   });
-
+  /*
   // Pause clipboard monitoring when window loses focus
   mainWindow.on('blur', () => {
     pauseClipboardMonitoring();
   });
-
+  */
   // Resume clipboard monitoring when window gains focus
   mainWindow.on('focus', () => {
     resumeClipboardMonitoring();
@@ -581,6 +581,7 @@ const startClipboardMonitoring = () => {
   }
 
   isMonitoring = true;
+  console.log('Starting clipboard monitoring...');
 
   clipboardInterval = setInterval(() => {
     if (!isMonitoring) {
@@ -593,6 +594,7 @@ const startClipboardMonitoring = () => {
       // Only process if content has changed and is reasonable size
       if (currentText !== lastClipboardText && currentText.length <= 10000) {
         lastClipboardText = currentText;
+        console.log('Clipboard content changed, sending to renderer...');
 
         // Send clipboard change event to all renderer processes
         BrowserWindow.getAllWindows().forEach((win) => {

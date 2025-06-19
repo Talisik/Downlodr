@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { extractUrlFromText } from '../../../DataFunctions/urlValidation';
+import useDownloadStore from '../../../Store/downloadStore';
+import { useMainStore } from '../../../Store/mainStore';
 import { useToast } from '../shadcn/hooks/use-toast';
 
 /**
@@ -14,6 +16,22 @@ const ClipboardLinkDetector: React.FC = () => {
   const lastCopiedUrl = useRef<string>('');
   const lastNotificationTime = useRef<number>(0);
   const isProcessing = useRef<boolean>(false);
+  const { setDownload } = useDownloadStore();
+  const { settings } = useMainStore();
+  const [downloadFolder, setDownloadFolder] = useState<string>(
+    settings.defaultLocation,
+  );
+  const maxDownload =
+    settings.defaultDownloadSpeed === 0
+      ? ''
+      : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
+  // Debug: Log settings on component mount
+  useEffect(() => {
+    console.log('ClipboardLinkDetector mounted, settings:', {
+      enableClipboardMonitoring: settings.enableClipboardMonitoring,
+      allSettings: settings,
+    });
+  }, [settings]);
 
   // Rate limiting: Only show notifications every 2 seconds
   const RATE_LIMIT_MS = 2000;
@@ -38,6 +56,11 @@ const ClipboardLinkDetector: React.FC = () => {
   // Handle clipboard changes from Electron main process
   const handleClipboardChange = useCallback(
     (clipboardText: string) => {
+      // Check if clipboard monitoring is enabled
+      if (!settings.enableClipboardMonitoring) {
+        return;
+      }
+
       // Prevent processing if already handling a change
       if (isProcessing.current) {
         return;
@@ -67,6 +90,10 @@ const ClipboardLinkDetector: React.FC = () => {
 
           console.log('Link detected in clipboard:', url);
 
+          setDownload(url, downloadFolder, maxDownload, {
+            getTranscript: false,
+            getThumbnail: false,
+          });
           // Show toast notification
           toast({
             title: 'Link Detected',
@@ -88,11 +115,16 @@ const ClipboardLinkDetector: React.FC = () => {
         isProcessing.current = false;
       }
     },
-    [toast],
+    [toast, settings.enableClipboardMonitoring],
   );
 
   // Fallback clipboard check using browser API (with debouncing)
   const checkClipboard = useCallback(async () => {
+    // Check if clipboard monitoring is enabled
+    if (!settings.enableClipboardMonitoring) {
+      return;
+    }
+
     if (isProcessing.current) {
       return;
     }
@@ -148,7 +180,7 @@ const ClipboardLinkDetector: React.FC = () => {
     } finally {
       isProcessing.current = false;
     }
-  }, [toast]);
+  }, [toast, settings.enableClipboardMonitoring]);
 
   // Handle copy events (immediate detection with debouncing)
   const handleCopy = useCallback(() => {
@@ -166,24 +198,43 @@ const ClipboardLinkDetector: React.FC = () => {
   );
 
   useEffect(() => {
+    // Only set up monitoring if it's enabled
+    if (!settings.enableClipboardMonitoring) {
+      console.log('Clipboard monitoring disabled in settings');
+      return;
+    }
+
+    console.log('Setting up clipboard monitoring...');
+
     // Set up Electron clipboard monitoring
     if (window.appControl && window.appControl.onClipboardChange) {
+      console.log('Setting up Electron clipboard monitoring');
       window.appControl.onClipboardChange(handleClipboardChange);
+    } else {
+      console.log('Electron clipboard monitoring not available');
     }
 
     // Add event listeners for immediate detection (fallback)
     document.addEventListener('copy', handleCopy);
     document.addEventListener('keydown', handleKeyDown);
 
+    console.log('Clipboard monitoring setup complete');
+
     // Cleanup on unmount
     return () => {
+      console.log('Cleaning up clipboard monitoring...');
       if (window.appControl && window.appControl.offClipboardChange) {
         window.appControl.offClipboardChange();
       }
       document.removeEventListener('copy', handleCopy);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleClipboardChange, handleCopy, handleKeyDown]);
+  }, [
+    handleClipboardChange,
+    handleCopy,
+    handleKeyDown,
+    settings.enableClipboardMonitoring,
+  ]);
 
   // This component doesn't render anything
   return null;
