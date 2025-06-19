@@ -13,17 +13,23 @@ import { VscPlayCircle } from 'react-icons/vsc';
 import { useParams } from 'react-router-dom';
 import ColumnHeaderContextMenu from '../Components/SubComponents/custom/ColumnHeaderContextMenu';
 import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
-import DownloadContextMenu, {
+/*import DownloadContextMenu, {
+  ConfirmModal as RemoveModal,
   RenameModal,
-} from '../Components/SubComponents/custom/DownloadContextMenu';
+  StopModal,
+} from '../Components/SubComponents/custom/DownloadContextMenu'; */
+import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
 import ExpandedDownloadDetails from '../Components/SubComponents/custom/ExpandedDownloadDetail';
 import FileNotExistModal, {
   DownloadItem,
 } from '../Components/SubComponents/custom/FileNotExistModal';
 import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
 import { AnimatedCircularProgressBar } from '../Components/SubComponents/custom/RadialProgress';
+import RemoveModal from '../Components/SubComponents/custom/RemoveModal';
+import RenameModal from '../Components/SubComponents/custom/RenameModal';
 import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
 import { useResizableColumns } from '../Components/SubComponents/custom/ResizableColumns/useResizableColumns';
+import StopModal from '../Components/SubComponents/custom/StopModal';
 import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 import useDownloadStore from '../Store/downloadStore';
@@ -1140,6 +1146,19 @@ const StatusSpecificDownloads = () => {
   const [renameDownloadId, setRenameDownloadId] = useState<string>('');
   const [renameCurrentName, setRenameCurrentName] = useState<string>('');
 
+  // Add remove modal state
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [removeDownloadId, setRemoveDownloadId] = useState<string>('');
+  const [removeDownloadLocation, setRemoveDownloadLocation] =
+    useState<string>('');
+  const [removeControllerId, setRemoveControllerId] = useState<string>('');
+
+  // Add stop modal state
+  const [showStopModal, setShowStopModal] = useState(false);
+  const [stopDownloadId, setStopDownloadId] = useState<string>('');
+  const [stopDownloadLocation, setStopDownloadLocation] = useState<string>('');
+  const [stopControllerId, setStopControllerId] = useState<string>('');
+
   // Get renameDownload function from store
   const renameDownload = useDownloadStore((state) => state.renameDownload);
 
@@ -1150,12 +1169,59 @@ const StatusSpecificDownloads = () => {
     setShowRenameModal(true);
   };
 
+  // Add remove handler
+  const handleShowRemoveModal = (
+    downloadId: string,
+    downloadLocation?: string,
+    controllerId?: string,
+  ) => {
+    setRemoveDownloadId(downloadId);
+    setRemoveDownloadLocation(downloadLocation || '');
+    setRemoveControllerId(controllerId || '');
+    setShowRemoveModal(true);
+  };
+
+  // Add stop handler
+  const handleShowStopModal = (
+    downloadId: string,
+    downloadLocation?: string,
+    controllerId?: string,
+  ) => {
+    setStopDownloadId(downloadId);
+    setStopDownloadLocation(downloadLocation || '');
+    setStopControllerId(controllerId || '');
+    setShowStopModal(true);
+  };
+
   // Add function to perform the rename
   const performRename = (newName: string) => {
     renameDownload(renameDownloadId, newName);
     setShowRenameModal(false);
     setRenameDownloadId('');
     setRenameCurrentName('');
+  };
+
+  // Add function to perform the remove
+  const performRemove = (deleteFolder?: boolean) => {
+    handleRemove(
+      removeDownloadLocation,
+      removeDownloadId,
+      removeControllerId,
+      deleteFolder,
+    );
+    setShowRemoveModal(false);
+    setRemoveDownloadId('');
+    setRemoveDownloadLocation('');
+    setRemoveControllerId('');
+  };
+
+  // Add function to perform the stop
+  const performStop = () => {
+    handleStop(stopDownloadId, stopDownloadLocation, stopControllerId);
+    setShowStopModal(false);
+    setStopDownloadId('');
+    setStopDownloadLocation('');
+    setStopControllerId('');
   };
 
   // Update click outside handler to clean up timeouts
@@ -1684,6 +1750,8 @@ const StatusSpecificDownloads = () => {
             ''
           }
           onRename={handleRename}
+          onShowRemoveModal={handleShowRemoveModal}
+          onShowStopModal={handleShowStopModal}
         />
       )}
 
@@ -1715,6 +1783,33 @@ const StatusSpecificDownloads = () => {
         }}
         onRename={performRename}
         currentName={renameCurrentName}
+      />
+
+      {/* Add the RemoveModal */}
+      <RemoveModal
+        isOpen={showRemoveModal}
+        onClose={() => {
+          setShowRemoveModal(false);
+          setRemoveDownloadId('');
+          setRemoveDownloadLocation('');
+          setRemoveControllerId('');
+        }}
+        onConfirm={performRemove}
+        message="Are you sure you want to remove this download?"
+        allowFolderDeletion={true}
+      />
+
+      {/* Add the StopModal */}
+      <StopModal
+        isOpen={showStopModal}
+        onClose={() => {
+          setShowStopModal(false);
+          setStopDownloadId('');
+          setStopDownloadLocation('');
+          setStopControllerId('');
+        }}
+        onConfirm={performStop}
+        message="Are you sure you want to stop this download?"
       />
     </div>
   );

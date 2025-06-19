@@ -26,6 +26,8 @@
  *   @param onViewFolder - A function to view the folder containing the download.
  *   @param downloadName - The name of the download file.
  *   @param onRename - A function to rename the download.
+ *   @param onShowRemoveModal - A function to show the remove confirmation modal.
+ *   @param onShowStopModal - A function to show the stop confirmation modal.
  *
  * @returns JSX.Element - The rendered context menu component.
  */
@@ -35,7 +37,6 @@ import React, { useEffect, useState } from 'react';
 import { BiRightArrow } from 'react-icons/bi';
 import { GoChevronRight, GoPlus } from 'react-icons/go';
 import { HiOutlineStopCircle } from 'react-icons/hi2';
-import { IoMdClose } from 'react-icons/io';
 import { IoPauseCircleOutline } from 'react-icons/io5';
 import { LiaFileVideoSolid, LiaTagsSolid } from 'react-icons/lia';
 import { LuFolderOpen, LuTrash } from 'react-icons/lu';
@@ -95,8 +96,19 @@ interface DownloadContextMenuProps {
   onViewFolder: (downloadLocation?: string) => void; // Function to view the folder containing the download
   downloadName?: string; // Name of the download file
   onRename: (downloadId: string, currentName: string) => void; // Add this
+  onShowRemoveModal: (
+    downloadId: string,
+    downloadLocation?: string,
+    controllerId?: string,
+  ) => void; // Add this
+  onShowStopModal: (
+    downloadId: string,
+    downloadLocation?: string,
+    controllerId?: string,
+  ) => void; // Add this
 }
 
+/*
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -139,7 +151,6 @@ const StopModal: React.FC<ConfirmModalProps> = ({
         className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-lg w-full mx-2"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header with title and close button */}
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
             Stop Download
@@ -155,12 +166,10 @@ const StopModal: React.FC<ConfirmModalProps> = ({
           </button>
         </div>
 
-        {/* Main message */}
         <p className="text-gray-700 dark:text-gray-300 mb-4">
           Are you sure you want to stop and remove this download?
         </p>
 
-        {/* Action buttons */}
         <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
           <button
             onClick={(e) => {
@@ -213,7 +222,6 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-lg w-full mx-2"
         onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
       >
-        {/* Header with title and close button */}
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
             Remove selected item
@@ -229,7 +237,6 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </button>
         </div>
 
-        {/* Main message */}
         <p className="text-gray-700 dark:text-gray-300 mb-4">
           Are you sure you want to remove these downloads from the download
           list?
@@ -256,7 +263,6 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </div>
         )}
 
-        {/* Action buttons */}
         <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
           <button
             onClick={(e) => {
@@ -365,6 +371,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
     </div>
   );
 };
+*/
 
 const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   downloadId,
@@ -389,6 +396,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   onViewFolder,
   downloadName = '',
   onRename,
+  onShowRemoveModal,
+  onShowStopModal,
 }) => {
   const menuRef = React.useRef<HTMLDivElement>(null);
   const tagButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -398,8 +407,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const [showCategoryMenu, setShowCategoryMenu] = useState(false); // State to track visibility of the category menu
   const [showPluginMenu, setShowPluginMenu] = useState(false); // State to track visibility of the plugin menu
   const [submenuPosition, setSubmenuPosition] = useState({ x: 0, y: 0 });
-  const [showStopConfirmation, setShowStopConfirmation] = useState(false); // State to track visibility of the stop confirmation modal
-  const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false); // State to track visibility of the remove confirmation modal
   const { settings } = useMainStore();
   const {
     downloading,
@@ -598,20 +605,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     setShowPluginMenu(!showPluginMenu);
   };
 
-  // Function to confirm stopping the download
-  const handleStopConfirm = () => {
-    onStop(downloadId, downloadLocation, controllerId);
-    setShowStopConfirmation(false);
-    onClose();
-  };
-
-  // Function to confirm removing the download
-  const handleRemoveConfirm = (deleteFolder?: boolean) => {
-    onRemove(downloadLocation, downloadId, controllerId, deleteFolder);
-    setShowRemoveConfirmation(false);
-    onClose();
-  };
-
   // Function to start the download
   const handleStartDownload = async () => {
     // Find the download information from forDownloads using downloadId
@@ -776,7 +769,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
               e.stopPropagation();
-              setShowRemoveConfirmation(true);
+              onShowRemoveModal(downloadId, downloadLocation, controllerId);
+              onClose();
             }}
           >
             <span className="flex items-center space-x-2">
@@ -826,7 +820,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
               e.stopPropagation();
-              handleStopConfirm();
+              onShowStopModal(downloadId, downloadLocation, controllerId);
+              onClose();
             }}
           >
             <span className="flex items-center space-x-2">
@@ -876,7 +871,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
               e.stopPropagation();
-              setShowStopConfirmation(true);
+              onShowStopModal(downloadId, downloadLocation, controllerId);
+              onClose();
             }}
           >
             <span className="flex items-center space-x-2">
@@ -930,7 +926,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
               e.stopPropagation();
-              setShowRemoveConfirmation(true);
+              onShowRemoveModal(downloadId, downloadLocation, controllerId);
+              onClose();
             }}
           >
             <span className="flex items-center space-x-2">
@@ -980,7 +977,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
               e.stopPropagation();
-              setShowStopConfirmation(true);
+              onShowStopModal(downloadId, downloadLocation, controllerId);
+              onClose();
             }}
           >
             <span className="flex items-center space-x-2">
@@ -1345,24 +1343,9 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           ))}
         </div>
       )}
-
-      <StopModal
-        isOpen={showStopConfirmation}
-        onClose={() => setShowStopConfirmation(false)}
-        onConfirm={handleStopConfirm}
-        message="Are you sure you want to stop and remove this download?"
-      />
-
-      <ConfirmModal
-        isOpen={showRemoveConfirmation}
-        onClose={() => setShowRemoveConfirmation(false)}
-        onConfirm={handleRemoveConfirm}
-        message="Are you sure you want to remove this download?"
-        allowFolderDeletion={true}
-      />
     </>
   );
 };
 
-export { RenameModal };
+// export { ConfirmModal, RenameModal, StopModal };
 export default DownloadContextMenu;

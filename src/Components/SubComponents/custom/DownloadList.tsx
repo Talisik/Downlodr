@@ -19,7 +19,7 @@ import useDownloadStore, { BaseDownload } from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { Skeleton } from '../shadcn/components/ui/skeleton';
 import { toast } from '../shadcn/hooks/use-toast';
-import { RenameModal } from './DownloadContextMenu';
+// import { RenameModal } from './DownloadContextMenu';
 import FileNotExistModal, { DownloadItem } from './FileNotExistModal';
 import ResizableHeader from './ResizableColumns/ResizableHeader';
 import { useResizableColumns } from './ResizableColumns/useResizableColumns';
@@ -1205,7 +1205,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         download={missingFiles.length === 1 ? missingFiles[0] : null}
       />
 
-      {/* Add the RenameModal */}
+      {/* Add the RenameModal 
       <RenameModal
         isOpen={showRenameModal}
         onClose={() => {
@@ -1216,6 +1216,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         onRename={performRename}
         currentName={renameCurrentName}
       />
+      */}
     </div>
   );
 };

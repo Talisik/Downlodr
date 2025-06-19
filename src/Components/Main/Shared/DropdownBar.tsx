@@ -63,8 +63,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
       setSearchResults([]);
       return;
     }
-    console.log(searchTerm);
-    console.log(historyDownloads);
     const results = historyDownloads.filter((download) =>
       download.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
@@ -123,7 +121,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
         setShowFileNotExistModal(true);
       }
     } catch (error) {
-      console.error('Error opening file:', error);
       toast({
         variant: 'destructive',
         title: 'Error Opening File',
@@ -152,11 +149,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
   }, []);
 
   const handleCheckForUpdates = async () => {
-    console.log('Check for updates button clicked');
     console.log('updateAPI available:', !!window.updateAPI?.checkForUpdates);
     if (window.updateAPI?.checkForUpdates) {
       try {
-        console.log('Calling checkForUpdates...');
         const result = await window.updateAPI.checkForUpdates();
         console.log('Update check result:', result);
         if (!result.hasUpdate) {

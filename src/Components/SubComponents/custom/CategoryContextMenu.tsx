@@ -64,7 +64,6 @@ const RenameModal: React.FC<RenameModalProps> = ({
           Rename Category
         </h3>
         <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
-          <label className="font-medium dark:text-gray-200">New name</label>
           <input
             type="text"
             value={newName}
