@@ -16,6 +16,7 @@ const ClipboardLinkDetector: React.FC = () => {
   const lastCopiedUrl = useRef<string>('');
   const lastNotificationTime = useRef<number>(0);
   const isProcessing = useRef<boolean>(false);
+  const ignoreFirstDetection = useRef<boolean>(false);
   const { setDownload } = useDownloadStore();
   const { settings } = useMainStore();
   const [downloadFolder, setDownloadFolder] = useState<string>(
@@ -60,6 +61,13 @@ const ClipboardLinkDetector: React.FC = () => {
       // Check if clipboard monitoring is enabled
       if (!settings.enableClipboardMonitoring) {
         console.log('Clipboard monitoring disabled, ignoring change');
+        return;
+      }
+
+      // Ignore the first detection after enabling monitoring
+      if (ignoreFirstDetection.current) {
+        console.log('Ignoring first detection after enabling monitoring');
+        ignoreFirstDetection.current = false;
         return;
       }
 
@@ -239,6 +247,9 @@ const ClipboardLinkDetector: React.FC = () => {
     if (settings.enableClipboardMonitoring) {
       console.log('Setting up clipboard monitoring...');
 
+      // Set flag to ignore first detection after enabling
+      ignoreFirstDetection.current = true;
+
       // Start main process clipboard monitoring
       if (window.appControl && window.appControl.startClipboardMonitoring) {
         window.appControl.startClipboardMonitoring().then(() => {
@@ -277,6 +288,10 @@ const ClipboardLinkDetector: React.FC = () => {
       // Remove event listeners
       document.removeEventListener('copy', handleCopy);
       document.removeEventListener('keydown', handleKeyDown);
+
+      // Clear the last copied URL to prevent detection of old content when re-enabled
+      lastCopiedUrl.current = '';
+      lastNotificationTime.current = 0;
 
       console.log('Clipboard monitoring teardown complete');
     }

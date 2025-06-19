@@ -20,10 +20,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { MdOutlineInfo } from 'react-icons/md';
 import { Button } from '../../../Components/SubComponents/shadcn/components/ui/button';
-import {
-  isYouTubeLink,
-  isValidUrl as validateUrlFunction,
-} from '../../../DataFunctions/urlValidation';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
@@ -107,12 +103,21 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
       setIsSelectingDirectory(false);
     }
   };
-
   // URL validation with playlist check
-  const validateYouTubeLink = (
-    url: string,
-  ): 'playlist' | 'video' | 'invalid' => {
-    return isYouTubeLink(url);
+  const isYouTubeLink = (url: string): 'playlist' | 'video' | 'invalid' => {
+    const videoPattern = /^https:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/;
+    const playlistPattern =
+      /^https:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+$/;
+
+    // If the URL matches a video URL and has a "list" query, it's part of a playlist
+    if (videoPattern.test(url) && url.includes('list=')) {
+      return 'playlist';
+    }
+    // If it's a direct playlist URL
+    else if (playlistPattern.test(url)) {
+      return 'playlist';
+    }
+    return 'video';
   };
 
   // Function for receiving download url and handling next actions depending if url is a single download link or playlist link
@@ -144,7 +149,20 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
   // Separate validation function
   const validateUrl = (url: string) => {
-    if (!validateUrlFunction(url)) {
+    // Validates link if it follows the standard format
+    const urlPattern = new RegExp(
+      '^(https?:\\/\\/)?' +
+        '(' +
+        '((([a-zA-Z\\d]([a-zA-Z\\d-]*[a-zA-Z\\d])*)\\.)+[a-zA-Z]{2,}|' +
+        '((\\d{1,3}\\.){3}\\d{1,3}))' +
+        '(\\:\\d+)?(\\/[-a-zA-Z\\d%_.~+@]*)*' +
+        '(\\?[;&a-zA-Z\\d%_.~+@=-]*)?' +
+        '(\\#[-a-zA-Z\\d_]*)?' +
+        ')$',
+      'i',
+    );
+
+    if (!urlPattern.test(url)) {
       toast({
         variant: 'destructive',
         title: 'Invalid URL',
@@ -155,7 +173,8 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
     }
 
     try {
-      const linkType = validateYouTubeLink(url);
+      new URL(url);
+      const linkType = isYouTubeLink(url);
 
       if (linkType === 'playlist') {
         setIsPlaylist(true);

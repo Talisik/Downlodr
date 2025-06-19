@@ -600,30 +600,33 @@ const startClipboardMonitoring = () => {
   isMonitoring = true;
   console.log('Starting clipboard monitoring...');
 
-  clipboardInterval = setInterval(() => {
-    if (!isMonitoring) {
-      return;
-    }
-
-    try {
-      const currentText = clipboard.readText();
-
-      // Only process if content has changed and is reasonable size
-      if (currentText !== lastClipboardText && currentText.length <= 10000) {
-        lastClipboardText = currentText;
-        console.log('Clipboard content changed, sending to renderer...');
-
-        // Send clipboard change event to all renderer processes
-        BrowserWindow.getAllWindows().forEach((win) => {
-          if (!win.isDestroyed()) {
-            win.webContents.send('clipboard-changed', currentText);
-          }
-        });
+  // Add a small delay to prevent immediate detection of current clipboard content
+  setTimeout(() => {
+    clipboardInterval = setInterval(() => {
+      if (!isMonitoring) {
+        return;
       }
-    } catch (error) {
-      console.debug('Clipboard monitoring error:', error);
-    }
-  }, 1000); // Reduced to 1 second for better performance
+
+      try {
+        const currentText = clipboard.readText();
+
+        // Only process if content has changed and is reasonable size
+        if (currentText !== lastClipboardText && currentText.length <= 10000) {
+          lastClipboardText = currentText;
+          console.log('Clipboard content changed, sending to renderer...');
+
+          // Send clipboard change event to all renderer processes
+          BrowserWindow.getAllWindows().forEach((win) => {
+            if (!win.isDestroyed()) {
+              win.webContents.send('clipboard-changed', currentText);
+            }
+          });
+        }
+      } catch (error) {
+        console.debug('Clipboard monitoring error:', error);
+      }
+    }, 1000); // Reduced to 1 second for better performance
+  }, 500); // 500ms delay before starting to monitor
 };
 
 const stopClipboardMonitoring = () => {
@@ -633,7 +636,9 @@ const stopClipboardMonitoring = () => {
     clearInterval(clipboardInterval);
     clipboardInterval = null;
   }
-  console.log('Clipboard monitoring stopped');
+  // Clear the last known clipboard content to prevent detection of old content when re-enabled
+  lastClipboardText = '';
+  console.log('Clipboard monitoring stopped and last content cleared');
 };
 
 // Pause monitoring when app is not focused (optional optimization)
