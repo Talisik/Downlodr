@@ -97,7 +97,7 @@ const FormatSelector: React.FC<FormatSelectorProps> = ({
       <select
         value={selectedFormatValue}
         onChange={handleFormatChange}
-        className="w-full border rounded-md py-1 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent [&>option]:dark:bg-darkMode"
+        className="flex-1 w-full border rounded-md py-1 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent [&>option]:dark:bg-darkMode"
       >
         <option
           value=""

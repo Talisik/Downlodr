@@ -215,7 +215,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       {/* Directory selection overlay - blocks all app interaction */}
       {isSelectingDirectory && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-[9999] cursor-not-allowed flex items-center justify-center">
-          <div className="bg-white dark:bg-darkModeDropdown p-4 rounded-lg shadow-lg max-w-md text-center">
+          <div className="bg-white dark:bg-darkModeDropdown pt-3 rounded-lg shadow-lg max-w-md text-center">
             <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
               Directory Selection In Progress
             </h3>
@@ -225,12 +225,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
       )}
-      <div className="bg-white border border-darkModeCompliment dark:bg-darkModeDropdown rounded-lg pt-4 pr-6 pl-6 pb-4 max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto">
+      <div className="bg-white border border-darkModeCompliment dark:bg-darkModeDropdown rounded-lg pt-5 pr-6 pl-6 pb-3 max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto">
         {/* Left side - Form */}
         <div className="w-full">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-5">
             <h2 className="text-xl font-semibold dark:text-gray-200">
-              Download Options
+              Settings
             </h2>
             <button
               onClick={handleClose}
@@ -244,7 +244,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             {/* Schedule Name */}
             <div className="space-y-2">
               <div className="flex-1">
-                <label className="block mb-2 dark:text-gray-200">
+                <label className="block mb-1 dark:text-gray-200">
                   Download Location
                 </label>
                 <input
@@ -354,7 +354,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Add the background running toggle after the connection limits section */}
-            <div className="pt-4">
+            <div className="pt-3">
               <div className="flex items-center gap-2 mb-2">
                 <label className="block dark:text-gray-200 text-nowrap font-bold">
                   Application Behavior
@@ -384,17 +384,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 When disabled, closing the window will completely exit the
                 application
               </div>
-            </div>
-
-            {/* Clipboard monitoring toggle */}
-            <div className="pt-4">
-              <div className="flex items-center gap-2 mb-2">
-                <label className="block dark:text-gray-200 text-nowrap font-bold">
-                  Notifications
-                </label>
-                <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
-              </div>
-
               <div className="flex items-center gap-2 mt-3 ml-2">
                 <input
                   type="checkbox"
@@ -413,17 +402,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   htmlFor="clipboard-monitoring"
                   className="dark:text-gray-200 cursor-pointer"
                 >
-                  Show notifications when links are copied to clipboard
+                  Automatically download links from clipboard
                 </label>
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 mt-1">
-                When enabled, Downlodr will detect copied URLs and show toast
-                notifications
+                When enabled, Downlodr will detect copied URLs and automatically
+                download them
               </div>
             </div>
 
             {/* Add column visibility section */}
-            <div className="pt-4">
+            <div className="pt-3">
               <div className="flex items-center gap-2 mb-2">
                 <label className="block dark:text-gray-200 text-nowrap font-bold">
                   Visible Columns
@@ -450,7 +439,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         height: '13.5px',
                         marginBottom: '0.5px',
                         marginLeft: '0.5px',
-                        accentColor: '#3b82f6',
+                        accentColor: column.required ? '#ef4444' : '#3b82f6',
                         transform: 'scale(0.9)',
                         transformOrigin: 'center',
                       }}
@@ -477,7 +466,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Button commands */}
-        <hr className="solid mt-2 mb-3 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
+        <hr className="solid mt-2 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
 
         <div className="flex gap-3 p-0">
           <div className="ml-auto flex gap-3">

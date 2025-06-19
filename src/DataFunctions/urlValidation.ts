@@ -5,6 +5,46 @@
  * across the application for consistent URL validation.
  */
 
+import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
+
+/**
+ * Checks if a URL is a YouTube link and determines its type
+ * @param url - The URL to check
+ * @returns 'playlist' | 'video' | 'invalid' - The type of YouTube link
+ */
+// URL validation with playlist check
+export const isYouTubeLink = (
+  url: string,
+): 'playlist' | 'video' | 'invalid' => {
+  const videoPattern = /^https:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/;
+  const playlistPattern =
+    /^https:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+$/;
+
+  // If the URL matches a video URL and has a "list" query, it's part of a playlist
+  if (videoPattern.test(url) && url.includes('list=')) {
+    return 'playlist';
+  }
+  // If it's a direct playlist URL
+  else if (playlistPattern.test(url)) {
+    return 'playlist';
+  }
+  return 'video';
+};
+
+/**
+ * Gets the domain name from a URL
+ * @param url - The URL to extract domain from
+ * @returns string | null - The domain name or null if invalid
+ */
+export const getDomainFromUrl = (url: string): string | null => {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Validates if a string is a valid URL
  * @param url - The URL string to validate
@@ -26,12 +66,47 @@ export const isValidUrl = (url: string): boolean => {
     );
 
     if (!urlPattern.test(url)) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid URL Format',
+        description: `The URL format is not valid`,
+        duration: 3000,
+      });
       return false;
     }
 
-    new URL(url);
-    return true;
+    try {
+      new URL(url);
+      const linkType = isYouTubeLink(url);
+
+      if (linkType === 'playlist') {
+        toast({
+          variant: 'destructive',
+          title: 'Playlist not supported for clipboard downloading',
+          description: 'Use a non-playlist URL or try manual download.',
+          duration: 5000,
+        });
+        return false;
+      } else if (linkType === 'video') {
+        new URL(url);
+        return true;
+      }
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid URL Format',
+        description: `The URL format is not valid: ${err}`,
+        duration: 3000,
+      });
+      return false;
+    }
   } catch {
+    toast({
+      variant: 'destructive',
+      title: 'Invalid URL Format',
+      description: 'The URL format is not valid',
+      duration: 3000,
+    });
     return false;
   }
 };
@@ -64,50 +139,4 @@ export const extractUrlFromText = (text: string): string | null => {
   }
 
   return null;
-};
-
-/**
- * Checks if a URL is a YouTube link and determines its type
- * @param url - The URL to check
- * @returns 'playlist' | 'video' | 'invalid' - The type of YouTube link
- */
-export const isYouTubeLink = (
-  url: string,
-): 'playlist' | 'video' | 'invalid' => {
-  if (!isValidUrl(url)) {
-    return 'invalid';
-  }
-
-  const videoPattern = /^https:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/;
-  const playlistPattern =
-    /^https:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+$/;
-
-  // If the URL matches a video URL and has a "list" query, it's part of a playlist
-  if (videoPattern.test(url) && url.includes('list=')) {
-    return 'playlist';
-  }
-  // If it's a direct playlist URL
-  else if (playlistPattern.test(url)) {
-    return 'playlist';
-  }
-  // If it's a valid YouTube video URL
-  else if (videoPattern.test(url)) {
-    return 'video';
-  }
-
-  return 'invalid';
-};
-
-/**
- * Gets the domain name from a URL
- * @param url - The URL to extract domain from
- * @returns string | null - The domain name or null if invalid
- */
-export const getDomainFromUrl = (url: string): string | null => {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname;
-  } catch {
-    return null;
-  }
 };

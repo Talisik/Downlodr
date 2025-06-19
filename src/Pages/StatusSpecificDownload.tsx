@@ -1423,44 +1423,38 @@ const StatusSpecificDownloads = () => {
                               style={{ width: column.width }}
                               className="p-2 ml-2"
                             >
-                              <div className="flex items-center ml-1">
-                                <span className="text-sm text-gray-600 dark:text-gray-300">
-                                  {download.status === 'fetching metadata' ? (
-                                    <div className="space-y-1">
-                                      <Skeleton className="h-8 w-[50px] rounded-[3px]" />
-                                    </div>
-                                  ) : download.status === 'finished' ? (
-                                    <div className="ml-1 font-medium">
-                                      {download.ext ||
-                                        download.audioExt ||
-                                        'Unknown'}
-                                    </div>
-                                  ) : (
-                                    <FormatSelector
-                                      download={download}
-                                      onFormatSelect={(formatData) => {
-                                        useDownloadStore.setState((state) => ({
-                                          forDownloads: state.forDownloads.map(
-                                            (d) =>
-                                              d.id === download.id
-                                                ? {
-                                                    ...d,
-                                                    ext: formatData.ext,
-                                                    formatId:
-                                                      formatData.formatId,
-                                                    audioExt:
-                                                      formatData.audioExt,
-                                                    audioFormatId:
-                                                      formatData.audioFormatId,
-                                                  }
-                                                : d,
-                                          ),
-                                        }));
-                                      }}
-                                    />
-                                  )}
-                                </span>
-                              </div>
+                              {download.status === 'fetching metadata' ? (
+                                <div className="space-y-1">
+                                  <Skeleton className="h-8 w-[50px] rounded-[3px]" />
+                                </div>
+                              ) : download.status === 'finished' ? (
+                                <div className="ml-1 font-medium text-sm text-gray-600 dark:text-gray-300">
+                                  {download.ext ||
+                                    download.audioExt ||
+                                    'Unknown'}
+                                </div>
+                              ) : (
+                                <FormatSelector
+                                  download={download}
+                                  onFormatSelect={(formatData) => {
+                                    useDownloadStore.setState((state) => ({
+                                      forDownloads: state.forDownloads.map(
+                                        (d) =>
+                                          d.id === download.id
+                                            ? {
+                                                ...d,
+                                                ext: formatData.ext,
+                                                formatId: formatData.formatId,
+                                                audioExt: formatData.audioExt,
+                                                audioFormatId:
+                                                  formatData.audioFormatId,
+                                              }
+                                            : d,
+                                      ),
+                                    }));
+                                  }}
+                                />
+                              )}
                             </td>
                           );
                         case 'status':
