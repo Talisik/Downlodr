@@ -140,6 +140,16 @@ declare global {
     pluginModalManager?: {
       showPluginModal: (options: PluginModalOptions) => Promise<PluginModalResult>;
     };
+    appControl: {
+      showWindow: () => Promise<boolean>;
+      hideWindow: () => Promise<boolean>;
+      quitApp: () => Promise<void>;
+      setAutoLaunch: (enabled: boolean) => Promise<void>;
+      getAutoLaunch: () => Promise<boolean>;
+      getClipboardText: () => Promise<string>;
+      onClipboardChange: (callback: (text: string) => void) => void;
+      offClipboardChange: () => void;
+    };
   }
 }
 

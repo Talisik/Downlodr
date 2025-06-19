@@ -7,6 +7,7 @@
 import {
   app,
   BrowserWindow,
+  clipboard,
   dialog,
   ipcMain,
   Menu,
@@ -104,6 +105,16 @@ const createWindow = () => {
         return false;
       }
     }
+  });
+
+  // Pause clipboard monitoring when window loses focus
+  mainWindow.on('blur', () => {
+    pauseClipboardMonitoring();
+  });
+
+  // Resume clipboard monitoring when window gains focus
+  mainWindow.on('focus', () => {
+    resumeClipboardMonitoring();
   });
 
   // MAIN FUNCTIONS FOR TITLE BAR
@@ -554,11 +565,73 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
   }
 });
 
+// Add clipboard monitoring IPC handlers
+ipcMain.handle('get-clipboard-text', () => {
+  return clipboard.readText();
+});
+
+// Set up clipboard monitoring
+let clipboardInterval: NodeJS.Timeout | null = null;
+let lastClipboardText = '';
+let isMonitoring = false;
+
+const startClipboardMonitoring = () => {
+  if (clipboardInterval) {
+    clearInterval(clipboardInterval);
+  }
+
+  isMonitoring = true;
+
+  clipboardInterval = setInterval(() => {
+    if (!isMonitoring) {
+      return;
+    }
+
+    try {
+      const currentText = clipboard.readText();
+
+      // Only process if content has changed and is reasonable size
+      if (currentText !== lastClipboardText && currentText.length <= 10000) {
+        lastClipboardText = currentText;
+
+        // Send clipboard change event to all renderer processes
+        BrowserWindow.getAllWindows().forEach((win) => {
+          if (!win.isDestroyed()) {
+            win.webContents.send('clipboard-changed', currentText);
+          }
+        });
+      }
+    } catch (error) {
+      console.debug('Clipboard monitoring error:', error);
+    }
+  }, 1000); // Reduced to 1 second for better performance
+};
+
+const stopClipboardMonitoring = () => {
+  isMonitoring = false;
+  if (clipboardInterval) {
+    clearInterval(clipboardInterval);
+    clipboardInterval = null;
+  }
+};
+
+// Pause monitoring when app is not focused (optional optimization)
+const pauseClipboardMonitoring = () => {
+  isMonitoring = false;
+};
+
+const resumeClipboardMonitoring = () => {
+  isMonitoring = true;
+};
+
 // once the app opens
 app.on('ready', async () => {
   createWindow();
   createTray();
   updateCloseHandler();
+
+  // Start clipboard monitoring
+  startClipboardMonitoring();
 
   // Check for updates when app starts
   setTimeout(async () => {
@@ -659,6 +732,7 @@ app.on('activate', () => {
 // before-quit' handler to properly set force quit
 app.on('before-quit', () => {
   forceQuit = true;
+  stopClipboardMonitoring();
 });
 
 // function to handle the dev tools or console open

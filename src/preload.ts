@@ -138,6 +138,17 @@ contextBridge.exposeInMainWorld('appControl', {
     ipcRenderer.invoke('set-auto-launch', enabled),
 
   getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
+
+  // Clipboard monitoring
+  getClipboardText: () => ipcRenderer.invoke('get-clipboard-text'),
+  onClipboardChange: (callback: (text: string) => void) => {
+    ipcRenderer.on('clipboard-changed', (_event, text: string) =>
+      callback(text),
+    );
+  },
+  offClipboardChange: () => {
+    ipcRenderer.removeAllListeners('clipboard-changed');
+  },
 });
 
 // Change this from a separate exposure to include both functions

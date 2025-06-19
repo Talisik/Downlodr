@@ -14,6 +14,7 @@ import {
   HashRouter as Router,
   Routes,
 } from 'react-router-dom';
+import ClipboardLinkDetector from './Components/SubComponents/custom/ClipboardLinkDetector';
 import UpdateNotification from './Components/SubComponents/custom/UpdateNotifications';
 import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
 import { ThemeProvider } from './Components/ThemeProvider';
@@ -71,6 +72,7 @@ const App = () => {
       </Router>
       <Toaster />
       <UpdateNotification />
+      <ClipboardLinkDetector />
       <PluginLoader />
       <FormatSelectorManager />
       <PluginSidePanelManager />

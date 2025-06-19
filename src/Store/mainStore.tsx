@@ -21,6 +21,7 @@ interface DownloadSettings {
   maxUploadNum: number; // Maximum number of uploads allowed
   maxDownloadNum: number; // Maximum number of downloads allowed
   runInBackground: boolean;
+  enableClipboardMonitoring: boolean; // Whether to monitor clipboard for links
 }
 
 // Interface for selected downloads
@@ -56,6 +57,7 @@ interface MainStore {
   visibleColumns: string[];
   setVisibleColumns: (columns: string[]) => void;
   updateRunInBackground: (value: boolean) => void;
+  updateEnableClipboardMonitoring: (value: boolean) => void;
 }
 
 // Create the main store with persistence
@@ -70,6 +72,7 @@ export const useMainStore = create<MainStore>()(
         maxUploadNum: 5,
         maxDownloadNum: 5,
         runInBackground: false,
+        enableClipboardMonitoring: true,
       },
       selectedDownloads: [] as SelectedDownload[],
       setSelectedDownloads: (downloads) =>
@@ -108,6 +111,11 @@ export const useMainStore = create<MainStore>()(
 
       updateRunInBackground: (value) =>
         set({ settings: { ...get().settings, runInBackground: value } }),
+
+      updateEnableClipboardMonitoring: (value) =>
+        set({
+          settings: { ...get().settings, enableClipboardMonitoring: value },
+        }),
 
       selectedRows: [] as string[],
       setSelectedRows: (rows) => set({ selectedRows: rows }),
