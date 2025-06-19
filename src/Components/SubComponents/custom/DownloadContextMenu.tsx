@@ -137,7 +137,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
     >
       <div
         className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-lg w-full mx-2"
-        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header with title and close button */}
         <div className="flex justify-between items-center mb-4">
@@ -151,35 +151,23 @@ const StopModal: React.FC<ConfirmModalProps> = ({
             }}
             className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <IoMdClose size={20} />
           </button>
         </div>
 
         {/* Main message */}
         <p className="text-gray-700 dark:text-gray-300 mb-4">
-          Are you sure you want to Stop the download?
+          Are you sure you want to stop and remove this download?
         </p>
 
         {/* Action buttons */}
-        <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-gray-800 -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9]">
+        <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
           <button
             onClick={(e) => {
               e.stopPropagation();
               onClose();
             }}
-            className="px-4 py-1 text-gray-600 bg-white hover:bg-gray-50 dark:hover:bg-darkModeHover dark:hover:text-gray-200 rounded-md font-medium"
+            className="px-4 py-1 text-gray-600 bg-white dark:bg-[#18181B] dark:text-white border dark:border-[#27272A] hover:bg-gray-50 dark:hover:bg-darkModeHover dark:hover:text-gray-200 rounded-md font-medium"
           >
             Cancel
           </button>
@@ -188,7 +176,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
               e.stopPropagation();
               onConfirm(deleteFolder);
             }}
-            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-orange-700 font-medium"
+            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-white hover:text-black font-medium"
           >
             Stop
           </button>
@@ -275,7 +263,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
               e.stopPropagation();
               onClose();
             }}
-            className="px-4 py-1 text-gray-600 bg-white hover:bg-gray-50 dark:hover:bg-darkModeHover dark:hover:text-gray-200 rounded-md font-medium"
+            className="px-4 py-1 text-gray-600 bg-white dark:bg-[#18181B] dark:text-white border dark:border-[#27272A] hover:bg-gray-50 dark:hover:bg-darkModeHover dark:hover:text-gray-200 rounded-md font-medium"
           >
             Cancel
           </button>
@@ -331,14 +319,13 @@ const RenameModal: React.FC<RenameModalProps> = ({
       onClick={(e) => e.stopPropagation()}
     >
       <div
-        className="bg-white dark:bg-darkMode rounded-lg p-6 max-w-sm w-full mx-4"
+        className="bg-white dark:bg-darkModeDropdown rounded-lg p-6 max-w-sm w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-lg font-medium mb-4 dark:text-gray-200">
           Rename Download
         </h3>
         <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
-          <label className="font-medium dark:text-gray-200">New name</label>
           <input
             type="text"
             value={newName}
@@ -427,15 +414,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
   const fetchPluginMenuItems = async () => {
     try {
-      // Option 1: Using the window.plugins API with filtering
       const items = await window.plugins.getMenuItems('download');
       const filteredItems = (items || []).filter(
         (item) => !item.pluginId || enabledPlugins[item.pluginId] !== false,
       ) as MenuItem[];
-
-      // OR Option 2: Using the registry directly (if it exposes a method)
-      // const filteredItems = pluginRegistry.getMenuItems('download');
-
       setPluginMenuItems(filteredItems);
     } catch (error) {
       console.error('Failed to fetch plugin menu items:', error);
@@ -443,17 +425,33 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     }
   };
 
+  // Listen for plugins ready event
+  useEffect(() => {
+    const handlePluginsReady = () => {
+      fetchPluginMenuItems();
+    };
+
+    window.addEventListener('pluginsReady', handlePluginsReady);
+
+    // Initial fetch
+    fetchPluginMenuItems();
+
+    return () => {
+      window.removeEventListener('pluginsReady', handlePluginsReady);
+    };
+  }, []);
+
+  // Handle plugin state changes
+  useEffect(() => {
+    fetchPluginMenuItems();
+  }, [enabledPlugins]);
+
   // Helper function to check if a string is an SVG
   const isSvgString = (str: string): boolean => {
     return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
   };
 
   useEffect(() => {
-    fetchPluginMenuItems();
-  }, [enabledPlugins]);
-
-  // Simplified effect - just ensure menu stays within bounds if needed
-  React.useEffect(() => {
     if (menuRef.current) {
       const checkAndAdjustPosition = () => {
         if (menuRef.current) {

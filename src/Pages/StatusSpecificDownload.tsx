@@ -202,10 +202,10 @@ const StatusSpecificDownloads = () => {
     [
       { id: 'name', width: 100, minWidth: 100 },
       { id: 'size', width: 65, minWidth: 65 },
-      { id: 'format', width: 80, minWidth: 80 },
+      { id: 'format', width: 90, minWidth: 90 },
       { id: 'status', width: 110, minWidth: 110 },
-      { id: 'speed', width: 90, minWidth: 90 },
-      { id: 'dateAdded', width: 100, minWidth: 100 },
+      { id: 'speed', width: 100, minWidth: 100 },
+      { id: 'dateAdded', width: 110, minWidth: 110 },
       { id: 'transcript', width: 20, minWidth: 20 },
       { id: 'thumbnail', width: 10, minWidth: 10 },
       { id: 'source', width: 20, minWidth: 20 },
@@ -1209,7 +1209,7 @@ const StatusSpecificDownloads = () => {
       {/* Table container with scrolling */}
       <div className="flex-grow overflow-auto">
         <div className="min-w-full">
-          <table className="min-w-full">
+          <table className="min-w-full table-fixed">
             <thead className="dark:bg-darkModeCompliment">
               <tr
                 className="border-b border-t text-left dark:border-darkModeBorderColor"
@@ -1218,7 +1218,15 @@ const StatusSpecificDownloads = () => {
                 <th className="w-6 px-2 py-1">
                   <input
                     type="checkbox"
-                    className="mt-2 ml-2 rounded border-gray-900 dark:border-blue dark:checked:bg-blue-500 dark:bg-darkModeCompliment"
+                    className="mt-2 ml-2 rounded"
+                    style={{
+                      ...(document.documentElement.classList.contains(
+                        'dark',
+                      ) && {
+                        backgroundColor: '#D4D4D8',
+                        borderColor: '#6b7280',
+                      }),
+                    }}
                     checked={selectedRowIds.length === allDownloads.length}
                     onChange={handleSelectAll}
                   />
@@ -1253,7 +1261,7 @@ const StatusSpecificDownloads = () => {
                       isLastColumn={displayIndex === displayColumns.length - 1}
                     >
                       <div
-                        className="flex items-center cursor-pointer"
+                        className="flex items-center cursor-pointer whitespace-nowrap"
                         onClick={() => handleSortClick(column.id)}
                       >
                         {getColumnDisplayName(column.id)}
@@ -1294,7 +1302,7 @@ const StatusSpecificDownloads = () => {
                     <td className="w-8 p-2">
                       <input
                         type="checkbox"
-                        className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
+                        className="ml-2 mt-1 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                         checked={selectedRowIds.includes(download.id)}
                         onChange={() => handleCheckboxChange(download.id)}
                       />
@@ -1568,7 +1576,7 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200 ml-2"
+                              className="p-2 dark:text-gray-200"
                             >
                               {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1 flex justify-center items-center">
@@ -1580,7 +1588,10 @@ const StatusSpecificDownloads = () => {
                                   <span>—</span>
                                 </div>
                               ) : download.autoCaptionLocation === undefined ? (
-                                <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center">
+                                <span
+                                  className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center
+"
+                                >
                                   Not available
                                 </span>
                               ) : (

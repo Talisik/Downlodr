@@ -15,8 +15,8 @@ module.exports = {
     screens: {
       'xs': '475px',
       'sm': '640px',
-      'md': '900px',
-      'lg': '950px',
+      'md': '950px',
+      'lg': '980px',
       '2xl': '1400px',
     },
     container: {
@@ -25,7 +25,7 @@ module.exports = {
       screens: {
         'xs': '475px',
         'sm': '640px',
-        'md': '830px',
+        'md': '900px',
         'lg': '950px',
         '2xl': '1400px',
       },

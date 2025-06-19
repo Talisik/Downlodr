@@ -66,11 +66,11 @@ let pluginManager: PluginManager;
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 1200,
+    width: 1250,
     height: 680,
     frame: false,
     autoHideMenuBar: true,
-    minWidth: 800,
+    minWidth: 900,
     minHeight: 600,
     webPreferences: {
       contextIsolation: true,

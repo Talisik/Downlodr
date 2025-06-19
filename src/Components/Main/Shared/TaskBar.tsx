@@ -24,7 +24,7 @@ import FileNotExistModal, {
 import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
-import TaskBarPluginItems from '../../../plugins/components/TaskBarPluginItems';
+import PluginTaskBarExtension from '../../../plugins/components/PluginTaskBarExtension';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import { cn } from '../../SubComponents/shadcn/lib/utils';
 import DownloadModal from '../Modal/DownloadModal';
@@ -64,7 +64,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
     >
       <div
         className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-lg w-full mx-2"
-        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header with title and close button */}
         <div className="flex justify-between items-center mb-4">
@@ -78,19 +78,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
             }}
             className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <IoMdClose size={20} />
           </button>
         </div>
 
@@ -98,7 +86,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
         <p className="text-gray-700 dark:text-gray-300 mb-4">{message}</p>
 
         {/* Action buttons */}
-        <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-gray-800 -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9]">
+        <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -113,7 +101,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
               e.stopPropagation();
               onConfirm();
             }}
-            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-orange-700 font-medium"
+            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-white hover:text-black font-medium"
           >
             Stop
           </button>
@@ -229,7 +217,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
   // Get the max download limit and current downloads from stores
   const { settings, taskBarButtonsVisibility } = useMainStore();
-  const { downloading } = useDownloadStore();
+  const { downloading, forDownloads } = useDownloadStore();
 
   // Handling selected downloads
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
@@ -237,6 +225,24 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
   // Add state for the confirmation modal
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
+
+  // Check if any selected downloads are in "to download" status (for Start button)
+  const hasForDownloadStatus = selectedDownloads.some((download) =>
+    forDownloads.some(
+      (fd) => fd.id === download.id && fd.status === 'to download',
+    ),
+  );
+
+  // Check if any selected downloads are in "downloading" or "initializing" status (for Stop button)
+  const hasActiveDownloadStatus = selectedDownloads.some((download) =>
+    downloading.some(
+      (d) =>
+        d.id === download.id &&
+        (d.status === 'downloading' ||
+          d.status === 'initializing' ||
+          d.status === 'paused'),
+    ),
+  );
 
   const handleStopSelected = async () => {
     if (selectedDownloads.length === 0) {
@@ -701,7 +707,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   return (
     <div className="taskbar-container">
       <div className={cn('flex items-center justify-between', className)}>
-        <div className="flex items-center h-full px-2 space-x-2">
+        <div className="flex items-center h-full px-2 space-x-0 md:space-x-2">
           <div className="gap-1 flex">
             <PageNavigation />
 
@@ -710,8 +716,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
           {taskBarButtonsVisibility.start && (
             <button
-              className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+              className={cn(
+              'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
+              hasForDownloadStatus
+                ? 'dark:text-gray-100'
+                : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
+            )}
               onClick={handlePlaySelected}
+            disabled={!hasForDownloadStatus}
             >
               {' '}
               <VscPlayCircle size={18} className="mt-[0.9px]" /> Start
@@ -720,8 +732,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
           {taskBarButtonsVisibility.stop && (
             <button
-              className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+              className={cn(
+              'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
+              hasActiveDownloadStatus
+                ? 'dark:text-gray-100'
+                : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
+            )}
               onClick={handleStopSelected}
+            disabled={!hasActiveDownloadStatus}
             >
               <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
             </button>
@@ -729,9 +747,15 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
           {taskBarButtonsVisibility.stopAll && (
             <button
-              className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-1 md:px-3 py-1 rounded flex gap-1 font-semibold dark:text-gray-200"
+              className={cn(
+              'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
+              hasActiveDownloadStatus
+                ? 'dark:text-gray-100'
+                : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
+            )}
               onClick={() => handleStopAll()}
-            >
+              disabled={!hasActiveDownloadStatus}
+          >
               {' '}
               <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
             </button>
@@ -741,7 +765,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         <div className="pl-4 flex items-center">
           {location.pathname.includes('/status') && (
             <div className="mr-4">
-              <TaskBarPluginItems />
+              <PluginTaskBarExtension />
             </div>
           )}
           {/* Portal target for History-specific Remove button */}
