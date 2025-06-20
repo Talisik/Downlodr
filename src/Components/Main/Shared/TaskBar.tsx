@@ -717,13 +717,13 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           {taskBarButtonsVisibility.start && (
             <button
               className={cn(
-              'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
-              hasForDownloadStatus
-                ? 'dark:text-gray-100'
-                : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
-            )}
+                'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
+                hasForDownloadStatus
+                  ? 'dark:text-gray-100'
+                  : 'cursor-not-allowed text-gray-800 text-gray-400 dark:text-gray-400',
+              )}
               onClick={handlePlaySelected}
-            disabled={!hasForDownloadStatus}
+              disabled={!hasForDownloadStatus}
             >
               {' '}
               <VscPlayCircle size={18} className="mt-[0.9px]" /> Start
@@ -733,13 +733,13 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           {taskBarButtonsVisibility.stop && (
             <button
               className={cn(
-              'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
-              hasActiveDownloadStatus
-                ? 'dark:text-gray-100'
-                : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
-            )}
+                'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
+                hasActiveDownloadStatus
+                  ? 'dark:text-gray-100'
+                  : 'cursor-not-allowed text-gray-800 text-gray-400 dark:text-gray-400',
+              )}
               onClick={handleStopSelected}
-            disabled={!hasActiveDownloadStatus}
+              disabled={!hasActiveDownloadStatus}
             >
               <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
             </button>
@@ -748,14 +748,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           {taskBarButtonsVisibility.stopAll && (
             <button
               className={cn(
-              'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
-              hasActiveDownloadStatus
-                ? 'dark:text-gray-100'
-                : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
-            )}
+                'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
+                hasActiveDownloadStatus
+                  ? 'dark:text-gray-100'
+                  : 'cursor-not-allowed text-gray-800 text-gray-400 dark:text-gray-400',
+              )}
               onClick={() => handleStopAll()}
               disabled={!hasActiveDownloadStatus}
-          >
+            >
               {' '}
               <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
             </button>
