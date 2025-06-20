@@ -10,6 +10,7 @@
  */
 
 // Interface for download settings
+import { TaskBarButtonsVisibility } from 'src/plugins/types';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
@@ -56,6 +57,14 @@ interface MainStore {
   visibleColumns: string[];
   setVisibleColumns: (columns: string[]) => void;
   updateRunInBackground: (value: boolean) => void;
+  taskBarButtonsVisibility: TaskBarButtonsVisibility; // State for task bar buttons visibility
+  setTaskBarButtonsVisibility: (
+    visibility: Partial<TaskBarButtonsVisibility>,
+  ) => void; // Set the visibility of the task bar buttons
+  isNavCollapsed: boolean; // State for sidebar navigation collapse
+  setIsNavCollapsed: (value: boolean) => void; // Set the collapse state of the sidebar navigation
+  isDownloadDetailExpanded: boolean; // State for download detail expansion
+  setIsDownloadDetailExpanded: (value: boolean) => void; // Set the expansion state of the download detail
 }
 
 // Create the main store with persistence
@@ -153,6 +162,27 @@ export const useMainStore = create<MainStore>()(
 
       // Set visible columns
       setVisibleColumns: (columns) => set({ visibleColumns: columns }),
+
+      // Default task bar buttons visibility
+      taskBarButtonsVisibility: {
+        start: true,
+        stop: true,
+        stopAll: true,
+      },
+      setTaskBarButtonsVisibility: (visibility) =>
+        set((state) => ({
+          taskBarButtonsVisibility: {
+            ...state.taskBarButtonsVisibility,
+            ...visibility,
+          },
+        })),
+
+      isNavCollapsed: true,
+      setIsNavCollapsed: (value) => set({ isNavCollapsed: value }),
+
+      isDownloadDetailExpanded: false,
+      setIsDownloadDetailExpanded: (value) =>
+        set({ isDownloadDetailExpanded: value }),
     }),
     {
       name: 'download-settings-storage', // Name of the storage
