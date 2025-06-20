@@ -30,6 +30,8 @@ import {
   WriteFileResult,
 } from './types';
 
+const taskBarItemHandlerMap = new Map<string, string>(); // id -> handlerId
+
 export function createPluginAPI(pluginId: string): PluginAPI {
   // Create UI API
   const uiAPI: UIAPI = {
@@ -112,12 +114,15 @@ export function createPluginAPI(pluginId: string): PluginAPI {
     registerTaskBarItem: async (taskBarItem: TaskBarItem) => {
       // Create a unique handler ID
       const handlerId = `${pluginId}:taskbar:${Date.now()}`;
+      const itemId = taskBarItem.id || `${pluginId}-taskbar-${Date.now()}`;
 
       // Store the handler locally in renderer process
       window.PluginHandlers = window.PluginHandlers || {};
 
       if (taskBarItem.onClick) {
         window.PluginHandlers[handlerId] = taskBarItem.onClick;
+        // Store the mapping
+        taskBarItemHandlerMap.set(itemId, handlerId);
       }
 
       // Create a serializable version without function properties
@@ -125,7 +130,7 @@ export function createPluginAPI(pluginId: string): PluginAPI {
         ...taskBarItem,
         pluginId,
         handlerId,
-        id: taskBarItem.id || `${pluginId}-taskbar-${Date.now()}`,
+        id: itemId,
         onClick: undefined as unknown as (contextData?: any) => void,
       };
 
@@ -134,6 +139,19 @@ export function createPluginAPI(pluginId: string): PluginAPI {
     },
 
     unregisterTaskBarItem: async (id: string) => {
+      console.log('Unregistering taskbar item in pluginAPI:', id);
+
+      // Get the handlerId from our mapping
+      const handlerId = taskBarItemHandlerMap.get(id);
+
+      if (handlerId && window.PluginHandlers) {
+        // Remove the handler from window.PluginHandlers
+        delete window.PluginHandlers[handlerId];
+        taskBarItemHandlerMap.delete(id);
+        console.log('Removed handler:', handlerId);
+      }
+
+      // Then unregister from main process
       return await window.plugins.unregisterTaskBarItem(id);
     },
 
@@ -210,14 +228,16 @@ export function createPluginAPI(pluginId: string): PluginAPI {
 }
 
 function createDownloadAPI(pluginId: string): DownloadAPI {
-  return {
+  const api = {
     registerDownloadSource: (source: any) => {
       // Register a new download source
     },
+
     getAllDownloads: () => {
       const { downloading, forDownloads } = useDownloadStore.getState();
       return { downloading, forDownloads };
     },
+
     getActiveDownloads: () => {
       // Map store downloads to the Download interface expected by plugins
       return useDownloadStore.getState().downloading.map((download) => ({
@@ -231,7 +251,8 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         location: download.location,
       }));
     },
-    addDownload: async (url, options) => {
+
+    addDownload: async (url: string, options: any) => {
       const { addDownload } = useDownloadStore.getState();
 
       // Add download with plugin-provided options
@@ -262,6 +283,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
 
       return options.name; // Return ID
     },
+
     cancelDownload: async (id: string) => {
       const {
         deleteDownloading,
@@ -290,9 +312,6 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             );
             if (success) {
               deleteDownloading(id);
-              console.log(
-                `Controller with ID ${activeDownload.controllerId} has been terminated.`,
-              );
               return true;
             } else {
               console.error(
@@ -311,6 +330,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         return false;
       }
     },
+
     stopAllDownloads: async () => {
       const {
         deleteDownloading,
@@ -327,10 +347,6 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           }
         });
 
-        console.log('--------------------------------');
-        console.log('Stopping all downloads');
-        console.log({ downloading });
-
         // Handle all active downloads
         if (downloading && downloading.length > 0) {
           for (const download of downloading) {
@@ -344,9 +360,6 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
 
                 if (success) {
                   deleteDownloading(download.id);
-                  console.log(
-                    `Controller with ID ${download.controllerId} has been terminated.`,
-                  );
                 } else {
                   console.error(
                     `Could not stop download with controller ${download.controllerId}`,
@@ -368,13 +381,9 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         return false;
       }
     },
+
     pauseDownload: async (downloadId?: string) => {
-      const {
-        downloading,
-        deleteDownloading,
-        updateDownloadStatus,
-        addDownload,
-      } = useDownloadStore.getState();
+      const { downloading, updateDownloadStatus } = useDownloadStore.getState();
 
       try {
         // If no downloadId is provided, find the first item with status 'downloading'
@@ -385,9 +394,6 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
                 (d) => d.status?.trim().toLowerCase() === 'downloading',
               );
 
-        console.log('--------------------------------');
-        console.log('Pausing download: ', currentDownload);
-
         if (!currentDownload) {
           console.warn('No download found to pause');
           toast({
@@ -396,13 +402,136 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             description: 'No active download found to pause',
             duration: 3000,
           });
-          return;
+          return false;
+        }
+
+        // If the download is active and has a controllerId, pause it
+        if (currentDownload && currentDownload.controllerId) {
+          try {
+            updateDownloadStatus(currentDownload.id, 'paused');
+
+            const response = await window.ytdlp.killController(
+              currentDownload.controllerId,
+            );
+
+            if (response) {
+              setTimeout(() => {
+                updateDownloadStatus(currentDownload.id, 'paused');
+              }, 1200);
+
+              return true;
+            } else {
+              updateDownloadStatus(currentDownload.id, 'downloading');
+              return false;
+            }
+          } catch (error) {
+            updateDownloadStatus(currentDownload.id, 'downloading');
+            console.error('Error in pause operation:', error);
+
+            return false;
+          }
+        }
+
+        // Handle the case where the download doesn't have a valid controllerId
+        console.warn(
+          'Download found but no valid controllerId:',
+          currentDownload,
+        );
+
+        return false;
+      } catch (error) {
+        console.error('Error in pauseDownload:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'An unexpected error occurred',
+          duration: 3000,
+        });
+      }
+    },
+
+    pauseAllDownloads: async () => {
+      const { downloading } = useDownloadStore.getState();
+
+      if (downloading.length === 0) {
+        return {
+          success: true,
+          totalDownloads: 0,
+          pausedCount: 0,
+          failedCount: 0,
+          results: [],
+        };
+      }
+
+      // Pause all downloads in parallel
+      const pausePromises = downloading.map(async (download) => {
+        try {
+          const success = await api.pauseDownload(download.id);
+          return {
+            downloadId: download.id,
+            downloadName: download.name,
+            success: success === true,
+            error: null as unknown as string,
+          };
+        } catch (error) {
+          return {
+            downloadId: download.id,
+            downloadName: download.name,
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+      });
+
+      const results = await Promise.allSettled(pausePromises);
+
+      // Process results
+      const processedResults = results.map((result) =>
+        result.status === 'fulfilled'
+          ? result.value
+          : {
+              downloadId: 'unknown',
+              downloadName: 'unknown',
+              success: false,
+              error:
+                result.reason instanceof Error
+                  ? result.reason.message
+                  : String(result.reason),
+            },
+      );
+
+      const pausedCount = processedResults.filter((r) => r.success).length;
+      const failedCount = processedResults.length - pausedCount;
+
+      return {
+        success: failedCount === 0,
+        totalDownloads: downloading.length,
+        pausedCount,
+        failedCount,
+        results: processedResults,
+      };
+    },
+
+    resumeDownload: async (downloadId?: string) => {
+      const { downloading, deleteDownloading, addDownload } =
+        useDownloadStore.getState();
+
+      try {
+        // If no downloadId is provided, find the first item with status 'paused'
+        const currentDownload =
+          downloadId && downloading.some((d) => d.id === downloadId)
+            ? downloading.find((d) => d.id === downloadId)
+            : downloading.find(
+                (d) => d.status?.trim().toLowerCase() === 'paused',
+              );
+
+        if (!currentDownload) {
+          console.warn('No download found to resume');
+          return false;
         }
 
         // If the download is already paused, resume it
         if (currentDownload.status === 'paused') {
-          console.log('Resuming paused download:', currentDownload.id);
-
           addDownload(
             currentDownload.videoUrl,
             currentDownload.name,
@@ -429,87 +558,83 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           );
 
           deleteDownloading(currentDownload.id);
-
-          toast({
-            variant: 'success',
-            title: 'Download Resumed',
-            description: 'Download has been resumed successfully',
-            duration: 3000,
-          });
-          return;
+          return true;
+        } else {
+          console.warn('Download found but not paused:', currentDownload);
+          return false;
         }
-
-        // If the download is active and has a controllerId, pause it
-        if (
-          currentDownload &&
-          currentDownload.controllerId
-        ) {
-          console.log('Pausing active download:', currentDownload.id);
-
-          try {
-            updateDownloadStatus(currentDownload.id, 'paused');
-
-            const response = await window.ytdlp.killController(
-              currentDownload.controllerId,
-            );
-
-            if (response) {
-              setTimeout(() => {
-                updateDownloadStatus(currentDownload.id, 'paused');
-              }, 1200);
-
-              toast({
-                variant: 'success',
-                title: 'Download Paused',
-                description: 'Download has been paused successfully',
-                duration: 3000,
-              });
-            } else {
-              updateDownloadStatus(currentDownload.id, 'downloading');
-
-              toast({
-                variant: 'destructive',
-                title: 'Pause Failed',
-                description: 'Failed to pause the download controller',
-                duration: 3000,
-              });
-            }
-          } catch (error) {
-            updateDownloadStatus(currentDownload.id, 'downloading');
-
-            toast({
-              variant: 'destructive',
-              title: 'Error',
-              description: 'Failed to pause/resume download',
-              duration: 3000,
-            });
-
-            console.error('Error in pause operation:', error);
-          }
-          return;
-        }
-
-        // Handle the case where the download doesn't have a valid controllerId
-        console.warn(
-          'Download found but no valid controllerId:',
-          currentDownload,
-        );
-        toast({
-          variant: 'destructive',
-          title: 'Invalid Download',
-          description: 'Download does not have a valid controller ID',
-          duration: 3000,
-        });
       } catch (error) {
-        console.error('Error in pauseDownload:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'An unexpected error occurred',
-          duration: 3000,
-        });
+        console.error('Error in resumeDownload:', error);
+        return false;
       }
     },
+
+    resumeAllDownloads: async () => {
+      const { downloading } = useDownloadStore.getState();
+
+      const pausedDownloads = downloading.filter(
+        (d) => d.status?.trim().toLowerCase() === 'paused',
+      );
+
+      if (pausedDownloads.length === 0) {
+        return {
+          success: true,
+          totalDownloads: 0,
+          resumedCount: 0,
+          failedCount: 0,
+          results: [],
+        };
+      }
+
+      // Resume all downloads in parallel
+      const resumePromises = pausedDownloads.map(async (download) => {
+        try {
+          const success = await api.resumeDownload(download.id);
+          return {
+            downloadId: download.id,
+            downloadName: download.name,
+            success,
+            error: null as unknown as string,
+          };
+        } catch (error) {
+          return {
+            downloadId: download.id,
+            downloadName: download.name,
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+      });
+
+      const results = await Promise.allSettled(resumePromises);
+
+      // Process results
+      const processedResults = results.map((result) =>
+        result.status === 'fulfilled'
+          ? result.value
+          : {
+              downloadId: 'unknown',
+              downloadName: 'unknown',
+              success: false,
+              error:
+                result.reason instanceof Error
+                  ? result.reason.message
+                  : String(result.reason),
+            },
+      );
+
+      const resumedCount = processedResults.filter((r) => r.success).length;
+      const failedCount = processedResults.length - resumedCount;
+
+      return {
+        success: failedCount === 0,
+        totalDownloads: pausedDownloads.length,
+        resumedCount,
+        failedCount,
+        results: processedResults,
+      };
+    },
+
     getInfo: async (url: string) => {
       try {
         // Use the IPC handler instead of window.ytdlp
@@ -530,6 +655,8 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
       }
     },
   };
+
+  return api;
 }
 
 function createUIAPI(pluginId: string): UIAPI {

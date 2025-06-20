@@ -30,6 +30,7 @@ const PluginTaskBarExtension: React.FC = () => {
       setIsLoading(true);
       // Get taskbar items from plugin registry
       const items = await window.plugins.getTaskBarItems();
+      console.log('Taskbar items:', items);
 
       // Filter by enabled plugins
       const filteredItems = (items || []).filter(
@@ -123,11 +124,7 @@ const PluginTaskBarExtension: React.FC = () => {
   };
 
   const handleItemClick = (item: TaskBarItem) => {
-    if (
-      (item.id === 'format-converter-pause' ||
-        item.id === 'format-converter-stop') &&
-      !selectedDownloads.length
-    ) {
+    if (item.actionType === 'multiple' && !selectedDownloads.length) {
       window.PluginHandlers[item.handlerId](downloading);
       return;
     }

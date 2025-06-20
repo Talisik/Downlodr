@@ -25,7 +25,10 @@ export interface DownloadAPI {
   getActiveDownloads: () => Download[];
   addDownload: (url: string, options: DownloadOptions) => Promise<string>;
   cancelDownload?: (id: string) => Promise<boolean>;
-  pauseDownload?: (downloadId?: string) => void;
+  pauseDownload?: (downloadId?: string) => Promise<boolean>;
+  pauseAllDownloads?: () => void;
+  resumeDownload?: (downloadId?: string) => Promise<boolean>;
+  resumeAllDownloads?: () => void;
   stopAllDownloads?: () => Promise<boolean>;
   getInfo: (url: string) => Promise<DownloadInfo>;
 }
@@ -302,6 +305,7 @@ export interface TaskBarItem {
   enabled?: boolean;
   shortcut?: string;
   data?: Record<string, any>;
+  actionType?: 'single' | 'multiple';
   buttonStyle?: React.CSSProperties | string;
   iconStyle?: React.CSSProperties | string;
   labelStyle?: React.CSSProperties | string;
@@ -431,6 +435,9 @@ export interface TaskBarItemRegistration {
 
   /** Optional additional data for the item */
   data?: Record<string, any>;
+
+  /** Type of the item to be handled by the onClick function */
+  actionType?: 'single' | 'multiple';
 
   /** Optional button style */
   buttonStyle?: React.CSSProperties | string;
