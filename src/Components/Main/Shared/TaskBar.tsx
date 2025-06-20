@@ -776,7 +776,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             location.pathname.includes('/category/')) && (
             <button
               className={cn(
-                'px-3 py-1 mr-4 rounded-md flex gap-2 text-sm',
+                'px-3 py-1 mr-4 rounded-md flex gap-2 text-sm h-[28px] items-center',
                 selectedDownloads.length > 0 &&
                   (location.pathname.includes('/status/') ||
                     location.pathname.includes('/tags/') ||
@@ -794,15 +794,15 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                 )
               }
             >
-              <LuTrash size={15} className="mt-[2px]" />{' '}
+              <LuTrash size={15} />{' '}
               <span className="hidden md:inline text-sm">Remove</span>
             </button>
           )}
           <button
-            className="primary-custom-btn px-[6px] py-[4px] sm:px-[8px] sm:py-[4px] flex items-center gap-1 sm:gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
+            className="primary-custom-btn h-[28px] px-[6px] py-[4px] sm:px-[12px] sm:py-[4px] flex items-center gap-1 sm:gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
             onClick={handleOpenDownloadModal}
           >
-            <GoDownload className="mt-[2px]" />
+            <GoDownload />
             <span className="hidden md:inline text-sm">Add URL</span>
           </button>
         </div>

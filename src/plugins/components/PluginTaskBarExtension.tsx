@@ -30,7 +30,6 @@ const PluginTaskBarExtension: React.FC = () => {
       setIsLoading(true);
       // Get taskbar items from plugin registry
       const items = await window.plugins.getTaskBarItems();
-      console.log('Taskbar items:', items);
 
       // Filter by enabled plugins
       const filteredItems = (items || []).filter(

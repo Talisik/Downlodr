@@ -61,6 +61,10 @@ interface MainStore {
   setTaskBarButtonsVisibility: (
     visibility: Partial<TaskBarButtonsVisibility>,
   ) => void; // Set the visibility of the task bar buttons
+  isNavCollapsed: boolean; // State for sidebar navigation collapse
+  setIsNavCollapsed: (value: boolean) => void; // Set the collapse state of the sidebar navigation
+  isDownloadDetailExpanded: boolean; // State for download detail expansion
+  setIsDownloadDetailExpanded: (value: boolean) => void; // Set the expansion state of the download detail
 }
 
 // Create the main store with persistence
@@ -172,6 +176,13 @@ export const useMainStore = create<MainStore>()(
             ...visibility,
           },
         })),
+
+      isNavCollapsed: true,
+      setIsNavCollapsed: (value) => set({ isNavCollapsed: value }),
+
+      isDownloadDetailExpanded: false,
+      setIsDownloadDetailExpanded: (value) =>
+        set({ isDownloadDetailExpanded: value }),
     }),
     {
       name: 'download-settings-storage', // Name of the storage

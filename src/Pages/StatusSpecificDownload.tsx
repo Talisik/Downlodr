@@ -43,17 +43,17 @@ const formatRelativeTime = (dateString: string) => {
   const diffInYears = Math.floor(diffInDays / 365);
 
   if (diffInMinutes < 60) {
-    return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
+    return `${diffInMinutes} m ago`;
   } else if (diffInHours < 24) {
-    return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
+    return `${diffInHours} ${diffInHours === 1 ? 'hr' : 'hrs'} ago`;
   } else if (diffInDays < 7) {
     return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
   } else if (diffInWeeks < 4) {
-    return `${diffInWeeks} ${diffInWeeks === 1 ? 'week' : 'weeks'} ago`;
+    return `${diffInWeeks} ${diffInWeeks === 1 ? 'wk' : 'ws'} ago`;
   } else if (diffInMonths < 12) {
-    return `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'} ago`;
+    return `${diffInMonths} ${diffInMonths === 1 ? 'mo' : 'mos'} ago`;
   } else {
-    return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
+    return `${diffInYears} ${diffInYears === 1 ? 'yr' : 'yrs'} ago`;
   }
 };
 

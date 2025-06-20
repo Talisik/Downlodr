@@ -44,6 +44,7 @@ export interface UIAPI {
   ) => Promise<FormatSelectorResult | null>;
   registerTaskBarItem: (item: TaskBarItem) => Promise<string>;
   unregisterTaskBarItem: (id: string) => Promise<boolean>;
+  getTaskBarItems: () => Promise<TaskBarItem[]>;
   showPluginSidePanel: (
     options: PluginSidePanelOptions,
   ) => Promise<PluginSidePanelResult | null>;

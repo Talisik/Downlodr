@@ -591,7 +591,8 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         <div className="bg-[#FEF9F4] dark:bg-darkMode flex gap-3 justify-end -mx-6 px-4 py-3 rounded-b-md">
           <Button
             onClick={handleClose}
-            className="h-8 px-2 py-0.5 rounded-md hover:bg-gray-50 dark:bg-darkModeCompliment dark:text-darkModeLight dark:hover:bg-darkModeHover dark:hover:text-white font-medium"
+            variant="outline"
+            className="h-8 px-2 py-0.5 rounded-md dark:border-darkModeCompliment dark:bg-darkModeCompliment dark:text-darkModeLight dark:hover:bg-darkModeHover dark:hover:text-white font-medium"
           >
             Cancel
           </Button>

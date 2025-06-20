@@ -139,20 +139,11 @@ export function createPluginAPI(pluginId: string): PluginAPI {
     },
 
     unregisterTaskBarItem: async (id: string) => {
-      console.log('Unregistering taskbar item in pluginAPI:', id);
-
-      // Get the handlerId from our mapping
-      const handlerId = taskBarItemHandlerMap.get(id);
-
-      if (handlerId && window.PluginHandlers) {
-        // Remove the handler from window.PluginHandlers
-        delete window.PluginHandlers[handlerId];
-        taskBarItemHandlerMap.delete(id);
-        console.log('Removed handler:', handlerId);
-      }
-
-      // Then unregister from main process
       return await window.plugins.unregisterTaskBarItem(id);
+    },
+
+    getTaskBarItems: async () => {
+      return await window.plugins.getTaskBarItems();
     },
 
     showPluginSidePanel: async (
@@ -702,6 +693,9 @@ function createUIAPI(pluginId: string): UIAPI {
     unregisterTaskBarItem: (id: string) => {
       // Remove taskbar item
       return Promise.resolve(true);
+    },
+    getTaskBarItems: async () => {
+      return await window.plugins.getTaskBarItems();
     },
     showPluginSidePanel: async (
       options: PluginSidePanelOptions,
