@@ -1,3 +1,5 @@
+import { ForDownload } from "src/Store/downloadStore";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface DownlodrPlugin {
   id: string;
@@ -19,10 +21,15 @@ export interface PluginAPI {
 
 export interface DownloadAPI {
   registerDownloadSource: (source: DownloadSource) => void;
+  getAllDownloads: () => any;
   getActiveDownloads: () => Download[];
   addDownload: (url: string, options: DownloadOptions) => Promise<string>;
   cancelDownload?: (id: string) => Promise<boolean>;
-  pauseDownload?: (id: string) => Promise<boolean>;
+  pauseDownload?: (downloadId?: string) => Promise<boolean>;
+  pauseAllDownloads?: () => void;
+  resumeDownload?: (downloadId?: string) => Promise<boolean>;
+  resumeAllDownloads?: () => void;
+  stopAllDownloads?: () => Promise<boolean>;
   getInfo: (url: string) => Promise<DownloadInfo>;
 }
 
@@ -37,6 +44,7 @@ export interface UIAPI {
   ) => Promise<FormatSelectorResult | null>;
   registerTaskBarItem: (item: TaskBarItem) => Promise<string>;
   unregisterTaskBarItem: (id: string) => Promise<boolean>;
+  getTaskBarItems: () => Promise<TaskBarItem[]>;
   showPluginSidePanel: (
     options: PluginSidePanelOptions,
   ) => Promise<PluginSidePanelResult | null>;
@@ -45,6 +53,9 @@ export interface UIAPI {
   ) => Promise<PluginModalResult | null>;
   showSaveFileDialog: (options: SaveDialogOptions) => Promise<SaveDialogResult>;
   closePluginPanel: () => void;
+  setTaskBarButtonsVisibility: (
+    visibility: Partial<TaskBarButtonsVisibility>,
+  ) => void;
 }
 
 export interface FormatAPI {
@@ -295,6 +306,10 @@ export interface TaskBarItem {
   enabled?: boolean;
   shortcut?: string;
   data?: Record<string, any>;
+  actionType?: 'single' | 'multiple';
+  buttonStyle?: React.CSSProperties | string;
+  iconStyle?: React.CSSProperties | string;
+  labelStyle?: React.CSSProperties | string;
 }
 
 export interface PluginSidePanelOptions {
@@ -421,4 +436,22 @@ export interface TaskBarItemRegistration {
 
   /** Optional additional data for the item */
   data?: Record<string, any>;
+
+  /** Type of the item to be handled by the onClick function */
+  actionType?: 'single' | 'multiple';
+
+  /** Optional button style */
+  buttonStyle?: React.CSSProperties | string;
+
+  /** Optional icon style */
+  iconStyle?: React.CSSProperties | string;
+
+  /** Optional label style */
+  labelStyle?: React.CSSProperties | string;
+}
+
+export interface TaskBarButtonsVisibility {
+  start: boolean;
+  stop: boolean;
+  stopAll: boolean;
 }
