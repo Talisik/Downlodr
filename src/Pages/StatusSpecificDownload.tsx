@@ -208,12 +208,12 @@ const StatusSpecificDownloads = () => {
     dragOverIndex,
   } = useResizableColumns(
     [
-      { id: 'name', width: 90, minWidth: 90 },
+      { id: 'name', width: 95, minWidth: 95 },
       { id: 'size', width: 65, minWidth: 65 },
       { id: 'format', width: 90, minWidth: 90 },
       { id: 'status', width: 110, minWidth: 110 },
       { id: 'speed', width: 100, minWidth: 100 },
-      { id: 'dateAdded', width: 110, minWidth: 110 },
+      { id: 'dateAdded', width: 100, minWidth: 100 },
       { id: 'transcript', width: 20, minWidth: 20 },
       { id: 'thumbnail', width: 10, minWidth: 10 },
       { id: 'source', width: 20, minWidth: 20 },
