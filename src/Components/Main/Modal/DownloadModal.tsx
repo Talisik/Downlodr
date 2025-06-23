@@ -28,6 +28,7 @@ import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
+  originalClipboardMonitoringState?: boolean;
 }
 
 // Expected download video params
@@ -39,7 +40,11 @@ interface Video {
   url: string;
 }
 
-const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
+const DownloadModal: React.FC<DownloadModalProps> = ({
+  isOpen,
+  onClose,
+  originalClipboardMonitoringState,
+}) => {
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [isValidUrl, setIsValidUrl] = useState<boolean>(false);
 
@@ -51,7 +56,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
   const [getThumbnail, setGetThumbnail] = useState<boolean>(false);
 
   const { setDownload } = useDownloadStore();
-  const { settings } = useMainStore();
+  const { settings, updateEnableClipboardMonitoring } = useMainStore();
   const [downloadFolder, setDownloadFolder] = useState<string>(
     settings.defaultLocation,
   );
@@ -290,7 +295,13 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
           getThumbnail,
         });
       }
-      // Cleaning up modal
+      // Cleaning up modal and restoring original clipboard monitoring state
+      if (typeof originalClipboardMonitoringState === 'boolean') {
+        updateEnableClipboardMonitoring(originalClipboardMonitoringState);
+      } else {
+        // Fallback: if no original state provided, enable it (safe default)
+        updateEnableClipboardMonitoring(true);
+      }
       resetModal();
       onClose();
 
@@ -323,6 +334,13 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
   // Close Modal
   const handleClose = () => {
+    // Restore the original clipboard monitoring state
+    if (typeof originalClipboardMonitoringState === 'boolean') {
+      updateEnableClipboardMonitoring(originalClipboardMonitoringState);
+    } else {
+      // Fallback: if no original state provided, enable it (safe default)
+      updateEnableClipboardMonitoring(true);
+    }
     resetModal();
     onClose();
   };

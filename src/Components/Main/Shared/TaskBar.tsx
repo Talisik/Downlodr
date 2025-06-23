@@ -119,7 +119,6 @@ const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
   selectedCount,
 }) => {
   const [deleteFolder, setDeleteFolder] = useState(false);
-
   // Reset checkbox when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -209,6 +208,9 @@ const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
 const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // Handle state for modal
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [originalClipboardState, setOriginalClipboardState] = useState<
+    boolean | undefined
+  >(undefined);
   const [showStopConfirmation, setShowStopConfirmation] = useState(false);
   const [stopAction, setStopAction] = useState<'selected' | 'all' | null>(null);
   const { toast } = useToast();
@@ -216,7 +218,11 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
   const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
   // Get the max download limit and current downloads from stores
-  const { settings, taskBarButtonsVisibility } = useMainStore();
+  const {
+    settings,
+    taskBarButtonsVisibility,
+    updateEnableClipboardMonitoring,
+  } = useMainStore();
   const { downloading, forDownloads } = useDownloadStore();
 
   // Handling selected downloads
@@ -788,8 +794,12 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
   // opens download modal
   const handleOpenDownloadModal = () => {
+    // Store the current clipboard monitoring state before disabling it
+    const wasClipboardMonitoringEnabled = settings.enableClipboardMonitoring;
+    updateEnableClipboardMonitoring(false);
     clearAllSelections();
     setDownloadModalOpen(true);
+    setOriginalClipboardState(wasClipboardMonitoringEnabled);
   };
 
   return (
@@ -897,7 +907,11 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       </div>
       <DownloadModal
         isOpen={isDownloadModalOpen}
-        onClose={() => setDownloadModalOpen(false)}
+        onClose={() => {
+          setDownloadModalOpen(false);
+          setOriginalClipboardState(undefined); // Clean up state
+        }}
+        originalClipboardMonitoringState={originalClipboardState}
       />
       <StopModal
         isOpen={showStopConfirmation}
