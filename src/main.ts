@@ -597,6 +597,19 @@ ipcMain.handle('clear-last-clipboard-text', () => {
   return true;
 });
 
+// Add IPC handler to actually clear the clipboard
+ipcMain.handle('clear-clipboard', () => {
+  try {
+    clipboard.writeText('');
+    lastClipboardText = 'BLANK_STATE';
+    console.log('Clipboard cleared successfully');
+    return true;
+  } catch (error) {
+    console.log('Could not clear clipboard:', error);
+    return false;
+  }
+});
+
 // Set up clipboard monitoring
 let clipboardInterval: NodeJS.Timeout | null = null;
 let lastClipboardText = 'BLANK_STATE';
@@ -609,6 +622,20 @@ const startClipboardMonitoring = () => {
 
   isMonitoring = true;
   console.log('Starting clipboard monitoring...');
+
+  // Set internal state to BLANK_STATE for fallback tracking
+  lastClipboardText = 'BLANK_STATE';
+
+  // Actually clear the clipboard by writing an empty string
+  try {
+    clipboard.writeText('');
+    console.log('Clipboard cleared and monitoring initialized');
+  } catch (error) {
+    console.log(
+      'Could not clear clipboard, using BLANK_STATE fallback:',
+      error,
+    );
+  }
 
   // Add a small delay to prevent immediate detection of current clipboard content
   setTimeout(() => {

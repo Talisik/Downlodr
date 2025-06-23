@@ -271,9 +271,21 @@ const ClipboardLinkDetector: React.FC = () => {
       lastProcessedTime.current = 0;
 
       // Set last clipboard text to BLANK_STATE to prevent issues when re-enabling
-      if (window.appControl && window.appControl.clearLastClipboardText) {
-        window.appControl.clearLastClipboardText().then(() => {
-          console.log('Last clipboard text set to BLANK_STATE');
+      if (window.appControl && window.appControl.clearClipboard) {
+        window.appControl.clearClipboard().then((success) => {
+          if (success) {
+            console.log('Clipboard cleared on component unmount');
+          } else {
+            console.log('Clipboard clear failed on unmount, using fallback');
+            // Fallback to just setting internal state
+            if (window.appControl && window.appControl.clearLastClipboardText) {
+              window.appControl.clearLastClipboardText().then(() => {
+                console.log(
+                  'Last clipboard text set to BLANK_STATE on component unmount (fallback)',
+                );
+              });
+            }
+          }
         });
       }
 
@@ -290,11 +302,21 @@ const ClipboardLinkDetector: React.FC = () => {
       document.removeEventListener('keydown', handleKeyDown);
 
       // Clear the last clipboard text when component unmounts
-      if (window.appControl && window.appControl.clearLastClipboardText) {
-        window.appControl.clearLastClipboardText().then(() => {
-          console.log(
-            'Last clipboard text set to BLANK_STATE on component unmount',
-          );
+      if (window.appControl && window.appControl.clearClipboard) {
+        window.appControl.clearClipboard().then((success) => {
+          if (success) {
+            console.log('Clipboard cleared on component unmount');
+          } else {
+            console.log('Clipboard clear failed on unmount, using fallback');
+            // Fallback to just setting internal state
+            if (window.appControl && window.appControl.clearLastClipboardText) {
+              window.appControl.clearLastClipboardText().then(() => {
+                console.log(
+                  'Last clipboard text set to BLANK_STATE on component unmount (fallback)',
+                );
+              });
+            }
+          }
         });
       }
     };
