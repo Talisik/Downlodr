@@ -251,12 +251,8 @@ const useDownloadStore = create<DownloadStore>()(
               download.downloadName,
             );
             const exists = await window.downlodrFunctions.fileExists(filePath);
-            console.log(`Checking file: ${filePath}, exists: ${exists}`);
 
             if (!exists) {
-              console.log(
-                `File doesn't exist yet, setting status to initializing for ${download.id}`,
-              );
               set((state) => ({
                 downloading: state.downloading.map((d) =>
                   d.id === download.id ? { ...d, status: 'initializing' } : d,
@@ -270,9 +266,6 @@ const useDownloadStore = create<DownloadStore>()(
                 );
                 if (fileExists) {
                   clearInterval(checkInterval);
-                  console.log(
-                    `File now exists, moving download ${download.id} to finished/history`,
-                  );
 
                   // Get the actual file size from the file system
                   const actualFileSize =
@@ -310,10 +303,6 @@ const useDownloadStore = create<DownloadStore>()(
                 clearInterval(checkInterval);
               }, 300000); // 5 minutes
             } else {
-              console.log(
-                `File exists, moving download ${download.id} to finished/history`,
-              );
-
               // Get the actual file size from the file system
               const actualFileSize = await window.downlodrFunctions.getFileSize(
                 filePath,
@@ -456,15 +445,6 @@ const useDownloadStore = create<DownloadStore>()(
             downloadName,
           );
         }
-        console.log('Download Parameters:', {
-          videoUrl,
-          finalLocation,
-          formatId,
-          ext,
-          audioExt,
-          audioFormatId,
-          limitRate,
-        });
         // Create a download ID before starting the download
         const downloadId = (window as any).ytdlp.download(
           {
@@ -492,14 +472,15 @@ const useDownloadStore = create<DownloadStore>()(
                   download.id === downloadId
                     ? {
                         ...download,
-                        speed: result.data._speed_str || '',
-                        progress: parseFloat(result.data._percent_str) || 0,
-                        timeLeft: result.data._eta_str || '',
+                        speed: result.data.value._speed_str || '',
+                        progress:
+                          parseFloat(result.data.value._percent_str) || 0,
+                        timeLeft: result.data.value._eta_str || '',
                         size:
-                          parseFloat(result.data.downloaded_bytes) ||
+                          parseFloat(result.data.value.downloaded_bytes) ||
                           download.size,
-                        status: result.data.status || download.status,
-                        elapsed: result.data.elapsed || download.elapsed,
+                        status: result.data.value.status || download.status,
+                        elapsed: result.data.value.elapsed || download.elapsed,
                         ext: ext,
                         audioExt: audioExt,
                       }
@@ -519,14 +500,6 @@ const useDownloadStore = create<DownloadStore>()(
               zustandLocation,
               downloadName,
             );
-
-            if (captionsPath) {
-              console.log(
-                `Successfully downloaded captions to: ${captionsPath}`,
-              );
-            } else {
-              console.log('Could not download English captions');
-            }
           } else {
             captionsPath = '';
             console.log('No transcript requested or available');
@@ -536,10 +509,7 @@ const useDownloadStore = create<DownloadStore>()(
             `thumb1.jpg`,
           );
           if (thumbnails && getThumbnail) {
-            console.log(thumbnails);
-
             try {
-              console.log(thumbnails);
               // Extract the URL from the thumbnails object
               const thumbnailUrl = thumbnails;
               if (thumbnailUrl) {
@@ -547,9 +517,6 @@ const useDownloadStore = create<DownloadStore>()(
                   thumbnailUrl,
                   thumbnailPath,
                 );
-                console.log(`Thumbnail downloaded to: ${thumbnailPath}`);
-              } else {
-                console.log('Thumbnail URL not found in object');
               }
             } catch (error) {
               console.log('Error downloading thumbnail:', error);
@@ -599,30 +566,6 @@ const useDownloadStore = create<DownloadStore>()(
             },
           ],
         }));
-
-        console.log('Download parameters:', {
-          videoUrl,
-          name,
-          downloadName,
-          size,
-          speed,
-          timeLeft,
-          DateAdded,
-          progress,
-          location,
-          status,
-          ext,
-          formatId,
-          audioExt,
-          audioFormatId,
-          extractorKey,
-          limitRate,
-          automatic_caption,
-          thumbnails,
-          getTranscript,
-          getThumbnail,
-          duration,
-        });
       },
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -636,8 +579,7 @@ const useDownloadStore = create<DownloadStore>()(
           console.error('Invalid path parameters:', { location });
           return;
         }
-        console.log(options.getThumbnail);
-        console.log(options.getTranscript);
+
         const downloadId = uuidv4();
 
         // Add initial entry with minimal info
@@ -706,9 +648,7 @@ const useDownloadStore = create<DownloadStore>()(
           ) {
             thumbnail = info.data.thumbnail;
           }
-          console.log(thumbnail);
           // Process formats using the service
-          console.log(info);
           const { formatOptions, defaultFormatId, defaultExt } =
             await VideoFormatService.processVideoFormats(info);
 
@@ -1130,8 +1070,6 @@ const useDownloadStore = create<DownloadStore>()(
           }`,
           duration: 3000,
         });
-
-        console.log(`Download queued: ${name} (ID: ${queueId})`);
       },
 
       processQueue: () => {

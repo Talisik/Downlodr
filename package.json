@@ -78,7 +78,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "talisik-shortener": "^0.1.3",
-    "yt-dlp-helper": "https://github.com/Talisik/yt-dlp-helper.git",
+    "yt-dlp-helper": "github:Talisik/yt-dlp-helper",
     "zustand": "^5.0.3"
   }
 }
