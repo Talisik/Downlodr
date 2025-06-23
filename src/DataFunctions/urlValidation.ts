@@ -122,6 +122,7 @@ export const extractUrlFromText = (text: string): string | null => {
 
   // If the entire text is a valid URL, return it
   if (isValidUrl(trimmedText)) {
+    console.log('Extracted URL from text:', isValidUrl);
     return trimmedText;
   }
 

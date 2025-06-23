@@ -106,16 +106,6 @@ const createWindow = () => {
       }
     }
   });
-  /*
-  // Pause clipboard monitoring when window loses focus
-  mainWindow.on('blur', () => {
-    pauseClipboardMonitoring();
-  });
-  */
-  // Resume clipboard monitoring when window gains focus
-  mainWindow.on('focus', () => {
-    resumeClipboardMonitoring();
-  });
 
   // MAIN FUNCTIONS FOR TITLE BAR
   ipcMain.on('close-btn', () => {
@@ -683,19 +673,11 @@ const stopClipboardMonitoring = () => {
     clearInterval(clipboardInterval);
     clipboardInterval = null;
   }
-  // Set to BLANK_STATE to prevent detection when going from blank to new content
   lastClipboardText = 'BLANK_STATE';
-  console.log('Clipboard monitoring stopped and set to BLANK_STATE');
+  console.log('Clipboard monitoring stopped');
 };
 
-// Pause monitoring when app is not focused (optional optimization)
-const pauseClipboardMonitoring = () => {
-  isMonitoring = false;
-};
-
-const resumeClipboardMonitoring = () => {
-  isMonitoring = true;
-};
+// App lifecycle events
 
 // once the app opens
 app.on('ready', async () => {
