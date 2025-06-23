@@ -210,6 +210,9 @@ const createTray = () => {
       label: 'Quit',
       click: () => {
         forceQuit = true;
+        // Set to BLANK_STATE before quitting
+        lastClipboardText = 'BLANK_STATE';
+        console.log('Last clipboard text set to BLANK_STATE before tray quit');
         app.quit();
       },
     },
@@ -587,9 +590,16 @@ ipcMain.handle('is-clipboard-monitoring-active', () => {
   return isMonitoring;
 });
 
+// Add IPC handler to clear last clipboard text
+ipcMain.handle('clear-last-clipboard-text', () => {
+  console.log('Setting last clipboard text to BLANK_STATE...');
+  lastClipboardText = 'BLANK_STATE';
+  return true;
+});
+
 // Set up clipboard monitoring
 let clipboardInterval: NodeJS.Timeout | null = null;
-let lastClipboardText = '';
+let lastClipboardText = 'BLANK_STATE';
 let isMonitoring = false;
 
 const startClipboardMonitoring = () => {
@@ -612,15 +622,25 @@ const startClipboardMonitoring = () => {
 
         // Only process if content has changed and is reasonable size
         if (currentText !== lastClipboardText && currentText.length <= 10000) {
-          lastClipboardText = currentText;
-          console.log('Clipboard content changed, sending to renderer...');
+          // Only send clipboard change event if:
+          // 1. We're not going from BLANK_STATE to new content (prevents initial triggers)
+          // 2. Current content is not empty (prevents triggers when clearing clipboard)
+          if (
+            lastClipboardText !== 'BLANK_STATE' &&
+            currentText.trim() !== ''
+          ) {
+            console.log('Clipboard content changed, sending to renderer...');
 
-          // Send clipboard change event to all renderer processes
-          BrowserWindow.getAllWindows().forEach((win) => {
-            if (!win.isDestroyed()) {
-              win.webContents.send('clipboard-changed', currentText);
-            }
-          });
+            // Send clipboard change event to all renderer processes
+            BrowserWindow.getAllWindows().forEach((win) => {
+              if (!win.isDestroyed()) {
+                win.webContents.send('clipboard-changed', currentText);
+              }
+            });
+          }
+
+          // Always update the last clipboard text for comparison
+          lastClipboardText = currentText;
         }
       } catch (error) {
         console.debug('Clipboard monitoring error:', error);
@@ -636,9 +656,9 @@ const stopClipboardMonitoring = () => {
     clearInterval(clipboardInterval);
     clipboardInterval = null;
   }
-  // Clear the last known clipboard content to prevent detection of old content when re-enabled
-  lastClipboardText = '';
-  console.log('Clipboard monitoring stopped and last content cleared');
+  // Set to BLANK_STATE to prevent detection when going from blank to new content
+  lastClipboardText = 'BLANK_STATE';
+  console.log('Clipboard monitoring stopped and set to BLANK_STATE');
 };
 
 // Pause monitoring when app is not focused (optional optimization)
@@ -848,6 +868,9 @@ ipcMain.handle('hide-window', () => {
 // function for forcibly closing the app
 ipcMain.handle('exit-app', () => {
   forceQuit = true;
+  // Set to BLANK_STATE before quitting
+  lastClipboardText = 'BLANK_STATE';
+  console.log('Last clipboard text set to BLANK_STATE before app exit');
   app.quit();
 });
 

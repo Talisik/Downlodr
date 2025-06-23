@@ -152,6 +152,7 @@ declare global {
       startClipboardMonitoring: () => Promise<boolean>;
       stopClipboardMonitoring: () => Promise<boolean>;
       isClipboardMonitoringActive: () => Promise<boolean>;
+      clearLastClipboardText: () => Promise<void>;
     };
   }
 }

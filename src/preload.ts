@@ -155,6 +155,7 @@ contextBridge.exposeInMainWorld('appControl', {
     ipcRenderer.invoke('stop-clipboard-monitoring'),
   isClipboardMonitoringActive: () =>
     ipcRenderer.invoke('is-clipboard-monitoring-active'),
+  clearLastClipboardText: () => ipcRenderer.invoke('clear-last-clipboard-text'),
 });
 
 // Change this from a separate exposure to include both functions
