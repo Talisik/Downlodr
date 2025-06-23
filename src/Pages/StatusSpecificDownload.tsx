@@ -203,11 +203,12 @@ const StatusSpecificDownloads = () => {
     startDragging,
     handleDragOver,
     handleDrop,
+    cancelDrag,
     dragging,
     dragOverIndex,
   } = useResizableColumns(
     [
-      { id: 'name', width: 100, minWidth: 100 },
+      { id: 'name', width: 90, minWidth: 90 },
       { id: 'size', width: 65, minWidth: 65 },
       { id: 'format', width: 90, minWidth: 90 },
       { id: 'status', width: 110, minWidth: 110 },
@@ -1323,6 +1324,7 @@ const StatusSpecificDownloads = () => {
                       onDragStart={startDragging}
                       onDragOver={handleDragOver}
                       onDrop={handleDrop}
+                      onDragEnd={cancelDrag}
                       isDragging={dragging?.columnId === column.id}
                       isDragOver={dragOverIndex === originalIndex}
                       columnId={column.id}

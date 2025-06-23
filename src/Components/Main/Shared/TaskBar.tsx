@@ -582,7 +582,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         } queued. Active: ${currentActiveDownloads + downloadsToStart.length}/${
           settings.maxDownloadNum
         }`,
-        duration: 5000,
+        duration: 7000,
       });
     }
   };
