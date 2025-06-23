@@ -447,11 +447,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       (d) => d.status === 'downloading' || d.status === 'initializing',
     ).length;
 
-    const wouldExceedLimit =
-      currentActiveDownloads + uniqueDownloads.length > settings.maxDownloadNum;
+    const availableSlots = settings.maxDownloadNum - currentActiveDownloads;
 
-    if (wouldExceedLimit) {
-      // Add to queue instead of starting directly
+    if (availableSlots <= 0) {
+      // No slots available - queue all downloads
       uniqueDownloads.forEach((selectedDownload) => {
         const downloadInfo = selectedDownload.download;
         const processedName = downloadInfo.name.replace(/[\\/:*?"<>|]/g, '_');
@@ -486,30 +485,64 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       });
 
       toast({
-        variant: 'destructive',
         title: 'Downloads Added to Queue',
-        description: `${uniqueDownloads.length} download(s) added to queue. Active downloads: ${currentActiveDownloads}/${settings.maxDownloadNum}`,
+        description: `All ${uniqueDownloads.length} download(s) added to queue. No available slots (${currentActiveDownloads}/${settings.maxDownloadNum})`,
         duration: 5000,
       });
       return;
     }
 
-    // iterate through selected unique downloads
-    for (const selectedDownload of uniqueDownloads) {
-      // get metadata for each selected download
+    // Split downloads: some can start immediately, others go to queue
+    const downloadsToStart = uniqueDownloads.slice(0, availableSlots);
+    const downloadsToQueue = uniqueDownloads.slice(availableSlots);
+
+    // Queue the excess downloads first
+    downloadsToQueue.forEach((selectedDownload) => {
+      const downloadInfo = selectedDownload.download;
+      const processedName = downloadInfo.name.replace(/[\\/:*?"<>|]/g, '_');
+
+      addQueue(
+        downloadInfo.videoUrl,
+        `${processedName}.${downloadInfo.ext}`,
+        `${processedName}.${downloadInfo.ext}`,
+        downloadInfo.size,
+        downloadInfo.speed,
+        downloadInfo.timeLeft,
+        new Date().toISOString(),
+        downloadInfo.progress,
+        downloadInfo.location,
+        'queued',
+        downloadInfo.ext,
+        downloadInfo.formatId,
+        downloadInfo.audioExt,
+        downloadInfo.audioFormatId,
+        downloadInfo.extractorKey,
+        settings.defaultDownloadSpeed === 0
+          ? ''
+          : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+        downloadInfo.automaticCaption,
+        downloadInfo.thumbnails,
+        downloadInfo.getTranscript || false,
+        downloadInfo.getThumbnail || false,
+        downloadInfo.duration || 60,
+        true,
+      );
+      removeFromForDownloads(selectedDownload.id);
+    });
+
+    // Start the downloads that fit within the limit
+    for (const selectedDownload of downloadsToStart) {
       const downloadInfo = forDownloads.find(
         (d) => d.id === selectedDownload.id,
       );
 
       if (downloadInfo) {
-        // checks download name and location to validate download name and location
-        // returns validated processed name
         const processedName = await processFileName(
           downloadInfo.location,
           downloadInfo.name,
           downloadInfo.ext || downloadInfo.audioExt,
         );
-        // calls the addDownload function from store to start each selected download
+
         addDownload(
           downloadInfo.videoUrl,
           `${processedName}.${downloadInfo.ext}`,
@@ -536,9 +569,21 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           downloadInfo.duration || 60,
           true,
         );
-        // remove the current download from the saved list for forDownloads
         removeFromForDownloads(selectedDownload.id);
       }
+    }
+
+    // Show appropriate toast message
+    if (downloadsToQueue.length > 0) {
+      toast({
+        title: 'Downloads Started and Queued',
+        description: `${downloadsToStart.length} started, ${
+          downloadsToQueue.length
+        } queued. Active: ${currentActiveDownloads + downloadsToStart.length}/${
+          settings.maxDownloadNum
+        }`,
+        duration: 5000,
+      });
     }
   };
 
