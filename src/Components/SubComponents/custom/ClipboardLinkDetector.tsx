@@ -63,12 +63,12 @@ const ClipboardLinkDetector: React.FC = () => {
 
           // Show toast notification
           toast({
-            title: 'Link Detected',
+            title: 'Copied Link Detected',
             description: (
               <div className="max-w-xs">
                 <div className="truncate text-sm">{url}</div>
                 <div className="text-xs text-gray-500 mt-1">
-                  You can paste this link in the download modal
+                  Link will be added to the download queue
                 </div>
               </div>
             ),
