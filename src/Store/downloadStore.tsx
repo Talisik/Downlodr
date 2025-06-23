@@ -17,6 +17,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 import { downloadEnglishCaptions } from '../DataFunctions/captionsHelper';
 import { VideoFormatService } from '../DataFunctions/GetDownloadMetaData';
+import { useMainStore } from './mainStore'; // Add this import
 
 // give unique id to downloads
 function uuidv4() {
@@ -99,12 +100,41 @@ export interface HistoryDownloads extends BaseDownload {
   transcriptLocation: string;
 }
 
+// Add this interface after the existing interfaces
+export interface QueuedDownload extends BaseDownload {
+  id: string;
+  videoUrl: string;
+  name: string;
+  downloadName: string;
+  size: number;
+  speed: string;
+  timeLeft: string;
+  DateAdded: string;
+  progress: number;
+  location: string;
+  status: string;
+  ext: string;
+  formatId: string;
+  audioExt: string;
+  audioFormatId: string;
+  extractorKey: string;
+  limitRate: string;
+  automaticCaption: any;
+  thumbnails: any;
+  getTranscript: boolean;
+  getThumbnail: boolean;
+  duration: number;
+  isCreateFolder: boolean;
+  queuedAt: string; // Timestamp when added to queue
+}
+
 // Main interface for the download store
 interface DownloadStore {
   downloading: Downloading[]; // List of currently downloading items
   finishedDownloads: FinishedDownloads[]; // List of finished downloads
   historyDownloads: HistoryDownloads[]; // List of download history logs
   forDownloads: ForDownload[]; // List of downloads that are queued
+  queuedDownloads: QueuedDownload[]; // List of downloads waiting in queue
   availableTags: string[]; // List of available tags
   availableCategories: string[]; // List of available categories
 
@@ -128,7 +158,7 @@ interface DownloadStore {
     audioFormatId: string,
     extractorKey: string,
     limitRate: string,
-    automatic_caption: any,
+    automaticCaption: any,
     thumbnails: any,
     getTranscript: boolean,
     getThumbnail: boolean,
@@ -164,6 +194,37 @@ interface DownloadStore {
       | 'paused',
   ) => void; // Update the status of a download
   renameDownload: (downloadId: string, newName: string) => void; // Rename a download
+
+  // Add these new queue methods
+  addQueue: (
+    videoUrl: string,
+    name: string,
+    downloadName: string,
+    size: number,
+    speed: string,
+    timeLeft: string,
+    DateAdded: string,
+    progress: number,
+    location: string,
+    status: string,
+    ext: string,
+    formatId: string,
+    audioExt: string,
+    audioFormatId: string,
+    extractorKey: string,
+    limitRate: string,
+    automaticCaption: any,
+    thumbnails: any,
+    getTranscript: boolean,
+    getThumbnail: boolean,
+    duration: number,
+    isCreateFolder: boolean,
+  ) => void;
+  processQueue: () => void;
+  removeFromQueue: (id: string) => void;
+  clearQueue: () => void;
+  moveQueueItem: (id: string, direction: 'up' | 'down') => void;
+  getQueuePosition: (id: string) => number;
 }
 
 const useDownloadStore = create<DownloadStore>()(
@@ -173,6 +234,7 @@ const useDownloadStore = create<DownloadStore>()(
       downloading: [] as Downloading[],
       finishedDownloads: [] as FinishedDownloads[],
       historyDownloads: [] as HistoryDownloads[],
+      queuedDownloads: [] as QueuedDownload[], // Add queue state
       availableTags: [] as string[],
       availableCategories: [] as string[],
 
@@ -237,6 +299,9 @@ const useDownloadStore = create<DownloadStore>()(
                       (d) => d.id !== download.id,
                     ),
                   }));
+
+                  // Process queue after a download finishes
+                  get().processQueue();
                 }
               }, 1000); // Check every second
 
@@ -276,6 +341,9 @@ const useDownloadStore = create<DownloadStore>()(
                   (d) => d.id !== download.id,
                 ),
               }));
+
+              // Process queue after a download finishes
+              get().processQueue();
             }
           }
         }
@@ -731,6 +799,7 @@ const useDownloadStore = create<DownloadStore>()(
           finishedDownloads: state.finishedDownloads.filter((d) => d.id !== id),
           historyDownloads: state.historyDownloads.filter((d) => d.id !== id),
           forDownloads: state.forDownloads.filter((d) => d.id !== id),
+          queuedDownloads: state.queuedDownloads.filter((d) => d.id !== id), // Add queue cleanup
         }));
       },
 
@@ -987,6 +1056,190 @@ const useDownloadStore = create<DownloadStore>()(
           };
         });
       },
+
+      addQueue: (
+        videoUrl,
+        name,
+        downloadName,
+        size,
+        speed,
+        timeLeft,
+        DateAdded,
+        progress,
+        location,
+        status,
+        ext,
+        formatId,
+        audioExt,
+        audioFormatId,
+        extractorKey,
+        limitRate,
+        automatic_caption,
+        thumbnails,
+        getTranscript,
+        getThumbnail,
+        duration,
+        isCreateFolder,
+      ) => {
+        const queueId = uuidv4();
+
+        set((state) => ({
+          queuedDownloads: [
+            ...state.queuedDownloads,
+            {
+              id: queueId,
+              videoUrl,
+              name,
+              downloadName,
+              size,
+              speed,
+              timeLeft,
+              DateAdded,
+              progress,
+              location,
+              status: 'queued',
+              ext,
+              formatId,
+              audioExt,
+              audioFormatId,
+              extractorKey,
+              limitRate,
+              automaticCaption: automatic_caption,
+              thumbnails,
+              getTranscript,
+              getThumbnail,
+              duration,
+              isCreateFolder,
+              queuedAt: new Date().toISOString(),
+              // Add missing BaseDownload properties
+              tags: [],
+              category: [],
+              isLive: false,
+              elapsed: 0,
+              autoCaptionLocation: '',
+              thumnailsLocation: '',
+              controllerId: undefined,
+            },
+          ],
+        }));
+
+        toast({
+          title: 'Download Added to Queue',
+          description: `"${name}" has been added to the download queue. Position: ${
+            get().queuedDownloads.length
+          }`,
+          duration: 3000,
+        });
+
+        console.log(`Download queued: ${name} (ID: ${queueId})`);
+      },
+
+      processQueue: () => {
+        const state = get();
+        const { queuedDownloads, downloading, addDownload } = state;
+
+        // Get max concurrent downloads from mainStore dynamically
+        const maxConcurrentDownloads =
+          useMainStore.getState().settings.maxDownloadNum;
+        const currentActiveDownloads = downloading.filter(
+          (d) => d.status === 'downloading' || d.status === 'initializing',
+        ).length;
+
+        if (
+          currentActiveDownloads < maxConcurrentDownloads &&
+          queuedDownloads.length > 0
+        ) {
+          // Get the first item from queue (FIFO)
+          const nextDownload = queuedDownloads[0];
+
+          // Remove from queue
+          set((state) => ({
+            queuedDownloads: state.queuedDownloads.filter(
+              (q) => q.id !== nextDownload.id,
+            ),
+          }));
+
+          // Start the download
+          addDownload(
+            nextDownload.videoUrl,
+            nextDownload.name,
+            nextDownload.downloadName,
+            nextDownload.size,
+            nextDownload.speed,
+            nextDownload.timeLeft,
+            nextDownload.DateAdded,
+            nextDownload.progress,
+            nextDownload.location,
+            nextDownload.status,
+            nextDownload.ext,
+            nextDownload.formatId,
+            nextDownload.audioExt,
+            nextDownload.audioFormatId,
+            nextDownload.extractorKey,
+            nextDownload.limitRate,
+            nextDownload.automaticCaption,
+            nextDownload.thumbnails,
+            nextDownload.getTranscript,
+            nextDownload.getThumbnail,
+            nextDownload.duration,
+            nextDownload.isCreateFolder,
+          );
+
+          toast({
+            title: 'Download Started from Queue',
+            description: `"${nextDownload.name}" has started downloading.`,
+            duration: 2000,
+          });
+        }
+      },
+
+      removeFromQueue: (id: string) => {
+        set((state) => ({
+          queuedDownloads: state.queuedDownloads.filter((q) => q.id !== id),
+        }));
+      },
+
+      clearQueue: () => {
+        set((state) => ({
+          queuedDownloads: [],
+        }));
+
+        toast({
+          title: 'Queue Cleared',
+          description: 'All queued downloads have been removed.',
+          duration: 2000,
+        });
+      },
+
+      moveQueueItem: (id: string, direction: 'up' | 'down') => {
+        set((state) => {
+          const queuedDownloads = [...state.queuedDownloads];
+          const currentIndex = queuedDownloads.findIndex((q) => q.id === id);
+
+          if (currentIndex === -1) return state;
+
+          const newIndex =
+            direction === 'up'
+              ? Math.max(0, currentIndex - 1)
+              : Math.min(queuedDownloads.length - 1, currentIndex + 1);
+
+          if (newIndex === currentIndex) return state;
+
+          // Swap items
+          [queuedDownloads[currentIndex], queuedDownloads[newIndex]] = [
+            queuedDownloads[newIndex],
+            queuedDownloads[currentIndex],
+          ];
+
+          return { queuedDownloads };
+        });
+      },
+
+      getQueuePosition: (id: string) => {
+        const queuedDownloads = get().queuedDownloads;
+        return queuedDownloads.findIndex((q) => q.id === id) + 1;
+      },
+
       //End of store
     }),
     {
@@ -996,7 +1249,8 @@ const useDownloadStore = create<DownloadStore>()(
         historyDownloads: state.historyDownloads,
         availableTags: state.availableTags,
         availableCategories: state.availableCategories,
-        finishedDownloads: state.finishedDownloads, // This was missing before
+        finishedDownloads: state.finishedDownloads,
+        queuedDownloads: state.queuedDownloads, // Persist queue
       }),
     },
   ),

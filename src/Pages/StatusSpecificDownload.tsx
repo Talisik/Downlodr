@@ -152,6 +152,7 @@ const StatusSpecificDownloads = () => {
   const finishedDownloads = useDownloadStore(
     (state) => state.finishedDownloads,
   );
+  const queuedDownloads = useDownloadStore((state) => state.queuedDownloads);
   const deleteDownload = useDownloadStore((state) => state.deleteDownload);
 
   // Sorting state
@@ -250,6 +251,7 @@ const StatusSpecificDownloads = () => {
     ...downloading,
     ...finishedDownloads,
     ...history,
+    ...queuedDownloads,
   ]
     .filter(
       (download, index, self) =>
@@ -1468,6 +1470,7 @@ const StatusSpecificDownloads = () => {
                                 <span className="text-sm text-gray-600 dark:text-gray-300 ml-1">
                                   {download.status === 'cancelled' ||
                                   download.status === 'initializing' ||
+                                  download.status === 'queued' ||
                                   download.status === 'fetching metadata' ? (
                                     <span
                                       style={{

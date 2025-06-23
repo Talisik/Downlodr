@@ -420,8 +420,13 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       return;
     }
     // get the functions and lists from store
-    const { addDownload, forDownloads, removeFromForDownloads, downloading } =
-      useDownloadStore.getState();
+    const {
+      addDownload,
+      forDownloads,
+      removeFromForDownloads,
+      downloading,
+      addQueue,
+    } = useDownloadStore.getState();
 
     // Filter selected downloads to only include those in forDownloads and remove duplicates
     const validDownloads = selectedDownloads.filter((download) =>
@@ -437,16 +442,54 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     // Clear selections immediately after filtering
     clearAllSelections();
 
-    // If the selected download amount or the currently downloading amount exceeds the max download set inside settings, dont start any downloads
-    if (
-      uniqueDownloads.length > settings.maxDownloadNum ||
-      downloading.length >= settings.maxDownloadNum
-    ) {
+    // Check if current active downloads would exceed the limit
+    const currentActiveDownloads = downloading.filter(
+      (d) => d.status === 'downloading' || d.status === 'initializing',
+    ).length;
+
+    const wouldExceedLimit =
+      currentActiveDownloads + uniqueDownloads.length > settings.maxDownloadNum;
+
+    if (wouldExceedLimit) {
+      // Add to queue instead of starting directly
+      uniqueDownloads.forEach((selectedDownload) => {
+        const downloadInfo = selectedDownload.download;
+        const processedName = downloadInfo.name.replace(/[\\/:*?"<>|]/g, '_');
+
+        addQueue(
+          downloadInfo.videoUrl,
+          `${processedName}.${downloadInfo.ext}`,
+          `${processedName}.${downloadInfo.ext}`,
+          downloadInfo.size,
+          downloadInfo.speed,
+          downloadInfo.timeLeft,
+          new Date().toISOString(),
+          downloadInfo.progress,
+          downloadInfo.location,
+          'queued',
+          downloadInfo.ext,
+          downloadInfo.formatId,
+          downloadInfo.audioExt,
+          downloadInfo.audioFormatId,
+          downloadInfo.extractorKey,
+          settings.defaultDownloadSpeed === 0
+            ? ''
+            : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+          downloadInfo.automaticCaption,
+          downloadInfo.thumbnails,
+          downloadInfo.getTranscript || false,
+          downloadInfo.getThumbnail || false,
+          downloadInfo.duration || 60,
+          true,
+        );
+        removeFromForDownloads(selectedDownload.id);
+      });
+
       toast({
         variant: 'destructive',
-        title: 'Download limit reached',
-        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
-        duration: 7000,
+        title: 'Downloads Added to Queue',
+        description: `${uniqueDownloads.length} download(s) added to queue. Active downloads: ${currentActiveDownloads}/${settings.maxDownloadNum}`,
+        duration: 5000,
       });
       return;
     }
