@@ -13,7 +13,7 @@ import { useToast } from '../shadcn/hooks/use-toast';
 const ClipboardLinkDetector: React.FC = () => {
   const { toast } = useToast();
   const { setDownload } = useDownloadStore();
-  const { settings } = useMainStore();
+  const { settings, isDownloadModalOpen } = useMainStore();
   const [downloadFolder, setDownloadFolder] = useState<string>(
     settings.defaultLocation,
   );
@@ -36,7 +36,8 @@ const ClipboardLinkDetector: React.FC = () => {
         !settings.enableClipboardMonitoring ||
         !clipboardText ||
         clipboardText.length > MAX_CLIPBOARD_LENGTH ||
-        isProcessing.current
+        isProcessing.current ||
+        isDownloadModalOpen // Don't process when download modal is open
       ) {
         return;
       }
@@ -84,6 +85,7 @@ const ClipboardLinkDetector: React.FC = () => {
     },
     [
       settings.enableClipboardMonitoring,
+      isDownloadModalOpen,
       setDownload,
       downloadFolder,
       maxDownload,
@@ -162,10 +164,14 @@ const ClipboardLinkDetector: React.FC = () => {
       document.removeEventListener('copy', handleCopyEvent);
       document.removeEventListener('keydown', handleKeyDown);
 
-      // Reset state and clear clipboard
+      // Reset state but DON'T clear clipboard when just pausing for modal
       isProcessing.current = false;
       lastProcessedTime.current = 0;
-      clearClipboardSafely('disable');
+
+      // Only clear clipboard when completely disabling, not when modal is open
+      if (!isDownloadModalOpen) {
+        clearClipboardSafely('disable');
+      }
 
       console.log('Clipboard monitoring disabled');
     }
@@ -175,10 +181,14 @@ const ClipboardLinkDetector: React.FC = () => {
       window.appControl?.offClipboardChange?.();
       document.removeEventListener('copy', handleCopyEvent);
       document.removeEventListener('keydown', handleKeyDown);
-      clearClipboardSafely('unmount');
+      // Only clear on unmount if not in modal state
+      if (!isDownloadModalOpen) {
+        clearClipboardSafely('unmount');
+      }
     };
   }, [
     settings.enableClipboardMonitoring,
+    isDownloadModalOpen,
     handleClipboardChange,
     handleCopyEvent,
     handleKeyDown,

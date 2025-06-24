@@ -56,7 +56,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
   const [getThumbnail, setGetThumbnail] = useState<boolean>(false);
 
   const { setDownload } = useDownloadStore();
-  const { settings, updateEnableClipboardMonitoring } = useMainStore();
+  const { settings } = useMainStore();
   const [downloadFolder, setDownloadFolder] = useState<string>(
     settings.defaultLocation,
   );
@@ -295,13 +295,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
           getThumbnail,
         });
       }
-      // Cleaning up modal and restoring original clipboard monitoring state
-      if (typeof originalClipboardMonitoringState === 'boolean') {
-        updateEnableClipboardMonitoring(originalClipboardMonitoringState);
-      } else {
-        // Fallback: if no original state provided, enable it (safe default)
-        updateEnableClipboardMonitoring(true);
-      }
+      // No need to restore clipboard monitoring state - it's handled by the modal state
       resetModal();
       onClose();
 
@@ -334,13 +328,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
 
   // Close Modal
   const handleClose = () => {
-    // Restore the original clipboard monitoring state
-    if (typeof originalClipboardMonitoringState === 'boolean') {
-      updateEnableClipboardMonitoring(originalClipboardMonitoringState);
-    } else {
-      // Fallback: if no original state provided, enable it (safe default)
-      updateEnableClipboardMonitoring(true);
-    }
+    // No need to restore clipboard monitoring state - it's handled by the modal state
     resetModal();
     onClose();
   };
@@ -553,7 +541,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
                         }}
                         className="mr-2"
                       />
-                      <label className="dark:text-darkModeLight font-medium">
+                      <label className="w-5/6 dark:text-darkModeLight font-medium">
                         {videoTitle}
                       </label>
                     </div>

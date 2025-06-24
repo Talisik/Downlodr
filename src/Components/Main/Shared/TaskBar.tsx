@@ -794,12 +794,9 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
   // opens download modal
   const handleOpenDownloadModal = () => {
-    // Store the current clipboard monitoring state before disabling it
-    const wasClipboardMonitoringEnabled = settings.enableClipboardMonitoring;
-    updateEnableClipboardMonitoring(false);
+    // Instead of disabling clipboard monitoring, just set the modal state
     clearAllSelections();
     setDownloadModalOpen(true);
-    setOriginalClipboardState(wasClipboardMonitoringEnabled);
   };
 
   return (
