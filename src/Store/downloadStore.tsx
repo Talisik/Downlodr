@@ -388,6 +388,15 @@ const useDownloadStore = create<DownloadStore>()(
             downloadName,
           );
         }
+        console.log('Download Parameters:', {
+          videoUrl,
+          finalLocation,
+          formatId,
+          ext,
+          audioExt,
+          audioFormatId,
+          limitRate,
+        });
         // Create a download ID before starting the download
         const downloadId = (window as any).ytdlp.download(
           {
@@ -462,8 +471,9 @@ const useDownloadStore = create<DownloadStore>()(
             console.log(thumbnails);
 
             try {
+              console.log(thumbnails);
               // Extract the URL from the thumbnails object
-              const thumbnailUrl = thumbnails.url;
+              const thumbnailUrl = thumbnails;
               if (thumbnailUrl) {
                 await window.downlodrFunctions.downloadFile(
                   thumbnailUrl,
@@ -626,10 +636,11 @@ const useDownloadStore = create<DownloadStore>()(
             info.data?.thumbnails &&
             info.data.thumbnails.length > 0
           ) {
-            thumbnail = info.data.thumbnails[0];
+            thumbnail = info.data.thumbnail;
           }
-          console.log(info);
+          console.log(thumbnail);
           // Process formats using the service
+          console.log(info);
           const { formatOptions, defaultFormatId, defaultExt } =
             await VideoFormatService.processVideoFormats(info);
 

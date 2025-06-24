@@ -47,19 +47,12 @@ const Navigation = ({
     category: false,
     tag: false,
   });
-  // New state for All navigation dropdown
-  const [showStatusSubItems, setShowStatusSubItems] = useState(false);
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
-  };
-
-  // Toggle status sub-items on double click
-  const toggleStatusSubItems = () => {
-    setShowStatusSubItems((prev) => !prev);
   };
 
   // Context menu for Tags and Category
@@ -79,21 +72,34 @@ const Navigation = ({
   const renameTag = useDownloadStore((state) => state.renameTag);
   const deleteTag = useDownloadStore((state) => state.deleteTag);
 
-  const handleCategoryContextMenu = (e: React.MouseEvent, category: string) => {
+  const handleCategoryRightClick = (
+    e: React.MouseEvent,
+    categoryName: string,
+  ) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    // Close any existing tag context menu
+    setTagContextMenu(null);
+
     setContextMenu({
-      category,
       x: e.clientX,
       y: e.clientY,
+      category: categoryName,
     });
   };
 
-  const handleTagContextMenu = (e: React.MouseEvent, tag: string) => {
+  const handleTagRightClick = (e: React.MouseEvent, tagName: string) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    // Close any existing category context menu
+    setContextMenu(null);
+
     setTagContextMenu({
-      tag,
       x: e.clientX,
       y: e.clientY,
+      tag: tagName,
     });
   };
 
@@ -107,8 +113,27 @@ const Navigation = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+      // Close context menus when clicking anywhere except on the context menu itself
+      const target = event.target as Node;
+
+      // Check if click is on category context menu
+      const categoryContextMenuElement = document.querySelector(
+        '[data-category-context-menu]',
+      );
+      const isClickOnCategoryMenu =
+        categoryContextMenuElement?.contains(target);
+
+      // Check if click is on tag context menu
+      const tagContextMenuElement = document.querySelector(
+        '[data-tag-context-menu]',
+      );
+      const isClickOnTagMenu = tagContextMenuElement?.contains(target);
+
+      // Close menus if not clicking on them
+      if (!isClickOnCategoryMenu) {
         setContextMenu(null);
+      }
+      if (!isClickOnTagMenu) {
         setTagContextMenu(null);
       }
     };
@@ -223,14 +248,14 @@ const Navigation = ({
     >
       <div
         className={`${
-          collapsed ? 'px-1 whitespace-nowrap' : 'p-2 ml-2 whitespace-nowrap'
-        } space-y-2 pb-20 mt-0 md:mt-2`}
+          collapsed ? 'px-1' : 'p-2 ml-0 md:ml-2'
+        } mt-2 space-y-2 pb-20`}
       >
         {/* Status Section */}
         <div>
           <button
             onClick={() => toggleSection('status')}
-            className={`w-full flex items-center whitespace-nowrap ${
+            className={`w-full flex items-center ${
               collapsed
                 ? 'justify-center hover:none dark:hover:none cursor-default'
                 : 'hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
@@ -499,7 +524,7 @@ const Navigation = ({
                         : ''
                     }`
                   }
-                  onContextMenu={(e) => handleCategoryContextMenu(e, category)}
+                  onContextMenu={(e) => handleCategoryRightClick(e, category)}
                   onDragOver={(e) => handleDragOver(e, category)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleCategoryDrop(e, category)}
@@ -595,7 +620,7 @@ const Navigation = ({
                         : ''
                     }`
                   }
-                  onContextMenu={(e) => handleTagContextMenu(e, tag)}
+                  onContextMenu={(e) => handleTagRightClick(e, tag)}
                   onDragOver={(e) => handleDragOver(e, tag)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleTagDrop(e, tag)}

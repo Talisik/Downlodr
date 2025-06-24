@@ -14,8 +14,8 @@
  * @returns JSX.Element - The rendered context menu component.
  */
 
-import React from 'react';
-import { MdEdit, MdDelete } from 'react-icons/md';
+import React, { useState } from 'react';
+import { MdDelete, MdEdit } from 'react-icons/md';
 
 // Interface representing the props for the CategoryContextMenu component
 interface CategoryContextMenuProps {
@@ -26,87 +26,135 @@ interface CategoryContextMenuProps {
   onDelete: (category: string) => void; // Function to delete the category
 }
 
-// Displays a context menu for category actions such as renaming and deleting.
-const CategoryContextMenu: React.FC<CategoryContextMenuProps> = ({
-  position,
-  categoryName,
+interface RenameModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onRename: (newName: string) => void;
+  currentName: string;
+}
+
+const RenameModal: React.FC<RenameModalProps> = ({
+  isOpen,
   onClose,
   onRename,
-  onDelete,
+  currentName,
 }) => {
-  const [isRenaming, setIsRenaming] = React.useState(false);
-  const [newName, setNewName] = React.useState(categoryName);
-  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [newName, setNewName] = useState(currentName);
 
-  // Effect to focus the input when renaming starts
-  React.useEffect(() => {
-    if (isRenaming && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isRenaming]);
+  if (!isOpen) return null;
 
-  /**
-   * Handles the renaming of the category.
-   * If the new name is valid, it calls the onRename function and closes the menu.
-   */
-  const handleRename = () => {
-    if (newName.trim() && newName !== categoryName) {
-      onRename(categoryName, newName.trim());
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newName.trim() && newName.trim().length <= 10) {
+      onRename(newName.trim());
+      onClose();
     }
-    setIsRenaming(false);
-    onClose();
   };
 
   return (
     <div
-      className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 z-50 dark:border-gray-700"
-      style={{ left: `${position.x}px`, top: `${position.y}px` }}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
       onClick={(e) => e.stopPropagation()}
     >
-      {isRenaming ? (
-        <div className="px-4 py-2 flex items-center gap-2 w-full">
+      <div
+        className="bg-white dark:bg-darkModeDropdown rounded-lg p-6 max-w-sm w-full mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-medium mb-4 dark:text-gray-200">
+          Rename Category
+        </h3>
+        <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
           <input
-            ref={inputRef}
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleRename();
-              if (e.key === 'Escape') {
-                setIsRenaming(false);
-                onClose();
-              }
-            }}
-            className="border rounded px-2 py-1 text-sm w-full min-w-[150px] dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent"
-            onBlur={handleRename}
+            maxLength={10}
+            className="w-full p-2 border rounded mb-4 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
             autoFocus
+            onClick={(e) => e.stopPropagation()}
           />
-        </div>
-      ) : (
-        <>
-          <button
-            onClick={() => {
-              setIsRenaming(true);
-            }}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 dark:text-gray-200"
-          >
-            <MdEdit className="text-gray-600 dark:text-gray-400" />
-            <span>Rename</span>
-          </button>
-          <button
-            onClick={() => {
-              onDelete(categoryName);
-              onClose();
-            }}
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"
-          >
-            <MdDelete />
-            <span>Delete</span>
-          </button>
-        </>
-      )}
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            {newName.length}/10 characters
+          </div>
+          <hr className="solid mb-2 -mx-6 w-[calc(100%+48px)] border-t-2 border-divider dark:border-gray-700" />
+
+          <div className="flex justify-start space-x-2 mb-[-10px]">
+            <button
+              type="submit"
+              onClick={(e) => e.stopPropagation()}
+              className="px-4 py-1 bg-primary text-white rounded disabled:opacity-50"
+              disabled={!newName.trim() || newName.trim().length > 10}
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="px-4 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
 
-export default CategoryContextMenu;
+// Displays a context menu for category actions such as renaming and deleting.
+export default function CategoryContextMenu({
+  position,
+  onClose,
+  onRename,
+  onDelete,
+  categoryName,
+}: CategoryContextMenuProps) {
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+
+  const handleRename = (newName: string) => {
+    onRename(categoryName, newName);
+    setIsRenameModalOpen(false);
+    onClose();
+  };
+
+  return (
+    <>
+      <div
+        className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 z-50 dark:border-gray-700"
+        style={{ left: `${position.x}px`, top: `${position.y}px` }}
+        onClick={(e) => e.stopPropagation()}
+        data-category-context-menu
+      >
+        <button
+          onClick={() => {
+            setIsRenameModalOpen(true);
+          }}
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
+        >
+          <MdEdit className="text-gray-600 dark:text-gray-400" />
+          <span>Rename</span>
+        </button>
+        <button
+          onClick={() => {
+            onDelete(categoryName);
+            onClose();
+          }}
+          className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 text-red-600 dark:text-red-400"
+        >
+          <MdDelete />
+          <span>Delete</span>
+        </button>
+      </div>
+
+      <RenameModal
+        isOpen={isRenameModalOpen}
+        onClose={() => setIsRenameModalOpen(false)}
+        onRename={handleRename}
+        currentName={categoryName}
+      />
+    </>
+  );
+}

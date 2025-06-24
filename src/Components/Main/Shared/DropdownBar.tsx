@@ -20,18 +20,18 @@ import { IoIosAdd } from 'react-icons/io';
 import { MdOutlineHistory } from 'react-icons/md';
 import { RxExit, RxUpdate } from 'react-icons/rx';
 import { NavLink } from 'react-router-dom';
-import FileNotExistModal, {
-  DownloadItem,
-} from '../../../Components/SubComponents/custom/FileNotExistModal';
 import useDownloadStore, {
   HistoryDownloads,
 } from '../../../Store/downloadStore';
-import { useMainStore } from '../../../Store/mainStore';
+import FileNotExistModal, {
+  DownloadItem,
+} from '../../SubComponents/custom/FileNotExistModal';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import AboutModal from '../Modal/AboutModal';
 import DownloadModal from '../Modal/DownloadModal';
 import HelpModal from '../Modal/HelpModal';
 import SettingsModal from '../Modal/SettingsModal';
+
 const DropdownBar = ({ className }: { className?: string }) => {
   // Dropdown element states
   const [activeMenu, setActiveMenu] = useState<'file' | 'help' | null>(null);
@@ -53,10 +53,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const [searchResults, setSearchResults] = useState<HistoryDownloads[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Downloads
+  // Add this new state for the modal
   const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
-  const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
-  const selectedDownloads = useMainStore((state) => state.selectedDownloads);
+  const [missingFile, setMissingFile] = useState<DownloadItem | null>(null);
 
   // Filter search results when search term changes
   useEffect(() => {
@@ -64,8 +63,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
       setSearchResults([]);
       return;
     }
-    console.log(searchTerm);
-    console.log(historyDownloads);
     const results = historyDownloads.filter((download) =>
       download.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
@@ -90,127 +87,48 @@ const DropdownBar = ({ className }: { className?: string }) => {
     };
   }, []);
 
-  const handleFileNotExistModal = async (
-    contextDownload: DownloadItem | null = null,
-  ) => {
-    const missing = [];
-
-    // If a specific download is provided via context menu, check only that one
-    const downloadsToCheck = contextDownload
-      ? [contextDownload]
-      : selectedDownloads;
-
-    // Check each download to see if it exists
-    for (const download of downloadsToCheck) {
-      if (download.status === 'finished' && download.location) {
-        const exists = await window.downlodrFunctions.fileExists(
-          download.location,
-        );
-        if (!exists) {
-          missing.push(download);
-        }
-      }
-    }
-
-    // Set the missing files and show the modal if any were found
-    if (missing.length > 0) {
-      setMissingFiles(missing);
-      setShowFileNotExistModal(true);
-    } else {
-      toast({
-        variant: 'default',
-        title: 'All Files Exist',
-        description: 'All selected files exist at their locations',
-        duration: 3000,
-      });
-    }
-  };
-  // Handle opening the video file
+  // Update the handleOpenVideo function to check if the file exists first
   const handleOpenVideo = async (download: HistoryDownloads) => {
-    if (download.location) {
-      const downloadLocation = await window.downlodrFunctions.joinDownloadPath(
+    try {
+      const filePath = await window.downlodrFunctions.joinDownloadPath(
         download.location,
         download.downloadName,
       );
-      try {
-        const exists = await window.downlodrFunctions.fileExists(
-          downloadLocation,
-        );
-        if (exists) {
-          window.downlodrFunctions.openVideo(downloadLocation);
-        } else {
-          // If the file doesn't exist, find the download and show the modal
-          if (download.id) {
-            const foundDownload = historyDownloads.find(
-              (d) => d.id === download.id,
-            );
-            if (foundDownload) {
-              // Pass the specific download to the modal function
-              const downloadItem: DownloadItem = {
-                id: foundDownload.id,
-                videoUrl: foundDownload.videoUrl,
-                location: downloadLocation,
-                name: foundDownload.name,
-                ext: foundDownload.ext,
-                downloadName: foundDownload.downloadName,
-                extractorKey: foundDownload.extractorKey,
-                status: foundDownload.status,
-                download: {
-                  ...foundDownload,
-                },
-              };
-              handleFileNotExistModal(downloadItem);
-            }
-          } else {
-            // In case we don't have the download ID, show a simple toast
-            if (download.id) {
-              const foundDownload = historyDownloads.find(
-                (d) => d.id === download.id,
-              );
-              if (foundDownload) {
-                // Pass the specific download to the modal function
-                const downloadItem: DownloadItem = {
-                  id: foundDownload.id,
-                  videoUrl: foundDownload.videoUrl,
-                  location: foundDownload.location,
-                  name: foundDownload.name,
-                  ext: foundDownload.ext,
-                  downloadName: foundDownload.downloadName,
-                  extractorKey: foundDownload.extractorKey,
-                  status: foundDownload.status,
-                  download: {
-                    ...foundDownload,
-                  },
-                };
-                handleFileNotExistModal(downloadItem);
-              }
-            }
-            toast({
-              variant: 'destructive',
-              title: 'File Not Found',
-              description: `The file does not exist at the specified location`,
-              duration: 3000,
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error viewing download:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description:
-            error?.message || String(error) || 'Failed to view download',
-          duration: 5000,
-        });
+
+      // Check if the file exists before trying to open it
+      const exists = await window.downlodrFunctions.fileExists(filePath);
+
+      if (exists) {
+        window.downlodrFunctions.openVideo(filePath);
+      } else {
+        // If the file doesn't exist, prepare the download item for the modal
+        const downloadItem: DownloadItem = {
+          id: download.id,
+          videoUrl: download.videoUrl,
+          location: filePath,
+          name: download.name,
+          ext: download.ext,
+          downloadName: download.downloadName,
+          extractorKey: download.extractorKey,
+          status: download.status,
+          download: {
+            ...download,
+          },
+        };
+
+        // Set the missing file and show the modal
+        setMissingFile(downloadItem);
+        setShowFileNotExistModal(true);
       }
-    } else {
+    } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'No Download Location',
-        description: 'Invalid Download Location',
-        duration: 3000,
+        title: 'Error Opening File',
+        description: error?.message || String(error) || 'Failed to open file',
+        duration: 5000,
       });
     }
+
     setShowResults(false);
     setSearchTerm('');
   };
@@ -231,11 +149,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
   }, []);
 
   const handleCheckForUpdates = async () => {
-    console.log('Check for updates button clicked');
     console.log('updateAPI available:', !!window.updateAPI?.checkForUpdates);
     if (window.updateAPI?.checkForUpdates) {
       try {
-        console.log('Calling checkForUpdates...');
         const result = await window.updateAPI.checkForUpdates();
         console.log('Update check result:', result);
         if (!result.hasUpdate) {
@@ -247,6 +163,12 @@ const DropdownBar = ({ className }: { className?: string }) => {
         }
         setActiveMenu(null);
       } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Rate limit reached for checking version',
+          description: `Please check again later`,
+          duration: 3000,
+        });
         console.error('Error checking for updates:', error);
       }
     } else {
@@ -296,10 +218,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
             File
           </button>
           {activeMenu === 'file' && (
-            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+            <div className="absolute left-0 mt-1 w-36 bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setDownloadModalOpen(true);
@@ -307,32 +229,32 @@ const DropdownBar = ({ className }: { className?: string }) => {
                   }}
                 >
                   <IoIosAdd size={20} className="ml-[-2px]" />
-                  <span>New Download</span>
+                  <span className="text-sm">Add Download</span>
                 </button>
               </div>
               <div className="mx-1">
                 <NavLink
                   to="/history"
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenu(null);
                   }}
                 >
                   <MdOutlineHistory size={18} />
-                  <span> History</span>
+                  <span className="text-sm"> History</span>
                 </NavLink>
               </div>
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     window.downlodrFunctions.closeApp();
                   }}
                 >
                   <RxExit />
-                  <span>Exit</span>
+                  <span className="text-sm">Exit</span>
                 </button>
               </div>
             </div>
@@ -363,10 +285,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
             Help
           </button>
           {activeMenu === 'help' && (
-            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+            <div className="absolute left-0 mt-1 w-40 bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setHelpModalOpen(true);
@@ -374,24 +296,24 @@ const DropdownBar = ({ className }: { className?: string }) => {
                   }}
                 >
                   <FiBook size={16} />
-                  <span>Guide</span>
+                  <span className="text-sm">Guide</span>
                 </button>
               </div>
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleCheckForUpdates();
                   }}
                 >
                   <RxUpdate size={16} />
-                  <span>Check for Updates</span>
+                  <span className="text-sm">Check for Updates</span>
                 </button>
               </div>
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setAboutModalOpen(true);
@@ -399,7 +321,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
                   }}
                 >
                   <AiOutlineExclamationCircle size={16} />
-                  <span>About</span>
+                  <span className="text-sm">About</span>
                 </button>
               </div>
             </div>
@@ -482,10 +404,13 @@ const DropdownBar = ({ className }: { className?: string }) => {
         isOpen={isDownloadModalOpen}
         onClose={() => setDownloadModalOpen(false)}
       />
+
+      {/* Add the FileNotExistModal component at the end */}
       <FileNotExistModal
         isOpen={showFileNotExistModal}
         onClose={() => setShowFileNotExistModal(false)}
-        selectedDownloads={missingFiles}
+        selectedDownloads={missingFile ? [missingFile] : []}
+        download={missingFile}
       />
     </div>
   );

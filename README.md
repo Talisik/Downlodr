@@ -55,7 +55,7 @@ To download current version and learn more about Downlodr, visit site: <a href="
    yarn
    ```
 
-4. (optional) Install the yt-dlp package:
+4. Install the yt-dlp package:
    ```
    yarn add github:Talisik/yt-dlp-helper
    ```

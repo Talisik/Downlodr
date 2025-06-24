@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaArrowCircleUp } from 'react-icons/fa';
 import {
   AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogAction,
   AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '../shadcn/components/ui/alert-dialog';
 import { Button } from '../shadcn/components/ui/button';
-import { Badge } from '../shadcn/components/ui/badge';
-import { toast } from '../shadcn/hooks/use-toast';
 
 // Define the update info type
 interface UpdateInfo {
@@ -30,17 +28,30 @@ const UpdateNotification: React.FC = () => {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    console.log('UpdateNotification mounting/re-mounting');
+
     // Only add the listener if we're in an Electron environment
-    console.log(window.updateAPI);
-    if (window.updateAPI.onUpdateAvailable) {
+    let removeListener: (() => void) | undefined;
+
+    if (window.updateAPI?.onUpdateAvailable) {
       // Listen for update notifications from the main process
-      window.updateAPI.onUpdateAvailable((info) => {
+      removeListener = window.updateAPI.onUpdateAvailable((info) => {
         if (info.hasUpdate) {
+          console.log(info);
           setUpdateInfo(info);
           setOpen(true);
         }
       });
     }
+
+    // Clean up the listener when the component unmounts
+    return () => {
+      console.log('UpdateNotification unmounting');
+      if (removeListener) {
+        console.log('Removing update listener');
+        removeListener();
+      }
+    };
   }, []);
 
   if (!updateInfo) {
@@ -58,10 +69,10 @@ const UpdateNotification: React.FC = () => {
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogContent className="sm:max-w-md bg-white dark:bg-darkMode">
+      <AlertDialogContent className="sm:max-w-lg bg-white dark:bg-darkModeDropdown">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2 dark:text-gray-200">
-            <div className="bg-slate-100 rounded-full dark:bg-slate-800">
+            <div className="bg-slate-100 rounded-full dark:bg-darkMode">
               <FaArrowCircleUp className="text-primary" size={19} />
             </div>
             <span>Update Available: v{updateInfo.latestVersion}</span>
@@ -73,7 +84,7 @@ const UpdateNotification: React.FC = () => {
         </AlertDialogHeader>
 
         {updateInfo.releaseNotes && (
-          <div className="p-2 bg-slate-100 rounded text-sm max-h-32 overflow-y-auto dark:bg-slate-800 dark:text-gray-200">
+          <div className="p-2 bg-slate-100 rounded text-sm max-h-32 overflow-y-auto dark:bg-darkMode dark:text-gray-200">
             <p className="text-sm text-slate-700 dark:text-gray-200 whitespace-pre-line">
               {updateInfo.releaseNotes}
             </p>
@@ -85,7 +96,7 @@ const UpdateNotification: React.FC = () => {
             <Button
               variant="default"
               size="sm"
-              className="h-8 px-4 py-4.8 text-sm dark:text-gray-200"
+              className="h-8 px-4 py-4.8 text-sm text-black dark:bg-darkModeDropdown dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
             >
               Later
             </Button>
@@ -94,7 +105,7 @@ const UpdateNotification: React.FC = () => {
             <Button
               onClick={handleDownload}
               size="sm"
-              className="h-7 px-3 py-2 text-sm"
+              className="h-8 px-4 py-4.8 text-sm dark:bg-primary dark:text-white bg-primary text-white dark:hover:bg-primary/90 dark:hover:text-white"
             >
               Download Now
             </Button>
