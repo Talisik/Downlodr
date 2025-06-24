@@ -60,6 +60,7 @@ export interface BaseDownload {
   getThumbnail: boolean;
   duration: number;
   isCreateFolder: boolean;
+  log: string;
 }
 
 // Interface for downloads that are currently being processed
@@ -457,6 +458,7 @@ const useDownloadStore = create<DownloadStore>()(
             limitRate: limitRate,
           },
           async (result: any) => {
+            // Handle controller ID assignment
             if (result.type === 'controller' && result.controllerId) {
               set((state) => ({
                 downloading: state.downloading.map((download) =>
@@ -466,16 +468,20 @@ const useDownloadStore = create<DownloadStore>()(
                 ),
               }));
             }
-            if (result.data) {
+
+            // Handle progress data updates (only when progress data is available)
+            if (result.data && result.data.value) {
               set((state) => ({
                 downloading: state.downloading.map((download) =>
                   download.id === downloadId
                     ? {
                         ...download,
-                        speed: result.data.value._speed_str || '',
+                        speed: result.data.value._speed_str || download.speed,
                         progress:
-                          parseFloat(result.data.value._percent_str) || 0,
-                        timeLeft: result.data.value._eta_str || '',
+                          parseFloat(result.data.value._percent_str) ||
+                          download.progress,
+                        timeLeft:
+                          result.data.value._eta_str || download.timeLeft,
                         size:
                           parseFloat(result.data.value.downloaded_bytes) ||
                           download.size,
@@ -488,6 +494,23 @@ const useDownloadStore = create<DownloadStore>()(
                 ),
               }));
             }
+
+            // Handle log data (save ALL logs regardless of whether they have progress data)
+            if (result && result.data && result.data.log) {
+              set((state) => ({
+                downloading: state.downloading.map((download) =>
+                  download.id === downloadId
+                    ? {
+                        ...download,
+                        log: download.log
+                          ? `${download.log}\n${result.data.log}`
+                          : result.data.log,
+                      }
+                    : download,
+                ),
+              }));
+            }
+
             get().checkFinishedDownloads();
           },
         );
@@ -563,6 +586,7 @@ const useDownloadStore = create<DownloadStore>()(
               getThumbnail,
               duration: duration,
               isCreateFolder: isCreateFolder,
+              log: '',
             },
           ],
         }));
@@ -621,6 +645,7 @@ const useDownloadStore = create<DownloadStore>()(
               getThumbnail: options.getThumbnail,
               duration: 0,
               isCreateFolder: null,
+              log: '',
             },
           ],
         }));
@@ -1059,6 +1084,7 @@ const useDownloadStore = create<DownloadStore>()(
               autoCaptionLocation: '',
               thumnailsLocation: '',
               controllerId: undefined,
+              log: '',
             },
           ],
         }));

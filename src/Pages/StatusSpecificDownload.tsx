@@ -578,6 +578,15 @@ const StatusSpecificDownloads = () => {
     }
   };
 
+  const handleShowLog = (downloadId: string) => {
+    const { downloading } = useDownloadStore.getState();
+    const currentDownload = allDownloads.find((d) => d.id === downloadId);
+
+    if (currentDownload) {
+      console.log(currentDownload.log);
+    }
+  };
+
   //Context Menu actons
   const handlePause = (downloadId: string, downloadLocation?: string) => {
     // Get fresh state each time
@@ -1411,6 +1420,12 @@ const StatusSpecificDownloads = () => {
                                   className="line-clamp-2 break-words break-all"
                                   title={download.name}
                                 >
+                                  <button
+                                    onClick={() => handleShowLog(download.id)}
+                                    className="text-blue-500 hover:text-blue-600 p-6"
+                                  >
+                                    log
+                                  </button>
                                   {download.name}
                                 </div>
                               )}
