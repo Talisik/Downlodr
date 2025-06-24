@@ -284,7 +284,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         deleteDownloading,
         downloading,
         forDownloads,
+        queuedDownloads,
         removeFromForDownloads,
+        processQueue,
+        removeFromQueue,
       } = useDownloadStore.getState();
 
       // Store selected downloads in a temporary variable and clear selections immediately
@@ -347,12 +350,16 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           }
         }
       }
+
+      // Process queue after stopping selected downloads
+      processQueue();
     } else if (stopAction === 'all') {
       const {
         deleteDownloading,
         downloading,
         forDownloads,
         removeFromForDownloads,
+        processQueue,
       } = useDownloadStore.getState();
 
       // Handle all downloads in forDownloads
@@ -408,6 +415,9 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           }
         }
       }
+
+      // Process queue after stopping all downloads
+      processQueue();
     }
     setShowStopConfirmation(false);
     setStopAction(null);
@@ -631,8 +641,15 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     const downloadsToRemove = [...selectedDownloads];
     clearAllSelections();
 
-    const { deleteDownload, forDownloads, downloading, deleteDownloading } =
-      useDownloadStore.getState();
+    const {
+      deleteDownload,
+      forDownloads,
+      downloading,
+      deleteDownloading,
+      processQueue,
+      queuedDownloads,
+      removeFromQueue,
+    } = useDownloadStore.getState();
 
     // Helper function to handle file deletion
     const deleteFileSafely = async (download: any) => {
@@ -694,7 +711,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     // Process each download
     for (const download of downloadsToRemove) {
       if (!download.location || !download.id) {
-        console.log(',oo');
         continue;
       }
 
@@ -735,6 +751,20 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             } download has been removed successfully`,
             duration: 3000,
           });
+          processQueue();
+
+          continue;
+        }
+        const isQueued = queuedDownloads.some((d) => d.id === download.id);
+
+        if (isQueued) {
+          removeFromQueue(download.id);
+          toast({
+            variant: 'success',
+            title: 'Download Removed',
+            description: 'Queued download has been removed successfully',
+            duration: 3000,
+          });
           continue;
         }
 
@@ -770,6 +800,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             });
             continue; // Skip deletion if we couldn't stop the download
           }
+          processQueue();
         }
       }
 

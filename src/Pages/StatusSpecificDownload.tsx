@@ -749,6 +749,7 @@ const StatusSpecificDownloads = () => {
       deleteDownloading,
       forDownloads,
       removeFromForDownloads,
+      processQueue,
     } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
     const currentForDownload = forDownloads.find((d) => d.id === downloadId);
@@ -769,6 +770,7 @@ const StatusSpecificDownloads = () => {
         description: 'Download has been stopped successfully',
         duration: 3000,
       });
+      processQueue();
     } else {
       if (downloading && downloading.length > 0) {
         downloading.forEach(async (download) => {
@@ -788,6 +790,7 @@ const StatusSpecificDownloads = () => {
                   description: 'Download has been stopped successfully',
                   duration: 3000,
                 });
+                processQueue();
               }
             } catch (error) {
               console.error('Error invoking kill-controller:', error);
@@ -834,6 +837,9 @@ const StatusSpecificDownloads = () => {
     const download = allDownloads.find((d) => d.id === downloadId);
     if (!download) return;
 
+    // Get processQueue function
+    const { processQueue } = useDownloadStore.getState();
+
     // Handle pending downloads
     if (download.status === 'to download') {
       deleteDownload(downloadId);
@@ -843,6 +849,8 @@ const StatusSpecificDownloads = () => {
         description: 'Download has been deleted successfully',
         duration: 3000,
       });
+      // Process queue after removing a pending download
+      processQueue();
       return;
     }
 
@@ -857,6 +865,8 @@ const StatusSpecificDownloads = () => {
         } download has been removed successfully`,
         duration: 3000,
       });
+      // Process queue after removing a paused/cancelled download
+      processQueue();
       return;
     }
 
@@ -873,6 +883,8 @@ const StatusSpecificDownloads = () => {
           });
           return;
         }
+        // Process queue after stopping an active download
+        processQueue();
       } catch (error) {
         toast({
           variant: 'destructive',
@@ -1220,7 +1232,10 @@ const StatusSpecificDownloads = () => {
 
   // Add function to perform the stop
   const performStop = () => {
+    // Get processQueue function
+    const { processQueue } = useDownloadStore.getState();
     handleStop(stopDownloadId, stopDownloadLocation, stopControllerId);
+    processQueue();
     setShowStopModal(false);
     setStopDownloadId('');
     setStopDownloadLocation('');
