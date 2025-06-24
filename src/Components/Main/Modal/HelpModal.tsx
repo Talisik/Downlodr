@@ -133,19 +133,19 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         <div
-          className="px-6 py-4 space-y-6"
+          className="px-6 py-4 space-y-6 dark:bg-darkModeDropdown "
           onClick={(e) => e.stopPropagation()}
         >
           {/* Custom Tab Implementation */}
-          <div className="w-full">
+          <div className="w-full dark:bg-darkModeDropdown ">
             {/* Tab List */}
-            <div className="dark:bg-darkModeDropdown inline-flex h-8 items-center justify-center rounded-lg bg-tabs p-1 text-gray-500 dark:bg-tabs dark:text-gray-400">
+            <div className="dark:bg-darkModeBorderColor inline-flex h-8 items-center justify-center rounded-lg bg-tabs p-1 text-gray-500 dark:text-gray-400">
               <button
                 onClick={(e) => handleTabChange('guide', e)}
                 className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-2 py-1 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 ${
                   activeTab === 'guide'
-                    ? 'dark:bg-darkModeDropdown bg-white text-gray-950 shadow-sm dark:bg-tabs dark:text-gray-50'
-                    : 'dark:bg-darkModeDropdown dark:text-gray-300'
+                    ? 'dark:bg-darkModeCompliment bg-[#fcf0e3] text-gray-950 shadow-sm  dark:text-gray-50'
+                    : 'dark:text-gray-300'
                 }`}
               >
                 Downloading Guide
@@ -154,8 +154,8 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 onClick={(e) => handleTabChange('common', e)}
                 className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-2 py-1 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 ${
                   activeTab === 'common'
-                    ? 'dark:bg-darkModeDropdown bg-white text-gray-950 shadow-sm dark:bg-tabs dark:text-gray-50'
-                    : 'dark:bg-darkModeDropdown  dark:text-gray-300'
+                    ? 'dark:bg-darkModeCompliment bg-[#fcf0e3] text-gray-950 shadow-sm  dark:text-gray-50'
+                    : 'dark:text-gray-300'
                 }`}
               >
                 Frequently Asked Questions
@@ -164,8 +164,8 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 onClick={(e) => handleTabChange('advanced', e)}
                 className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-2 py-1 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 ${
                   activeTab === 'advanced'
-                    ? 'dark:bg-darkModeDropdown bg-white text-gray-950 shadow-sm dark:bg-tabs dark:text-gray-50'
-                    : 'dark:bg-darkModeDropdown  dark:text-gray-300'
+                    ? 'dark:bg-darkModeCompliment bg-[#fcf0e3] text-gray-950 shadow-sm  dark:text-gray-50'
+                    : 'dark:text-gray-300'
                 }`}
               >
                 Troubleshooting & Advanced Tips

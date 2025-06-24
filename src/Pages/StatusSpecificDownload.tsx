@@ -208,7 +208,7 @@ const StatusSpecificDownloads = () => {
     dragOverIndex,
   } = useResizableColumns(
     [
-      { id: 'name', width: 95, minWidth: 95 },
+      { id: 'name', width: 100, minWidth: 100 },
       { id: 'size', width: 65, minWidth: 65 },
       { id: 'format', width: 90, minWidth: 90 },
       { id: 'status', width: 110, minWidth: 110 },
@@ -1393,7 +1393,7 @@ const StatusSpecificDownloads = () => {
                                 </div>
                               ) : (
                                 <div
-                                  className="line-clamp-2 break-words"
+                                  className="line-clamp-2 break-words break-all"
                                   title={download.name}
                                 >
                                   {download.name}
