@@ -154,6 +154,7 @@ declare global {
       isClipboardMonitoringActive: () => Promise<boolean>;
       clearLastClipboardText: () => Promise<void>;
       clearClipboard: () => Promise<boolean>;
+      isWindowFocused: () => Promise<boolean>;
     };
   }
 }
