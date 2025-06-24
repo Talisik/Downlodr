@@ -203,6 +203,7 @@ const StatusSpecificDownloads = () => {
     startDragging,
     handleDragOver,
     handleDrop,
+    cancelDrag,
     dragging,
     dragOverIndex,
   } = useResizableColumns(
@@ -212,7 +213,7 @@ const StatusSpecificDownloads = () => {
       { id: 'format', width: 90, minWidth: 90 },
       { id: 'status', width: 110, minWidth: 110 },
       { id: 'speed', width: 100, minWidth: 100 },
-      { id: 'dateAdded', width: 110, minWidth: 110 },
+      { id: 'dateAdded', width: 100, minWidth: 100 },
       { id: 'transcript', width: 20, minWidth: 20 },
       { id: 'thumbnail', width: 10, minWidth: 10 },
       { id: 'source', width: 20, minWidth: 20 },
@@ -748,6 +749,7 @@ const StatusSpecificDownloads = () => {
       deleteDownloading,
       forDownloads,
       removeFromForDownloads,
+      processQueue,
     } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
     const currentForDownload = forDownloads.find((d) => d.id === downloadId);
@@ -768,6 +770,7 @@ const StatusSpecificDownloads = () => {
         description: 'Download has been stopped successfully',
         duration: 3000,
       });
+      processQueue();
     } else {
       if (downloading && downloading.length > 0) {
         downloading.forEach(async (download) => {
@@ -787,6 +790,7 @@ const StatusSpecificDownloads = () => {
                   description: 'Download has been stopped successfully',
                   duration: 3000,
                 });
+                processQueue();
               }
             } catch (error) {
               console.error('Error invoking kill-controller:', error);
@@ -833,6 +837,9 @@ const StatusSpecificDownloads = () => {
     const download = allDownloads.find((d) => d.id === downloadId);
     if (!download) return;
 
+    // Get processQueue function
+    const { processQueue } = useDownloadStore.getState();
+
     // Handle pending downloads
     if (download.status === 'to download') {
       deleteDownload(downloadId);
@@ -842,6 +849,8 @@ const StatusSpecificDownloads = () => {
         description: 'Download has been deleted successfully',
         duration: 3000,
       });
+      // Process queue after removing a pending download
+      processQueue();
       return;
     }
 
@@ -856,6 +865,8 @@ const StatusSpecificDownloads = () => {
         } download has been removed successfully`,
         duration: 3000,
       });
+      // Process queue after removing a paused/cancelled download
+      processQueue();
       return;
     }
 
@@ -872,6 +883,8 @@ const StatusSpecificDownloads = () => {
           });
           return;
         }
+        // Process queue after stopping an active download
+        processQueue();
       } catch (error) {
         toast({
           variant: 'destructive',
@@ -1219,7 +1232,10 @@ const StatusSpecificDownloads = () => {
 
   // Add function to perform the stop
   const performStop = () => {
+    // Get processQueue function
+    const { processQueue } = useDownloadStore.getState();
     handleStop(stopDownloadId, stopDownloadLocation, stopControllerId);
+    processQueue();
     setShowStopModal(false);
     setStopDownloadId('');
     setStopDownloadLocation('');
@@ -1323,6 +1339,7 @@ const StatusSpecificDownloads = () => {
                       onDragStart={startDragging}
                       onDragOver={handleDragOver}
                       onDrop={handleDrop}
+                      onDragEnd={cancelDrag}
                       isDragging={dragging?.columnId === column.id}
                       isDragOver={dragOverIndex === originalIndex}
                       columnId={column.id}
@@ -1391,7 +1408,7 @@ const StatusSpecificDownloads = () => {
                                 </div>
                               ) : (
                                 <div
-                                  className="line-clamp-2 break-words"
+                                  className="line-clamp-2 break-words break-all"
                                   title={download.name}
                                 >
                                   {download.name}

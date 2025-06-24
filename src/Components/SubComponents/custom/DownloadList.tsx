@@ -95,6 +95,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     startDragging,
     handleDragOver,
     handleDrop,
+    cancelDrag,
     dragging,
     dragOverIndex,
   } = useResizableColumns(initialColumns);
@@ -843,6 +844,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                 }
                 onDragOver={enhancedHandleDragOver}
                 onDrop={enhancedHandleDrop}
+                onDragEnd={cancelDrag}
                 isDragging={dragging?.columnId === column.id}
                 isDragOver={
                   dragOverIndex ===

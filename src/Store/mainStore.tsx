@@ -41,6 +41,8 @@ interface SelectedDownload {
 interface MainStore {
   settings: DownloadSettings; // Current download settings
   selectedDownloads: SelectedDownload[]; // List of currently selected downloads
+  isDownloadModalOpen: boolean; // Add new state for download modal
+  setIsDownloadModalOpen: (isOpen: boolean) => void; // Set the download modal state
   setSelectedDownloads: (downloads: SelectedDownload[]) => void; // Set selected downloads
   clearSelectedDownloads: () => void; // Clear selected downloads
   updateDefaultLocation: (location: string) => void; // Update default download location
@@ -84,6 +86,9 @@ export const useMainStore = create<MainStore>()(
         enableClipboardMonitoring: true,
       },
       selectedDownloads: [] as SelectedDownload[],
+      isDownloadModalOpen: false,
+      setIsDownloadModalOpen: (isOpen: boolean) =>
+        set({ isDownloadModalOpen: isOpen }),
       setSelectedDownloads: (downloads) =>
         set({ selectedDownloads: downloads }),
       clearSelectedDownloads: () => set({ selectedDownloads: [] }),

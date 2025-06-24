@@ -28,6 +28,7 @@ import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
+  originalClipboardMonitoringState?: boolean;
 }
 
 // Expected download video params
@@ -39,7 +40,11 @@ interface Video {
   url: string;
 }
 
-const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
+const DownloadModal: React.FC<DownloadModalProps> = ({
+  isOpen,
+  onClose,
+  originalClipboardMonitoringState,
+}) => {
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [isValidUrl, setIsValidUrl] = useState<boolean>(false);
 
@@ -290,7 +295,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
           getThumbnail,
         });
       }
-      // Cleaning up modal
+      // No need to restore clipboard monitoring state - it's handled by the modal state
       resetModal();
       onClose();
 
@@ -323,6 +328,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
   // Close Modal
   const handleClose = () => {
+    // No need to restore clipboard monitoring state - it's handled by the modal state
     resetModal();
     onClose();
   };
@@ -535,7 +541,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         }}
                         className="mr-2"
                       />
-                      <label className="dark:text-darkModeLight font-medium">
+                      <label className="w-5/6 dark:text-darkModeLight font-medium">
                         {videoTitle}
                       </label>
                     </div>

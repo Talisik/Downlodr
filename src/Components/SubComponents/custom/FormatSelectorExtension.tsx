@@ -177,18 +177,18 @@ const FormatSelectorExtension: React.FC<FormatSelectorExtensionProps> = ({
                 {selectedItems.map((item) => (
                   <div
                     key={`item-${item.id}`}
-                    className="flex items-center py-1"
+                    className="flex items-center py-1 gap-2"
                   >
                     <input
                       type="checkbox"
                       id={`item-${item.id}`}
                       checked={item.selected}
                       onChange={() => toggleItemSelection(item.id)}
-                      className="mr-2"
+                      className="w-4 h-4 p-2"
                     />
                     <label
                       htmlFor={`item-${item.id}`}
-                      className="text-sm dark:text-gray-200 truncate"
+                      className="w-5/6 text-sm dark:text-gray-200 break-all truncate"
                     >
                       {item.name}
                     </label>
@@ -198,7 +198,7 @@ const FormatSelectorExtension: React.FC<FormatSelectorExtensionProps> = ({
             </div>
           )}
 
-          {/* Keep Original Option */}
+          {/* Keep Original Option
           <div className="flex items-center mt-4">
             <input
               type="checkbox"
@@ -214,6 +214,7 @@ const FormatSelectorExtension: React.FC<FormatSelectorExtensionProps> = ({
               Keep the original file
             </label>
           </div>
+           */}
         </div>
 
         {/* Footer */}
