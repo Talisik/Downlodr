@@ -154,7 +154,9 @@ const ClipboardLinkDetector: React.FC = () => {
       document.addEventListener('copy', handleCopyEvent);
       document.addEventListener('keydown', handleKeyDown);
 
-      console.log('Clipboard monitoring active');
+      console.log(
+        'Clipboard monitoring active (paused when window is focused)',
+      );
     } else {
       console.log('Disabling clipboard monitoring...');
 

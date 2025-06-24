@@ -107,6 +107,17 @@ const createWindow = () => {
     }
   });
 
+  // Add focus tracking for clipboard monitoring
+  mainWindow.on('focus', () => {
+    isWindowFocused = true;
+    console.log('Window focused - clipboard monitoring paused');
+  });
+
+  mainWindow.on('blur', () => {
+    isWindowFocused = false;
+    console.log('Window unfocused - clipboard monitoring resumed');
+  });
+
   // MAIN FUNCTIONS FOR TITLE BAR
   ipcMain.on('close-btn', () => {
     if (!mainWindow) return;
@@ -530,9 +541,8 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     for await (const chunk of controller.listen()) {
       // Send the download status back to the renderer process
       e.sender.send(`ytdlp:download:status:${id}`, chunk);
-      console.log(chunk);
-
       if (chunk != null) {
+        console.log(chunk.data.log);
         if (chunk.data.status === 'finished') {
           console.log('Download complete, updating tray icon...');
           setAlertTrayIcon();
@@ -580,6 +590,11 @@ ipcMain.handle('is-clipboard-monitoring-active', () => {
   return isMonitoring;
 });
 
+// Add IPC handler to check window focus state
+ipcMain.handle('is-window-focused', () => {
+  return isWindowFocused;
+});
+
 // Add IPC handler to clear last clipboard text
 ipcMain.handle('clear-last-clipboard-text', () => {
   console.log('Setting last clipboard text to BLANK_STATE...');
@@ -604,6 +619,8 @@ ipcMain.handle('clear-clipboard', () => {
 let clipboardInterval: NodeJS.Timeout | null = null;
 let lastClipboardText = 'BLANK_STATE';
 let isMonitoring = false;
+// Add focus tracking variable
+let isWindowFocused = false;
 
 const startClipboardMonitoring = () => {
   if (clipboardInterval) {
@@ -627,10 +644,15 @@ const startClipboardMonitoring = () => {
     );
   }
 
-  // Add a small delay to prevent immediate detection of current clipboard content
-  setTimeout(() => {
+  // Function to start the monitoring interval with appropriate timing
+  const startMonitoringInterval = () => {
     clipboardInterval = setInterval(() => {
       if (!isMonitoring) {
+        return;
+      }
+
+      // Skip processing if window is focused - reduce log noise
+      if (isWindowFocused) {
         return;
       }
 
@@ -642,11 +664,15 @@ const startClipboardMonitoring = () => {
           // Only send clipboard change event if:
           // 1. We're not going from BLANK_STATE to new content (prevents initial triggers)
           // 2. Current content is not empty (prevents triggers when clearing clipboard)
+          // 3. Window is not focused (new condition)
           if (
             lastClipboardText !== 'BLANK_STATE' &&
-            currentText.trim() !== ''
+            currentText.trim() !== '' &&
+            !isWindowFocused
           ) {
-            console.log('Clipboard content changed, sending to renderer...');
+            console.log(
+              'Clipboard content changed (window unfocused), sending to renderer...',
+            );
 
             // Send clipboard change event to all renderer processes
             BrowserWindow.getAllWindows().forEach((win) => {
@@ -662,8 +688,11 @@ const startClipboardMonitoring = () => {
       } catch (error) {
         console.debug('Clipboard monitoring error:', error);
       }
-    }, 1000); // Reduced to 1 second for better performance
-  }, 500); // 500ms delay before starting to monitor
+    }, 1000); // Standard 1 second polling
+  };
+
+  // Add a small delay to prevent immediate detection of current clipboard content
+  setTimeout(startMonitoringInterval, 500);
 };
 
 const stopClipboardMonitoring = () => {
