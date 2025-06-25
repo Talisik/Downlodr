@@ -21,7 +21,7 @@ import { useLocation } from 'react-router-dom';
 import FileNotExistModal, {
   DownloadItem,
 } from '../../../Components/SubComponents/custom/FileNotExistModal';
-import { processFileName } from '../../../DataFunctions/FilterName';
+import { Button } from '../../../Components/SubComponents/shadcn/components/ui/button';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import PluginTaskBarExtension from '../../../plugins/components/PluginTaskBarExtension';
@@ -181,21 +181,22 @@ const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
 
         {/* Action buttons */}
         <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
-          <button
-            onClick={(e) => {
+          <Button
+            onClick={(e: any) => {
               e.stopPropagation();
               onClose();
             }}
-            className="px-4 py-1 text-gray-600 bg-white hover:bg-gray-50 dark:hover:bg-darkModeHover dark:hover:text-gray-200 rounded-md font-medium"
+            variant="outline"
+            className="h-8 px-2 py-0.5 rounded-md dark:border-darkModeCompliment dark:bg-darkModeCompliment dark:text-darkModeLight dark:hover:bg-darkModeHover dark:hover:text-white font-medium"
           >
             Cancel
-          </button>
+          </Button>
           <button
-            onClick={(e) => {
+            onClick={(e: any) => {
               e.stopPropagation();
               onConfirm(deleteFolder);
             }}
-            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-white hover:text-black font-medium"
+            className="h-8 px-2 py-0.5 bg-primary dark:bg-primary dark:text-darkModeLight  dark:hover:bg-primary/90 text-white rounded-md hover:bg-primary/90 cursor-pointer"
           >
             Remove
           </button>
@@ -435,14 +436,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       });
       return;
     }
+
     // get the functions and lists from store
-    const {
-      addDownload,
-      forDownloads,
-      removeFromForDownloads,
-      downloading,
-      addQueue,
-    } = useDownloadStore.getState();
+    const { forDownloads, removeFromForDownloads, addQueue } =
+      useDownloadStore.getState();
 
     // Filter selected downloads to only include those in forDownloads and remove duplicates
     const validDownloads = selectedDownloads.filter((download) =>
@@ -458,62 +455,18 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     // Clear selections immediately after filtering
     clearAllSelections();
 
-    // Check if current active downloads would exceed the limit
-    const currentActiveDownloads = downloading.filter(
-      (d) => d.status === 'downloading' || d.status === 'initializing',
-    ).length;
-
-    const availableSlots = settings.maxDownloadNum - currentActiveDownloads;
-
-    if (availableSlots <= 0) {
-      // No slots available - queue all downloads
-      uniqueDownloads.forEach((selectedDownload) => {
-        const downloadInfo = selectedDownload.download;
-        const processedName = downloadInfo.name.replace(/[\\/:*?"<>|]/g, '_');
-
-        addQueue(
-          downloadInfo.videoUrl,
-          `${processedName}.${downloadInfo.ext}`,
-          `${processedName}.${downloadInfo.ext}`,
-          downloadInfo.size,
-          downloadInfo.speed,
-          downloadInfo.timeLeft,
-          new Date().toISOString(),
-          downloadInfo.progress,
-          downloadInfo.location,
-          'queued',
-          downloadInfo.ext,
-          downloadInfo.formatId,
-          downloadInfo.audioExt,
-          downloadInfo.audioFormatId,
-          downloadInfo.extractorKey,
-          settings.defaultDownloadSpeed === 0
-            ? ''
-            : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
-          downloadInfo.automaticCaption,
-          downloadInfo.thumbnails,
-          downloadInfo.getTranscript || false,
-          downloadInfo.getThumbnail || false,
-          downloadInfo.duration || 60,
-          true,
-        );
-        removeFromForDownloads(selectedDownload.id);
-      });
-
+    if (uniqueDownloads.length === 0) {
       toast({
-        title: 'Downloads Added to Queue',
-        description: `All ${uniqueDownloads.length} download(s) added to queue. No available slots (${currentActiveDownloads}/${settings.maxDownloadNum})`,
-        duration: 5000,
+        variant: 'destructive',
+        title: 'No Valid Downloads',
+        description: 'Please select downloads that are ready to start',
+        duration: 3000,
       });
       return;
     }
 
-    // Split downloads: some can start immediately, others go to queue
-    const downloadsToStart = uniqueDownloads.slice(0, availableSlots);
-    const downloadsToQueue = uniqueDownloads.slice(availableSlots);
-
-    // Queue the excess downloads first
-    downloadsToQueue.forEach((selectedDownload) => {
+    // Add ALL downloads to queue - let the worker controller handle starting them
+    uniqueDownloads.forEach((selectedDownload) => {
       const downloadInfo = selectedDownload.download;
       const processedName = downloadInfo.name.replace(/[\\/:*?"<>|]/g, '_');
 
@@ -546,61 +499,12 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       removeFromForDownloads(selectedDownload.id);
     });
 
-    // Start the downloads that fit within the limit
-    for (const selectedDownload of downloadsToStart) {
-      const downloadInfo = forDownloads.find(
-        (d) => d.id === selectedDownload.id,
-      );
-
-      if (downloadInfo) {
-        const processedName = await processFileName(
-          downloadInfo.location,
-          downloadInfo.name,
-          downloadInfo.ext || downloadInfo.audioExt,
-        );
-
-        addDownload(
-          downloadInfo.videoUrl,
-          `${processedName}.${downloadInfo.ext}`,
-          `${processedName}.${downloadInfo.ext}`,
-          downloadInfo.size,
-          downloadInfo.speed,
-          downloadInfo.timeLeft,
-          new Date().toISOString(),
-          downloadInfo.progress,
-          downloadInfo.location,
-          'downloading',
-          downloadInfo.ext,
-          downloadInfo.formatId,
-          downloadInfo.audioExt,
-          downloadInfo.audioFormatId,
-          downloadInfo.extractorKey,
-          settings.defaultDownloadSpeed === 0
-            ? ''
-            : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
-          downloadInfo.automaticCaption,
-          downloadInfo.thumbnails,
-          downloadInfo.getTranscript || false,
-          downloadInfo.getThumbnail || false,
-          downloadInfo.duration || 60,
-          true,
-        );
-        removeFromForDownloads(selectedDownload.id);
-      }
-    }
-
-    // Show appropriate toast message
-    if (downloadsToQueue.length > 0) {
-      toast({
-        title: 'Downloads Started and Queued',
-        description: `${downloadsToStart.length} started, ${
-          downloadsToQueue.length
-        } queued. Active: ${currentActiveDownloads + downloadsToStart.length}/${
-          settings.maxDownloadNum
-        }`,
-        duration: 7000,
-      });
-    }
+    // Show toast notification
+    toast({
+      title: 'Downloads Added to Queue',
+      description: `${uniqueDownloads.length} download(s) added to queue. The download controller will start them automatically based on your limit.`,
+      duration: 5000,
+    });
   };
 
   const handleFileNotExistModal = async () => {
@@ -626,7 +530,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   };
 
   const handleRemoveSelected = async (deleteFolder?: boolean) => {
-    console.log('triiged remove');
     if (selectedDownloads.length === 0) {
       toast({
         variant: 'destructive',

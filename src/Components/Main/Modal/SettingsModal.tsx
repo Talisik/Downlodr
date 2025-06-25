@@ -12,6 +12,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { useMainStore } from '../../../Store/mainStore';
 import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
+import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -395,6 +396,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       e.target.checked,
                     );
                     setEnableClipboardMonitoring(e.target.checked);
+                    toast({
+                      title: e.target.checked
+                        ? 'Clipboard Monitoring Enabled'
+                        : 'Clipboard Monitoring Disabled',
+                      description:
+                        'The latest clipboard content was cleared for cleanup.',
+                      duration: 3000,
+                    });
                   }}
                   className="w-4 h-4 text-primary rounded focus:ring-primary"
                 />

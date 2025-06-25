@@ -359,7 +359,7 @@ const Navigation = ({
                 />
                 {!collapsed && (
                   <span className="ml-2 text-[14px] whitespace-nowrap">
-                    Queued Downloads
+                    Queued Download
                   </span>
                 )}
               </NavLink>

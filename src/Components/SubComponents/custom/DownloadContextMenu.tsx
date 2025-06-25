@@ -93,8 +93,9 @@ interface DownloadContextMenuProps {
   onRemoveCategory: (downloadId: string, category: string) => void; // Function to remove a category from the download
   currentCategories: string[]; // Array of current categories for the download
   availableCategories: string[]; // Array of all available categories in the system
-  onViewFolder: (downloadLocation?: string) => void; // Function to view the folder containing the download
+  onViewFolder: (downloadLocation?: string, downloadFile?: string) => void; // Function to view the folder containing the download
   downloadName?: string; // Name of the download file
+  downloadFile?: string; // File of the download
   onRename: (downloadId: string, currentName: string) => void; // Add this
   onShowRemoveModal: (
     downloadId: string,
@@ -379,6 +380,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   downloadLocation,
   controllerId,
   downloadStatus,
+  downloadFile,
   onClose,
   onPause,
   onStop,
@@ -716,7 +718,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onViewFolder(
+                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+                downloadFile,
+              );
               onClose();
             }}
           >
@@ -789,7 +794,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onViewFolder(
+                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+                downloadFile,
+              );
               onClose();
             }}
           >
@@ -840,7 +848,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onViewFolder(
+                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+                downloadFile,
+              );
               onClose();
             }}
           >
@@ -900,7 +911,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onViewFolder(
+                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+                downloadFile,
+              );
               onClose();
             }}
           >
@@ -946,7 +960,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onViewFolder(
+                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+                downloadFile,
+              );
               onClose();
             }}
           >
@@ -1009,7 +1026,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         <button
           className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
           onClick={() => {
-            onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+            onViewFolder(
+              downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+              downloadFile,
+            );
             onClose();
           }}
         >
