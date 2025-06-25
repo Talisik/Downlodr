@@ -694,7 +694,7 @@ const useDownloadStore = create<DownloadStore>()(
         let zustandLocation = location;
         if (isCreateFolder) {
           // Create a sanitized name for the subfolder
-          const sanitizedTitle = name.replace(/[\\/:*?"<>.|]/g, '_');
+          const sanitizedTitle = name.replace(/[\\/:'*ñ?"<>.|]/g, '_');
 
           // Create initial subfolder path
           let subfolderPath = await window.downlodrFunctions.joinDownloadPath(

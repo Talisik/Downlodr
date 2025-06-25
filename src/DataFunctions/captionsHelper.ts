@@ -60,7 +60,7 @@ export async function downloadEnglishCaptions(
     // Use fileName if provided, otherwise fallback to video title/ID
     const videoId = videoInfo.id || 'video';
     const videoTitle = fileNameWithoutExt || videoInfo.title || videoId;
-    const sanitizedTitle = videoTitle.replace(/[\\/:*?"<>|]/g, '_');
+    const sanitizedTitle = videoTitle.replace(/[\\ñ'/:*?"<>|]/g, '_');
 
     // Generate output path if not provided
     if (!outputPath) {
