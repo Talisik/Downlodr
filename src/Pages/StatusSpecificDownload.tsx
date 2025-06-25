@@ -581,14 +581,11 @@ const StatusSpecificDownloads = () => {
   //Context Menu actons
   const handlePause = (downloadId: string, downloadLocation?: string) => {
     // Get fresh state each time
-    console.log('hello pause');
     const { downloading, deleteDownloading } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
     const { updateDownloadStatus } = useDownloadStore.getState();
 
     if (currentDownload?.status === 'paused') {
-      console.log('hello pause yes');
-
       const { addDownload } = useDownloadStore.getState();
       addDownload(
         currentDownload.videoUrl,
@@ -622,8 +619,6 @@ const StatusSpecificDownloads = () => {
         duration: 3000,
       });
     } else if (currentDownload && currentDownload.controllerId != '---') {
-      console.log('hello pause no>');
-
       try {
         updateDownloadStatus(downloadId, 'paused');
         window.ytdlp

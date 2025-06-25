@@ -29,6 +29,284 @@ function uuidv4() {
   );
 }
 
+// Download Controller - implements Token Bucket Algorithm for rate limiting
+class DownloadController {
+  private static instance: DownloadController;
+  private isProcessing = false;
+  private processingInterval: NodeJS.Timeout | undefined;
+
+  static getInstance(): DownloadController {
+    if (!DownloadController.instance) {
+      DownloadController.instance = new DownloadController();
+    }
+    return DownloadController.instance;
+  }
+
+  // Start the download worker if not already running
+  startWorker() {
+    if (this.processingInterval) return; // Already running
+
+    console.log('DownloadController: Starting worker');
+    this.processingInterval = setInterval(() => {
+      this.processNextDownload();
+    }, 500); // Check every 500ms for smoother processing
+  }
+
+  // Stop the download worker
+  stopWorker() {
+    if (this.processingInterval) {
+      clearInterval(this.processingInterval);
+      this.processingInterval = undefined;
+      console.log('DownloadController: Worker stopped');
+    }
+  }
+
+  // Process one download at a time (Worker Pattern)
+  private async processNextDownload() {
+    if (this.isProcessing) return; // Prevent concurrent processing
+
+    const store = useDownloadStore.getState();
+    const { queuedDownloads, downloading } = store;
+
+    // Get current settings
+    const maxConcurrentDownloads =
+      useMainStore.getState().settings.maxDownloadNum;
+    const currentActiveDownloads = downloading.filter(
+      (d) => d.status === 'downloading' || d.status === 'initializing',
+    ).length;
+
+    // Token Bucket Algorithm: Check if we have available "tokens" (slots)
+    const availableTokens = maxConcurrentDownloads - currentActiveDownloads;
+
+    if (availableTokens <= 0) {
+      // No tokens available, wait for next cycle
+      return;
+    }
+
+    if (queuedDownloads.length === 0) {
+      // No work to do, stop worker to save resources
+      this.stopWorker();
+      return;
+    }
+
+    // Get the next download from queue (FIFO)
+    const nextDownload = queuedDownloads[0];
+
+    console.log(
+      `DownloadController: Processing "${nextDownload.name}" (Active: ${currentActiveDownloads}/${maxConcurrentDownloads})`,
+    );
+
+    this.isProcessing = true;
+
+    try {
+      // Atomic operation: Remove from queue and start download
+      useDownloadStore.setState((state) => ({
+        queuedDownloads: state.queuedDownloads.filter(
+          (q) => q.id !== nextDownload.id,
+        ),
+      }));
+
+      // Start the download using the original addDownload logic
+      await this.startDownloadDirectly(nextDownload);
+
+      toast({
+        title: 'Download Started from Queue',
+        description: `"${nextDownload.name}" has started downloading.`,
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('DownloadController: Error starting download:', error);
+      // Put the download back in queue on error
+      useDownloadStore.setState((state) => ({
+        queuedDownloads: [nextDownload, ...state.queuedDownloads],
+      }));
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+
+  // Direct download start (bypasses queue checks)
+  private async startDownloadDirectly(download: QueuedDownload) {
+    const store = useDownloadStore.getState();
+
+    // Replicate the addDownload logic without queue checks
+    if (!download.location || !download.downloadName) {
+      console.error('Invalid path parameters:', {
+        location: download.location,
+        downloadName: download.downloadName,
+      });
+      return;
+    }
+
+    let finalLocation = await window.downlodrFunctions.joinDownloadPath(
+      download.location,
+      download.downloadName,
+    );
+    let zustandLocation = download.location;
+
+    if (download.isCreateFolder) {
+      // Create subfolder logic (same as original addDownload)
+      const sanitizedTitle = download.name.replace(/[\\/:*?"<>.|]/g, '_');
+      let subfolderPath = await window.downlodrFunctions.joinDownloadPath(
+        download.location,
+        sanitizedTitle,
+      );
+
+      let counter = 1;
+      let folderExists = await window.downlodrFunctions.fileExists(
+        subfolderPath,
+      );
+
+      while (folderExists) {
+        const newFolderName = `${sanitizedTitle} (${counter})`;
+        subfolderPath = await window.downlodrFunctions.joinDownloadPath(
+          download.location,
+          newFolderName,
+        );
+        folderExists = await window.downlodrFunctions.fileExists(subfolderPath);
+        counter++;
+      }
+
+      const dirCreated = await window.downlodrFunctions.ensureDirectoryExists(
+        subfolderPath,
+      );
+      if (!dirCreated) {
+        console.error('Failed to create subfolder:', subfolderPath);
+      }
+
+      zustandLocation = dirCreated ? subfolderPath : download.location;
+      finalLocation = await window.downlodrFunctions.joinDownloadPath(
+        zustandLocation,
+        download.downloadName,
+      );
+    }
+
+    // Start the actual download
+    const downloadId = (window as any).ytdlp.download(
+      {
+        url: download.videoUrl,
+        outputFilepath: finalLocation,
+        videoFormat: download.formatId,
+        remuxVideo: download.ext,
+        audioExt: download.audioExt,
+        audioFormatId: download.audioFormatId,
+        limitRate: download.limitRate,
+      },
+      async (result: any) => {
+        if (result.type === 'controller' && result.controllerId) {
+          useDownloadStore.setState((state) => ({
+            downloading: state.downloading.map((d) =>
+              d.id === downloadId
+                ? { ...d, controllerId: result.controllerId }
+                : d,
+            ),
+          }));
+        }
+        if (result.data) {
+          useDownloadStore.setState((state) => ({
+            downloading: state.downloading.map((d) =>
+              d.id === downloadId
+                ? {
+                    ...d,
+                    speed: result.data._speed_str || '',
+                    progress: parseFloat(result.data._percent_str) || 0,
+                    timeLeft: result.data._eta_str || '',
+                    size: parseFloat(result.data.downloaded_bytes) || d.size,
+                    status: result.data.status || d.status,
+                    elapsed: result.data.elapsed || d.elapsed,
+                    ext: download.ext,
+                    audioExt: download.audioExt,
+                  }
+                : d,
+            ),
+          }));
+        }
+        store.checkFinishedDownloads();
+      },
+    );
+
+    // Handle captions and thumbnails (same as original)
+    let captionsPath = '';
+    let thumbnailPath = ' ';
+
+    if (download.isCreateFolder) {
+      if (download.automaticCaption && download.getTranscript) {
+        captionsPath = await downloadEnglishCaptions(
+          download.automaticCaption,
+          zustandLocation,
+          download.downloadName,
+        );
+      }
+
+      if (download.thumbnails && download.getThumbnail) {
+        thumbnailPath = await window.downlodrFunctions.joinDownloadPath(
+          zustandLocation,
+          `thumb1.jpg`,
+        );
+        try {
+          await window.downlodrFunctions.downloadFile(
+            download.thumbnails,
+            thumbnailPath,
+          );
+        } catch (error) {
+          console.log('Error downloading thumbnail:', error);
+        }
+      }
+    }
+
+    // Add to downloading state
+    useDownloadStore.setState((state) => ({
+      downloading: [
+        ...state.downloading,
+        {
+          id: downloadId,
+          videoUrl: download.videoUrl,
+          name: download.name,
+          downloadName: download.downloadName,
+          size: download.size,
+          speed: download.speed,
+          timeLeft: download.timeLeft,
+          DateAdded: download.DateAdded,
+          progress: download.progress,
+          location: zustandLocation,
+          status: 'downloading',
+          ext: download.ext,
+          formatId: download.formatId,
+          backupExt: download.ext,
+          backupFormatId: download.formatId,
+          backupAudioExt: download.audioExt,
+          backupAudioFormatId: download.audioFormatId,
+          controllerId: '---',
+          tags: download.tags || [],
+          category: download.category || [],
+          extractorKey: download.extractorKey,
+          audioExt: download.audioExt,
+          audioFormatId: download.audioFormatId,
+          isLive: download.isLive,
+          elapsed: download.elapsed,
+          automaticCaption: download.automaticCaption,
+          thumbnails: download.thumbnails,
+          autoCaptionLocation: captionsPath,
+          thumnailsLocation: thumbnailPath,
+          getTranscript: download.getTranscript,
+          getThumbnail: download.getThumbnail,
+          duration: download.duration,
+          isCreateFolder: download.isCreateFolder,
+        },
+      ],
+    }));
+  }
+
+  // Cleanup method
+  cleanup() {
+    this.stopWorker();
+    this.isProcessing = false;
+  }
+}
+
+// Get the singleton instance
+const downloadController = DownloadController.getInstance();
+
 // Base interface for all download types
 export interface BaseDownload {
   id: string; // Unique identifier for the download
@@ -225,6 +503,9 @@ interface DownloadStore {
   clearQueue: () => void;
   moveQueueItem: (id: string, direction: 'up' | 'down') => void;
   getQueuePosition: (id: string) => number;
+
+  // Add cleanup method
+  cleanup: () => void;
 }
 
 const useDownloadStore = create<DownloadStore>()(
@@ -1132,65 +1413,14 @@ const useDownloadStore = create<DownloadStore>()(
         });
 
         console.log(`Download queued: ${name} (ID: ${queueId})`);
+
+        // Start the worker to process the queue
+        downloadController.startWorker();
       },
 
       processQueue: () => {
-        const state = get();
-        const { queuedDownloads, downloading, addDownload } = state;
-
-        // Get max concurrent downloads from mainStore dynamically
-        const maxConcurrentDownloads =
-          useMainStore.getState().settings.maxDownloadNum;
-        const currentActiveDownloads = downloading.filter(
-          (d) => d.status === 'downloading' || d.status === 'initializing',
-        ).length;
-
-        if (
-          currentActiveDownloads < maxConcurrentDownloads &&
-          queuedDownloads.length > 0
-        ) {
-          // Get the first item from queue (FIFO)
-          const nextDownload = queuedDownloads[0];
-
-          // Remove from queue
-          set((state) => ({
-            queuedDownloads: state.queuedDownloads.filter(
-              (q) => q.id !== nextDownload.id,
-            ),
-          }));
-
-          // Start the download
-          addDownload(
-            nextDownload.videoUrl,
-            nextDownload.name,
-            nextDownload.downloadName,
-            nextDownload.size,
-            nextDownload.speed,
-            nextDownload.timeLeft,
-            nextDownload.DateAdded,
-            nextDownload.progress,
-            nextDownload.location,
-            nextDownload.status,
-            nextDownload.ext,
-            nextDownload.formatId,
-            nextDownload.audioExt,
-            nextDownload.audioFormatId,
-            nextDownload.extractorKey,
-            nextDownload.limitRate,
-            nextDownload.automaticCaption,
-            nextDownload.thumbnails,
-            nextDownload.getTranscript,
-            nextDownload.getThumbnail,
-            nextDownload.duration,
-            nextDownload.isCreateFolder,
-          );
-
-          toast({
-            title: 'Download Started from Queue',
-            description: `"${nextDownload.name}" has started downloading.`,
-            duration: 2000,
-          });
-        }
+        // Start the download worker - it will automatically stop when queue is empty
+        downloadController.startWorker();
       },
 
       removeFromQueue: (id: string) => {
@@ -1238,6 +1468,11 @@ const useDownloadStore = create<DownloadStore>()(
       getQueuePosition: (id: string) => {
         const queuedDownloads = get().queuedDownloads;
         return queuedDownloads.findIndex((q) => q.id === id) + 1;
+      },
+
+      // Cleanup method to prevent memory leaks
+      cleanup: () => {
+        downloadController.cleanup();
       },
 
       //End of store
