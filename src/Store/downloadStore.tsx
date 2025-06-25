@@ -202,18 +202,22 @@ class DownloadController {
             ),
           }));
         }
-        if (result.data) {
+
+        // Handle progress data updates (only when progress data is available)
+        if (result.data && result.data.value) {
           useDownloadStore.setState((state) => ({
             downloading: state.downloading.map((d) =>
               d.id === downloadId
                 ? {
                     ...d,
-                    speed: result.data._speed_str || '',
-                    progress: parseFloat(result.data._percent_str) || 0,
-                    timeLeft: result.data._eta_str || '',
-                    size: parseFloat(result.data.downloaded_bytes) || d.size,
-                    status: result.data.status || d.status,
-                    elapsed: result.data.elapsed || d.elapsed,
+                    speed: result.data.value._speed_str || d.speed,
+                    progress:
+                      parseFloat(result.data.value._percent_str) || d.progress,
+                    timeLeft: result.data.value._eta_str || d.timeLeft,
+                    size:
+                      parseFloat(result.data.value.downloaded_bytes) || d.size,
+                    status: result.data.value.status || d.status,
+                    elapsed: result.data.value.elapsed || d.elapsed,
                     ext: download.ext,
                     audioExt: download.audioExt,
                   }
@@ -647,22 +651,49 @@ const useDownloadStore = create<DownloadStore>()(
 
       updateDownload: (id, result) => {
         if (!result || !result.data) return;
-        set((state) => ({
-          downloading: state.downloading.map((downloading) =>
-            downloading.id === id
-              ? {
-                  ...downloading,
-                  speed: result.data._speed_str || '',
-                  progress: parseFloat(result.data._percent_str) || 0,
-                  timeLeft: result.data._eta_str || '',
-                  size: parseFloat(result.data.total_bytes) || downloading.size,
-                  status: result.data.status || downloading.status,
-                  elapsed: result.data.elapsed || downloading.elapsed,
-                  controllerId: result.controllerId ?? downloading.controllerId,
-                }
-              : downloading,
-          ),
-        }));
+
+        // Handle progress data updates (only when progress data is available)
+        if (result.data.value) {
+          set((state) => ({
+            downloading: state.downloading.map((downloading) =>
+              downloading.id === id
+                ? {
+                    ...downloading,
+                    speed: result.data.value._speed_str || downloading.speed,
+                    progress:
+                      parseFloat(result.data.value._percent_str) ||
+                      downloading.progress,
+                    timeLeft:
+                      result.data.value._eta_str || downloading.timeLeft,
+                    size:
+                      parseFloat(result.data.value.total_bytes) ||
+                      downloading.size,
+                    status: result.data.value.status || downloading.status,
+                    elapsed: result.data.value.elapsed || downloading.elapsed,
+                    controllerId:
+                      result.controllerId ?? downloading.controllerId,
+                  }
+                : downloading,
+            ),
+          }));
+        }
+
+        // Handle log data (save ALL logs regardless of whether they have progress data)
+        if (result.data.log) {
+          set((state) => ({
+            downloading: state.downloading.map((download) =>
+              download.id === id
+                ? {
+                    ...download,
+                    log: download.log
+                      ? `${download.log}\n${result.data.log}`
+                      : result.data.log,
+                  }
+                : download,
+            ),
+          }));
+        }
+
         get().checkFinishedDownloads();
       },
 
