@@ -549,94 +549,125 @@ const useDownloadStore = create<DownloadStore>()(
 
         if (finishedDownloads.length > 0) {
           for (const download of finishedDownloads) {
-            const filePath = await window.downlodrFunctions.joinDownloadPath(
-              download.location,
-              download.downloadName,
-            );
-            const exists = await window.downlodrFunctions.fileExists(filePath);
-
-            if (!exists) {
-              set((state) => ({
-                downloading: state.downloading.map((d) =>
-                  d.id === download.id ? { ...d, status: 'initializing' } : d,
-                ),
-              }));
-
-              // check for this specific download
-              const checkInterval = setInterval(async () => {
-                const fileExists = await window.downlodrFunctions.fileExists(
-                  filePath,
-                );
-                if (fileExists) {
-                  clearInterval(checkInterval);
-
-                  // Get the actual file size from the file system
-                  const actualFileSize =
-                    await window.downlodrFunctions.getFileSize(filePath);
-                  const updatedDownload = {
-                    ...download,
-                    size: actualFileSize || download.size,
-                    transcriptLocation: download.autoCaptionLocation || '',
-                  };
-                  set((state) => ({
-                    finishedDownloads: state.finishedDownloads.some(
-                      (fd) => fd.id === download.id,
-                    )
-                      ? state.finishedDownloads
-                      : [...state.finishedDownloads, updatedDownload],
-
-                    historyDownloads: state.historyDownloads.some(
-                      (hd) => hd.id === download.id,
-                    )
-                      ? state.historyDownloads
-                      : [...state.historyDownloads, updatedDownload],
-
-                    downloading: state.downloading.filter(
-                      (d) => d.id !== download.id,
-                    ),
-                  }));
-
-                  // Process queue after a download finishes
-                  get().processQueue();
-                }
-              }, 1000); // Check every second
-
-              // Clear interval after 5 minutes to prevent infinite checking
-              setTimeout(() => {
-                clearInterval(checkInterval);
-              }, 300000); // 5 minutes
-            } else {
-              // Get the actual file size from the file system
-              const actualFileSize = await window.downlodrFunctions.getFileSize(
+            // Add a delay to ensure all final logs (merger, deletion, remuxing) are captured
+            setTimeout(async () => {
+              const filePath = await window.downlodrFunctions.joinDownloadPath(
+                download.location,
+                download.downloadName,
+              );
+              const exists = await window.downlodrFunctions.fileExists(
                 filePath,
               );
-              const updatedDownload = {
-                ...download,
-                size: actualFileSize || download.size,
-                transcriptLocation: download.autoCaptionLocation || '',
-              };
 
-              set((state) => ({
-                finishedDownloads: state.finishedDownloads.some(
-                  (fd) => fd.id === download.id,
-                )
-                  ? state.finishedDownloads
-                  : [...state.finishedDownloads, updatedDownload],
+              // Get the current download with all accumulated logs
+              const currentState = get();
+              const currentDownload = currentState.downloading.find(
+                (d) => d.id === download.id,
+              );
 
-                historyDownloads: state.historyDownloads.some(
-                  (hd) => hd.id === download.id,
-                )
-                  ? state.historyDownloads
-                  : [...state.historyDownloads, updatedDownload],
+              // If download was already moved or doesn't exist, skip
+              if (!currentDownload) return;
 
-                downloading: state.downloading.filter(
-                  (d) => d.id !== download.id,
-                ),
-              }));
+              if (!exists) {
+                set((state) => ({
+                  downloading: state.downloading.map((d) =>
+                    d.id === download.id ? { ...d, status: 'initializing' } : d,
+                  ),
+                }));
 
-              // Process queue after a download finishes
-              get().processQueue();
-            }
+                // check for this specific download
+                const checkInterval = setInterval(async () => {
+                  const fileExists = await window.downlodrFunctions.fileExists(
+                    filePath,
+                  );
+                  if (fileExists) {
+                    clearInterval(checkInterval);
+
+                    // Get the actual file size from the file system
+                    const actualFileSize =
+                      await window.downlodrFunctions.getFileSize(filePath);
+
+                    // Get the current download with complete logs
+                    const latestState = get();
+                    const latestDownload = latestState.downloading.find(
+                      (d) => d.id === download.id,
+                    );
+
+                    const updatedDownload = {
+                      ...latestDownload,
+                      size: actualFileSize || latestDownload.size,
+                      transcriptLocation:
+                        latestDownload.autoCaptionLocation || '',
+                      log: latestDownload.log || '', // Preserve accumulated logs
+                    };
+
+                    set((state) => ({
+                      finishedDownloads: state.finishedDownloads.some(
+                        (fd) => fd.id === download.id,
+                      )
+                        ? state.finishedDownloads
+                        : [...state.finishedDownloads, updatedDownload],
+
+                      historyDownloads: state.historyDownloads.some(
+                        (hd) => hd.id === download.id,
+                      )
+                        ? state.historyDownloads
+                        : [...state.historyDownloads, updatedDownload],
+
+                      downloading: state.downloading.filter(
+                        (d) => d.id !== download.id,
+                      ),
+                    }));
+
+                    // Process queue after a download finishes
+                    get().processQueue();
+                  }
+                }, 1000); // Check every second
+
+                // Clear interval after 5 minutes to prevent infinite checking
+                setTimeout(() => {
+                  clearInterval(checkInterval);
+                }, 300000); // 5 minutes
+              } else {
+                // Get the actual file size from the file system
+                const actualFileSize =
+                  await window.downlodrFunctions.getFileSize(filePath);
+
+                // Get the current download with complete logs
+                const latestState = get();
+                const latestDownload = latestState.downloading.find(
+                  (d) => d.id === download.id,
+                );
+
+                const updatedDownload = {
+                  ...latestDownload,
+                  size: actualFileSize || latestDownload.size,
+                  transcriptLocation: latestDownload.autoCaptionLocation || '',
+                  log: latestDownload.log || '', // Preserve accumulated logs
+                };
+
+                set((state) => ({
+                  finishedDownloads: state.finishedDownloads.some(
+                    (fd) => fd.id === download.id,
+                  )
+                    ? state.finishedDownloads
+                    : [...state.finishedDownloads, updatedDownload],
+
+                  historyDownloads: state.historyDownloads.some(
+                    (hd) => hd.id === download.id,
+                  )
+                    ? state.historyDownloads
+                    : [...state.historyDownloads, updatedDownload],
+
+                  downloading: state.downloading.filter(
+                    (d) => d.id !== download.id,
+                  ),
+                }));
+
+                // Process queue after a download finishes
+                get().processQueue();
+              }
+            }, 3000); // 3 second delay to allow final logs to be captured
           }
         }
       },

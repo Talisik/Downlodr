@@ -23,6 +23,7 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, downloadId }) => {
   const navRef = useRef<HTMLDivElement>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Get all downloads from different states
   const history = useDownloadStore((state) => state.historyDownloads);
@@ -75,6 +76,33 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, downloadId }) => {
       const { scrollTop, scrollHeight, clientHeight } = logContainerRef.current;
       const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px tolerance
       setAutoScroll(isAtBottom);
+    }
+  };
+
+  // Copy logs to clipboard
+  const handleCopyLogs = async () => {
+    try {
+      const logContent =
+        specificDownload?.log || 'No logs available for this download.';
+      await navigator.clipboard.writeText(logContent);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000); // Reset after 2 seconds
+    } catch (err) {
+      console.error('Failed to copy logs to clipboard:', err);
+      // Fallback for older browsers
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value =
+          specificDownload?.log || 'No logs available for this download.';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+      } catch (fallbackErr) {
+        console.error('Fallback copy method also failed:', fallbackErr);
+      }
     }
   };
 
@@ -171,7 +199,7 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, downloadId }) => {
         <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+48px)] border-t border-gray-200 dark:border-gray-600 flex-shrink-0" />
 
         <div className="flex justify-between items-center mt-2 flex-shrink-0">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-4">
             <label className="flex items-center text-sm text-gray-600 dark:text-gray-400">
               <input
                 type="checkbox"
@@ -181,6 +209,18 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, downloadId }) => {
               />
               Auto-scroll
             </label>
+            <button
+              type="button"
+              onClick={handleCopyLogs}
+              className={`px-3 py-1 text-sm border rounded-md transition-colors ${
+                copySuccess
+                  ? 'bg-green-100 border-green-400 text-green-700 dark:bg-green-900 dark:border-green-600 dark:text-green-300'
+                  : 'hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-darkModeHover dark:text-gray-200'
+              }`}
+              disabled={copySuccess}
+            >
+              {copySuccess ? '✓ Copied!' : '📋 Copy Logs'}
+            </button>
           </div>
           <button
             type="button"
