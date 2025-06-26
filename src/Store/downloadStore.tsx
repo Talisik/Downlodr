@@ -1462,6 +1462,76 @@ const useDownloadStore = create<DownloadStore>()(
 
 export default useDownloadStore;
 
+// ========================
+// PERFORMANCE OPTIMIZATION UTILITIES
+// ========================
+
+// Memoized selectors to prevent unnecessary re-renders
+export const useDownloadingSelectors = {
+  // Get only downloading items
+  downloading: () => useDownloadStore((state) => state.downloading),
+
+  // Get downloading count without full array
+  downloadingCount: () => useDownloadStore((state) => state.downloading.length),
+
+  // Get specific download by ID (most efficient)
+  downloadById: (id: string) =>
+    useDownloadStore((state) => state.downloading.find((d) => d.id === id)),
+
+  // Get only progress data for UI updates (minimal re-renders)
+  downloadProgress: (id: string) =>
+    useDownloadStore((state) => {
+      const download = state.downloading.find((d) => d.id === id);
+      return download
+        ? {
+            id: download.id,
+            progress: download.progress,
+            speed: download.speed,
+            timeLeft: download.timeLeft,
+            status: download.status,
+          }
+        : null;
+    }),
+
+  // Get only essential UI data
+  downloadingEssentials: () =>
+    useDownloadStore((state) =>
+      state.downloading.map((d) => ({
+        id: d.id,
+        name: d.name,
+        progress: d.progress,
+        speed: d.speed,
+        status: d.status,
+        timeLeft: d.timeLeft,
+      })),
+    ),
+};
+
+// Performance monitoring utility
+export const PerformanceMonitor = {
+  updateCount: 0,
+  lastUpdateTime: 0,
+
+  trackUpdate() {
+    this.updateCount++;
+    this.lastUpdateTime = Date.now();
+  },
+
+  getStats() {
+    return {
+      totalUpdates: this.updateCount,
+      lastUpdate: this.lastUpdateTime,
+      updatesPerSecond:
+        this.updateCount / ((Date.now() - this.lastUpdateTime) / 1000),
+    };
+  },
+
+  reset() {
+    this.updateCount = 0;
+    this.lastUpdateTime = Date.now();
+  },
+};
+
 // Add to your utilities or directly in the component that displays elapsed time
 export function formatElapsedTime(elapsedSeconds: number | undefined): string {
   if (!elapsedSeconds || elapsedSeconds < 60) {

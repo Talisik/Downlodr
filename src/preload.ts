@@ -57,20 +57,32 @@ function uuidv4() {
   );
 }
 
-// Throttling utility for download callbacks
-class DownloadThrottler {
-  private static instance: DownloadThrottler;
+// Balanced throttling utility - optimized for both performance and UX
+class BalancedDownloadThrottler {
+  private static instance: BalancedDownloadThrottler;
   private pendingUpdates = new Map<string, any>();
   private throttleTimers = new Map<string, NodeJS.Timeout>();
-  private rafHandles = new Map<string, number>();
-  private readonly THROTTLE_INTERVAL = 250; // Update UI every 250ms
-  private readonly USE_RAF = true; // Use requestAnimationFrame for smoother updates
 
-  static getInstance(): DownloadThrottler {
-    if (!DownloadThrottler.instance) {
-      DownloadThrottler.instance = new DownloadThrottler();
+  // Balanced intervals - responsive but not overwhelming
+  // Can be adjusted based on system performance needs
+  private PROGRESS_UPDATE_DELAY = 150; // 150ms = ~7 FPS (smooth but efficient)
+  private LOG_UPDATE_DELAY = 500; // 500ms for logs (less critical)
+
+  static getInstance(): BalancedDownloadThrottler {
+    if (!BalancedDownloadThrottler.instance) {
+      BalancedDownloadThrottler.instance = new BalancedDownloadThrottler();
     }
-    return DownloadThrottler.instance;
+    return BalancedDownloadThrottler.instance;
+  }
+
+  // Allow runtime adjustment of throttling based on performance needs
+  configure(options: { progressDelay?: number; logDelay?: number }) {
+    if (options.progressDelay !== undefined) {
+      this.PROGRESS_UPDATE_DELAY = Math.max(50, options.progressDelay); // Min 50ms
+    }
+    if (options.logDelay !== undefined) {
+      this.LOG_UPDATE_DELAY = Math.max(100, options.logDelay); // Min 100ms
+    }
   }
 
   throttleUpdate(
@@ -78,66 +90,83 @@ class DownloadThrottler {
     update: any,
     callback: (update: any) => void,
   ) {
+    // Critical updates go through immediately
+    if (this.isCriticalUpdate(update)) {
+      this.forceUpdate(downloadId, update, callback);
+      return;
+    }
+
     // Store the latest update
     this.pendingUpdates.set(downloadId, update);
 
-    // Clear existing timer/raf if any
-    this.clearPendingUpdate(downloadId);
-
-    if (this.USE_RAF) {
-      // Use requestAnimationFrame for smoother UI updates
-      const rafHandle = requestAnimationFrame(() => {
-        const latestUpdate = this.pendingUpdates.get(downloadId);
-        if (latestUpdate) {
-          callback(latestUpdate);
-          this.pendingUpdates.delete(downloadId);
-          this.rafHandles.delete(downloadId);
-        }
-      });
-      this.rafHandles.set(downloadId, rafHandle);
-    } else {
-      // Use setTimeout for consistent intervals
-      const timer = setTimeout(() => {
-        const latestUpdate = this.pendingUpdates.get(downloadId);
-        if (latestUpdate) {
-          callback(latestUpdate);
-          this.pendingUpdates.delete(downloadId);
-          this.throttleTimers.delete(downloadId);
-        }
-      }, this.THROTTLE_INTERVAL);
-      this.throttleTimers.set(downloadId, timer);
+    // Clear existing timer
+    const existingTimer = this.throttleTimers.get(downloadId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
     }
+
+    // Set appropriate delay based on update type
+    const delay = this.isLogOnlyUpdate(update)
+      ? this.LOG_UPDATE_DELAY
+      : this.PROGRESS_UPDATE_DELAY;
+
+    // Schedule update
+    const timer = setTimeout(() => {
+      const latestUpdate = this.pendingUpdates.get(downloadId);
+      if (latestUpdate) {
+        callback(latestUpdate);
+        this.pendingUpdates.delete(downloadId);
+        this.throttleTimers.delete(downloadId);
+      }
+    }, delay);
+
+    this.throttleTimers.set(downloadId, timer);
   }
 
-  // Force immediate update (for important status changes)
+  private isCriticalUpdate(update: any): boolean {
+    return (
+      update.type === 'controller' ||
+      update.data?.value?.status === 'finished' ||
+      update.data?.value?.status === 'failed' ||
+      update.data?.value?.status === 'cancelled' ||
+      update.data?.value?.status === 'error'
+    );
+  }
+
+  private isLogOnlyUpdate(update: any): boolean {
+    // True if it's only a log update without progress data
+    return update.data?.log && !update.data?.value;
+  }
+
   forceUpdate(
     downloadId: string,
     update: any,
     callback: (update: any) => void,
   ) {
-    // Clear any pending throttled update
-    this.clearPendingUpdate(downloadId);
-    this.pendingUpdates.delete(downloadId);
-    callback(update);
-  }
-
-  private clearPendingUpdate(downloadId: string) {
+    // Clear any pending update
     const existingTimer = this.throttleTimers.get(downloadId);
     if (existingTimer) {
       clearTimeout(existingTimer);
       this.throttleTimers.delete(downloadId);
     }
 
-    const existingRaf = this.rafHandles.get(downloadId);
-    if (existingRaf) {
-      cancelAnimationFrame(existingRaf);
-      this.rafHandles.delete(downloadId);
-    }
+    this.pendingUpdates.delete(downloadId);
+    callback(update);
   }
 
   cleanup(downloadId: string) {
-    this.clearPendingUpdate(downloadId);
+    const timer = this.throttleTimers.get(downloadId);
+    if (timer) {
+      clearTimeout(timer);
+      this.throttleTimers.delete(downloadId);
+    }
     this.pendingUpdates.delete(downloadId);
+  }
+
+  cleanupAll() {
+    this.throttleTimers.forEach((timer) => clearTimeout(timer));
+    this.throttleTimers.clear();
+    this.pendingUpdates.clear();
   }
 }
 
@@ -168,7 +197,7 @@ contextBridge.exposeInMainWorld('ytdlp', {
     const id = uuidv4();
     const channel = `ytdlp:download:status:${id}`;
     const controllerChannel = `ytdlp:controller:${id}`;
-    const throttler = DownloadThrottler.getInstance();
+    const throttler = BalancedDownloadThrottler.getInstance();
 
     async function startDownload() {
       try {
@@ -176,7 +205,7 @@ contextBridge.exposeInMainWorld('ytdlp', {
 
         // Listen for controller ID from the main process
         ipcRenderer.on(controllerChannel, (event, data) => {
-          // Controller data is important, send immediately
+          // Controller data is critical, send immediately
           throttler.forceUpdate(
             id,
             {
@@ -189,26 +218,15 @@ contextBridge.exposeInMainWorld('ytdlp', {
         });
 
         ipcRenderer.on(channel, (event, chunk) => {
-          // Check if this is a critical status update
-          const isCriticalUpdate =
-            chunk.data?.status === 'finished' ||
-            chunk.data?.status === 'failed' ||
-            chunk.data?.status === 'cancelled' ||
-            chunk.data?.status === 'error';
+          // Use balanced throttling for all updates
+          throttler.throttleUpdate(id, chunk, callback);
 
-          if (isCriticalUpdate) {
-            // Send critical updates immediately
-            throttler.forceUpdate(id, chunk, callback);
-
-            if (chunk.data.status === 'finished') {
-              console.log('Preload done');
-              ipcRenderer.removeAllListeners(channel);
-              ipcRenderer.removeAllListeners(controllerChannel);
-              throttler.cleanup(id);
-            }
-          } else {
-            // Throttle regular progress updates
-            throttler.throttleUpdate(id, chunk, callback);
+          // Clean up on finish
+          if (chunk.data?.status === 'finished') {
+            console.log('Preload done');
+            ipcRenderer.removeAllListeners(channel);
+            ipcRenderer.removeAllListeners(controllerChannel);
+            throttler.cleanup(id);
           }
         });
       } catch (error) {
