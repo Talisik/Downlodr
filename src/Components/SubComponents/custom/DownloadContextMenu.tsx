@@ -34,10 +34,9 @@
 
 import { PlayCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { BiRightArrow } from 'react-icons/bi';
 import { GoChevronRight, GoPlus } from 'react-icons/go';
 import { HiOutlineStopCircle } from 'react-icons/hi2';
-import { IoPauseCircleOutline } from 'react-icons/io5';
+import { IoCodeSlashSharp, IoPauseCircleOutline } from 'react-icons/io5';
 import { LiaFileVideoSolid, LiaTagsSolid } from 'react-icons/lia';
 import { LuFolderOpen, LuTrash } from 'react-icons/lu';
 import { MdEdit } from 'react-icons/md';
@@ -67,7 +66,8 @@ interface DownloadContextMenuProps {
     downloadLocation?: string,
     controllerId?: string,
     downloadStatus?: string,
-  ) => void; // Function to pause the download
+  ) => void; // Function to pause the download'
+  onShowLog: (downloadId: string) => void; // Function to show the log of the download
   onStop: (
     id: string,
     downloadLocation?: string,
@@ -383,9 +383,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   downloadFile,
   onClose,
   onPause,
-  onStop,
-  onForceStart,
-  onRemove,
+  onShowLog,
+  // onStop,
+  // onForceStart,
+  // onRemove,
   onViewDownload,
   onAddTag,
   onRemoveTag,
@@ -409,6 +410,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const [showCategoryMenu, setShowCategoryMenu] = useState(false); // State to track visibility of the category menu
   const [showPluginMenu, setShowPluginMenu] = useState(false); // State to track visibility of the plugin menu
   const [submenuPosition, setSubmenuPosition] = useState({ x: 0, y: 0 });
+
   const { settings } = useMainStore();
   const {
     downloading,
@@ -783,6 +785,18 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <span>Remove</span>
             </span>
           </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onShowLog(downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <IoCodeSlashSharp size={20} />
+              <span>Show Log</span>
+            </span>
+          </button>
           {commonOptions}
         </>
       );
@@ -887,8 +901,20 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             }}
           >
             <span className="flex items-center space-x-2">
-              <HiOutlineStopCircle size={20} />
-              <span>Stop</span>
+              <IoCodeSlashSharp size={20} />
+              <span>Show Log</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onShowLog(downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <VscDebugStart size={20} />
+              <span>Start</span>
             </span>
           </button>
           {commonOptions}
@@ -1003,6 +1029,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <span>Stop</span>
             </span>
           </button>
+          {/* 
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
@@ -1010,9 +1037,23 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               onClose();
             }}
           >
+
             <span className="flex items-center space-x-2">
               <BiRightArrow size={18} />
               <span>Force Start</span>
+            </span>
+          </button>
+          */}
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onShowLog(downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <IoCodeSlashSharp size={20} />
+              <span>Show Log</span>
             </span>
           </button>
           {commonOptions}
