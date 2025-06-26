@@ -24,6 +24,7 @@ import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
   RenameModal,
   StopModal,
 } from '../Components/SubComponents/custom/DownloadContextMenu'; */
+import LogModal from '../Components/Main/Modal/LogModal';
 import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
 import ExpandedDownloadDetails from '../Components/SubComponents/custom/ExpandedDownloadDetail';
 import FileNotExistModal, {
@@ -707,6 +708,11 @@ const StatusSpecificDownloads = () => {
     }
   };
 
+  const handleShowLog = (downloadId: string) => {
+    setLogModalDownloadId(downloadId);
+    setShowLogModal(true);
+  };
+
   //Context Menu actons
   const handlePause = (downloadId: string, downloadLocation?: string) => {
     // Get fresh state each time
@@ -1305,6 +1311,10 @@ const StatusSpecificDownloads = () => {
   const [stopDownloadLocation, setStopDownloadLocation] = useState<string>('');
   const [stopControllerId, setStopControllerId] = useState<string>('');
 
+  // Add log modal state
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [logModalDownloadId, setLogModalDownloadId] = useState<string>('');
+
   // Get renameDownload function from store
   const renameDownload = useDownloadStore((state) => state.renameDownload);
 
@@ -1503,6 +1513,12 @@ const StatusSpecificDownloads = () => {
                                   className="line-clamp-2 break-words break-all"
                                   title={download.name}
                                 >
+                                  <button
+                                    onClick={() => handleShowLog(download.id)}
+                                    className="text-blue-500 hover:text-blue-600 p-6"
+                                  >
+                                    log
+                                  </button>
                                   {download.name}
                                 </div>
                               )}
@@ -1916,6 +1932,16 @@ const StatusSpecificDownloads = () => {
         }}
         onConfirm={performStop}
         message="Are you sure you want to stop this download?"
+      />
+
+      {/* Add the LogModal */}
+      <LogModal
+        isOpen={showLogModal}
+        onClose={() => {
+          setShowLogModal(false);
+          setLogModalDownloadId('');
+        }}
+        downloadId={logModalDownloadId}
       />
     </div>
   );

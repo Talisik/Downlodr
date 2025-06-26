@@ -541,7 +541,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     for await (const chunk of controller.listen()) {
       // Send the download status back to the renderer process
       e.sender.send(`ytdlp:download:status:${id}`, chunk);
-      console.log(chunk);
+      console.log(chunk.data.log);
 
       if (chunk != null) {
         if (chunk.data.status === 'finished') {

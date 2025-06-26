@@ -202,22 +202,42 @@ class DownloadController {
             ),
           }));
         }
-        if (result.data) {
+
+        // Handle progress data updates (only when progress data is available)
+        if (result.data && result.data.value) {
           useDownloadStore.setState((state) => ({
             downloading: state.downloading.map((d) =>
               d.id === downloadId
                 ? {
                     ...d,
-                    speed: result.data._speed_str || '',
-                    progress: parseFloat(result.data._percent_str) || 0,
-                    timeLeft: result.data._eta_str || '',
-                    size: parseFloat(result.data.downloaded_bytes) || d.size,
-                    status: result.data.status || d.status,
-                    elapsed: result.data.elapsed || d.elapsed,
+                    speed: result.data.value._speed_str || d.speed,
+                    progress:
+                      parseFloat(result.data.value._percent_str) || d.progress,
+                    timeLeft: result.data.value._eta_str || d.timeLeft,
+                    size:
+                      parseFloat(result.data.value.downloaded_bytes) || d.size,
+                    status: result.data.value.status || d.status,
+                    elapsed: result.data.value.elapsed || d.elapsed,
                     ext: download.ext,
                     audioExt: download.audioExt,
                   }
                 : d,
+            ),
+          }));
+        }
+
+        // Handle log data (save ALL logs regardless of whether they have progress data)
+        if (result && result.data && result.data.log) {
+          useDownloadStore.setState((state) => ({
+            downloading: state.downloading.map((download) =>
+              download.id === downloadId
+                ? {
+                    ...download,
+                    log: download.log
+                      ? `${download.log}\n${result.data.log}`
+                      : result.data.log,
+                  }
+                : download,
             ),
           }));
         }
@@ -292,6 +312,7 @@ class DownloadController {
           getThumbnail: download.getThumbnail,
           duration: download.duration,
           isCreateFolder: download.isCreateFolder,
+          log: download.log,
         },
       ],
     }));
@@ -338,6 +359,7 @@ export interface BaseDownload {
   getThumbnail: boolean;
   duration: number;
   isCreateFolder: boolean;
+  log: string;
 }
 
 // Interface for downloads that are currently being processed
@@ -527,105 +549,125 @@ const useDownloadStore = create<DownloadStore>()(
 
         if (finishedDownloads.length > 0) {
           for (const download of finishedDownloads) {
-            const filePath = await window.downlodrFunctions.joinDownloadPath(
-              download.location,
-              download.downloadName,
-            );
-            const exists = await window.downlodrFunctions.fileExists(filePath);
-            console.log(`Checking file: ${filePath}, exists: ${exists}`);
-
-            if (!exists) {
-              console.log(
-                `File doesn't exist yet, setting status to initializing for ${download.id}`,
+            // Add a delay to ensure all final logs (merger, deletion, remuxing) are captured
+            setTimeout(async () => {
+              const filePath = await window.downlodrFunctions.joinDownloadPath(
+                download.location,
+                download.downloadName,
               );
-              set((state) => ({
-                downloading: state.downloading.map((d) =>
-                  d.id === download.id ? { ...d, status: 'initializing' } : d,
-                ),
-              }));
-
-              // check for this specific download
-              const checkInterval = setInterval(async () => {
-                const fileExists = await window.downlodrFunctions.fileExists(
-                  filePath,
-                );
-                if (fileExists) {
-                  clearInterval(checkInterval);
-                  console.log(
-                    `File now exists, moving download ${download.id} to finished/history`,
-                  );
-
-                  // Get the actual file size from the file system
-                  const actualFileSize =
-                    await window.downlodrFunctions.getFileSize(filePath);
-                  const updatedDownload = {
-                    ...download,
-                    size: actualFileSize || download.size,
-                    transcriptLocation: download.autoCaptionLocation || '',
-                  };
-                  set((state) => ({
-                    finishedDownloads: state.finishedDownloads.some(
-                      (fd) => fd.id === download.id,
-                    )
-                      ? state.finishedDownloads
-                      : [...state.finishedDownloads, updatedDownload],
-
-                    historyDownloads: state.historyDownloads.some(
-                      (hd) => hd.id === download.id,
-                    )
-                      ? state.historyDownloads
-                      : [...state.historyDownloads, updatedDownload],
-
-                    downloading: state.downloading.filter(
-                      (d) => d.id !== download.id,
-                    ),
-                  }));
-
-                  // Process queue after a download finishes
-                  get().processQueue();
-                }
-              }, 1000); // Check every second
-
-              // Clear interval after 5 minutes to prevent infinite checking
-              setTimeout(() => {
-                clearInterval(checkInterval);
-              }, 300000); // 5 minutes
-            } else {
-              console.log(
-                `File exists, moving download ${download.id} to finished/history`,
-              );
-
-              // Get the actual file size from the file system
-              const actualFileSize = await window.downlodrFunctions.getFileSize(
+              const exists = await window.downlodrFunctions.fileExists(
                 filePath,
               );
-              const updatedDownload = {
-                ...download,
-                size: actualFileSize || download.size,
-                transcriptLocation: download.autoCaptionLocation || '',
-              };
 
-              set((state) => ({
-                finishedDownloads: state.finishedDownloads.some(
-                  (fd) => fd.id === download.id,
-                )
-                  ? state.finishedDownloads
-                  : [...state.finishedDownloads, updatedDownload],
+              // Get the current download with all accumulated logs
+              const currentState = get();
+              const currentDownload = currentState.downloading.find(
+                (d) => d.id === download.id,
+              );
 
-                historyDownloads: state.historyDownloads.some(
-                  (hd) => hd.id === download.id,
-                )
-                  ? state.historyDownloads
-                  : [...state.historyDownloads, updatedDownload],
+              // If download was already moved or doesn't exist, skip
+              if (!currentDownload) return;
 
-                downloading: state.downloading.filter(
-                  (d) => d.id !== download.id,
-                ),
-              }));
+              if (!exists) {
+                set((state) => ({
+                  downloading: state.downloading.map((d) =>
+                    d.id === download.id ? { ...d, status: 'initializing' } : d,
+                  ),
+                }));
 
-              // Process queue after a download finishes
-              get().processQueue();
-            }
+                // check for this specific download
+                const checkInterval = setInterval(async () => {
+                  const fileExists = await window.downlodrFunctions.fileExists(
+                    filePath,
+                  );
+                  if (fileExists) {
+                    clearInterval(checkInterval);
+
+                    // Get the actual file size from the file system
+                    const actualFileSize =
+                      await window.downlodrFunctions.getFileSize(filePath);
+
+                    // Get the current download with complete logs
+                    const latestState = get();
+                    const latestDownload = latestState.downloading.find(
+                      (d) => d.id === download.id,
+                    );
+
+                    const updatedDownload = {
+                      ...latestDownload,
+                      size: actualFileSize || latestDownload.size,
+                      transcriptLocation:
+                        latestDownload.autoCaptionLocation || '',
+                      log: latestDownload.log || '', // Preserve accumulated logs
+                    };
+
+                    set((state) => ({
+                      finishedDownloads: state.finishedDownloads.some(
+                        (fd) => fd.id === download.id,
+                      )
+                        ? state.finishedDownloads
+                        : [...state.finishedDownloads, updatedDownload],
+
+                      historyDownloads: state.historyDownloads.some(
+                        (hd) => hd.id === download.id,
+                      )
+                        ? state.historyDownloads
+                        : [...state.historyDownloads, updatedDownload],
+
+                      downloading: state.downloading.filter(
+                        (d) => d.id !== download.id,
+                      ),
+                    }));
+
+                    // Process queue after a download finishes
+                    get().processQueue();
+                  }
+                }, 1000); // Check every second
+
+                // Clear interval after 5 minutes to prevent infinite checking
+                setTimeout(() => {
+                  clearInterval(checkInterval);
+                }, 300000); // 5 minutes
+              } else {
+                // Get the actual file size from the file system
+                const actualFileSize =
+                  await window.downlodrFunctions.getFileSize(filePath);
+
+                // Get the current download with complete logs
+                const latestState = get();
+                const latestDownload = latestState.downloading.find(
+                  (d) => d.id === download.id,
+                );
+
+                const updatedDownload = {
+                  ...latestDownload,
+                  size: actualFileSize || latestDownload.size,
+                  transcriptLocation: latestDownload.autoCaptionLocation || '',
+                  log: latestDownload.log || '', // Preserve accumulated logs
+                };
+
+                set((state) => ({
+                  finishedDownloads: state.finishedDownloads.some(
+                    (fd) => fd.id === download.id,
+                  )
+                    ? state.finishedDownloads
+                    : [...state.finishedDownloads, updatedDownload],
+
+                  historyDownloads: state.historyDownloads.some(
+                    (hd) => hd.id === download.id,
+                  )
+                    ? state.historyDownloads
+                    : [...state.historyDownloads, updatedDownload],
+
+                  downloading: state.downloading.filter(
+                    (d) => d.id !== download.id,
+                  ),
+                }));
+
+                // Process queue after a download finishes
+                get().processQueue();
+              }
+            }, 3000); // 3 second delay to allow final logs to be captured
           }
         }
       },
@@ -640,22 +682,49 @@ const useDownloadStore = create<DownloadStore>()(
 
       updateDownload: (id, result) => {
         if (!result || !result.data) return;
-        set((state) => ({
-          downloading: state.downloading.map((downloading) =>
-            downloading.id === id
-              ? {
-                  ...downloading,
-                  speed: result.data._speed_str || '',
-                  progress: parseFloat(result.data._percent_str) || 0,
-                  timeLeft: result.data._eta_str || '',
-                  size: parseFloat(result.data.total_bytes) || downloading.size,
-                  status: result.data.status || downloading.status,
-                  elapsed: result.data.elapsed || downloading.elapsed,
-                  controllerId: result.controllerId ?? downloading.controllerId,
-                }
-              : downloading,
-          ),
-        }));
+
+        // Handle progress data updates (only when progress data is available)
+        if (result.data.value) {
+          set((state) => ({
+            downloading: state.downloading.map((downloading) =>
+              downloading.id === id
+                ? {
+                    ...downloading,
+                    speed: result.data.value._speed_str || downloading.speed,
+                    progress:
+                      parseFloat(result.data.value._percent_str) ||
+                      downloading.progress,
+                    timeLeft:
+                      result.data.value._eta_str || downloading.timeLeft,
+                    size:
+                      parseFloat(result.data.value.total_bytes) ||
+                      downloading.size,
+                    status: result.data.value.status || downloading.status,
+                    elapsed: result.data.value.elapsed || downloading.elapsed,
+                    controllerId:
+                      result.controllerId ?? downloading.controllerId,
+                  }
+                : downloading,
+            ),
+          }));
+        }
+
+        // Handle log data (save ALL logs regardless of whether they have progress data)
+        if (result.data.log) {
+          set((state) => ({
+            downloading: state.downloading.map((download) =>
+              download.id === id
+                ? {
+                    ...download,
+                    log: download.log
+                      ? `${download.log}\n${result.data.log}`
+                      : result.data.log,
+                  }
+                : download,
+            ),
+          }));
+        }
+
         get().checkFinishedDownloads();
       },
 
@@ -737,15 +806,6 @@ const useDownloadStore = create<DownloadStore>()(
             downloadName,
           );
         }
-        console.log('Download Parameters:', {
-          videoUrl,
-          finalLocation,
-          formatId,
-          ext,
-          audioExt,
-          audioFormatId,
-          limitRate,
-        });
         // Create a download ID before starting the download
         const downloadId = (window as any).ytdlp.download(
           {
@@ -758,6 +818,7 @@ const useDownloadStore = create<DownloadStore>()(
             limitRate: limitRate,
           },
           async (result: any) => {
+            // Handle controller ID assignment
             if (result.type === 'controller' && result.controllerId) {
               set((state) => ({
                 downloading: state.downloading.map((download) =>
@@ -767,20 +828,25 @@ const useDownloadStore = create<DownloadStore>()(
                 ),
               }));
             }
-            if (result.data) {
+
+            // Handle progress data updates (only when progress data is available)
+            if (result.data && result.data.value) {
               set((state) => ({
                 downloading: state.downloading.map((download) =>
                   download.id === downloadId
                     ? {
                         ...download,
-                        speed: result.data._speed_str || '',
-                        progress: parseFloat(result.data._percent_str) || 0,
-                        timeLeft: result.data._eta_str || '',
+                        speed: result.data.value._speed_str || download.speed,
+                        progress:
+                          parseFloat(result.data.value._percent_str) ||
+                          download.progress,
+                        timeLeft:
+                          result.data.value._eta_str || download.timeLeft,
                         size:
-                          parseFloat(result.data.downloaded_bytes) ||
+                          parseFloat(result.data.value.downloaded_bytes) ||
                           download.size,
-                        status: result.data.status || download.status,
-                        elapsed: result.data.elapsed || download.elapsed,
+                        status: result.data.value.status || download.status,
+                        elapsed: result.data.value.elapsed || download.elapsed,
                         ext: ext,
                         audioExt: audioExt,
                       }
@@ -788,6 +854,23 @@ const useDownloadStore = create<DownloadStore>()(
                 ),
               }));
             }
+
+            // Handle log data (save ALL logs regardless of whether they have progress data)
+            if (result && result.data && result.data.log) {
+              set((state) => ({
+                downloading: state.downloading.map((download) =>
+                  download.id === downloadId
+                    ? {
+                        ...download,
+                        log: download.log
+                          ? `${download.log}\n${result.data.log}`
+                          : result.data.log,
+                      }
+                    : download,
+                ),
+              }));
+            }
+
             get().checkFinishedDownloads();
           },
         );
@@ -800,14 +883,6 @@ const useDownloadStore = create<DownloadStore>()(
               zustandLocation,
               downloadName,
             );
-
-            if (captionsPath) {
-              console.log(
-                `Successfully downloaded captions to: ${captionsPath}`,
-              );
-            } else {
-              console.log('Could not download English captions');
-            }
           } else {
             captionsPath = '';
             console.log('No transcript requested or available');
@@ -817,10 +892,7 @@ const useDownloadStore = create<DownloadStore>()(
             `thumb1.jpg`,
           );
           if (thumbnails && getThumbnail) {
-            console.log(thumbnails);
-
             try {
-              console.log(thumbnails);
               // Extract the URL from the thumbnails object
               const thumbnailUrl = thumbnails;
               if (thumbnailUrl) {
@@ -828,9 +900,6 @@ const useDownloadStore = create<DownloadStore>()(
                   thumbnailUrl,
                   thumbnailPath,
                 );
-                console.log(`Thumbnail downloaded to: ${thumbnailPath}`);
-              } else {
-                console.log('Thumbnail URL not found in object');
               }
             } catch (error) {
               console.log('Error downloading thumbnail:', error);
@@ -877,33 +946,10 @@ const useDownloadStore = create<DownloadStore>()(
               getThumbnail,
               duration: duration,
               isCreateFolder: isCreateFolder,
+              log: '',
             },
           ],
         }));
-
-        console.log('Download parameters:', {
-          videoUrl,
-          name,
-          downloadName,
-          size,
-          speed,
-          timeLeft,
-          DateAdded,
-          progress,
-          location,
-          status,
-          ext,
-          formatId,
-          audioExt,
-          audioFormatId,
-          extractorKey,
-          limitRate,
-          automatic_caption,
-          thumbnails,
-          getTranscript,
-          getThumbnail,
-          duration,
-        });
       },
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -917,8 +963,7 @@ const useDownloadStore = create<DownloadStore>()(
           console.error('Invalid path parameters:', { location });
           return;
         }
-        console.log(options.getThumbnail);
-        console.log(options.getTranscript);
+
         const downloadId = uuidv4();
 
         // Add initial entry with minimal info
@@ -960,6 +1005,7 @@ const useDownloadStore = create<DownloadStore>()(
               getThumbnail: options.getThumbnail,
               duration: 0,
               isCreateFolder: null,
+              log: '',
             },
           ],
         }));
@@ -987,9 +1033,7 @@ const useDownloadStore = create<DownloadStore>()(
           ) {
             thumbnail = info.data.thumbnail;
           }
-          console.log(thumbnail);
           // Process formats using the service
-          console.log(info);
           const { formatOptions, defaultFormatId, defaultExt } =
             await VideoFormatService.processVideoFormats(info);
 
@@ -1400,6 +1444,7 @@ const useDownloadStore = create<DownloadStore>()(
               autoCaptionLocation: '',
               thumnailsLocation: '',
               controllerId: undefined,
+              log: '',
             },
           ],
         }));
