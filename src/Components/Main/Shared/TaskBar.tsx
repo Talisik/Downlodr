@@ -810,7 +810,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                   (location.pathname.includes('/status/') ||
                     location.pathname.includes('/tags/') ||
                     location.pathname.includes('/category/'))
-                  ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-body-dark dark:bg-darkModeButtonActive hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark'
+                  ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-body-dark dark:bg-darkModeButtonActive hover:dark:bg-darkModeLight hover:dark:text-body-dark'
                   : 'cursor-not-allowed text-gray-400 bg-gray-200 hover:bg-gray-200 dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault',
               )}
               onClick={handleRemoveButtonClick}

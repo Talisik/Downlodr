@@ -75,11 +75,11 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
             Progress
           </p>
           <div className="w-full">
-            <div className="w-full bg-white rounded-full h-1.5">
+            <div className="w-full bg-white dark:bg-darkModeDarkGray rounded-full h-1.5">
               <div
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   isEmpty || !download.progress || download.progress === 0
-                    ? 'bg-gray-400 dark:bg-gray-600'
+                    ? 'bg-gray-400 dark:bg-darkModeDarkGray'
                     : download.progress === 100
                     ? 'bg-green-500'
                     : 'bg-orange-500'
