@@ -598,7 +598,7 @@ const useDownloadStore = create<DownloadStore>()(
                       size: actualFileSize || latestDownload.size,
                       transcriptLocation:
                         latestDownload.autoCaptionLocation || '',
-                      log: latestDownload.log || '', // Preserve accumulated logs
+                      log: latestDownload.log || '',
                     };
 
                     set((state) => ({
@@ -1475,6 +1475,7 @@ const useDownloadStore = create<DownloadStore>()(
       },
 
       clearQueue: () => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         set((state) => ({
           queuedDownloads: [],
         }));
