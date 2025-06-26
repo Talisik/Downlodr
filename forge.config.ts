@@ -4,7 +4,6 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
-import MakerNSIS from '@felixrieseberg/electron-forge-maker-nsis';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -28,7 +27,7 @@ const config: ForgeConfig = {
         "gatekeeper-assess": false,
       },*/
     }),
-
+    /*
     // Windows NSIS installer
     new MakerNSIS({
       async getAppBuilderConfig() {
@@ -52,7 +51,7 @@ const config: ForgeConfig = {
         };
       },
     }),
-
+    */
     // Cross-platform ZIP packages
     new MakerZIP({}, ['darwin', 'win32', 'linux']),
   ],
