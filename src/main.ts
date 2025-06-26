@@ -213,7 +213,6 @@ const createTray = () => {
         forceQuit = true;
         // Set to BLANK_STATE before quitting
         lastClipboardText = 'BLANK_STATE';
-        console.log('Last clipboard text set to BLANK_STATE before tray quit');
         app.quit();
       },
     },
@@ -234,10 +233,8 @@ const createTray = () => {
 // set the alert icon
 function setAlertTrayIcon() {
   if (tray && alertTrayIcon) {
-    console.log('Setting alert tray icon');
     tray.setImage(alertTrayIcon);
     isDownloadComplete = true;
-    tray.setToolTip('Downlodr - Download(s) complete!');
     // Force tray update by setting context menu
     // tray.setContextMenu(tray.getContextMenu());
   } else {
@@ -422,7 +419,6 @@ ipcMain.handle('deleteFolder', async (event, filepath) => {
 
     // Move the folder to trash
     await shell.trashItem(normalizedPath);
-    console.log('Folder moved to trash successfully');
     return true;
   } catch (error) {
     console.error('Failed to move folder to trash:', error);
@@ -513,7 +509,6 @@ ipcMain.handle('kill-controller', async (_, id) => {
 // download video from link
 ipcMain.handle('ytdlp:download', async (e, id, args) => {
   try {
-    console.log(args);
     const controller = await YTDLP.download({
       // args needed for download
       args: {
@@ -541,11 +536,9 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     for await (const chunk of controller.listen()) {
       // Send the download status back to the renderer process
       e.sender.send(`ytdlp:download:status:${id}`, chunk);
-      console.log(chunk.data.log);
 
       if (chunk != null) {
         if (chunk.data.status === 'finished') {
-          console.log('Download complete, updating tray icon...');
           setAlertTrayIcon();
 
           // Notify the main process about the finished download
