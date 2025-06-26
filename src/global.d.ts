@@ -20,6 +20,7 @@ declare global {
       //Downlodr functions
       openVideo: (videoPath: string) => Promise<void>; // Opens a video file
       deleteFile: (videoPath: string) => Promise<boolean>; // Deletes a specified file from storage/drive
+      deleteFolder: (folderPath: string) => Promise<boolean>; // Deletes a specified folder from storage/drive
       getDownloadFolder: () => Promise<string>; // Retrieves the default download folder path
       isValidPath: (videoPath: string) => Promise<boolean>; // Validates a given file path if it exists
       joinDownloadPath: (
@@ -138,6 +139,22 @@ declare global {
     };
     pluginModalManager?: {
       showPluginModal: (options: PluginModalOptions) => Promise<PluginModalResult>;
+    };
+    appControl: {
+      showWindow: () => Promise<boolean>;
+      hideWindow: () => Promise<boolean>;
+      quitApp: () => Promise<void>;
+      setAutoLaunch: (enabled: boolean) => Promise<void>;
+      getAutoLaunch: () => Promise<boolean>;
+      getClipboardText: () => Promise<string>;
+      onClipboardChange: (callback: (text: string) => void) => void;
+      offClipboardChange: () => void;
+      startClipboardMonitoring: () => Promise<boolean>;
+      stopClipboardMonitoring: () => Promise<boolean>;
+      isClipboardMonitoringActive: () => Promise<boolean>;
+      clearLastClipboardText: () => Promise<void>;
+      clearClipboard: () => Promise<boolean>;
+      isWindowFocused: () => Promise<boolean>;
     };
   }
 }

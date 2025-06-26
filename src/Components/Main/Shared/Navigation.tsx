@@ -10,7 +10,7 @@
  *
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { BiLayer } from 'react-icons/bi';
+import { BiLayer, BiSolidPlusSquare } from 'react-icons/bi';
 import { BsHourglassSplit, BsTag } from 'react-icons/bs';
 import { CgClose } from 'react-icons/cg';
 import {
@@ -185,6 +185,7 @@ const Navigation = ({
       ...useDownloadStore.getState().finishedDownloads,
       ...useDownloadStore.getState().historyDownloads,
       ...useDownloadStore.getState().forDownloads,
+      ...useDownloadStore.getState().queuedDownloads,
     ];
 
     const download = allDownloads.find((d) => d.id === downloadId);
@@ -247,7 +248,9 @@ const Navigation = ({
       } relative overflow-x-hidden`}
     >
       <div
-        className={`${collapsed ? 'px-1' : 'p-2 ml-2'} mt-2 space-y-2 pb-20`}
+        className={`${
+          collapsed ? 'px-1' : 'p-2 ml-0 md:ml-2'
+        } mt-2 space-y-2 pb-20`}
       >
         {/* Status Section */}
         <div>
@@ -337,7 +340,29 @@ const Navigation = ({
                   </span>
                 )}
               </NavLink>
-
+              <NavLink
+                to="/status/queued"
+                className={({ isActive }) =>
+                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
+                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
+                    collapsed
+                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                      : 'items-center'
+                  }`
+                }
+                title={collapsed ? 'Queued Downloads' : ''}
+              >
+                <BiSolidPlusSquare
+                  size={16}
+                  className="text-primary flex-shrink-0"
+                />
+                {!collapsed && (
+                  <span className="ml-2 text-[14px] whitespace-nowrap">
+                    Queued Download
+                  </span>
+                )}
+              </NavLink>
               <NavLink
                 to="/status/downloading"
                 className={({ isActive }) =>

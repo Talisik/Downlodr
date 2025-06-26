@@ -49,7 +49,7 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
           --text-on-error: #fff;
           --bg-success-hover: rgba(255, 255, 255, 0.1);
           --bg-progress-track: ${isDark ? '#272727' : '#D1D5DB'};
-          --bg-tooltip: ${isDark ? '#18181B' : '#333'};
+          --bg-tooltip: ${isDark ? '#18181B' : '#FEF9F4'};
           --text-tooltip: ${isDark ? '#a1a1aa' : '#fff'};
           --shadow-primary: ${
             isDark ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)'
@@ -173,7 +173,7 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
       style={{ width: '300px' }}
     >
       {/* Header */}
-      <div className="bg-titleBar dark:bg-darkMode px-2 py-1 pt-[11px] border-b-2 border-gray-200 dark:border-darkModeCompliment flex items-center justify-between">
+      <div className="bg-titleBar dark:bg-darkModeDropdown px-2 py-1 pt-[11px] border-b-2 border-gray-200 dark:border-darkModeCompliment flex items-center justify-between">
         <div className="flex items-center flex-1">
           {options.icon && (
             <span className="inline-flex items-center justify-center w-5 h-5 mr-3 flex-shrink-0">

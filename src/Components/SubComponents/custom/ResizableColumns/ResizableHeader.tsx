@@ -15,11 +15,12 @@
  *   @param columnId - optional ID of the column
  *   @param className - optional class name to add to the component
  *   @param isLastColumn - optional boolean indicating if this is the last column
+ *   @param onDragEnd - optional function to handle drag end
  *
  * @returns JSX.Element - The rendered component displaying a TitleBar
  *
  */
-import React from 'react';
+import React, { useState } from 'react';
 
 interface ResizableHeaderProps {
   children: React.ReactNode;
@@ -34,6 +35,7 @@ interface ResizableHeaderProps {
   columnId?: string;
   className?: string;
   isLastColumn?: boolean;
+  onDragEnd?: () => void;
 }
 
 const ResizableHeader: React.FC<ResizableHeaderProps> = ({
@@ -49,13 +51,16 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
   columnId,
   className = '',
   isLastColumn = false,
+  onDragEnd,
 }) => {
+  const [isResizeHovered, setIsResizeHovered] = useState(false);
+
   return (
     <th
-      className={`relative px-2 font-semibold dark:text-gray-200 select-none${
+      className={`relative pl-2 font-semibold dark:text-gray-200 select-none${
         isDragging ? 'opacity-50 bg-blue-100 dark:bg-blue-900' : ''
       } ${isDragOver ? 'border-l-2 border-blue-500' : ''} ${className}`}
-      style={{ width: `${width}px` }}
+      style={{ width: `${width}px`, minWidth: `${width}px` }}
       onDragOver={(e) => {
         if (index !== undefined && onDragOver) {
           e.preventDefault();
@@ -66,11 +71,15 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
         e.preventDefault();
         onDrop && onDrop();
       }}
+      onDragLeave={(e) => {
+        // Reset drag over state when drag leaves this header
+        e.preventDefault();
+      }}
       data-column-id={columnId}
     >
       {/* Main header content - draggable */}
       <div
-        className="flex items-center w-full cursor-grab active:cursor-grabbing p-1 mr-1 whitespace-nowrap overflow-hidden"
+        className="flex items-center w-full cursor-grab active:cursor-grabbing p-1 whitespace-nowrap overflow-hidden"
         draggable={onDragStart ? true : false}
         onDragStart={() =>
           index !== undefined &&
@@ -78,6 +87,16 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
           onDragStart &&
           onDragStart(columnId, index)
         }
+        onDragEnd={() => {
+          // Ensure drag state is reset when drag ends
+          onDragEnd && onDragEnd();
+        }}
+        onMouseLeave={() => {
+          // Additional cleanup when mouse leaves draggable area
+          if (isDragging) {
+            onDragEnd && onDragEnd();
+          }
+        }}
       >
         {children}
       </div>
@@ -85,15 +104,23 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
       {/* Resize handle - not draggable, only show if not the last column */}
       {!isLastColumn && (
         <div
-          className="absolute right-0 top-0 h-full w-6 cursor-col-resize hover:bg-blue-500/20 group -mr-3"
+          className={`absolute right-0 top-0 h-full w-4 hover:bg-blue-500/20 group -mr-3 ${
+            isResizeHovered ? 'cursor-col-resize' : 'cursor-default'
+          }`}
           onMouseDown={(e) => {
             // Prevent drag start when trying to resize
             e.stopPropagation();
             onResizeStart(e);
           }}
+          onMouseEnter={() => setIsResizeHovered(true)}
+          onMouseLeave={() => {
+            setIsResizeHovered(false);
+            // Force cursor reset when leaving resize handle
+            document.body.style.cursor = '';
+          }}
           draggable={false}
         >
-          <div className="absolute right-[7px] mt-1 h-4/5 w-[2px] bg-gray-300 dark:bg-darkModeBorderColor group-hover:bg-blue-500  justify-center" />
+          <div className="absolute right-[9px] mt-1 h-4/5 w-[2px] bg-gray-300 dark:bg-darkModeBorderColor group-hover:bg-blue-500 justify-center" />
         </div>
       )}
     </th>

@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
   maximizeApp: () => ipcRenderer.send('maximize-btn'),
   openVideo: (filePath: string) => ipcRenderer.invoke('openVideo', filePath),
   deleteFile: (filepath: string) => ipcRenderer.invoke('deleteFile', filepath),
+  deleteFolder: (folderpath: string) =>
+    ipcRenderer.invoke('deleteFolder', folderpath),
   normalizePath: (filepath: string) =>
     ipcRenderer.invoke('normalizePath', filepath),
   getDownloadFolder: () => ipcRenderer.invoke('getDownloadFolder'),
@@ -136,6 +138,26 @@ contextBridge.exposeInMainWorld('appControl', {
     ipcRenderer.invoke('set-auto-launch', enabled),
 
   getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
+
+  // Clipboard monitoring
+  getClipboardText: () => ipcRenderer.invoke('get-clipboard-text'),
+  onClipboardChange: (callback: (text: string) => void) => {
+    ipcRenderer.on('clipboard-changed', (_event, text: string) =>
+      callback(text),
+    );
+  },
+  offClipboardChange: () => {
+    ipcRenderer.removeAllListeners('clipboard-changed');
+  },
+  startClipboardMonitoring: () =>
+    ipcRenderer.invoke('start-clipboard-monitoring'),
+  stopClipboardMonitoring: () =>
+    ipcRenderer.invoke('stop-clipboard-monitoring'),
+  isClipboardMonitoringActive: () =>
+    ipcRenderer.invoke('is-clipboard-monitoring-active'),
+  isWindowFocused: () => ipcRenderer.invoke('is-window-focused'),
+  clearLastClipboardText: () => ipcRenderer.invoke('clear-last-clipboard-text'),
+  clearClipboard: () => ipcRenderer.invoke('clear-clipboard'),
 });
 
 // Change this from a separate exposure to include both functions

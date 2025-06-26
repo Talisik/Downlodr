@@ -1,10 +1,10 @@
-import { Component, ErrorInfo, ReactNode, useState } from 'react';
-import TitleBar from '../Components/Main/Shared/TitleBar';
-import DropdownBar from '../Components/Main/Shared/DropdownBar';
-import TaskBar from '../Components/Main/Shared/TaskBar';
-import Navigation from '../Components/Main/Shared/Navigation';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { Outlet } from 'react-router-dom';
-import { HiChevronLeft } from 'react-icons/hi';
+import DropdownBar from '../Components/Main/Shared/DropdownBar';
+import Navigation from '../Components/Main/Shared/Navigation';
+import TaskBar from '../Components/Main/Shared/TaskBar';
+import TitleBar from '../Components/Main/Shared/TitleBar';
+import { useMainStore } from '../Store/mainStore';
 
 // Error Boundary component
 class ErrorBoundary extends Component<
@@ -47,10 +47,10 @@ class ErrorBoundary extends Component<
 // End of Error Detection
 
 const MainLayout = () => {
-  const [navCollapsed, setNavCollapsed] = useState(false);
+  const { isNavCollapsed, setIsNavCollapsed } = useMainStore();
 
   const toggleNavCollapse = () => {
-    setNavCollapsed((prev) => !prev);
+    setIsNavCollapsed(!isNavCollapsed);
   };
 
   return (
@@ -62,9 +62,9 @@ const MainLayout = () => {
         <div className="flex flex-1 overflow-hidden h-[calc(100vh-120px)]">
           <Navigation
             className={`${
-              navCollapsed ? 'w-[60px]' : 'w-[206px]'
+              isNavCollapsed ? 'w-[60px]' : 'w-[190px] md:w-[206px]'
             } overflow-y-auto h-full transition-all duration-300 border-solid border-r-2 border-gray-200 dark:border-darkModeCompliment `}
-            collapsed={navCollapsed}
+            collapsed={isNavCollapsed}
             toggleCollapse={toggleNavCollapse}
           />
           <main className="flex-1 overflow-auto">

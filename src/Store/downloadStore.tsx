@@ -17,6 +17,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 import { downloadEnglishCaptions } from '../DataFunctions/captionsHelper';
 import { VideoFormatService } from '../DataFunctions/GetDownloadMetaData';
+import { useMainStore } from './mainStore'; // Add this import
 
 // give unique id to downloads
 function uuidv4() {
@@ -27,6 +28,284 @@ function uuidv4() {
     ).toString(16),
   );
 }
+
+// Download Controller - implements Token Bucket Algorithm for rate limiting
+class DownloadController {
+  private static instance: DownloadController;
+  private isProcessing = false;
+  private processingInterval: NodeJS.Timeout | undefined;
+
+  static getInstance(): DownloadController {
+    if (!DownloadController.instance) {
+      DownloadController.instance = new DownloadController();
+    }
+    return DownloadController.instance;
+  }
+
+  // Start the download worker if not already running
+  startWorker() {
+    if (this.processingInterval) return; // Already running
+
+    console.log('DownloadController: Starting worker');
+    this.processingInterval = setInterval(() => {
+      this.processNextDownload();
+    }, 500); // Check every 500ms for smoother processing
+  }
+
+  // Stop the download worker
+  stopWorker() {
+    if (this.processingInterval) {
+      clearInterval(this.processingInterval);
+      this.processingInterval = undefined;
+      console.log('DownloadController: Worker stopped');
+    }
+  }
+
+  // Process one download at a time (Worker Pattern)
+  private async processNextDownload() {
+    if (this.isProcessing) return; // Prevent concurrent processing
+
+    const store = useDownloadStore.getState();
+    const { queuedDownloads, downloading } = store;
+
+    // Get current settings
+    const maxConcurrentDownloads =
+      useMainStore.getState().settings.maxDownloadNum;
+    const currentActiveDownloads = downloading.filter(
+      (d) => d.status === 'downloading' || d.status === 'initializing',
+    ).length;
+
+    // Token Bucket Algorithm: Check if we have available "tokens" (slots)
+    const availableTokens = maxConcurrentDownloads - currentActiveDownloads;
+
+    if (availableTokens <= 0) {
+      // No tokens available, wait for next cycle
+      return;
+    }
+
+    if (queuedDownloads.length === 0) {
+      // No work to do, stop worker to save resources
+      this.stopWorker();
+      return;
+    }
+
+    // Get the next download from queue (FIFO)
+    const nextDownload = queuedDownloads[0];
+
+    console.log(
+      `DownloadController: Processing "${nextDownload.name}" (Active: ${currentActiveDownloads}/${maxConcurrentDownloads})`,
+    );
+
+    this.isProcessing = true;
+
+    try {
+      // Atomic operation: Remove from queue and start download
+      useDownloadStore.setState((state) => ({
+        queuedDownloads: state.queuedDownloads.filter(
+          (q) => q.id !== nextDownload.id,
+        ),
+      }));
+
+      // Start the download using the original addDownload logic
+      await this.startDownloadDirectly(nextDownload);
+
+      toast({
+        title: 'Download Started from Queue',
+        description: `"${nextDownload.name}" has started downloading.`,
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('DownloadController: Error starting download:', error);
+      // Put the download back in queue on error
+      useDownloadStore.setState((state) => ({
+        queuedDownloads: [nextDownload, ...state.queuedDownloads],
+      }));
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+
+  // Direct download start (bypasses queue checks)
+  private async startDownloadDirectly(download: QueuedDownload) {
+    const store = useDownloadStore.getState();
+
+    // Replicate the addDownload logic without queue checks
+    if (!download.location || !download.downloadName) {
+      console.error('Invalid path parameters:', {
+        location: download.location,
+        downloadName: download.downloadName,
+      });
+      return;
+    }
+
+    let finalLocation = await window.downlodrFunctions.joinDownloadPath(
+      download.location,
+      download.downloadName,
+    );
+    let zustandLocation = download.location;
+
+    if (download.isCreateFolder) {
+      // Create subfolder logic (same as original addDownload)
+      const sanitizedTitle = download.name.replace(/[\\/:*?"<>.|]/g, '_');
+      let subfolderPath = await window.downlodrFunctions.joinDownloadPath(
+        download.location,
+        sanitizedTitle,
+      );
+
+      let counter = 1;
+      let folderExists = await window.downlodrFunctions.fileExists(
+        subfolderPath,
+      );
+
+      while (folderExists) {
+        const newFolderName = `${sanitizedTitle} (${counter})`;
+        subfolderPath = await window.downlodrFunctions.joinDownloadPath(
+          download.location,
+          newFolderName,
+        );
+        folderExists = await window.downlodrFunctions.fileExists(subfolderPath);
+        counter++;
+      }
+
+      const dirCreated = await window.downlodrFunctions.ensureDirectoryExists(
+        subfolderPath,
+      );
+      if (!dirCreated) {
+        console.error('Failed to create subfolder:', subfolderPath);
+      }
+
+      zustandLocation = dirCreated ? subfolderPath : download.location;
+      finalLocation = await window.downlodrFunctions.joinDownloadPath(
+        zustandLocation,
+        download.downloadName,
+      );
+    }
+
+    // Start the actual download
+    const downloadId = (window as any).ytdlp.download(
+      {
+        url: download.videoUrl,
+        outputFilepath: finalLocation,
+        videoFormat: download.formatId,
+        remuxVideo: download.ext,
+        audioExt: download.audioExt,
+        audioFormatId: download.audioFormatId,
+        limitRate: download.limitRate,
+      },
+      async (result: any) => {
+        if (result.type === 'controller' && result.controllerId) {
+          useDownloadStore.setState((state) => ({
+            downloading: state.downloading.map((d) =>
+              d.id === downloadId
+                ? { ...d, controllerId: result.controllerId }
+                : d,
+            ),
+          }));
+        }
+        if (result.data) {
+          useDownloadStore.setState((state) => ({
+            downloading: state.downloading.map((d) =>
+              d.id === downloadId
+                ? {
+                    ...d,
+                    speed: result.data._speed_str || '',
+                    progress: parseFloat(result.data._percent_str) || 0,
+                    timeLeft: result.data._eta_str || '',
+                    size: parseFloat(result.data.downloaded_bytes) || d.size,
+                    status: result.data.status || d.status,
+                    elapsed: result.data.elapsed || d.elapsed,
+                    ext: download.ext,
+                    audioExt: download.audioExt,
+                  }
+                : d,
+            ),
+          }));
+        }
+        store.checkFinishedDownloads();
+      },
+    );
+
+    // Handle captions and thumbnails (same as original)
+    let captionsPath = '';
+    let thumbnailPath = ' ';
+
+    if (download.isCreateFolder) {
+      if (download.automaticCaption && download.getTranscript) {
+        captionsPath = await downloadEnglishCaptions(
+          download.automaticCaption,
+          zustandLocation,
+          download.downloadName,
+        );
+      }
+
+      if (download.thumbnails && download.getThumbnail) {
+        thumbnailPath = await window.downlodrFunctions.joinDownloadPath(
+          zustandLocation,
+          `thumb1.jpg`,
+        );
+        try {
+          await window.downlodrFunctions.downloadFile(
+            download.thumbnails,
+            thumbnailPath,
+          );
+        } catch (error) {
+          console.log('Error downloading thumbnail:', error);
+        }
+      }
+    }
+
+    // Add to downloading state
+    useDownloadStore.setState((state) => ({
+      downloading: [
+        ...state.downloading,
+        {
+          id: downloadId,
+          videoUrl: download.videoUrl,
+          name: download.name,
+          downloadName: download.downloadName,
+          size: download.size,
+          speed: download.speed,
+          timeLeft: download.timeLeft,
+          DateAdded: download.DateAdded,
+          progress: download.progress,
+          location: zustandLocation,
+          status: 'downloading',
+          ext: download.ext,
+          formatId: download.formatId,
+          backupExt: download.ext,
+          backupFormatId: download.formatId,
+          backupAudioExt: download.audioExt,
+          backupAudioFormatId: download.audioFormatId,
+          controllerId: '---',
+          tags: download.tags || [],
+          category: download.category || [],
+          extractorKey: download.extractorKey,
+          audioExt: download.audioExt,
+          audioFormatId: download.audioFormatId,
+          isLive: download.isLive,
+          elapsed: download.elapsed,
+          automaticCaption: download.automaticCaption,
+          thumbnails: download.thumbnails,
+          autoCaptionLocation: captionsPath,
+          thumnailsLocation: thumbnailPath,
+          getTranscript: download.getTranscript,
+          getThumbnail: download.getThumbnail,
+          duration: download.duration,
+          isCreateFolder: download.isCreateFolder,
+        },
+      ],
+    }));
+  }
+
+  // Cleanup method
+  cleanup() {
+    this.stopWorker();
+    this.isProcessing = false;
+  }
+}
+
+// Get the singleton instance
+const downloadController = DownloadController.getInstance();
 
 // Base interface for all download types
 export interface BaseDownload {
@@ -62,7 +341,7 @@ export interface BaseDownload {
 }
 
 // Interface for downloads that are currently being processed
-interface ForDownload extends BaseDownload {
+export interface ForDownload extends BaseDownload {
   status: string; // Current status of the download
   downloadStart: boolean; // Indicates if the download has started
   formatId: string; // ID of the selected format
@@ -99,12 +378,41 @@ export interface HistoryDownloads extends BaseDownload {
   transcriptLocation: string;
 }
 
+// Add this interface after the existing interfaces
+export interface QueuedDownload extends BaseDownload {
+  id: string;
+  videoUrl: string;
+  name: string;
+  downloadName: string;
+  size: number;
+  speed: string;
+  timeLeft: string;
+  DateAdded: string;
+  progress: number;
+  location: string;
+  status: string;
+  ext: string;
+  formatId: string;
+  audioExt: string;
+  audioFormatId: string;
+  extractorKey: string;
+  limitRate: string;
+  automaticCaption: any;
+  thumbnails: any;
+  getTranscript: boolean;
+  getThumbnail: boolean;
+  duration: number;
+  isCreateFolder: boolean;
+  queuedAt: string; // Timestamp when added to queue
+}
+
 // Main interface for the download store
 interface DownloadStore {
   downloading: Downloading[]; // List of currently downloading items
   finishedDownloads: FinishedDownloads[]; // List of finished downloads
   historyDownloads: HistoryDownloads[]; // List of download history logs
   forDownloads: ForDownload[]; // List of downloads that are queued
+  queuedDownloads: QueuedDownload[]; // List of downloads waiting in queue
   availableTags: string[]; // List of available tags
   availableCategories: string[]; // List of available categories
 
@@ -128,7 +436,7 @@ interface DownloadStore {
     audioFormatId: string,
     extractorKey: string,
     limitRate: string,
-    automatic_caption: any,
+    automaticCaption: any,
     thumbnails: any,
     getTranscript: boolean,
     getThumbnail: boolean,
@@ -164,6 +472,40 @@ interface DownloadStore {
       | 'paused',
   ) => void; // Update the status of a download
   renameDownload: (downloadId: string, newName: string) => void; // Rename a download
+
+  // Add these new queue methods
+  addQueue: (
+    videoUrl: string,
+    name: string,
+    downloadName: string,
+    size: number,
+    speed: string,
+    timeLeft: string,
+    DateAdded: string,
+    progress: number,
+    location: string,
+    status: string,
+    ext: string,
+    formatId: string,
+    audioExt: string,
+    audioFormatId: string,
+    extractorKey: string,
+    limitRate: string,
+    automaticCaption: any,
+    thumbnails: any,
+    getTranscript: boolean,
+    getThumbnail: boolean,
+    duration: number,
+    isCreateFolder: boolean,
+  ) => void;
+  processQueue: () => void;
+  removeFromQueue: (id: string) => void;
+  clearQueue: () => void;
+  moveQueueItem: (id: string, direction: 'up' | 'down') => void;
+  getQueuePosition: (id: string) => number;
+
+  // Add cleanup method
+  cleanup: () => void;
 }
 
 const useDownloadStore = create<DownloadStore>()(
@@ -173,6 +515,7 @@ const useDownloadStore = create<DownloadStore>()(
       downloading: [] as Downloading[],
       finishedDownloads: [] as FinishedDownloads[],
       historyDownloads: [] as HistoryDownloads[],
+      queuedDownloads: [] as QueuedDownload[], // Add queue state
       availableTags: [] as string[],
       availableCategories: [] as string[],
 
@@ -237,6 +580,9 @@ const useDownloadStore = create<DownloadStore>()(
                       (d) => d.id !== download.id,
                     ),
                   }));
+
+                  // Process queue after a download finishes
+                  get().processQueue();
                 }
               }, 1000); // Check every second
 
@@ -276,6 +622,9 @@ const useDownloadStore = create<DownloadStore>()(
                   (d) => d.id !== download.id,
                 ),
               }));
+
+              // Process queue after a download finishes
+              get().processQueue();
             }
           }
         }
@@ -345,7 +694,7 @@ const useDownloadStore = create<DownloadStore>()(
         let zustandLocation = location;
         if (isCreateFolder) {
           // Create a sanitized name for the subfolder
-          const sanitizedTitle = name.replace(/[\\/:*?"<>.|]/g, '_');
+          const sanitizedTitle = name.replace(/[\\/:'*ñ?"<>.|]/g, '_');
 
           // Create initial subfolder path
           let subfolderPath = await window.downlodrFunctions.joinDownloadPath(
@@ -388,6 +737,15 @@ const useDownloadStore = create<DownloadStore>()(
             downloadName,
           );
         }
+        console.log('Download Parameters:', {
+          videoUrl,
+          finalLocation,
+          formatId,
+          ext,
+          audioExt,
+          audioFormatId,
+          limitRate,
+        });
         // Create a download ID before starting the download
         const downloadId = (window as any).ytdlp.download(
           {
@@ -462,8 +820,9 @@ const useDownloadStore = create<DownloadStore>()(
             console.log(thumbnails);
 
             try {
+              console.log(thumbnails);
               // Extract the URL from the thumbnails object
-              const thumbnailUrl = thumbnails.url;
+              const thumbnailUrl = thumbnails;
               if (thumbnailUrl) {
                 await window.downlodrFunctions.downloadFile(
                   thumbnailUrl,
@@ -626,10 +985,11 @@ const useDownloadStore = create<DownloadStore>()(
             info.data?.thumbnails &&
             info.data.thumbnails.length > 0
           ) {
-            thumbnail = info.data.thumbnails[0];
+            thumbnail = info.data.thumbnail;
           }
-          console.log(info);
+          console.log(thumbnail);
           // Process formats using the service
+          console.log(info);
           const { formatOptions, defaultFormatId, defaultExt } =
             await VideoFormatService.processVideoFormats(info);
 
@@ -720,6 +1080,7 @@ const useDownloadStore = create<DownloadStore>()(
           finishedDownloads: state.finishedDownloads.filter((d) => d.id !== id),
           historyDownloads: state.historyDownloads.filter((d) => d.id !== id),
           forDownloads: state.forDownloads.filter((d) => d.id !== id),
+          queuedDownloads: state.queuedDownloads.filter((d) => d.id !== id), // Add queue cleanup
         }));
       },
 
@@ -976,6 +1337,144 @@ const useDownloadStore = create<DownloadStore>()(
           };
         });
       },
+
+      addQueue: (
+        videoUrl,
+        name,
+        downloadName,
+        size,
+        speed,
+        timeLeft,
+        DateAdded,
+        progress,
+        location,
+        status,
+        ext,
+        formatId,
+        audioExt,
+        audioFormatId,
+        extractorKey,
+        limitRate,
+        automatic_caption,
+        thumbnails,
+        getTranscript,
+        getThumbnail,
+        duration,
+        isCreateFolder,
+      ) => {
+        const queueId = uuidv4();
+
+        set((state) => ({
+          queuedDownloads: [
+            ...state.queuedDownloads,
+            {
+              id: queueId,
+              videoUrl,
+              name,
+              downloadName,
+              size,
+              speed,
+              timeLeft,
+              DateAdded,
+              progress,
+              location,
+              status: 'queued',
+              ext,
+              formatId,
+              audioExt,
+              audioFormatId,
+              extractorKey,
+              limitRate,
+              automaticCaption: automatic_caption,
+              thumbnails,
+              getTranscript,
+              getThumbnail,
+              duration,
+              isCreateFolder,
+              queuedAt: new Date().toISOString(),
+              // Add missing BaseDownload properties
+              tags: [],
+              category: [],
+              isLive: false,
+              elapsed: 0,
+              autoCaptionLocation: '',
+              thumnailsLocation: '',
+              controllerId: undefined,
+            },
+          ],
+        }));
+
+        toast({
+          title: 'Download Added to Queue',
+          description: `"${name}" has been added to the download queue. Position: ${
+            get().queuedDownloads.length
+          }`,
+          duration: 3000,
+        });
+
+        console.log(`Download queued: ${name} (ID: ${queueId})`);
+
+        // Start the worker to process the queue
+        downloadController.startWorker();
+      },
+
+      processQueue: () => {
+        // Start the download worker - it will automatically stop when queue is empty
+        downloadController.startWorker();
+      },
+
+      removeFromQueue: (id: string) => {
+        set((state) => ({
+          queuedDownloads: state.queuedDownloads.filter((q) => q.id !== id),
+        }));
+      },
+
+      clearQueue: () => {
+        set((state) => ({
+          queuedDownloads: [],
+        }));
+
+        toast({
+          title: 'Queue Cleared',
+          description: 'All queued downloads have been removed.',
+          duration: 2000,
+        });
+      },
+
+      moveQueueItem: (id: string, direction: 'up' | 'down') => {
+        set((state) => {
+          const queuedDownloads = [...state.queuedDownloads];
+          const currentIndex = queuedDownloads.findIndex((q) => q.id === id);
+
+          if (currentIndex === -1) return state;
+
+          const newIndex =
+            direction === 'up'
+              ? Math.max(0, currentIndex - 1)
+              : Math.min(queuedDownloads.length - 1, currentIndex + 1);
+
+          if (newIndex === currentIndex) return state;
+
+          // Swap items
+          [queuedDownloads[currentIndex], queuedDownloads[newIndex]] = [
+            queuedDownloads[newIndex],
+            queuedDownloads[currentIndex],
+          ];
+
+          return { queuedDownloads };
+        });
+      },
+
+      getQueuePosition: (id: string) => {
+        const queuedDownloads = get().queuedDownloads;
+        return queuedDownloads.findIndex((q) => q.id === id) + 1;
+      },
+
+      // Cleanup method to prevent memory leaks
+      cleanup: () => {
+        downloadController.cleanup();
+      },
+
       //End of store
     }),
     {
@@ -985,7 +1484,8 @@ const useDownloadStore = create<DownloadStore>()(
         historyDownloads: state.historyDownloads,
         availableTags: state.availableTags,
         availableCategories: state.availableCategories,
-        finishedDownloads: state.finishedDownloads, // This was missing before
+        finishedDownloads: state.finishedDownloads,
+        queuedDownloads: state.queuedDownloads, // Persist queue
       }),
     },
   ),

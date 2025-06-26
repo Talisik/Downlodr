@@ -15,7 +15,7 @@ import useDownloadStore from '../Store/downloadStore';
 // Remove invalid characters from download name
 const removeInvalidChar = (filename: string) => {
   // More comprehensive list of invalid characters
-  const invalidChars = /[<>:"/\\|?*.!,]+/g;
+  const invalidChars = /[<>:"/\\ñ'|?*.!,]+/g;
   let sanitized = filename.replace(invalidChars, '_');
 
   // Replace multiple consecutive underscores with a single one
@@ -75,4 +75,5 @@ const processFileName = async (
 };
 
 // returns processed filtered and validated name
-export { removeInvalidChar, processFileName };
+export { processFileName, removeInvalidChar };
+

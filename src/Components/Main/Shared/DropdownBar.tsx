@@ -63,8 +63,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
       setSearchResults([]);
       return;
     }
-    console.log(searchTerm);
-    console.log(historyDownloads);
     const results = historyDownloads.filter((download) =>
       download.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
@@ -123,7 +121,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
         setShowFileNotExistModal(true);
       }
     } catch (error) {
-      console.error('Error opening file:', error);
       toast({
         variant: 'destructive',
         title: 'Error Opening File',
@@ -152,11 +149,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
   }, []);
 
   const handleCheckForUpdates = async () => {
-    console.log('Check for updates button clicked');
     console.log('updateAPI available:', !!window.updateAPI?.checkForUpdates);
     if (window.updateAPI?.checkForUpdates) {
       try {
-        console.log('Calling checkForUpdates...');
         const result = await window.updateAPI.checkForUpdates();
         console.log('Update check result:', result);
         if (!result.hasUpdate) {
@@ -168,6 +163,12 @@ const DropdownBar = ({ className }: { className?: string }) => {
         }
         setActiveMenu(null);
       } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Rate limit reached for checking version',
+          description: `Please check again later`,
+          duration: 3000,
+        });
         console.error('Error checking for updates:', error);
       }
     } else {
@@ -217,10 +218,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
             File
           </button>
           {activeMenu === 'file' && (
-            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+            <div className="absolute left-0 mt-1 w-36 bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setDownloadModalOpen(true);
@@ -228,32 +229,32 @@ const DropdownBar = ({ className }: { className?: string }) => {
                   }}
                 >
                   <IoIosAdd size={20} className="ml-[-2px]" />
-                  <span>New Download</span>
+                  <span className="text-sm">Add Download</span>
                 </button>
               </div>
               <div className="mx-1">
                 <NavLink
                   to="/history"
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenu(null);
                   }}
                 >
                   <MdOutlineHistory size={18} />
-                  <span> History</span>
+                  <span className="text-sm"> History</span>
                 </NavLink>
               </div>
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     window.downlodrFunctions.closeApp();
                   }}
                 >
                   <RxExit />
-                  <span>Exit</span>
+                  <span className="text-sm">Exit</span>
                 </button>
               </div>
             </div>
@@ -284,10 +285,10 @@ const DropdownBar = ({ className }: { className?: string }) => {
             Help
           </button>
           {activeMenu === 'help' && (
-            <div className="absolute left-0 mt-1 w-44 bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+            <div className="absolute left-0 mt-1 w-40 bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setHelpModalOpen(true);
@@ -295,24 +296,24 @@ const DropdownBar = ({ className }: { className?: string }) => {
                   }}
                 >
                   <FiBook size={16} />
-                  <span>Guide</span>
+                  <span className="text-sm">Guide</span>
                 </button>
               </div>
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleCheckForUpdates();
                   }}
                 >
                   <RxUpdate size={16} />
-                  <span>Check for Updates</span>
+                  <span className="text-sm">Check for Updates</span>
                 </button>
               </div>
               <div className="mx-1">
                 <button
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+                  className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     setAboutModalOpen(true);
@@ -320,7 +321,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
                   }}
                 >
                   <AiOutlineExclamationCircle size={16} />
-                  <span>About</span>
+                  <span className="text-sm">About</span>
                 </button>
               </div>
             </div>

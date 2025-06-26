@@ -7,6 +7,7 @@
 import {
   app,
   BrowserWindow,
+  clipboard,
   dialog,
   ipcMain,
   Menu,
@@ -66,11 +67,11 @@ let pluginManager: PluginManager;
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 1200,
+    width: 1250,
     height: 680,
     frame: false,
     autoHideMenuBar: true,
-    minWidth: 800,
+    minWidth: 900,
     minHeight: 600,
     webPreferences: {
       contextIsolation: true,
@@ -104,6 +105,17 @@ const createWindow = () => {
         return false;
       }
     }
+  });
+
+  // Add focus tracking for clipboard monitoring
+  mainWindow.on('focus', () => {
+    isWindowFocused = true;
+    console.log('Window focused - clipboard monitoring paused');
+  });
+
+  mainWindow.on('blur', () => {
+    isWindowFocused = false;
+    console.log('Window unfocused - clipboard monitoring resumed');
   });
 
   // MAIN FUNCTIONS FOR TITLE BAR
@@ -199,6 +211,9 @@ const createTray = () => {
       label: 'Quit',
       click: () => {
         forceQuit = true;
+        // Set to BLANK_STATE before quitting
+        lastClipboardText = 'BLANK_STATE';
+        console.log('Last clipboard text set to BLANK_STATE before tray quit');
         app.quit();
       },
     },
@@ -387,6 +402,34 @@ ipcMain.handle('deleteFile', async (event, filepath) => {
   }
 });
 
+ipcMain.handle('deleteFolder', async (event, filepath) => {
+  try {
+    // Normalize the folder path
+    const normalizedPath = path.normalize(filepath);
+
+    // Check if the folder exists
+    if (!fs.existsSync(normalizedPath)) {
+      console.error('Folder does not exist:', normalizedPath);
+      return false;
+    }
+
+    // Check if it's actually a directory
+    const stats = await fs.promises.stat(normalizedPath);
+    if (!stats.isDirectory()) {
+      console.error('Path is not a directory:', normalizedPath);
+      return false;
+    }
+
+    // Move the folder to trash
+    await shell.trashItem(normalizedPath);
+    console.log('Folder moved to trash successfully');
+    return true;
+  } catch (error) {
+    console.error('Failed to move folder to trash:', error);
+    return false;
+  }
+});
+
 // adjust pathname to ensure its safe
 ipcMain.handle('normalizePath', async (event, filepath) => {
   try {
@@ -470,6 +513,7 @@ ipcMain.handle('kill-controller', async (_, id) => {
 // download video from link
 ipcMain.handle('ytdlp:download', async (e, id, args) => {
   try {
+    console.log(args);
     const controller = await YTDLP.download({
       // args needed for download
       args: {
@@ -525,11 +569,155 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
   }
 });
 
+// Add clipboard monitoring IPC handlers
+ipcMain.handle('get-clipboard-text', () => {
+  return clipboard.readText();
+});
+
+// Add IPC handlers to control clipboard monitoring
+ipcMain.handle('start-clipboard-monitoring', () => {
+  console.log('Renderer requested to start clipboard monitoring');
+  startClipboardMonitoring();
+  return true;
+});
+
+ipcMain.handle('stop-clipboard-monitoring', () => {
+  console.log('Renderer requested to stop clipboard monitoring');
+  stopClipboardMonitoring();
+  return true;
+});
+
+ipcMain.handle('is-clipboard-monitoring-active', () => {
+  return isMonitoring;
+});
+
+// Add IPC handler to check window focus state
+ipcMain.handle('is-window-focused', () => {
+  return isWindowFocused;
+});
+
+// Add IPC handler to clear last clipboard text
+ipcMain.handle('clear-last-clipboard-text', () => {
+  console.log('Setting last clipboard text to BLANK_STATE...');
+  lastClipboardText = 'BLANK_STATE';
+  return true;
+});
+
+// Add IPC handler to actually clear the clipboard
+ipcMain.handle('clear-clipboard', () => {
+  try {
+    clipboard.writeText('');
+    lastClipboardText = 'BLANK_STATE';
+    console.log('Clipboard cleared successfully');
+    return true;
+  } catch (error) {
+    console.log('Could not clear clipboard:', error);
+    return false;
+  }
+});
+
+// Set up clipboard monitoring
+let clipboardInterval: NodeJS.Timeout | null = null;
+let lastClipboardText = 'BLANK_STATE';
+let isMonitoring = false;
+// Add focus tracking variable
+let isWindowFocused = false;
+
+const startClipboardMonitoring = () => {
+  if (clipboardInterval) {
+    clearInterval(clipboardInterval);
+  }
+
+  isMonitoring = true;
+  console.log('Starting clipboard monitoring...');
+
+  // Set internal state to BLANK_STATE for fallback tracking
+  lastClipboardText = 'BLANK_STATE';
+
+  // Actually clear the clipboard by writing an empty string
+  try {
+    clipboard.writeText('');
+    console.log('Clipboard cleared and monitoring initialized');
+  } catch (error) {
+    console.log(
+      'Could not clear clipboard, using BLANK_STATE fallback:',
+      error,
+    );
+  }
+
+  // Function to start the monitoring interval with appropriate timing
+  const startMonitoringInterval = () => {
+    clipboardInterval = setInterval(() => {
+      if (!isMonitoring) {
+        return;
+      }
+
+      // Skip processing if window is focused - reduce log noise
+      if (isWindowFocused) {
+        return;
+      }
+
+      try {
+        const currentText = clipboard.readText();
+
+        // Only process if content has changed and is reasonable size
+        if (currentText !== lastClipboardText && currentText.length <= 10000) {
+          // Only send clipboard change event if:
+          // 1. We're not going from BLANK_STATE to new content (prevents initial triggers)
+          // 2. Current content is not empty (prevents triggers when clearing clipboard)
+          // 3. Window is not focused (new condition)
+          if (
+            lastClipboardText !== 'BLANK_STATE' &&
+            currentText.trim() !== '' &&
+            !isWindowFocused
+          ) {
+            console.log(
+              'Clipboard content changed (window unfocused), sending to renderer...',
+            );
+
+            // Send clipboard change event to all renderer processes
+            BrowserWindow.getAllWindows().forEach((win) => {
+              if (!win.isDestroyed()) {
+                win.webContents.send('clipboard-changed', currentText);
+              }
+            });
+          }
+
+          // Always update the last clipboard text for comparison
+          lastClipboardText = currentText;
+        }
+      } catch (error) {
+        console.debug('Clipboard monitoring error:', error);
+      }
+    }, 1000); // Standard 1 second polling
+  };
+
+  // Add a small delay to prevent immediate detection of current clipboard content
+  setTimeout(startMonitoringInterval, 500);
+};
+
+const stopClipboardMonitoring = () => {
+  console.log('Stopping clipboard monitoring...');
+  isMonitoring = false;
+  if (clipboardInterval) {
+    clearInterval(clipboardInterval);
+    clipboardInterval = null;
+  }
+  lastClipboardText = 'BLANK_STATE';
+  console.log('Clipboard monitoring stopped');
+};
+
+// App lifecycle events
+
 // once the app opens
 app.on('ready', async () => {
   createWindow();
   createTray();
   updateCloseHandler();
+
+  // Start clipboard monitoring
+  // Don't start automatically - let the renderer control it
+  // startClipboardMonitoring();
 
   // Check for updates when app starts
   setTimeout(async () => {
@@ -630,6 +818,7 @@ app.on('activate', () => {
 // before-quit' handler to properly set force quit
 app.on('before-quit', () => {
   forceQuit = true;
+  stopClipboardMonitoring();
 });
 
 // function to handle the dev tools or console open
@@ -718,6 +907,9 @@ ipcMain.handle('hide-window', () => {
 // function for forcibly closing the app
 ipcMain.handle('exit-app', () => {
   forceQuit = true;
+  // Set to BLANK_STATE before quitting
+  lastClipboardText = 'BLANK_STATE';
+  console.log('Last clipboard text set to BLANK_STATE before app exit');
   app.quit();
 });
 
@@ -838,8 +1030,6 @@ ipcMain.handle('plugins:uninstall', async (_event, pluginId) => {
 */
 // Add a handler to get plugin menu items
 ipcMain.handle('plugins:menu-items', (event, context) => {
-  console.log('me how');
-  console.log(context);
   return pluginRegistry.getMenuItems(context);
 });
 
@@ -854,12 +1044,12 @@ ipcMain.handle('plugins:execute-menu-item', (event, id, contextData) => {
 });
 
 ipcMain.handle('plugins:register-menu-item', (event, menuItem) => {
-  console.log('Main process registering menu item:', menuItem);
+  //console.log('Main process registering menu item:', menuItem);
   return pluginRegistry.registerMenuItem(menuItem);
 });
 
 ipcMain.handle('plugins:unregister-menu-item', (event, id) => {
-  console.log('Main process unregistering menu item:', id);
+  //console.log('Main process unregistering menu item:', id);
   pluginRegistry.unregisterMenuItem(id);
   return true;
 });
@@ -995,12 +1185,12 @@ ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
 
 // Add these new IPC handlers for taskbar items
 ipcMain.handle('plugins:register-taskbar-item', (event, taskBarItem) => {
-  console.log('Main process registering taskbar item:', taskBarItem);
+  //console.log('Main process registering taskbar item:', taskBarItem);
   return pluginRegistry.registerTaskBarItem(taskBarItem);
 });
 
 ipcMain.handle('plugins:unregister-taskbar-item', (event, id) => {
-  console.log('Main process unregistering taskbar item:', id);
+  //console.log('Main process unregistering taskbar item:', id);
   pluginRegistry.unregisterTaskBarItem(id);
   return true;
 });
@@ -1051,22 +1241,24 @@ ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
     );
 
     // Ensure the requested path is within the plugin's data directory or another safe location
-    const normalizedPath = path.normalize(filePath);
-    if (
-      !normalizedPath.startsWith(pluginDataDir) &&
-      !normalizedPath.startsWith(app.getPath('downloads'))
-    ) {
-      return {
-        success: false,
-        error: 'Access denied: Path is outside allowed directories',
-      };
+    // Normalize the path to fix double backslashes caused by JSON.stringify/parse
+    let adjustedPath;
+    if (typeof filePath === 'string') {
+      // Replace any escaped backslashes (\\) with single backslashes (\)
+      adjustedPath = filePath.replace(/\\\\/g, '\\');
+      console.log('Normalized file path:', adjustedPath);
     }
 
-    if (!fs.existsSync(normalizedPath)) {
+    const normalizedPath = path.normalize(adjustedPath);
+    const resolvedPath = path.resolve(normalizedPath);
+
+    if (!fs.existsSync(resolvedPath)) {
+      console.log('file doesnt exist');
       return { success: false, error: 'File does not exist' };
     }
+    console.log('path given to read:', resolvedPath);
 
-    const fileContents = await fs.promises.readFile(normalizedPath, 'utf8');
+    const fileContents = await fs.promises.readFile(resolvedPath, 'utf8');
     console.log(fileContents);
     return { success: true, data: fileContents };
   } catch (error) {
