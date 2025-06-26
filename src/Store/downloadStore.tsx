@@ -496,7 +496,39 @@ const useDownloadStore = create<DownloadStore>()(
 
       checkFinishedDownloads: async () => {
         const currentDownloads = get().downloading;
-        const finishedDownloads = currentDownloads.filter(
+
+        // First, check for downloads stuck in 'initializing' status but have their files ready
+        const initializingDownloads = currentDownloads.filter(
+          (downloading) => downloading.status === 'initializing',
+        );
+
+        for (const download of initializingDownloads) {
+          const filePath = await window.downlodrFunctions.joinDownloadPath(
+            download.location,
+            download.downloadName,
+          );
+          const exists = await window.downlodrFunctions.fileExists(filePath);
+
+          if (exists) {
+            // Update status to finished if file exists
+            set((state) => ({
+              downloading: state.downloading.map((d) =>
+                d.id === download.id ? { ...d, status: 'finished' } : d,
+              ),
+            }));
+            console.log(
+              `Updated download status to finished: ${download.name}`,
+            );
+
+            // Immediately recheck finished downloads to process this newly finished download
+            setTimeout(() => {
+              get().checkFinishedDownloads();
+            }, 100);
+          }
+        }
+
+        // Now process finished downloads as before
+        const finishedDownloads = get().downloading.filter(
           (downloading) => downloading.status === 'finished',
         );
 
@@ -512,7 +544,7 @@ const useDownloadStore = create<DownloadStore>()(
                 filePath,
               );
 
-              // Get the current download with all accumulated logs
+              // Get the current download with complete logs
               const currentState = get();
               const currentDownload = currentState.downloading.find(
                 (d) => d.id === download.id,
@@ -533,8 +565,12 @@ const useDownloadStore = create<DownloadStore>()(
                   const fileExists = await window.downlodrFunctions.fileExists(
                     filePath,
                   );
+                  console.log('fileExists', fileExists);
                   if (fileExists) {
                     clearInterval(checkInterval);
+                    console.log(
+                      `File found for download: ${download.name}, processing completion...`,
+                    );
 
                     // Get the actual file size from the file system
                     const actualFileSize =
@@ -546,8 +582,21 @@ const useDownloadStore = create<DownloadStore>()(
                       (d) => d.id === download.id,
                     );
 
+                    // If download was already moved or doesn't exist, skip
+                    if (!latestDownload) {
+                      console.log(
+                        `Download ${download.name} not found in downloading array, already processed`,
+                      );
+                      return;
+                    }
+
+                    console.log(
+                      `Moving download ${download.name} to finished status...`,
+                    );
+
                     const updatedDownload = {
                       ...latestDownload,
+                      status: 'finished',
                       size: actualFileSize || latestDownload.size,
                       transcriptLocation:
                         latestDownload.autoCaptionLocation || '',
@@ -572,6 +621,10 @@ const useDownloadStore = create<DownloadStore>()(
                       ),
                     }));
 
+                    console.log(
+                      `Successfully moved download ${download.name} to finished downloads`,
+                    );
+
                     // Process queue after a download finishes
                     get().processQueue();
                   }
@@ -580,8 +633,12 @@ const useDownloadStore = create<DownloadStore>()(
                 // Clear interval after 5 minutes to prevent infinite checking
                 setTimeout(() => {
                   clearInterval(checkInterval);
-                }, 300000); // 5 minutes
+                }, 900000); // 5 minutes
               } else {
+                console.log(
+                  `File exists immediately for download: ${download.name}, processing completion...`,
+                );
+
                 // Get the actual file size from the file system
                 const actualFileSize =
                   await window.downlodrFunctions.getFileSize(filePath);
@@ -592,8 +649,21 @@ const useDownloadStore = create<DownloadStore>()(
                   (d) => d.id === download.id,
                 );
 
+                // If download was already moved or doesn't exist, skip
+                if (!latestDownload) {
+                  console.log(
+                    `Download ${download.name} not found in downloading array, already processed`,
+                  );
+                  return;
+                }
+
+                console.log(
+                  `Moving download ${download.name} to finished status (immediate)...`,
+                );
+
                 const updatedDownload = {
                   ...latestDownload,
+                  status: 'finished',
                   size: actualFileSize || latestDownload.size,
                   transcriptLocation: latestDownload.autoCaptionLocation || '',
                   log: latestDownload.log || '', // Preserve accumulated logs
@@ -617,10 +687,14 @@ const useDownloadStore = create<DownloadStore>()(
                   ),
                 }));
 
+                console.log(
+                  `Successfully moved download ${download.name} to finished downloads (immediate)`,
+                );
+
                 // Process queue after a download finishes
                 get().processQueue();
               }
-            }, 3000); // 3 second delay to allow final logs to be captured
+            }, 5000); // 3 second delay to allow final logs to be captured
           }
         }
       },
