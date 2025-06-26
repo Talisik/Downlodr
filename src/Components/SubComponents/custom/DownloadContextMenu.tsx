@@ -851,6 +851,18 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <span>Stop</span>
             </span>
           </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onShowLog(downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <IoCodeSlashSharp size={20} />
+              <span>Show Logs</span>
+            </span>
+          </button>
           {commonOptions}
         </>
       );

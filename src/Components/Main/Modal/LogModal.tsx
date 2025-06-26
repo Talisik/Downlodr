@@ -200,15 +200,13 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, downloadId }) => {
 
         <div className="flex justify-between items-center mt-2 flex-shrink-0">
           <div className="flex items-center space-x-4">
-            <label className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-              <input
-                type="checkbox"
-                checked={autoScroll}
-                onChange={(e) => setAutoScroll(e.target.checked)}
-                className="mr-2 rounded"
-              />
-              Auto-scroll
-            </label>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-3 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-darkModeHover dark:text-gray-200"
+            >
+              Close
+            </button>
             <button
               type="button"
               onClick={handleCopyLogs}
@@ -219,16 +217,18 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, downloadId }) => {
               }`}
               disabled={copySuccess}
             >
-              {copySuccess ? '✓ Copied!' : '📋 Copy Logs'}
+              {copySuccess ? '✓ Copied!' : 'Copy'}
             </button>
           </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-3 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-darkModeHover dark:text-gray-200"
-          >
-            Close
-          </button>
+          <label className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+            <input
+              type="checkbox"
+              checked={autoScroll}
+              onChange={(e) => setAutoScroll(e.target.checked)}
+              className="mr-2 rounded"
+            />
+            Auto-scroll
+          </label>
         </div>
         {/* End of Button commands */}
       </div>

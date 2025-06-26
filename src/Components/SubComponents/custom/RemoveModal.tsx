@@ -75,7 +75,7 @@ const RemoveModal: React.FC<RemoveModalProps> = ({
                 onClick={(e) => e.stopPropagation()} // Prevent checkbox click from closing modal
                 className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
               />
-              <span>Also remove the downloaded folder</span>
+              <span>Also remove the downloaded folder and its files</span>
             </label>
           </div>
         )}
