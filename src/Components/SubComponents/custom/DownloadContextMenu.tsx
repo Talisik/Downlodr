@@ -36,7 +36,7 @@ import { PlayCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { GoChevronRight, GoPlus } from 'react-icons/go';
 import { HiOutlineStopCircle } from 'react-icons/hi2';
-import { IoPauseCircleOutline } from 'react-icons/io5';
+import { IoCodeSlashSharp, IoPauseCircleOutline } from 'react-icons/io5';
 import { LiaFileVideoSolid, LiaTagsSolid } from 'react-icons/lia';
 import { LuFolderOpen, LuTrash } from 'react-icons/lu';
 import { MdEdit } from 'react-icons/md';
@@ -793,7 +793,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             }}
           >
             <span className="flex items-center space-x-2">
-              <VscDebugStart size={20} />
+              <IoCodeSlashSharp size={20} />
               <span>Show Log</span>
             </span>
           </button>
@@ -901,7 +901,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             }}
           >
             <span className="flex items-center space-x-2">
-              <HiOutlineStopCircle size={20} />
+              <IoCodeSlashSharp size={20} />
               <span>Show Log</span>
             </span>
           </button>
@@ -1052,8 +1052,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             }}
           >
             <span className="flex items-center space-x-2">
-              <VscDebugStart size={20} />
-              <span>Show log</span>
+              <IoCodeSlashSharp size={20} />
+              <span>Show Log</span>
             </span>
           </button>
           {commonOptions}
