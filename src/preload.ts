@@ -57,6 +57,90 @@ function uuidv4() {
   );
 }
 
+// Throttling utility for download callbacks
+class DownloadThrottler {
+  private static instance: DownloadThrottler;
+  private pendingUpdates = new Map<string, any>();
+  private throttleTimers = new Map<string, NodeJS.Timeout>();
+  private rafHandles = new Map<string, number>();
+  private readonly THROTTLE_INTERVAL = 250; // Update UI every 250ms
+  private readonly USE_RAF = true; // Use requestAnimationFrame for smoother updates
+
+  static getInstance(): DownloadThrottler {
+    if (!DownloadThrottler.instance) {
+      DownloadThrottler.instance = new DownloadThrottler();
+    }
+    return DownloadThrottler.instance;
+  }
+
+  throttleUpdate(
+    downloadId: string,
+    update: any,
+    callback: (update: any) => void,
+  ) {
+    // Store the latest update
+    this.pendingUpdates.set(downloadId, update);
+
+    // Clear existing timer/raf if any
+    this.clearPendingUpdate(downloadId);
+
+    if (this.USE_RAF) {
+      // Use requestAnimationFrame for smoother UI updates
+      const rafHandle = requestAnimationFrame(() => {
+        const latestUpdate = this.pendingUpdates.get(downloadId);
+        if (latestUpdate) {
+          callback(latestUpdate);
+          this.pendingUpdates.delete(downloadId);
+          this.rafHandles.delete(downloadId);
+        }
+      });
+      this.rafHandles.set(downloadId, rafHandle);
+    } else {
+      // Use setTimeout for consistent intervals
+      const timer = setTimeout(() => {
+        const latestUpdate = this.pendingUpdates.get(downloadId);
+        if (latestUpdate) {
+          callback(latestUpdate);
+          this.pendingUpdates.delete(downloadId);
+          this.throttleTimers.delete(downloadId);
+        }
+      }, this.THROTTLE_INTERVAL);
+      this.throttleTimers.set(downloadId, timer);
+    }
+  }
+
+  // Force immediate update (for important status changes)
+  forceUpdate(
+    downloadId: string,
+    update: any,
+    callback: (update: any) => void,
+  ) {
+    // Clear any pending throttled update
+    this.clearPendingUpdate(downloadId);
+    this.pendingUpdates.delete(downloadId);
+    callback(update);
+  }
+
+  private clearPendingUpdate(downloadId: string) {
+    const existingTimer = this.throttleTimers.get(downloadId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      this.throttleTimers.delete(downloadId);
+    }
+
+    const existingRaf = this.rafHandles.get(downloadId);
+    if (existingRaf) {
+      cancelAnimationFrame(existingRaf);
+      this.rafHandles.delete(downloadId);
+    }
+  }
+
+  cleanup(downloadId: string) {
+    this.clearPendingUpdate(downloadId);
+    this.pendingUpdates.delete(downloadId);
+  }
+}
+
 // Ytdlp exclusive functions
 contextBridge.exposeInMainWorld('ytdlp', {
   getPlaylistInfo: async (url: string) => {
@@ -84,28 +168,51 @@ contextBridge.exposeInMainWorld('ytdlp', {
     const id = uuidv4();
     const channel = `ytdlp:download:status:${id}`;
     const controllerChannel = `ytdlp:controller:${id}`;
+    const throttler = DownloadThrottler.getInstance();
 
     async function startDownload() {
       try {
         ipcRenderer.invoke('ytdlp:download', id, args);
+
         // Listen for controller ID from the main process
         ipcRenderer.on(controllerChannel, (event, data) => {
-          //console.log('Received controller data:', data);
-          callback({
-            type: 'controller',
-            downloadId: data.downloadId,
-            controllerId: data.controllerId,
-          });
+          // Controller data is important, send immediately
+          throttler.forceUpdate(
+            id,
+            {
+              type: 'controller',
+              downloadId: data.downloadId,
+              controllerId: data.controllerId,
+            },
+            callback,
+          );
         });
+
         ipcRenderer.on(channel, (event, chunk) => {
-          callback(chunk);
-          if (chunk.data.status === 'finished') {
-            console.log('Preload done');
-            ipcRenderer.removeAllListeners(channel);
+          // Check if this is a critical status update
+          const isCriticalUpdate =
+            chunk.data?.status === 'finished' ||
+            chunk.data?.status === 'failed' ||
+            chunk.data?.status === 'cancelled' ||
+            chunk.data?.status === 'error';
+
+          if (isCriticalUpdate) {
+            // Send critical updates immediately
+            throttler.forceUpdate(id, chunk, callback);
+
+            if (chunk.data.status === 'finished') {
+              console.log('Preload done');
+              ipcRenderer.removeAllListeners(channel);
+              ipcRenderer.removeAllListeners(controllerChannel);
+              throttler.cleanup(id);
+            }
+          } else {
+            // Throttle regular progress updates
+            throttler.throttleUpdate(id, chunk, callback);
           }
         });
       } catch (error) {
-        console.error('Error during download:');
+        console.error('Error during download:', error);
       }
     }
 

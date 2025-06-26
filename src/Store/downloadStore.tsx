@@ -193,55 +193,8 @@ class DownloadController {
         limitRate: download.limitRate,
       },
       async (result: any) => {
-        if (result.type === 'controller' && result.controllerId) {
-          useDownloadStore.setState((state) => ({
-            downloading: state.downloading.map((d) =>
-              d.id === downloadId
-                ? { ...d, controllerId: result.controllerId }
-                : d,
-            ),
-          }));
-        }
-
-        // Handle progress data updates (only when progress data is available)
-        if (result.data && result.data.value) {
-          useDownloadStore.setState((state) => ({
-            downloading: state.downloading.map((d) =>
-              d.id === downloadId
-                ? {
-                    ...d,
-                    speed: result.data.value._speed_str || d.speed,
-                    progress:
-                      parseFloat(result.data.value._percent_str) || d.progress,
-                    timeLeft: result.data.value._eta_str || d.timeLeft,
-                    size:
-                      parseFloat(result.data.value.downloaded_bytes) || d.size,
-                    status: result.data.value.status || d.status,
-                    elapsed: result.data.value.elapsed || d.elapsed,
-                    ext: download.ext,
-                    audioExt: download.audioExt,
-                  }
-                : d,
-            ),
-          }));
-        }
-
-        // Handle log data (save ALL logs regardless of whether they have progress data)
-        if (result && result.data && result.data.log) {
-          useDownloadStore.setState((state) => ({
-            downloading: state.downloading.map((download) =>
-              download.id === downloadId
-                ? {
-                    ...download,
-                    log: download.log
-                      ? `${download.log}\n${result.data.log}`
-                      : result.data.log,
-                  }
-                : download,
-            ),
-          }));
-        }
-        store.checkFinishedDownloads();
+        // Use the optimized updateDownload method instead of inline callbacks
+        useDownloadStore.getState().updateDownload(downloadId, result);
       },
     );
 
@@ -680,52 +633,74 @@ const useDownloadStore = create<DownloadStore>()(
         }));
       },
 
-      updateDownload: (id, result) => {
-        if (!result || !result.data) return;
-
-        // Handle progress data updates (only when progress data is available)
-        if (result.data.value) {
-          set((state) => ({
-            downloading: state.downloading.map((downloading) =>
-              downloading.id === id
-                ? {
-                    ...downloading,
-                    speed: result.data.value._speed_str || downloading.speed,
-                    progress:
-                      parseFloat(result.data.value._percent_str) ||
-                      downloading.progress,
-                    timeLeft:
-                      result.data.value._eta_str || downloading.timeLeft,
-                    size:
-                      parseFloat(result.data.value.total_bytes) ||
-                      downloading.size,
-                    status: result.data.value.status || downloading.status,
-                    elapsed: result.data.value.elapsed || downloading.elapsed,
-                    controllerId:
-                      result.controllerId ?? downloading.controllerId,
-                  }
-                : downloading,
-            ),
-          }));
+      updateDownload: (id: string, result: any) => {
+        // Early return if no meaningful data to update
+        if (!result || (!result.data && !result.type)) {
+          return;
         }
 
-        // Handle log data (save ALL logs regardless of whether they have progress data)
-        if (result.data.log) {
+        // Handle controller ID assignment
+        if (result.type === 'controller' && result.controllerId) {
           set((state) => ({
             downloading: state.downloading.map((download) =>
               download.id === id
-                ? {
-                    ...download,
-                    log: download.log
-                      ? `${download.log}\n${result.data.log}`
-                      : result.data.log,
-                  }
+                ? { ...download, controllerId: result.controllerId }
                 : download,
             ),
           }));
+          return; // Early return for controller updates
         }
 
-        get().checkFinishedDownloads();
+        // Batch progress and log updates together
+        if (result.data) {
+          set((state) => ({
+            downloading: state.downloading.map((downloading) => {
+              if (downloading.id !== id) return downloading;
+
+              const updates: Partial<typeof downloading> = {};
+
+              // Handle progress data updates
+              if (result.data.value) {
+                const value = result.data.value;
+                if (value._speed_str) updates.speed = value._speed_str;
+                if (value._percent_str)
+                  updates.progress =
+                    parseFloat(value._percent_str) || downloading.progress;
+                if (value._eta_str) updates.timeLeft = value._eta_str;
+                if (value.downloaded_bytes)
+                  updates.size =
+                    parseFloat(value.downloaded_bytes) || downloading.size;
+                if (value.total_bytes)
+                  updates.size =
+                    parseFloat(value.total_bytes) || downloading.size;
+                if (value.status) updates.status = value.status;
+                if (value.elapsed) updates.elapsed = value.elapsed;
+              }
+
+              // Handle log data
+              if (result.data.log) {
+                updates.log = downloading.log
+                  ? `${downloading.log}\n${result.data.log}`
+                  : result.data.log;
+              }
+
+              // Handle controller ID if present
+              if (result.controllerId) {
+                updates.controllerId = result.controllerId;
+              }
+
+              // Only return updated object if there are actual changes
+              return Object.keys(updates).length > 0
+                ? { ...downloading, ...updates }
+                : downloading;
+            }),
+          }));
+
+          // Only check finished downloads for status-related updates
+          if (result.data.value?.status) {
+            get().checkFinishedDownloads();
+          }
+        }
       },
 
       addDownload: async (
@@ -818,60 +793,8 @@ const useDownloadStore = create<DownloadStore>()(
             limitRate: limitRate,
           },
           async (result: any) => {
-            // Handle controller ID assignment
-            if (result.type === 'controller' && result.controllerId) {
-              set((state) => ({
-                downloading: state.downloading.map((download) =>
-                  download.id === downloadId
-                    ? { ...download, controllerId: result.controllerId }
-                    : download,
-                ),
-              }));
-            }
-
-            // Handle progress data updates (only when progress data is available)
-            if (result.data && result.data.value) {
-              set((state) => ({
-                downloading: state.downloading.map((download) =>
-                  download.id === downloadId
-                    ? {
-                        ...download,
-                        speed: result.data.value._speed_str || download.speed,
-                        progress:
-                          parseFloat(result.data.value._percent_str) ||
-                          download.progress,
-                        timeLeft:
-                          result.data.value._eta_str || download.timeLeft,
-                        size:
-                          parseFloat(result.data.value.downloaded_bytes) ||
-                          download.size,
-                        status: result.data.value.status || download.status,
-                        elapsed: result.data.value.elapsed || download.elapsed,
-                        ext: ext,
-                        audioExt: audioExt,
-                      }
-                    : download,
-                ),
-              }));
-            }
-
-            // Handle log data (save ALL logs regardless of whether they have progress data)
-            if (result && result.data && result.data.log) {
-              set((state) => ({
-                downloading: state.downloading.map((download) =>
-                  download.id === downloadId
-                    ? {
-                        ...download,
-                        log: download.log
-                          ? `${download.log}\n${result.data.log}`
-                          : result.data.log,
-                      }
-                    : download,
-                ),
-              }));
-            }
-
-            get().checkFinishedDownloads();
+            // Use the optimized updateDownload method instead of inline callbacks
+            useDownloadStore.getState().updateDownload(downloadId, result);
           },
         );
         let captionsPath = '';
