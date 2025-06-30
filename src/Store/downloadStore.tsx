@@ -709,12 +709,6 @@ const useDownloadStore = create<DownloadStore>()(
           return;
         }
 
-        // DEBUG: Log incoming chunks
-        console.log(
-          `🔍 [${id}] Received chunk:`,
-          JSON.stringify(result, null, 2),
-        );
-
         // Handle controller ID assignment
         if (result.type === 'controller' && result.controllerId) {
           set((state) => ({
@@ -729,8 +723,6 @@ const useDownloadStore = create<DownloadStore>()(
 
         // Handle process completion messages from main process
         if (result.type === 'completion') {
-          console.log(`🎯 Processing completion message for download: ${id}`);
-
           const completionMessage = result.data.log;
           const completeLog = result.data.completeLog || completionMessage;
           const exitCode = result.data.exitCode || 0;
@@ -757,9 +749,6 @@ const useDownloadStore = create<DownloadStore>()(
                 );
               }
 
-              console.log(
-                `📝 [${id}] COMPLETE LOG SET: ${completeLog.length} chars`,
-              );
               return { ...downloading, ...updates };
             }),
           }));
@@ -782,9 +771,6 @@ const useDownloadStore = create<DownloadStore>()(
               // Use complete log if available
               if (result.completeLog) {
                 updates.log = result.completeLog;
-                console.log(
-                  `📝 [${id}] LOG UPDATED: ${result.completeLog.length} chars`,
-                );
               }
 
               // Handle progress data updates
@@ -816,25 +802,15 @@ const useDownloadStore = create<DownloadStore>()(
                     const newCompletionCount = downloading.completionCount + 1;
                     updates.completionCount = newCompletionCount;
 
-                    console.log(
-                      `Download "${downloading.name}" completed phase ${newCompletionCount}/2`,
-                    );
-
                     // Phase 1 complete (Video) - Switch to audio phase
                     if (newCompletionCount === 1) {
                       updates.downloadPhase = 'audio';
                       updates.progress = 50; // Video phase complete, now at 50%
-                      console.log(
-                        `Download "${downloading.name}" switching to audio phase`,
-                      );
                     }
                     // Phase 2 complete (Audio) - Both phases done
                     else if (newCompletionCount === 2) {
                       updates.progress = 100;
                       updates.status = 'initializing'; // Waiting for merger
-                      console.log(
-                        `Download "${downloading.name}" both phases complete, starting merger`,
-                      );
                     }
                   } else {
                     // Calculate display progress based on current phase
@@ -877,17 +853,11 @@ const useDownloadStore = create<DownloadStore>()(
                   updates.log.includes('[Merger]') ||
                   updates.log.includes('Merging formats')
                 ) {
-                  console.log(
-                    `Download "${downloading.name}" starting merger phase`,
-                  );
                   updates.status = 'initializing';
                   updates.progress = 100;
                 }
 
                 if (updates.log.includes('[VideoRemuxer]')) {
-                  console.log(
-                    `Download "${downloading.name}" in remuxer phase`,
-                  );
                   updates.status = 'initializing';
                 }
               }

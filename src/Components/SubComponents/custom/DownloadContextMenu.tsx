@@ -476,12 +476,12 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
           // Calculate approximate menu height based on number of items
           const itemHeight = 40; // approximate height of each menu item
-          const baseMenuHeight =
-            itemHeight * (downloadStatus === 'finished' ? 5 : 4); // base menu items
+          const baseMenuHeight = itemHeight * 6; // All download statuses have 6 base menu items (including Tags and Category)
           const pluginItemsHeight =
             pluginMenuItems.length <= 4
-              ? pluginMenuItems.length * itemHeight // show all plugin items
-              : itemHeight; // show just the Plugins button
+              ? pluginMenuItems.length * itemHeight +
+                (pluginMenuItems.length > 0 ? 10 : 0) // show all plugin items + divider height
+              : itemHeight + 10; // show just the Plugins button + divider height
           const totalMenuHeight = baseMenuHeight + pluginItemsHeight;
 
           // Only adjust if menu is actually overflowing

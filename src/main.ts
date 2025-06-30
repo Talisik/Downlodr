@@ -594,7 +594,6 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     for await (const chunk of controller.listen()) {
       // Collect ALL logs in the main process
       if (chunk?.data?.log) {
-        console.log(`${chunk.data.log}`);
         completeLog += chunk.data.log; // Add to complete log
       }
 
