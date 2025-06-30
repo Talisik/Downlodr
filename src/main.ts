@@ -527,32 +527,107 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
         'Controller is not defined or does not have a listen method',
       );
     }
+
     // Send the controller ID back to the renderer process
     e.sender.send(`ytdlp:controller:${id}`, {
       downloadId: id,
       controllerId: controller.id,
     });
 
+    console.log(`🚀 Starting download ${id} with controller ${controller.id}`);
+
+    // Set up process completion detection WITHOUT interfering with the main stream
+    let processCompletionHandled = false;
+
+    if (controller.process) {
+      console.log(
+        `🔍 Setting up process completion listener for download ${id}`,
+      );
+
+      const handleProcessCompletion = (
+        code: number,
+        signal: string,
+        eventType: string,
+      ) => {
+        if (processCompletionHandled) return; // Prevent duplicate handling
+        processCompletionHandled = true;
+
+        const completionMessage = `Process '${controller.id}' ${eventType} with code: ${code}, signal: ${signal}`;
+        console.log(`💀 ${completionMessage}`);
+
+        // Send completion after a small delay to ensure all other logs are processed first
+        setTimeout(() => {
+          e.sender.send(`ytdlp:download:status:${id}`, {
+            type: 'completion',
+            data: {
+              log: completionMessage,
+              exitCode: code,
+              signal: signal,
+              controllerId: controller.id,
+            },
+          });
+        }, 100); // Small delay to ensure stream logs are processed first
+      };
+
+      controller.process.on('exit', (code: number, signal: string) => {
+        handleProcessCompletion(code, signal, 'exited');
+      });
+
+      controller.process.on('close', (code: number, signal: string) => {
+        // Only handle close if exit wasn't already handled
+        if (!processCompletionHandled) {
+          handleProcessCompletion(code, signal, 'closed');
+        }
+      });
+    } else {
+      console.log(
+        `⚠️ Controller ${controller.id} does not expose process - will rely on stream completion`,
+      );
+    }
+
+    // Process the main download stream normally
     for await (const chunk of controller.listen()) {
-      // Send the download status back to the renderer process
+      // Enhanced logging for debugging - but don't interfere with normal processing
+      if (chunk?.data?.log) {
+        console.log(`📝 [${id}] ${chunk.data.log}`);
+      }
+
+      // Send ALL chunks to the renderer immediately - don't filter or modify
       e.sender.send(`ytdlp:download:status:${id}`, chunk);
 
-      if (chunk != null) {
-        if (chunk.data.status === 'finished') {
-          setAlertTrayIcon();
+      // Handle download completion notifications
+      if (chunk != null && chunk.data && chunk.data.status === 'finished') {
+        setAlertTrayIcon();
 
-          // Notify the main process about the finished download
-          const win = BrowserWindow.getAllWindows()[0];
-          if (win) {
-            win.webContents.send('download-finished', {
-              name: args.name,
-              id: id,
-              location: args.outputFilepath,
-            });
-          }
+        // Notify the main process about the finished download
+        const win = BrowserWindow.getAllWindows()[0];
+        if (win) {
+          win.webContents.send('download-finished', {
+            name: args.name,
+            id: id,
+            location: args.outputFilepath,
+          });
         }
       }
     }
+
+    console.log(`🏁 Download stream ended for ${id}`);
+
+    // If process completion wasn't handled through events, send a fallback after delay
+    setTimeout(() => {
+      if (!processCompletionHandled) {
+        console.log(`⏰ Sending fallback completion signal for download ${id}`);
+
+        e.sender.send(`ytdlp:download:status:${id}`, {
+          type: 'stream_ended',
+          data: {
+            log: `Process '${controller.id}' stream completed`,
+            controllerId: controller.id,
+          },
+        });
+      }
+    }, 2000); // Wait 2 seconds after stream ends
+
     // Return the download ID and controller ID
     return { downloadId: id, controllerId: controller.id };
   } catch (error) {
