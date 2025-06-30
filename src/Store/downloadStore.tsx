@@ -403,7 +403,7 @@ export interface ForDownload extends BaseDownload {
 }
 
 // Interface for downloads that are currently downloading
-interface Downloading extends BaseDownload {
+interface Downloading extends Omit<BaseDownload, 'status'> {
   status:
     | 'downloading'
     | 'finished'
@@ -731,6 +731,14 @@ const useDownloadStore = create<DownloadStore>()(
             downloading: state.downloading.map((downloading) => {
               if (downloading.id !== id) return downloading;
 
+              // Don't override paused status with completion messages
+              if ((downloading.status as any) === 'paused') {
+                return {
+                  ...downloading,
+                  log: completeLog, // Still update log for debugging
+                };
+              }
+
               const updates: Partial<typeof downloading> = {
                 log: completeLog, // Use complete log directly
                 completionCount: Math.max(2, downloading.completionCount), // Ensure completion
@@ -765,6 +773,20 @@ const useDownloadStore = create<DownloadStore>()(
           set((state) => ({
             downloading: state.downloading.map((downloading) => {
               if (downloading.id !== id) return downloading;
+
+              // CRITICAL FIX: Don't process progress updates for paused downloads
+              if ((downloading.status as any) === 'paused') {
+                const updates: Partial<typeof downloading> = {};
+
+                // Still update log for debugging purposes, but don't change progress or status
+                if (result.completeLog) {
+                  updates.log = result.completeLog;
+                }
+
+                return Object.keys(updates).length > 0
+                  ? { ...downloading, ...updates }
+                  : downloading;
+              }
 
               const updates: Partial<typeof downloading> = {};
 
@@ -825,30 +847,38 @@ const useDownloadStore = create<DownloadStore>()(
                   }
                 }
 
-                // Handle status updates - be careful not to override completion detection
+                // Handle status updates - ENHANCED to protect paused status
                 if (value.status) {
-                  // Don't override finished status if we already detected completion
-                  if (
-                    value.status === 'finished' &&
-                    downloading.completionCount < 2
-                  ) {
-                    // Keep downloading status until both phases complete
-                    updates.status = 'downloading';
-                  } else if (
-                    value.status === 'finished' &&
-                    downloading.completionCount >= 2
-                  ) {
-                    // Both phases complete, wait for merger
-                    updates.status = 'initializing';
-                  } else if (value.status !== 'finished') {
-                    // Only update status if it's not a 'finished' status that might conflict
-                    updates.status = value.status;
+                  // CRITICAL FIX: Never override paused status with other updates
+                  if ((downloading.status as any) === 'paused') {
+                    // Keep paused status, don't update it from progress updates
+                    console.log(
+                      `Preserving paused status for download "${downloading.name}"`,
+                    );
+                  } else {
+                    // Don't override finished status if we already detected completion
+                    if (
+                      value.status === 'finished' &&
+                      downloading.completionCount < 2
+                    ) {
+                      // Keep downloading status until both phases complete
+                      updates.status = 'downloading';
+                    } else if (
+                      value.status === 'finished' &&
+                      downloading.completionCount >= 2
+                    ) {
+                      // Both phases complete, wait for merger
+                      updates.status = 'initializing';
+                    } else if (value.status !== 'finished') {
+                      // Only update status if it's not a 'finished' status that might conflict
+                      updates.status = value.status;
+                    }
                   }
                 }
               }
 
               // Detect merger and remuxer phases from complete log
-              if (updates.log) {
+              if (updates.log && (downloading.status as any) !== 'paused') {
                 if (
                   updates.log.includes('[Merger]') ||
                   updates.log.includes('Merging formats')
