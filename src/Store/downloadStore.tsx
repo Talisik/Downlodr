@@ -709,6 +709,12 @@ const useDownloadStore = create<DownloadStore>()(
           return;
         }
 
+        // DEBUG: Log incoming chunks
+        console.log(
+          `🔍 [${id}] Received chunk:`,
+          JSON.stringify(result, null, 2),
+        );
+
         // Handle controller ID assignment
         if (result.type === 'controller' && result.controllerId) {
           set((state) => ({
@@ -726,6 +732,7 @@ const useDownloadStore = create<DownloadStore>()(
           console.log(`🎯 Processing completion message for download: ${id}`);
 
           const completionMessage = result.data.log;
+          const completeLog = result.data.completeLog || completionMessage;
           const exitCode = result.data.exitCode || 0;
 
           set((state) => ({
@@ -733,9 +740,7 @@ const useDownloadStore = create<DownloadStore>()(
               if (downloading.id !== id) return downloading;
 
               const updates: Partial<typeof downloading> = {
-                log: downloading.log
-                  ? `${downloading.log}\n${completionMessage}`
-                  : completionMessage,
+                log: completeLog, // Use complete log directly
                 completionCount: Math.max(2, downloading.completionCount), // Ensure completion
                 progress: 100,
               };
@@ -743,15 +748,18 @@ const useDownloadStore = create<DownloadStore>()(
               if (exitCode === 0) {
                 updates.status = 'finished';
                 console.log(
-                  `✅ Download "${downloading.name}" completed successfully via completion message`,
+                  `✅ Download "${downloading.name}" completed successfully`,
                 );
               } else {
                 updates.status = 'failed';
                 console.log(
-                  `❌ Download "${downloading.name}" failed with exit code ${exitCode} via completion message`,
+                  `❌ Download "${downloading.name}" failed with exit code ${exitCode}`,
                 );
               }
 
+              console.log(
+                `📝 [${id}] COMPLETE LOG SET: ${completeLog.length} chars`,
+              );
               return { ...downloading, ...updates };
             }),
           }));
@@ -763,45 +771,6 @@ const useDownloadStore = create<DownloadStore>()(
           return;
         }
 
-        // Handle stream ended messages (fallback)
-        if (result.type === 'stream_ended') {
-          console.log(
-            `🏁 Stream ended for download: ${id}, checking completion status`,
-          );
-
-          const currentDownload = get().downloading.find((d) => d.id === id);
-          if (
-            currentDownload &&
-            currentDownload.status !== 'finished' &&
-            currentDownload.status !== 'failed' &&
-            currentDownload.completionCount >= 2
-          ) {
-            console.log(
-              `🔄 Stream ended with both phases complete, marking as finished`,
-            );
-
-            set((state) => ({
-              downloading: state.downloading.map((downloading) => {
-                if (downloading.id !== id) return downloading;
-
-                return {
-                  ...downloading,
-                  log: downloading.log
-                    ? `${downloading.log}\n${result.data.log}`
-                    : result.data.log,
-                  status: 'finished',
-                };
-              }),
-            }));
-
-            // Trigger finished downloads check
-            setTimeout(() => {
-              get().checkFinishedDownloads();
-            }, 100);
-          }
-          return;
-        }
-
         // Process regular download updates (progress, logs, etc.)
         if (result.data) {
           set((state) => ({
@@ -809,6 +778,14 @@ const useDownloadStore = create<DownloadStore>()(
               if (downloading.id !== id) return downloading;
 
               const updates: Partial<typeof downloading> = {};
+
+              // Use complete log if available
+              if (result.completeLog) {
+                updates.log = result.completeLog;
+                console.log(
+                  `📝 [${id}] LOG UPDATED: ${result.completeLog.length} chars`,
+                );
+              }
 
               // Handle progress data updates
               if (result.data.value) {
@@ -894,48 +871,11 @@ const useDownloadStore = create<DownloadStore>()(
                 }
               }
 
-              // Handle log data and detect merger/completion phases
-              // Capture ALL types of log content from the chunk
-              let logEntry = '';
-
-              // Method 1: Direct log field
-              if (result.data.log) {
-                logEntry = result.data.log;
-              }
-              // Method 2: Progress data as JSON string (for progress updates)
-              else if (
-                result.data.value &&
-                typeof result.data.value === 'object'
-              ) {
-                // Convert progress data to log format if it contains progress info
-                if (result.data.value._default_template) {
-                  logEntry = `[progress] ${JSON.stringify(result.data.value)}`;
-                }
-              }
-              // Method 3: Any other text content in the data
-              else if (typeof result.data === 'string') {
-                logEntry = result.data;
-              }
-              // Method 4: Check if the chunk itself contains log text
-              else if (result.log) {
-                logEntry = result.log;
-              }
-              // Method 5: Check for any text field that might contain log data
-              else if (result.text) {
-                logEntry = result.text;
-              }
-
-              // Save the log entry if we found one
-              if (logEntry) {
-                const currentLog = downloading.log || '';
-                updates.log = currentLog
-                  ? `${currentLog}\n${logEntry}`
-                  : logEntry;
-
-                // Detect merger phase
+              // Detect merger and remuxer phases from complete log
+              if (updates.log) {
                 if (
-                  logEntry.includes('[Merger]') ||
-                  logEntry.includes('Merging formats')
+                  updates.log.includes('[Merger]') ||
+                  updates.log.includes('Merging formats')
                 ) {
                   console.log(
                     `Download "${downloading.name}" starting merger phase`,
@@ -944,8 +884,7 @@ const useDownloadStore = create<DownloadStore>()(
                   updates.progress = 100;
                 }
 
-                // Detect remuxer phase
-                if (logEntry.includes('[VideoRemuxer]')) {
+                if (updates.log.includes('[VideoRemuxer]')) {
                   console.log(
                     `Download "${downloading.name}" in remuxer phase`,
                   );
@@ -957,39 +896,6 @@ const useDownloadStore = create<DownloadStore>()(
               return Object.keys(updates).length > 0
                 ? { ...downloading, ...updates }
                 : downloading;
-            }),
-          }));
-        }
-
-        // Also check for logs at the top level of the result (backup method)
-        else if (
-          !result.data &&
-          (result.log || result.message || typeof result === 'string')
-        ) {
-          set((state) => ({
-            downloading: state.downloading.map((downloading) => {
-              if (downloading.id !== id) return downloading;
-
-              let topLevelLogEntry = '';
-
-              if (result.log) {
-                topLevelLogEntry = result.log;
-              } else if (result.message) {
-                topLevelLogEntry = result.message;
-              } else if (typeof result === 'string') {
-                topLevelLogEntry = result;
-              }
-
-              if (topLevelLogEntry) {
-                const currentLog = downloading.log || '';
-                const updatedLog = currentLog
-                  ? `${currentLog}\n${topLevelLogEntry}`
-                  : topLevelLogEntry;
-
-                return { ...downloading, log: updatedLog };
-              }
-
-              return downloading;
             }),
           }));
         }

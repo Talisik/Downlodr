@@ -538,6 +538,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
 
     // Set up process completion detection WITHOUT interfering with the main stream
     let processCompletionHandled = false;
+    let completeLog = ''; // Collect all logs here
 
     if (controller.process) {
       console.log(
@@ -555,12 +556,16 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
         const completionMessage = `Process '${controller.id}' ${eventType} with code: ${code}, signal: ${signal}`;
         console.log(`💀 ${completionMessage}`);
 
-        // Send completion after a small delay to ensure all other logs are processed first
+        // Add completion message to complete log
+        completeLog += `\n${completionMessage}`;
+
+        // Send completion with complete log after a small delay to ensure all other logs are processed first
         setTimeout(() => {
           e.sender.send(`ytdlp:download:status:${id}`, {
             type: 'completion',
             data: {
               log: completionMessage,
+              completeLog: completeLog, // Send complete log
               exitCode: code,
               signal: signal,
               controllerId: controller.id,
@@ -587,13 +592,18 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
 
     // Process the main download stream normally
     for await (const chunk of controller.listen()) {
-      // Enhanced logging for debugging - but don't interfere with normal processing
+      // Collect ALL logs in the main process
       if (chunk?.data?.log) {
-        console.log(`📝 [${id}] ${chunk.data.log}`);
+        console.log(`${chunk.data.log}`);
+        completeLog += chunk.data.log; // Add to complete log
       }
 
-      // Send ALL chunks to the renderer immediately - don't filter or modify
-      e.sender.send(`ytdlp:download:status:${id}`, chunk);
+      // Send chunks normally for progress updates, but also include complete log so far
+      const enhancedChunk = {
+        ...chunk,
+        completeLog: completeLog, // Add complete log to every chunk
+      };
+      e.sender.send(`ytdlp:download:status:${id}`, enhancedChunk);
 
       // Handle download completion notifications
       if (chunk != null && chunk.data && chunk.data.status === 'finished') {
