@@ -702,7 +702,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       </>
     );
 
-    if (downloadStatus === 'finished') {
+    if (downloadStatus === 'finished' || downloadStatus === 'failed') {
       return (
         <>
           <button

@@ -755,6 +755,9 @@ const useDownloadStore = create<DownloadStore>()(
                 console.log(
                   `❌ Download "${downloading.name}" failed with exit code ${exitCode}`,
                 );
+                console.log(
+                  `🔒 Setting status to 'failed' for download ID: ${downloading.id}`,
+                );
               }
 
               return { ...downloading, ...updates };
@@ -774,13 +777,24 @@ const useDownloadStore = create<DownloadStore>()(
             downloading: state.downloading.map((downloading) => {
               if (downloading.id !== id) return downloading;
 
-              // CRITICAL FIX: Don't process progress updates for paused downloads
-              if ((downloading.status as any) === 'paused') {
+              // CRITICAL FIX: Don't process progress updates for paused, failed, or finished downloads
+              if (
+                (downloading.status as any) === 'paused' ||
+                (downloading.status as any) === 'failed' ||
+                (downloading.status as any) === 'finished'
+              ) {
                 const updates: Partial<typeof downloading> = {};
 
                 // Still update log for debugging purposes, but don't change progress or status
                 if (result.completeLog) {
                   updates.log = result.completeLog;
+                }
+
+                // Debug logging to track race condition protection
+                if ((downloading.status as any) === 'failed') {
+                  console.log(
+                    `🛡️ Protecting 'failed' status for download "${downloading.name}" (ID: ${downloading.id})`,
+                  );
                 }
 
                 return Object.keys(updates).length > 0
