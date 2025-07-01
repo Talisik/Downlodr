@@ -251,6 +251,17 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     ),
   );
 
+  // Check if any selected downloads are in "downloading" or "initializing" status (for Stop button)
+  const hasDownloadingStatus = downloading.some((download) =>
+    downloading.some(
+      (d) =>
+        d.id === download.id &&
+        (d.status === 'downloading' ||
+          d.status === 'initializing' ||
+          d.status === 'paused'),
+    ),
+  );
+
   const handleStopSelected = async () => {
     if (selectedDownloads.length === 0) {
       toast({
@@ -778,12 +789,12 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             <button
               className={cn(
                 'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
-                hasActiveDownloadStatus
+                hasDownloadingStatus
                   ? 'dark:text-gray-100'
                   : 'cursor-not-allowed text-gray-800 text-gray-400 dark:text-gray-400',
               )}
               onClick={() => handleStopAll()}
-              disabled={!hasActiveDownloadStatus}
+              disabled={!hasDownloadingStatus}
             >
               {' '}
               <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All

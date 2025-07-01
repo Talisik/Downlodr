@@ -975,8 +975,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             }}
           >
             <span className="flex items-center space-x-2">
-              <IoCodeSlashSharp size={20} />
-              <span>Show Log</span>
+              <HiOutlineStopCircle size={20} />
+              <span>Stop</span>
             </span>
           </button>
           <button
