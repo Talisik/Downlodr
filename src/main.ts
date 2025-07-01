@@ -63,6 +63,30 @@ let isDownloadComplete = false;
 
 let pluginManager: PluginManager;
 
+/*
+// Rate limiting for GitHub API calls
+const GITHUB_API_COOLDOWN = 5 * 60 * 1000; // 5 minutes between API calls
+let lastGitHubApiCall = 0;
+let cachedLatestVersion: { version: string; timestamp: number } | null = null;
+const VERSION_CACHE_DURATION = 30 * 60 * 1000; // Cache for 30 minutes
+
+// Helper function to check if we can make a GitHub API call
+function canMakeGitHubApiCall(): boolean {
+  const now = Date.now();
+  return now - lastGitHubApiCall >= GITHUB_API_COOLDOWN;
+}
+
+// Helper function to get cached version if still valid
+function getCachedVersion(): string | null {
+  if (!cachedLatestVersion) return null;
+
+  const now = Date.now();
+  const isExpired =
+    now - cachedLatestVersion.timestamp > VERSION_CACHE_DURATION;
+
+  return isExpired ? null : cachedLatestVersion.version;
+}
+*/
 // Function to create the main application window
 const createWindow = () => {
   // Create the browser window.
@@ -469,6 +493,229 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
   }
 });
 
+/*
+// Get current YT-DLP version
+ipcMain.handle('ytdlp:getCurrentVersion', async () => {
+  try {
+    const version = await YTDLP.getYTDLPVersion();
+    return { success: true, version };
+  } catch (error) {
+    console.error('Error getting current YT-DLP version:', error);
+    return { success: false, error: error.message, version: null };
+  }
+});
+
+// Get latest YT-DLP version
+ipcMain.handle('ytdlp:getLatestVersion', async () => {
+  try {
+    // Check if we have a cached version first
+    const cachedVersion = getCachedVersion();
+    if (cachedVersion) {
+      console.log('Using cached YT-DLP version:', cachedVersion);
+      return {
+        success: true,
+        version: cachedVersion,
+        message: 'Retrieved from cache',
+      };
+    }
+
+    // Check rate limiting
+    if (!canMakeGitHubApiCall()) {
+      const remainingTime = Math.ceil(
+        (GITHUB_API_COOLDOWN - (Date.now() - lastGitHubApiCall)) / 1000,
+      );
+      return {
+        success: false,
+        error: `Rate limited. Please wait ${remainingTime} seconds before checking again.`,
+        version: null,
+      };
+    }
+
+    // Make the API call
+    lastGitHubApiCall = Date.now();
+    const response = await YTDLP.getLatestYTDLPVersionFromGitHub();
+
+    // Cache the result if successful
+    if (response.ok && response.version) {
+      cachedLatestVersion = {
+        version: response.version,
+        timestamp: Date.now(),
+      };
+    }
+
+    return {
+      success: response.ok,
+      version: response.version,
+      message: response.message,
+    };
+  } catch (error) {
+    console.error('Error getting latest YT-DLP version:', error);
+
+    // Check if it's a rate limit error
+    if (error.message && error.message.includes('403')) {
+      return {
+        success: false,
+        error:
+          'GitHub API rate limit exceeded. Please wait an hour before trying again.',
+        version: null,
+      };
+    }
+
+    return { success: false, error: error.message, version: null };
+  }
+});
+
+// Check and update YT-DLP
+ipcMain.handle('ytdlp:checkAndUpdate', async () => {
+  try {
+    const currentVersion = await YTDLP.getYTDLPVersion();
+
+    // Check if we have a cached version first
+    let latestVersion = getCachedVersion();
+    let latestResponse;
+
+    if (!latestVersion) {
+      // Check rate limiting
+      if (!canMakeGitHubApiCall()) {
+        const remainingTime = Math.ceil(
+          (GITHUB_API_COOLDOWN - (Date.now() - lastGitHubApiCall)) / 1000,
+        );
+        return {
+          success: false,
+          error: `Rate limited. Please wait ${remainingTime} seconds before checking again.`,
+          action: 'error',
+        };
+      }
+
+      // Make the API call
+      lastGitHubApiCall = Date.now();
+      latestResponse = await YTDLP.getLatestYTDLPVersionFromGitHub();
+
+      if (!latestResponse.ok || !latestResponse.version) {
+        // Check if it's a rate limit error
+        if (latestResponse.message && latestResponse.message.includes('403')) {
+          throw new Error(
+            'GitHub API rate limit exceeded. Please wait an hour before trying again.',
+          );
+        }
+        throw new Error(
+          latestResponse.message || 'Failed to get latest version',
+        );
+      }
+
+      latestVersion = latestResponse.version;
+
+      // Cache the result
+      cachedLatestVersion = {
+        version: latestVersion,
+        timestamp: Date.now(),
+      };
+    }
+
+    if (!currentVersion) {
+      console.log('YT-DLP not found. Downloading latest version...');
+      await YTDLP.downloadYTDLP();
+      return {
+        success: true,
+        action: 'downloaded',
+        message: 'YT-DLP was not found and has been downloaded.',
+        currentVersion: null,
+        latestVersion,
+      };
+    }
+
+    console.log(`Current version: ${currentVersion}`);
+    console.log(`Latest version: ${latestVersion}`);
+
+    if (latestVersion && currentVersion !== latestVersion) {
+      console.log('Updating YT-DLP to latest version...');
+      await YTDLP.downloadYTDLP({
+        version: latestVersion,
+        forceDownload: true,
+      });
+      console.log('Update completed!');
+      return {
+        success: true,
+        action: 'updated',
+        message: `YT-DLP updated from ${currentVersion} to ${latestVersion}`,
+        currentVersion,
+        latestVersion,
+      };
+    } else {
+      console.log('YT-DLP is up to date!');
+      return {
+        success: true,
+        action: 'up-to-date',
+        message: 'YT-DLP is already up to date',
+        currentVersion,
+        latestVersion,
+      };
+    }
+  } catch (error) {
+    console.error('Error managing YT-DLP version:', error);
+    return {
+      success: false,
+      error: error.message,
+      action: 'error',
+      message: `Error managing YT-DLP version: ${error.message}`,
+    };
+  }
+});
+
+// Download YTDLP binary with custom options
+ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
+  try {
+    console.log('YTDLP download options:', options);
+
+    const downloadOptions: DownloadOptions = {
+      forceDownload: options.forceDownload || false,
+    };
+
+    // Handle filePath - if it's provided, ensure it's a proper file path
+    if (options.filePath && options.filePath.trim()) {
+      const filePath = options.filePath.trim();
+
+      // Check if the path is a directory (doesn't end with an executable extension)
+      if (
+        !path.extname(filePath) ||
+        path.extname(filePath).toLowerCase() !== '.exe'
+      ) {
+        // If it's a directory or doesn't have .exe extension, append the default filename
+        const defaultFilename =
+          process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+        downloadOptions.filePath = path.join(filePath, defaultFilename);
+      } else {
+        downloadOptions.filePath = filePath;
+      }
+    }
+    // If no filePath provided, let YTDLP use its default location
+
+    // Handle version
+    if (
+      options.version &&
+      options.version.trim() &&
+      options.version.trim().toLowerCase() !== 'latest'
+    ) {
+      downloadOptions.version = options.version.trim();
+    }
+    // If no version provided or 'latest', let YTDLP use latest
+
+    // Handle platform
+    if (options.platform && options.platform !== 'auto') {
+      downloadOptions.platform = options.platform;
+    }
+    // If no platform provided or 'auto', let YTDLP auto-detect
+
+    console.log('Final YTDLP download options:', downloadOptions);
+
+    await YTDLP.downloadYTDLP(downloadOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Error downloading YTDLP:', error);
+    return { success: false, error: error.message };
+  }
+});
+*/
 // after identifying ID kill/stop the id
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function killControllerById(id: any) {
