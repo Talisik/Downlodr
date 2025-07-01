@@ -1404,12 +1404,12 @@ const StatusSpecificDownloads = () => {
                 <th className="w-6 px-2 py-1">
                   <input
                     type="checkbox"
-                    className="mt-2 ml-2 rounded"
+                    className="mt-2 ml-2 rounded custom-white-checkmark"
                     style={{
                       ...(document.documentElement.classList.contains(
                         'dark',
                       ) && {
-                        backgroundColor: '#D4D4D8',
+                        backgroundColor: '#272727',
                         borderColor: '#6b7280',
                       }),
                     }}
