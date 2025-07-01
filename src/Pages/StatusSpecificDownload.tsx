@@ -718,6 +718,48 @@ const StatusSpecificDownloads = () => {
   };
 
   //Context Menu actons
+
+  const handleRetry = (downloadId: string) => {
+    // Get fresh state each time
+    console.log('HII FROM RETRY', downloadId);
+    const { downloading, deleteDownloading } = useDownloadStore.getState();
+    const currentDownload = allDownloads.find((d) => d.id === downloadId);
+    const { updateDownloadStatus } = useDownloadStore.getState();
+
+    const { addDownload } = useDownloadStore.getState();
+    addDownload(
+      currentDownload.videoUrl,
+      currentDownload.name,
+      currentDownload.downloadName,
+      currentDownload.size,
+      currentDownload.speed,
+      currentDownload.timeLeft,
+      new Date().toISOString(),
+      currentDownload.progress,
+      currentDownload.location,
+      'downloading',
+      currentDownload.ext,
+      currentDownload.formatId,
+      currentDownload.audioExt,
+      currentDownload.audioFormatId,
+      currentDownload.extractorKey,
+      '',
+      currentDownload.automaticCaption,
+      currentDownload.thumbnails,
+      currentDownload.getTranscript || false,
+      currentDownload.getThumbnail || false,
+      currentDownload.duration || 60,
+      false,
+    );
+    deleteDownload(downloadId);
+    toast({
+      variant: 'success',
+      title: 'Download Retried',
+      description: 'Download has been retried successfully',
+      duration: 3000,
+    });
+  };
+
   const handlePause = (downloadId: string, downloadLocation?: string) => {
     // Get fresh state each time
     const { downloading, deleteDownloading } = useDownloadStore.getState();
@@ -737,10 +779,10 @@ const StatusSpecificDownloads = () => {
         currentDownload.progress,
         currentDownload.location,
         'downloading',
-        currentDownload.backupExt,
-        currentDownload.backupFormatId,
-        currentDownload.backupAudioExt,
-        currentDownload.backupAudioFormatId,
+        currentDownload.ext,
+        currentDownload.formatId,
+        currentDownload.audioExt,
+        currentDownload.audioFormatId,
         currentDownload.extractorKey,
         '',
         currentDownload.automaticCaption,
@@ -1866,6 +1908,7 @@ const StatusSpecificDownloads = () => {
           downloadStatus={contextMenu.downloadStatus}
           onShowLog={handleShowLog}
           onClose={handleCloseContextMenu}
+          onRetry={handleRetry}
           onPause={handlePause}
           onStop={handleStop}
           onForceStart={handleForceStart}
