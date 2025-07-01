@@ -171,6 +171,7 @@ export const useMainStore = create<MainStore>()(
         'source',
         'transcript',
         'thumbnail',
+        'action',
       ],
 
       // Set visible columns
