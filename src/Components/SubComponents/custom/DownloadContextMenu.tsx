@@ -34,6 +34,7 @@
 
 import { PlayCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { BsArrowCounterclockwise } from 'react-icons/bs';
 import { GoChevronRight, GoPlus } from 'react-icons/go';
 import { HiOutlineStopCircle } from 'react-icons/hi2';
 import { IoCodeSlashSharp, IoPauseCircleOutline } from 'react-icons/io5';
@@ -702,7 +703,68 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       </>
     );
 
-    if (downloadStatus === 'finished' || downloadStatus === 'failed') {
+    if (downloadStatus === 'failed') {
+      return (
+        <>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onViewDownload(downloadLocation, downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <BsArrowCounterclockwise size={20} />
+              <span>Retry</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onViewFolder(
+                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+                downloadFile,
+              );
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <LuFolderOpen size={20} />
+              <span>View Folder</span>
+            </span>
+          </button>
+
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowRemoveModal(downloadId, downloadLocation, controllerId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <LuTrash size={16} />
+              <span>Remove</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onShowLog(downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <IoCodeSlashSharp size={20} />
+              <span>Show Log</span>
+            </span>
+          </button>
+          {commonOptions}
+        </>
+      );
+    }
+
+    if (downloadStatus === 'finished') {
       return (
         <>
           <button

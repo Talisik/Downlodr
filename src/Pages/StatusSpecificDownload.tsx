@@ -1590,7 +1590,8 @@ const StatusSpecificDownloads = () => {
                                   {download.status === 'cancelled' ||
                                   download.status === 'initializing' ||
                                   download.status === 'queued' ||
-                                  download.status === 'fetching metadata' ? (
+                                  download.status === 'fetching metadata' ||
+                                  download.status === 'failed' ? (
                                     <span
                                       style={{
                                         color: getStatusColor(download.status),

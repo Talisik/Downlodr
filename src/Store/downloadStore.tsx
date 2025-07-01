@@ -1159,12 +1159,35 @@ const useDownloadStore = create<DownloadStore>()(
 
           // Only set caption if transcript is requested
           let caption = '—';
-          if (
-            options.getTranscript &&
-            (info.data?.subtitles?.en || info.data?.automatic_captions?.en)
-          ) {
-            caption =
-              info.data?.subtitles?.en || info.data?.automatic_captions?.en;
+          if (options.getTranscript) {
+            const subtitles = info.data?.subtitles;
+            const automaticCaptions = info.data?.automatic_captions;
+
+            // Get first available language from subtitles (excluding live_chat)
+            if (subtitles) {
+              const availableLanguages = Object.keys(subtitles).filter(
+                (lang) => lang !== 'live_chat',
+              );
+              if (availableLanguages.length > 0) {
+                caption = subtitles[availableLanguages[0]];
+              }
+            }
+
+            // If no manual subtitles, try automatic captions
+            if (caption === '—' && automaticCaptions) {
+              const availableLanguages = Object.keys(automaticCaptions);
+
+              // First, try to find original language captions (containing "orig")
+              const originalLanguage = availableLanguages.find((lang) =>
+                lang.includes('orig'),
+              );
+              if (originalLanguage) {
+                caption = automaticCaptions[originalLanguage];
+              } else if (availableLanguages.length > 0) {
+                // Fall back to first available language if no original found
+                caption = automaticCaptions[availableLanguages[0]];
+              }
+            }
           }
 
           // Only set thumbnail if thumbnail is requested
