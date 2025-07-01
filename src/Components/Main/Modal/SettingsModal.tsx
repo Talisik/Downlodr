@@ -253,7 +253,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   placeholder="Download Location"
                   value={downloadLocation}
                   onClick={handleDirectory}
-                  className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none  "
+                  className="w-full border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none"
                   readOnly
                 />
               </div>
@@ -287,7 +287,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                           setBiteUnitVal(selectedBite.biteUnitVal);
                         }
                       }}
-                      className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none [&>option]:dark:bg-darkMode"
+                      className="w-full border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none [&>option]:dark:bg-darkMode"
                     >
                       {biteOptions.map((bite) => (
                         <option
@@ -338,7 +338,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       <select
                         value={maxDownload}
                         onChange={(e) => setMaxDownload(Number(e.target.value))}
-                        className="w-24 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none [&>option]:dark:bg-darkMode"
+                        className="w-24 border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none [&>option]:dark:bg-darkMode"
                         disabled={!isConnectionLimitEnabled}
                       >
                         {[...Array(10)].map((_, index) => (

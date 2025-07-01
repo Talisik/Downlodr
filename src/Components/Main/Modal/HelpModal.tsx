@@ -114,7 +114,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
     >
       <div
         ref={navRef}
-        className="dark:bg-darkModeDropdown bg-white dark:bg-darkModeDropdown rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto relative"
+        className="dark:bg-darkModeDropdown bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto relative"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-darkModeDropdown z-10">
@@ -133,7 +133,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         <div
-          className="px-6 py-4 space-y-6 dark:bg-darkModeDropdown "
+          className="px-6 py-4 space-y-6 dark:bg-darkModeDropdown"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Custom Tab Implementation */}

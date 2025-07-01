@@ -34,6 +34,7 @@
 
 import { PlayCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { BsArrowCounterclockwise } from 'react-icons/bs';
 import { GoChevronRight, GoPlus } from 'react-icons/go';
 import { HiOutlineStopCircle } from 'react-icons/hi2';
 import { IoCodeSlashSharp, IoPauseCircleOutline } from 'react-icons/io5';
@@ -476,12 +477,12 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
           // Calculate approximate menu height based on number of items
           const itemHeight = 40; // approximate height of each menu item
-          const baseMenuHeight =
-            itemHeight * (downloadStatus === 'finished' ? 5 : 4); // base menu items
+          const baseMenuHeight = itemHeight * 6; // All download statuses have 6 base menu items (including Tags and Category)
           const pluginItemsHeight =
             pluginMenuItems.length <= 4
-              ? pluginMenuItems.length * itemHeight // show all plugin items
-              : itemHeight; // show just the Plugins button
+              ? pluginMenuItems.length * itemHeight +
+                (pluginMenuItems.length > 0 ? 10 : 0) // show all plugin items + divider height
+              : itemHeight + 10; // show just the Plugins button + divider height
           const totalMenuHeight = baseMenuHeight + pluginItemsHeight;
 
           // Only adjust if menu is actually overflowing
@@ -702,6 +703,67 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       </>
     );
 
+    if (downloadStatus === 'failed') {
+      return (
+        <>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onViewDownload(downloadLocation, downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <BsArrowCounterclockwise size={20} />
+              <span>Retry</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onViewFolder(
+                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+                downloadFile,
+              );
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <LuFolderOpen size={20} />
+              <span>View Folder</span>
+            </span>
+          </button>
+
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowRemoveModal(downloadId, downloadLocation, controllerId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <LuTrash size={16} />
+              <span>Remove</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onShowLog(downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <IoCodeSlashSharp size={20} />
+              <span>Show Log</span>
+            </span>
+          </button>
+          {commonOptions}
+        </>
+      );
+    }
+
     if (downloadStatus === 'finished') {
       return (
         <>
@@ -849,6 +911,18 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             <span className="flex items-center space-x-2">
               <HiOutlineStopCircle size={20} />
               <span>Stop</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onShowLog(downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <IoCodeSlashSharp size={20} />
+              <span>Show Logs</span>
             </span>
           </button>
           {commonOptions}

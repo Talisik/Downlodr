@@ -1,9 +1,52 @@
 /**
- *
  * Zustand store for managing downloads in the application.
  * It provides functionalities to track the state of downloads, including those
  * that are currently downloading, finished, or in history. The store also allows
  * for managing tags and categories associated with downloads.
+ *
+ * CLEANED UP TWO-PHASE DOWNLOAD SYSTEM:
+ *
+ * The download process now follows a clear, reliable flow:
+ *
+ * 1. QUEUE MANAGEMENT:
+ *    - Downloads are queued and processed by the DownloadController
+ *    - Respects maxDownloadNum setting for concurrent downloads
+ *    - Uses Token Bucket algorithm for rate limiting
+ *
+ * 2. PHASE 1 - VIDEO DOWNLOAD (0-50%):
+ *    - downloadPhase: 'video'
+ *    - rawProgress: 0-100% (actual engine progress)
+ *    - progress: 0-50% (display progress)
+ *    - When rawProgress reaches 100%, completionCount increases to 1
+ *    - Switches to audio phase
+ *
+ * 3. PHASE 2 - AUDIO DOWNLOAD (51-100%):
+ *    - downloadPhase: 'audio'
+ *    - rawProgress: 0-100% (actual engine progress for audio)
+ *    - progress: 51-100% (display progress)
+ *    - When rawProgress reaches 100%, completionCount increases to 2
+ *    - Status changes to 'initializing' (waiting for merger)
+ *
+ * 4. PHASE 3 - MERGING & PROCESSING:
+ *    - status: 'initializing'
+ *    - progress: 100%
+ *    - Detected via log messages: "[Merger]" or "Merging formats"
+ *    - Followed by "[VideoRemuxer]" messages
+ *    - No progress updates during this phase
+ *
+ * 5. COMPLETION:
+ *    - Detected via log message: "Process 'id' exited with code: X"
+ *    - Exit code 0 = success (status: 'finished')
+ *    - Exit code != 0 = failure (status: 'failed')
+ *    - Moved to finishedDownloads and historyDownloads
+ *    - Queue processing continues
+ *
+ * KEY IMPROVEMENTS:
+ * - Reliable completion detection through log parsing
+ * - Simplified progress tracking logic
+ * - Better error handling and status management
+ * - Cleaner phase transitions
+ * - More robust queue processing
  *
  * Dependencies:
  * - Zustand: A small, fast state-management solution.
@@ -34,6 +77,7 @@ class DownloadController {
   private static instance: DownloadController;
   private isProcessing = false;
   private processingInterval: NodeJS.Timeout | undefined;
+  private stalledCheckInterval: NodeJS.Timeout | undefined;
 
   static getInstance(): DownloadController {
     if (!DownloadController.instance) {
@@ -50,6 +94,19 @@ class DownloadController {
     this.processingInterval = setInterval(() => {
       this.processNextDownload();
     }, 500); // Check every 500ms for smoother processing
+
+    // Also start the stalled download checker
+    this.startStalledChecker();
+  }
+
+  // Start the stalled download checker
+  startStalledChecker() {
+    if (this.stalledCheckInterval) return; // Already running
+
+    console.log('DownloadController: Starting stalled download checker');
+    this.stalledCheckInterval = setInterval(() => {
+      useDownloadStore.getState().checkStalledDownloads();
+    }, 30000); // Check every 30 seconds
   }
 
   // Stop the download worker
@@ -58,6 +115,18 @@ class DownloadController {
       clearInterval(this.processingInterval);
       this.processingInterval = undefined;
       console.log('DownloadController: Worker stopped');
+    }
+
+    // Don't stop the stalled checker when stopping the worker
+    // It should continue running to catch any remaining stalled downloads
+  }
+
+  // Stop the stalled checker
+  stopStalledChecker() {
+    if (this.stalledCheckInterval) {
+      clearInterval(this.stalledCheckInterval);
+      this.stalledCheckInterval = undefined;
+      console.log('DownloadController: Stalled checker stopped');
     }
   }
 
@@ -193,55 +262,8 @@ class DownloadController {
         limitRate: download.limitRate,
       },
       async (result: any) => {
-        if (result.type === 'controller' && result.controllerId) {
-          useDownloadStore.setState((state) => ({
-            downloading: state.downloading.map((d) =>
-              d.id === downloadId
-                ? { ...d, controllerId: result.controllerId }
-                : d,
-            ),
-          }));
-        }
-
-        // Handle progress data updates (only when progress data is available)
-        if (result.data && result.data.value) {
-          useDownloadStore.setState((state) => ({
-            downloading: state.downloading.map((d) =>
-              d.id === downloadId
-                ? {
-                    ...d,
-                    speed: result.data.value._speed_str || d.speed,
-                    progress:
-                      parseFloat(result.data.value._percent_str) || d.progress,
-                    timeLeft: result.data.value._eta_str || d.timeLeft,
-                    size:
-                      parseFloat(result.data.value.downloaded_bytes) || d.size,
-                    status: result.data.value.status || d.status,
-                    elapsed: result.data.value.elapsed || d.elapsed,
-                    ext: download.ext,
-                    audioExt: download.audioExt,
-                  }
-                : d,
-            ),
-          }));
-        }
-
-        // Handle log data (save ALL logs regardless of whether they have progress data)
-        if (result && result.data && result.data.log) {
-          useDownloadStore.setState((state) => ({
-            downloading: state.downloading.map((download) =>
-              download.id === downloadId
-                ? {
-                    ...download,
-                    log: download.log
-                      ? `${download.log}\n${result.data.log}`
-                      : result.data.log,
-                  }
-                : download,
-            ),
-          }));
-        }
-        store.checkFinishedDownloads();
+        // Use the optimized updateDownload method instead of inline callbacks
+        useDownloadStore.getState().updateDownload(downloadId, result);
       },
     );
 
@@ -313,6 +335,10 @@ class DownloadController {
           duration: download.duration,
           isCreateFolder: download.isCreateFolder,
           log: download.log,
+          // New fields for two-phase download tracking
+          downloadPhase: 'video',
+          completionCount: 0,
+          rawProgress: download.progress,
         },
       ],
     }));
@@ -321,6 +347,7 @@ class DownloadController {
   // Cleanup method
   cleanup() {
     this.stopWorker();
+    this.stopStalledChecker();
     this.isProcessing = false;
   }
 }
@@ -360,6 +387,10 @@ export interface BaseDownload {
   duration: number;
   isCreateFolder: boolean;
   log: string;
+  // New fields for two-phase download tracking
+  downloadPhase: 'video' | 'audio'; // Current download phase
+  completionCount: number; // Number of times reached 100%
+  rawProgress: number; // Raw progress from the download engine (0-100)
 }
 
 // Interface for downloads that are currently being processed
@@ -372,7 +403,7 @@ export interface ForDownload extends BaseDownload {
 }
 
 // Interface for downloads that are currently downloading
-interface Downloading extends BaseDownload {
+interface Downloading extends Omit<BaseDownload, 'status'> {
   status:
     | 'downloading'
     | 'finished'
@@ -426,6 +457,7 @@ export interface QueuedDownload extends BaseDownload {
   duration: number;
   isCreateFolder: boolean;
   queuedAt: string; // Timestamp when added to queue
+  // New fields are inherited from BaseDownload
 }
 
 // Main interface for the download store
@@ -528,6 +560,12 @@ interface DownloadStore {
 
   // Add cleanup method
   cleanup: () => void;
+
+  // Add method to check for stalled downloads
+  checkStalledDownloads: () => void;
+
+  // Add manual trigger for checking stalled downloads
+  manualCheckStalledDownloads: () => void;
 }
 
 const useDownloadStore = create<DownloadStore>()(
@@ -543,132 +581,117 @@ const useDownloadStore = create<DownloadStore>()(
 
       checkFinishedDownloads: async () => {
         const currentDownloads = get().downloading;
+
+        // Find downloads that are marked as finished and ready to be moved
         const finishedDownloads = currentDownloads.filter(
-          (downloading) => downloading.status === 'finished',
+          (downloading) =>
+            downloading.status === 'finished' &&
+            downloading.completionCount >= 2, // Both phases completed
         );
 
         if (finishedDownloads.length > 0) {
+          console.log(
+            `Moving ${finishedDownloads.length} finished downloads to completed status`,
+          );
+
           for (const download of finishedDownloads) {
-            // Add a delay to ensure all final logs (merger, deletion, remuxing) are captured
-            setTimeout(async () => {
+            try {
+              // Get the final file path
               const filePath = await window.downlodrFunctions.joinDownloadPath(
                 download.location,
                 download.downloadName,
               );
-              const exists = await window.downlodrFunctions.fileExists(
+
+              // Get actual file size if file exists
+              let actualSize = download.size;
+              const fileExists = await window.downlodrFunctions.fileExists(
                 filePath,
               );
 
-              // Get the current download with all accumulated logs
-              const currentState = get();
-              const currentDownload = currentState.downloading.find(
-                (d) => d.id === download.id,
-              );
-
-              // If download was already moved or doesn't exist, skip
-              if (!currentDownload) return;
-
-              if (!exists) {
-                set((state) => ({
-                  downloading: state.downloading.map((d) =>
-                    d.id === download.id ? { ...d, status: 'initializing' } : d,
-                  ),
-                }));
-
-                // check for this specific download
-                const checkInterval = setInterval(async () => {
-                  const fileExists = await window.downlodrFunctions.fileExists(
-                    filePath,
-                  );
-                  if (fileExists) {
-                    clearInterval(checkInterval);
-
-                    // Get the actual file size from the file system
-                    const actualFileSize =
-                      await window.downlodrFunctions.getFileSize(filePath);
-
-                    // Get the current download with complete logs
-                    const latestState = get();
-                    const latestDownload = latestState.downloading.find(
-                      (d) => d.id === download.id,
-                    );
-
-                    const updatedDownload = {
-                      ...latestDownload,
-                      size: actualFileSize || latestDownload.size,
-                      transcriptLocation:
-                        latestDownload.autoCaptionLocation || '',
-                      log: latestDownload.log || '',
-                    };
-
-                    set((state) => ({
-                      finishedDownloads: state.finishedDownloads.some(
-                        (fd) => fd.id === download.id,
-                      )
-                        ? state.finishedDownloads
-                        : [...state.finishedDownloads, updatedDownload],
-
-                      historyDownloads: state.historyDownloads.some(
-                        (hd) => hd.id === download.id,
-                      )
-                        ? state.historyDownloads
-                        : [...state.historyDownloads, updatedDownload],
-
-                      downloading: state.downloading.filter(
-                        (d) => d.id !== download.id,
-                      ),
-                    }));
-
-                    // Process queue after a download finishes
-                    get().processQueue();
-                  }
-                }, 1000); // Check every second
-
-                // Clear interval after 5 minutes to prevent infinite checking
-                setTimeout(() => {
-                  clearInterval(checkInterval);
-                }, 300000); // 5 minutes
-              } else {
-                // Get the actual file size from the file system
-                const actualFileSize =
-                  await window.downlodrFunctions.getFileSize(filePath);
-
-                // Get the current download with complete logs
-                const latestState = get();
-                const latestDownload = latestState.downloading.find(
-                  (d) => d.id === download.id,
+              if (fileExists) {
+                const fileSize = await window.downlodrFunctions.getFileSize(
+                  filePath,
                 );
-
-                const updatedDownload = {
-                  ...latestDownload,
-                  size: actualFileSize || latestDownload.size,
-                  transcriptLocation: latestDownload.autoCaptionLocation || '',
-                  log: latestDownload.log || '', // Preserve accumulated logs
-                };
-
-                set((state) => ({
-                  finishedDownloads: state.finishedDownloads.some(
-                    (fd) => fd.id === download.id,
-                  )
-                    ? state.finishedDownloads
-                    : [...state.finishedDownloads, updatedDownload],
-
-                  historyDownloads: state.historyDownloads.some(
-                    (hd) => hd.id === download.id,
-                  )
-                    ? state.historyDownloads
-                    : [...state.historyDownloads, updatedDownload],
-
-                  downloading: state.downloading.filter(
-                    (d) => d.id !== download.id,
-                  ),
-                }));
-
-                // Process queue after a download finishes
-                get().processQueue();
+                if (fileSize) {
+                  actualSize = fileSize;
+                }
               }
-            }, 3000); // 3 second delay to allow final logs to be captured
+
+              // Create finished download entry
+              const finishedDownload = {
+                ...download,
+                status: 'finished',
+                size: actualSize,
+                transcriptLocation: download.autoCaptionLocation || '',
+              };
+
+              // Update state: move to finished and history, remove from downloading
+              set((state) => ({
+                finishedDownloads: state.finishedDownloads.some(
+                  (fd) => fd.id === download.id,
+                )
+                  ? state.finishedDownloads
+                  : [...state.finishedDownloads, finishedDownload],
+
+                historyDownloads: state.historyDownloads.some(
+                  (hd) => hd.id === download.id,
+                )
+                  ? state.historyDownloads
+                  : [...state.historyDownloads, finishedDownload],
+
+                downloading: state.downloading.filter(
+                  (d) => d.id !== download.id,
+                ),
+              }));
+
+              console.log(
+                `Successfully moved download "${download.name}" to finished downloads`,
+              );
+            } catch (error) {
+              console.error(
+                `Error processing finished download "${download.name}":`,
+                error,
+              );
+            }
           }
+
+          // Process queue after downloads finish
+          get().processQueue();
+        }
+
+        // Handle failed downloads
+        const failedDownloads = currentDownloads.filter(
+          (downloading) => downloading.status === 'failed',
+        );
+
+        if (failedDownloads.length > 0) {
+          console.log(`Processing ${failedDownloads.length} failed downloads`);
+
+          for (const download of failedDownloads) {
+            const failedDownload = {
+              ...download,
+              status: 'failed',
+              transcriptLocation: download.autoCaptionLocation || '',
+            };
+
+            // Move failed downloads to history
+            set((state) => ({
+              historyDownloads: state.historyDownloads.some(
+                (hd) => hd.id === download.id,
+              )
+                ? state.historyDownloads
+                : [...state.historyDownloads, failedDownload],
+
+              downloading: state.downloading.filter(
+                (d) => d.id !== download.id,
+              ),
+            }));
+
+            console.log(`Moved failed download "${download.name}" to history`);
+          }
+
+          // Process queue after handling failures
+          get().processQueue();
         }
       },
 
@@ -680,52 +703,216 @@ const useDownloadStore = create<DownloadStore>()(
         }));
       },
 
-      updateDownload: (id, result) => {
-        if (!result || !result.data) return;
-
-        // Handle progress data updates (only when progress data is available)
-        if (result.data.value) {
-          set((state) => ({
-            downloading: state.downloading.map((downloading) =>
-              downloading.id === id
-                ? {
-                    ...downloading,
-                    speed: result.data.value._speed_str || downloading.speed,
-                    progress:
-                      parseFloat(result.data.value._percent_str) ||
-                      downloading.progress,
-                    timeLeft:
-                      result.data.value._eta_str || downloading.timeLeft,
-                    size:
-                      parseFloat(result.data.value.total_bytes) ||
-                      downloading.size,
-                    status: result.data.value.status || downloading.status,
-                    elapsed: result.data.value.elapsed || downloading.elapsed,
-                    controllerId:
-                      result.controllerId ?? downloading.controllerId,
-                  }
-                : downloading,
-            ),
-          }));
+      updateDownload: (id: string, result: any) => {
+        // Early return if no meaningful data to update
+        if (!result) {
+          return;
         }
 
-        // Handle log data (save ALL logs regardless of whether they have progress data)
-        if (result.data.log) {
+        // Handle controller ID assignment
+        if (result.type === 'controller' && result.controllerId) {
           set((state) => ({
             downloading: state.downloading.map((download) =>
               download.id === id
-                ? {
-                    ...download,
-                    log: download.log
-                      ? `${download.log}\n${result.data.log}`
-                      : result.data.log,
-                  }
+                ? { ...download, controllerId: result.controllerId }
                 : download,
             ),
           }));
+          return;
         }
 
-        get().checkFinishedDownloads();
+        // Handle process completion messages from main process
+        if (result.type === 'completion') {
+          const completionMessage = result.data.log;
+          const completeLog = result.data.completeLog || completionMessage;
+          const exitCode = result.data.exitCode || 0;
+
+          set((state) => ({
+            downloading: state.downloading.map((downloading) => {
+              if (downloading.id !== id) return downloading;
+
+              // Don't override paused status with completion messages
+              if ((downloading.status as any) === 'paused') {
+                return {
+                  ...downloading,
+                  log: completeLog, // Still update log for debugging
+                };
+              }
+
+              const updates: Partial<typeof downloading> = {
+                log: completeLog, // Use complete log directly
+                completionCount: Math.max(2, downloading.completionCount), // Ensure completion
+                progress: 100,
+              };
+
+              if (exitCode === 0) {
+                updates.status = 'finished';
+                console.log(
+                  `✅ Download "${downloading.name}" completed successfully`,
+                );
+              } else {
+                updates.status = 'failed';
+                console.log(
+                  `❌ Download "${downloading.name}" failed with exit code ${exitCode}`,
+                );
+                console.log(
+                  `🔒 Setting status to 'failed' for download ID: ${downloading.id}`,
+                );
+              }
+
+              return { ...downloading, ...updates };
+            }),
+          }));
+
+          // Trigger finished downloads check
+          setTimeout(() => {
+            get().checkFinishedDownloads();
+          }, 100);
+          return;
+        }
+
+        // Process regular download updates (progress, logs, etc.)
+        if (result.data) {
+          set((state) => ({
+            downloading: state.downloading.map((downloading) => {
+              if (downloading.id !== id) return downloading;
+
+              // CRITICAL FIX: Don't process progress updates for paused, failed, or finished downloads
+              if (
+                (downloading.status as any) === 'paused' ||
+                (downloading.status as any) === 'failed' ||
+                (downloading.status as any) === 'finished'
+              ) {
+                const updates: Partial<typeof downloading> = {};
+
+                // Still update log for debugging purposes, but don't change progress or status
+                if (result.completeLog) {
+                  updates.log = result.completeLog;
+                }
+
+                // Debug logging to track race condition protection
+                if ((downloading.status as any) === 'failed') {
+                  console.log(
+                    `🛡️ Protecting 'failed' status for download "${downloading.name}" (ID: ${downloading.id})`,
+                  );
+                }
+
+                return Object.keys(updates).length > 0
+                  ? { ...downloading, ...updates }
+                  : downloading;
+              }
+
+              const updates: Partial<typeof downloading> = {};
+
+              // Use complete log if available
+              if (result.completeLog) {
+                updates.log = result.completeLog;
+              }
+
+              // Handle progress data updates
+              if (result.data.value) {
+                const value = result.data.value;
+
+                // Update basic download info
+                if (value._speed_str) updates.speed = value._speed_str;
+                if (value._eta_str) updates.timeLeft = value._eta_str;
+                if (value.elapsed) updates.elapsed = value.elapsed;
+
+                // Update size information
+                if (value.downloaded_bytes) {
+                  updates.size =
+                    parseFloat(value.downloaded_bytes) || downloading.size;
+                }
+                if (value.total_bytes) {
+                  updates.size =
+                    parseFloat(value.total_bytes) || downloading.size;
+                }
+
+                // Handle two-phase progress system
+                if (value._percent_str) {
+                  const rawProgress = parseFloat(value._percent_str) || 0;
+                  updates.rawProgress = rawProgress;
+
+                  // Detect phase completion (when progress reaches 100%)
+                  if (rawProgress >= 100 && downloading.rawProgress < 100) {
+                    const newCompletionCount = downloading.completionCount + 1;
+                    updates.completionCount = newCompletionCount;
+
+                    // Phase 1 complete (Video) - Switch to audio phase
+                    if (newCompletionCount === 1) {
+                      updates.downloadPhase = 'audio';
+                      updates.progress = 50; // Video phase complete, now at 50%
+                    }
+                    // Phase 2 complete (Audio) - Both phases done
+                    else if (newCompletionCount === 2) {
+                      updates.progress = 100;
+                      updates.status = 'initializing'; // Waiting for merger
+                    }
+                  } else {
+                    // Calculate display progress based on current phase
+                    if (downloading.downloadPhase === 'video') {
+                      // Video phase: 0-50%
+                      updates.progress = Math.min(50, (rawProgress / 100) * 50);
+                    } else if (downloading.downloadPhase === 'audio') {
+                      // Audio phase: 51-100%
+                      updates.progress =
+                        50 + Math.min(50, (rawProgress / 100) * 50);
+                    }
+                  }
+                }
+
+                // Handle status updates - ENHANCED to protect paused status
+                if (value.status) {
+                  // CRITICAL FIX: Never override paused status with other updates
+                  if ((downloading.status as any) === 'paused') {
+                    // Keep paused status, don't update it from progress updates
+                    console.log(
+                      `Preserving paused status for download "${downloading.name}"`,
+                    );
+                  } else {
+                    // Don't override finished status if we already detected completion
+                    if (
+                      value.status === 'finished' &&
+                      downloading.completionCount < 2
+                    ) {
+                      // Keep downloading status until both phases complete
+                      updates.status = 'downloading';
+                    } else if (
+                      value.status === 'finished' &&
+                      downloading.completionCount >= 2
+                    ) {
+                      // Both phases complete, wait for merger
+                      updates.status = 'initializing';
+                    } else if (value.status !== 'finished') {
+                      // Only update status if it's not a 'finished' status that might conflict
+                      updates.status = value.status;
+                    }
+                  }
+                }
+              }
+
+              // Detect merger and remuxer phases from complete log
+              if (updates.log && (downloading.status as any) !== 'paused') {
+                if (
+                  updates.log.includes('[Merger]') ||
+                  updates.log.includes('Merging formats')
+                ) {
+                  updates.status = 'initializing';
+                  updates.progress = 100;
+                }
+
+                if (updates.log.includes('[VideoRemuxer]')) {
+                  updates.status = 'initializing';
+                }
+              }
+
+              // Return updated download object
+              return Object.keys(updates).length > 0
+                ? { ...downloading, ...updates }
+                : downloading;
+            }),
+          }));
+        }
       },
 
       addDownload: async (
@@ -818,60 +1005,8 @@ const useDownloadStore = create<DownloadStore>()(
             limitRate: limitRate,
           },
           async (result: any) => {
-            // Handle controller ID assignment
-            if (result.type === 'controller' && result.controllerId) {
-              set((state) => ({
-                downloading: state.downloading.map((download) =>
-                  download.id === downloadId
-                    ? { ...download, controllerId: result.controllerId }
-                    : download,
-                ),
-              }));
-            }
-
-            // Handle progress data updates (only when progress data is available)
-            if (result.data && result.data.value) {
-              set((state) => ({
-                downloading: state.downloading.map((download) =>
-                  download.id === downloadId
-                    ? {
-                        ...download,
-                        speed: result.data.value._speed_str || download.speed,
-                        progress:
-                          parseFloat(result.data.value._percent_str) ||
-                          download.progress,
-                        timeLeft:
-                          result.data.value._eta_str || download.timeLeft,
-                        size:
-                          parseFloat(result.data.value.downloaded_bytes) ||
-                          download.size,
-                        status: result.data.value.status || download.status,
-                        elapsed: result.data.value.elapsed || download.elapsed,
-                        ext: ext,
-                        audioExt: audioExt,
-                      }
-                    : download,
-                ),
-              }));
-            }
-
-            // Handle log data (save ALL logs regardless of whether they have progress data)
-            if (result && result.data && result.data.log) {
-              set((state) => ({
-                downloading: state.downloading.map((download) =>
-                  download.id === downloadId
-                    ? {
-                        ...download,
-                        log: download.log
-                          ? `${download.log}\n${result.data.log}`
-                          : result.data.log,
-                      }
-                    : download,
-                ),
-              }));
-            }
-
-            get().checkFinishedDownloads();
+            // Use the optimized updateDownload method instead of inline callbacks
+            useDownloadStore.getState().updateDownload(downloadId, result);
           },
         );
         let captionsPath = '';
@@ -947,6 +1082,10 @@ const useDownloadStore = create<DownloadStore>()(
               duration: duration,
               isCreateFolder: isCreateFolder,
               log: '',
+              // New fields for two-phase download tracking
+              downloadPhase: 'video',
+              completionCount: 0,
+              rawProgress: progress,
             },
           ],
         }));
@@ -1006,6 +1145,10 @@ const useDownloadStore = create<DownloadStore>()(
               duration: 0,
               isCreateFolder: null,
               log: '',
+              // New fields for two-phase download tracking
+              downloadPhase: 'video',
+              completionCount: 0,
+              rawProgress: 0,
             },
           ],
         }));
@@ -1016,12 +1159,35 @@ const useDownloadStore = create<DownloadStore>()(
 
           // Only set caption if transcript is requested
           let caption = '—';
-          if (
-            options.getTranscript &&
-            (info.data?.subtitles?.en || info.data?.automatic_captions?.en)
-          ) {
-            caption =
-              info.data?.subtitles?.en || info.data?.automatic_captions?.en;
+          if (options.getTranscript) {
+            const subtitles = info.data?.subtitles;
+            const automaticCaptions = info.data?.automatic_captions;
+
+            // Get first available language from subtitles (excluding live_chat)
+            if (subtitles) {
+              const availableLanguages = Object.keys(subtitles).filter(
+                (lang) => lang !== 'live_chat',
+              );
+              if (availableLanguages.length > 0) {
+                caption = subtitles[availableLanguages[0]];
+              }
+            }
+
+            // If no manual subtitles, try automatic captions
+            if (caption === '—' && automaticCaptions) {
+              const availableLanguages = Object.keys(automaticCaptions);
+
+              // First, try to find original language captions (containing "orig")
+              const originalLanguage = availableLanguages.find((lang) =>
+                lang.includes('orig'),
+              );
+              if (originalLanguage) {
+                caption = automaticCaptions[originalLanguage];
+              } else if (availableLanguages.length > 0) {
+                // Fall back to first available language if no original found
+                caption = automaticCaptions[availableLanguages[0]];
+              }
+            }
           }
 
           // Only set thumbnail if thumbnail is requested
@@ -1068,6 +1234,10 @@ const useDownloadStore = create<DownloadStore>()(
                     getTranscript: options.getTranscript,
                     getThumbnail: options.getThumbnail,
                     duration: info.data?.duration,
+                    // New fields for two-phase download tracking
+                    downloadPhase: 'video',
+                    completionCount: 0,
+                    rawProgress: 0,
                   }
                 : download,
             ),
@@ -1445,6 +1615,10 @@ const useDownloadStore = create<DownloadStore>()(
               thumnailsLocation: '',
               controllerId: undefined,
               log: '',
+              // New fields for two-phase download tracking
+              downloadPhase: 'video',
+              completionCount: 0,
+              rawProgress: 0,
             },
           ],
         }));
@@ -1521,6 +1695,107 @@ const useDownloadStore = create<DownloadStore>()(
         downloadController.cleanup();
       },
 
+      // Add method to check for stalled downloads
+      checkStalledDownloads: async () => {
+        const currentDownloads = get().downloading;
+
+        // Find downloads that might be stalled:
+        // - Status is 'initializing' for too long (merger/remuxer phase taking too long)
+        // - Or downloads stuck in downloading state with both phases complete
+        const potentialStalledDownloads = currentDownloads.filter(
+          (download) => {
+            // Check for downloads stuck in initializing state
+            if (
+              download.status === 'initializing' &&
+              download.completionCount >= 2
+            ) {
+              return true;
+            }
+
+            // Check for downloads that completed both phases but still in downloading state
+            if (
+              download.status === 'downloading' &&
+              download.completionCount >= 2
+            ) {
+              return true;
+            }
+
+            return false;
+          },
+        );
+
+        if (potentialStalledDownloads.length === 0) {
+          console.log('No stalled downloads detected');
+          return;
+        }
+
+        console.log(
+          `Checking ${potentialStalledDownloads.length} potentially stalled downloads...`,
+        );
+
+        for (const download of potentialStalledDownloads) {
+          try {
+            const filePath = await window.downlodrFunctions.joinDownloadPath(
+              download.location,
+              download.downloadName,
+            );
+            const fileExists = await window.downlodrFunctions.fileExists(
+              filePath,
+            );
+
+            if (fileExists) {
+              console.log(
+                `Found stalled download: "${download.name}" - file exists but download not completed. Fixing...`,
+              );
+
+              // Get file size to update the download
+              const actualFileSize = await window.downlodrFunctions.getFileSize(
+                filePath,
+              );
+
+              // Mark as fully completed
+              set((state) => ({
+                downloading: state.downloading.map((d) =>
+                  d.id === download.id
+                    ? {
+                        ...d,
+                        completionCount: 2,
+                        progress: 100,
+                        status: 'finished',
+                        size: actualFileSize || d.size,
+                      }
+                    : d,
+                ),
+              }));
+
+              console.log(
+                `Successfully marked "${download.name}" as completed`,
+              );
+
+              // Trigger finished downloads check for this specific download
+              setTimeout(() => {
+                get().checkFinishedDownloads();
+              }, 100);
+            } else {
+              console.log(
+                `Download "${download.name}" appears stalled but file doesn't exist yet. Keeping current state.`,
+              );
+            }
+          } catch (error) {
+            console.error(
+              `Error checking stalled download "${download.name}":`,
+              error,
+            );
+          }
+        }
+      },
+
+      // Add manual trigger for checking stalled downloads
+      manualCheckStalledDownloads: () => {
+        console.log('Manually checking for stalled downloads...');
+        get().checkStalledDownloads();
+      },
+
       //End of store
     }),
     {
@@ -1539,6 +1814,82 @@ const useDownloadStore = create<DownloadStore>()(
 
 export default useDownloadStore;
 
+// ========================
+// PERFORMANCE OPTIMIZATION UTILITIES
+// ========================
+
+// Memoized selectors to prevent unnecessary re-renders
+export const useDownloadingSelectors = {
+  // Get only downloading items
+  downloading: () => useDownloadStore((state) => state.downloading),
+
+  // Get downloading count without full array
+  downloadingCount: () => useDownloadStore((state) => state.downloading.length),
+
+  // Get specific download by ID (most efficient)
+  downloadById: (id: string) =>
+    useDownloadStore((state) => state.downloading.find((d) => d.id === id)),
+
+  // Get only progress data for UI updates (minimal re-renders) - updated with phase info
+  downloadProgress: (id: string) =>
+    useDownloadStore((state) => {
+      const download = state.downloading.find((d) => d.id === id);
+      return download
+        ? {
+            id: download.id,
+            progress: download.progress,
+            rawProgress: download.rawProgress,
+            speed: download.speed,
+            timeLeft: download.timeLeft,
+            status: download.status,
+            downloadPhase: download.downloadPhase,
+            completionCount: download.completionCount,
+          }
+        : null;
+    }),
+
+  // Get only essential UI data - updated with phase info
+  downloadingEssentials: () =>
+    useDownloadStore((state) =>
+      state.downloading.map((d) => ({
+        id: d.id,
+        name: d.name,
+        progress: d.progress,
+        rawProgress: d.rawProgress,
+        speed: d.speed,
+        status: d.status,
+        timeLeft: d.timeLeft,
+        downloadPhase: d.downloadPhase,
+        completionCount: d.completionCount,
+      })),
+    ),
+};
+
+// Performance monitoring utility
+export const PerformanceMonitor = {
+  updateCount: 0,
+  lastUpdateTime: 0,
+
+  trackUpdate() {
+    this.updateCount++;
+    this.lastUpdateTime = Date.now();
+  },
+
+  getStats() {
+    return {
+      totalUpdates: this.updateCount,
+      lastUpdate: this.lastUpdateTime,
+      updatesPerSecond:
+        this.updateCount / ((Date.now() - this.lastUpdateTime) / 1000),
+    };
+  },
+
+  reset() {
+    this.updateCount = 0;
+    this.lastUpdateTime = Date.now();
+  },
+};
+
 // Add to your utilities or directly in the component that displays elapsed time
 export function formatElapsedTime(elapsedSeconds: number | undefined): string {
   if (!elapsedSeconds || elapsedSeconds < 60) {
@@ -1556,4 +1907,61 @@ export function formatElapsedTime(elapsedSeconds: number | undefined): string {
   } else {
     return `${minutes}m ${Math.floor(elapsedSeconds % 60)}s`;
   }
+}
+
+// Utility function to get progress phase information
+export function getProgressPhaseInfo(download: {
+  downloadPhase: 'video' | 'audio';
+  completionCount: number;
+  progress: number;
+  status: string;
+}): {
+  phaseLabel: string;
+  phaseProgress: number;
+  overallProgress: number;
+  isComplete: boolean;
+} {
+  const { downloadPhase, completionCount, progress, status } = download;
+
+  let phaseLabel: string;
+  let phaseProgress: number;
+  let overallProgress: number;
+  let isComplete = false;
+
+  // Handle special states
+  if (status === 'initializing') {
+    phaseLabel = 'Merging & Processing';
+    phaseProgress = 100;
+    overallProgress = 100;
+    isComplete = completionCount >= 2;
+  } else if (status === 'finished') {
+    phaseLabel = 'Complete';
+    phaseProgress = 100;
+    overallProgress = 100;
+    isComplete = true;
+  } else if (status === 'failed') {
+    phaseLabel = 'Failed';
+    phaseProgress = 0;
+    overallProgress = progress;
+    isComplete = false;
+  } else {
+    // Normal download phases
+    if (downloadPhase === 'video') {
+      phaseLabel = 'Downloading Video';
+      phaseProgress = progress <= 50 ? (progress / 50) * 100 : 100;
+    } else {
+      phaseLabel = 'Downloading Audio';
+      phaseProgress = progress > 50 ? ((progress - 50) / 50) * 100 : 0;
+    }
+
+    overallProgress = progress;
+    isComplete = completionCount >= 2;
+  }
+
+  return {
+    phaseLabel,
+    phaseProgress: Math.max(0, Math.min(100, phaseProgress)),
+    overallProgress,
+    isComplete,
+  };
 }
