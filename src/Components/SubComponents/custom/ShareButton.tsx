@@ -151,12 +151,22 @@ const ShareButton = ({
       return;
     }
 
-    navigator.clipboard.writeText(shareableLink).then(() => {
-      toast({
-        title: 'Link Copied',
-        description: 'Link has been copied to clipboard.',
+    navigator.clipboard
+      .writeText(shareableLink)
+      .then(() => {
+        toast({
+          title: 'Link Copied',
+          description: 'Link has been copied to clipboard.',
+        });
+      })
+      .catch((error) => {
+        console.error('Failed to copy to clipboard:', error);
+        toast({
+          title: 'Copy Failed',
+          description: 'Could not copy link to clipboard. Please try again.',
+          variant: 'destructive',
+        });
       });
-    });
   };
 
   const handleEmailShare = async () => {
