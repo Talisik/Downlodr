@@ -36,6 +36,7 @@ import RemoveModal from '../Components/SubComponents/custom/RemoveModal';
 import RenameModal from '../Components/SubComponents/custom/RenameModal';
 import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
 import { useResizableColumns } from '../Components/SubComponents/custom/ResizableColumns/useResizableColumns';
+import ShareButton from '../Components/SubComponents/custom/ShareButton';
 import StopModal from '../Components/SubComponents/custom/StopModal';
 import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
@@ -224,6 +225,7 @@ const StatusSpecificDownloads = () => {
       { id: 'transcript', width: 20, minWidth: 20 },
       { id: 'thumbnail', width: 10, minWidth: 10 },
       { id: 'source', width: 20, minWidth: 20 },
+      { id: 'action', width: 10, minWidth: 10 },
     ],
     visibleColumns,
   );
@@ -562,6 +564,7 @@ const StatusSpecificDownloads = () => {
       thumbnail: 'Thumbnail',
       transcript: 'Captions',
       source: 'Source',
+      action: 'Action',
     };
 
     return columnMappings[columnId] || columnId;
@@ -579,6 +582,7 @@ const StatusSpecificDownloads = () => {
       { id: 'source', label: 'Source', required: false },
       { id: 'transcript', label: 'Closed Captions', required: false },
       { id: 'thumbnail', label: 'Thumbnail', required: false },
+      { id: 'action', label: 'Action', required: false },
     ],
     [],
   );
@@ -1224,9 +1228,6 @@ const StatusSpecificDownloads = () => {
   );
 
   const handleViewFolder = (downloadLocation?: string, filePath?: string) => {
-    console.log('HII FROM FOLDER', downloadLocation);
-    console.log('HII FROM FOLDER', filePath);
-
     if (downloadLocation) {
       // Check if the location contains a comma (indicating old format)
       if (downloadLocation.includes(',') && !filePath) {
@@ -1759,7 +1760,7 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200"
+                              className="dark:text-gray-200 outline-1"
                             >
                               {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1 flex justify-center items-center">
@@ -1771,10 +1772,7 @@ const StatusSpecificDownloads = () => {
                                   <span>—</span>
                                 </div>
                               ) : download.autoCaptionLocation === undefined ? (
-                                <span
-                                  className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center
-"
-                                >
+                                <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center w-full">
                                   Not available
                                 </span>
                               ) : (
@@ -1784,7 +1782,7 @@ const StatusSpecificDownloads = () => {
                                       download.autoCaptionLocation,
                                     )
                                   }
-                                  className="text-availableStatus hover:underline ml-2 flex justify-center items-center hover:text-green-400 transition-colors duration-200 w-full"
+                                  className="text-availableStatus hover:underline flex justify-center items-center hover:text-green-400 transition-colors duration-200 w-full"
                                 >
                                   Available
                                 </button>
@@ -1819,6 +1817,25 @@ const StatusSpecificDownloads = () => {
                                   </a>{' '}
                                 </div>
                               )}
+                            </td>
+                          );
+                        case 'action':
+                          return (
+                            <td
+                              key={column.id}
+                              style={{ width: column.width }}
+                              className="p-2 dark:text-gray-200 text-center"
+                            >
+                              <ShareButton
+                                videoUrl={download.videoUrl}
+                                name={download.name}
+                                status={download.status}
+                                thumbnailLocation={
+                                  thumbnailDataUrls[download.id]
+                                }
+                                format={download.ext || download.audioExt}
+                                size={download.size}
+                              />
                             </td>
                           );
                         default:
