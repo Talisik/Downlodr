@@ -84,16 +84,65 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, downloadId }) => {
     try {
       const logContent =
         specificDownload?.log || 'No logs available for this download.';
-      await navigator.clipboard.writeText(logContent);
+
+      // Prepare metadata to append
+      const downloadName = specificDownload?.name || 'Unknown Download';
+      const videoUrl = specificDownload?.videoUrl || 'Unknown URL';
+      const formatInfo =
+        specificDownload?.formatId && specificDownload.formatId.trim() !== ''
+          ? `${specificDownload.formatId} ${specificDownload?.ext || ''}`
+          : specificDownload?.audioFormatId &&
+            specificDownload.audioFormatId.trim() !== ''
+          ? `${specificDownload.audioFormatId} ${
+              specificDownload?.audioExt || ''
+            }`
+          : 'Unknown format';
+
+      // Combine metadata and logs
+      const fullContent = `Download Information:
+Name: ${downloadName}
+URL: ${videoUrl}
+Format: ${formatInfo}
+Status: ${specificDownload?.status || 'Unknown'}
+
+=== LOGS ===
+${logContent}`;
+
+      await navigator.clipboard.writeText(fullContent);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000); // Reset after 2 seconds
     } catch (err) {
       console.error('Failed to copy logs to clipboard:', err);
       // Fallback for older browsers
       try {
-        const textArea = document.createElement('textarea');
-        textArea.value =
+        const logContent =
           specificDownload?.log || 'No logs available for this download.';
+
+        // Prepare metadata to append (same as above)
+        const downloadName = specificDownload?.name || 'Unknown Download';
+        const videoUrl = specificDownload?.videoUrl || 'Unknown URL';
+        const formatInfo =
+          specificDownload?.formatId && specificDownload.formatId.trim() !== ''
+            ? `${specificDownload.formatId} ${specificDownload?.ext || ''}`
+            : specificDownload?.audioFormatId &&
+              specificDownload.audioFormatId.trim() !== ''
+            ? `${specificDownload.audioFormatId} ${
+                specificDownload?.audioExt || ''
+              }`
+            : 'Unknown format';
+
+        // Combine metadata and logs
+        const fullContent = `Download Information:
+Name: ${downloadName}
+URL: ${videoUrl}
+Format: ${formatInfo}
+Status: ${specificDownload?.status || 'Unknown'}
+
+=== LOGS ===
+${logContent}`;
+
+        const textArea = document.createElement('textarea');
+        textArea.value = fullContent;
         document.body.appendChild(textArea);
         textArea.select();
         document.execCommand('copy');
@@ -131,13 +180,25 @@ const LogModal: React.FC<LogModalProps> = ({ isOpen, onClose, downloadId }) => {
         {/* Header */}
         <div className="mb-4 flex-shrink-0">
           <h2 className="text-lg font-semibold dark:text-gray-200">
-            Download Logs
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 truncate">
             {specificDownload?.name || 'Unknown Download'}
-          </p>
+          </h2>
           <p className="text-xs text-gray-500 dark:text-gray-500">
             Status: {specificDownload?.status || 'Unknown'}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-500">
+            Format:{' '}
+            {specificDownload?.formatId &&
+            specificDownload.formatId.trim() !== ''
+              ? `${specificDownload.formatId} ${specificDownload?.ext || ''}`
+              : specificDownload?.audioFormatId &&
+                specificDownload.audioFormatId.trim() !== ''
+              ? `${specificDownload.audioFormatId} ${
+                  specificDownload?.audioExt || ''
+                }`
+              : 'Unknown'}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-500">
+            Status: {specificDownload?.videoUrl || 'Unknown'}
           </p>
         </div>
 

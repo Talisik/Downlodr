@@ -28,6 +28,23 @@ const ClipboardLinkDetector: React.FC = () => {
   const RATE_LIMIT_MS = 1000;
   const MAX_CLIPBOARD_LENGTH = 10000;
 
+  // Window focus state tracking
+  const [isWindowFocused, setIsWindowFocused] = useState<boolean>(true);
+
+  // Initial focus check only - no polling needed since we have events
+  const initializeWindowFocus = useCallback(async () => {
+    if (window.appControl?.isWindowFocused) {
+      try {
+        const focused = await window.appControl.isWindowFocused();
+        setIsWindowFocused(focused);
+        console.log('Initial window focus state:', focused);
+      } catch (error) {
+        console.debug('Error checking initial window focus:', error);
+        setIsWindowFocused(true); // Default to focused to be safe
+      }
+    }
+  }, []);
+
   // Unified clipboard processing function
   const processClipboard = useCallback(
     async (clipboardText: string, source: string) => {
@@ -39,6 +56,15 @@ const ClipboardLinkDetector: React.FC = () => {
         isProcessing.current ||
         isDownloadModalOpen // Don't process when download modal is open
       ) {
+        return;
+      }
+
+      // Check if window is focused (for backup methods only - main process already handles this)
+      // Use cached state instead of IPC call for efficiency
+      if (source !== 'polling' && isWindowFocused) {
+        console.log(
+          `Skipping clipboard processing from ${source} - window is focused`,
+        );
         return;
       }
 
@@ -54,6 +80,12 @@ const ClipboardLinkDetector: React.FC = () => {
       try {
         const url = extractUrlFromText(clipboardText);
         if (url) {
+          // Ignore URLs that start with https://go.downlodr.com/
+          if (url.startsWith('https://go.downlodr.com/')) {
+            console.log(`Ignoring internal downlodr link: ${url}`);
+            return;
+          }
+
           console.log(`Link detected from ${source}:`, url);
 
           // Trigger download
@@ -90,6 +122,7 @@ const ClipboardLinkDetector: React.FC = () => {
       downloadFolder,
       maxDownload,
       toast,
+      isWindowFocused, // Use cached state instead of function
     ],
   );
 
@@ -154,9 +187,39 @@ const ClipboardLinkDetector: React.FC = () => {
       document.addEventListener('copy', handleCopyEvent);
       document.addEventListener('keydown', handleKeyDown);
 
+      // Add focus/blur event listeners to track window focus state
+      const handleFocus = () => {
+        setIsWindowFocused(true);
+        console.log('Window focused - backup clipboard methods paused');
+      };
+
+      const handleBlur = () => {
+        setIsWindowFocused(false);
+        console.log('Window blurred - backup clipboard methods resumed');
+      };
+
+      window.addEventListener('focus', handleFocus);
+      window.addEventListener('blur', handleBlur);
+
+      // Initial focus check only (no polling needed with events)
+      initializeWindowFocus();
+
       console.log(
         'Clipboard monitoring active (paused when window is focused)',
       );
+
+      // Cleanup function
+      return () => {
+        window.appControl?.offClipboardChange?.();
+        document.removeEventListener('copy', handleCopyEvent);
+        document.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('focus', handleFocus);
+        window.removeEventListener('blur', handleBlur);
+        // Only clear on unmount if not in modal state
+        if (!isDownloadModalOpen) {
+          clearClipboardSafely('unmount');
+        }
+      };
     } else {
       console.log('Disabling clipboard monitoring...');
 
