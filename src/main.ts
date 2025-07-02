@@ -1555,7 +1555,6 @@ ipcMain.handle('plugin:fs:readFile', async (event, options) => {
 ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
   try {
     const { filePath, pluginId } = options;
-    console.log('got this', options);
     // Security check: Make sure we're not reading outside allowed directories
     // Get the plugin's data directory as a safe base path
     const pluginDataDir = path.join(
@@ -1570,7 +1569,6 @@ ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
     if (typeof filePath === 'string') {
       // Replace any escaped backslashes (\\) with single backslashes (\)
       adjustedPath = filePath.replace(/\\\\/g, '\\');
-      console.log('Normalized file path:', adjustedPath);
     }
 
     const normalizedPath = path.normalize(adjustedPath);
@@ -1583,7 +1581,6 @@ ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
     console.log('path given to read:', resolvedPath);
 
     const fileContents = await fs.promises.readFile(resolvedPath, 'utf8');
-    console.log(fileContents);
     return { success: true, data: fileContents };
   } catch (error) {
     console.error('Error reading file contents:', error);

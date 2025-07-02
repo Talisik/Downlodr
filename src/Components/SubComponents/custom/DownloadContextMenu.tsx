@@ -68,6 +68,7 @@ interface DownloadContextMenuProps {
     controllerId?: string,
     downloadStatus?: string,
   ) => void; // Function to pause the download'
+  onRetry: (downloadId: string) => void; // Function to retry the download
   onShowLog: (downloadId: string) => void; // Function to show the log of the download
   onStop: (
     id: string,
@@ -384,6 +385,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   downloadFile,
   onClose,
   onPause,
+  onRetry,
   onShowLog,
   // onStop,
   // onForceStart,
@@ -709,7 +711,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewDownload(downloadLocation, downloadId);
+              onRetry(downloadId);
               onClose();
             }}
           >

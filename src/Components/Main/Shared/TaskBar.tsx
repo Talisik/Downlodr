@@ -760,7 +760,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                 'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
                 hasForDownloadStatus
                   ? 'dark:text-gray-100'
-                  : 'cursor-not-allowed text-gray-800 text-gray-400 dark:text-gray-400',
+                  : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
               )}
               onClick={handlePlaySelected}
               disabled={!hasForDownloadStatus}
@@ -776,7 +776,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                 'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
                 hasActiveDownloadStatus
                   ? 'dark:text-gray-100'
-                  : 'cursor-not-allowed text-gray-800 text-gray-400 dark:text-gray-400',
+                  : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
               )}
               onClick={handleStopSelected}
               disabled={!hasActiveDownloadStatus}
@@ -791,7 +791,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                 'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
                 hasDownloadingStatus
                   ? 'dark:text-gray-100'
-                  : 'cursor-not-allowed text-gray-800 text-gray-400 dark:text-gray-400',
+                  : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
               )}
               onClick={() => handleStopAll()}
               disabled={!hasDownloadingStatus}
