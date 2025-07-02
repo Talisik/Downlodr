@@ -862,6 +862,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             </span>
           </button>
           {commonOptions}
+          {renderPluginMenuItems()}
         </>
       );
     }
@@ -1280,7 +1281,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         }}
       >
         {renderMenuOptions()}
-        {renderPluginMenuItems()}
       </div>
 
       {/* Render submenus outside of main menu container */}

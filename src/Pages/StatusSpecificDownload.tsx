@@ -889,7 +889,7 @@ const StatusSpecificDownloads = () => {
             toast({
               variant: 'destructive',
               title: 'File Not Found',
-              description: `The file does not exist at the specified location WHAAS ${downloadId}`,
+              description: `The file does not exist at the specified location`,
               duration: 3000,
             });
           }
@@ -1269,21 +1269,49 @@ const StatusSpecificDownloads = () => {
     [allDownloads],
   );
 
-  const handleViewFolder = (downloadLocation?: string, filePath?: string) => {
+  const handleViewFolder = async (
+    downloadLocation?: string,
+    filePath?: string,
+  ) => {
     if (downloadLocation) {
-      // Check if the location contains a comma (indicating old format)
       if (downloadLocation.includes(',') && !filePath) {
         const [folderPath, filePathFromString] = downloadLocation.split(',');
-        window.downlodrFunctions.openFolder(folderPath, filePathFromString);
+        const success = await window.downlodrFunctions.openFolder(
+          folderPath,
+          filePathFromString,
+        );
+        // Check if the location contains a comma (indicating old format)
+        const exists = await window.downlodrFunctions.fileExists(folderPath);
+        console.log('success', exists);
+        if (!exists) {
+          toast({
+            variant: 'destructive',
+            title: 'Missing Folder',
+            description: 'The folder does not exist in the given location',
+            duration: 3000,
+          });
+        }
       } else {
         // Normal case with separate parameters
-        window.downlodrFunctions.openFolder(downloadLocation, filePath);
+        const success = await window.downlodrFunctions.openFolder(
+          downloadLocation,
+          filePath,
+        );
+        console.log('success', success);
+        if (!success) {
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to view folder',
+            duration: 3000,
+          });
+        }
       }
     } else {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to pause/resume download',
+        description: 'Failed to view folder',
         duration: 3000,
       });
     }
