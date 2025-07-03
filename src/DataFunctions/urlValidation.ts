@@ -13,6 +13,20 @@ import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
  * @returns 'playlist' | 'video' | 'invalid' - The type of YouTube link
  */
 // URL validation with playlist check
+
+export const cleanRawLink = (url: string): string => {
+  const rawPattern = /^https:\/\/youtu\.be\/[\w-]+(?:\?.*)?$/;
+  if (rawPattern.test(url)) {
+    // Extract video ID from youtu.be URL (everything after the slash, before any query params)
+    const videoIdMatch = url.match(/youtu\.be\/([\w-]+)/);
+    if (videoIdMatch) {
+      const videoId = videoIdMatch[1];
+      return `https://youtube.com/watch?v=${videoId}`;
+    }
+  }
+  return url;
+};
+
 export const isYouTubeLink = (
   url: string,
 ): 'playlist' | 'video' | 'invalid' => {
