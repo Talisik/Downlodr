@@ -161,10 +161,6 @@ class DownloadController {
     // Get the next download from queue (FIFO)
     const nextDownload = queuedDownloads[0];
 
-    console.log(
-      `DownloadController: Processing "${nextDownload.name}" (Active: ${currentActiveDownloads}/${maxConcurrentDownloads})`,
-    );
-
     this.isProcessing = true;
 
     try {
@@ -196,7 +192,7 @@ class DownloadController {
 
   // Direct download start (bypasses queue checks)
   private async startDownloadDirectly(download: QueuedDownload) {
-    const store = useDownloadStore.getState();
+    // const store = useDownloadStore.getState();
 
     // Replicate the addDownload logic without queue checks
     if (!download.location || !download.downloadName) {
@@ -590,10 +586,6 @@ const useDownloadStore = create<DownloadStore>()(
         );
 
         if (finishedDownloads.length > 0) {
-          console.log(
-            `Moving ${finishedDownloads.length} finished downloads to completed status`,
-          );
-
           for (const download of finishedDownloads) {
             try {
               // Get the final file path
@@ -665,8 +657,6 @@ const useDownloadStore = create<DownloadStore>()(
         );
 
         if (failedDownloads.length > 0) {
-          console.log(`Processing ${failedDownloads.length} failed downloads`);
-
           for (const download of failedDownloads) {
             const failedDownload = {
               ...download,
@@ -686,8 +676,6 @@ const useDownloadStore = create<DownloadStore>()(
                 (d) => d.id !== download.id,
               ),
             }));
-
-            console.log(`Moved failed download "${download.name}" to history`);
           }
 
           // Process queue after handling failures
@@ -747,17 +735,8 @@ const useDownloadStore = create<DownloadStore>()(
 
               if (exitCode === 0) {
                 updates.status = 'finished';
-                console.log(
-                  `✅ Download "${downloading.name}" completed successfully`,
-                );
               } else {
                 updates.status = 'failed';
-                console.log(
-                  `❌ Download "${downloading.name}" failed with exit code ${exitCode}`,
-                );
-                console.log(
-                  `🔒 Setting status to 'failed' for download ID: ${downloading.id}`,
-                );
               }
 
               return { ...downloading, ...updates };
@@ -788,13 +767,6 @@ const useDownloadStore = create<DownloadStore>()(
                 // Still update log for debugging purposes, but don't change progress or status
                 if (result.completeLog) {
                   updates.log = result.completeLog;
-                }
-
-                // Debug logging to track race condition protection
-                if ((downloading.status as any) === 'failed') {
-                  console.log(
-                    `🛡️ Protecting 'failed' status for download "${downloading.name}" (ID: ${downloading.id})`,
-                  );
                 }
 
                 return Object.keys(updates).length > 0
@@ -866,9 +838,6 @@ const useDownloadStore = create<DownloadStore>()(
                   // CRITICAL FIX: Never override paused status with other updates
                   if ((downloading.status as any) === 'paused') {
                     // Keep paused status, don't update it from progress updates
-                    console.log(
-                      `Preserving paused status for download "${downloading.name}"`,
-                    );
                   } else {
                     // Don't override finished status if we already detected completion
                     if (
@@ -940,7 +909,6 @@ const useDownloadStore = create<DownloadStore>()(
         isCreateFolder,
       ) => {
         if (!location || !downloadName) {
-          console.error('Invalid path parameters:', { location, downloadName });
           return;
         }
         let finalLocation = await window.downlodrFunctions.joinDownloadPath(
@@ -1630,9 +1598,6 @@ const useDownloadStore = create<DownloadStore>()(
           }`,
           duration: 3000,
         });
-
-        console.log(`Download queued: ${name} (ID: ${queueId})`);
-
         // Start the worker to process the queue
         downloadController.startWorker();
       },
@@ -1728,11 +1693,6 @@ const useDownloadStore = create<DownloadStore>()(
           console.log('No stalled downloads detected');
           return;
         }
-
-        console.log(
-          `Checking ${potentialStalledDownloads.length} potentially stalled downloads...`,
-        );
-
         for (const download of potentialStalledDownloads) {
           try {
             const filePath = await window.downlodrFunctions.joinDownloadPath(
@@ -1767,11 +1727,6 @@ const useDownloadStore = create<DownloadStore>()(
                     : d,
                 ),
               }));
-
-              console.log(
-                `Successfully marked "${download.name}" as completed`,
-              );
-
               // Trigger finished downloads check for this specific download
               setTimeout(() => {
                 get().checkFinishedDownloads();
@@ -1790,9 +1745,8 @@ const useDownloadStore = create<DownloadStore>()(
         }
       },
 
-      // Add manual trigger for checking stalled downloads
+      // manual trigger for checking stalled downloads
       manualCheckStalledDownloads: () => {
-        console.log('Manually checking for stalled downloads...');
         get().checkStalledDownloads();
       },
 
@@ -1806,7 +1760,7 @@ const useDownloadStore = create<DownloadStore>()(
         availableTags: state.availableTags,
         availableCategories: state.availableCategories,
         finishedDownloads: state.finishedDownloads,
-        queuedDownloads: state.queuedDownloads, // Persist queue
+        // queuedDownloads: state.queuedDownloads, // Persist queue
       }),
     },
   ),
@@ -1814,10 +1768,7 @@ const useDownloadStore = create<DownloadStore>()(
 
 export default useDownloadStore;
 
-// ========================
-// PERFORMANCE OPTIMIZATION UTILITIES
-// ========================
-
+// performance monitoring utilities
 // Memoized selectors to prevent unnecessary re-renders
 export const useDownloadingSelectors = {
   // Get only downloading items

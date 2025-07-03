@@ -181,7 +181,7 @@ contextBridge.exposeInMainWorld('ytdlp', {
       const info = await ipcRenderer.invoke('ytdlp:info', url);
       return info;
     } catch {
-      console.log('error');
+      return null;
     }
   },
 
@@ -246,7 +246,6 @@ contextBridge.exposeInMainWorld('ytdlp', {
 
           // Clean up on finish
           if (chunk.data?.status === 'finished') {
-            console.log('Preload done');
             ipcRenderer.removeAllListeners(channel);
             ipcRenderer.removeAllListeners(controllerChannel);
             throttler.cleanup(id);
