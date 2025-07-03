@@ -37,7 +37,6 @@ const UpdateNotification: React.FC = () => {
       // Listen for update notifications from the main process
       removeListener = window.updateAPI.onUpdateAvailable((info) => {
         if (info.hasUpdate) {
-          console.log(info);
           setUpdateInfo(info);
           setOpen(true);
         }
@@ -48,7 +47,6 @@ const UpdateNotification: React.FC = () => {
     return () => {
       console.log('UpdateNotification unmounting');
       if (removeListener) {
-        console.log('Removing update listener');
         removeListener();
       }
     };
