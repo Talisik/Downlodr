@@ -168,7 +168,6 @@ const History = () => {
       for (const id of selectedItems) {
         const video = logs.find((product) => product.id === String(id));
         if (video) {
-          console.log('Selected files deleted successfully');
           deleteDownload(video.id);
           toast({
             variant: 'success',
@@ -188,9 +187,6 @@ const History = () => {
       setSelectedItems([]); // Clear selected items after deletion
     } catch (error) {
       console.error('Error deleting selected files:', error);
-      console.log(
-        'An error occurred while trying to delete the selected files',
-      );
     }
   };
 

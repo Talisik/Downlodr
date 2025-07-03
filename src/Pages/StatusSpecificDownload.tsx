@@ -721,11 +721,7 @@ const StatusSpecificDownloads = () => {
 
   const handleRetry = (downloadId: string) => {
     // Get fresh state each time
-    console.log('HII FROM RETRY', downloadId);
-    const { downloading, deleteDownloading } = useDownloadStore.getState();
     const currentDownload = allDownloads.find((d) => d.id === downloadId);
-    const { updateDownloadStatus } = useDownloadStore.getState();
-
     const { addDownload } = useDownloadStore.getState();
     addDownload(
       currentDownload.videoUrl,
@@ -889,13 +885,12 @@ const StatusSpecificDownloads = () => {
             toast({
               variant: 'destructive',
               title: 'File Not Found',
-              description: `The file does not exist at the specified location WHAAS ${downloadId}`,
+              description: `The file does not exist at the specified location`,
               duration: 3000,
             });
           }
         }
       } catch (error) {
-        console.error('Error viewing download:', error);
         toast({
           variant: 'destructive',
           title: 'Error',
@@ -957,9 +952,6 @@ const StatusSpecificDownloads = () => {
               );
               if (success) {
                 deleteDownloading(download.id);
-                console.log(
-                  `Controller with ID ${download.controllerId} has been terminated.`,
-                );
                 toast({
                   variant: 'success',
                   title: 'Download Stopped',
@@ -969,7 +961,6 @@ const StatusSpecificDownloads = () => {
                 processQueue();
               }
             } catch (error) {
-              console.error('Error invoking kill-controller:', error);
               toast({
                 variant: 'destructive',
                 title: 'Error',
@@ -990,14 +981,6 @@ const StatusSpecificDownloads = () => {
     downloadLocation?: string,
     controllerId?: string,
   ) => {
-    console.log(
-      'Force starting:',
-      downloadId,
-      'at:',
-      downloadLocation,
-      'controller:',
-      controllerId,
-    );
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
@@ -1144,7 +1127,6 @@ const StatusSpecificDownloads = () => {
         },
       };
       handleFileNotExistModal(downloadItem);
-      console.error('Error deleting:', error);
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
@@ -1236,7 +1218,6 @@ const StatusSpecificDownloads = () => {
       const clickedDownload = allDownloads.find((d) => d.id === downloadId);
 
       if (!clickedDownload) {
-        console.error('Download not found:', downloadId);
         return;
       }
 
@@ -1269,21 +1250,47 @@ const StatusSpecificDownloads = () => {
     [allDownloads],
   );
 
-  const handleViewFolder = (downloadLocation?: string, filePath?: string) => {
+  const handleViewFolder = async (
+    downloadLocation?: string,
+    filePath?: string,
+  ) => {
     if (downloadLocation) {
-      // Check if the location contains a comma (indicating old format)
       if (downloadLocation.includes(',') && !filePath) {
         const [folderPath, filePathFromString] = downloadLocation.split(',');
-        window.downlodrFunctions.openFolder(folderPath, filePathFromString);
+        const success = await window.downlodrFunctions.openFolder(
+          folderPath,
+          filePathFromString,
+        );
+        // Check if the location contains a comma (indicating old format)
+        const exists = await window.downlodrFunctions.fileExists(folderPath);
+        if (!exists) {
+          toast({
+            variant: 'destructive',
+            title: 'Missing Folder',
+            description: 'The folder does not exist in the given location',
+            duration: 3000,
+          });
+        }
       } else {
         // Normal case with separate parameters
-        window.downlodrFunctions.openFolder(downloadLocation, filePath);
+        const success = await window.downlodrFunctions.openFolder(
+          downloadLocation,
+          filePath,
+        );
+        if (!success) {
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to view folder',
+            duration: 3000,
+          });
+        }
       }
     } else {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to pause/resume download',
+        description: 'Failed to view folder',
         duration: 3000,
       });
     }
@@ -1777,10 +1784,6 @@ const StatusSpecificDownloads = () => {
                                       }
                                       title="Click to view full thumbnail"
                                       onError={(e) => {
-                                        console.error(
-                                          'Failed to load thumbnail:',
-                                          download.thumnailsLocation,
-                                        );
                                         e.currentTarget.style.display = 'none';
                                         e.currentTarget.parentElement.innerHTML =
                                           'Unable to load';

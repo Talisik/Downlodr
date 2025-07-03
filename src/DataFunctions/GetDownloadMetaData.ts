@@ -256,7 +256,6 @@ export class VideoFormatService {
   }
 
   private static processBilibiliFormats(formatsArray: any[]): ProcessedFormats {
-    console.log(formatsArray);
     const formatMap = new Map();
     const seenCombinations = new Set();
 
@@ -397,7 +396,6 @@ export class VideoFormatService {
     const extractorKey = info.data.extractor_key;
     const defaultFormat = info.data.format_id;
     const defaultExt = info.data.ext;
-    console.log(formatsArray);
     let processed;
     switch (extractorKey) {
       case 'Youtube':

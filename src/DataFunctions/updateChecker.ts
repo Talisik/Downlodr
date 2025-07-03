@@ -60,7 +60,6 @@ export async function checkForUpdates() {
     // Get the latest release from the filtered channel releases
     const latestRelease = channelReleases[0];
 
-    console.log(latestRelease);
     if (!latestRelease) {
       return {
         hasUpdate: false,

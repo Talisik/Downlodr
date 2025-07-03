@@ -181,7 +181,7 @@ contextBridge.exposeInMainWorld('ytdlp', {
       const info = await ipcRenderer.invoke('ytdlp:info', url);
       return info;
     } catch {
-      console.log('error');
+      return null;
     }
   },
 
@@ -192,6 +192,29 @@ contextBridge.exposeInMainWorld('ytdlp', {
   },
 
   selectDownloadDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
+
+  /*
+  downloadYTDLP: async (options?: {
+    filePath?: string;
+    version?: string;
+    platform?: string;
+    forceDownload?: boolean;
+  }) => {
+    return await ipcRenderer.invoke('ytdlp:downloadYTDLP', options);
+  },
+
+  getCurrentVersion: async () => {
+    return await ipcRenderer.invoke('ytdlp:getCurrentVersion');
+  },
+
+  getLatestVersion: async () => {
+    return await ipcRenderer.invoke('ytdlp:getLatestVersion');
+  },
+
+  checkAndUpdate: async () => {
+    return await ipcRenderer.invoke('ytdlp:checkAndUpdate');
+  },
+  */
 
   download(args: object, callback: (result: object) => void) {
     const id = uuidv4();
@@ -223,7 +246,6 @@ contextBridge.exposeInMainWorld('ytdlp', {
 
           // Clean up on finish
           if (chunk.data?.status === 'finished') {
-            console.log('Preload done');
             ipcRenderer.removeAllListeners(channel);
             ipcRenderer.removeAllListeners(controllerChannel);
             throttler.cleanup(id);
