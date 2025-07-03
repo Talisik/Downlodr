@@ -42,7 +42,6 @@ async function downloadTimedtextContent(
 
     const response = await fetch(url.toString());
     if (!response.ok) {
-      console.log(`Failed to fetch timedtext content: ${response.status}`);
       return null;
     }
 
@@ -50,13 +49,11 @@ async function downloadTimedtextContent(
 
     // Basic validation - VTT files should start with "WEBVTT"
     if (!content.trim().startsWith('WEBVTT')) {
-      console.log('Downloaded content is not valid VTT format');
       return null;
     }
 
     return content;
   } catch (error) {
-    console.error('Error downloading timedtext content:', error);
     return null;
   }
 }
@@ -75,7 +72,6 @@ async function processM3UPlaylist(filePath: string): Promise<boolean> {
     });
 
     if (!fileResult.success || !fileResult.data) {
-      console.log('Failed to read M3U file content');
       return false;
     }
 
@@ -83,29 +79,18 @@ async function processM3UPlaylist(filePath: string): Promise<boolean> {
 
     // Check if it's actually an M3U playlist
     if (!isM3UPlaylist(fileContent)) {
-      console.log('File is not an M3U playlist');
       return false;
     }
-
-    console.log('Detected M3U playlist, extracting YouTube timedtext URLs...');
 
     // Extract YouTube timedtext URLs
     const timedtextUrls = extractYouTubeTimedtextUrls(fileContent);
     if (timedtextUrls.length === 0) {
-      console.log('No YouTube timedtext URLs found in M3U playlist');
       return false;
     }
-
-    console.log(
-      `Found ${timedtextUrls.length} timedtext URLs, using the first one`,
-    );
 
     // Download content from the first timedtext URL
     const actualContent = await downloadTimedtextContent(timedtextUrls[0]);
     if (!actualContent) {
-      console.log(
-        'Failed to download actual caption content from timedtext URL',
-      );
       return false;
     }
 
@@ -119,16 +104,10 @@ async function processM3UPlaylist(filePath: string): Promise<boolean> {
     });
 
     if (!writeResult.success) {
-      console.log('Failed to replace M3U file with actual caption content');
       return false;
     }
-
-    console.log(
-      'Successfully replaced M3U file with actual VTT caption content',
-    );
     return true;
   } catch (error) {
-    console.error('Error processing M3U playlist:', error);
     return false;
   }
 }
@@ -149,21 +128,17 @@ export async function downloadEnglishCaptions(
   try {
     // Check if automatic captions exist
     if (!videoInfo) {
-      console.log('No automatic captions available in this video');
       return undefined;
     }
 
     // Priority order: English original, then English
     let captionsData = undefined;
     let captionLang = '';
-    console.log(videoInfo);
     if (videoInfo) {
       captionsData = videoInfo;
       captionLang = 'en';
-      console.log('found caption!last');
     }
     if (!captionsData) {
-      console.log('No English automatic captions available');
       return undefined;
     }
 
@@ -172,7 +147,6 @@ export async function downloadEnglishCaptions(
     let selectedCaption = undefined;
 
     for (const format of formatPreference) {
-      console.log(captionsData);
       selectedCaption = captionsData.find(
         (caption: any) => caption.ext === format,
       );
@@ -180,9 +154,6 @@ export async function downloadEnglishCaptions(
     }
 
     if (!selectedCaption) {
-      console.log(
-        `English captions found in ${captionLang} but no suitable format available`,
-      );
       return undefined;
     }
 
@@ -207,16 +178,12 @@ export async function downloadEnglishCaptions(
     }
 
     // Download the captions
-    console.log(
-      `Downloading ${captionLang} captions in ${selectedCaption.ext} format`,
-    );
     const downloadResult = await window.downlodrFunctions.downloadFile(
       selectedCaption.url,
       outputPath,
     );
 
     if (!downloadResult.success) {
-      console.log('Failed to download caption file');
       return undefined;
     }
 
@@ -224,27 +191,18 @@ export async function downloadEnglishCaptions(
     const fileSize = await window.downlodrFunctions.getFileSize(outputPath);
     if (!fileSize || fileSize < 10) {
       // Less than 10 bytes is likely empty/invalid
-      console.log('Downloaded caption file is empty or too small, deleting...');
       await window.downlodrFunctions.deleteFile(outputPath);
       return undefined;
     }
 
     // NEW: Process M3U playlist if detected
-    console.log('Checking if downloaded file is an M3U playlist...');
     const wasProcessed = await processM3UPlaylist(outputPath);
     if (wasProcessed) {
-      console.log(
-        'M3U playlist was successfully processed and replaced with actual VTT content',
-      );
-
       // Re-validate the file size after processing
       const newFileSize = await window.downlodrFunctions.getFileSize(
         outputPath,
       );
       if (!newFileSize || newFileSize < 10) {
-        console.log(
-          'Processed caption file is empty or too small, deleting...',
-        );
         await window.downlodrFunctions.deleteFile(outputPath);
         return undefined;
       }
@@ -259,11 +217,8 @@ export async function downloadEnglishCaptions(
       // Could add more sophisticated validation here if needed
       // For now, size check should catch most empty files
     }
-
-    console.log(`Captions saved to ${outputPath}`);
     return outputPath;
   } catch (error) {
-    console.error('Error downloading English captions:', error);
     return undefined;
   }
 }

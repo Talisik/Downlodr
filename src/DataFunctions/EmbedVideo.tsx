@@ -99,7 +99,7 @@ const GetEmbedUrl = (link: string): string => {
         embedUrl = `https://player.twitch.tv/?channel=${channelName}&parent=localhost`;
       }
     } else {
-      console.error('Unsupported video URL YEYEYE:', link);
+      console.error('Unsupported video URL:', link);
     }
 
     return embedUrl;
