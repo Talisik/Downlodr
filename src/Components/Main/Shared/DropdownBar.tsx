@@ -28,6 +28,7 @@ import FileNotExistModal, {
 } from '../../SubComponents/custom/FileNotExistModal';
 import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 import AboutModal from '../Modal/AboutModal';
+import AdvancedSettingsModal from '../Modal/AdvancedSettingsModal';
 import DownloadModal from '../Modal/DownloadModal';
 import HelpModal from '../Modal/HelpModal';
 import SettingsModal from '../Modal/SettingsModal';
@@ -39,8 +40,8 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
   const [isAboutModalOpen, setAboutModalOpen] = useState(false);
   const [isHelpModalOpen, setHelpModalOpen] = useState(false);
-
-  // Misc
+  const [isAdvancedSettingsModalOpen, setAdvancedSettingsModalOpen] =
+    useState(false); // Misc
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -63,8 +64,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
       setSearchResults([]);
       return;
     }
-    console.log(searchTerm);
-    console.log(historyDownloads);
     const results = historyDownloads.filter((download) =>
       download.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
@@ -123,7 +122,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
         setShowFileNotExistModal(true);
       }
     } catch (error) {
-      console.error('Error opening file:', error);
       toast({
         variant: 'destructive',
         title: 'Error Opening File',
@@ -152,11 +150,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
   }, []);
 
   const handleCheckForUpdates = async () => {
-    console.log('Check for updates button clicked');
     console.log('updateAPI available:', !!window.updateAPI?.checkForUpdates);
     if (window.updateAPI?.checkForUpdates) {
       try {
-        console.log('Calling checkForUpdates...');
         const result = await window.updateAPI.checkForUpdates();
         console.log('Update check result:', result);
         if (!result.hasUpdate) {
@@ -168,6 +164,12 @@ const DropdownBar = ({ className }: { className?: string }) => {
         }
         setActiveMenu(null);
       } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Rate limit reached for checking version',
+          description: `Please check again later`,
+          duration: 3000,
+        });
         console.error('Error checking for updates:', error);
       }
     } else {
@@ -327,7 +329,21 @@ const DropdownBar = ({ className }: { className?: string }) => {
           )}
         </div>
       </div>
+      {/* Advanced Settings Button 
+      <button
+        className="text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
+        onClick={(e) => {
+          e.stopPropagation();
+          setAdvancedSettingsModalOpen(true);
+          setActiveMenu(null);
+        }}
+      >
+        <FiSettings size={16} />
+        <span className="text-sm">Advanced Settings</span>
+      </button>
+      */}
       {/* Search Bar with increased width */}
+
       <div ref={searchRef} className="relative my-10 mr-6 w-1/4">
         <div className="flex items-center dark:bg-darkModeDropdown rounded-md border border-[#D1D5DB] dark:border-none px-2">
           <FiSearch className="text-gray-500 dark:text-gray-400 h-4 w-4 mr-1" />
@@ -393,6 +409,11 @@ const DropdownBar = ({ className }: { className?: string }) => {
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
+      />
+
+      <AdvancedSettingsModal
+        isOpen={isAdvancedSettingsModalOpen}
+        onClose={() => setAdvancedSettingsModalOpen(false)}
       />
 
       <AboutModal

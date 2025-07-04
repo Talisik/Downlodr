@@ -12,6 +12,7 @@
 // Interface for download settings
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { TaskBarButtonsVisibility } from '../plugins/types';
 
 interface DownloadSettings {
   defaultLocation: string; // Default location for downloads
@@ -21,6 +22,7 @@ interface DownloadSettings {
   maxUploadNum: number; // Maximum number of uploads allowed
   maxDownloadNum: number; // Maximum number of downloads allowed
   runInBackground: boolean;
+  enableClipboardMonitoring: boolean; // Whether to monitor clipboard for links
 }
 
 // Interface for selected downloads
@@ -39,6 +41,8 @@ interface SelectedDownload {
 interface MainStore {
   settings: DownloadSettings; // Current download settings
   selectedDownloads: SelectedDownload[]; // List of currently selected downloads
+  isDownloadModalOpen: boolean; // Add new state for download modal
+  setIsDownloadModalOpen: (isOpen: boolean) => void; // Set the download modal state
   setSelectedDownloads: (downloads: SelectedDownload[]) => void; // Set selected downloads
   clearSelectedDownloads: () => void; // Clear selected downloads
   updateDefaultLocation: (location: string) => void; // Update default download location
@@ -56,6 +60,15 @@ interface MainStore {
   visibleColumns: string[];
   setVisibleColumns: (columns: string[]) => void;
   updateRunInBackground: (value: boolean) => void;
+  updateEnableClipboardMonitoring: (value: boolean) => void;
+  taskBarButtonsVisibility: TaskBarButtonsVisibility; // State for task bar buttons visibility
+  setTaskBarButtonsVisibility: (
+    visibility: Partial<TaskBarButtonsVisibility>,
+  ) => void; // Set the visibility of the task bar buttons
+  isNavCollapsed: boolean; // State for sidebar navigation collapse
+  setIsNavCollapsed: (value: boolean) => void; // Set the collapse state of the sidebar navigation
+  isDownloadDetailExpanded: boolean; // State for download detail expansion
+  setIsDownloadDetailExpanded: (value: boolean) => void; // Set the expansion state of the download detail
 }
 
 // Create the main store with persistence
@@ -70,8 +83,12 @@ export const useMainStore = create<MainStore>()(
         maxUploadNum: 5,
         maxDownloadNum: 5,
         runInBackground: false,
+        enableClipboardMonitoring: true,
       },
       selectedDownloads: [] as SelectedDownload[],
+      isDownloadModalOpen: false,
+      setIsDownloadModalOpen: (isOpen: boolean) =>
+        set({ isDownloadModalOpen: isOpen }),
       setSelectedDownloads: (downloads) =>
         set({ selectedDownloads: downloads }),
       clearSelectedDownloads: () => set({ selectedDownloads: [] }),
@@ -108,6 +125,11 @@ export const useMainStore = create<MainStore>()(
 
       updateRunInBackground: (value) =>
         set({ settings: { ...get().settings, runInBackground: value } }),
+
+      updateEnableClipboardMonitoring: (value) =>
+        set({
+          settings: { ...get().settings, enableClipboardMonitoring: value },
+        }),
 
       selectedRows: [] as string[],
       setSelectedRows: (rows) => set({ selectedRows: rows }),
@@ -149,10 +171,32 @@ export const useMainStore = create<MainStore>()(
         'source',
         'transcript',
         'thumbnail',
+        'action',
       ],
 
       // Set visible columns
       setVisibleColumns: (columns) => set({ visibleColumns: columns }),
+
+      // Default task bar buttons visibility
+      taskBarButtonsVisibility: {
+        start: true,
+        stop: true,
+        stopAll: true,
+      },
+      setTaskBarButtonsVisibility: (visibility) =>
+        set((state) => ({
+          taskBarButtonsVisibility: {
+            ...state.taskBarButtonsVisibility,
+            ...visibility,
+          },
+        })),
+
+      isNavCollapsed: true,
+      setIsNavCollapsed: (value) => set({ isNavCollapsed: value }),
+
+      isDownloadDetailExpanded: false,
+      setIsDownloadDetailExpanded: (value) =>
+        set({ isDownloadDetailExpanded: value }),
     }),
     {
       name: 'download-settings-storage', // Name of the storage

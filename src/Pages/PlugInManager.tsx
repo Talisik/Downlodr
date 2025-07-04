@@ -17,6 +17,44 @@ interface PluginInfo {
   icon: string;
 }
 
+interface ConfirmModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  message: string;
+}
+
+const ConfirmModal: React.FC<ConfirmModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  message,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-4">
+        <p className="text-gray-800 dark:text-gray-200 mb-4">{message}</p>
+        <div className="flex justify-end space-x-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PluginManager: React.FC = () => {
   //Plugins
   const [plugins, setPlugins] = useState<PluginInfo[]>([]);
@@ -27,7 +65,10 @@ const PluginManager: React.FC = () => {
   // New state to track if directory selection is in progress
   const [isSelectingDirectory, setIsSelectingDirectory] =
     useState<boolean>(false);
-  //Store
+
+  // Confirmation modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pluginToRemove, setPluginToRemove] = useState<string | null>(null);
 
   // Search
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,6 +81,26 @@ const PluginManager: React.FC = () => {
     if (typeof str !== 'string') return false;
     const trimmed = str.trim();
     return trimmed.startsWith('<svg') && trimmed.endsWith('</svg>');
+  };
+
+  // Helper function to get first paragraph of description
+  const getFirstParagraph = (description: string): string => {
+    if (!description) return '';
+
+    // Split by double line breaks first (common paragraph separator)
+    const paragraphs = description.split(/\n\s*\n/);
+    if (paragraphs.length > 1 && paragraphs[0].trim()) {
+      return paragraphs[0].trim();
+    }
+
+    // If no double line breaks, try single line breaks
+    const lines = description.split('\n');
+    if (lines.length > 1 && lines[0].trim()) {
+      return lines[0].trim();
+    }
+
+    // If no line breaks, return the full description (will be truncated by CSS)
+    return description;
   };
 
   // Render icon helper function
@@ -197,17 +258,54 @@ const PluginManager: React.FC = () => {
   };
 
   const handleUninstall = async (pluginId: string) => {
+    setPluginToRemove(pluginId);
+    setShowConfirmModal(true);
+  };
+
+  const confirmUninstall = async () => {
+    if (!pluginToRemove) return;
+
+    const plugin = plugins.find((p) => p.id === pluginToRemove);
+    const pluginName = plugin ? plugin.name : 'this plugin';
+
     try {
-      const success = await window.plugins.uninstall(pluginId);
+      const success = await window.plugins.uninstall(pluginToRemove);
       if (success) {
         // First reload the plugins in the main process
         await window.plugins.reload();
         // Then update the UI list
         await loadPlugins();
+        toast({
+          title: 'Plugin Removed',
+          description: `${pluginName} has been successfully removed`,
+          variant: 'success',
+          duration: 3000,
+        });
+      } else {
+        toast({
+          title: 'Failed to Remove Plugin',
+          description: `Could not remove ${pluginName}. Please try again.`,
+          variant: 'destructive',
+          duration: 3000,
+        });
       }
     } catch (error) {
       console.error('Failed to uninstall plugin:', error);
+      toast({
+        title: 'Error',
+        description: `An error occurred while removing ${pluginName}`,
+        variant: 'destructive',
+        duration: 3000,
+      });
+    } finally {
+      setShowConfirmModal(false);
+      setPluginToRemove(null);
     }
+  };
+
+  const cancelUninstall = () => {
+    setShowConfirmModal(false);
+    setPluginToRemove(null);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -259,6 +357,18 @@ const PluginManager: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full bg-[#FBFBFB] dark:bg-darkModeDropdown">
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={cancelUninstall}
+        onConfirm={confirmUninstall}
+        message={`Are you sure you want to remove "${
+          pluginToRemove
+            ? plugins.find((p) => p.id === pluginToRemove)?.name ||
+              'this plugin'
+            : 'this plugin'
+        }"? This action cannot be undone.`}
+      />
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           {/* Directory selection overlay - blocks all app interaction */}
@@ -321,7 +431,7 @@ const PluginManager: React.FC = () => {
                             {plugin.name}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {plugin.description}
+                            {getFirstParagraph(plugin.description)}
                           </div>
                         </div>
                       </div>
@@ -346,7 +456,7 @@ const PluginManager: React.FC = () => {
             <div className="flex items-center">
               <Button
                 onClick={handleInstall}
-                className="bg-[#F45513] px-4 py-1 h-8 ml-4"
+                className="bg-[#F45513] dark:bg-[#F45513] dark:text-white dark:hover:text-black dark:hover:bg-white text-sm font-normal px-4 py-1 h-8 ml-4"
               >
                 <FaPlus />
                 <span>Add Plugin</span>
@@ -369,21 +479,21 @@ const PluginManager: React.FC = () => {
             </span>
             <Button
               onClick={handleInstall}
-              className="bg-[#F45513] px-4 py-1 h-8 mt-2"
+              className="bg-[#F45513] dark:bg-[#F45513] dark:text-white dark:hover:text-black dark:hover:bg-white text-sm font-normal px-4 py-1 h-8 mt-4"
             >
               <FaPlus />
               <span>Add Plugin</span>
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
             {plugins.map((plugin) => (
               <div
                 key={plugin.id}
-                className="w-sm bg-[#FFFFFF] dark:bg-darkMode rounded-sm p-4 shadow-sm ring-1 ring-gray-200 dark:ring-darkModeCompliment border-l-4 border-l-[#FFFFFF] dark:border-l-4 dark:border-l-darkMode hover:border-l-4 hover:border-l-[#F45513] hover:dark:border-l-[#F45513]"
+                className="w-sm bg-[#FFFFFF] dark:bg-darkMode rounded-sm p-4 shadow-sm ring-1 ring-gray-200 dark:ring-darkModeCompliment border-l-4 border-l-[#FFFFFF] dark:border-l-4 dark:border-l-darkMode hover:border-l-4 hover:border-l-[#F45513] hover:dark:border-l-[#F45513] h-58 flex flex-col"
               >
-                <div className="flex">
-                  <div className="w-full">
+                <div className="flex-1 flex flex-col">
+                  <div className="flex-1">
                     <div className="flex items-center mb-2">
                       <span className="inline-flex items-center justify-center w-6 h-6 mr-2 flex-shrink-0">
                         {renderIcon(plugin.icon, 'md')}
@@ -392,39 +502,39 @@ const PluginManager: React.FC = () => {
                         {plugin.name}
                       </h3>
                     </div>
-                    <p className="mt-2 text-sm line-clamp-2">
-                      {plugin.description}
+                    <p className="mt-2 text-sm line-clamp-3 overflow-hidden h-16">
+                      {getFirstParagraph(plugin.description)}
                     </p>
-                    <hr className="solid my-4 w-full border-t border-divider dark:border-darkModeCompliment" />
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                      <div className="flex gap-2 flex-wrap ">
-                        <NavLink to="/plugins/details" state={{ plugin }}>
-                          <Button
-                            variant="outline"
-                            className="dark:border-darkModeCompliment border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
-                          >
-                            Details
-                          </Button>
-                        </NavLink>
+                  </div>
+                  <hr className="solid my-4 w-full border-t border-divider dark:border-darkModeCompliment" />
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div className="flex gap-2 flex-wrap ">
+                      <NavLink to="/plugins/details" state={{ plugin }}>
                         <Button
                           variant="outline"
-                          className="border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
-                          onClick={() => handleUninstall(plugin.id)}
+                          className="dark:border-darkModeCompliment border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
                         >
-                          Remove
+                          Details
                         </Button>
-                      </div>
-                      <div className="flex items-center gap-2 self-end sm:self-auto">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            checked={enabledPlugins[plugin.id] || false}
-                            onChange={() => handleToggle(plugin.id)}
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
-                        </label>
-                      </div>
+                      </NavLink>
+                      <Button
+                        variant="outline"
+                        className="border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown dark:border-darkModeCompliment hover:text-primary dark:hover:text-primary"
+                        onClick={() => handleUninstall(plugin.id)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={enabledPlugins[plugin.id] || false}
+                          onChange={() => handleToggle(plugin.id)}
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
+                      </label>
                     </div>
                   </div>
                 </div>

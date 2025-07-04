@@ -2,30 +2,35 @@ import React, { useEffect, useState } from 'react';
 import { createPluginAPI } from '../plugins/pluginAPI';
 
 export const PluginLoader: React.FC = () => {
-  // const [pluginsLoaded, setPluginsLoaded] = useState(false);
-  // const [enabledPlugins, setEnabledPlugins] = useState<Record<string, boolean>>(
   const [, setEnabledPlugins] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    // Load enabled state
-    const loadEnabledState = async () => {
+    // Load enabled state and plugins
+    const initializePlugins = async () => {
       try {
+        // First load enabled state
         const enabledState = await window.plugins.getEnabledPlugins();
         setEnabledPlugins(enabledState || {});
+
+        // Then load plugins
+        await loadPlugins();
+
+        // Notify that plugins are ready
+        window.dispatchEvent(new CustomEvent('pluginsReady'));
       } catch (error) {
-        console.error('Failed to load plugin enabled states:', error);
+        console.error('Failed to initialize plugins:', error);
       }
     };
 
     // Initial load
-    loadEnabledState().then(() => {
-      loadPlugins();
-    });
+    initializePlugins();
 
     // Set up reload listener
-    const unsubscribe = window.plugins.onReloaded(() => {
+    const unsubscribe = window.plugins.onReloaded(async () => {
       // Reload plugins
-      loadPlugins();
+      await loadPlugins();
+      // Notify that plugins have been reloaded
+      window.dispatchEvent(new CustomEvent('pluginsReady'));
     });
 
     // Set up state change listener
@@ -57,13 +62,6 @@ export const PluginLoader: React.FC = () => {
       // Load each plugin in the renderer process
       for (const plugin of plugins) {
         try {
-          /*
-          // Skip disabled plugins
-          if (enabledStates[plugin.id] === false) {
-            console.log(`Skipping disabled plugin: ${plugin.id}`);
-            continue;
-          }
-          */
           console.log(`Loading plugin: ${plugin.id}`);
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { code, manifest, error } = await window.plugins.getCode(
@@ -115,8 +113,9 @@ export const PluginLoader: React.FC = () => {
           warn: (...args: any[]) =>
             console.warn(`[Plugin ${pluginId}]`, ...args),
         },
-        setTimeout,
-        clearTimeout,
+        setTimeout: (callback: TimerHandler, ms?: number, ...args: any[]) => 
+          setTimeout(callback, ms, ...args),
+        clearTimeout: (id?: number) => clearTimeout(id),
         exports: {},
         module: { exports: {} },
         require: createSafeRequire(),

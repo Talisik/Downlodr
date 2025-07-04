@@ -24,8 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made the app more responsive on various screen sizes
 
 ### Deprecated
-- Previous CC To Markdown Plugin
-- Previous Download Metadata Plugin
+- none
 
 ### Removed
 - none
@@ -62,7 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adjusted plugin sidebars and menu items
 
 ### Deprecated
-- none
+- Previous CC To Markdown Plugin
+- Previous Download Metadata Plugin
 
 ### Removed
 - none

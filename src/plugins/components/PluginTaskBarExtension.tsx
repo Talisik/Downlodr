@@ -5,15 +5,18 @@ import {
   TooltipTrigger,
 } from '../../Components/SubComponents/shadcn/components/ui/tooltip';
 import { useToast } from '../../Components/SubComponents/shadcn/hooks/use-toast';
+import { cn } from '../../Components/SubComponents/shadcn/lib/utils';
+import useDownloadStore from '../../Store/downloadStore';
 import { useMainStore } from '../../Store/mainStore';
 import { usePluginState } from '../Hooks/usePluginState';
 import { TaskBarItem } from '../types';
 
-// Using the global TaskBarItem interface instead of redefining it
-const TaskBarPluginItems: React.FC = () => {
+const PluginTaskBarExtension: React.FC = () => {
   const [taskBarItems, setTaskBarItems] = useState<TaskBarItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const enabledPlugins = usePluginState();
-  const { selectedDownloads } = useMainStore();
+  const { selectedDownloads, taskBarButtonsVisibility } = useMainStore();
+  const { downloading } = useDownloadStore();
   const { toast } = useToast();
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
 
@@ -21,8 +24,10 @@ const TaskBarPluginItems: React.FC = () => {
   const isSvgString = (str: string): boolean => {
     return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
   };
+
   const fetchTaskBarItems = async () => {
     try {
+      setIsLoading(true);
       // Get taskbar items from plugin registry
       const items = await window.plugins.getTaskBarItems();
 
@@ -48,13 +53,36 @@ const TaskBarPluginItems: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch taskbar items:', error);
       setTaskBarItems([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Listen for plugins ready event
   useEffect(() => {
+    const handlePluginsReady = () => {
+      fetchTaskBarItems();
+    };
+
+    window.addEventListener('pluginsReady', handlePluginsReady);
+
+    // Initial fetch
     fetchTaskBarItems();
 
-    // Set up listener for plugin reloaded events
+    return () => {
+      window.removeEventListener('pluginsReady', handlePluginsReady);
+    };
+  }, []);
+
+  // Handle plugin state changes
+  useEffect(() => {
+    if (!isLoading) {
+      fetchTaskBarItems();
+    }
+  }, [enabledPlugins]);
+
+  // Set up plugin reload listener
+  useEffect(() => {
     const unsubscribe = window.plugins.onReloaded(() => {
       fetchTaskBarItems();
     });
@@ -62,13 +90,44 @@ const TaskBarPluginItems: React.FC = () => {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [enabledPlugins]);
+  }, []);
 
-  if (taskBarItems.length === 0) {
+  if (isLoading || taskBarItems.length === 0) {
     return null;
   }
 
+  // Render icon helper function
+  const renderIcon = (icon: any, size: 'sm' | 'md' = 'sm') => {
+    const sizeClass = size === 'md' ? 'w-6 h-6' : 'w-5 h-5';
+
+    if (typeof icon === 'string' && isSvgString(icon)) {
+      return (
+        <div
+          dangerouslySetInnerHTML={{ __html: icon }}
+          className={`${sizeClass} flex items-center justify-center rounded-sm [&>svg]:w-full [&>svg]:h-full`}
+        />
+      );
+    } else if (icon) {
+      return <span>{icon}</span>;
+    } else {
+      return (
+        <div
+          className={`${sizeClass} bg-gray-300 dark:bg-gray-600 rounded-sm flex items-center justify-center`}
+        >
+          <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
+            P
+          </span>
+        </div>
+      );
+    }
+  };
+
   const handleItemClick = (item: TaskBarItem) => {
+    if (item.actionType === 'multiple' && !selectedDownloads.length) {
+      window.PluginHandlers[item.handlerId](downloading);
+      return;
+    }
+
     if (!selectedDownloads.length) {
       toast({
         variant: 'destructive',
@@ -105,31 +164,66 @@ const TaskBarPluginItems: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-wrap gap-2 max-w-xs max-h-16 overflow-hidden">
+    <div
+      className={cn(
+        'flex flex-wrap gap-2 max-w-xs max-h-16 overflow-hidden',
+        !taskBarButtonsVisibility.start &&
+          !taskBarButtonsVisibility.stop &&
+          !taskBarButtonsVisibility.stopAll &&
+          'max-w-none',
+      )}
+    >
       <TooltipProvider>
         {taskBarItems.map((item) => (
           <Tooltip key={item.id}>
             <TooltipTrigger asChild>
               <button
+                style={
+                  typeof item.buttonStyle === 'string'
+                    ? {
+                        ...(item.buttonStyle as React.CSSProperties),
+                      }
+                    : item.buttonStyle
+                }
                 className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-2 py-1 rounded flex gap-1 font-semibold dark:text-gray-200 flex-shrink-0"
                 onClick={() => handleItemClick(item)}
                 aria-label={item.label}
               >
                 {item.icon && (
-                  <span className="inline-flex items-center justify-center w-3 h-3 mt-1 flex-shrink-0">
+                  <span
+                    style={
+                      typeof item.iconStyle === 'string'
+                        ? {
+                            ...(item.iconStyle as React.CSSProperties),
+                          }
+                        : item.iconStyle
+                    }
+                    className="inline-flex items-center justify-center w-4 h-4 flex-shrink-0"
+                  >
                     {typeof item.icon === 'string' && isSvgString(item.icon) ? (
                       <span
                         dangerouslySetInnerHTML={{ __html: item.icon }}
-                        className="text-black dark:text-white [&>svg]:w-3 [&>svg]:h-3 [&>svg]:fill-current"
+                        className="text-black dark:text-white [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-none [&>svg]:stroke-current"
                       />
                     ) : (
                       <span className="text-black dark:text-white">
-                        {item.icon}
+                        {renderIcon(item.icon, 'sm')}
                       </span>
                     )}
                   </span>
                 )}
-                <span className="hidden lg:inline text-sm">{item.label}</span>{' '}
+                <span
+                  style={
+                    typeof item.labelStyle === 'string'
+                      ? {
+                          ...(item.labelStyle as React.CSSProperties),
+                        }
+                      : item.labelStyle
+                  }
+                  className={cn('text-sm', item.icon && 'hidden lg:inline')}
+                >
+                  {item.label}
+                </span>{' '}
               </button>
             </TooltipTrigger>
           </Tooltip>
@@ -139,4 +233,4 @@ const TaskBarPluginItems: React.FC = () => {
   );
 };
 
-export default TaskBarPluginItems;
+export default PluginTaskBarExtension;

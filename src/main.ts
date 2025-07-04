@@ -7,6 +7,7 @@
 import {
   app,
   BrowserWindow,
+  clipboard,
   dialog,
   ipcMain,
   Menu,
@@ -62,15 +63,39 @@ let isDownloadComplete = false;
 
 let pluginManager: PluginManager;
 
+/*
+// Rate limiting for GitHub API calls
+const GITHUB_API_COOLDOWN = 5 * 60 * 1000; // 5 minutes between API calls
+let lastGitHubApiCall = 0;
+let cachedLatestVersion: { version: string; timestamp: number } | null = null;
+const VERSION_CACHE_DURATION = 30 * 60 * 1000; // Cache for 30 minutes
+
+// Helper function to check if we can make a GitHub API call
+function canMakeGitHubApiCall(): boolean {
+  const now = Date.now();
+  return now - lastGitHubApiCall >= GITHUB_API_COOLDOWN;
+}
+
+// Helper function to get cached version if still valid
+function getCachedVersion(): string | null {
+  if (!cachedLatestVersion) return null;
+
+  const now = Date.now();
+  const isExpired =
+    now - cachedLatestVersion.timestamp > VERSION_CACHE_DURATION;
+
+  return isExpired ? null : cachedLatestVersion.version;
+}
+*/
 // Function to create the main application window
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 1200,
+    width: 1250,
     height: 680,
     frame: false,
     autoHideMenuBar: true,
-    minWidth: 800,
+    minWidth: 900,
     minHeight: 600,
     webPreferences: {
       contextIsolation: true,
@@ -104,6 +129,17 @@ const createWindow = () => {
         return false;
       }
     }
+  });
+
+  // Add focus tracking for clipboard monitoring
+  mainWindow.on('focus', () => {
+    isWindowFocused = true;
+    console.log('Window focused - clipboard monitoring paused');
+  });
+
+  mainWindow.on('blur', () => {
+    isWindowFocused = false;
+    console.log('Window unfocused - clipboard monitoring resumed');
   });
 
   // MAIN FUNCTIONS FOR TITLE BAR
@@ -199,6 +235,8 @@ const createTray = () => {
       label: 'Quit',
       click: () => {
         forceQuit = true;
+        // Set to BLANK_STATE before quitting
+        lastClipboardText = 'BLANK_STATE';
         app.quit();
       },
     },
@@ -219,10 +257,8 @@ const createTray = () => {
 // set the alert icon
 function setAlertTrayIcon() {
   if (tray && alertTrayIcon) {
-    console.log('Setting alert tray icon');
     tray.setImage(alertTrayIcon);
     isDownloadComplete = true;
-    tray.setToolTip('Downlodr - Download(s) complete!');
     // Force tray update by setting context menu
     // tray.setContextMenu(tray.getContextMenu());
   } else {
@@ -387,6 +423,33 @@ ipcMain.handle('deleteFile', async (event, filepath) => {
   }
 });
 
+ipcMain.handle('deleteFolder', async (event, filepath) => {
+  try {
+    // Normalize the folder path
+    const normalizedPath = path.normalize(filepath);
+
+    // Check if the folder exists
+    if (!fs.existsSync(normalizedPath)) {
+      console.error('Folder does not exist:', normalizedPath);
+      return false;
+    }
+
+    // Check if it's actually a directory
+    const stats = await fs.promises.stat(normalizedPath);
+    if (!stats.isDirectory()) {
+      console.error('Path is not a directory:', normalizedPath);
+      return false;
+    }
+
+    // Move the folder to trash
+    await shell.trashItem(normalizedPath);
+    return true;
+  } catch (error) {
+    console.error('Failed to move folder to trash:', error);
+    return false;
+  }
+});
+
 // adjust pathname to ensure its safe
 ipcMain.handle('normalizePath', async (event, filepath) => {
   try {
@@ -430,6 +493,229 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
   }
 });
 
+/*
+// Get current YT-DLP version
+ipcMain.handle('ytdlp:getCurrentVersion', async () => {
+  try {
+    const version = await YTDLP.getYTDLPVersion();
+    return { success: true, version };
+  } catch (error) {
+    console.error('Error getting current YT-DLP version:', error);
+    return { success: false, error: error.message, version: null };
+  }
+});
+
+// Get latest YT-DLP version
+ipcMain.handle('ytdlp:getLatestVersion', async () => {
+  try {
+    // Check if we have a cached version first
+    const cachedVersion = getCachedVersion();
+    if (cachedVersion) {
+      console.log('Using cached YT-DLP version:', cachedVersion);
+      return {
+        success: true,
+        version: cachedVersion,
+        message: 'Retrieved from cache',
+      };
+    }
+
+    // Check rate limiting
+    if (!canMakeGitHubApiCall()) {
+      const remainingTime = Math.ceil(
+        (GITHUB_API_COOLDOWN - (Date.now() - lastGitHubApiCall)) / 1000,
+      );
+      return {
+        success: false,
+        error: `Rate limited. Please wait ${remainingTime} seconds before checking again.`,
+        version: null,
+      };
+    }
+
+    // Make the API call
+    lastGitHubApiCall = Date.now();
+    const response = await YTDLP.getLatestYTDLPVersionFromGitHub();
+
+    // Cache the result if successful
+    if (response.ok && response.version) {
+      cachedLatestVersion = {
+        version: response.version,
+        timestamp: Date.now(),
+      };
+    }
+
+    return {
+      success: response.ok,
+      version: response.version,
+      message: response.message,
+    };
+  } catch (error) {
+    console.error('Error getting latest YT-DLP version:', error);
+
+    // Check if it's a rate limit error
+    if (error.message && error.message.includes('403')) {
+      return {
+        success: false,
+        error:
+          'GitHub API rate limit exceeded. Please wait an hour before trying again.',
+        version: null,
+      };
+    }
+
+    return { success: false, error: error.message, version: null };
+  }
+});
+
+// Check and update YT-DLP
+ipcMain.handle('ytdlp:checkAndUpdate', async () => {
+  try {
+    const currentVersion = await YTDLP.getYTDLPVersion();
+
+    // Check if we have a cached version first
+    let latestVersion = getCachedVersion();
+    let latestResponse;
+
+    if (!latestVersion) {
+      // Check rate limiting
+      if (!canMakeGitHubApiCall()) {
+        const remainingTime = Math.ceil(
+          (GITHUB_API_COOLDOWN - (Date.now() - lastGitHubApiCall)) / 1000,
+        );
+        return {
+          success: false,
+          error: `Rate limited. Please wait ${remainingTime} seconds before checking again.`,
+          action: 'error',
+        };
+      }
+
+      // Make the API call
+      lastGitHubApiCall = Date.now();
+      latestResponse = await YTDLP.getLatestYTDLPVersionFromGitHub();
+
+      if (!latestResponse.ok || !latestResponse.version) {
+        // Check if it's a rate limit error
+        if (latestResponse.message && latestResponse.message.includes('403')) {
+          throw new Error(
+            'GitHub API rate limit exceeded. Please wait an hour before trying again.',
+          );
+        }
+        throw new Error(
+          latestResponse.message || 'Failed to get latest version',
+        );
+      }
+
+      latestVersion = latestResponse.version;
+
+      // Cache the result
+      cachedLatestVersion = {
+        version: latestVersion,
+        timestamp: Date.now(),
+      };
+    }
+
+    if (!currentVersion) {
+      console.log('YT-DLP not found. Downloading latest version...');
+      await YTDLP.downloadYTDLP();
+      return {
+        success: true,
+        action: 'downloaded',
+        message: 'YT-DLP was not found and has been downloaded.',
+        currentVersion: null,
+        latestVersion,
+      };
+    }
+
+    console.log(`Current version: ${currentVersion}`);
+    console.log(`Latest version: ${latestVersion}`);
+
+    if (latestVersion && currentVersion !== latestVersion) {
+      console.log('Updating YT-DLP to latest version...');
+      await YTDLP.downloadYTDLP({
+        version: latestVersion,
+        forceDownload: true,
+      });
+      console.log('Update completed!');
+      return {
+        success: true,
+        action: 'updated',
+        message: `YT-DLP updated from ${currentVersion} to ${latestVersion}`,
+        currentVersion,
+        latestVersion,
+      };
+    } else {
+      console.log('YT-DLP is up to date!');
+      return {
+        success: true,
+        action: 'up-to-date',
+        message: 'YT-DLP is already up to date',
+        currentVersion,
+        latestVersion,
+      };
+    }
+  } catch (error) {
+    console.error('Error managing YT-DLP version:', error);
+    return {
+      success: false,
+      error: error.message,
+      action: 'error',
+      message: `Error managing YT-DLP version: ${error.message}`,
+    };
+  }
+});
+
+// Download YTDLP binary with custom options
+ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
+  try {
+    console.log('YTDLP download options:', options);
+
+    const downloadOptions: DownloadOptions = {
+      forceDownload: options.forceDownload || false,
+    };
+
+    // Handle filePath - if it's provided, ensure it's a proper file path
+    if (options.filePath && options.filePath.trim()) {
+      const filePath = options.filePath.trim();
+
+      // Check if the path is a directory (doesn't end with an executable extension)
+      if (
+        !path.extname(filePath) ||
+        path.extname(filePath).toLowerCase() !== '.exe'
+      ) {
+        // If it's a directory or doesn't have .exe extension, append the default filename
+        const defaultFilename =
+          process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+        downloadOptions.filePath = path.join(filePath, defaultFilename);
+      } else {
+        downloadOptions.filePath = filePath;
+      }
+    }
+    // If no filePath provided, let YTDLP use its default location
+
+    // Handle version
+    if (
+      options.version &&
+      options.version.trim() &&
+      options.version.trim().toLowerCase() !== 'latest'
+    ) {
+      downloadOptions.version = options.version.trim();
+    }
+    // If no version provided or 'latest', let YTDLP use latest
+
+    // Handle platform
+    if (options.platform && options.platform !== 'auto') {
+      downloadOptions.platform = options.platform;
+    }
+    // If no platform provided or 'auto', let YTDLP auto-detect
+
+    console.log('Final YTDLP download options:', downloadOptions);
+
+    await YTDLP.downloadYTDLP(downloadOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Error downloading YTDLP:', error);
+    return { success: false, error: error.message };
+  }
+});
+*/
 // after identifying ID kill/stop the id
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function killControllerById(id: any) {
@@ -488,34 +774,116 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
         'Controller is not defined or does not have a listen method',
       );
     }
+
     // Send the controller ID back to the renderer process
     e.sender.send(`ytdlp:controller:${id}`, {
       downloadId: id,
       controllerId: controller.id,
     });
 
+    console.log(`🚀 Starting download ${id} with controller ${controller.id}`);
+
+    // Set up process completion detection WITHOUT interfering with the main stream
+    let processCompletionHandled = false;
+    let completeLog = ''; // Collect all logs here
+
+    if (controller.process) {
+      console.log(
+        `🔍 Setting up process completion listener for download ${id}`,
+      );
+
+      const handleProcessCompletion = (
+        code: number,
+        signal: string,
+        eventType: string,
+      ) => {
+        if (processCompletionHandled) return; // Prevent duplicate handling
+        processCompletionHandled = true;
+
+        const completionMessage = `Process '${controller.id}' ${eventType} with code: ${code}, signal: ${signal}`;
+        console.log(`💀 ${completionMessage}`);
+
+        // Add completion message to complete log
+        completeLog += `\n${completionMessage}`;
+
+        // Send completion with complete log after a small delay to ensure all other logs are processed first
+        setTimeout(() => {
+          e.sender.send(`ytdlp:download:status:${id}`, {
+            type: 'completion',
+            data: {
+              log: completionMessage,
+              completeLog: completeLog, // Send complete log
+              exitCode: code,
+              signal: signal,
+              controllerId: controller.id,
+            },
+          });
+        }, 100); // Small delay to ensure stream logs are processed first
+      };
+
+      controller.process.on('exit', (code: number, signal: string) => {
+        handleProcessCompletion(code, signal, 'exited');
+      });
+
+      controller.process.on('close', (code: number, signal: string) => {
+        // Only handle close if exit wasn't already handled
+        if (!processCompletionHandled) {
+          handleProcessCompletion(code, signal, 'closed');
+        }
+      });
+    } else {
+      console.log(
+        `⚠️ Controller ${controller.id} does not expose process - will rely on stream completion`,
+      );
+    }
+
+    // Process the main download stream normally
     for await (const chunk of controller.listen()) {
-      // Send the download status back to the renderer process
-      e.sender.send(`ytdlp:download:status:${id}`, chunk);
-      console.log(chunk);
+      // Collect ALL logs in the main process
+      if (chunk?.data?.log) {
+        completeLog += chunk.data.log; // Add to complete log
+      }
 
-      if (chunk != null) {
-        if (chunk.data.status === 'finished') {
-          console.log('Download complete, updating tray icon...');
-          setAlertTrayIcon();
+      // Send chunks normally for progress updates, but also include complete log so far
+      const enhancedChunk = {
+        ...chunk,
+        completeLog: completeLog, // Add complete log to every chunk
+      };
+      e.sender.send(`ytdlp:download:status:${id}`, enhancedChunk);
 
-          // Notify the main process about the finished download
-          const win = BrowserWindow.getAllWindows()[0];
-          if (win) {
-            win.webContents.send('download-finished', {
-              name: args.name,
-              id: id,
-              location: args.outputFilepath,
-            });
-          }
+      // Handle download completion notifications
+      if (chunk != null && chunk.data && chunk.data.status === 'finished') {
+        setAlertTrayIcon();
+
+        // Notify the main process about the finished download
+        const win = BrowserWindow.getAllWindows()[0];
+        if (win) {
+          win.webContents.send('download-finished', {
+            name: args.name,
+            id: id,
+            location: args.outputFilepath,
+          });
         }
       }
     }
+
+    console.log(`🏁 Download stream ended for ${id}`);
+
+    // If process completion wasn't handled through events, send a fallback after delay
+    setTimeout(() => {
+      if (!processCompletionHandled) {
+        console.log(`⏰ Sending fallback completion signal for download ${id}`);
+
+        e.sender.send(`ytdlp:download:status:${id}`, {
+          type: 'stream_ended',
+          data: {
+            log: `Process '${controller.id}' stream completed`,
+            controllerId: controller.id,
+          },
+        });
+      }
+    }, 2000); // Wait 2 seconds after stream ends
+
     // Return the download ID and controller ID
     return { downloadId: id, controllerId: controller.id };
   } catch (error) {
@@ -525,11 +893,155 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
   }
 });
 
+// Add clipboard monitoring IPC handlers
+ipcMain.handle('get-clipboard-text', () => {
+  return clipboard.readText();
+});
+
+// Add IPC handlers to control clipboard monitoring
+ipcMain.handle('start-clipboard-monitoring', () => {
+  console.log('Renderer requested to start clipboard monitoring');
+  startClipboardMonitoring();
+  return true;
+});
+
+ipcMain.handle('stop-clipboard-monitoring', () => {
+  console.log('Renderer requested to stop clipboard monitoring');
+  stopClipboardMonitoring();
+  return true;
+});
+
+ipcMain.handle('is-clipboard-monitoring-active', () => {
+  return isMonitoring;
+});
+
+// Add IPC handler to check window focus state
+ipcMain.handle('is-window-focused', () => {
+  return isWindowFocused;
+});
+
+// Add IPC handler to clear last clipboard text
+ipcMain.handle('clear-last-clipboard-text', () => {
+  console.log('Setting last clipboard text to BLANK_STATE...');
+  lastClipboardText = 'BLANK_STATE';
+  return true;
+});
+
+// Add IPC handler to actually clear the clipboard
+ipcMain.handle('clear-clipboard', () => {
+  try {
+    clipboard.writeText('');
+    lastClipboardText = 'BLANK_STATE';
+    console.log('Clipboard cleared successfully');
+    return true;
+  } catch (error) {
+    console.log('Could not clear clipboard:', error);
+    return false;
+  }
+});
+
+// Set up clipboard monitoring
+let clipboardInterval: NodeJS.Timeout | null = null;
+let lastClipboardText = 'BLANK_STATE';
+let isMonitoring = false;
+// Add focus tracking variable
+let isWindowFocused = false;
+
+const startClipboardMonitoring = () => {
+  if (clipboardInterval) {
+    clearInterval(clipboardInterval);
+  }
+
+  isMonitoring = true;
+  console.log('Starting clipboard monitoring...');
+
+  // Set internal state to BLANK_STATE for fallback tracking
+  lastClipboardText = 'BLANK_STATE';
+
+  // Actually clear the clipboard by writing an empty string
+  try {
+    clipboard.writeText('');
+    console.log('Clipboard cleared and monitoring initialized');
+  } catch (error) {
+    console.log(
+      'Could not clear clipboard, using BLANK_STATE fallback:',
+      error,
+    );
+  }
+
+  // Function to start the monitoring interval with appropriate timing
+  const startMonitoringInterval = () => {
+    clipboardInterval = setInterval(() => {
+      if (!isMonitoring) {
+        return;
+      }
+
+      // Skip processing if window is focused - reduce log noise
+      if (isWindowFocused) {
+        return;
+      }
+
+      try {
+        const currentText = clipboard.readText();
+
+        // Only process if content has changed and is reasonable size
+        if (currentText !== lastClipboardText && currentText.length <= 10000) {
+          // Only send clipboard change event if:
+          // 1. We're not going from BLANK_STATE to new content (prevents initial triggers)
+          // 2. Current content is not empty (prevents triggers when clearing clipboard)
+          // 3. Window is not focused (new condition)
+          if (
+            lastClipboardText !== 'BLANK_STATE' &&
+            currentText.trim() !== '' &&
+            !isWindowFocused
+          ) {
+            console.log(
+              'Clipboard content changed (window unfocused), sending to renderer...',
+            );
+
+            // Send clipboard change event to all renderer processes
+            BrowserWindow.getAllWindows().forEach((win) => {
+              if (!win.isDestroyed()) {
+                win.webContents.send('clipboard-changed', currentText);
+              }
+            });
+          }
+
+          // Always update the last clipboard text for comparison
+          lastClipboardText = currentText;
+        }
+      } catch (error) {
+        console.debug('Clipboard monitoring error:', error);
+      }
+    }, 1000); // Standard 1 second polling
+  };
+
+  // Add a small delay to prevent immediate detection of current clipboard content
+  setTimeout(startMonitoringInterval, 500);
+};
+
+const stopClipboardMonitoring = () => {
+  console.log('Stopping clipboard monitoring...');
+  isMonitoring = false;
+  if (clipboardInterval) {
+    clearInterval(clipboardInterval);
+    clipboardInterval = null;
+  }
+  lastClipboardText = 'BLANK_STATE';
+  console.log('Clipboard monitoring stopped');
+};
+
+// App lifecycle events
+
 // once the app opens
 app.on('ready', async () => {
   createWindow();
   createTray();
   updateCloseHandler();
+
+  // Start clipboard monitoring
+  // Don't start automatically - let the renderer control it
+  // startClipboardMonitoring();
 
   // Check for updates when app starts
   setTimeout(async () => {
@@ -630,6 +1142,7 @@ app.on('activate', () => {
 // before-quit' handler to properly set force quit
 app.on('before-quit', () => {
   forceQuit = true;
+  stopClipboardMonitoring();
 });
 
 // function to handle the dev tools or console open
@@ -718,6 +1231,9 @@ ipcMain.handle('hide-window', () => {
 // function for forcibly closing the app
 ipcMain.handle('exit-app', () => {
   forceQuit = true;
+  // Set to BLANK_STATE before quitting
+  lastClipboardText = 'BLANK_STATE';
+  console.log('Last clipboard text set to BLANK_STATE before app exit');
   app.quit();
 });
 
@@ -1039,7 +1555,6 @@ ipcMain.handle('plugin:fs:readFile', async (event, options) => {
 ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
   try {
     const { filePath, pluginId } = options;
-    console.log('got this', options);
     // Security check: Make sure we're not reading outside allowed directories
     // Get the plugin's data directory as a safe base path
     const pluginDataDir = path.join(
@@ -1054,7 +1569,6 @@ ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
     if (typeof filePath === 'string') {
       // Replace any escaped backslashes (\\) with single backslashes (\)
       adjustedPath = filePath.replace(/\\\\/g, '\\');
-      console.log('Normalized file path:', adjustedPath);
     }
 
     const normalizedPath = path.normalize(adjustedPath);
@@ -1067,7 +1581,6 @@ ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
     console.log('path given to read:', resolvedPath);
 
     const fileContents = await fs.promises.readFile(resolvedPath, 'utf8');
-    console.log(fileContents);
     return { success: true, data: fileContents };
   } catch (error) {
     console.error('Error reading file contents:', error);

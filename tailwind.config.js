@@ -15,8 +15,8 @@ module.exports = {
     screens: {
       'xs': '475px',
       'sm': '640px',
-      'md': '900px',
-      'lg': '950px',
+      'md': '950px',
+      'lg': '980px',
       '2xl': '1400px',
     },
     container: {
@@ -25,7 +25,7 @@ module.exports = {
       screens: {
         'xs': '475px',
         'sm': '640px',
-        'md': '830px',
+        'md': '900px',
         'lg': '950px',
         '2xl': '1400px',
       },
@@ -65,8 +65,10 @@ module.exports = {
         darkModeBorderColor: '#434347',
         darkModeDropdown: '#18181B',
         darkModeLight: '#D4D4D8',
+        darkModeDarkGray: '#363636',
         darkModeHover: '#3E3E46',
         inputDarkMode: '#FEF9F426',
+        inputDarkModeBorder: '#27272ACC',
         skeleton: '#E8EDF1',
         border: '#E4E4E7',
         detailsTab: '#EDEDED',
@@ -76,7 +78,6 @@ module.exports = {
         darkModeNotAvailableStatus: '#C6C6C6',
         darkModeButtonDefault: '#71717A',
         darkModeButtonActive: '#E4E4E7',
-        darkModeButtonHover: '#D4D4D8',
       },
     },
   },
