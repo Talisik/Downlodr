@@ -10,6 +10,7 @@
  */
 import React, { useState } from 'react';
 import { formatElapsedTime } from '../../../Store/downloadStore';
+import { useMainStore } from '../../../Store/mainStore';
 
 // Interface representing the details of a download
 interface DownloadDetails {
@@ -34,7 +35,8 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
   download,
 }) => {
   // Add state to track expanded/collapsed state
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const { isDownloadDetailExpanded, setIsDownloadDetailExpanded } =
+    useMainStore();
 
   // Check if download is null or undefined
   const isEmpty = !download;
@@ -59,7 +61,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
 
   // Toggle expanded/collapsed state
   const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
+    setIsDownloadDetailExpanded(!isDownloadDetailExpanded);
   };
 
   return (
@@ -73,11 +75,11 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
             Progress
           </p>
           <div className="w-full">
-            <div className="w-full bg-white rounded-full h-1.5">
+            <div className="w-full bg-white dark:bg-darkModeDarkGray rounded-full h-1.5">
               <div
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   isEmpty || !download.progress || download.progress === 0
-                    ? 'bg-gray-400 dark:bg-gray-600'
+                    ? 'bg-gray-400 dark:bg-darkModeDarkGray'
                     : download.progress === 100
                     ? 'bg-green-500'
                     : 'bg-orange-500'
@@ -96,7 +98,9 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
       {/* The rest of your details component - now using CSS for visibility */}
       <div
         className={`px-4 pb-2 overflow-hidden transition-all duration-300 ${
-          isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          isDownloadDetailExpanded
+            ? 'max-h-96 opacity-100'
+            : 'max-h-0 opacity-0'
         }`}
       >
         <div className="flex flex-col md:flex-row py-2 justify-center">
@@ -185,7 +189,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
             toggleExpanded();
           }}
         >
-          {isExpanded ? (
+          {isDownloadDetailExpanded ? (
             <svg
               className="w-4 h-4"
               fill="currentColor"

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { cn } from '../shadcn/lib/utils';
 
 interface ColumnOption {
   id: string;
@@ -52,7 +53,11 @@ const ColumnHeaderContextMenu: React.FC<ColumnHeaderContextMenuProps> = ({
       {columnOptions.map((column) => (
         <div
           key={column.id}
-          className="flex items-center pr-4 pl-4 py-1 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
+          className={cn(
+            'flex items-center pr-4 pl-4 py-1 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded',
+            column.required &&
+              'cursor-not-allowed rounded-none bg-gray-200 hover:bg-gray-200 dark:bg-darkModeHover dark:hover:bg-darkModeHover opacity-25',
+          )}
         >
           <input
             type="checkbox"

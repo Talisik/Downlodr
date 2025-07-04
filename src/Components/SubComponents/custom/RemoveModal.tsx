@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
+import { Button } from '../shadcn/components/ui/button';
 
 interface RemoveModalProps {
   isOpen: boolean;
@@ -74,28 +75,29 @@ const RemoveModal: React.FC<RemoveModalProps> = ({
                 onClick={(e) => e.stopPropagation()} // Prevent checkbox click from closing modal
                 className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
               />
-              <span>Also remove the downloaded folder</span>
+              <span>Also remove the downloaded folder and its files</span>
             </label>
           </div>
         )}
 
         {/* Action buttons */}
         <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
-          <button
-            onClick={(e) => {
+          <Button
+            onClick={(e: any) => {
               e.stopPropagation();
               onClose();
             }}
-            className="px-4 py-1 text-gray-600 bg-white dark:bg-[#18181B] dark:text-white border dark:border-[#27272A] hover:bg-gray-50 dark:hover:bg-darkModeHover dark:hover:text-gray-200 rounded-md font-medium"
+            variant="outline"
+            className="h-8 px-2 py-0.5 rounded-md dark:border-darkModeCompliment dark:bg-darkModeCompliment dark:text-darkModeLight dark:hover:bg-darkModeHover dark:hover:text-white font-medium"
           >
             Cancel
-          </button>
+          </Button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onConfirm(deleteFolder);
             }}
-            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-white hover:text-black font-medium"
+            className="h-8 px-2 py-0.5 bg-primary dark:bg-primary dark:text-darkModeLight  dark:hover:bg-primary/90 text-white rounded-md hover:bg-primary/90 cursor-pointer"
           >
             Remove
           </button>

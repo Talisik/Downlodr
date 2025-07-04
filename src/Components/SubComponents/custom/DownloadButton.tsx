@@ -43,8 +43,7 @@ interface DownloadButtonProps {
 
 const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
   const { settings } = useMainStore();
-  const { downloading, addDownload, removeFromForDownloads } =
-    useDownloadStore();
+  const { removeFromForDownloads, addQueue } = useDownloadStore();
 
   /**
    * Handles the click event for the download button.
@@ -54,24 +53,16 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
    */
   const handleDownloadClick = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row expansion
-    if (downloading.length >= settings.maxDownloadNum) {
-      toast({
-        variant: 'destructive',
-        title: 'Download limit reached',
-        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
-        duration: 3000,
-      });
-      return;
-    }
+
     // Process the filename first
     const processedName = await processFileName(
       download.location,
       download.name,
       download.ext || download.audioExt, // Use appropriate extension
     );
-    console.log(download.automaticCaption);
-    // calls the addDownload function from store to start each selected download
-    addDownload(
+
+    // Add to queue - let the download controller handle starting it
+    addQueue(
       download.videoUrl,
       `${processedName}.${download.ext}`,
       `${processedName}.${download.ext}`,
@@ -81,7 +72,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
       new Date().toISOString(),
       download.progress,
       download.location,
-      'downloading',
+      'queued',
       download.ext,
       download.formatId,
       download.audioExt,
@@ -97,11 +88,13 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
       download.duration || 60,
       true,
     );
-    // remove the current download from the saved list for forDownloads
+
+    // Remove from forDownloads
     removeFromForDownloads(download.id);
+
     toast({
-      title: 'Download Started',
-      description: `Starting download for ${processedName}`,
+      title: 'Download Added to Queue',
+      description: `"${processedName}" added to queue. The download controller will start it automatically.`,
       duration: 3000,
     });
   };

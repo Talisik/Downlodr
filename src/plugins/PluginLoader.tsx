@@ -112,8 +112,9 @@ export const PluginLoader: React.FC = () => {
           warn: (...args: any[]) =>
             console.warn(`[Plugin ${pluginId}]`, ...args),
         },
-        setTimeout,
-        clearTimeout,
+        setTimeout: (callback: TimerHandler, ms?: number, ...args: any[]) => 
+          setTimeout(callback, ms, ...args),
+        clearTimeout: (id?: number) => clearTimeout(id),
         exports: {},
         module: { exports: {} },
         require: createSafeRequire(),

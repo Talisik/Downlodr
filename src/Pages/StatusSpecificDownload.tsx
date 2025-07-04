@@ -7,7 +7,13 @@
  *
  * @returns JSX.Element - The rendered component displaying status-filtered downloads.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import { VscPlayCircle } from 'react-icons/vsc';
 import { useParams } from 'react-router-dom';
@@ -18,6 +24,7 @@ import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
   RenameModal,
   StopModal,
 } from '../Components/SubComponents/custom/DownloadContextMenu'; */
+import LogModal from '../Components/Main/Modal/LogModal';
 import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
 import ExpandedDownloadDetails from '../Components/SubComponents/custom/ExpandedDownloadDetail';
 import FileNotExistModal, {
@@ -29,6 +36,7 @@ import RemoveModal from '../Components/SubComponents/custom/RemoveModal';
 import RenameModal from '../Components/SubComponents/custom/RenameModal';
 import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
 import { useResizableColumns } from '../Components/SubComponents/custom/ResizableColumns/useResizableColumns';
+import ShareButton from '../Components/SubComponents/custom/ShareButton';
 import StopModal from '../Components/SubComponents/custom/StopModal';
 import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
@@ -49,17 +57,17 @@ const formatRelativeTime = (dateString: string) => {
   const diffInYears = Math.floor(diffInDays / 365);
 
   if (diffInMinutes < 60) {
-    return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
+    return `${diffInMinutes} m ago`;
   } else if (diffInHours < 24) {
-    return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
+    return `${diffInHours} ${diffInHours === 1 ? 'hr' : 'hrs'} ago`;
   } else if (diffInDays < 7) {
     return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
   } else if (diffInWeeks < 4) {
-    return `${diffInWeeks} ${diffInWeeks === 1 ? 'week' : 'weeks'} ago`;
+    return `${diffInWeeks} ${diffInWeeks === 1 ? 'wk' : 'ws'} ago`;
   } else if (diffInMonths < 12) {
-    return `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'} ago`;
+    return `${diffInMonths} ${diffInMonths === 1 ? 'mo' : 'mos'} ago`;
   } else {
-    return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
+    return `${diffInYears} ${diffInYears === 1 ? 'yr' : 'yrs'} ago`;
   }
 };
 
@@ -152,6 +160,7 @@ const StatusSpecificDownloads = () => {
   const finishedDownloads = useDownloadStore(
     (state) => state.finishedDownloads,
   );
+  const queuedDownloads = useDownloadStore((state) => state.queuedDownloads);
   const deleteDownload = useDownloadStore((state) => state.deleteDownload);
 
   // Sorting state
@@ -202,6 +211,7 @@ const StatusSpecificDownloads = () => {
     startDragging,
     handleDragOver,
     handleDrop,
+    cancelDrag,
     dragging,
     dragOverIndex,
   } = useResizableColumns(
@@ -211,13 +221,138 @@ const StatusSpecificDownloads = () => {
       { id: 'format', width: 90, minWidth: 90 },
       { id: 'status', width: 110, minWidth: 110 },
       { id: 'speed', width: 100, minWidth: 100 },
-      { id: 'dateAdded', width: 110, minWidth: 110 },
+      { id: 'dateAdded', width: 100, minWidth: 100 },
       { id: 'transcript', width: 20, minWidth: 20 },
       { id: 'thumbnail', width: 10, minWidth: 10 },
       { id: 'source', width: 20, minWidth: 20 },
+      { id: 'action', width: 10, minWidth: 10 },
     ],
     visibleColumns,
   );
+
+  // PERFORMANCE OPTIMIZATION: Memoize expensive computations
+  // Combine and process downloads only when dependencies change
+  const allDownloads = useMemo(() => {
+    const combined = [
+      ...forDownloads,
+      ...downloading,
+      ...finishedDownloads,
+      ...history,
+      ...queuedDownloads,
+    ]
+      .filter(
+        (download, index, self) =>
+          index === self.findIndex((d) => d.id === download.id),
+      )
+      // Filter by status if we're on a status-specific page
+      .filter((download) => {
+        if (!currentStatus) return true; // If no status filter, show all
+        if (currentStatus.toLowerCase() === 'all') return true; // Show all for 'all' status
+        return download.status.toLowerCase() === currentStatus.toLowerCase();
+      })
+      .sort((a, b) => {
+        // Apply sorting based on sortColumn and sortDirection
+        switch (sortColumn) {
+          case 'name':
+            return sortDirection === 'asc'
+              ? a.name.localeCompare(b.name)
+              : b.name.localeCompare(a.name);
+          case 'size': {
+            const sizeA = a.size || 0;
+            const sizeB = b.size || 0;
+            return sortDirection === 'asc' ? sizeA - sizeB : sizeB - sizeA;
+          }
+          case 'format': {
+            const formatA = a.ext || '';
+            const formatB = b.ext || '';
+            return sortDirection === 'asc'
+              ? formatA.localeCompare(formatB)
+              : formatB.localeCompare(formatA);
+          }
+          case 'status': {
+            return sortDirection === 'asc'
+              ? a.status.localeCompare(b.status)
+              : b.status.localeCompare(a.status);
+          }
+          case 'speed': {
+            // Handle speed sorting (numbers with units)
+            const speedA = a.speed ? parseFloat(a.speed.split(' ')[0]) || 0 : 0;
+            const speedB = b.speed ? parseFloat(b.speed.split(' ')[0]) || 0 : 0;
+            return sortDirection === 'asc' ? speedA - speedB : speedB - speedA;
+          }
+          case 'dateAdded': {
+            return sortDirection === 'asc'
+              ? new Date(a.DateAdded).getTime() -
+                  new Date(b.DateAdded).getTime()
+              : new Date(b.DateAdded).getTime() -
+                  new Date(a.DateAdded).getTime();
+          }
+          case 'source': {
+            const sourceA = a.extractorKey || '';
+            const sourceB = b.extractorKey || '';
+            return sortDirection === 'asc'
+              ? sourceA.localeCompare(sourceB)
+              : sourceB.localeCompare(sourceA);
+          }
+          case 'thumbnail': {
+            const sourceA = a.extractorKey || '';
+            const sourceB = b.extractorKey || '';
+            return sortDirection === 'asc'
+              ? sourceA.localeCompare(sourceB)
+              : sourceB.localeCompare(sourceA);
+          }
+          case 'transcript': {
+            const sourceA = a.extractorKey || '';
+            const sourceB = b.extractorKey || '';
+            return sortDirection === 'asc'
+              ? sourceA.localeCompare(sourceB)
+              : sourceB.localeCompare(sourceA);
+          }
+          default: {
+            return sortDirection === 'asc'
+              ? new Date(a.DateAdded).getTime() -
+                  new Date(b.DateAdded).getTime()
+              : new Date(b.DateAdded).getTime() -
+                  new Date(a.DateAdded).getTime();
+          }
+        }
+      });
+
+    return combined;
+  }, [
+    forDownloads,
+    downloading,
+    finishedDownloads,
+    history,
+    queuedDownloads,
+    currentStatus,
+    sortColumn,
+    sortDirection,
+  ]);
+
+  // Memoize display columns computation
+  const displayColumns = useMemo(() => {
+    return columns.filter(
+      (column) =>
+        visibleColumns.includes(column.id) ||
+        ['name', 'status', 'format'].includes(column.id),
+    );
+  }, [columns, visibleColumns]);
+
+  // Memoize display columns with indices
+  const displayColumnsWithIndices = useMemo(() => {
+    return displayColumns.map((column, index) => ({
+      ...column,
+      displayIndex: index,
+    }));
+  }, [displayColumns]);
+
+  // Memoize selected download
+  const selectedDownload = useMemo(() => {
+    return selectedDownloadId
+      ? allDownloads.find((d) => d.id === selectedDownloadId)
+      : null;
+  }, [selectedDownloadId, allDownloads]);
 
   // color themes
   const getStatusColor = (status: string): string => {
@@ -243,159 +378,77 @@ const StatusSpecificDownloads = () => {
     }
   };
 
-  // Combine downloads from downloading and history
-  // Filter by status if we're on a status-specific page
-  const allDownloads = [
-    ...forDownloads,
-    ...downloading,
-    ...finishedDownloads,
-    ...history,
-  ]
-    .filter(
-      (download, index, self) =>
-        index === self.findIndex((d) => d.id === download.id),
-    )
-    // Filter by status if we're on a status-specific page
-    .filter((download) => {
-      if (!currentStatus) return true; // If no status filter, show all
-      if (currentStatus.toLowerCase() === 'all') return true; // Show all for 'all' status
-      return download.status.toLowerCase() === currentStatus.toLowerCase();
-    })
-    .sort((a, b) => {
-      // Apply sorting based on sortColumn and sortDirection
-      switch (sortColumn) {
-        case 'name':
-          return sortDirection === 'asc'
-            ? a.name.localeCompare(b.name)
-            : b.name.localeCompare(a.name);
-        case 'size': {
-          const sizeA = a.size || 0;
-          const sizeB = b.size || 0;
-          return sortDirection === 'asc' ? sizeA - sizeB : sizeB - sizeA;
-        }
-        case 'format': {
-          const formatA = a.ext || '';
-          const formatB = b.ext || '';
-          return sortDirection === 'asc'
-            ? formatA.localeCompare(formatB)
-            : formatB.localeCompare(formatA);
-        }
-        case 'status': {
-          return sortDirection === 'asc'
-            ? a.status.localeCompare(b.status)
-            : b.status.localeCompare(a.status);
-        }
-        case 'speed': {
-          // Handle speed sorting (numbers with units)
-          const speedA = a.speed ? parseFloat(a.speed.split(' ')[0]) || 0 : 0;
-          const speedB = b.speed ? parseFloat(b.speed.split(' ')[0]) || 0 : 0;
-          return sortDirection === 'asc' ? speedA - speedB : speedB - speedA;
-        }
-        case 'dateAdded': {
-          return sortDirection === 'asc'
-            ? new Date(a.DateAdded).getTime() - new Date(b.DateAdded).getTime()
-            : new Date(b.DateAdded).getTime() - new Date(a.DateAdded).getTime();
-        }
-        case 'source': {
-          const sourceA = a.extractorKey || '';
-          const sourceB = b.extractorKey || '';
-          return sortDirection === 'asc'
-            ? sourceA.localeCompare(sourceB)
-            : sourceB.localeCompare(sourceA);
-        }
-        case 'thumbnail': {
-          const sourceA = a.extractorKey || '';
-          const sourceB = b.extractorKey || '';
-          return sortDirection === 'asc'
-            ? sourceA.localeCompare(sourceB)
-            : sourceB.localeCompare(sourceA);
-        }
-        case 'transcript': {
-          const sourceA = a.extractorKey || '';
-          const sourceB = b.extractorKey || '';
-          return sortDirection === 'asc'
-            ? sourceA.localeCompare(sourceB)
-            : sourceB.localeCompare(sourceA);
-        }
-        default: {
-          return sortDirection === 'asc'
-            ? new Date(a.DateAdded).getTime() - new Date(b.DateAdded).getTime()
-            : new Date(b.DateAdded).getTime() - new Date(a.DateAdded).getTime();
+  // Map the displayColumns to have correct indices for drag and drop
+  // This line is now handled by the memoized displayColumnsWithIndices above
+
+  // PERFORMANCE OPTIMIZATION: Memoize event handlers
+  const handleFileNotExistModal = useCallback(
+    async (contextDownload: DownloadItem | null = null) => {
+      const missing = [];
+
+      // If a specific download is provided via context menu, check only that one
+      const downloadsToCheck = contextDownload
+        ? [contextDownload]
+        : selectedDownloads;
+
+      // Check each download to see if it exists
+      for (const download of downloadsToCheck) {
+        if (download.status === 'finished' && download.location) {
+          const exists = await window.downlodrFunctions.fileExists(
+            download.location,
+          );
+          if (!exists) {
+            missing.push(download);
+          }
         }
       }
-    });
 
-  // Filter columns based on visibility settings, ensuring essential columns are always included
-  const displayColumns = columns.filter(
-    (column) =>
-      visibleColumns.includes(column.id) ||
-      ['name', 'status', 'format'].includes(column.id),
+      // Set the missing files and show the modal if any were found
+      if (missing.length > 0) {
+        setMissingFiles(missing);
+        setShowFileNotExistModal(true);
+      }
+    },
+    [selectedDownloads],
   );
 
-  const handleFileNotExistModal = async (
-    contextDownload: DownloadItem | null = null,
-  ) => {
-    const missing = [];
-
-    // If a specific download is provided via context menu, check only that one
-    const downloadsToCheck = contextDownload
-      ? [contextDownload]
-      : selectedDownloads;
-
-    // Check each download to see if it exists
-    for (const download of downloadsToCheck) {
-      if (download.status === 'finished' && download.location) {
-        const exists = await window.downlodrFunctions.fileExists(
-          download.location,
-        );
-        if (!exists) {
-          missing.push(download);
-        }
-      }
-    }
-
-    // Set the missing files and show the modal if any were found
-    if (missing.length > 0) {
-      setMissingFiles(missing);
-      setShowFileNotExistModal(true);
-    }
-  };
-
-  // Map the displayColumns to have correct indices for drag and drop
-  const displayColumnsWithIndices = displayColumns.map((column, index) => ({
-    ...column,
-    displayIndex: index,
-  }));
-
   // Handle column header click for sorting
-  const handleSortClick = (column: string) => {
-    if (sortColumn === column) {
-      // Toggle direction if same column
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      // Set new column and default to desc
-      setSortColumn(column);
-      setSortDirection('desc');
-    }
-  };
+  const handleSortClick = useCallback(
+    (column: string) => {
+      if (sortColumn === column) {
+        // Toggle direction if same column
+        setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      } else {
+        // Set new column and default to desc
+        setSortColumn(column);
+        setSortDirection('desc');
+      }
+    },
+    [sortColumn, sortDirection],
+  );
 
   // Function to render sort indicator
-  const renderSortIndicator = (column: string) => {
-    if (sortColumn !== column) {
-      return (
-        <HiChevronUpDown
-          size={14}
-          className="flex-shrink-0 dark:text-gray-400"
-        />
-      );
-    }
+  const renderSortIndicator = useCallback(
+    (column: string) => {
+      if (sortColumn !== column) {
+        return (
+          <HiChevronUpDown
+            size={14}
+            className="flex-shrink-0 dark:text-gray-400"
+          />
+        );
+      }
 
-    if (sortDirection === 'asc') {
-      return <HiChevronUpDown size={14} className="flex-shrink-0 rotate-180" />;
-    } else {
-      return <HiChevronUpDown size={14} className="flex-shrink-0" />;
-    }
-  };
+      if (sortDirection === 'asc') {
+        return (
+          <HiChevronUpDown size={14} className="flex-shrink-0 rotate-180" />
+        );
+      } else {
+        return <HiChevronUpDown size={14} className="flex-shrink-0" />;
+      }
+    },
+    [sortColumn, sortDirection],
+  );
 
   // Add this new state for the column header context menu
   const [columnHeaderContextMenu, setColumnHeaderContextMenu] = useState<{
@@ -405,7 +458,7 @@ const StatusSpecificDownloads = () => {
   }>({ x: 0, y: 0, visible: false });
 
   // Add this handler for the column header right-click
-  const handleColumnHeaderContextMenu = (e: React.MouseEvent) => {
+  const handleColumnHeaderContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -423,21 +476,24 @@ const StatusSpecificDownloads = () => {
       y: y,
       visible: true,
     });
-  };
+  }, []);
 
   // Add this to close the column header context menu
-  const handleCloseColumnHeaderContextMenu = () => {
+  const handleCloseColumnHeaderContextMenu = useCallback(() => {
     setColumnHeaderContextMenu((prev) => ({ ...prev, visible: false }));
-  };
+  }, []);
 
   // Handle toggle column visibility
-  const handleToggleColumn = (columnId: string) => {
-    const newVisibleColumns = visibleColumns.includes(columnId)
-      ? visibleColumns.filter((id) => id !== columnId)
-      : [...visibleColumns, columnId];
+  const handleToggleColumn = useCallback(
+    (columnId: string) => {
+      const newVisibleColumns = visibleColumns.includes(columnId)
+        ? visibleColumns.filter((id) => id !== columnId)
+        : [...visibleColumns, columnId];
 
-    useMainStore.getState().setVisibleColumns(newVisibleColumns);
-  };
+      useMainStore.getState().setVisibleColumns(newVisibleColumns);
+    },
+    [visibleColumns],
+  );
 
   // Add state to track menu transitions
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -454,27 +510,108 @@ const StatusSpecificDownloads = () => {
     };
   }, []);
 
-  const getMenuItemCount = (downloadStatus: string, pluginCount: number) => {
-    // Base items for each status (adjust as needed for your menu)
-    let baseCount = 0;
-    switch (downloadStatus) {
-      case 'finished':
-        baseCount = 5; // Play, View Folder, Remove, Tags, Category
-        break;
-      case 'to download':
-        baseCount = 6; // Start, View Folder, Rename, Remove, Tags, Category
-        break;
-      case 'paused':
-      case 'downloading':
-      case 'initializing':
-        baseCount = 5; // View Folder, Pause/Start, Stop, Tags, Category
-        break;
-      default:
-        baseCount = 5;
+  // PERFORMANCE OPTIMIZATION: Optimize thumbnail loading
+  const loadThumbnails = useCallback(
+    async (downloads: typeof allDownloads) => {
+      const loadPromises = downloads.map(async (download) => {
+        if (download.thumnailsLocation && !thumbnailDataUrls[download.id]) {
+          try {
+            const dataUrl = await window.downlodrFunctions.getThumbnailDataUrl(
+              download.thumnailsLocation,
+            );
+            if (dataUrl) {
+              setThumbnailDataUrls((prev) => ({
+                ...prev,
+                [download.id]: dataUrl,
+              }));
+            }
+          } catch (error) {
+            console.warn(`Failed to load thumbnail for ${download.id}:`, error);
+          }
+        }
+      });
+
+      // Process in batches to avoid overwhelming the system
+      const batchSize = 5;
+      for (let i = 0; i < loadPromises.length; i += batchSize) {
+        const batch = loadPromises.slice(i, i + batchSize);
+        await Promise.allSettled(batch);
+        // Small delay between batches to prevent UI blocking
+        if (i + batchSize < loadPromises.length) {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+      }
+    },
+    [thumbnailDataUrls],
+  );
+
+  // Optimize thumbnail loading effect
+  useEffect(() => {
+    if (allDownloads.length > 0) {
+      loadThumbnails(allDownloads);
     }
-    // Plugins: if <=4, add all; if >4, add just 1 for the Plugins button
-    return baseCount + (pluginCount > 4 ? 1 : pluginCount);
-  };
+  }, [allDownloads, loadThumbnails]);
+
+  // Memoize column display name function
+  const getColumnDisplayName = useCallback((columnId: string): string => {
+    const columnMappings: Record<string, string> = {
+      name: 'Title',
+      size: 'Size',
+      format: 'Format',
+      status: 'Status',
+      speed: 'Speed',
+      dateAdded: 'Date Added',
+      thumbnail: 'Thumbnail',
+      transcript: 'Captions',
+      source: 'Source',
+      action: 'Action',
+    };
+
+    return columnMappings[columnId] || columnId;
+  }, []);
+
+  // Memoize column options
+  const columnOptions = useMemo(
+    () => [
+      { id: 'name', label: 'Title', required: true },
+      { id: 'size', label: 'Size', required: false },
+      { id: 'format', label: 'Format', required: true },
+      { id: 'status', label: 'Status', required: true },
+      { id: 'speed', label: 'Speed', required: false },
+      { id: 'dateAdded', label: 'Date Added', required: false },
+      { id: 'source', label: 'Source', required: false },
+      { id: 'transcript', label: 'Closed Captions', required: false },
+      { id: 'thumbnail', label: 'Thumbnail', required: false },
+      { id: 'action', label: 'Action', required: false },
+    ],
+    [],
+  );
+
+  // Memoize menu item count calculation
+  const getMenuItemCount = useCallback(
+    (downloadStatus: string, pluginCount: number) => {
+      // Base items for each status (adjust as needed for your menu)
+      let baseCount = 0;
+      switch (downloadStatus) {
+        case 'finished':
+          baseCount = 5; // Play, View Folder, Remove, Tags, Category
+          break;
+        case 'to download':
+          baseCount = 6; // Start, View Folder, Rename, Remove, Tags, Category
+          break;
+        case 'paused':
+        case 'downloading':
+        case 'initializing':
+          baseCount = 5; // View Folder, Pause/Start, Stop, Tags, Category
+          break;
+        default:
+          baseCount = 5;
+      }
+      // Plugins: if <=4, add all; if >4, add just 1 for the Plugins button
+      return baseCount + (pluginCount > 4 ? 1 : pluginCount);
+    },
+    [],
+  );
 
   const handleContextMenu = async (
     event: React.MouseEvent,
@@ -575,17 +712,61 @@ const StatusSpecificDownloads = () => {
     }
   };
 
+  const handleShowLog = (downloadId: string) => {
+    setLogModalDownloadId(downloadId);
+    setShowLogModal(true);
+  };
+
   //Context Menu actons
+
+  const handleRetry = (downloadId: string) => {
+    // Get fresh state each time
+    console.log('HII FROM RETRY', downloadId);
+    const { downloading, deleteDownloading } = useDownloadStore.getState();
+    const currentDownload = allDownloads.find((d) => d.id === downloadId);
+    const { updateDownloadStatus } = useDownloadStore.getState();
+
+    const { addDownload } = useDownloadStore.getState();
+    addDownload(
+      currentDownload.videoUrl,
+      currentDownload.name,
+      currentDownload.downloadName,
+      currentDownload.size,
+      currentDownload.speed,
+      currentDownload.timeLeft,
+      new Date().toISOString(),
+      currentDownload.progress,
+      currentDownload.location,
+      'downloading',
+      currentDownload.ext,
+      currentDownload.formatId,
+      currentDownload.audioExt,
+      currentDownload.audioFormatId,
+      currentDownload.extractorKey,
+      '',
+      currentDownload.automaticCaption,
+      currentDownload.thumbnails,
+      currentDownload.getTranscript || false,
+      currentDownload.getThumbnail || false,
+      currentDownload.duration || 60,
+      false,
+    );
+    deleteDownload(downloadId);
+    toast({
+      variant: 'success',
+      title: 'Download Retried',
+      description: 'Download has been retried successfully',
+      duration: 3000,
+    });
+  };
+
   const handlePause = (downloadId: string, downloadLocation?: string) => {
     // Get fresh state each time
-    console.log('hello pause');
     const { downloading, deleteDownloading } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
     const { updateDownloadStatus } = useDownloadStore.getState();
 
     if (currentDownload?.status === 'paused') {
-      console.log('hello pause yes');
-
       const { addDownload } = useDownloadStore.getState();
       addDownload(
         currentDownload.videoUrl,
@@ -598,10 +779,10 @@ const StatusSpecificDownloads = () => {
         currentDownload.progress,
         currentDownload.location,
         'downloading',
-        currentDownload.backupExt,
-        currentDownload.backupFormatId,
-        currentDownload.backupAudioExt,
-        currentDownload.backupAudioFormatId,
+        currentDownload.ext,
+        currentDownload.formatId,
+        currentDownload.audioExt,
+        currentDownload.audioFormatId,
         currentDownload.extractorKey,
         '',
         currentDownload.automaticCaption,
@@ -619,8 +800,6 @@ const StatusSpecificDownloads = () => {
         duration: 3000,
       });
     } else if (currentDownload && currentDownload.controllerId != '---') {
-      console.log('hello pause no>');
-
       try {
         updateDownloadStatus(downloadId, 'paused');
         window.ytdlp
@@ -710,7 +889,7 @@ const StatusSpecificDownloads = () => {
             toast({
               variant: 'destructive',
               title: 'File Not Found',
-              description: `The file does not exist at the specified location WHAAS ${downloadId}`,
+              description: `The file does not exist at the specified location`,
               duration: 3000,
             });
           }
@@ -746,6 +925,7 @@ const StatusSpecificDownloads = () => {
       deleteDownloading,
       forDownloads,
       removeFromForDownloads,
+      processQueue,
     } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
     const currentForDownload = forDownloads.find((d) => d.id === downloadId);
@@ -766,6 +946,7 @@ const StatusSpecificDownloads = () => {
         description: 'Download has been stopped successfully',
         duration: 3000,
       });
+      processQueue();
     } else {
       if (downloading && downloading.length > 0) {
         downloading.forEach(async (download) => {
@@ -785,6 +966,7 @@ const StatusSpecificDownloads = () => {
                   description: 'Download has been stopped successfully',
                   duration: 3000,
                 });
+                processQueue();
               }
             } catch (error) {
               console.error('Error invoking kill-controller:', error);
@@ -831,6 +1013,9 @@ const StatusSpecificDownloads = () => {
     const download = allDownloads.find((d) => d.id === downloadId);
     if (!download) return;
 
+    // Get processQueue function
+    const { processQueue } = useDownloadStore.getState();
+
     // Handle pending downloads
     if (download.status === 'to download') {
       deleteDownload(downloadId);
@@ -840,6 +1025,8 @@ const StatusSpecificDownloads = () => {
         description: 'Download has been deleted successfully',
         duration: 3000,
       });
+      // Process queue after removing a pending download
+      processQueue();
       return;
     }
 
@@ -854,6 +1041,8 @@ const StatusSpecificDownloads = () => {
         } download has been removed successfully`,
         duration: 3000,
       });
+      // Process queue after removing a paused/cancelled download
+      processQueue();
       return;
     }
 
@@ -870,6 +1059,8 @@ const StatusSpecificDownloads = () => {
           });
           return;
         }
+        // Process queue after stopping an active download
+        processQueue();
       } catch (error) {
         toast({
           variant: 'destructive',
@@ -958,40 +1149,42 @@ const StatusSpecificDownloads = () => {
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
-  const handleCheckboxChange = (downloadId: string) => {
-    const newSelected = selectedRowIds.includes(downloadId)
-      ? selectedRowIds.filter((id) => id !== downloadId)
-      : [...selectedRowIds, downloadId];
+  const handleCheckboxChange = useCallback(
+    (downloadId: string) => {
+      const newSelected = selectedRowIds.includes(downloadId)
+        ? selectedRowIds.filter((id) => id !== downloadId)
+        : [...selectedRowIds, downloadId];
 
-    setSelectedRowIds(newSelected);
+      setSelectedRowIds(newSelected);
 
-    // Create promises for each download
-    const promises = newSelected.map(async (id) => {
-      const download = allDownloads.find((d) => d.id === id);
-      return {
-        id,
-        controllerId: download?.controllerId,
-        videoUrl: download?.videoUrl,
-        downloadName: download?.downloadName,
-        status: download?.status,
-        download: download,
-        location: download?.location
-          ? await window.downlodrFunctions.joinDownloadPath(
-              download.location,
-              download.name,
-            )
-          : undefined,
-      };
-    });
+      // Create promises for each download
+      const promises = newSelected.map(async (id) => {
+        const download = allDownloads.find((d) => d.id === id);
+        return {
+          id,
+          controllerId: download?.controllerId,
+          videoUrl: download?.videoUrl,
+          downloadName: download?.downloadName,
+          status: download?.status,
+          download: download,
+          location: download?.location
+            ? await window.downlodrFunctions.joinDownloadPath(
+                download.location,
+                download.name,
+              )
+            : undefined,
+        };
+      });
 
-    // Resolve all promises before updating state
-    Promise.all(promises).then((resolvedData) => {
-      setSelectedDownloads(resolvedData);
-    });
-    console.log(selectedDownload);
-  };
+      // Resolve all promises before updating state
+      Promise.all(promises).then((resolvedData) => {
+        setSelectedDownloads(resolvedData);
+      });
+    },
+    [selectedRowIds, allDownloads, setSelectedRowIds, setSelectedDownloads],
+  );
 
-  const handleSelectAll = () => {
+  const handleSelectAll = useCallback(() => {
     const newSelected =
       selectedRowIds.length === allDownloads.length
         ? []
@@ -1022,8 +1215,7 @@ const StatusSpecificDownloads = () => {
     Promise.all(promises).then((resolvedData) => {
       setSelectedDownloads(resolvedData);
     });
-    console.log(selectedDownload);
-  };
+  }, [selectedRowIds, allDownloads, setSelectedRowIds, setSelectedDownloads]);
 
   const handleCloseContextMenu = () => {
     // Clear any pending transitions
@@ -1038,190 +1230,92 @@ const StatusSpecificDownloads = () => {
     setIsTransitioning(false);
   };
 
-  const handleRowClick = (downloadId: string) => {
-    // Find the download object
-    const clickedDownload = allDownloads.find((d) => d.id === downloadId);
+  const handleRowClick = useCallback(
+    (downloadId: string) => {
+      // Find the download object
+      const clickedDownload = allDownloads.find((d) => d.id === downloadId);
 
-    if (!clickedDownload) {
-      console.error('Download not found:', downloadId);
-      return;
-    }
+      if (!clickedDownload) {
+        console.error('Download not found:', downloadId);
+        return;
+      }
 
-    // Set the selected download ID - this is crucial for the details panel
-    setSelectedDownloadId(downloadId);
+      // Set the selected download ID - this is crucial for the details panel
+      setSelectedDownloadId(downloadId);
 
-    // Update the expanded row state
-    setExpandedRowId(downloadId === expandedRowId ? null : downloadId);
+      // Update the expanded row state
+      setExpandedRowId(downloadId === expandedRowId ? null : downloadId);
 
-    // Update selected row IDs for highlighting
-    // setSelectedRowIds([downloadId]);
-  };
+      // Update selected row IDs for highlighting
+      // setSelectedRowIds([downloadId]);
+    },
+    [allDownloads, expandedRowId],
+  );
 
   // Find current tags for the selected download
-  const getCurrentTags = (downloadId: string) => {
-    const download = allDownloads.find((d) => d.id === downloadId);
-    return download?.tags || [];
-  };
+  const getCurrentTags = useCallback(
+    (downloadId: string) => {
+      const download = allDownloads.find((d) => d.id === downloadId);
+      return download?.tags || [];
+    },
+    [allDownloads],
+  );
 
-  const getCurrentCategories = (downloadId: string) => {
-    const download = allDownloads.find((d) => d.id === downloadId);
-    return download?.category || [];
-  };
+  const getCurrentCategories = useCallback(
+    (downloadId: string) => {
+      const download = allDownloads.find((d) => d.id === downloadId);
+      return download?.category || [];
+    },
+    [allDownloads],
+  );
 
-  const handleViewFolder = (downloadLocation?: string, filePath?: string) => {
+  const handleViewFolder = async (
+    downloadLocation?: string,
+    filePath?: string,
+  ) => {
     if (downloadLocation) {
-      // Check if the location contains a comma (indicating old format)
       if (downloadLocation.includes(',') && !filePath) {
         const [folderPath, filePathFromString] = downloadLocation.split(',');
-        window.downlodrFunctions.openFolder(folderPath, filePathFromString);
+        const success = await window.downlodrFunctions.openFolder(
+          folderPath,
+          filePathFromString,
+        );
+        // Check if the location contains a comma (indicating old format)
+        const exists = await window.downlodrFunctions.fileExists(folderPath);
+        console.log('success', exists);
+        if (!exists) {
+          toast({
+            variant: 'destructive',
+            title: 'Missing Folder',
+            description: 'The folder does not exist in the given location',
+            duration: 3000,
+          });
+        }
       } else {
         // Normal case with separate parameters
-        window.downlodrFunctions.openFolder(downloadLocation, filePath);
+        const success = await window.downlodrFunctions.openFolder(
+          downloadLocation,
+          filePath,
+        );
+        console.log('success', success);
+        if (!success) {
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to view folder',
+            duration: 3000,
+          });
+        }
       }
     } else {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to pause/resume download',
+        description: 'Failed to view folder',
         duration: 3000,
       });
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
-  };
-
-  // column display name mapping
-  const getColumnDisplayName = (columnId: string): string => {
-    const columnMappings: Record<string, string> = {
-      name: 'Title',
-      size: 'Size',
-      format: 'Format',
-      status: 'Status',
-      speed: 'Speed',
-      dateAdded: 'Date Added',
-      thumbnail: 'Thumbnail',
-      transcript: 'Captions',
-      source: 'Source',
-    };
-
-    return columnMappings[columnId] || columnId;
-  };
-
-  const columnOptions = [
-    { id: 'name', label: 'Title', required: true },
-    { id: 'size', label: 'Size', required: false },
-    { id: 'format', label: 'Format', required: true },
-    { id: 'status', label: 'Status', required: true },
-    { id: 'speed', label: 'Speed', required: false },
-    { id: 'dateAdded', label: 'Date Added', required: false },
-    { id: 'source', label: 'Source', required: false },
-    { id: 'transcript', label: 'Closed Captions', required: false },
-    { id: 'thumbnail', label: 'Thumbnail', required: false },
-  ];
-
-  const selectedDownload = selectedDownloadId
-    ? allDownloads.find((d) => d.id === selectedDownloadId)
-    : null;
-
-  // Add this effect to load thumbnails for displayed downloads
-  useEffect(() => {
-    // Load thumbnails for visible downloads
-    allDownloads.forEach((download) => {
-      if (download.thumnailsLocation && !thumbnailDataUrls[download.id]) {
-        window.downlodrFunctions
-          .getThumbnailDataUrl(download.thumnailsLocation)
-          .then((dataUrl: any) => {
-            if (dataUrl) {
-              setThumbnailDataUrls((prev) => ({
-                ...prev,
-                [download.id]: dataUrl,
-              }));
-            }
-          });
-      }
-    });
-  }, [allDownloads, thumbnailDataUrls]);
-
-  // Add rename modal state
-  const [showRenameModal, setShowRenameModal] = useState(false);
-  const [renameDownloadId, setRenameDownloadId] = useState<string>('');
-  const [renameCurrentName, setRenameCurrentName] = useState<string>('');
-
-  // Add remove modal state
-  const [showRemoveModal, setShowRemoveModal] = useState(false);
-  const [removeDownloadId, setRemoveDownloadId] = useState<string>('');
-  const [removeDownloadLocation, setRemoveDownloadLocation] =
-    useState<string>('');
-  const [removeControllerId, setRemoveControllerId] = useState<string>('');
-
-  // Add stop modal state
-  const [showStopModal, setShowStopModal] = useState(false);
-  const [stopDownloadId, setStopDownloadId] = useState<string>('');
-  const [stopDownloadLocation, setStopDownloadLocation] = useState<string>('');
-  const [stopControllerId, setStopControllerId] = useState<string>('');
-
-  // Get renameDownload function from store
-  const renameDownload = useDownloadStore((state) => state.renameDownload);
-
-  // Add rename handler
-  const handleRename = (downloadId: string, currentName: string) => {
-    setRenameDownloadId(downloadId);
-    setRenameCurrentName(currentName);
-    setShowRenameModal(true);
-  };
-
-  // Add remove handler
-  const handleShowRemoveModal = (
-    downloadId: string,
-    downloadLocation?: string,
-    controllerId?: string,
-  ) => {
-    setRemoveDownloadId(downloadId);
-    setRemoveDownloadLocation(downloadLocation || '');
-    setRemoveControllerId(controllerId || '');
-    setShowRemoveModal(true);
-  };
-
-  // Add stop handler
-  const handleShowStopModal = (
-    downloadId: string,
-    downloadLocation?: string,
-    controllerId?: string,
-  ) => {
-    setStopDownloadId(downloadId);
-    setStopDownloadLocation(downloadLocation || '');
-    setStopControllerId(controllerId || '');
-    setShowStopModal(true);
-  };
-
-  // Add function to perform the rename
-  const performRename = (newName: string) => {
-    renameDownload(renameDownloadId, newName);
-    setShowRenameModal(false);
-    setRenameDownloadId('');
-    setRenameCurrentName('');
-  };
-
-  // Add function to perform the remove
-  const performRemove = (deleteFolder?: boolean) => {
-    handleRemove(
-      removeDownloadLocation,
-      removeDownloadId,
-      removeControllerId,
-      deleteFolder,
-    );
-    setShowRemoveModal(false);
-    setRemoveDownloadId('');
-    setRemoveDownloadLocation('');
-    setRemoveControllerId('');
-  };
-
-  // Add function to perform the stop
-  const performStop = () => {
-    handleStop(stopDownloadId, stopDownloadLocation, stopControllerId);
-    setShowStopModal(false);
-    setStopDownloadId('');
-    setStopDownloadLocation('');
-    setStopControllerId('');
   };
 
   // Update click outside handler to clean up timeouts
@@ -1270,6 +1364,103 @@ const StatusSpecificDownloads = () => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [contextMenu.downloadId]);
 
+  // Add rename modal state
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameDownloadId, setRenameDownloadId] = useState<string>('');
+  const [renameCurrentName, setRenameCurrentName] = useState<string>('');
+
+  // Add remove modal state
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [removeDownloadId, setRemoveDownloadId] = useState<string>('');
+  const [removeDownloadLocation, setRemoveDownloadLocation] =
+    useState<string>('');
+  const [removeControllerId, setRemoveControllerId] = useState<string>('');
+
+  // Add stop modal state
+  const [showStopModal, setShowStopModal] = useState(false);
+  const [stopDownloadId, setStopDownloadId] = useState<string>('');
+  const [stopDownloadLocation, setStopDownloadLocation] = useState<string>('');
+  const [stopControllerId, setStopControllerId] = useState<string>('');
+
+  // log modal state
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [logModalDownloadId, setLogModalDownloadId] = useState<string>('');
+
+  // Get renameDownload function from store
+  const renameDownload = useDownloadStore((state) => state.renameDownload);
+
+  // Add rename handler
+  const handleRename = useCallback(
+    (downloadId: string, currentName: string) => {
+      setRenameDownloadId(downloadId);
+      setRenameCurrentName(currentName);
+      setShowRenameModal(true);
+    },
+    [],
+  );
+
+  // Add remove handler
+  const handleShowRemoveModal = useCallback(
+    (downloadId: string, downloadLocation?: string, controllerId?: string) => {
+      setRemoveDownloadId(downloadId);
+      setRemoveDownloadLocation(downloadLocation || '');
+      setRemoveControllerId(controllerId || '');
+      setShowRemoveModal(true);
+    },
+    [],
+  );
+
+  // Add stop handler
+  const handleShowStopModal = useCallback(
+    (downloadId: string, downloadLocation?: string, controllerId?: string) => {
+      setStopDownloadId(downloadId);
+      setStopDownloadLocation(downloadLocation || '');
+      setStopControllerId(controllerId || '');
+      setShowStopModal(true);
+    },
+    [],
+  );
+
+  // Add function to perform the rename
+  const performRename = useCallback(
+    (newName: string) => {
+      renameDownload(renameDownloadId, newName);
+      setShowRenameModal(false);
+      setRenameDownloadId('');
+      setRenameCurrentName('');
+    },
+    [renameDownload, renameDownloadId],
+  );
+
+  // Add function to perform the remove
+  const performRemove = useCallback(
+    (deleteFolder?: boolean) => {
+      handleRemove(
+        removeDownloadLocation,
+        removeDownloadId,
+        removeControllerId,
+        deleteFolder,
+      );
+      setShowRemoveModal(false);
+      setRemoveDownloadId('');
+      setRemoveDownloadLocation('');
+      setRemoveControllerId('');
+    },
+    [removeDownloadLocation, removeDownloadId, removeControllerId],
+  );
+
+  // Add function to perform the stop
+  const performStop = useCallback(() => {
+    // Get processQueue function
+    const { processQueue } = useDownloadStore.getState();
+    handleStop(stopDownloadId, stopDownloadLocation, stopControllerId);
+    processQueue();
+    setShowStopModal(false);
+    setStopDownloadId('');
+    setStopDownloadLocation('');
+    setStopControllerId('');
+  }, [stopDownloadId, stopDownloadLocation, stopControllerId]);
+
   return (
     <div className="flex flex-col h-full">
       {/* Table container with scrolling */}
@@ -1284,12 +1475,12 @@ const StatusSpecificDownloads = () => {
                 <th className="w-6 px-2 py-1">
                   <input
                     type="checkbox"
-                    className="mt-2 ml-2 rounded"
+                    className="mt-2 ml-2 rounded custom-white-checkmark"
                     style={{
                       ...(document.documentElement.classList.contains(
                         'dark',
                       ) && {
-                        backgroundColor: '#D4D4D8',
+                        backgroundColor: '#272727',
                         borderColor: '#6b7280',
                       }),
                     }}
@@ -1321,6 +1512,7 @@ const StatusSpecificDownloads = () => {
                       onDragStart={startDragging}
                       onDragOver={handleDragOver}
                       onDrop={handleDrop}
+                      onDragEnd={cancelDrag}
                       isDragging={dragging?.columnId === column.id}
                       isDragOver={dragOverIndex === originalIndex}
                       columnId={column.id}
@@ -1389,7 +1581,7 @@ const StatusSpecificDownloads = () => {
                                 </div>
                               ) : (
                                 <div
-                                  className="line-clamp-2 break-words"
+                                  className="line-clamp-2 break-words break-all"
                                   title={download.name}
                                 >
                                   {download.name}
@@ -1423,44 +1615,38 @@ const StatusSpecificDownloads = () => {
                               style={{ width: column.width }}
                               className="p-2 ml-2"
                             >
-                              <div className="flex items-center ml-1">
-                                <span className="text-sm text-gray-600 dark:text-gray-300">
-                                  {download.status === 'fetching metadata' ? (
-                                    <div className="space-y-1">
-                                      <Skeleton className="h-8 w-[50px] rounded-[3px]" />
-                                    </div>
-                                  ) : download.status === 'finished' ? (
-                                    <div className="ml-1 font-medium">
-                                      {download.ext ||
-                                        download.audioExt ||
-                                        'Unknown'}
-                                    </div>
-                                  ) : (
-                                    <FormatSelector
-                                      download={download}
-                                      onFormatSelect={(formatData) => {
-                                        useDownloadStore.setState((state) => ({
-                                          forDownloads: state.forDownloads.map(
-                                            (d) =>
-                                              d.id === download.id
-                                                ? {
-                                                    ...d,
-                                                    ext: formatData.ext,
-                                                    formatId:
-                                                      formatData.formatId,
-                                                    audioExt:
-                                                      formatData.audioExt,
-                                                    audioFormatId:
-                                                      formatData.audioFormatId,
-                                                  }
-                                                : d,
-                                          ),
-                                        }));
-                                      }}
-                                    />
-                                  )}
-                                </span>
-                              </div>
+                              {download.status === 'fetching metadata' ? (
+                                <div className="space-y-1">
+                                  <Skeleton className="h-8 w-[50px] rounded-[3px]" />
+                                </div>
+                              ) : download.status === 'finished' ? (
+                                <div className="ml-1 font-medium text-sm text-gray-600 dark:text-gray-300">
+                                  {download.ext ||
+                                    download.audioExt ||
+                                    'Unknown'}
+                                </div>
+                              ) : (
+                                <FormatSelector
+                                  download={download}
+                                  onFormatSelect={(formatData) => {
+                                    useDownloadStore.setState((state) => ({
+                                      forDownloads: state.forDownloads.map(
+                                        (d) =>
+                                          d.id === download.id
+                                            ? {
+                                                ...d,
+                                                ext: formatData.ext,
+                                                formatId: formatData.formatId,
+                                                audioExt: formatData.audioExt,
+                                                audioFormatId:
+                                                  formatData.audioFormatId,
+                                              }
+                                            : d,
+                                      ),
+                                    }));
+                                  }}
+                                />
+                              )}
                             </td>
                           );
                         case 'status':
@@ -1474,7 +1660,9 @@ const StatusSpecificDownloads = () => {
                                 <span className="text-sm text-gray-600 dark:text-gray-300 ml-1">
                                   {download.status === 'cancelled' ||
                                   download.status === 'initializing' ||
-                                  download.status === 'fetching metadata' ? (
+                                  download.status === 'queued' ||
+                                  download.status === 'fetching metadata' ||
+                                  download.status === 'failed' ? (
                                     <span
                                       style={{
                                         color: getStatusColor(download.status),
@@ -1642,7 +1830,7 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200"
+                              className="dark:text-gray-200 outline-1"
                             >
                               {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1 flex justify-center items-center">
@@ -1654,10 +1842,7 @@ const StatusSpecificDownloads = () => {
                                   <span>—</span>
                                 </div>
                               ) : download.autoCaptionLocation === undefined ? (
-                                <span
-                                  className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center
-"
-                                >
+                                <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center w-full">
                                   Not available
                                 </span>
                               ) : (
@@ -1667,7 +1852,7 @@ const StatusSpecificDownloads = () => {
                                       download.autoCaptionLocation,
                                     )
                                   }
-                                  className="text-availableStatus hover:underline ml-2 flex justify-center items-center hover:text-green-400 transition-colors duration-200 w-full"
+                                  className="text-availableStatus hover:underline flex justify-center items-center hover:text-green-400 transition-colors duration-200 w-full"
                                 >
                                   Available
                                 </button>
@@ -1704,6 +1889,25 @@ const StatusSpecificDownloads = () => {
                               )}
                             </td>
                           );
+                        case 'action':
+                          return (
+                            <td
+                              key={column.id}
+                              style={{ width: column.width }}
+                              className="p-2 dark:text-gray-200 text-center"
+                            >
+                              <ShareButton
+                                videoUrl={download.videoUrl}
+                                name={download.name}
+                                status={download.status}
+                                thumbnailLocation={
+                                  thumbnailDataUrls[download.id]
+                                }
+                                format={download.ext || download.audioExt}
+                                size={download.size}
+                              />
+                            </td>
+                          );
                         default:
                           return null;
                       }
@@ -1730,7 +1934,9 @@ const StatusSpecificDownloads = () => {
           downloadLocation={contextMenu.downloadLocation}
           controllerId={contextMenu.controllerId}
           downloadStatus={contextMenu.downloadStatus}
+          onShowLog={handleShowLog}
           onClose={handleCloseContextMenu}
+          onRetry={handleRetry}
           onPause={handlePause}
           onStop={handleStop}
           onForceStart={handleForceStart}
@@ -1810,6 +2016,16 @@ const StatusSpecificDownloads = () => {
         }}
         onConfirm={performStop}
         message="Are you sure you want to stop this download?"
+      />
+
+      {/* Add the LogModal */}
+      <LogModal
+        isOpen={showLogModal}
+        onClose={() => {
+          setShowLogModal(false);
+          setLogModalDownloadId('');
+        }}
+        downloadId={logModalDownloadId}
       />
     </div>
   );

@@ -16,6 +16,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Loader2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { MdOutlineInfo } from 'react-icons/md';
@@ -28,6 +29,7 @@ import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
+  originalClipboardMonitoringState?: boolean;
 }
 
 // Expected download video params
@@ -39,7 +41,11 @@ interface Video {
   url: string;
 }
 
-const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
+const DownloadModal: React.FC<DownloadModalProps> = ({
+  isOpen,
+  onClose,
+  originalClipboardMonitoringState,
+}) => {
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [isValidUrl, setIsValidUrl] = useState<boolean>(false);
 
@@ -290,7 +296,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
           getThumbnail,
         });
       }
-      // Cleaning up modal
+      // No need to restore clipboard monitoring state - it's handled by the modal state
       resetModal();
       onClose();
 
@@ -323,6 +329,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
 
   // Close Modal
   const handleClose = () => {
+    // No need to restore clipboard monitoring state - it's handled by the modal state
     resetModal();
     onClose();
   };
@@ -523,9 +530,13 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                     <div className="select-all flex items-center">
                       <input
                         type="checkbox"
+                        id={`select-all`}
                         checked={selectAll}
                         onChange={handleSelectAll}
                         style={{
+                          width: 20,
+                          height: 15,
+                          marginBottom: 0.5,
                           ...(document.documentElement.classList.contains(
                             'dark',
                           ) && {
@@ -535,8 +546,10 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                         }}
                         className="mr-2"
                       />
-                      <label className="dark:text-darkModeLight font-medium">
-                        {videoTitle}
+                      <label htmlFor={`select-all`}>
+                        <p className="w-6/7 dark:text-darkModeLight font-medium">
+                          {videoTitle}
+                        </p>
                       </label>
                     </div>
                   </div>
@@ -548,6 +561,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                       >
                         <input
                           type="checkbox"
+                          id={`select-all-${video.id}`}
                           checked={selectedVideos.has(video.id)}
                           onChange={() => handleVideoSelect(video.id)}
                           style={{
@@ -571,12 +585,14 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
                           className="w-24 h-16 object-cover rounded"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium dark:text-darkModeLight truncate">
-                            {video.title}
-                          </h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {video.channel}
-                          </p>
+                          <label htmlFor={`select-all-${video.id}`}>
+                            <h1 className="font-medium dark:text-darkModeLight truncate break-all">
+                              {video.title}
+                            </h1>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {video.channel}
+                            </p>
+                          </label>
                         </div>
                       </div>
                     ))}
@@ -591,16 +607,24 @@ const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose }) => {
         <div className="bg-[#FEF9F4] dark:bg-darkMode flex gap-3 justify-end -mx-6 px-4 py-3 rounded-b-md">
           <Button
             onClick={handleClose}
-            className="h-8 px-2 py-0.5 rounded-md hover:bg-gray-50 dark:bg-darkModeCompliment dark:text-darkModeLight dark:hover:bg-darkModeHover dark:hover:text-white font-medium"
+            variant="outline"
+            className="h-8 px-2 py-0.5 rounded-md dark:border-darkModeCompliment dark:bg-darkModeCompliment dark:text-darkModeLight dark:hover:bg-darkModeHover dark:hover:text-white font-medium"
           >
             Cancel
           </Button>
           <Button
             className="h-8 px-2 py-0.5 bg-primary dark:bg-primary dark:text-darkModeLight  dark:hover:bg-primary/90 text-white rounded-md hover:bg-primary/90 cursor-pointer"
-            disabled={!isValidUrl}
+            disabled={!isValidUrl || isLoading}
             onClick={handleDownload}
           >
-            Fetch Download
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Fetching Playlist
+              </div>
+            ) : (
+              'Fetch Download'
+            )}
           </Button>
         </div>
       </div>

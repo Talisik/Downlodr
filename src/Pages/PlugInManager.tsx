@@ -456,7 +456,7 @@ const PluginManager: React.FC = () => {
             <div className="flex items-center">
               <Button
                 onClick={handleInstall}
-                className="bg-[#F45513] px-4 py-1 h-8 ml-4"
+                className="bg-[#F45513] dark:bg-[#F45513] dark:text-white dark:hover:text-black dark:hover:bg-white text-sm font-normal px-4 py-1 h-8 ml-4"
               >
                 <FaPlus />
                 <span>Add Plugin</span>
@@ -479,7 +479,7 @@ const PluginManager: React.FC = () => {
             </span>
             <Button
               onClick={handleInstall}
-              className="bg-[#F45513] px-4 py-1 h-8 mt-2"
+              className="bg-[#F45513] dark:bg-[#F45513] dark:text-white dark:hover:text-black dark:hover:bg-white text-sm font-normal px-4 py-1 h-8 mt-4"
             >
               <FaPlus />
               <span>Add Plugin</span>
@@ -519,7 +519,7 @@ const PluginManager: React.FC = () => {
                       </NavLink>
                       <Button
                         variant="outline"
-                        className="border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
+                        className="border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown dark:border-darkModeCompliment hover:text-primary dark:hover:text-primary"
                         onClick={() => handleUninstall(plugin.id)}
                       >
                         Remove

@@ -159,6 +159,11 @@ html.dark input[type='checkbox']:not(.sr-only):checked::after {
   transform: rotate(45deg);
 }
 
+html.dark input[type='checkbox'].custom-white-checkmark:not(.sr-only):checked::after {
+  border: solid #ffffff;
+  border-width: 0 3px 3px 0;
+}
+
 input[type='checkbox']:not(.sr-only):focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(244, 85, 19, 0.2);

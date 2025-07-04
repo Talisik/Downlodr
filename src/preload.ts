@@ -57,6 +57,119 @@ function uuidv4() {
   );
 }
 
+// Balanced throttling utility - optimized for both performance and UX
+class BalancedDownloadThrottler {
+  private static instance: BalancedDownloadThrottler;
+  private pendingUpdates = new Map<string, any>();
+  private throttleTimers = new Map<string, NodeJS.Timeout>();
+
+  // Balanced intervals - responsive but not overwhelming
+  // Can be adjusted based on system performance needs
+  private PROGRESS_UPDATE_DELAY = 150; // 150ms = ~7 FPS (smooth but efficient)
+  private LOG_UPDATE_DELAY = 500; // 500ms for logs (less critical)
+
+  static getInstance(): BalancedDownloadThrottler {
+    if (!BalancedDownloadThrottler.instance) {
+      BalancedDownloadThrottler.instance = new BalancedDownloadThrottler();
+    }
+    return BalancedDownloadThrottler.instance;
+  }
+
+  // Allow runtime adjustment of throttling based on performance needs
+  configure(options: { progressDelay?: number; logDelay?: number }) {
+    if (options.progressDelay !== undefined) {
+      this.PROGRESS_UPDATE_DELAY = Math.max(50, options.progressDelay); // Min 50ms
+    }
+    if (options.logDelay !== undefined) {
+      this.LOG_UPDATE_DELAY = Math.max(100, options.logDelay); // Min 100ms
+    }
+  }
+
+  throttleUpdate(
+    downloadId: string,
+    update: any,
+    callback: (update: any) => void,
+  ) {
+    // Critical updates go through immediately
+    if (this.isCriticalUpdate(update)) {
+      this.forceUpdate(downloadId, update, callback);
+      return;
+    }
+
+    // Store the latest update
+    this.pendingUpdates.set(downloadId, update);
+
+    // Clear existing timer
+    const existingTimer = this.throttleTimers.get(downloadId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    // Set appropriate delay based on update type
+    const delay = this.isLogOnlyUpdate(update)
+      ? this.LOG_UPDATE_DELAY
+      : this.PROGRESS_UPDATE_DELAY;
+
+    // Schedule update
+    const timer = setTimeout(() => {
+      const latestUpdate = this.pendingUpdates.get(downloadId);
+      if (latestUpdate) {
+        callback(latestUpdate);
+        this.pendingUpdates.delete(downloadId);
+        this.throttleTimers.delete(downloadId);
+      }
+    }, delay);
+
+    this.throttleTimers.set(downloadId, timer);
+  }
+
+  private isCriticalUpdate(update: any): boolean {
+    return (
+      update.type === 'controller' ||
+      update.data?.value?.status === 'finished' ||
+      update.data?.value?.status === 'failed' ||
+      update.data?.value?.status === 'cancelled' ||
+      update.data?.value?.status === 'error'
+    );
+  }
+
+  private isLogOnlyUpdate(update: any): boolean {
+    // True if it's only a log update without progress data
+    return update.data?.log && !update.data?.value;
+  }
+
+  forceUpdate(
+    downloadId: string,
+    update: any,
+    callback: (update: any) => void,
+  ) {
+    // Clear any pending update
+    const existingTimer = this.throttleTimers.get(downloadId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      this.throttleTimers.delete(downloadId);
+    }
+
+    this.pendingUpdates.delete(downloadId);
+    callback(update);
+  }
+
+  cleanup(downloadId: string) {
+    const timer = this.throttleTimers.get(downloadId);
+    if (timer) {
+      clearTimeout(timer);
+      this.throttleTimers.delete(downloadId);
+    }
+    this.pendingUpdates.delete(downloadId);
+  }
+
+  cleanupAll() {
+    this.throttleTimers.forEach((timer) => clearTimeout(timer));
+    this.throttleTimers.clear();
+    this.pendingUpdates.clear();
+  }
+}
+
 // Ytdlp exclusive functions
 contextBridge.exposeInMainWorld('ytdlp', {
   getPlaylistInfo: async (url: string) => {
@@ -80,32 +193,67 @@ contextBridge.exposeInMainWorld('ytdlp', {
 
   selectDownloadDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
 
+  /*
+  downloadYTDLP: async (options?: {
+    filePath?: string;
+    version?: string;
+    platform?: string;
+    forceDownload?: boolean;
+  }) => {
+    return await ipcRenderer.invoke('ytdlp:downloadYTDLP', options);
+  },
+
+  getCurrentVersion: async () => {
+    return await ipcRenderer.invoke('ytdlp:getCurrentVersion');
+  },
+
+  getLatestVersion: async () => {
+    return await ipcRenderer.invoke('ytdlp:getLatestVersion');
+  },
+
+  checkAndUpdate: async () => {
+    return await ipcRenderer.invoke('ytdlp:checkAndUpdate');
+  },
+  */
+
   download(args: object, callback: (result: object) => void) {
     const id = uuidv4();
     const channel = `ytdlp:download:status:${id}`;
     const controllerChannel = `ytdlp:controller:${id}`;
+    const throttler = BalancedDownloadThrottler.getInstance();
 
     async function startDownload() {
       try {
         ipcRenderer.invoke('ytdlp:download', id, args);
+
         // Listen for controller ID from the main process
         ipcRenderer.on(controllerChannel, (event, data) => {
-          //console.log('Received controller data:', data);
-          callback({
-            type: 'controller',
-            downloadId: data.downloadId,
-            controllerId: data.controllerId,
-          });
+          // Controller data is critical, send immediately
+          throttler.forceUpdate(
+            id,
+            {
+              type: 'controller',
+              downloadId: data.downloadId,
+              controllerId: data.controllerId,
+            },
+            callback,
+          );
         });
+
         ipcRenderer.on(channel, (event, chunk) => {
-          callback(chunk);
-          if (chunk.data.status === 'finished') {
+          // Use balanced throttling for all updates
+          throttler.throttleUpdate(id, chunk, callback);
+
+          // Clean up on finish
+          if (chunk.data?.status === 'finished') {
             console.log('Preload done');
             ipcRenderer.removeAllListeners(channel);
+            ipcRenderer.removeAllListeners(controllerChannel);
+            throttler.cleanup(id);
           }
         });
       } catch (error) {
-        console.error('Error during download:');
+        console.error('Error during download:', error);
       }
     }
 
@@ -138,6 +286,26 @@ contextBridge.exposeInMainWorld('appControl', {
     ipcRenderer.invoke('set-auto-launch', enabled),
 
   getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
+
+  // Clipboard monitoring
+  getClipboardText: () => ipcRenderer.invoke('get-clipboard-text'),
+  onClipboardChange: (callback: (text: string) => void) => {
+    ipcRenderer.on('clipboard-changed', (_event, text: string) =>
+      callback(text),
+    );
+  },
+  offClipboardChange: () => {
+    ipcRenderer.removeAllListeners('clipboard-changed');
+  },
+  startClipboardMonitoring: () =>
+    ipcRenderer.invoke('start-clipboard-monitoring'),
+  stopClipboardMonitoring: () =>
+    ipcRenderer.invoke('stop-clipboard-monitoring'),
+  isClipboardMonitoringActive: () =>
+    ipcRenderer.invoke('is-clipboard-monitoring-active'),
+  isWindowFocused: () => ipcRenderer.invoke('is-window-focused'),
+  clearLastClipboardText: () => ipcRenderer.invoke('clear-last-clipboard-text'),
+  clearClipboard: () => ipcRenderer.invoke('clear-clipboard'),
 });
 
 // Change this from a separate exposure to include both functions

@@ -21,7 +21,7 @@ import { useLocation } from 'react-router-dom';
 import FileNotExistModal, {
   DownloadItem,
 } from '../../../Components/SubComponents/custom/FileNotExistModal';
-import { processFileName } from '../../../DataFunctions/FilterName';
+import { Button } from '../../../Components/SubComponents/shadcn/components/ui/button';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import PluginTaskBarExtension from '../../../plugins/components/PluginTaskBarExtension';
@@ -119,7 +119,6 @@ const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
   selectedCount,
 }) => {
   const [deleteFolder, setDeleteFolder] = useState(false);
-
   // Reset checkbox when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -182,21 +181,22 @@ const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
 
         {/* Action buttons */}
         <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
-          <button
-            onClick={(e) => {
+          <Button
+            onClick={(e: any) => {
               e.stopPropagation();
               onClose();
             }}
-            className="px-4 py-1 text-gray-600 bg-white hover:bg-gray-50 dark:hover:bg-darkModeHover dark:hover:text-gray-200 rounded-md font-medium"
+            variant="outline"
+            className="h-8 px-2 py-0.5 rounded-md dark:border-darkModeCompliment dark:bg-darkModeCompliment dark:text-darkModeLight dark:hover:bg-darkModeHover dark:hover:text-white font-medium"
           >
             Cancel
-          </button>
+          </Button>
           <button
-            onClick={(e) => {
+            onClick={(e: any) => {
               e.stopPropagation();
               onConfirm(deleteFolder);
             }}
-            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-white hover:text-black font-medium"
+            className="h-8 px-2 py-0.5 bg-primary dark:bg-primary dark:text-darkModeLight  dark:hover:bg-primary/90 text-white rounded-md hover:bg-primary/90 cursor-pointer"
           >
             Remove
           </button>
@@ -209,6 +209,9 @@ const TaskBarConfirmModal: React.FC<TaskBarConfirmModalProps> = ({
 const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // Handle state for modal
   const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [originalClipboardState, setOriginalClipboardState] = useState<
+    boolean | undefined
+  >(undefined);
   const [showStopConfirmation, setShowStopConfirmation] = useState(false);
   const [stopAction, setStopAction] = useState<'selected' | 'all' | null>(null);
   const { toast } = useToast();
@@ -216,7 +219,11 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
   const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
   // Get the max download limit and current downloads from stores
-  const { settings } = useMainStore();
+  const {
+    settings,
+    taskBarButtonsVisibility,
+    updateEnableClipboardMonitoring,
+  } = useMainStore();
   const { downloading, forDownloads } = useDownloadStore();
 
   // Handling selected downloads
@@ -235,6 +242,17 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
   // Check if any selected downloads are in "downloading" or "initializing" status (for Stop button)
   const hasActiveDownloadStatus = selectedDownloads.some((download) =>
+    downloading.some(
+      (d) =>
+        d.id === download.id &&
+        (d.status === 'downloading' ||
+          d.status === 'initializing' ||
+          d.status === 'paused'),
+    ),
+  );
+
+  // Check if any selected downloads are in "downloading" or "initializing" status (for Stop button)
+  const hasDownloadingStatus = downloading.some((download) =>
     downloading.some(
       (d) =>
         d.id === download.id &&
@@ -278,7 +296,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         deleteDownloading,
         downloading,
         forDownloads,
+        queuedDownloads,
         removeFromForDownloads,
+        processQueue,
+        removeFromQueue,
       } = useDownloadStore.getState();
 
       // Store selected downloads in a temporary variable and clear selections immediately
@@ -341,12 +362,16 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           }
         }
       }
+
+      // Process queue after stopping selected downloads
+      processQueue();
     } else if (stopAction === 'all') {
       const {
         deleteDownloading,
         downloading,
         forDownloads,
         removeFromForDownloads,
+        processQueue,
       } = useDownloadStore.getState();
 
       // Handle all downloads in forDownloads
@@ -402,6 +427,9 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           }
         }
       }
+
+      // Process queue after stopping all downloads
+      processQueue();
     }
     setShowStopConfirmation(false);
     setStopAction(null);
@@ -419,8 +447,9 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       });
       return;
     }
+
     // get the functions and lists from store
-    const { addDownload, forDownloads, removeFromForDownloads, downloading } =
+    const { forDownloads, removeFromForDownloads, addQueue } =
       useDownloadStore.getState();
 
     // Filter selected downloads to only include those in forDownloads and remove duplicates
@@ -437,66 +466,56 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     // Clear selections immediately after filtering
     clearAllSelections();
 
-    // If the selected download amount or the currently downloading amount exceeds the max download set inside settings, dont start any downloads
-    if (
-      uniqueDownloads.length > settings.maxDownloadNum ||
-      downloading.length >= settings.maxDownloadNum
-    ) {
+    if (uniqueDownloads.length === 0) {
       toast({
         variant: 'destructive',
-        title: 'Download limit reached',
-        description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
-        duration: 7000,
+        title: 'No Valid Downloads',
+        description: 'Please select downloads that are ready to start',
+        duration: 3000,
       });
       return;
     }
 
-    // iterate through selected unique downloads
-    for (const selectedDownload of uniqueDownloads) {
-      // get metadata for each selected download
-      const downloadInfo = forDownloads.find(
-        (d) => d.id === selectedDownload.id,
-      );
+    // Add ALL downloads to queue - let the worker controller handle starting them
+    uniqueDownloads.forEach((selectedDownload) => {
+      const downloadInfo = selectedDownload.download;
+      const processedName = downloadInfo.name.replace(/[\\/:*?"<>|]/g, '_');
 
-      if (downloadInfo) {
-        // checks download name and location to validate download name and location
-        // returns validated processed name
-        const processedName = await processFileName(
-          downloadInfo.location,
-          downloadInfo.name,
-          downloadInfo.ext || downloadInfo.audioExt,
-        );
-        // calls the addDownload function from store to start each selected download
-        addDownload(
-          downloadInfo.videoUrl,
-          `${processedName}.${downloadInfo.ext}`,
-          `${processedName}.${downloadInfo.ext}`,
-          downloadInfo.size,
-          downloadInfo.speed,
-          downloadInfo.timeLeft,
-          new Date().toISOString(),
-          downloadInfo.progress,
-          downloadInfo.location,
-          'downloading',
-          downloadInfo.ext,
-          downloadInfo.formatId,
-          downloadInfo.audioExt,
-          downloadInfo.audioFormatId,
-          downloadInfo.extractorKey,
-          settings.defaultDownloadSpeed === 0
-            ? ''
-            : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
-          downloadInfo.automaticCaption,
-          downloadInfo.thumbnails,
-          downloadInfo.getTranscript || false,
-          downloadInfo.getThumbnail || false,
-          downloadInfo.duration || 60,
-          true,
-        );
-        // remove the current download from the saved list for forDownloads
-        removeFromForDownloads(selectedDownload.id);
-      }
-    }
+      addQueue(
+        downloadInfo.videoUrl,
+        `${processedName}.${downloadInfo.ext}`,
+        `${processedName}.${downloadInfo.ext}`,
+        downloadInfo.size,
+        downloadInfo.speed,
+        downloadInfo.timeLeft,
+        new Date().toISOString(),
+        downloadInfo.progress,
+        downloadInfo.location,
+        'queued',
+        downloadInfo.ext,
+        downloadInfo.formatId,
+        downloadInfo.audioExt,
+        downloadInfo.audioFormatId,
+        downloadInfo.extractorKey,
+        settings.defaultDownloadSpeed === 0
+          ? ''
+          : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
+        downloadInfo.automaticCaption,
+        downloadInfo.thumbnails,
+        downloadInfo.getTranscript || false,
+        downloadInfo.getThumbnail || false,
+        downloadInfo.duration || 60,
+        true,
+      );
+      removeFromForDownloads(selectedDownload.id);
+    });
+
+    // Show toast notification
+    toast({
+      title: 'Downloads Added to Queue',
+      description: `${uniqueDownloads.length} download(s) added to queue. The download controller will start them automatically based on your limit.`,
+      duration: 5000,
+    });
   };
 
   const handleFileNotExistModal = async () => {
@@ -522,7 +541,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   };
 
   const handleRemoveSelected = async (deleteFolder?: boolean) => {
-    console.log('triiged remove');
     if (selectedDownloads.length === 0) {
       toast({
         variant: 'destructive',
@@ -537,8 +555,15 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     const downloadsToRemove = [...selectedDownloads];
     clearAllSelections();
 
-    const { deleteDownload, forDownloads, downloading, deleteDownloading } =
-      useDownloadStore.getState();
+    const {
+      deleteDownload,
+      forDownloads,
+      downloading,
+      deleteDownloading,
+      processQueue,
+      queuedDownloads,
+      removeFromQueue,
+    } = useDownloadStore.getState();
 
     // Helper function to handle file deletion
     const deleteFileSafely = async (download: any) => {
@@ -600,7 +625,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     // Process each download
     for (const download of downloadsToRemove) {
       if (!download.location || !download.id) {
-        console.log(',oo');
         continue;
       }
 
@@ -641,6 +665,20 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             } download has been removed successfully`,
             duration: 3000,
           });
+          processQueue();
+
+          continue;
+        }
+        const isQueued = queuedDownloads.some((d) => d.id === download.id);
+
+        if (isQueued) {
+          removeFromQueue(download.id);
+          toast({
+            variant: 'success',
+            title: 'Download Removed',
+            description: 'Queued download has been removed successfully',
+            duration: 3000,
+          });
           continue;
         }
 
@@ -676,6 +714,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             });
             continue; // Skip deletion if we couldn't stop the download
           }
+          processQueue();
         }
       }
 
@@ -700,6 +739,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
 
   // opens download modal
   const handleOpenDownloadModal = () => {
+    // Instead of disabling clipboard monitoring, just set the modal state
     clearAllSelections();
     setDownloadModalOpen(true);
   };
@@ -714,46 +754,52 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             <div className="h-6 w-[1.5px] bg-gray-300 dark:bg-gray-600 self-center ml-1 md:ml-3"></div>
           </div>
 
-          <button
-            className={cn(
-              'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
-              hasForDownloadStatus
-                ? 'dark:text-gray-100'
-                : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
-            )}
-            onClick={handlePlaySelected}
-            disabled={!hasForDownloadStatus}
-          >
-            {' '}
-            <VscPlayCircle size={18} className="mt-[0.9px]" /> Start
-          </button>
+          {taskBarButtonsVisibility.start && (
+            <button
+              className={cn(
+                'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
+                hasForDownloadStatus
+                  ? 'dark:text-gray-100'
+                  : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
+              )}
+              onClick={handlePlaySelected}
+              disabled={!hasForDownloadStatus}
+            >
+              {' '}
+              <VscPlayCircle size={18} className="mt-[0.9px]" /> Start
+            </button>
+          )}
 
-          <button
-            className={cn(
-              'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
-              hasActiveDownloadStatus
-                ? 'dark:text-gray-100'
-                : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
-            )}
-            onClick={handleStopSelected}
-            disabled={!hasActiveDownloadStatus}
-          >
-            <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
-          </button>
+          {taskBarButtonsVisibility.stop && (
+            <button
+              className={cn(
+                'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
+                hasActiveDownloadStatus
+                  ? 'dark:text-gray-100'
+                  : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
+              )}
+              onClick={handleStopSelected}
+              disabled={!hasActiveDownloadStatus}
+            >
+              <PiStopCircle size={18} className="mt-[0.9px]" /> Stop
+            </button>
+          )}
 
-          <button
-            className={cn(
-              'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
-              hasActiveDownloadStatus
-                ? 'dark:text-gray-100'
-                : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
-            )}
-            onClick={() => handleStopAll()}
-            disabled={!hasActiveDownloadStatus}
-          >
-            {' '}
-            <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
-          </button>
+          {taskBarButtonsVisibility.stopAll && (
+            <button
+              className={cn(
+                'px-1 sm:px-3 py-1 rounded flex gap-1 font-semibold',
+                hasDownloadingStatus
+                  ? 'dark:text-gray-100'
+                  : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
+              )}
+              onClick={() => handleStopAll()}
+              disabled={!hasDownloadingStatus}
+            >
+              {' '}
+              <PiStopCircle size={18} className="mt-[0.9px]" /> Stop All
+            </button>
+          )}
         </div>
 
         <div className="pl-4 flex items-center">
@@ -770,12 +816,12 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             location.pathname.includes('/category/')) && (
             <button
               className={cn(
-                'px-3 py-1 mr-4 rounded-md flex gap-2 text-sm',
+                'px-3 py-1 mr-4 rounded-md flex gap-2 text-sm h-[28px] items-center',
                 selectedDownloads.length > 0 &&
                   (location.pathname.includes('/status/') ||
                     location.pathname.includes('/tags/') ||
                     location.pathname.includes('/category/'))
-                  ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-body-dark dark:bg-darkModeButtonActive hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark'
+                  ? 'bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-body-dark dark:bg-darkModeButtonActive hover:dark:bg-darkModeLight hover:dark:text-body-dark'
                   : 'cursor-not-allowed text-gray-400 bg-gray-200 hover:bg-gray-200 dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault',
               )}
               onClick={handleRemoveButtonClick}
@@ -788,22 +834,26 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                 )
               }
             >
-              <LuTrash size={15} className="mt-[2px]" />{' '}
+              <LuTrash size={15} />{' '}
               <span className="hidden md:inline text-sm">Remove</span>
             </button>
           )}
           <button
-            className="primary-custom-btn px-[6px] py-[4px] sm:px-[8px] sm:py-[4px] flex items-center gap-1 sm:gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
+            className="primary-custom-btn h-[28px] px-[6px] py-[4px] sm:px-[12px] sm:py-[4px] flex items-center gap-1 sm:gap-1 text-sm sm:text-sm whitespace-nowrap dark:hover:text-black dark:hover:bg-white"
             onClick={handleOpenDownloadModal}
           >
-            <GoDownload className="mt-[2px]" />
+            <GoDownload />
             <span className="hidden md:inline text-sm">Add URL</span>
           </button>
         </div>
       </div>
       <DownloadModal
         isOpen={isDownloadModalOpen}
-        onClose={() => setDownloadModalOpen(false)}
+        onClose={() => {
+          setDownloadModalOpen(false);
+          setOriginalClipboardState(undefined); // Clean up state
+        }}
+        originalClipboardMonitoringState={originalClipboardState}
       />
       <StopModal
         isOpen={showStopConfirmation}
