@@ -159,7 +159,7 @@ const PluginDetails = () => {
 
   return (
     <div className="w-full min-h-screen flex justify-center">
-      <div className="min-h-screen space-y-4 w-3/4 max-w-3xl border-x-2 border-gray-200 px-6 pt-8 shadow-md overflow-y-auto">
+      <div className="min-h-screen space-y-4 w-3/4 max-w-3xl border-x-2 border-gray-200 dark:border-darkModeCompliment px-6 pt-8 shadow-md overflow-y-auto">
         <div className="flex gap-2 flex-wrap items-center">
           <button
             onClick={handleGoBack}

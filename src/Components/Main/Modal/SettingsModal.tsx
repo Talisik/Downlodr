@@ -12,6 +12,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { useMainStore } from '../../../Store/mainStore';
 import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
+import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     visibleColumns,
     setVisibleColumns,
     updateRunInBackground,
+    updateEnableClipboardMonitoring,
   } = useMainStore();
 
   // Form submission
@@ -55,6 +57,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     settings.runInBackground,
   ); // Default to true for backward compatibility
 
+  // clipboard monitoring setting
+  const [enableClipboardMonitoring, setEnableClipboardMonitoring] = useState(
+    settings.enableClipboardMonitoring,
+  );
+
   // sync with the mainStore's visibleColumns
   useEffect(() => {
     if (isOpen) {
@@ -80,6 +87,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setLocalVisibleColumns([...visibleColumns]);
     // Add this line to reset the background running setting
     setRunInBackground(settings.runInBackground ?? true);
+    // Add this line to reset the clipboard monitoring setting
+    setEnableClipboardMonitoring(settings.enableClipboardMonitoring ?? false);
   };
   // New state to track if directory selection is in progress
   const [isSelectingDirectory, setIsSelectingDirectory] =
@@ -149,6 +158,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     { id: 'transcript', label: 'Closed Caption', required: false },
     { id: 'thumbnail', label: 'Thumbnail', required: false },
     { id: 'status', label: 'Status', required: true },
+    { id: 'action', label: 'Action', required: true },
   ];
 
   // Column toggle handler
@@ -181,6 +191,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       window.backgroundSettings.setRunInBackground(runInBackground);
     }
 
+    // Save clipboard monitoring setting
+    console.log(
+      'Saving enableClipboardMonitoring value:',
+      enableClipboardMonitoring,
+    );
+    updateEnableClipboardMonitoring(enableClipboardMonitoring);
+
     onClose();
   };
 
@@ -200,7 +217,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       {/* Directory selection overlay - blocks all app interaction */}
       {isSelectingDirectory && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-[9999] cursor-not-allowed flex items-center justify-center">
-          <div className="bg-white dark:bg-darkModeDropdown p-4 rounded-lg shadow-lg max-w-md text-center">
+          <div className="bg-white dark:bg-darkModeDropdown pt-3 rounded-lg shadow-lg max-w-md text-center">
             <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
               Directory Selection In Progress
             </h3>
@@ -210,12 +227,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
       )}
-      <div className="bg-white border border-darkModeCompliment dark:bg-darkModeDropdown rounded-lg pt-4 pr-6 pl-6 pb-4 max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto">
+      <div className="bg-white dark:bg-darkModeDropdown border border-gray-200 dark:border-gray-700 rounded-lg pt-5 pr-6 pl-6 pb-3 max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto">
         {/* Left side - Form */}
         <div className="w-full">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-5">
             <h2 className="text-xl font-semibold dark:text-gray-200">
-              Download Options
+              Settings
             </h2>
             <button
               onClick={handleClose}
@@ -229,7 +246,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             {/* Schedule Name */}
             <div className="space-y-2">
               <div className="flex-1">
-                <label className="block mb-2 dark:text-gray-200">
+                <label className="block mb-1 dark:text-gray-200">
                   Download Location
                 </label>
                 <input
@@ -237,7 +254,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   placeholder="Download Location"
                   value={downloadLocation}
                   onClick={handleDirectory}
-                  className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none  "
+                  className="w-full border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none"
                   readOnly
                 />
               </div>
@@ -271,7 +288,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                           setBiteUnitVal(selectedBite.biteUnitVal);
                         }
                       }}
-                      className="w-full border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none [&>option]:dark:bg-darkMode"
+                      className="w-full border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none [&>option]:dark:bg-darkMode"
                     >
                       {biteOptions.map((bite) => (
                         <option
@@ -322,7 +339,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       <select
                         value={maxDownload}
                         onChange={(e) => setMaxDownload(Number(e.target.value))}
-                        className="w-24 border rounded-md px-3 py-2 dark:bg-inputDarkMode dark:text-gray-200 outline-none [&>option]:dark:bg-darkMode"
+                        className="w-24 border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none [&>option]:dark:bg-darkMode"
                         disabled={!isConnectionLimitEnabled}
                       >
                         {[...Array(10)].map((_, index) => (
@@ -339,7 +356,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Add the background running toggle after the connection limits section */}
-            <div className="pt-4">
+            <div className="pt-3">
               <div className="flex items-center gap-2 mb-2">
                 <label className="block dark:text-gray-200 text-nowrap font-bold">
                   Application Behavior
@@ -369,43 +386,43 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 When disabled, closing the window will completely exit the
                 application
               </div>
-            </div>
-            {/* 
-            <div className="pt-4">
-              <div className="flex items-center gap-2 mb-2">
-                <label className="block dark:text-gray-200 text-nowrap font-bold">
-                  Plugins
+              <div className="flex items-center gap-2 mt-3 ml-2">
+                <input
+                  type="checkbox"
+                  id="clipboard-monitoring"
+                  checked={enableClipboardMonitoring}
+                  onChange={(e) => {
+                    console.log(
+                      'Clipboard monitoring toggled:',
+                      e.target.checked,
+                    );
+                    setEnableClipboardMonitoring(e.target.checked);
+                    toast({
+                      title: e.target.checked
+                        ? 'Clipboard Monitoring Enabled'
+                        : 'Clipboard Monitoring Disabled',
+                      description:
+                        'The latest clipboard content was cleared for cleanup.',
+                      duration: 3000,
+                    });
+                  }}
+                  className="w-4 h-4 text-primary rounded focus:ring-primary"
+                />
+                <label
+                  htmlFor="clipboard-monitoring"
+                  className="dark:text-gray-200 cursor-pointer"
+                >
+                  Automatically download links from clipboard
                 </label>
-                <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
               </div>
- 
-              <div className="flex gap-2 flex-wrap justify-between">
-                <span className="mt-2 text-xs font-medium ml-2">
-                  Note: Plugins is an experimental feature and might not work as
-                  expected.
-                </span>
-                <div className="flex items-center gap-2 self-end sm:self-auto">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={isShowPlugin}
-                      onChange={(e) => {
-                        console.log(
-                          'Checkbox toggled for plugin',
-                          e.target.checked,
-                        );
-                        setIsShowPlugin(e.target.checked);
-                      }}
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
-                  </label>
-                </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 mt-1">
+                When enabled, Downlodr will detect copied URLs and automatically
+                download them
               </div>
             </div>
-            */}
+
             {/* Add column visibility section */}
-            <div className="pt-4">
+            <div className="pt-3">
               <div className="flex items-center gap-2 mb-2">
                 <label className="block dark:text-gray-200 text-nowrap font-bold">
                   Visible Columns
@@ -432,7 +449,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         height: '13.5px',
                         marginBottom: '0.5px',
                         marginLeft: '0.5px',
-                        accentColor: '#3b82f6',
+                        accentColor: column.required ? '#ef4444' : '#3b82f6',
                         transform: 'scale(0.9)',
                         transformOrigin: 'center',
                       }}
@@ -459,7 +476,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Button commands */}
-        <hr className="solid mt-2 mb-3 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
+        <hr className="solid mt-2 mb-2 -mx-6 w-[calc(100%+47px)] border-t-2 border-divider dark:border-darkModeCompliment" />
 
         <div className="flex gap-3 p-0">
           <div className="ml-auto flex gap-3">

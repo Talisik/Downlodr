@@ -49,7 +49,7 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
           --text-on-error: #fff;
           --bg-success-hover: rgba(255, 255, 255, 0.1);
           --bg-progress-track: ${isDark ? '#272727' : '#D1D5DB'};
-          --bg-tooltip: ${isDark ? '#18181B' : '#333'};
+          --bg-tooltip: ${isDark ? '#18181B' : '#FEF9F4'};
           --text-tooltip: ${isDark ? '#a1a1aa' : '#fff'};
           --shadow-primary: ${
             isDark ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)'

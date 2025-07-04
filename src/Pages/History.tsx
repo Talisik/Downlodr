@@ -168,7 +168,6 @@ const History = () => {
       for (const id of selectedItems) {
         const video = logs.find((product) => product.id === String(id));
         if (video) {
-          console.log('Selected files deleted successfully');
           deleteDownload(video.id);
           toast({
             variant: 'success',
@@ -188,9 +187,6 @@ const History = () => {
       setSelectedItems([]); // Clear selected items after deletion
     } catch (error) {
       console.error('Error deleting selected files:', error);
-      console.log(
-        'An error occurred while trying to delete the selected files',
-      );
     }
   };
 
@@ -244,7 +240,7 @@ const History = () => {
       return createPortal(
         <button
           onClick={handleDeleteSelected}
-          className="bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault hover:dark:bg-darkModeButtonHover hover:dark:text-body-dark px-3 py-1 mr-2 rounded-md flex gap-2 text-sm"
+          className="bg-black text-gray-200 hover:bg-[#3E3E46] dark:text-darkModeButtonActive dark:bg-darkModeButtonDefault hover:dark:bg-darkModeLight hover:dark:text-body-dark px-3 py-1 mr-2 rounded-md flex gap-2 text-sm"
         >
           <LuTrash size={15} className="mt-[1.5px]" />{' '}
           <span className="hidden md:inline">Remove from History</span>
@@ -292,8 +288,8 @@ const History = () => {
               key={product.id}
               className={`border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-darkModeHover cursor-pointer
                 ${
-                  selectedItems.length > 0 &&
-                  product.id === selectedItems[selectedItems.length - 1]
+                  selectedItems.length === 1 &&
+                  selectedItems.includes(product.id)
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'
                 }`}

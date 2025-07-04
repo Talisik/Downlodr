@@ -67,6 +67,22 @@ declare global {
         controllerId: string,
       ) => Promise<{ success: boolean; error?: string }>; // Kills a download controller
       stop: (id: string) => Promise<boolean>;
+      downloadYTDLP: (options?: {
+        filePath?: string;
+        version?: string;
+        platform?: string;
+        forceDownload?: boolean;
+      }) => Promise<{ success: boolean; error?: string }>; // Downloads YTDLP binary with custom options
+      getCurrentVersion: () => Promise<{ success: boolean; version?: string; error?: string }>; // Gets current YT-DLP version
+      getLatestVersion: () => Promise<{ success: boolean; version?: string; message?: string; error?: string }>; // Gets latest YT-DLP version
+      checkAndUpdate: () => Promise<{ 
+        success: boolean; 
+        action: 'downloaded' | 'updated' | 'up-to-date' | 'error';
+        message: string;
+        currentVersion?: string;
+        latestVersion?: string;
+        error?: string;
+      }>; // Checks and updates YT-DLP to latest version automatically
     };
     electronDevTools: {
       toggle: () => void; // Toggles the visibility of the developer tools
@@ -140,6 +156,23 @@ declare global {
     pluginModalManager?: {
       showPluginModal: (options: PluginModalOptions) => Promise<PluginModalResult>;
     };
+    appControl: {
+      showWindow: () => Promise<boolean>;
+      hideWindow: () => Promise<boolean>;
+      quitApp: () => Promise<void>;
+      setAutoLaunch: (enabled: boolean) => Promise<void>;
+      getAutoLaunch: () => Promise<boolean>;
+      getClipboardText: () => Promise<string>;
+      onClipboardChange: (callback: (text: string) => void) => void;
+      offClipboardChange: () => void;
+      startClipboardMonitoring: () => Promise<boolean>;
+      stopClipboardMonitoring: () => Promise<boolean>;
+      isClipboardMonitoringActive: () => Promise<boolean>;
+      clearLastClipboardText: () => Promise<void>;
+      clearClipboard: () => Promise<boolean>;
+      isWindowFocused: () => Promise<boolean>;
+    };
+    
   }
 }
 

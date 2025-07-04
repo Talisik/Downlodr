@@ -6,6 +6,7 @@ import {
 } from '../../Components/SubComponents/shadcn/components/ui/tooltip';
 import { useToast } from '../../Components/SubComponents/shadcn/hooks/use-toast';
 import { cn } from '../../Components/SubComponents/shadcn/lib/utils';
+import useDownloadStore from '../../Store/downloadStore';
 import { useMainStore } from '../../Store/mainStore';
 import { usePluginState } from '../Hooks/usePluginState';
 import { TaskBarItem } from '../types';
@@ -14,7 +15,8 @@ const PluginTaskBarExtension: React.FC = () => {
   const [taskBarItems, setTaskBarItems] = useState<TaskBarItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const enabledPlugins = usePluginState();
-  const { selectedDownloads } = useMainStore();
+  const { selectedDownloads, taskBarButtonsVisibility } = useMainStore();
+  const { downloading } = useDownloadStore();
   const { toast } = useToast();
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
 
@@ -121,6 +123,11 @@ const PluginTaskBarExtension: React.FC = () => {
   };
 
   const handleItemClick = (item: TaskBarItem) => {
+    if (item.actionType === 'multiple' && !selectedDownloads.length) {
+      window.PluginHandlers[item.handlerId](downloading);
+      return;
+    }
+
     if (!selectedDownloads.length) {
       toast({
         variant: 'destructive',
@@ -157,18 +164,42 @@ const PluginTaskBarExtension: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-wrap gap-2 max-w-xs max-h-16 overflow-hidden">
+    <div
+      className={cn(
+        'flex flex-wrap gap-2 max-w-xs max-h-16 overflow-hidden',
+        !taskBarButtonsVisibility.start &&
+          !taskBarButtonsVisibility.stop &&
+          !taskBarButtonsVisibility.stopAll &&
+          'max-w-none',
+      )}
+    >
       <TooltipProvider>
         {taskBarItems.map((item) => (
           <Tooltip key={item.id}>
             <TooltipTrigger asChild>
               <button
+                style={
+                  typeof item.buttonStyle === 'string'
+                    ? {
+                        ...(item.buttonStyle as React.CSSProperties),
+                      }
+                    : item.buttonStyle
+                }
                 className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-2 py-1 rounded flex gap-1 font-semibold dark:text-gray-200 flex-shrink-0"
                 onClick={() => handleItemClick(item)}
                 aria-label={item.label}
               >
                 {item.icon && (
-                  <span className="inline-flex items-center justify-center w-4 h-4 flex-shrink-0">
+                  <span
+                    style={
+                      typeof item.iconStyle === 'string'
+                        ? {
+                            ...(item.iconStyle as React.CSSProperties),
+                          }
+                        : item.iconStyle
+                    }
+                    className="inline-flex items-center justify-center w-4 h-4 flex-shrink-0"
+                  >
                     {typeof item.icon === 'string' && isSvgString(item.icon) ? (
                       <span
                         dangerouslySetInnerHTML={{ __html: item.icon }}
@@ -182,6 +213,13 @@ const PluginTaskBarExtension: React.FC = () => {
                   </span>
                 )}
                 <span
+                  style={
+                    typeof item.labelStyle === 'string'
+                      ? {
+                          ...(item.labelStyle as React.CSSProperties),
+                        }
+                      : item.labelStyle
+                  }
                   className={cn('text-sm', item.icon && 'hidden lg:inline')}
                 >
                   {item.label}

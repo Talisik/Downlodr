@@ -34,10 +34,10 @@
 
 import { PlayCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { BiRightArrow } from 'react-icons/bi';
+import { BsArrowCounterclockwise } from 'react-icons/bs';
 import { GoChevronRight, GoPlus } from 'react-icons/go';
 import { HiOutlineStopCircle } from 'react-icons/hi2';
-import { IoPauseCircleOutline } from 'react-icons/io5';
+import { IoCodeSlashSharp, IoPauseCircleOutline } from 'react-icons/io5';
 import { LiaFileVideoSolid, LiaTagsSolid } from 'react-icons/lia';
 import { LuFolderOpen, LuTrash } from 'react-icons/lu';
 import { MdEdit } from 'react-icons/md';
@@ -67,7 +67,9 @@ interface DownloadContextMenuProps {
     downloadLocation?: string,
     controllerId?: string,
     downloadStatus?: string,
-  ) => void; // Function to pause the download
+  ) => void; // Function to pause the download'
+  onRetry: (downloadId: string) => void; // Function to retry the download
+  onShowLog: (downloadId: string) => void; // Function to show the log of the download
   onStop: (
     id: string,
     downloadLocation?: string,
@@ -93,8 +95,9 @@ interface DownloadContextMenuProps {
   onRemoveCategory: (downloadId: string, category: string) => void; // Function to remove a category from the download
   currentCategories: string[]; // Array of current categories for the download
   availableCategories: string[]; // Array of all available categories in the system
-  onViewFolder: (downloadLocation?: string) => void; // Function to view the folder containing the download
+  onViewFolder: (downloadLocation?: string, downloadFile?: string) => void; // Function to view the folder containing the download
   downloadName?: string; // Name of the download file
+  downloadFile?: string; // File of the download
   onRename: (downloadId: string, currentName: string) => void; // Add this
   onShowRemoveModal: (
     downloadId: string,
@@ -379,11 +382,14 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   downloadLocation,
   controllerId,
   downloadStatus,
+  downloadFile,
   onClose,
   onPause,
-  onStop,
-  onForceStart,
-  onRemove,
+  onRetry,
+  onShowLog,
+  // onStop,
+  // onForceStart,
+  // onRemove,
   onViewDownload,
   onAddTag,
   onRemoveTag,
@@ -407,6 +413,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const [showCategoryMenu, setShowCategoryMenu] = useState(false); // State to track visibility of the category menu
   const [showPluginMenu, setShowPluginMenu] = useState(false); // State to track visibility of the plugin menu
   const [submenuPosition, setSubmenuPosition] = useState({ x: 0, y: 0 });
+
   const { settings } = useMainStore();
   const {
     downloading,
@@ -472,12 +479,12 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
           // Calculate approximate menu height based on number of items
           const itemHeight = 40; // approximate height of each menu item
-          const baseMenuHeight =
-            itemHeight * (downloadStatus === 'finished' ? 5 : 4); // base menu items
+          const baseMenuHeight = itemHeight * 6; // All download statuses have 6 base menu items (including Tags and Category)
           const pluginItemsHeight =
             pluginMenuItems.length <= 4
-              ? pluginMenuItems.length * itemHeight // show all plugin items
-              : itemHeight; // show just the Plugins button
+              ? pluginMenuItems.length * itemHeight +
+                (pluginMenuItems.length > 0 ? 10 : 0) // show all plugin items + divider height
+              : itemHeight + 10; // show just the Plugins button + divider height
           const totalMenuHeight = baseMenuHeight + pluginItemsHeight;
 
           // Only adjust if menu is actually overflowing
@@ -698,6 +705,67 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       </>
     );
 
+    if (downloadStatus === 'failed') {
+      return (
+        <>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onRetry(downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <BsArrowCounterclockwise size={20} />
+              <span>Retry</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onViewFolder(
+                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+                downloadFile,
+              );
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <LuFolderOpen size={20} />
+              <span>View Folder</span>
+            </span>
+          </button>
+
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowRemoveModal(downloadId, downloadLocation, controllerId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <LuTrash size={16} />
+              <span>Remove</span>
+            </span>
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onShowLog(downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <IoCodeSlashSharp size={20} />
+              <span>Show Log</span>
+            </span>
+          </button>
+          {commonOptions}
+        </>
+      );
+    }
+
     if (downloadStatus === 'finished') {
       return (
         <>
@@ -716,7 +784,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onViewFolder(
+                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+                downloadFile,
+              );
               onClose();
             }}
           >
@@ -778,7 +849,20 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <span>Remove</span>
             </span>
           </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onShowLog(downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <IoCodeSlashSharp size={20} />
+              <span>Show Log</span>
+            </span>
+          </button>
           {commonOptions}
+          {renderPluginMenuItems()}
         </>
       );
     }
@@ -789,7 +873,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onViewFolder(
+                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+                downloadFile,
+              );
               onClose();
             }}
           >
@@ -829,6 +916,18 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <span>Stop</span>
             </span>
           </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onShowLog(downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <IoCodeSlashSharp size={20} />
+              <span>Show Logs</span>
+            </span>
+          </button>
           {commonOptions}
         </>
       );
@@ -840,7 +939,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onViewFolder(
+                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+                downloadFile,
+              );
               onClose();
             }}
           >
@@ -880,6 +982,18 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <span>Stop</span>
             </span>
           </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onShowLog(downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <VscDebugStart size={20} />
+              <span>Start</span>
+            </span>
+          </button>
           {commonOptions}
         </>
       );
@@ -900,7 +1014,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onViewFolder(
+                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+                downloadFile,
+              );
               onClose();
             }}
           >
@@ -946,7 +1063,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+              onViewFolder(
+                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+                downloadFile,
+              );
               onClose();
             }}
           >
@@ -986,6 +1106,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <span>Stop</span>
             </span>
           </button>
+          {/* 
           <button
             className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
@@ -993,9 +1114,23 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               onClose();
             }}
           >
+
             <span className="flex items-center space-x-2">
               <BiRightArrow size={18} />
               <span>Force Start</span>
+            </span>
+          </button>
+          */}
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            onClick={() => {
+              onShowLog(downloadId);
+              onClose();
+            }}
+          >
+            <span className="flex items-center space-x-2">
+              <IoCodeSlashSharp size={20} />
+              <span>Show Log</span>
             </span>
           </button>
           {commonOptions}
@@ -1009,7 +1144,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         <button
           className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
           onClick={() => {
-            onViewFolder(downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''));
+            onViewFolder(
+              downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
+              downloadFile,
+            );
             onClose();
           }}
         >
@@ -1143,7 +1281,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         }}
       >
         {renderMenuOptions()}
-        {renderPluginMenuItems()}
       </div>
 
       {/* Render submenus outside of main menu container */}

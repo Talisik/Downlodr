@@ -11,7 +11,7 @@
  * @returns JSX.Element - The rendered download list component.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 // import { LuDownload, LuArrowDown, LuArrowUp } from 'react-icons/lu';
 import { FaPlay } from 'react-icons/fa';
 import { HiChevronUpDown } from 'react-icons/hi2';
@@ -20,9 +20,11 @@ import { useMainStore } from '../../../Store/mainStore';
 import { Skeleton } from '../shadcn/components/ui/skeleton';
 import { toast } from '../shadcn/hooks/use-toast';
 // import { RenameModal } from './DownloadContextMenu';
+import ColumnHeaderContextMenu from './ColumnHeaderContextMenu';
 import FileNotExistModal, { DownloadItem } from './FileNotExistModal';
 import ResizableHeader from './ResizableColumns/ResizableHeader';
 import { useResizableColumns } from './ResizableColumns/useResizableColumns';
+import ShareButton from './ShareButton';
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -77,16 +79,19 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   const availableCategories = useDownloadStore(
     (state) => state.availableCategories,
   );
-
+  const [thumbnailDataUrls, setThumbnailDataUrls] = useState<
+    Record<string, string>
+  >({});
   // Initialize resizable columns - excluding checkbox
   const initialColumns = [
-    { id: 'title', width: 250, minWidth: 100 },
-    { id: 'size', width: 100, minWidth: 80 },
-    { id: 'format', width: 100, minWidth: 80 },
-    { id: 'status', width: 120, minWidth: 90 },
-    { id: 'tags', width: 150, minWidth: 100 },
-    { id: 'categories', width: 150, minWidth: 100 },
-    { id: 'source', width: 150, minWidth: 80 },
+    { id: 'title', width: 200, minWidth: 150 }, // Increased width for longer titles
+    { id: 'size', width: 80, minWidth: 70 },
+    { id: 'format', width: 80, minWidth: 70 },
+    { id: 'status', width: 100, minWidth: 80 },
+    { id: 'tags', width: 150, minWidth: 120 }, // Increased for better tag display
+    { id: 'categories', width: 150, minWidth: 120 }, // Increased for better category display
+    { id: 'source', width: 50, minWidth: 50 },
+    { id: 'action', width: 60, minWidth: 60 }, // Reduced since it's just an icon
   ];
 
   const {
@@ -95,6 +100,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     startDragging,
     handleDragOver,
     handleDrop,
+    cancelDrag,
     dragging,
     dragOverIndex,
   } = useResizableColumns(initialColumns);
@@ -126,6 +132,41 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     y: 0,
   });
 
+  // PERFORMANCE OPTIMIZATION: Optimize thumbnail loading
+  const loadThumbnails = useCallback(
+    async (downloads: typeof allDownloads) => {
+      const loadPromises = downloads.map(async (download) => {
+        if (download.thumnailsLocation && !thumbnailDataUrls[download.id]) {
+          try {
+            const dataUrl = await window.downlodrFunctions.getThumbnailDataUrl(
+              download.thumnailsLocation,
+            );
+            if (dataUrl) {
+              setThumbnailDataUrls((prev) => ({
+                ...prev,
+                [download.id]: dataUrl,
+              }));
+            }
+          } catch (error) {
+            console.warn(`Failed to load thumbnail for ${download.id}:`, error);
+          }
+        }
+      });
+
+      // Process in batches to avoid overwhelming the system
+      const batchSize = 5;
+      for (let i = 0; i < loadPromises.length; i += batchSize) {
+        const batch = loadPromises.slice(i, i + batchSize);
+        await Promise.allSettled(batch);
+        // Small delay between batches to prevent UI blocking
+        if (i + batchSize < loadPromises.length) {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+      }
+    },
+    [thumbnailDataUrls],
+  );
+
   // Get visible columns from the store
   const visibleColumns = useMainStore((state) => state.visibleColumns);
 
@@ -138,6 +179,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     { id: 'tags', displayName: 'Tags' },
     { id: 'categories', displayName: 'Categories' },
     { id: 'source', displayName: 'Source' },
+    { id: 'action', displayName: 'Action' },
   ];
 
   // Filter columns based on visibility settings, ensuring essential columns are always included
@@ -145,7 +187,9 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     return columns.filter(
       (column) =>
         visibleColumns.includes(column.id) ||
-        ['title', 'status', 'format'].includes(column.id),
+        ['title', 'status', 'format', 'action', 'tags', 'categories'].includes(
+          column.id,
+        ),
     );
   }, [columns, visibleColumns]);
 
@@ -317,10 +361,22 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   // Handlers for column operations
   const handleColumnHeaderContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    // Close any active download context menu first
+    setContextMenu(null);
+
+    // Get the table's position
+    const tableRect = e.currentTarget.getBoundingClientRect();
+
+    // Calculate position relative to the table/header
+    const x = e.clientX - tableRect.left + 2; // Small offset for better appearance
+    const y = e.clientY - tableRect.top + window.scrollY + 2;
+
     setColumnHeaderContextMenu({
       visible: true,
-      x: e.clientX,
-      y: e.clientY,
+      x: x,
+      y: y,
     });
   };
 
@@ -432,7 +488,14 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   const columnMenuOptions = columnOptions.map((option) => ({
     id: option.id,
     label: option.displayName, // Note: change displayName to label to match the interface
-    required: ['title', 'status', 'format'].includes(option.id), // Required columns
+    required: [
+      'title',
+      'status',
+      'format',
+      'action',
+      'tags',
+      'categories',
+    ].includes(option.id), // Required columns
   }));
 
   // Close Menu and clear selected download when clicking outside
@@ -821,7 +884,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       <table className="w-full">
         <thead>
           <tr
-            className="border-b text-left dark:border-white"
+            className="border-b text-left border-gray-200 dark:border-darkModeCompliment"
             onContextMenu={handleColumnHeaderContextMenu}
           >
             <th className="w-8 p-2">
@@ -843,6 +906,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                 }
                 onDragOver={enhancedHandleDragOver}
                 onDrop={enhancedHandleDrop}
+                onDragEnd={cancelDrag}
                 isDragging={dragging?.columnId === column.id}
                 isDragOver={
                   dragOverIndex ===
@@ -866,7 +930,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
           {allDownloads.map((download) => (
             <React.Fragment key={download.id}>
               <tr
-                className={`border-b hover:bg-gray-50 dark:border-white dark:hover:bg-gray-700 cursor-pointer ${
+                className={`border-b hover:bg-gray-50 border-gray-200  dark:border-gray-700 dark:hover:bg-gray-700 cursor-pointer ${
                   selectedDownloadId === download.id
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'
@@ -1187,6 +1251,23 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                           )}
                         </td>
                       );
+                    case 'action':
+                      return (
+                        <td
+                          key={column.id}
+                          style={{ width: column.width }}
+                          className="p-2 dark:text-gray-200 text-center"
+                        >
+                          <ShareButton
+                            videoUrl={download.videoUrl}
+                            name={download.name}
+                            status={download.status}
+                            thumbnailLocation={thumbnailDataUrls[download.id]}
+                            format={download.ext || download.audioExt}
+                            size={download.size}
+                          />
+                        </td>
+                      );
                     default:
                       return null;
                   }
@@ -1203,6 +1284,19 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         onClose={() => setShowFileNotExistModal(false)}
         selectedDownloads={missingFiles}
         download={missingFiles.length === 1 ? missingFiles[0] : null}
+      />
+
+      {/* Add ColumnHeaderContextMenu */}
+      <ColumnHeaderContextMenu
+        position={{
+          x: columnHeaderContextMenu.x,
+          y: columnHeaderContextMenu.y,
+        }}
+        visible={columnHeaderContextMenu.visible}
+        visibleColumns={visibleColumns}
+        onToggleColumn={handleToggleColumn}
+        onClose={handleCloseColumnHeaderContextMenu}
+        columnOptions={columnMenuOptions}
       />
 
       {/* Add the RenameModal 

@@ -52,7 +52,11 @@ export class VideoFormatService {
     return audioOptions;
   }
 
-  private static processYoutubeFormats(formatsArray: any[]): ProcessedFormats {
+  private static processYoutubeFormats(
+    formatsArray: any[],
+    default_format: string,
+    default_ext: string,
+  ): ProcessedFormats {
     const formatMap = new Map();
     const seenCombinations = new Set();
 
@@ -96,6 +100,21 @@ export class VideoFormatService {
       );
     }
 
+    if (!audioOnlyFormat) {
+      audioOnlyFormat = formatsArray.find(
+        (format: any) =>
+          format.vcodec === 'none' &&
+          format.format.includes(
+            'audio only (English (United States) original (default), medium)',
+          ),
+      );
+    }
+    const defaultOptions = {
+      value: `${default_ext}-${default_format}`,
+      label: `${default_ext} - Default Format`,
+      formatId: default_format,
+      fileExtension: default_ext,
+    };
     const audioOptions = this.createAudioOptions(audioOnlyFormat);
     const formatOptions = Array.from(formatMap.entries())
       .flatMap(([resolution, formatInfo]: [any, any]) => [
@@ -109,7 +128,7 @@ export class VideoFormatService {
       .reverse();
 
     return {
-      formatOptions,
+      formatOptions: [...formatOptions, defaultOptions],
       audioOptions,
       defaultFormatId: formatOptions[0]?.formatId || '',
       defaultExt: formatOptions[0]?.fileExtension || 'mp4',
@@ -237,7 +256,6 @@ export class VideoFormatService {
   }
 
   private static processBilibiliFormats(formatsArray: any[]): ProcessedFormats {
-    console.log(formatsArray);
     const formatMap = new Map();
     const seenCombinations = new Set();
 
@@ -376,11 +394,16 @@ export class VideoFormatService {
   ): Promise<ProcessedFormats> {
     const formatsArray = info.data.formats || [];
     const extractorKey = info.data.extractor_key;
-
+    const defaultFormat = info.data.format_id;
+    const defaultExt = info.data.ext;
     let processed;
     switch (extractorKey) {
       case 'Youtube':
-        processed = this.processYoutubeFormats(formatsArray);
+        processed = this.processYoutubeFormats(
+          formatsArray,
+          defaultFormat,
+          defaultExt,
+        );
         break;
       case 'Dailymotion':
         processed = this.processDailymotionFormats(formatsArray);

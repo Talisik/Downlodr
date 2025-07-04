@@ -91,7 +91,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
       <div
         ref={navRef}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-darkModeDropdown rounded-lg pt-6 pr-6 pl-6 pb-4 max-w-md w-full mx-4"
+        className="bg-white dark:bg-darkModeDropdown border border-gray-200 dark:border-gray-700 rounded-lg pt-6 pr-6 pl-6 pb-4 max-w-md w-full mx-4"
       >
         {/* Left side - Form */}
         <div className="w-full">
