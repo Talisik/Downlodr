@@ -25,7 +25,6 @@ const FormatSelectorExtension: React.FC<FormatSelectorExtensionProps> = ({
     (options.formats.length > 0 ? options.formats[0].value : '');
 
   const [selectedFormat, setSelectedFormat] = useState<string>(defaultFormat);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [keepOriginal, setKeepOriginal] = useState<boolean>(
     options.keepOriginal || false,
   );

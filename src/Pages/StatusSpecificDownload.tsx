@@ -335,7 +335,7 @@ const StatusSpecificDownloads = () => {
     return columns.filter(
       (column) =>
         visibleColumns.includes(column.id) ||
-        ['name', 'status', 'format'].includes(column.id),
+        ['name', 'status', 'format', 'action'].includes(column.id),
     );
   }, [columns, visibleColumns]);
 
@@ -574,7 +574,8 @@ const StatusSpecificDownloads = () => {
   const columnOptions = useMemo(
     () => [
       { id: 'name', label: 'Title', required: true },
-      { id: 'size', label: 'Size', required: false },
+      { id: 'action', label: 'Action', required: true },
+
       { id: 'format', label: 'Format', required: true },
       { id: 'status', label: 'Status', required: true },
       { id: 'speed', label: 'Speed', required: false },
@@ -582,7 +583,7 @@ const StatusSpecificDownloads = () => {
       { id: 'source', label: 'Source', required: false },
       { id: 'transcript', label: 'Closed Captions', required: false },
       { id: 'thumbnail', label: 'Thumbnail', required: false },
-      { id: 'action', label: 'Action', required: false },
+      { id: 'size', label: 'Size', required: false },
     ],
     [],
   );
@@ -721,11 +722,7 @@ const StatusSpecificDownloads = () => {
 
   const handleRetry = (downloadId: string) => {
     // Get fresh state each time
-    console.log('HII FROM RETRY', downloadId);
-    const { downloading, deleteDownloading } = useDownloadStore.getState();
     const currentDownload = allDownloads.find((d) => d.id === downloadId);
-    const { updateDownloadStatus } = useDownloadStore.getState();
-
     const { addDownload } = useDownloadStore.getState();
     addDownload(
       currentDownload.videoUrl,
@@ -735,7 +732,7 @@ const StatusSpecificDownloads = () => {
       currentDownload.speed,
       currentDownload.timeLeft,
       new Date().toISOString(),
-      currentDownload.progress,
+      0,
       currentDownload.location,
       'downloading',
       currentDownload.ext,
@@ -895,7 +892,6 @@ const StatusSpecificDownloads = () => {
           }
         }
       } catch (error) {
-        console.error('Error viewing download:', error);
         toast({
           variant: 'destructive',
           title: 'Error',
@@ -957,9 +953,6 @@ const StatusSpecificDownloads = () => {
               );
               if (success) {
                 deleteDownloading(download.id);
-                console.log(
-                  `Controller with ID ${download.controllerId} has been terminated.`,
-                );
                 toast({
                   variant: 'success',
                   title: 'Download Stopped',
@@ -969,7 +962,6 @@ const StatusSpecificDownloads = () => {
                 processQueue();
               }
             } catch (error) {
-              console.error('Error invoking kill-controller:', error);
               toast({
                 variant: 'destructive',
                 title: 'Error',
@@ -990,14 +982,6 @@ const StatusSpecificDownloads = () => {
     downloadLocation?: string,
     controllerId?: string,
   ) => {
-    console.log(
-      'Force starting:',
-      downloadId,
-      'at:',
-      downloadLocation,
-      'controller:',
-      controllerId,
-    );
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
@@ -1144,7 +1128,6 @@ const StatusSpecificDownloads = () => {
         },
       };
       handleFileNotExistModal(downloadItem);
-      console.error('Error deleting:', error);
     }
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
@@ -1236,7 +1219,6 @@ const StatusSpecificDownloads = () => {
       const clickedDownload = allDownloads.find((d) => d.id === downloadId);
 
       if (!clickedDownload) {
-        console.error('Download not found:', downloadId);
         return;
       }
 
@@ -1282,7 +1264,6 @@ const StatusSpecificDownloads = () => {
         );
         // Check if the location contains a comma (indicating old format)
         const exists = await window.downlodrFunctions.fileExists(folderPath);
-        console.log('success', exists);
         if (!exists) {
           toast({
             variant: 'destructive',
@@ -1297,7 +1278,6 @@ const StatusSpecificDownloads = () => {
           downloadLocation,
           filePath,
         );
-        console.log('success', success);
         if (!success) {
           toast({
             variant: 'destructive',
@@ -1576,8 +1556,8 @@ const StatusSpecificDownloads = () => {
                             >
                               {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1">
+                                  <Skeleton className="h-4 w-[90px] rounded-[3px]" />
                                   <Skeleton className="h-4 w-[100px] rounded-[3px]" />
-                                  <Skeleton className="h-4 w-[120px] rounded-[3px]" />
                                 </div>
                               ) : (
                                 <div
@@ -1805,10 +1785,6 @@ const StatusSpecificDownloads = () => {
                                       }
                                       title="Click to view full thumbnail"
                                       onError={(e) => {
-                                        console.error(
-                                          'Failed to load thumbnail:',
-                                          download.thumnailsLocation,
-                                        );
                                         e.currentTarget.style.display = 'none';
                                         e.currentTarget.parentElement.innerHTML =
                                           'Unable to load';
@@ -1863,16 +1839,16 @@ const StatusSpecificDownloads = () => {
                           return (
                             <td
                               key={column.id}
-                              className="w-8 p-2 dark:text-gray-200 ml-2"
+                              style={{ width: column.width }}
+                              className="p-2 dark:text-gray-200"
                             >
                               {download.status === 'fetching metadata' ? (
-                                <div className="space-y-1">
-                                  <Skeleton className="h-4 w-[100px] rounded-[3px]" />
-                                  <Skeleton className="h-4 w-[120px] rounded-[3px]" />
+                                <div>
+                                  <Skeleton className="h-6 w-[55px] rounded-[3px]" />
                                 </div>
                               ) : (
                                 <div
-                                  className="line-clamp-2 break-words ml-1"
+                                  className="line-clamp-2 break-words"
                                   title={download.extractorKey}
                                 >
                                   <a
@@ -1884,7 +1860,7 @@ const StatusSpecificDownloads = () => {
                                     className="hover:underline cursor-pointer"
                                   >
                                     {download.extractorKey}
-                                  </a>{' '}
+                                  </a>
                                 </div>
                               )}
                             </td>

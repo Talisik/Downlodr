@@ -83,7 +83,7 @@ export const useMainStore = create<MainStore>()(
         maxUploadNum: 5,
         maxDownloadNum: 5,
         runInBackground: false,
-        enableClipboardMonitoring: true,
+        enableClipboardMonitoring: false,
       },
       selectedDownloads: [] as SelectedDownload[],
       isDownloadModalOpen: false,

@@ -63,7 +63,6 @@ export const PluginLoader: React.FC = () => {
       for (const plugin of plugins) {
         try {
           console.log(`Loading plugin: ${plugin.id}`);
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { code, manifest, error } = await window.plugins.getCode(
             plugin.id,
           );

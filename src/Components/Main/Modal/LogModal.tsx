@@ -11,6 +11,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useRef, useState } from 'react';
+import { FaRegArrowAltCircleDown } from 'react-icons/fa';
 import useDownloadStore from '../../../Store/downloadStore';
 
 interface LogModalProps {
@@ -175,7 +176,7 @@ ${logContent}`;
       <div
         ref={navRef}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-darkModeDropdown rounded-lg p-6 max-w-4xl w-full mx-4 h-[80vh] flex flex-col"
+        className="bg-white dark:bg-darkModeDropdown rounded-lg p-5 max-w-4xl w-full mx-4 h-[80vh] flex flex-col"
       >
         {/* Header */}
         <div className="mb-4 flex-shrink-0">
@@ -203,11 +204,11 @@ ${logContent}`;
         </div>
 
         {/* Log content container */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden mb-4">
           <div
             ref={logContainerRef}
             onScroll={handleScroll}
-            className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md p-3 font-mono text-sm"
+            className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-3 font-mono text-sm"
           >
             {logLines.length > 0 ? (
               <div className="space-y-1">
@@ -240,7 +241,7 @@ ${logContent}`;
 
         {/* Auto-scroll indicator */}
         {!autoScroll && (
-          <div className="mt-2 text-center flex-shrink-0">
+          <div className="text-center flex-shrink-0">
             <button
               onClick={() => {
                 setAutoScroll(true);
@@ -251,15 +252,12 @@ ${logContent}`;
               }}
               className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
             >
-              ↓ Scroll to bottom for latest logs
+              <FaRegArrowAltCircleDown size={22} />
             </button>
           </div>
         )}
 
-        {/* Button commands */}
-        <hr className="solid mt-4 mb-2 -mx-6 w-[calc(100%+48px)] border-t border-gray-200 dark:border-gray-600 flex-shrink-0" />
-
-        <div className="flex justify-between items-center mt-2 flex-shrink-0">
+        <div className="flex justify-between items-center flex-shrink-0">
           <div className="flex items-center space-x-4">
             <button
               type="button"

@@ -150,7 +150,11 @@ const DropdownBar = ({ className }: { className?: string }) => {
   }, []);
 
   const handleCheckForUpdates = async () => {
-    console.log('updateAPI available:', !!window.updateAPI?.checkForUpdates);
+    toast({
+      title: 'Checking for updates',
+      description: `Currently checking for new updates, please wait`,
+      duration: 3000,
+    });
     if (window.updateAPI?.checkForUpdates) {
       try {
         const result = await window.updateAPI.checkForUpdates();
@@ -166,7 +170,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
       } catch (error) {
         toast({
           variant: 'destructive',
-          title: 'Rate limit reached for checking version',
+          title: 'Server Unavailable',
           description: `Please check again later`,
           duration: 3000,
         });

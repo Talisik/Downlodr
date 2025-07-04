@@ -70,7 +70,6 @@ const processFileName = async (
     }
   }
 
-  console.log('Processed filename:', finalName);
   return finalName;
 };
 

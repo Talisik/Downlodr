@@ -8,7 +8,7 @@
  *
  * @returns JSX.Element - The rendered expanded download details component.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { formatElapsedTime } from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 

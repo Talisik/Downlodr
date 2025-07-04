@@ -158,7 +158,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     { id: 'transcript', label: 'Closed Caption', required: false },
     { id: 'thumbnail', label: 'Thumbnail', required: false },
     { id: 'status', label: 'Status', required: true },
-    { id: 'action', label: 'Action', required: false },
+    { id: 'action', label: 'Action', required: true },
   ];
 
   // Column toggle handler
@@ -227,7 +227,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
       )}
-      <div className="bg-white border border-darkModeCompliment dark:bg-darkModeDropdown rounded-lg pt-5 pr-6 pl-6 pb-3 max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto">
+      <div className="bg-white dark:bg-darkModeDropdown border border-gray-200 dark:border-gray-700 rounded-lg pt-5 pr-6 pl-6 pb-3 max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto">
         {/* Left side - Form */}
         <div className="w-full">
           <div className="flex justify-between items-center mb-5">

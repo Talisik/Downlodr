@@ -21,6 +21,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { MdOutlineInfo } from 'react-icons/md';
 import { Button } from '../../../Components/SubComponents/shadcn/components/ui/button';
+import { cleanRawLink } from '../../../DataFunctions/urlValidation';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
 import { Skeleton } from '../../SubComponents/shadcn/components/ui/skeleton';
@@ -114,7 +115,13 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
     const videoPattern = /^https:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/;
     const playlistPattern =
       /^https:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+$/;
+    const rawPattern = /^https:\/\/youtu\.be\/[\w-]+(?:\?.*)?$/;
 
+    if (rawPattern.test(url)) {
+      const cleanedUrl = cleanRawLink(url);
+      setVideoUrl(cleanedUrl);
+      return 'video';
+    }
     // If the URL matches a video URL and has a "list" query, it's part of a playlist
     if (videoPattern.test(url) && url.includes('list=')) {
       return 'playlist';
@@ -380,7 +387,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
         </div>
       )}
       <div
-        className={`bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment pt-6 pr-6 pl-6 ${
+        className={`bg-white dark:bg-darkModeDropdown rounded-lg border border-gray-200 dark:border-gray-700 pt-6 pr-6 pl-6 ${
           isValidUrl && isPlaylist ? 'w-full max-w-[800px]' : 'w-full max-w-xl'
         }`}
       >

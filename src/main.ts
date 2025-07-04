@@ -485,7 +485,6 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
     if (!info) {
       throw new Error('No info returned from YTDLP.getInfo');
     }
-    console.log(info);
     return info;
   } catch (error) {
     console.error('Error fetching video info:', error);
@@ -781,17 +780,11 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
       controllerId: controller.id,
     });
 
-    console.log(`🚀 Starting download ${id} with controller ${controller.id}`);
-
     // Set up process completion detection WITHOUT interfering with the main stream
     let processCompletionHandled = false;
     let completeLog = ''; // Collect all logs here
 
     if (controller.process) {
-      console.log(
-        `🔍 Setting up process completion listener for download ${id}`,
-      );
-
       const handleProcessCompletion = (
         code: number,
         signal: string,
@@ -801,7 +794,6 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
         processCompletionHandled = true;
 
         const completionMessage = `Process '${controller.id}' ${eventType} with code: ${code}, signal: ${signal}`;
-        console.log(`💀 ${completionMessage}`);
 
         // Add completion message to complete log
         completeLog += `\n${completionMessage}`;
@@ -866,14 +858,9 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
         }
       }
     }
-
-    console.log(`🏁 Download stream ended for ${id}`);
-
     // If process completion wasn't handled through events, send a fallback after delay
     setTimeout(() => {
       if (!processCompletionHandled) {
-        console.log(`⏰ Sending fallback completion signal for download ${id}`);
-
         e.sender.send(`ytdlp:download:status:${id}`, {
           type: 'stream_ended',
           data: {
@@ -887,7 +874,6 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     // Return the download ID and controller ID
     return { downloadId: id, controllerId: controller.id };
   } catch (error) {
-    console.error('Error during download:', error);
     e.sender.send(`ytdlp:download:error:${id}`, error.message);
     throw error; // Ensure the error is propagated
   }
@@ -900,13 +886,11 @@ ipcMain.handle('get-clipboard-text', () => {
 
 // Add IPC handlers to control clipboard monitoring
 ipcMain.handle('start-clipboard-monitoring', () => {
-  console.log('Renderer requested to start clipboard monitoring');
   startClipboardMonitoring();
   return true;
 });
 
 ipcMain.handle('stop-clipboard-monitoring', () => {
-  console.log('Renderer requested to stop clipboard monitoring');
   stopClipboardMonitoring();
   return true;
 });
@@ -922,7 +906,6 @@ ipcMain.handle('is-window-focused', () => {
 
 // Add IPC handler to clear last clipboard text
 ipcMain.handle('clear-last-clipboard-text', () => {
-  console.log('Setting last clipboard text to BLANK_STATE...');
   lastClipboardText = 'BLANK_STATE';
   return true;
 });
@@ -932,10 +915,8 @@ ipcMain.handle('clear-clipboard', () => {
   try {
     clipboard.writeText('');
     lastClipboardText = 'BLANK_STATE';
-    console.log('Clipboard cleared successfully');
     return true;
   } catch (error) {
-    console.log('Could not clear clipboard:', error);
     return false;
   }
 });
@@ -953,15 +934,12 @@ const startClipboardMonitoring = () => {
   }
 
   isMonitoring = true;
-  console.log('Starting clipboard monitoring...');
-
   // Set internal state to BLANK_STATE for fallback tracking
   lastClipboardText = 'BLANK_STATE';
 
   // Actually clear the clipboard by writing an empty string
   try {
     clipboard.writeText('');
-    console.log('Clipboard cleared and monitoring initialized');
   } catch (error) {
     console.log(
       'Could not clear clipboard, using BLANK_STATE fallback:',
@@ -995,10 +973,6 @@ const startClipboardMonitoring = () => {
             currentText.trim() !== '' &&
             !isWindowFocused
           ) {
-            console.log(
-              'Clipboard content changed (window unfocused), sending to renderer...',
-            );
-
             // Send clipboard change event to all renderer processes
             BrowserWindow.getAllWindows().forEach((win) => {
               if (!win.isDestroyed()) {
@@ -1021,14 +995,12 @@ const startClipboardMonitoring = () => {
 };
 
 const stopClipboardMonitoring = () => {
-  console.log('Stopping clipboard monitoring...');
   isMonitoring = false;
   if (clipboardInterval) {
     clearInterval(clipboardInterval);
     clipboardInterval = null;
   }
   lastClipboardText = 'BLANK_STATE';
-  console.log('Clipboard monitoring stopped');
 };
 
 // App lifecycle events
@@ -1192,7 +1164,6 @@ ipcMain.handle('ensureDirectoryExists', async (event, dirPath) => {
       return true;
     }
   } catch (error) {
-    console.error('Error creating directory:', error);
     return false;
   }
 });
@@ -1233,13 +1204,11 @@ ipcMain.handle('exit-app', () => {
   forceQuit = true;
   // Set to BLANK_STATE before quitting
   lastClipboardText = 'BLANK_STATE';
-  console.log('Last clipboard text set to BLANK_STATE before app exit');
   app.quit();
 });
 
 // function for running the appolication in the background
 ipcMain.handle('set-run-in-background', (_event, value) => {
-  console.log('Main process received runInBackground:', value);
   runInBackgroundSetting = value;
   updateCloseHandler();
   return true;
@@ -1262,8 +1231,6 @@ function updateCloseHandler() {
     if (!forceQuit) {
       // Get the real-time setting
       const shouldRunInBackground = await getRunInBackgroundSetting();
-      console.log('Window closing, checking setting:', shouldRunInBackground);
-
       if (shouldRunInBackground) {
         event.preventDefault();
         mainWindow?.hide();
@@ -1280,7 +1247,6 @@ async function getRunInBackgroundSetting() {
 
 // function for syncing settings on startup
 ipcMain.handle('sync-background-setting-on-startup', (_event, value) => {
-  console.log('Syncing background setting on startup:', value);
   runInBackgroundSetting = value;
   return true;
 });
@@ -1311,7 +1277,6 @@ ipcMain.on('download-finished', (_event, downloadInfo) => {
 function showNotification(title: string, body: string, onClick?: () => void) {
   // Check if notifications are supported
   if (!Notification.isSupported()) {
-    console.log('Notifications not supported on this system');
     return;
   }
 
@@ -1333,7 +1298,6 @@ ipcMain.handle('get-file-size', async (_event, filePath) => {
     const stats = await fs.promises.stat(filePath);
     return stats.size; // Returns size in bytes
   } catch (error) {
-    console.error('Error getting file size:', error);
     return null;
   }
 });
@@ -1362,7 +1326,6 @@ ipcMain.handle('plugins:menu-items', (event, context) => {
 });
 */
 ipcMain.handle('plugins:execute-menu-item', (event, id, contextData) => {
-  console.log('Executing menu item action:', id, contextData);
   pluginRegistry.executeMenuItemAction(id, contextData);
   return true;
 });
@@ -1393,8 +1356,6 @@ ipcMain.handle('plugins:get-data-path', (event, pluginId) => {
 
 // Update the reload handler
 ipcMain.handle('plugins:reload', async (event) => {
-  console.log('Reloading plugins...');
-
   // Clear existing registry items before reloading
   pluginRegistry.clearAllRegistrations();
 
@@ -1478,7 +1439,6 @@ ipcMain.handle('get-thumbnail-data-url', async (_event, imagePath) => {
     // Convert to base64 and return as data URL
     return `data:${mimeType};base64,${buffer.toString('base64')}`;
   } catch (error) {
-    console.error('Error creating thumbnail data URL:', error);
     return null;
   }
 });
@@ -1502,7 +1462,6 @@ ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
     const result = await dialog.showSaveDialog(browserWindow, sanitizedOptions);
     return result;
   } catch (error) {
-    console.error('Error showing save dialog:', error);
     return { canceled: true };
   }
 });
@@ -1530,7 +1489,6 @@ ipcMain.handle('plugins:execute-taskbar-item', (event, id, contextData) => {
   return true;
 });
 
-// Add this with the other plugin-related IPC handlers
 ipcMain.handle('plugin:fs:readFile', async (event, options) => {
   try {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
