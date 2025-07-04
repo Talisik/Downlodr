@@ -114,7 +114,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
     >
       <div
         ref={navRef}
-        className="dark:bg-darkModeDropdown bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto relative"
+        className="dark:bg-darkModeDropdown border border-gray-200 dark:border-gray-700 bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto relative"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-darkModeDropdown z-10">

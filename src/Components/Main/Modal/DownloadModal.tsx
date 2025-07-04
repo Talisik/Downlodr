@@ -387,7 +387,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
         </div>
       )}
       <div
-        className={`bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment pt-6 pr-6 pl-6 ${
+        className={`bg-white dark:bg-darkModeDropdown rounded-lg border border-gray-200 dark:border-gray-700 pt-6 pr-6 pl-6 ${
           isValidUrl && isPlaylist ? 'w-full max-w-[800px]' : 'w-full max-w-xl'
         }`}
       >
