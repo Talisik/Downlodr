@@ -62,9 +62,6 @@ const ClipboardLinkDetector: React.FC = () => {
       // Check if window is focused (for backup methods only - main process already handles this)
       // Use cached state instead of IPC call for efficiency
       if (source !== 'polling' && isWindowFocused) {
-        console.log(
-          `Skipping clipboard processing from ${source} - window is focused`,
-        );
         return;
       }
 
@@ -82,11 +79,8 @@ const ClipboardLinkDetector: React.FC = () => {
         if (url) {
           // Ignore URLs that start with https://go.downlodr.com/
           if (url.startsWith('https://go.downlodr.com/')) {
-            console.log(`Ignoring internal downlodr link: ${url}`);
             return;
           }
-
-          console.log(`Link detected from ${source}:`, url);
 
           // Trigger download
           setDownload(url, downloadFolder, maxDownload, {
@@ -177,8 +171,6 @@ const ClipboardLinkDetector: React.FC = () => {
   // Main effect: Set up clipboard monitoring
   useEffect(() => {
     if (settings.enableClipboardMonitoring) {
-      console.log('Setting up clipboard monitoring...');
-
       // Start main process polling
       window.appControl?.startClipboardMonitoring?.();
 
@@ -190,12 +182,10 @@ const ClipboardLinkDetector: React.FC = () => {
       // Add focus/blur event listeners to track window focus state
       const handleFocus = () => {
         setIsWindowFocused(true);
-        console.log('Window focused - backup clipboard methods paused');
       };
 
       const handleBlur = () => {
         setIsWindowFocused(false);
-        console.log('Window blurred - backup clipboard methods resumed');
       };
 
       window.addEventListener('focus', handleFocus);
@@ -203,10 +193,6 @@ const ClipboardLinkDetector: React.FC = () => {
 
       // Initial focus check only (no polling needed with events)
       initializeWindowFocus();
-
-      console.log(
-        'Clipboard monitoring active (paused when window is focused)',
-      );
 
       // Cleanup function
       return () => {
@@ -221,8 +207,6 @@ const ClipboardLinkDetector: React.FC = () => {
         }
       };
     } else {
-      console.log('Disabling clipboard monitoring...');
-
       // Stop polling and clean up
       window.appControl?.stopClipboardMonitoring?.();
       window.appControl?.offClipboardChange?.();
@@ -237,8 +221,6 @@ const ClipboardLinkDetector: React.FC = () => {
       if (!isDownloadModalOpen) {
         clearClipboardSafely('disable');
       }
-
-      console.log('Clipboard monitoring disabled');
     }
 
     // Cleanup on unmount

@@ -76,14 +76,14 @@ export const useMainStore = create<MainStore>()(
   persist(
     (set, get) => ({
       settings: {
-        defaultLocation: '', // Start with empty string
+        defaultLocation: '',
         defaultDownloadSpeed: 0,
         defaultDownloadSpeedBit: 'kb',
         permitConnectionLimit: false,
         maxUploadNum: 5,
         maxDownloadNum: 5,
         runInBackground: false,
-        enableClipboardMonitoring: true,
+        enableClipboardMonitoring: false,
       },
       selectedDownloads: [] as SelectedDownload[],
       isDownloadModalOpen: false,

@@ -131,7 +131,7 @@ const createWindow = () => {
     }
   });
 
-  // Add focus tracking for clipboard monitoring
+  // focus tracking for clipboard monitoring
   mainWindow.on('focus', () => {
     isWindowFocused = true;
     console.log('Window focused - clipboard monitoring paused');
