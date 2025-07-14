@@ -25,12 +25,45 @@ jobs:
         with:
           node-version: '24'
           cache: 'yarn'
+      
+      - name: Clean up conflicting lockfiles
+        run: |
+          if (Test-Path "package-lock.json") {
+            Remove-Item "package-lock.json" -Force
+            Write-Host "Removed conflicting package-lock.json"
+          }
+        shell: pwsh
 
       - name: Clean Yarn cache
         run: yarn cache clean
         
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: |
+          if (Test-Path "yarn.lock") {
+            Write-Host "Found yarn.lock, installing with frozen lockfile..."
+            yarn install --frozen-lockfile --network-timeout 100000 --network-concurrency 1
+          } else {
+            Write-Host "No yarn.lock found, generating lockfile..."
+            yarn install --network-timeout 100000 --network-concurrency 1
+          }
+        shell: pwsh
+        env:
+          YARN_ENABLE_IMMUTABLE_INSTALLS: false
+      
+      - name: Commit yarn.lock if generated
+        run: |
+          if (!(Test-Path "yarn.lock.bak") -and (Test-Path "yarn.lock")) {
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git add yarn.lock
+            if (git diff --staged --quiet) {
+              Write-Host "No changes to yarn.lock"
+            } else {
+              git commit -m "Add yarn.lock file [skip ci]"
+              git push
+            }
+          }
+        shell: pwsh
       
       - name: Build Electron app
         run: yarn make
