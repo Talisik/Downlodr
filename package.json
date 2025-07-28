@@ -23,8 +23,6 @@
     "@electron-forge/plugin-vite": "7.6.0",
     "@electron/fuses": "^1.8.0",
     "@felixrieseberg/electron-forge-maker-nsis": "^7.2.0",
-    "@stagewise-plugins/react": "^0.5.0",
-    "@stagewise/toolbar-react": "^0.5.0",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/node": "^22.10.6",
     "@types/react": "^18.2.79",
