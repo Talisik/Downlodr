@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * A custom React function
  * This function provides methods to process video formats from various platforms and create audio options
@@ -7,22 +6,20 @@
  * for audio-only formats. It includes methods to handle different format processing and return structured format options.
  */
 
-interface FormatOption {
-  value: string;
-  label: string;
-  formatId: string;
-  fileExtension: string;
-}
+import {
+  FormatInfo,
+  FormatOption,
+  ProcessedFormats,
+  VideoFormat,
+  VideoInfo,
+} from '@/schema/metadata';
 
-interface ProcessedFormats {
-  formatOptions: FormatOption[];
-  audioOptions: FormatOption[];
-  defaultFormatId: string;
-  defaultExt: string;
-}
+// TypeScript interfaces for video format data
 
 export class VideoFormatService {
-  private static createAudioOptions(audioOnlyFormat: any): FormatOption[] {
+  private static createAudioOptions(
+    audioOnlyFormat: VideoFormat | null,
+  ): FormatOption[] {
     if (!audioOnlyFormat) return [];
 
     const audioOptions = [];
@@ -53,14 +50,14 @@ export class VideoFormatService {
   }
 
   private static processYoutubeFormats(
-    formatsArray: any[],
+    formatsArray: VideoFormat[],
     default_format: string,
     default_ext: string,
   ): ProcessedFormats {
-    const formatMap = new Map();
-    const seenCombinations = new Set();
+    const formatMap = new Map<string, FormatInfo>();
+    const seenCombinations = new Set<string>();
 
-    formatsArray.forEach((format: any) => {
+    formatsArray.forEach((format: VideoFormat) => {
       const resolution = format.resolution;
       const formatId = format.format_id;
       let video_ext = format.video_ext;
@@ -75,7 +72,7 @@ export class VideoFormatService {
         !url.startsWith('https://rr')
       )
         return;
-
+      // Youtube sometimes returns webm as video_ext, but we need to convert it to mkv
       video_ext = video_ext === 'webm' ? 'mkv' : video_ext;
       const combinationKey = `${video_ext}-${format_note}`;
 
@@ -85,30 +82,9 @@ export class VideoFormatService {
       }
     });
 
-    // Try to find audio format with fallback priority: medium > high > low
-    let audioOnlyFormat = formatsArray.find(
-      (format: any) =>
-        format.vcodec === 'none' &&
-        format.format.includes('audio only (medium)'),
-    );
+    // Find the best audio-only format using a scoring system
+    const audioOnlyFormat = this.findBestAudioFormat(formatsArray);
 
-    if (!audioOnlyFormat) {
-      audioOnlyFormat = formatsArray.find(
-        (format: any) =>
-          format.vcodec === 'none' &&
-          format.format.includes('audio only (Default, high)'),
-      );
-    }
-
-    if (!audioOnlyFormat) {
-      audioOnlyFormat = formatsArray.find(
-        (format: any) =>
-          format.vcodec === 'none' &&
-          format.format.includes(
-            'audio only (English (United States) original (default), medium)',
-          ),
-      );
-    }
     const defaultOptions = {
       value: `${default_ext}-${default_format}`,
       label: `${default_ext} - Default Format`,
@@ -117,7 +93,7 @@ export class VideoFormatService {
     };
     const audioOptions = this.createAudioOptions(audioOnlyFormat);
     const formatOptions = Array.from(formatMap.entries())
-      .flatMap(([resolution, formatInfo]: [any, any]) => [
+      .flatMap(([resolution, formatInfo]: [string, FormatInfo]) => [
         {
           value: `${formatInfo.video_ext}-${resolution}`,
           label: `${formatInfo.video_ext} - ${formatInfo.format_note}`,
@@ -135,13 +111,51 @@ export class VideoFormatService {
     };
   }
 
-  private static processDailymotionFormats(
-    formatsArray: any[],
-  ): ProcessedFormats {
-    const formatMap = new Map();
-    const seenCombinations = new Set();
+  private static findBestAudioFormat(
+    formatsArray: VideoFormat[],
+  ): VideoFormat | null {
+    // Early termination: define priority patterns in order of preference
+    const priorityPatterns = [
+      // Highest priority: original + default + medium
+      /audio only.*original.*default.*medium/i,
+      /audio only.*default.*original.*medium/i,
 
-    formatsArray.forEach((format: any) => {
+      // High priority: default + medium
+      /audio only.*default.*medium/i,
+      /audio only.*medium.*default/i,
+
+      // Medium priority: just medium quality
+      /audio only.*medium/i,
+
+      // Lower priority: high quality
+      /audio only.*default.*high/i,
+      /audio only.*high/i,
+
+      // Lowest priority: any audio only
+      /audio only/i,
+    ];
+
+    // Fast path: try to find formats in priority order
+    for (const pattern of priorityPatterns) {
+      const match = formatsArray.find(
+        (format: VideoFormat) =>
+          format.vcodec === 'none' &&
+          format.format &&
+          pattern.test(format.format),
+      );
+      if (match) return match;
+    }
+
+    return null;
+  }
+
+  private static processDailymotionFormats(
+    formatsArray: VideoFormat[],
+  ): ProcessedFormats {
+    const formatMap = new Map<string, FormatInfo>();
+    const seenCombinations = new Set<string>();
+
+    formatsArray.forEach((format: VideoFormat) => {
       const resolution = format.resolution;
       const formatId = format.format_id;
       const video_ext = format.ext;
@@ -173,7 +187,7 @@ export class VideoFormatService {
     ];
 
     const formatOptions = Array.from(formatMap.entries())
-      .flatMap(([_, formatInfo]: [any, any]) => [
+      .flatMap(([_, formatInfo]: [string, FormatInfo]) => [
         {
           value: `mkv-${formatInfo.resolution}`,
           label: `mkv - ${formatInfo.resolution}`,
@@ -197,12 +211,14 @@ export class VideoFormatService {
     };
   }
 
-  private static processVimeoFormats(formatsArray: any[]): ProcessedFormats {
-    const formatMap = new Map();
-    const seenCombinations = new Set();
+  private static processVimeoFormats(
+    formatsArray: VideoFormat[],
+  ): ProcessedFormats {
+    const formatMap = new Map<string, FormatInfo>();
+    const seenCombinations = new Set<string>();
 
     const audioOnlyFormat = formatsArray.find(
-      (format: any) =>
+      (format: VideoFormat) =>
         format.resolution === 'audio only' ||
         format.vcodec === 'none' ||
         (format.format && format.format.toLowerCase().includes('audio only')),
@@ -210,7 +226,7 @@ export class VideoFormatService {
 
     const audioFormatId = audioOnlyFormat ? audioOnlyFormat.format_id : '0';
 
-    formatsArray.forEach((format: any) => {
+    formatsArray.forEach((format: VideoFormat) => {
       const resolution = format.resolution || format.format_id;
       const formatId = format.format_id;
       const video_ext = format.ext;
@@ -237,7 +253,7 @@ export class VideoFormatService {
     ];
 
     const formatOptions = Array.from(formatMap.entries())
-      .flatMap(([_, formatInfo]: [any, any]) => [
+      .flatMap(([_, formatInfo]: [string, FormatInfo]) => [
         {
           value: `${formatInfo.video_ext}-${formatInfo.resolution}`,
           label: `${formatInfo.video_ext} - ${formatInfo.resolution}`,
@@ -255,13 +271,15 @@ export class VideoFormatService {
     };
   }
 
-  private static processBilibiliFormats(formatsArray: any[]): ProcessedFormats {
-    const formatMap = new Map();
-    const seenCombinations = new Set();
+  private static processBilibiliFormats(
+    formatsArray: VideoFormat[],
+  ): ProcessedFormats {
+    const formatMap = new Map<string, FormatInfo>();
+    const seenCombinations = new Set<string>();
 
     // Find the best audio-only format (prefer highest quality)
     const audioOnlyFormats = formatsArray.filter(
-      (format: any) =>
+      (format: VideoFormat) =>
         format.vcodec === 'none' && format.resolution === 'audio only',
     );
 
@@ -272,7 +290,7 @@ export class VideoFormatService {
     const audioFormatId = bestAudioFormat ? bestAudioFormat.format_id : '2';
 
     // Process video formats
-    formatsArray.forEach((format: any) => {
+    formatsArray.forEach((format: VideoFormat) => {
       const resolution = format.resolution;
       const formatId = format.format_id;
       const video_ext = format.ext;
@@ -311,7 +329,7 @@ export class VideoFormatService {
     const qualityOrder = ['720P', '480P', '360P', '240P', '144P'];
 
     const formatOptions = Array.from(formatMap.entries())
-      .map(([_, formatInfo]: [any, any]) => ({
+      .map(([_, formatInfo]: [string, FormatInfo]) => ({
         value: `${formatInfo.video_ext}-${formatInfo.resolution}`,
         label: `${formatInfo.video_ext} - ${formatInfo.format_note}`,
         formatId: `${audioFormatId}+${formatInfo.formatId}`,
@@ -334,11 +352,13 @@ export class VideoFormatService {
     };
   }
 
-  private static processDefaultFormats(formatsArray: any[]): ProcessedFormats {
-    const formatMap = new Map();
-    const seenCombinations = new Set();
+  private static processDefaultFormats(
+    formatsArray: VideoFormat[],
+  ): ProcessedFormats {
+    const formatMap = new Map<string, FormatInfo>();
+    const seenCombinations = new Set<string>();
 
-    formatsArray.forEach((format: any) => {
+    formatsArray.forEach((format: VideoFormat) => {
       const resolution = format.resolution || format.format_id;
       const formatId = format.format_id;
       const video_ext = format.ext;
@@ -365,7 +385,7 @@ export class VideoFormatService {
     ];
 
     const formatOptions = Array.from(formatMap.entries())
-      .flatMap(([_, formatInfo]: [any, any]) => [
+      .flatMap(([_, formatInfo]: [string, FormatInfo]) => [
         {
           value: `mkv-${formatInfo.resolution}`,
           label: `mkv - ${formatInfo.resolution}`,
@@ -390,7 +410,7 @@ export class VideoFormatService {
   }
 
   public static async processVideoFormats(
-    info: any,
+    info: VideoInfo,
   ): Promise<ProcessedFormats> {
     const formatsArray = info.data.formats || [];
     const extractorKey = info.data.extractor_key;

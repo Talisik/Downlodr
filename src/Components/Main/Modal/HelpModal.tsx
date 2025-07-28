@@ -144,7 +144,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 onClick={(e) => handleTabChange('guide', e)}
                 className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-2 py-1 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 ${
                   activeTab === 'guide'
-                    ? 'dark:bg-darkModeCompliment bg-[#fcf0e3] text-gray-950 shadow-sm  dark:text-gray-50'
+                    ? 'dark:bg-darkModeCompliment bg-[#fcf0e3] text-gray-950 shadow-sm dark:text-gray-50'
                     : 'dark:text-gray-300'
                 }`}
               >

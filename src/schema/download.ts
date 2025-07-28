@@ -154,3 +154,26 @@ export interface GetInfoResponse {
   ok: boolean;
   data: VideoInfo;
 }
+
+export interface AddDownload {
+  id: string; // Unique identifier for the download
+  location: string; // Location of the file to download
+  name: string; // Name of the file
+  status: string; // Current status of the download
+  ext: string; // File extension
+  audioExt: string; // Audio file extension
+  videoUrl: string; // URL of the video to download
+  channelName: string; // Channel name
+  size: number; // Size of the file in bytes
+  speed: string; // Download speed
+  timeLeft: string; // Estimated time left for the download
+  progress: number; // Download progress percentage
+  formatId: string; // Format ID of the download
+  audioFormatId: string; // Audio format ID
+  extractorKey: string; // Key for the extractor
+  automaticCaption: string;
+  thumbnails: string;
+  getTranscript: boolean;
+  getThumbnail: boolean;
+  duration: number;
+}

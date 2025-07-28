@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import {
   FormatOption,
   FormatSelectorOptions,
   FormatSelectorResult,
-} from '../../../plugins/types';
-import { toast } from '../shadcn/hooks/use-toast';
+} from '@/plugins/types';
+import React, { useEffect, useState } from 'react';
 
 interface FormatSelectorExtensionProps {
   isOpen: boolean;

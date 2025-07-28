@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import FormatSelectorExtension from '../../Components/SubComponents/custom/FormatSelectorExtension';
-import { FormatSelectorOptions, FormatSelectorResult } from '../types';
+import FormatSelectorExtension from '@/Components/SubComponents/custom/FormatSelectorExtension';
+import { FormatSelectorOptions, FormatSelectorResult } from '@/plugins/types';
+import React, { useCallback, useState } from 'react';
 
 interface FormatSelectorRequest {
   options: FormatSelectorOptions;

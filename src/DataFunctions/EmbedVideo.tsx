@@ -12,7 +12,6 @@
  * @returns link   - The embed URL for the video.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface VideoUrl {
   url: string;

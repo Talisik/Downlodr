@@ -6,7 +6,7 @@
  * @returns JSX.Element - The rendered component displaying download PluginDetail.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import { FaExternalLinkAlt } from 'react-icons/fa';
 import { IoIosArrowForward, IoMdArrowBack } from 'react-icons/io';
@@ -19,6 +19,7 @@ interface PluginInfo {
   description: string;
   author: string;
   icon: string;
+  location: string;
 }
 
 const PluginDetails = () => {
@@ -31,6 +32,7 @@ const PluginDetails = () => {
     {},
   );
   const [pluginLocation, setPluginLocation] = useState<string>('');
+  const [fileSize, setFileSize] = useState<string>('...');
 
   useEffect(() => {
     const loadPluginData = async () => {
@@ -39,11 +41,10 @@ const PluginDetails = () => {
         try {
           const enabledState = await window.plugins.getEnabledPlugins();
           setEnabledPlugins(enabledState || {});
-
+          console.log(plugin.location);
           // Load plugin location
-          const location = await window.plugins.getPluginLocation(plugin.id);
-          if (location) {
-            setPluginLocation(location);
+          if (plugin.location) {
+            setPluginLocation(plugin.location);
           }
         } catch (error) {
           console.error('Failed to load plugin data:', error);
@@ -53,6 +54,34 @@ const PluginDetails = () => {
 
     loadPluginData();
   }, [plugin]);
+
+  useEffect(() => {
+    const getFileSize = async () => {
+      try {
+        if (plugin.id) {
+          const sizeInBytes = await window.downlodrFunctions.getDirectorySize(
+            plugin.location,
+          );
+          // Convert bytes to human readable format
+          const formatFileSize = (bytes: number): string => {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return (
+              parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+            );
+          };
+          setFileSize(formatFileSize(sizeInBytes));
+        }
+      } catch (error) {
+        console.error('Failed to get file size:', error);
+        setFileSize('Unknown');
+      }
+    };
+
+    getFileSize();
+  }, [plugin.id]);
 
   const loadPlugins = async () => {
     try {
@@ -71,12 +100,24 @@ const PluginDetails = () => {
       const success = await window.plugins.uninstall(pluginId);
       if (success) {
         // First reload the plugins in the main process
+        toast({
+          variant: 'success',
+          title: 'Plugin Uninstalled',
+          description: 'Plugin has been uninstalled successfully',
+          duration: 3000,
+        });
         await window.plugins.reload();
         // Then update the UI list
         await loadPlugins();
         handleGoBack();
       }
     } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to Uninstall Plugin',
+        description: 'Please try again',
+        duration: 3000,
+      });
       console.error('Failed to uninstall plugin:', error);
     }
   };
@@ -122,7 +163,10 @@ const PluginDetails = () => {
   };
 
   // Render icon helper function
-  const renderIcon = (icon: any, size: 'sm' | 'md' = 'sm') => {
+  const renderIcon = (
+    icon: string | React.ReactElement | null | undefined,
+    size: 'sm' | 'md' = 'sm',
+  ) => {
     const sizeClass = size === 'md' ? 'w-6 h-6' : 'w-5 h-5';
 
     if (typeof icon === 'string' && isSvgString(icon)) {
@@ -212,13 +256,13 @@ const PluginDetails = () => {
 
         <div>
           <p className="text-sm font-medium">Size</p>
-          <p>1mb</p>
+          <p>{fileSize}</p>
         </div>
         <hr className="solid my-4 w-full border-t border-divider dark:border-gray-700" />
         <div className="flex justify-between flex-wrap">
           <p>View Plugin Folder</p>
           <FaExternalLinkAlt
-            className="cursor-pointer"
+            className="cursor-pointer opacity-60 hover:opacity-100"
             onClick={async (e) => {
               e.stopPropagation();
               await window.downlodrFunctions.openVideo(pluginLocation);
@@ -229,7 +273,7 @@ const PluginDetails = () => {
         <div className="flex justify-between flex-wrap">
           <p>View in Downloadr Web Store</p>
           <FaExternalLinkAlt
-            className="cursor-pointer"
+            className="cursor-pointer opacity-60 hover:opacity-100"
             onClick={(e) => {
               e.stopPropagation();
               window.downlodrFunctions.openExternalLink(
@@ -242,7 +286,7 @@ const PluginDetails = () => {
         <div className="flex justify-between flex-wrap">
           <p>Remove Extension</p>
           <IoIosArrowForward
-            className="cursor-pointer"
+            className="cursor-pointer opacity-60 hover:opacity-100"
             onClick={() => handleUninstall(plugin.id)}
           />
         </div>

@@ -1,4 +1,4 @@
-import { cn } from '../../lib/utils';
+import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
 
 function Skeleton({
   className,
@@ -16,3 +16,4 @@ function Skeleton({
 }
 
 export { Skeleton };
+

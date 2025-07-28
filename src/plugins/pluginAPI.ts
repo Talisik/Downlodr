@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/plugins/pluginAPI.ts
-import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
-import { formatFileSize } from '../Pages/StatusSpecificDownload';
-import useDownloadStore from '../Store/downloadStore';
-import { useMainStore } from '../Store/mainStore';
-import { usePluginStore } from '../Store/pluginStore';
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { formatFileSize } from '@/Pages/StatusSpecificDownload';
+import useDownloadStore from '@/Store/downloadStore';
+import { useMainStore } from '@/Store/mainStore';
+import { usePluginStore } from '@/Store/pluginStore';
 import {
   DownloadAPI,
+  DownloadOptions,
+  DownloadSource,
   FormatAPI,
   FormatProvider,
   FormatSelectorOptions,
@@ -30,6 +31,14 @@ import {
   WriteFileResult,
 } from './types';
 
+// Type for context data passed to menu item handlers
+type MenuContextData =
+  | Record<string, unknown>
+  | string
+  | number
+  | null
+  | undefined;
+
 const taskBarItemHandlerMap = new Map<string, string>(); // id -> handlerId
 
 export function createPluginAPI(pluginId: string): PluginAPI {
@@ -40,7 +49,9 @@ export function createPluginAPI(pluginId: string): PluginAPI {
       const serializableMenuItem = {
         ...menuItem,
         pluginId,
-        onClick: undefined as unknown as (contextData?: any) => void,
+        onClick: undefined as unknown as (
+          contextData?: MenuContextData,
+        ) => void,
       };
 
       // Store the handler locally in renderer process
@@ -131,7 +142,9 @@ export function createPluginAPI(pluginId: string): PluginAPI {
         pluginId,
         handlerId,
         id: itemId,
-        onClick: undefined as unknown as (contextData?: any) => void,
+        onClick: undefined as unknown as (
+          contextData?: MenuContextData,
+        ) => void,
       };
 
       // Register the item without the onClick function
@@ -219,31 +232,60 @@ export function createPluginAPI(pluginId: string): PluginAPI {
 }
 
 function createDownloadAPI(pluginId: string): DownloadAPI {
+  // Helper function to map store download to plugin API Download
+  const mapToPluginDownload = (download: any): any => ({
+    id: download.id || '',
+    url: download.videoUrl || download.url || '',
+    name: download.name,
+    progress: download.progress,
+    status: mapStatus(download.status),
+    size: download.size,
+    downloaded: download.progress * download.size,
+    location: download.location,
+  });
+
+  // Helper function to map internal status to plugin API status
+  const mapStatus = (
+    status: string,
+  ): 'queued' | 'downloading' | 'paused' | 'completed' | 'error' => {
+    switch (status?.trim().toLowerCase()) {
+      case 'finished':
+        return 'completed';
+      case 'failed':
+      case 'cancelled':
+        return 'error';
+      case 'initializing':
+      case 'fetching metadata':
+      case 'to download':
+        return 'queued';
+      case 'downloading':
+        return 'downloading';
+      case 'paused':
+        return 'paused';
+      default:
+        return 'queued';
+    }
+  };
+
   const api = {
-    registerDownloadSource: (source: any) => {
+    registerDownloadSource: (source: DownloadSource) => {
       // Register a new download source
     },
 
     getAllDownloads: () => {
       const { downloading, forDownloads } = useDownloadStore.getState();
-      return { downloading, forDownloads };
+      return {
+        downloading: downloading.map(mapToPluginDownload),
+        forDownloads: forDownloads.map(mapToPluginDownload),
+      };
     },
 
     getActiveDownloads: () => {
       // Map store downloads to the Download interface expected by plugins
-      return useDownloadStore.getState().downloading.map((download) => ({
-        id: download.id || '',
-        // url: download.url || '', // Add the missing url property
-        name: download.name,
-        progress: download.progress,
-        status: download.status as any, // Cast to the expected status type
-        size: download.size,
-        downloaded: download.progress * download.size,
-        location: download.location,
-      }));
+      return useDownloadStore.getState().downloading.map(mapToPluginDownload);
     },
 
-    addDownload: async (url: string, options: any) => {
+    addDownload: async (url: string, options: DownloadOptions) => {
       const { addDownload } = useDownloadStore.getState();
 
       // Add download with plugin-provided options
@@ -253,6 +295,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         options.downloadName,
         options.size || 0,
         options.speed || '',
+        options.channelName || '',
         options.timeLeft || '',
         new Date().toISOString(),
         0,
@@ -529,6 +572,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             currentDownload.downloadName,
             currentDownload.size,
             currentDownload.speed,
+            currentDownload.channelName,
             currentDownload.timeLeft,
             new Date().toISOString(),
             currentDownload.progress,
@@ -626,6 +670,327 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
       };
     },
 
+    resumeDownloadWithCleanup: async (
+      downloadId?: string,
+      cleanupFormats: string[] = ['m4a'],
+    ) => {
+      const { downloading, deleteDownloading, addDownload } =
+        useDownloadStore.getState();
+
+      try {
+        // If no downloadId is provided, find the first item with status 'paused'
+        const currentDownload =
+          downloadId && downloading.some((d) => d.id === downloadId)
+            ? downloading.find((d) => d.id === downloadId)
+            : downloading.find(
+                (d) => d.status?.trim().toLowerCase() === 'paused',
+              );
+
+        if (!currentDownload) {
+          console.warn('No download found to resume');
+          return {
+            success: false,
+            error: 'No paused download found',
+            cleanedUp: false,
+          };
+        }
+
+        // If the download is already paused, check if cleanup is needed
+        if (currentDownload.status === 'paused') {
+          let cleanedUp = false;
+
+          // Check if this download needs cleanup based on format
+          const downloadFormat =
+            currentDownload.ext || currentDownload.audioExt || '';
+          const needsCleanup = cleanupFormats.some(
+            (format) => downloadFormat.toLowerCase() === format.toLowerCase(),
+          );
+
+          if (
+            needsCleanup &&
+            currentDownload.location &&
+            currentDownload.downloadName
+          ) {
+            try {
+              // Construct the full file path the same way as in the download store
+              const fullFilePath =
+                await window.downlodrFunctions.joinDownloadPath(
+                  currentDownload.location,
+                  currentDownload.downloadName,
+                );
+
+              // Check if the partial file exists
+              const fileExists = await window.downlodrFunctions.fileExists(
+                fullFilePath,
+              );
+
+              if (fileExists) {
+                // Delete the existing partial file to prevent corruption
+                const deleteSuccess = await window.downlodrFunctions.deleteFile(
+                  fullFilePath,
+                );
+                if (deleteSuccess) {
+                  console.log(
+                    `Plugin API: Deleted existing partial ${downloadFormat} file: ${fullFilePath}`,
+                  );
+                  cleanedUp = true;
+                } else {
+                  console.warn(
+                    `Plugin API: Failed to delete existing partial ${downloadFormat} file: ${fullFilePath}`,
+                  );
+                }
+              }
+            } catch (error) {
+              console.error(
+                'Plugin API: Error handling existing file cleanup:',
+                error,
+              );
+              // Continue with resume even if file deletion fails
+            }
+          }
+
+          // Resume the download
+          addDownload(
+            currentDownload.videoUrl,
+            currentDownload.name,
+            currentDownload.downloadName,
+            currentDownload.size,
+            currentDownload.speed,
+            currentDownload.channelName,
+            currentDownload.timeLeft,
+            new Date().toISOString(),
+            currentDownload.progress,
+            currentDownload.location,
+            'downloading',
+            currentDownload.backupExt,
+            currentDownload.backupFormatId,
+            currentDownload.backupAudioExt,
+            currentDownload.backupAudioFormatId,
+            currentDownload.extractorKey,
+            '',
+            currentDownload.automaticCaption,
+            currentDownload.thumbnails,
+            currentDownload.getTranscript || false,
+            currentDownload.getThumbnail || false,
+            currentDownload.duration || 60,
+            false,
+          );
+
+          deleteDownloading(currentDownload.id);
+
+          return {
+            success: true,
+            cleanedUp,
+            format: downloadFormat,
+            downloadId: currentDownload.id,
+            downloadName: currentDownload.name,
+          };
+        } else {
+          console.warn(
+            'Plugin API: Download found but not paused:',
+            currentDownload,
+          );
+          return {
+            success: false,
+            error: 'Download is not in paused state',
+            cleanedUp: false,
+          };
+        }
+      } catch (error) {
+        console.error('Plugin API: Error in resumeDownloadWithCleanup:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+          cleanedUp: false,
+        };
+      }
+    },
+
+    resumeAllDownloadsWithCleanup: async (
+      cleanupFormats: string[] = ['m4a'],
+    ) => {
+      const { downloading } = useDownloadStore.getState();
+
+      const pausedDownloads = downloading.filter(
+        (d) => d.status?.trim().toLowerCase() === 'paused',
+      );
+
+      if (pausedDownloads.length === 0) {
+        return {
+          success: true,
+          totalDownloads: 0,
+          resumedCount: 0,
+          failedCount: 0,
+          cleanupCount: 0,
+          results: [],
+        };
+      }
+
+      // Resume all downloads in parallel with cleanup
+      const resumePromises = pausedDownloads.map(async (download) => {
+        try {
+          const result = await api.resumeDownloadWithCleanup(
+            download.id,
+            cleanupFormats,
+          );
+          return {
+            downloadId: download.id,
+            downloadName: download.name,
+            success: result.success,
+            cleanedUp: result.cleanedUp,
+            format: result.format,
+            error: result.error || null,
+          };
+        } catch (error) {
+          return {
+            downloadId: download.id,
+            downloadName: download.name,
+            success: false,
+            cleanedUp: false,
+            format: download.ext || download.audioExt || 'unknown',
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+      });
+
+      const results = await Promise.allSettled(resumePromises);
+
+      // Process results
+      const processedResults = results.map((result) =>
+        result.status === 'fulfilled'
+          ? result.value
+          : {
+              downloadId: 'unknown',
+              downloadName: 'unknown',
+              success: false,
+              cleanedUp: false,
+              format: 'unknown',
+              error:
+                result.reason instanceof Error
+                  ? result.reason.message
+                  : String(result.reason),
+            },
+      );
+
+      const resumedCount = processedResults.filter((r) => r.success).length;
+      const failedCount = processedResults.length - resumedCount;
+      const cleanupCount = processedResults.filter((r) => r.cleanedUp).length;
+
+      return {
+        success: failedCount === 0,
+        totalDownloads: pausedDownloads.length,
+        resumedCount,
+        failedCount,
+        cleanupCount,
+        results: processedResults,
+      };
+    },
+
+    cleanupDownloadFiles: async (
+      downloadId: string,
+      cleanupFormats: string[] = ['m4a'],
+    ) => {
+      const { downloading } = useDownloadStore.getState();
+
+      try {
+        const download = downloading.find((d) => d.id === downloadId);
+
+        if (!download) {
+          return {
+            success: false,
+            error: 'Download not found',
+            cleanedUp: false,
+          };
+        }
+
+        // Check if this download needs cleanup based on format
+        const downloadFormat = download.ext || download.audioExt || '';
+        const needsCleanup = cleanupFormats.some(
+          (format) => downloadFormat.toLowerCase() === format.toLowerCase(),
+        );
+
+        if (!needsCleanup) {
+          return {
+            success: true,
+            cleanedUp: false,
+            format: downloadFormat,
+            message: `Format ${downloadFormat} not in cleanup list`,
+          };
+        }
+
+        if (!download.location || !download.downloadName) {
+          return {
+            success: false,
+            error: 'Download location or filename not available',
+            cleanedUp: false,
+          };
+        }
+
+        try {
+          // Construct the full file path
+          const fullFilePath = await window.downlodrFunctions.joinDownloadPath(
+            download.location,
+            download.downloadName,
+          );
+
+          // Check if the file exists
+          const fileExists = await window.downlodrFunctions.fileExists(
+            fullFilePath,
+          );
+
+          if (!fileExists) {
+            return {
+              success: true,
+              cleanedUp: false,
+              format: downloadFormat,
+              message: 'No file found to cleanup',
+            };
+          }
+
+          // Delete the existing file
+          const deleteSuccess = await window.downlodrFunctions.deleteFile(
+            fullFilePath,
+          );
+
+          if (deleteSuccess) {
+            console.log(
+              `Plugin API: Cleaned up ${downloadFormat} file: ${fullFilePath}`,
+            );
+            return {
+              success: true,
+              cleanedUp: true,
+              format: downloadFormat,
+              filePath: fullFilePath,
+              downloadId: download.id,
+              downloadName: download.name,
+            };
+          } else {
+            return {
+              success: false,
+              error: `Failed to delete ${downloadFormat} file`,
+              cleanedUp: false,
+              format: downloadFormat,
+            };
+          }
+        } catch (error) {
+          console.error('Plugin API: Error during file cleanup:', error);
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+            cleanedUp: false,
+            format: downloadFormat,
+          };
+        }
+      } catch (error) {
+        console.error('Plugin API: Error in cleanupDownloadFiles:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+          cleanedUp: false,
+        };
+      }
+    },
+
     getInfo: async (url: string) => {
       try {
         // Use the IPC handler instead of window.ytdlp
@@ -660,17 +1025,18 @@ function createUIAPI(pluginId: string): UIAPI {
       // Remove menu item
       return Promise.resolve(true);
     },
-    registerFormatProvider: (provider: any) => {
+    registerFormatProvider: (provider: FormatProvider) => {
       // Register custom format provider
       return `${pluginId}:format:${Date.now()}`;
     },
-    registerSettingsPage: (page: any) => {
+    registerSettingsPage: (page: SettingsPage) => {
       // Register settings page
       return `${pluginId}:settings:${Date.now()}`;
     },
-    showNotification: (options: any) => {
+    showNotification: (options: NotificationOptions) => {
       // Show notification
     },
+
     showFormatSelector: async (
       options: FormatSelectorOptions,
     ): Promise<FormatSelectorResult | null> => {
