@@ -1,5 +1,5 @@
+import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
 import React, { useEffect, useRef } from 'react';
-import { cn } from '../shadcn/lib/utils';
 
 interface ColumnOption {
   id: string;

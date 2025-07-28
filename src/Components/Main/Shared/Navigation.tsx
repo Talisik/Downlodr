@@ -9,10 +9,12 @@
  * @returns JSX.Element - The rendered component displaying a Navigation
  *
  */
+import CategoryContextMenu from '@/Components/SubComponents/custom/CategoryContextMenu';
+import TagContextMenu from '@/Components/SubComponents/custom/TagContextMenu';
+import useDownloadStore from '@/Store/downloadStore';
 import React, { useEffect, useRef, useState } from 'react';
 import { BiLayer, BiSolidPlusSquare } from 'react-icons/bi';
 import { BsHourglassSplit, BsTag } from 'react-icons/bs';
-import { CgClose } from 'react-icons/cg';
 import {
   FiChevronDown,
   FiChevronLeft,
@@ -25,12 +27,11 @@ import { MdPlayArrow } from 'react-icons/md';
 import { PiPauseBold } from 'react-icons/pi';
 import { TbDeviceTabletSearch } from 'react-icons/tb';
 import { NavLink } from 'react-router-dom';
-import useDownloadStore from '../../../Store/downloadStore';
-import CategoryContextMenu from '../../SubComponents/custom/CategoryContextMenu';
-import TagContextMenu from '../../SubComponents/custom/TagContextMenu';
 
 // import { toast } from 'react-hot-toast';
-import { toast } from '../../../Components/SubComponents/shadcn/hooks/use-toast';
+import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { FaRegTimesCircle } from 'react-icons/fa';
 
 const Navigation = ({
   className,
@@ -172,8 +173,6 @@ const Navigation = ({
           .removeCategory(downloadId, existingCategory);
       });
     }
-
-    // Add the new category
     useDownloadStore.getState().addCategory(downloadId, newCategory);
   };
 
@@ -220,10 +219,7 @@ const Navigation = ({
     e.preventDefault();
     const downloadId = e.dataTransfer.getData('downloadId');
     if (downloadId) {
-      // Add the download to this tag
-      // useDownloadStore.getState().addTag(downloadId, tag);
       ensureNoDouble(downloadId, tag);
-      // Show a success toast
       toast({
         title: 'Download tagged',
         description: `Tagged with "${tag}"`,
@@ -249,7 +245,7 @@ const Navigation = ({
     >
       <div
         className={`${
-          collapsed ? 'px-1' : 'p-2 ml-0 md:ml-2'
+          collapsed ? 'px-1' : 'p-2 ml-0 md:ml-1'
         } mt-2 space-y-2 pb-20`}
       >
         {/* Status Section */}
@@ -259,7 +255,7 @@ const Navigation = ({
             className={`w-full flex items-center ${
               collapsed
                 ? 'justify-center hover:none dark:hover:none cursor-default'
-                : 'hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
             } p-2`}
           >
             {!collapsed &&
@@ -269,270 +265,312 @@ const Navigation = ({
                 <FiChevronRight size={18} />
               ))}
             {!collapsed && (
-              <span className="ml-2 text-sm font-semibold">Status</span>
+              <span className="ml-1 text-sm font-semibold">Status</span>
             )}
           </button>
           {/* Show items regardless of openSections when collapsed */}
           {(openSections.status || collapsed) && (
             <div
               className={`${
-                collapsed ? 'flex flex-col items-center' : 'ml-2'
-              } space-y-1 mt-1`}
+                collapsed ? 'flex flex-col items-center' : 'ml-1'
+              } space-y-[6px] mt-1`}
             >
-              <NavLink
-                to="/status/all"
-                className={({ isActive }) =>
-                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
-                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
-                    collapsed
-                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
-                      : 'items-center'
-                  }`
-                }
-                title={collapsed ? 'All' : ''}
+              <TooltipWrapper content={collapsed ? 'All' : null} side="left">
+                <NavLink
+                  to="/status/all"
+                  className={({ isActive }) =>
+                    `${collapsed ? 'p-2 ' : 'nav-link '} ${
+                      isActive ? 'bg-titleBar dark:bg-darkModeNavigation' : ''
+                    } dark:text-gray-200 dark:hover:bg-darkModeNavigation flex ml-1 ${
+                      collapsed
+                        ? 'justify-center p-2 hover:bg-titleBar dark:hover:bg-darkModeNavigation rounded dark:text-gray-200'
+                        : 'items-center'
+                    }`
+                  }
+                >
+                  <FiFolder size={16} className="text-primary flex-shrink-0" />
+                  {!collapsed && (
+                    <span className="ml-2 text-[12px] whitespace-nowrap">
+                      All
+                    </span>
+                  )}
+                </NavLink>
+              </TooltipWrapper>
+              <TooltipWrapper
+                content={collapsed ? 'Fetching Metadata' : null}
+                side="left"
               >
-                <FiFolder size={16} className="text-primary flex-shrink-0" />
-                {!collapsed && <span className="ml-2 text-[14px]">All</span>}
-              </NavLink>
-
-              <NavLink
-                to="/status/fetching-metadata"
-                className={({ isActive }) =>
-                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
-                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
-                    collapsed
-                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
-                      : 'items-center'
-                  }`
-                }
-                title={collapsed ? 'Fetching Metadata' : ''}
+                <NavLink
+                  to="/status/fetching-metadata"
+                  className={({ isActive }) =>
+                    `${collapsed ? 'p-2 ' : 'nav-link '} ${
+                      isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
+                    } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ml-1 ${
+                      collapsed
+                        ? 'justify-center p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                        : 'items-center'
+                    }`
+                  }
+                >
+                  <TbDeviceTabletSearch
+                    size={17}
+                    className="text-blue-500 flex-shrink-0"
+                  />
+                  {!collapsed && (
+                    <span className="ml-2 text-[12px] whitespace-nowrap">
+                      Fetching Metadata
+                    </span>
+                  )}
+                </NavLink>
+              </TooltipWrapper>
+              <TooltipWrapper
+                content={collapsed ? 'Start Download' : null}
+                side="left"
               >
-                <TbDeviceTabletSearch
-                  size={17}
-                  className="text-blue-500 flex-shrink-0"
-                />
-                {!collapsed && (
-                  <span className="ml-2 text-[14px] whitespace-nowrap">
-                    Loading Metadata
-                  </span>
-                )}
-              </NavLink>
-
-              <NavLink
-                to="/status/to-download"
-                className={({ isActive }) =>
-                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
-                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
-                    collapsed
-                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
-                      : 'items-center'
-                  }`
-                }
-                title={collapsed ? 'Start Download' : ''}
+                <NavLink
+                  to="/status/to-download"
+                  className={({ isActive }) =>
+                    `${collapsed ? 'p-2 ' : 'nav-link '} ${
+                      isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
+                    } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ml-1 ${
+                      collapsed
+                        ? 'justify-center p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                        : 'items-center'
+                    }`
+                  }
+                >
+                  <FiDownload
+                    size={16}
+                    className="text-primary flex-shrink-0"
+                  />
+                  {!collapsed && (
+                    <span className="ml-2 text-[12px] whitespace-nowrap">
+                      Start Download
+                    </span>
+                  )}
+                </NavLink>
+              </TooltipWrapper>
+              <TooltipWrapper content={collapsed ? 'Queued' : null} side="left">
+                <NavLink
+                  to="/status/queued"
+                  className={({ isActive }) =>
+                    `${collapsed ? 'p-2 ' : 'nav-link '} ${
+                      isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
+                    } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ml-1 ${
+                      collapsed
+                        ? 'justify-center p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                        : 'items-center'
+                    }`
+                  }
+                >
+                  <BiSolidPlusSquare
+                    size={16}
+                    className="text-primary flex-shrink-0"
+                  />
+                  {!collapsed && (
+                    <span className="ml-2 text-[12px] whitespace-nowrap">
+                      Queued
+                    </span>
+                  )}
+                </NavLink>
+              </TooltipWrapper>
+              <TooltipWrapper
+                content={collapsed ? 'Downloading' : null}
+                side="left"
               >
-                <FiDownload size={16} className="text-primary flex-shrink-0" />
-                {!collapsed && (
-                  <span className="ml-2 text-[14px] whitespace-nowrap">
-                    Starting Download
-                  </span>
-                )}
-              </NavLink>
-              <NavLink
-                to="/status/queued"
-                className={({ isActive }) =>
-                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
-                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
-                    collapsed
-                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
-                      : 'items-center'
-                  }`
-                }
-                title={collapsed ? 'Queued Downloads' : ''}
+                <NavLink
+                  to="/status/downloading"
+                  className={({ isActive }) =>
+                    `${collapsed ? 'p-2 ' : 'nav-link '} ${
+                      isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
+                    } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ml-1 ${
+                      collapsed
+                        ? 'justify-center p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                        : 'items-center'
+                    }`
+                  }
+                >
+                  <BsHourglassSplit
+                    size={16}
+                    className="text-primary flex-shrink-0"
+                  />
+                  {!collapsed && (
+                    <span className="ml-2 text-[12px] whitespace-nowrap">
+                      Downloading
+                    </span>
+                  )}
+                </NavLink>
+              </TooltipWrapper>
+              <TooltipWrapper content={collapsed ? 'Paused' : null} side="left">
+                <NavLink
+                  to="/status/paused"
+                  className={({ isActive }) =>
+                    `${collapsed ? 'p-2 ' : 'nav-link '} ${
+                      isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
+                    } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ml-1 ${
+                      collapsed
+                        ? 'justify-center p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                        : 'items-center'
+                    }`
+                  }
+                >
+                  <PiPauseBold
+                    size={16}
+                    className="text-blue-500 flex-shrink-0"
+                  />
+                  {!collapsed && (
+                    <span className="ml-2 text-[12px] whitespace-nowrap">
+                      Paused
+                    </span>
+                  )}
+                </NavLink>
+              </TooltipWrapper>
+              <TooltipWrapper
+                content={collapsed ? 'Initializing' : null}
+                side="left"
               >
-                <BiSolidPlusSquare
-                  size={16}
-                  className="text-primary flex-shrink-0"
-                />
-                {!collapsed && (
-                  <span className="ml-2 text-[14px] whitespace-nowrap">
-                    Queued Download
-                  </span>
-                )}
-              </NavLink>
-              <NavLink
-                to="/status/downloading"
-                className={({ isActive }) =>
-                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
-                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
-                    collapsed
-                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
-                      : 'items-center'
-                  }`
-                }
-                title={collapsed ? 'Downloading' : ''}
+                <NavLink
+                  to="/status/initializing"
+                  className={({ isActive }) =>
+                    `${collapsed ? 'p-2 ' : 'nav-link '} ${
+                      isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
+                    } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ml-1 ${
+                      collapsed
+                        ? 'justify-center p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                        : 'items-center'
+                    }`
+                  }
+                >
+                  <HiMiniArrowPath
+                    size={17}
+                    className="text-blue-500 flex-shrink-0"
+                  />
+                  {!collapsed && (
+                    <span className="ml-2 text-[12px] whitespace-nowrap">
+                      Initializing
+                    </span>
+                  )}
+                </NavLink>
+              </TooltipWrapper>
+              <TooltipWrapper content={collapsed ? 'Failed' : null} side="left">
+                <NavLink
+                  to="/status/failed"
+                  className={({ isActive }) =>
+                    `${collapsed ? 'p-2 ' : 'nav-link '} ${
+                      isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
+                    } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ml-1 ${
+                      collapsed
+                        ? 'justify-center p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                        : 'items-center'
+                    }`
+                  }
+                >
+                  <FaRegTimesCircle
+                    size={17}
+                    className="text-red-500 flex-shrink-0"
+                  />
+                  {!collapsed && (
+                    <span className="ml-2 text-[12px] whitespace-nowrap">
+                      Failed
+                    </span>
+                  )}
+                </NavLink>
+              </TooltipWrapper>
+              <TooltipWrapper
+                content={collapsed ? 'Finished' : null}
+                side="left"
               >
-                <BsHourglassSplit
-                  size={16}
-                  className="text-primary flex-shrink-0"
-                />
-                {!collapsed && (
-                  <span className="ml-2 text-[14px]">Downloading</span>
-                )}
-              </NavLink>
-
-              <NavLink
-                to="/status/paused"
-                className={({ isActive }) =>
-                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
-                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
-                    collapsed
-                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
-                      : 'items-center'
-                  }`
-                }
-                title={collapsed ? 'Paused' : ''}
-              >
-                <PiPauseBold
-                  size={16}
-                  className="text-blue-500 flex-shrink-0"
-                />
-                {!collapsed && <span className="ml-2 text-[14px]">Paused</span>}
-              </NavLink>
-
-              <NavLink
-                to="/status/initializing"
-                className={({ isActive }) =>
-                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
-                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
-                    collapsed
-                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
-                      : 'items-center'
-                  }`
-                }
-                title={collapsed ? 'Initializing' : ''}
-              >
-                <HiMiniArrowPath
-                  size={17}
-                  className="text-blue-500 flex-shrink-0"
-                />
-                {!collapsed && (
-                  <span className="ml-2 text-[14px]">Initializing</span>
-                )}
-              </NavLink>
-
-              <NavLink
-                to="/status/failed"
-                className={({ isActive }) =>
-                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
-                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
-                    collapsed
-                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
-                      : 'items-center'
-                  }`
-                }
-                title={collapsed ? 'Failed' : ''}
-              >
-                <CgClose size={17} className="text-red-500 flex-shrink-0" />
-                {!collapsed && <span className="ml-2 text-[14px]">Failed</span>}
-              </NavLink>
-
-              <NavLink
-                to="/status/finished"
-                className={({ isActive }) =>
-                  `${collapsed ? 'p-2 ' : 'nav-link '} ${
-                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
-                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ${
-                    collapsed
-                      ? 'justify-center p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
-                      : 'items-center'
-                  }`
-                }
-                title={collapsed ? 'Finished' : ''}
-              >
-                <MdPlayArrow
-                  size={18}
-                  className="text-green-500 flex-shrink-0"
-                />
-                {!collapsed && (
-                  <span className="ml-2 text-[14px]">Finished</span>
-                )}
-              </NavLink>
+                <NavLink
+                  to="/status/finished"
+                  className={({ isActive }) =>
+                    `${collapsed ? 'p-2 ' : 'nav-link '} ${
+                      isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
+                    } dark:text-gray-200 dark:hover:bg-darkModeCompliment flex ml-1 ${
+                      collapsed
+                        ? 'justify-center p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
+                        : 'items-center'
+                    }`
+                  }
+                >
+                  <MdPlayArrow
+                    size={18}
+                    className="text-green-500 flex-shrink-0"
+                  />
+                  {!collapsed && (
+                    <span className="ml-2 text-[12px] whitespace-nowrap">
+                      Finished
+                    </span>
+                  )}
+                </NavLink>
+              </TooltipWrapper>
             </div>
           )}
         </div>
-
         {/* Category Section */}
         <div>
-          <button
-            onClick={() => toggleSection('category')}
-            className={`w-full flex items-center ${
-              collapsed
-                ? 'justify-center'
-                : 'hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 p-2'
-            } `}
-          >
-            {!collapsed &&
-              (openSections.category ? (
-                <FiChevronDown size={18} />
-              ) : (
-                <FiChevronRight size={18} />
-              ))}
-            {!collapsed && (
-              <span className="ml-2 text-sm font-semibold">Categories</span>
-            )}
-            {collapsed && (
-              <div
-                className="p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
-                onClick={() => {
-                  toggleCollapse();
-                  setTimeout(() => {
-                    setOpenSections((prev) => ({
-                      ...prev,
-                      category: true,
-                    }));
-                  }, 50);
-                }}
-              >
-                <BiLayer
-                  size={16}
-                  className="text-[#16161E] dark:text-white"
-                  title="Categories"
-                />
-              </div>
-            )}
-          </button>
-
+          <TooltipWrapper content={collapsed ? 'Categories' : null} side="left">
+            <button
+              onClick={() => toggleSection('category')}
+              className={`w-full flex items-center ${
+                collapsed
+                  ? 'justify-center'
+                  : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 p-2'
+              } `}
+            >
+              {!collapsed &&
+                (openSections.category ? (
+                  <FiChevronDown size={18} />
+                ) : (
+                  <FiChevronRight size={18} />
+                ))}
+              {!collapsed && (
+                <span className="ml-1 text-sm font-semibold">Categories</span>
+              )}
+              {collapsed && (
+                <div
+                  className="p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
+                  onClick={() => {
+                    toggleCollapse();
+                    setTimeout(() => {
+                      setOpenSections((prev) => ({
+                        ...prev,
+                        category: true,
+                      }));
+                    }, 50);
+                  }}
+                >
+                  <BiLayer
+                    size={16}
+                    className="text-[#16161E] dark:text-white"
+                    title="Categories"
+                  />
+                </div>
+              )}
+            </button>
+          </TooltipWrapper>
           {openSections.category && !collapsed && (
-            <div className="ml-2 space-y-1 mt-1">
+            <div className="ml-1 space-y-[6px] mt-1">
               <NavLink
                 to="/category/all"
                 className={({ isActive }) =>
                   `nav-link ${
-                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
-                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment`
+                    isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment ml-1`
                 }
               >
                 <BiLayer size={16} className="text-orange-500 flex-shrink-0" />
-                <span className="ml-2 text-[14px]">All</span>
+                <span className="ml-2 text-[12px]">All</span>
               </NavLink>
               <NavLink
                 to="/category/uncategorized"
                 className={({ isActive }) =>
                   `nav-link ${
-                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
-                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment`
+                    isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
+                  } dark:text-gray-200 dark:hover:bg-darkModeCompliment ml-1`
                 }
               >
                 <BiLayer size={16} className="text-blue-500 flex-shrink-0" />
-                <span className="ml-2 text-[14px]">Uncategorized</span>
+                <span className="ml-2 text-[12px]">Uncategorized</span>
               </NavLink>
               {availableCategories.map((category) => (
                 <NavLink
@@ -540,10 +578,10 @@ const Navigation = ({
                   to={`/category/${encodeURIComponent(category)}`}
                   className={({ isActive }) =>
                     `nav-link ${
-                      isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
-                    } dark:text-gray-200 dark:hover:bg-darkModeCompliment ${
+                      isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
+                    } dark:text-gray-200 dark:hover:bg-darkModeCompliment ml-1 ${
                       dragOverItem === category
-                        ? 'bg-gray-200 dark:bg-darkModeCompliment'
+                        ? 'bg-titleBar dark:bg-darkModeCompliment'
                         : ''
                     }`
                   }
@@ -558,7 +596,7 @@ const Navigation = ({
                     size={16}
                     className="text-yellow-500 flex-shrink-0"
                   />
-                  <span className="ml-2 text-[14px] truncate">{category}</span>
+                  <span className="ml-2 text-[12px] truncate">{category}</span>
                 </NavLink>
               ))}
             </div>
@@ -567,68 +605,65 @@ const Navigation = ({
 
         {/* Tag Section */}
         <div>
-          <button
-            onClick={() => toggleSection('tag')}
-            className={`w-full flex items-center ${
-              collapsed
-                ? 'justify-center'
-                : 'p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 '
-            }`}
-          >
-            {!collapsed &&
-              (openSections.tag ? (
-                <FiChevronDown size={18} />
-              ) : (
-                <FiChevronRight size={18} />
-              ))}
-            {!collapsed && (
-              <span className="ml-2 text-sm font-semibold">Tags</span>
-            )}
-            {collapsed && (
-              <div
-                className="p-2 hover:bg-gray-200 dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
-                onClick={() => {
-                  toggleCollapse();
-                  setTimeout(() => {
-                    setOpenSections((prev) => ({
-                      ...prev,
-                      tag: true,
-                    }));
-                  }, 50);
-                }}
-              >
-                <BsTag
-                  size={16}
-                  className="text-[#16161E] dark:text-white"
-                  title="Tags"
-                />
-              </div>
-            )}
-          </button>
-
+          <TooltipWrapper content={collapsed ? 'Tags' : null} side="left">
+            <button
+              onClick={() => toggleSection('tag')}
+              className={`w-full flex items-center ${
+                collapsed
+                  ? 'justify-center'
+                  : 'p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 '
+              }`}
+            >
+              {!collapsed &&
+                (openSections.tag ? (
+                  <FiChevronDown size={18} />
+                ) : (
+                  <FiChevronRight size={18} />
+                ))}
+              {!collapsed && (
+                <span className="ml-1 text-sm font-semibold">Tags</span>
+              )}
+              {collapsed && (
+                <div
+                  className="p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
+                  onClick={() => {
+                    toggleCollapse();
+                    setTimeout(() => {
+                      setOpenSections((prev) => ({
+                        ...prev,
+                        tag: true,
+                      }));
+                    }, 50);
+                  }}
+                >
+                  <BsTag size={16} className="text-[#16161E] dark:text-white" />
+                </div>
+              )}
+            </button>
+          </TooltipWrapper>
           {openSections.tag && !collapsed && (
-            <div className="ml-2 space-y-1 mt-1">
+            <div className="ml-2 space-y-[6px] mt-1">
               <NavLink
                 to="/tags/all"
                 className={({ isActive }) =>
                   `nav-link ${
-                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                    isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
                   } dark:text-gray-200 dark:hover:bg-darkModeCompliment`
                 }
               >
                 <BsTag size={16} className="text-orange-500 flex-shrink-0" />
-                <span className="ml-2 text-[14px]">All</span>
+                <span className="ml-2 text-[12px]">All</span>
               </NavLink>
               <NavLink
                 to="/tags/untagged"
                 className={({ isActive }) =>
                   `nav-link ${
-                    isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                    isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
                   } dark:text-gray-200 dark:hover:bg-darkModeCompliment`
                 }
               >
                 <BsTag size={16} className="text-blue-500 flex-shrink-0" />
-                <span className="ml-2 text-[14px]">Untagged</span>
+                <span className="ml-1 text-[12px]">Untagged</span>
               </NavLink>
               {availableTags.map((tag) => (
                 <NavLink
@@ -636,10 +671,10 @@ const Navigation = ({
                   to={`/tags/${encodeURIComponent(tag)}`}
                   className={({ isActive }) =>
                     `nav-link ${
-                      isActive ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                      isActive ? 'bg-titleBar dark:bg-darkModeCompliment' : ''
                     } dark:text-gray-200 dark:hover:bg-darkModeCompliment ${
                       dragOverItem === tag
-                        ? 'bg-gray-200 dark:bg-darkModeCompliment'
+                        ? 'bg-titleBar dark:bg-darkModeCompliment'
                         : ''
                     }`
                   }
@@ -649,7 +684,7 @@ const Navigation = ({
                   onDrop={(e) => handleTagDrop(e, tag)}
                 >
                   <BsTag size={16} className="text-yellow-500 flex-shrink-0" />
-                  <span className="ml-2 text-[14px] truncate">{tag}</span>
+                  <span className="ml-2 text-[12px] truncate">{tag}</span>
                 </NavLink>
               ))}
             </div>
@@ -659,24 +694,28 @@ const Navigation = ({
 
       {/* close and open toggle */}
       <div
-        className="fixed bottom-4 z-10 ml-3"
+        className="fixed bottom-4 z-10 ml-2"
         style={{
           width: collapsed ? '70px' : '205px',
           transform: 'translateX(-50%)',
           left: collapsed ? '35px' : '102.5px',
         }}
       >
-        <button
-          onClick={toggleCollapse}
-          className={`flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-darkModeCompliment shadow-md hover:bg-gray-100 dark:hover:bg-secondary dark:text-white dark:hover:text-white border border-gray-200 dark:border-inputDarkMode`}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        <TooltipWrapper
+          content={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          side="left"
         >
-          {collapsed ? (
-            <FiChevronRight size={22} />
-          ) : (
-            <FiChevronLeft size={22} />
-          )}
-        </button>
+          <button
+            onClick={toggleCollapse}
+            className={`flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-darkModeCompliment shadow-md hover:bg-titleBar dark:hover:bg-secondary dark:text-white dark:hover:text-white border border-gray-200 dark:border-inputDarkMode`}
+          >
+            {collapsed ? (
+              <FiChevronRight size={22} />
+            ) : (
+              <FiChevronLeft size={22} />
+            )}
+          </button>
+        </TooltipWrapper>
       </div>
 
       {contextMenu && (

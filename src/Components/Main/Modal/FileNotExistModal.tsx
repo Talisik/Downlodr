@@ -2,48 +2,13 @@
  * A modal component displayed when downloaded files don't exist at their expected location.
  * Provides options to either redownload the video(s) or delete the download log(s).
  */
+import { FileNotExistModalProps } from '@/schema/componentSchema';
 import React from 'react';
+import { IoMdClose } from 'react-icons/io';
 import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
-import { toast } from '../shadcn/hooks/use-toast';
-
-export interface DownloadItem {
-  id: string;
-  videoUrl: string;
-  location?: string;
-  name?: string;
-  ext?: string;
-  downloadName?: string;
-  extractorKey?: string;
-  download: {
-    location: string;
-    name: string;
-    ext: string;
-    size: number;
-    speed: string;
-    timeLeft: string;
-    progress: number;
-    formatId: string;
-    audioExt: string;
-    audioFormatId: string;
-    extractorKey: string;
-    automaticCaption: boolean;
-    thumbnails: string[];
-    getTranscript: boolean;
-    getThumbnail: boolean;
-    duration?: number;
-  };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-}
-
-interface FileNotExistModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  download?: DownloadItem | null; // Single download from context menu
-  selectedDownloads?: DownloadItem[]; // Multiple downloads from selection
-}
+import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 
 const FileNotExistModal: React.FC<FileNotExistModalProps> = ({
   isOpen,
@@ -68,19 +33,14 @@ const FileNotExistModal: React.FC<FileNotExistModalProps> = ({
           item.download.name.replace(/\.[^/.]+$/, ''),
           '',
         );
-        console.log(item.download.location);
-        // check if folder exists to determine if addDownload creates a new folder or not
-        const folderExist = await window.downlodrFunctions.fileExists(
-          item.download.location,
-        );
-        console.log(folderExist);
-        // Add Download function
+        // add download function
         addDownload(
           item.videoUrl,
           `${processedName}.${item.download.ext}`,
           `${processedName}.${item.download.ext}`,
           item.download.size,
           item.download.speed,
+          item.download.channelName,
           item.download.timeLeft,
           new Date().toISOString(),
           0,
@@ -161,13 +121,21 @@ const FileNotExistModal: React.FC<FileNotExistModalProps> = ({
       onClick={(e) => e.target === e.currentTarget && onClose()}
       onKeyDown={(e) => e.key === 'Escape' && onClose()}
     >
-      <div className="bg-white dark:bg-darkMode rounded-lg p-6 max-w-sm w-full mx-4">
-        <h3
-          id="missing-files-title"
-          className="text-lg font-medium mb-2 dark:text-gray-200"
-        >
-          Missing File{pluralSuffix}
-        </h3>
+      <div className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3
+            id="missing-files-title"
+            className="text-[15px] font-medium mb-2 dark:text-gray-200"
+          >
+            Missing File{pluralSuffix}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          >
+            <IoMdClose size={16} className="mb-2" />
+          </button>
+        </div>
         <p className="text-gray-700 dark:text-gray-300 mb-4">
           File{pluralSuffix} does not exist at the given location. Do you wish
           to redownload or remove the log
@@ -180,7 +148,7 @@ const FileNotExistModal: React.FC<FileNotExistModalProps> = ({
             {downloads.map((item) => (
               <div
                 key={item.id}
-                className="text-sm text-gray-600 dark:text-gray-400 truncate"
+                className="text-xs text-gray-600 dark:text-gray-400 truncate"
               >
                 • {item.name || item.downloadName}
               </div>
@@ -188,22 +156,16 @@ const FileNotExistModal: React.FC<FileNotExistModalProps> = ({
           </div>
         )}
 
-        <div className="flex justify-end space-x-2">
-          <button
-            onClick={onClose}
-            className="px-3 py-1 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-          >
-            Cancel
-          </button>
+        <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
           <button
             onClick={handleDeleteLog}
-            className="px-3 py-1 bg-black text-white rounded hover:bg-gray-100 hover:text-black"
+            className="px-3 py-1 text-gray-600 bg-white dark:bg-[#18181B] dark:text-white border dark:border-[#27272A] hover:bg-gray-50 dark:hover:bg-darkModeHover dark:hover:text-gray-200 rounded-md font-medium"
           >
             Remove Log{pluralSuffix}
           </button>
           <button
             onClick={handleRedownload}
-            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+            className="px-3 py-1 bg-primary text-white rounded hover:bg-primary/90"
           >
             Redownload
           </button>

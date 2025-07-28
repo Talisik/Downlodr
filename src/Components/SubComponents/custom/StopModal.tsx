@@ -37,7 +37,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
       >
         {/* Header with title and close button */}
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+          <h3 className="text-[15px] font-medium text-gray-900 dark:text-gray-100">
             Stop Download
           </h3>
           <button
@@ -52,7 +52,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
         </div>
 
         {/* Main message */}
-        <p className="text-gray-700 dark:text-gray-300 mb-4">
+        <p className="text-gray-700 dark:text-gray-300 mb-4 text-sm">
           Are you sure you want to stop and remove this download?
         </p>
 
@@ -72,7 +72,7 @@ const StopModal: React.FC<ConfirmModalProps> = ({
               e.stopPropagation();
               onConfirm(deleteFolder);
             }}
-            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-white hover:text-black font-medium"
+            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-black hover:text-white font-medium"
           >
             Stop
           </button>

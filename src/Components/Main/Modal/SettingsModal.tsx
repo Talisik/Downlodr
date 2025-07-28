@@ -7,12 +7,12 @@
  * @returns JSX.Element - The rendered component displaying a SettingsModal
  *
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Slider } from '@/Components/SubComponents/shadcn/components/ui/slider';
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { useMainStore } from '@/Store/mainStore';
+import { useTaskbarDownloadStore } from '@/Store/taskbarDownloadStore';
 import React, { useEffect, useRef, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
-import { useMainStore } from '../../../Store/mainStore';
-import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
-import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -32,6 +32,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     updateRunInBackground,
     updateEnableClipboardMonitoring,
   } = useMainStore();
+
+  // Get taskbar store to keep download folder in sync
+  const { setDownloadFolder } = useTaskbarDownloadStore();
 
   // Form submission
   const [biteUnit, setBiteUnit] = useState('');
@@ -83,11 +86,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setMaxDownload(settings.maxDownloadNum);
     setmaxUpload(settings.maxUploadNum);
     setIsConnectionLimitEnabled(settings.permitConnectionLimit);
-    // Reset column visibility
+    // reset column visibility
     setLocalVisibleColumns([...visibleColumns]);
-    // Add this line to reset the background running setting
+    // reset the background running setting
     setRunInBackground(settings.runInBackground ?? true);
-    // Add this line to reset the clipboard monitoring setting
+    // reset the clipboard monitoring setting
     setEnableClipboardMonitoring(settings.enableClipboardMonitoring ?? false);
   };
   // New state to track if directory selection is in progress
@@ -175,6 +178,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   // Modify handleSubmit to consider the checkbox
   const handleSubmit = () => {
     updateDefaultLocation(downloadLocation);
+    // Also update the taskbar download store to keep them in sync
+    setDownloadFolder(downloadLocation);
+
     updateDefaultDownloadSpeed(biteVal);
     updateDefaultDownloadSpeedBit(biteUnitVal);
     updatePermitConnectionLimit(isConnectionLimitEnabled);
@@ -182,12 +188,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     updateMaxDownloadNum(isConnectionLimitEnabled ? maxDownload : 5);
     // Update visible columns
     setVisibleColumns(localVisibleColumns);
-    // Add this line to save the background running setting
-    console.log('Saving runInBackground value:', runInBackground);
+
     updateRunInBackground(runInBackground);
     // Also update the main process directly
     if (window.backgroundSettings?.setRunInBackground) {
-      console.log('Sending to main process:', runInBackground);
       window.backgroundSettings.setRunInBackground(runInBackground);
     }
 
@@ -355,7 +359,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               {/* End of Download Location Name */}
             </div>
 
-            {/* Add the background running toggle after the connection limits section */}
+            {/* background running toggle */}
             <div className="pt-3">
               <div className="flex items-center gap-2 mb-2">
                 <label className="block dark:text-gray-200 text-nowrap font-bold">
@@ -399,10 +403,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     setEnableClipboardMonitoring(e.target.checked);
                     toast({
                       title: e.target.checked
-                        ? 'Clipboard Monitoring Enabled'
-                        : 'Clipboard Monitoring Disabled',
+                        ? 'Clipboard Monitoring Will Be Enabled'
+                        : 'Clipboard Monitoring Will Be Disabled',
                       description:
-                        'The latest clipboard content was cleared for cleanup.',
+                        'Click "Okay" to save this setting and apply the changes.',
                       duration: 3000,
                     });
                   }}
@@ -421,7 +425,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            {/* Add column visibility section */}
+            {/* column visibility section */}
             <div className="pt-3">
               <div className="flex items-center gap-2 mb-2">
                 <label className="block dark:text-gray-200 text-nowrap font-bold">

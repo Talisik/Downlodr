@@ -48,13 +48,17 @@ module.exports = {
       colors: {
         ...colors, // Spread the default colors
         titleBar: {
-          DEFAULT: '#FEF9F4',
+          DEFAULT: '#F9FAF7',
           dark: '#09090B',
         },
         body:{
           DEFAULT: '#fff',
           dark: '#09090B',
         },
+        'red-500': '#FF0000',
+        'blue-500': '#00A1D6',
+        resizeColumn: '#E4E4E7',
+        alternateBlack: '#121212',
         primary: '#F45513',
         secondary: '#202020',
         divider: '#D1D5DB',
@@ -62,6 +66,7 @@ module.exports = {
         lightGray: '#EDEDED',
         darkMode: '#09090B',
         darkModeCompliment: '#272727',
+        darkModeNavigation: '#191919',
         darkModeBorderColor: '#434347',
         darkModeDropdown: '#18181B',
         darkModeLight: '#D4D4D8',

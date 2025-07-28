@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * A custom React component
  * A React component that displays a list of downloads in a table format.
@@ -11,20 +10,22 @@
  * @returns JSX.Element - The rendered download list component.
  */
 
+import ColumnHeaderContextMenu from '@/Components/SubComponents/custom/ColumnHeaderContextMenu';
+import ResizableHeader from '@/Components/SubComponents/custom/ResizableColumns/ResizableHeader';
+import { useResizableColumns } from '@/Components/SubComponents/custom/ResizableColumns/useResizableColumns';
+import ShareButton from '@/Components/SubComponents/custom/ShareButton';
+import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
+import { Skeleton } from '@/Components/SubComponents/shadcn/components/ui/skeleton';
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { getExtractorIcon, getStatusIcon } from '@/DataFunctions/IconMapper';
+import { DownloadItem } from '@/schema/componentSchema';
+import useDownloadStore, { BaseDownload } from '@/Store/downloadStore';
+import { useMainStore } from '@/Store/mainStore';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-// import { LuDownload, LuArrowDown, LuArrowUp } from 'react-icons/lu';
 import { FaPlay } from 'react-icons/fa';
+import { HiOutlineFolderOpen } from 'react-icons/hi';
 import { HiChevronUpDown } from 'react-icons/hi2';
-import useDownloadStore, { BaseDownload } from '../../../Store/downloadStore';
-import { useMainStore } from '../../../Store/mainStore';
-import { Skeleton } from '../shadcn/components/ui/skeleton';
-import { toast } from '../shadcn/hooks/use-toast';
-// import { RenameModal } from './DownloadContextMenu';
-import ColumnHeaderContextMenu from './ColumnHeaderContextMenu';
-import FileNotExistModal, { DownloadItem } from './FileNotExistModal';
-import ResizableHeader from './ResizableColumns/ResizableHeader';
-import { useResizableColumns } from './ResizableColumns/useResizableColumns';
-import ShareButton from './ShareButton';
+import FileNotExistModal from '../../Main/Modal/FileNotExistModal';
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -58,6 +59,7 @@ interface DownloadListProps {
 }
 
 const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [contextMenu, setContextMenu] = useState<{
     downloadId: string; // Unique identifier for the download
     x: number; // X coordinate for context menu position
@@ -84,14 +86,14 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   >({});
   // Initialize resizable columns - excluding checkbox
   const initialColumns = [
-    { id: 'title', width: 200, minWidth: 150 }, // Increased width for longer titles
+    { id: 'title', width: Math.floor(windowWidth * 0.28), minWidth: 170 },
     { id: 'size', width: 80, minWidth: 70 },
-    { id: 'format', width: 80, minWidth: 70 },
     { id: 'status', width: 100, minWidth: 80 },
-    { id: 'tags', width: 150, minWidth: 120 }, // Increased for better tag display
-    { id: 'categories', width: 150, minWidth: 120 }, // Increased for better category display
+    { id: 'dateAdded', width: 90, minWidth: 90 },
+    { id: 'tags', width: 150, minWidth: 120 },
+    { id: 'categories', width: 150, minWidth: 120 },
     { id: 'source', width: 50, minWidth: 50 },
-    { id: 'action', width: 60, minWidth: 60 }, // Reduced since it's just an icon
+    { id: 'action', width: 60, minWidth: 60 },
   ];
 
   const {
@@ -108,10 +110,10 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   const uniqueDownloads = [
     ...new Map(downloads.map((item) => [item.id, item])).values(),
   ];
-  // Add a debug state to track dragging status more visibly
+  // debug state to track dragging status more visibly
   const [debugDrag, setDebugDrag] = useState<string>('');
 
-  // Add sort state
+  // sort state
   const [sortConfig, setSortConfig] = useState<{
     key: string | null;
     direction: 'ascending' | 'descending';
@@ -132,7 +134,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     y: 0,
   });
 
-  // PERFORMANCE OPTIMIZATION: Optimize thumbnail loading
   const loadThumbnails = useCallback(
     async (downloads: typeof allDownloads) => {
       const loadPromises = downloads.map(async (download) => {
@@ -174,12 +175,12 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   const columnOptions = [
     { id: 'title', displayName: 'Title' },
     { id: 'size', displayName: 'Size' },
-    { id: 'format', displayName: 'Format' },
     { id: 'status', displayName: 'Status' },
     { id: 'tags', displayName: 'Tags' },
     { id: 'categories', displayName: 'Categories' },
     { id: 'source', displayName: 'Source' },
     { id: 'action', displayName: 'Action' },
+    { id: 'dateAdded', displayName: 'Date Added' },
   ];
 
   // Filter columns based on visibility settings, ensuring essential columns are always included
@@ -215,23 +216,23 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   const getStatusColor = (status: string): string => {
     switch (status.toLowerCase()) {
       case 'downloading':
-        return '#2196F3'; // Blue
+        return '#2196F3';
       case 'finished':
-        return '#34C759'; // Green
+        return '#34C759';
       case 'failed':
-        return '#E74C3C'; // Red
+        return '#E74C3C';
       case 'cancelled':
-        return '#E74C3C'; // Red
+        return '#E74C3C';
       case 'initializing':
-        return '#3498DB'; // Blue
+        return '#3498DB';
       case 'paused':
-        return '#FFEB3B'; // Yellow
+        return '#FFEB3B';
       case 'to download':
-        return '#FF9800'; // Orange (same as initializing)
+        return '#FF9800';
       case 'fetching metadata':
-        return 'currentColor'; // Use default text color
+        return 'currentColor';
       default:
-        return 'currentColor'; // Default color
+        return 'currentColor';
     }
   };
 
@@ -255,6 +256,8 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
               return item.status?.toLowerCase() || '';
             case 'tags':
               return (item.tags && item.tags.length) || 0;
+            case 'dateAdded':
+              return item.DateAdded;
             case 'categories':
               return (item.category && item.category.length) || 0;
             case 'source':
@@ -484,10 +487,10 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     );
   };
 
-  // Transform your column options to match the expected interface
+  // Transform column options to match the expected interface
   const columnMenuOptions = columnOptions.map((option) => ({
     id: option.id,
-    label: option.displayName, // Note: change displayName to label to match the interface
+    label: option.displayName,
     required: [
       'title',
       'status',
@@ -495,17 +498,17 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       'action',
       'tags',
       'categories',
-    ].includes(option.id), // Required columns
+    ].includes(option.id),
   }));
 
-  // Close Menu and clear selected download when clicking outside
+  // close menu and clear selected download when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Don't clear selection if clicking inside a context menu
+      // don't clear selection if clicking inside a context menu
       const target = event.target as HTMLElement;
       const isClickInsideContextMenu = target.closest('[data-context-menu]');
 
-      // Check if we're clicking on a different row
+      // check if we're clicking on a different row
       const clickedRow = target.closest('tr');
       const isClickOnDifferentRow =
         clickedRow &&
@@ -551,9 +554,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     setSelectedDownloadId(download.id);
   };
 
-  // Handles the removal of a download.
-  //downloadLocation - The location of the download file.
-  //downloadId - The ID of the download to remove.
+  // handles the removal of a download.
   const handleRemove = async (
     downloadLocation?: string,
     downloadId?: string,
@@ -693,17 +694,17 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
-  // Add state for file not exist modal
+  // state for file not exist modal
   const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
   const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
 
-  // Add handleFileNotExistModal function
+  // handleFileNotExistModal function
   const handleFileNotExistModal = async (downloadItem: DownloadItem) => {
     setMissingFiles([downloadItem]);
     setShowFileNotExistModal(true);
   };
 
-  // Update handleViewDownload to check if the file exists
+  // update handleViewDownload to check if the file exists
   const handleViewDownload = async (
     downloadLocation?: string,
     downloadId?: string,
@@ -790,17 +791,38 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
 
   // Handles viewing the folder containing the download.
   // downloadLocation - The location of the download file.
-  const handleViewFolder = (downloadLocation?: string, filePath?: string) => {
-    if (downloadLocation) {
-      // Check if the location contains a comma (indicating old format)
+  const handleViewFolder = async (
+    downloadLocation?: string,
+    filePath?: string,
+  ) => {
+    if (!downloadLocation) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to open folder',
+        duration: 3000,
+      });
+      setContextMenu({ downloadId: null, x: 0, y: 0 });
+      return;
+    }
+
+    try {
+      // Handle old format with comma-separated paths
       if (downloadLocation.includes(',') && !filePath) {
         const [folderPath, filePathFromString] = downloadLocation.split(',');
-        window.downlodrFunctions.openFolder(folderPath, filePathFromString);
+        await openFolderWithFallback(folderPath, filePathFromString);
       } else {
-        // Normal case with separate parameters
-        window.downlodrFunctions.openFolder(downloadLocation, filePath);
+        // Handle normal case with separate parameters
+        const fullPath = filePath
+          ? await window.downlodrFunctions.joinDownloadPath(
+              downloadLocation,
+              filePath,
+            )
+          : null;
+        await openFolderWithFallback(downloadLocation, fullPath);
       }
-    } else {
+    } catch (error) {
+      console.error('Error in handleViewFolder:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -808,14 +830,58 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         duration: 3000,
       });
     }
+
     setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  // Helper function to handle folder opening with fallback
+  const openFolderWithFallback = async (
+    folderPath: string,
+    filePath?: string | null,
+  ) => {
+    if (filePath) {
+      // Check if file exists first
+      const fileExists = await window.downlodrFunctions.fileExists(filePath);
+
+      if (fileExists) {
+        // File exists, try to open folder and highlight file
+        const success = await window.downlodrFunctions.openFolder(
+          folderPath,
+          filePath,
+        );
+        if (success) return; // Success, we're done
+
+        // If highlighting failed, fall through to just opening folder
+      }
+    }
+
+    // Either no file path, file doesn't exist, or highlighting failed
+    // Try to just open the folder
+    const folderExists = await window.downlodrFunctions.fileExists(folderPath);
+
+    if (folderExists) {
+      const success = await window.downlodrFunctions.openFolder(
+        folderPath,
+        null,
+      );
+      if (!success) {
+        throw new Error('Failed to open folder');
+      }
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Folder',
+        description: 'The download folder does not exist yet',
+        duration: 3000,
+      });
+    }
   };
 
   // Enhance drag handlers with better visual cues
   const enhancedStartDragging = (columnId: string, index: number) => {
     startDragging(columnId, index);
     setDebugDrag(`Dragging: ${columnId}`);
-    // Add a class to the body for global drag state
+    // class to the body  for global drag state
     document.body.classList.add('column-dragging');
   };
 
@@ -830,7 +896,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     setDebugDrag(`Dragging over: ${index}`);
   };
 
-  // Add effect to cleanup drag state if dragging is interrupted
+  // effect to cleanup drag state if dragging is interrupted
   useEffect(() => {
     const handleDragEnd = () => {
       setDebugDrag('');
@@ -856,22 +922,22 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     setSortConfig({ key, direction });
   };
 
-  // Add rename modal state
+  // rename modal state
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [renameDownloadId, setRenameDownloadId] = useState<string>('');
   const [renameCurrentName, setRenameCurrentName] = useState<string>('');
 
-  // Get renameDownload function from store
+  // renameDownload function from store
   const renameDownload = useDownloadStore((state) => state.renameDownload);
 
-  // Add rename handler
+  // rename handler
   const handleRename = (downloadId: string, currentName: string) => {
     setRenameDownloadId(downloadId);
     setRenameCurrentName(currentName);
     setShowRenameModal(true);
   };
 
-  // Add function to perform the rename
+  // function to perform the rename
   const performRename = (newName: string) => {
     renameDownload(renameDownloadId, newName);
     setShowRenameModal(false);
@@ -979,12 +1045,14 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                               <Skeleton className="h-4 w-[120px] rounded-[3px]" />
                             </div>
                           ) : (
-                            <div
-                              className="line-clamp-2 break-words"
-                              title={download.name}
+                            <TooltipWrapper
+                              content={download.name}
+                              side="bottom"
                             >
-                              {download.name}
-                            </div>
+                              <div className="line-clamp-2 break-words">
+                                {download.name}
+                              </div>
+                            </TooltipWrapper>
                           )}
                         </td>
                       );
@@ -1053,11 +1121,13 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                           style={{ width: column.width }}
                           className="p-2"
                         >
-                          <div className="flex justify-start">
+                          <div className="flex justify-center">
                             <span className="text-sm text-gray-600 dark:text-gray-300 ml-1">
                               {download.status === 'cancelled' ||
                               download.status === 'initializing' ||
-                              download.status === 'fetching metadata' ? (
+                              download.status === 'queued' ||
+                              download.status === 'fetching metadata' ||
+                              download.status === 'failed' ? (
                                 <span
                                   style={{
                                     color: getStatusColor(download.status),
@@ -1065,7 +1135,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                                     textTransform: 'capitalize',
                                   }}
                                 >
-                                  {download.status}
+                                  {getStatusIcon(download.status, 20)}
                                 </span>
                               ) : download.status === 'finished' ? (
                                 <button
@@ -1074,34 +1144,49 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                                     color: getStatusColor(download.status),
                                   }}
                                 >
-                                  <FaPlay
-                                    className="mr-3 text-green-600 hover:text-green-400 transition-colors duration-200"
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      handleViewDownload(
-                                        await window.downlodrFunctions.joinDownloadPath(
-                                          download.location,
-                                          download.name,
-                                        ),
-                                        download.id,
-                                      );
-                                    }}
-                                  />
-                                  <span
-                                    className="hover:text-green-400 transition-colors"
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      handleViewFolder(
-                                        download.location,
-                                        await window.downlodrFunctions.joinDownloadPath(
-                                          download.location,
-                                          download.name,
-                                        ),
-                                      );
-                                    }}
+                                  <TooltipWrapper
+                                    content="Open folder"
+                                    side="bottom"
                                   >
-                                    Finished
-                                  </span>
+                                    <span>
+                                      <FaPlay
+                                        className="mr-3 text-green-600 hover:text-green-400 transition-colors duration-200"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          handleViewDownload(
+                                            await window.downlodrFunctions.joinDownloadPath(
+                                              download.location,
+                                              download.name,
+                                            ),
+                                            download.id,
+                                          );
+                                        }}
+                                      />
+                                    </span>
+                                  </TooltipWrapper>
+                                  <TooltipWrapper
+                                    content="Open folder"
+                                    side="bottom"
+                                  >
+                                    <span
+                                      className="hover:text-green-400 transition-colors"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        handleViewFolder(
+                                          download.location,
+                                          await window.downlodrFunctions.joinDownloadPath(
+                                            download.location,
+                                            download.name,
+                                          ),
+                                        );
+                                      }}
+                                    >
+                                      <HiOutlineFolderOpen
+                                        size={20}
+                                        className="mr-3 text-green-600 hover:text-green-400 transition-colors duration-200"
+                                      />
+                                    </span>
+                                  </TooltipWrapper>
                                 </button>
                               ) : (
                                 <span
@@ -1225,29 +1310,31 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                         <td
                           key={column.id}
                           style={{ width: column.width }}
-                          className="p-2 dark:text-gray-200 ml-2"
+                          className="p-2 dark:text-gray-200 ml-2 justify-center"
                         >
                           {download.status === 'fetching metadata' ? (
                             <div className="space-y-1">
                               <Skeleton className="h-4 w-[100px] rounded-[3px]" />
                             </div>
                           ) : (
-                            <div
-                              className="line-clamp-2 break-words ml-1"
-                              title={download.extractorKey}
+                            <TooltipWrapper
+                              content={download.extractorKey}
+                              side="bottom"
                             >
-                              <a
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.downlodrFunctions.openExternalLink(
-                                    download.videoUrl,
-                                  );
-                                }}
-                                className="hover:underline cursor-pointer"
-                              >
-                                {download.extractorKey || 'YouTube'}
-                              </a>
-                            </div>
+                              <div className="line-clamp-2 break-words ml-1">
+                                <a
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.downlodrFunctions.openExternalLink(
+                                      download.videoUrl,
+                                    );
+                                  }}
+                                  className="hover:underline cursor-pointer flex justify-center items-center"
+                                >
+                                  {getExtractorIcon(download.extractorKey)}
+                                </a>
+                              </div>
+                            </TooltipWrapper>
                           )}
                         </td>
                       );
@@ -1278,7 +1365,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         </tbody>
       </table>
 
-      {/* Add FileNotExistModal */}
       <FileNotExistModal
         isOpen={showFileNotExistModal}
         onClose={() => setShowFileNotExistModal(false)}
@@ -1286,7 +1372,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         download={missingFiles.length === 1 ? missingFiles[0] : null}
       />
 
-      {/* Add ColumnHeaderContextMenu */}
       <ColumnHeaderContextMenu
         position={{
           x: columnHeaderContextMenu.x,
@@ -1298,19 +1383,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         onClose={handleCloseColumnHeaderContextMenu}
         columnOptions={columnMenuOptions}
       />
-
-      {/* Add the RenameModal 
-      <RenameModal
-        isOpen={showRenameModal}
-        onClose={() => {
-          setShowRenameModal(false);
-          setRenameDownloadId('');
-          setRenameCurrentName('');
-        }}
-        onRename={performRename}
-        currentName={renameCurrentName}
-      />
-      */}
     </div>
   );
 };

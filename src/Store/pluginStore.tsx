@@ -10,6 +10,7 @@
  */
 
 // Interface for download settings
+import { PluginInfo } from '@/plugins/types';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
@@ -23,6 +24,9 @@ interface PluginStore {
   settingsPlugin: PluginSettings; // Current download settings
   updateIsShowPlugin: (value: boolean) => void;
   updateIsOpenPluginSidebar: (value: boolean) => void;
+  plugins: PluginInfo[];
+  setPlugins: (plugins: PluginInfo[]) => void;
+  loadPlugins: () => Promise<void>;
 }
 
 // Create the main store with persistence
@@ -45,6 +49,17 @@ export const usePluginStore = create<PluginStore>()(
             isOpenPluginSidebar: value,
           },
         }),
+      plugins: [] as PluginInfo[],
+      setPlugins: (plugins) => set({ plugins }),
+      loadPlugins: async () => {
+        try {
+          const installedPlugins = await window.plugins.list();
+          console.log('Loaded plugins:', installedPlugins);
+          set({ plugins: installedPlugins });
+        } catch (error) {
+          console.error('Failed to load plugins:', error);
+        }
+      },
     }),
     {
       name: 'download-plugin-storage', // Name of the storage

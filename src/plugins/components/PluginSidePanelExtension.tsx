@@ -1,6 +1,5 @@
+import { PluginSidePanelOptions, PluginSidePanelResult } from '@/plugins/types';
 import React, { useEffect, useRef, useState } from 'react';
-import { PluginSidePanelOptions, PluginSidePanelResult } from '../types';
-// import { toast } from '../../Components/SubComponents/shadcn//hooks/use-toast';
 
 interface PluginSidePanelExtensionProps {
   isOpen: boolean;
@@ -129,7 +128,8 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
       const iframe = iframeRef.current;
 
       iframe.onload = () => {
-        const callbackProxy: Record<string, (...args: any[]) => any> = {};
+        const callbackProxy: Record<string, (...args: unknown[]) => unknown> =
+          {};
 
         if (options.callbacks) {
           Object.entries(options.callbacks).forEach(([name, callback]) => {
@@ -154,7 +154,14 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
         };
 
         if (iframe.contentWindow) {
-          (iframe.contentWindow as any).__pluginCallbacks = callbackProxy;
+          (
+            iframe.contentWindow as Window & {
+              __pluginCallbacks?: Record<
+                string,
+                (...args: unknown[]) => unknown
+              >;
+            }
+          ).__pluginCallbacks = callbackProxy;
         }
       };
     }

@@ -2,7 +2,7 @@
 import { app, ipcMain, shell } from 'electron';
 import fs from 'fs';
 import path from 'path';
-import { validatePlugin } from './security';
+import { extractPlugin, validatePlugin } from './security';
 
 export class PluginManager {
   private pluginsDir: string;
@@ -115,22 +115,40 @@ export class PluginManager {
         return false;
       }
     });
-    /*
+
     // Uninstall plugin
     ipcMain.handle('plugins:uninstall', async (event, pluginId) => {
-      const pluginDir = path.join(this.pluginsDir, pluginId);
-      if (fs.existsSync(pluginDir)) {
-        fs.rmSync(pluginDir, { recursive: true });
-        return true;
+      try {
+        return await this.unloadPlugin(pluginId);
+      } catch (error) {
+        console.error('Failed to uninstall plugin via IPC:', error);
+        return false;
       }
-      return false;
     });
-  
+
     // Load unzipped plugin
     ipcMain.handle('plugins:loadUnzipped', async (event, pluginDirPath) => {
-      return await this.loadUnzippedPlugin(pluginDirPath);
+      try {
+        return await this.loadUnzippedPlugin(pluginDirPath);
+      } catch (error) {
+        console.error('Failed to load unzipped plugin via IPC:', error);
+        return false;
+      }
     });
-  */
+
+    // Extract plugin from zip
+    ipcMain.handle(
+      'plugins:extractPlugin',
+      async (event, zipPath, extractTo) => {
+        try {
+          return await extractPlugin(zipPath, extractTo);
+        } catch (error) {
+          console.error('Failed to extract plugin via IPC:', error);
+          throw error;
+        }
+      },
+    );
+
     // Register for handling plugin IPC requests
     ipcMain.handle('plugin:fs:writeFile', async (event, args) => {
       // Validate paths to ensure they're within allowed directories
@@ -343,6 +361,9 @@ export class PluginManager {
                 this.saveEnabledState();
               }
 
+              // Calculate the plugin location
+              const pluginLocation = path.join(this.pluginsDir, dir);
+
               return {
                 id: pluginId,
                 name: manifest.name || dir,
@@ -350,6 +371,7 @@ export class PluginManager {
                 description: manifest.description || '',
                 author: manifest.author || 'Unknown',
                 enabled: this.enabledPlugins[pluginId],
+                location: pluginLocation,
                 icon:
                   manifest.icon ||
                   `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
