@@ -44,7 +44,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // Get the max download limit and current downloads from stores
   const { settings, taskBarButtonsVisibility } = useMainStore();
   const { downloading, forDownloads } = useDownloadStore();
-
+  const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
+  const setSelectedDownloads = useMainStore(
+    (state) => state.setSelectedDownloads,
+  );
   // Handling selected downloads
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
@@ -124,6 +127,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       clearAllSelections();
 
       for (const download of downloadsToStop) {
+        setSelectedRowIds([]);
+        setSelectedDownloads([]);
         const currentDownload = downloading.find((d) => d.id === download.id);
         const currentForDownload = forDownloads.find(
           (d) => d.id === download.id,
@@ -197,7 +202,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           removeFromForDownloads(download.id);
         }
       });
-
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
       // Handle all active downloads
       if (downloading && downloading.length > 0) {
         for (const download of downloading) {
@@ -387,8 +393,22 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     const deleteFileSafely = async (download: any) => {
       try {
         let success = false;
-
+        console.log('deleteFolder', download.location);
         if (deleteFolder && download.location) {
+          const folderExists = await window.downlodrFunctions.fileExists(
+            download.location,
+          );
+
+          if (!folderExists) {
+            deleteDownload(download.id);
+            toast({
+              variant: 'success',
+              title: 'Download Deleted',
+              description: 'Download has been deleted successfully',
+              duration: 3000,
+            });
+            return;
+          }
           // Get the parent folder path using path.dirname equivalent
           const folderPath = download.location.substring(
             0,
@@ -457,6 +477,20 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           duration: 3000,
         });
         continue;
+      }
+
+      // Handle failed downloads - just remove from list since no file was created
+      if (download.status === 'failed') {
+        deleteDownload(download.id);
+        toast({
+          variant: 'success',
+          title: 'Download Removed',
+          description: 'Failed download has been removed successfully',
+          duration: 3000,
+        });
+        // Process queue after removing a failed download
+        processQueue();
+        return;
       }
 
       // Check if it's a currently downloading file
@@ -623,7 +657,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         </div>
 
         <div className="pl-4 flex items-center w-full">
-          <div className="w-full flex items-center gap-2 justify-end">
+          <div className="w-full flex items-center justify-end">
             {location.pathname.includes('/status') && (
               <PluginTaskBarExtension />
             )}

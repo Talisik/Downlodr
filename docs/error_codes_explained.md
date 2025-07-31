@@ -8,7 +8,7 @@ This document explains the various error codes that can occur during downloads a
 - **0**: Success - Download completed successfully
 
 ### 🔒 System Permission Errors (1-50)
-- **1**: Permission Denied - Operation not permitted, insufficient permissions
+- **1**: Permission Denied - Downlodr Operation not permitted, insufficient permissions
 - **13**: Access Denied - Permission denied, insufficient access rights
 - **21**: Directory Error - Target is a directory, not a file
 - **28**: **Disk Full** - No space left on device (⚠️ High Severity)

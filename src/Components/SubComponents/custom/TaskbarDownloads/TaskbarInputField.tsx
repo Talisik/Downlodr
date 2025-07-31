@@ -462,7 +462,7 @@ const TaskbarInputField = () => {
   return (
     <div
       id="taskbar-input-field"
-      className="flex-shrink flex-grow-0 w-full max-w-[538px] min-w-[200px] relative"
+      className="flex-shrink flex-grow-0 w-full max-w-[538px] min-w-[200px] relative ml-2"
     >
       <Input
         ref={inputRef}

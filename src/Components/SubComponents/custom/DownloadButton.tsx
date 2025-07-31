@@ -26,7 +26,10 @@ interface DownloadButtonProps {
 const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
   const { settings } = useMainStore();
   const { removeFromForDownloads, addQueue } = useDownloadStore();
-
+  const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
+  const setSelectedDownloads = useMainStore(
+    (state) => state.setSelectedDownloads,
+  );
   /**
    * Handles the click event for the download button.
    * Initiates the download process and updates the download store.
@@ -35,7 +38,8 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
    */
   const handleDownloadClick = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row expansion
-
+    setSelectedRowIds([]);
+    setSelectedDownloads([]);
     // Process the filename first
     const processedName = await processFileName(
       download.location,

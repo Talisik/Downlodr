@@ -65,10 +65,7 @@ const FormatConverterMenu: React.FC<FormatConverterMenuProps> = ({
     toast({
       variant: 'success',
       title: 'Conversion Started',
-      description: `Converting ${
-        selectedDownloads.length
-      } file(s) to ${selectedFormat}${
-        keepOriginal ? ' (keeping original)' : ''
+      description: `Converting ${selectedDownloads.length} file(s) to ${selectedFormat}
       }`,
       duration: 3000,
     });

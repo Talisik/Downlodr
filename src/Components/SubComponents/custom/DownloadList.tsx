@@ -26,6 +26,8 @@ import { FaPlay } from 'react-icons/fa';
 import { HiOutlineFolderOpen } from 'react-icons/hi';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import FileNotExistModal from '../../Main/Modal/FileNotExistModal';
+import DownloadButton from './DownloadButton';
+import { AnimatedLinearProgressBar } from './LinearProgress';
 
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -84,10 +86,9 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   const [thumbnailDataUrls, setThumbnailDataUrls] = useState<
     Record<string, string>
   >({});
-  // Initialize resizable columns - excluding checkbox
   const initialColumns = [
     { id: 'title', width: Math.floor(windowWidth * 0.28), minWidth: 170 },
-    { id: 'size', width: 80, minWidth: 70 },
+    { id: 'size', width: 90, minWidth: 80 },
     { id: 'status', width: 100, minWidth: 80 },
     { id: 'dateAdded', width: 90, minWidth: 90 },
     { id: 'tags', width: 150, minWidth: 120 },
@@ -123,6 +124,9 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   });
 
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const setSelectedDownloads = useMainStore(
+    (state) => state.setSelectedDownloads,
+  );
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [columnHeaderContextMenu, setColumnHeaderContextMenu] = useState<{
     visible: boolean;
@@ -530,6 +534,116 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [contextMenu?.downloadId]);
+
+  const handlePause = async (downloadId: string, downloadLocation?: string) => {
+    // Get fresh state each time
+    const { downloading, deleteDownloading } = useDownloadStore.getState();
+    const currentDownload = downloading.find((d) => d.id === downloadId);
+    const { updateDownloadStatus } = useDownloadStore.getState();
+
+    if (currentDownload?.status === 'paused') {
+      // Check if this is an m4a download and handle existing partial file
+      const isM4aDownload =
+        currentDownload.ext === 'm4a' || currentDownload.audioExt === 'm4a';
+
+      if (
+        isM4aDownload &&
+        currentDownload.location &&
+        currentDownload.downloadName
+      ) {
+        try {
+          // Construct the full file path the same way as in the download store
+          const fullFilePath = await window.downlodrFunctions.joinDownloadPath(
+            currentDownload.location,
+            currentDownload.downloadName,
+          );
+
+          // Check if the partial file exists
+          const fileExists = await window.downlodrFunctions.fileExists(
+            fullFilePath,
+          );
+
+          if (fileExists) {
+            // Delete the existing partial m4a file to prevent corruption
+            const deleteSuccess = await window.downlodrFunctions.deleteFile(
+              fullFilePath,
+            );
+          }
+        } catch (error) {
+          console.error('Error handling existing m4a file:', error);
+          // Continue with resume even if file deletion fails
+        }
+      }
+
+      const { addDownload } = useDownloadStore.getState();
+      addDownload(
+        currentDownload.videoUrl,
+        currentDownload.name,
+        currentDownload.downloadName,
+        currentDownload.size,
+        currentDownload.speed,
+        currentDownload.channelName,
+        currentDownload.timeLeft,
+        new Date().toISOString(),
+        currentDownload.progress,
+        currentDownload.location,
+        'downloading',
+        currentDownload.ext,
+        currentDownload.formatId,
+        currentDownload.audioExt,
+        currentDownload.audioFormatId,
+        currentDownload.extractorKey,
+        '',
+        currentDownload.automaticCaption,
+        currentDownload.thumbnails,
+        currentDownload.getTranscript || false,
+        currentDownload.getThumbnail || false,
+        currentDownload.duration || 60,
+        false,
+      );
+      deleteDownloading(downloadId);
+      // Clear selected downloads after starting/resuming download
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
+      toast({
+        variant: 'success',
+        title: 'Download Resumed',
+        description: 'Download has been resumed successfully',
+        duration: 3000,
+      });
+    } else if (currentDownload && currentDownload.controllerId != '---') {
+      try {
+        updateDownloadStatus(downloadId, 'paused');
+        window.ytdlp
+          .killController(currentDownload.controllerId)
+          .then((response: { success: boolean; error?: string }) => {
+            if (response.success) {
+              setTimeout(() => {
+                updateDownloadStatus(downloadId, 'paused');
+              }, 1200);
+            }
+          });
+        // When successfully paused
+        toast({
+          variant: 'success',
+          title: 'Download Paused',
+          description: 'Download has been paused successfully',
+          duration: 3000,
+        });
+        updateDownloadStatus(downloadId, 'paused');
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to pause/resume download',
+          duration: 3000,
+        });
+        console.error('Error in pause:', error);
+      }
+    }
+
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
 
   /**
    * Handles the context menu event for a download.
@@ -957,7 +1071,10 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
               <input
                 type="checkbox"
                 className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
-                checked={selectedRowIds.length === allDownloads.length}
+                checked={
+                  allDownloads.length > 0 &&
+                  selectedRowIds.length === allDownloads.length
+                }
                 onChange={handleSelectAll}
               />
             </th>
@@ -1188,6 +1305,35 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                                     </span>
                                   </TooltipWrapper>
                                 </button>
+                              ) : download.status === 'to download' ? (
+                                <div className="flex items-center space-x-2 justify-center">
+                                  <div
+                                    style={{
+                                      color: getStatusColor(download.status),
+                                    }}
+                                  >
+                                    <DownloadButton download={download} />
+                                  </div>
+                                </div>
+                              ) : download.status === 'paused' ||
+                                download.status === 'downloading' ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePause(download.id);
+                                  }}
+                                  className="hover:bg-gray-100 dark:hover:bg-darkModeHover w-full flex items-center justify-center"
+                                >
+                                  <AnimatedLinearProgressBar
+                                    status={download.status}
+                                    max={100}
+                                    min={0}
+                                    value={download.progress}
+                                    gaugePrimaryColor="#4CAF50"
+                                    gaugeSecondaryColor="#EEEEEE"
+                                    width={column.width - 10}
+                                  />
+                                </button>
                               ) : (
                                 <span
                                   style={{
@@ -1196,7 +1342,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                                     textTransform: 'capitalize',
                                   }}
                                 >
-                                  {download.status || 'Unknown'}
+                                  {getStatusIcon(download.status, 20)}
                                 </span>
                               )}
                             </span>

@@ -37,11 +37,16 @@ const History = () => {
   // get download historical logs and other functions from downloadStore
   const { historyDownloads, deleteDownload, setDownload } = useDownloadStore();
   // get settings from MainStore
-  const { settings, setSelectedDownloads } = useMainStore();
+  const { settings } = useMainStore();
   // values of longs are based on historical logs
   const [logs, setLogs] = useState<HistoryDownload[]>(historyDownloads);
   // handle selected states
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const setSelectedDownloads = useMainStore(
+    (state) => state.setSelectedDownloads,
+  );
+  const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
+
   const [allChecked, setAllChecked] = useState(false);
   // error handling
   const [errorMessage, setErrorMessage] = useState('');
@@ -182,6 +187,8 @@ const History = () => {
       for (const id of selectedItems) {
         const video = logs.find((product) => product.id === String(id));
         if (video) {
+          setSelectedRowIds([]);
+          setSelectedDownloads([]);
           deleteDownload(video.id);
           toast({
             variant: 'success',
@@ -283,7 +290,9 @@ const History = () => {
               <input
                 type="checkbox"
                 className="rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                checked={allChecked}
+                checked={
+                  logs.length > 0 && selectedItems.length === logs.length
+                }
                 onChange={handleAllCheckboxChange}
               />
             </th>

@@ -417,7 +417,12 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
     },
 
     pauseDownload: async (downloadId?: string) => {
-      const { downloading, updateDownloadStatus } = useDownloadStore.getState();
+      const {
+        downloading,
+        updateDownloadStatus,
+        addDownload,
+        deleteDownloading,
+      } = useDownloadStore.getState();
 
       try {
         // If no downloadId is provided, find the first item with status 'downloading'
@@ -439,8 +444,92 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           return false;
         }
 
+        // If already paused, handle resume with M4A cleanup
+        if (currentDownload.status === 'paused') {
+          // Check if this is an m4a download and handle existing partial file
+          const isM4aDownload =
+            currentDownload.ext === 'm4a' || currentDownload.audioExt === 'm4a';
+
+          if (
+            isM4aDownload &&
+            currentDownload.location &&
+            currentDownload.downloadName
+          ) {
+            try {
+              // Construct the full file path the same way as in the download store
+              const fullFilePath =
+                await window.downlodrFunctions.joinDownloadPath(
+                  currentDownload.location,
+                  currentDownload.downloadName,
+                );
+
+              // Check if the partial file exists
+              const fileExists = await window.downlodrFunctions.fileExists(
+                fullFilePath,
+              );
+
+              if (fileExists) {
+                // Delete the existing partial m4a file to prevent corruption
+                const deleteSuccess = await window.downlodrFunctions.deleteFile(
+                  fullFilePath,
+                );
+                if (deleteSuccess) {
+                  console.log(
+                    `Plugin API: Deleted existing partial m4a file: ${fullFilePath}`,
+                  );
+                } else {
+                  console.warn(
+                    `Plugin API: Failed to delete existing partial m4a file: ${fullFilePath}`,
+                  );
+                }
+              }
+            } catch (error) {
+              console.error(
+                'Plugin API: Error handling existing m4a file:',
+                error,
+              );
+              // Continue with resume even if file deletion fails
+            }
+          }
+
+          // Resume the download
+          addDownload(
+            currentDownload.videoUrl,
+            currentDownload.name,
+            currentDownload.downloadName,
+            currentDownload.size,
+            currentDownload.speed,
+            currentDownload.channelName,
+            currentDownload.timeLeft,
+            new Date().toISOString(),
+            currentDownload.progress,
+            currentDownload.location,
+            'downloading',
+            currentDownload.backupExt,
+            currentDownload.backupFormatId,
+            currentDownload.backupAudioExt,
+            currentDownload.backupAudioFormatId,
+            currentDownload.extractorKey,
+            '',
+            currentDownload.automaticCaption,
+            currentDownload.thumbnails,
+            currentDownload.getTranscript || false,
+            currentDownload.getThumbnail || false,
+            currentDownload.duration || 60,
+            false,
+          );
+
+          deleteDownloading(currentDownload.id);
+          return true;
+        }
+
         // If the download is active and has a controllerId, pause it
-        if (currentDownload && currentDownload.controllerId) {
+        // Improved controller validation to match StatusSpecificDownloads
+        if (
+          currentDownload &&
+          currentDownload.controllerId &&
+          currentDownload.controllerId !== '---'
+        ) {
           try {
             updateDownloadStatus(currentDownload.id, 'paused');
 
@@ -481,6 +570,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           description: 'An unexpected error occurred',
           duration: 3000,
         });
+        return false;
       }
     },
 
@@ -497,52 +587,39 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         };
       }
 
-      // Pause all downloads in parallel
-      const pausePromises = downloading.map(async (download) => {
+      // Process downloads SEQUENTIALLY to avoid race conditions
+      const results = [];
+      for (const download of downloading) {
         try {
           const success = await api.pauseDownload(download.id);
-          return {
+          results.push({
             downloadId: download.id,
             downloadName: download.name,
             success: success === true,
             error: null as unknown as string,
-          };
+          });
+
+          // Add small delay to prevent race conditions
+          await new Promise((resolve) => setTimeout(resolve, 100));
         } catch (error) {
-          return {
+          results.push({
             downloadId: download.id,
             downloadName: download.name,
             success: false,
             error: error instanceof Error ? error.message : String(error),
-          };
+          });
         }
-      });
+      }
 
-      const results = await Promise.allSettled(pausePromises);
-
-      // Process results
-      const processedResults = results.map((result) =>
-        result.status === 'fulfilled'
-          ? result.value
-          : {
-              downloadId: 'unknown',
-              downloadName: 'unknown',
-              success: false,
-              error:
-                result.reason instanceof Error
-                  ? result.reason.message
-                  : String(result.reason),
-            },
-      );
-
-      const pausedCount = processedResults.filter((r) => r.success).length;
-      const failedCount = processedResults.length - pausedCount;
+      const pausedCount = results.filter((r) => r.success).length;
+      const failedCount = results.length - pausedCount;
 
       return {
         success: failedCount === 0,
         totalDownloads: downloading.length,
         pausedCount,
         failedCount,
-        results: processedResults,
+        results,
       };
     },
 

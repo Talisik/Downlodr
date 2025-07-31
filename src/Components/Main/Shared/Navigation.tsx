@@ -248,32 +248,40 @@ const Navigation = ({
           collapsed ? 'px-1' : 'p-2 ml-0 md:ml-1'
         } mt-2 space-y-2 pb-20`}
       >
-        {/* Status Section */}
+        {/* Category Section */}
         <div>
-          <button
-            onClick={() => toggleSection('status')}
-            className={`w-full flex items-center ${
-              collapsed
-                ? 'justify-center hover:none dark:hover:none cursor-default'
-                : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200'
-            } p-2`}
-          >
-            {!collapsed &&
-              (openSections.status ? (
-                <FiChevronDown size={18} />
-              ) : (
-                <FiChevronRight size={18} />
-              ))}
-            {!collapsed && (
-              <span className="ml-1 text-sm font-semibold">Status</span>
-            )}
-          </button>
+          <TooltipWrapper content={collapsed ? 'Status' : null} side="left">
+            <button
+              onClick={() => toggleSection('status')}
+              className={`w-full flex items-center ${
+                collapsed
+                  ? 'justify-center'
+                  : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 p-2'
+              } `}
+            >
+              <div
+                className={`flex items-center transition-opacity duration-300 ${
+                  collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
+                }`}
+              >
+                {openSections.status ? (
+                  <FiChevronDown size={18} />
+                ) : (
+                  <FiChevronRight size={18} />
+                )}
+                <span className="ml-1 text-sm font-semibold whitespace-nowrap">
+                  Status
+                </span>
+              </div>
+            </button>
+          </TooltipWrapper>
+
           {/* Show items regardless of openSections when collapsed */}
           {(openSections.status || collapsed) && (
             <div
               className={`${
                 collapsed ? 'flex flex-col items-center' : 'ml-1'
-              } space-y-[6px] mt-1`}
+              } space-y-[6px]`}
             >
               <TooltipWrapper content={collapsed ? 'All' : null} side="left">
                 <NavLink
@@ -517,15 +525,20 @@ const Navigation = ({
                   : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 p-2'
               } `}
             >
-              {!collapsed &&
-                (openSections.category ? (
+              <div
+                className={`flex items-center transition-opacity duration-300 ${
+                  collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
+                }`}
+              >
+                {openSections.category ? (
                   <FiChevronDown size={18} />
                 ) : (
                   <FiChevronRight size={18} />
-                ))}
-              {!collapsed && (
-                <span className="ml-1 text-sm font-semibold">Categories</span>
-              )}
+                )}
+                <span className="ml-1 text-sm font-semibold whitespace-nowrap">
+                  Categories
+                </span>
+              </div>
               {collapsed && (
                 <div
                   className="p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
@@ -549,7 +562,7 @@ const Navigation = ({
             </button>
           </TooltipWrapper>
           {openSections.category && !collapsed && (
-            <div className="ml-1 space-y-[6px] mt-1">
+            <div className="ml-1 space-y-[6px]">
               <NavLink
                 to="/category/all"
                 className={({ isActive }) =>
@@ -614,15 +627,20 @@ const Navigation = ({
                   : 'p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 '
               }`}
             >
-              {!collapsed &&
-                (openSections.tag ? (
+              <div
+                className={`flex items-center transition-opacity duration-300 ${
+                  collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
+                }`}
+              >
+                {openSections.tag ? (
                   <FiChevronDown size={18} />
                 ) : (
                   <FiChevronRight size={18} />
-                ))}
-              {!collapsed && (
-                <span className="ml-1 text-sm font-semibold">Tags</span>
-              )}
+                )}
+                <span className="ml-1 text-sm font-semibold whitespace-nowrap">
+                  Tags
+                </span>
+              </div>
               {collapsed && (
                 <div
                   className="p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
@@ -642,7 +660,7 @@ const Navigation = ({
             </button>
           </TooltipWrapper>
           {openSections.tag && !collapsed && (
-            <div className="ml-2 space-y-[6px] mt-1">
+            <div className="ml-2 space-y-[6px]">
               <NavLink
                 to="/tags/all"
                 className={({ isActive }) =>
