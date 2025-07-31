@@ -5,10 +5,10 @@
  *
  * @returns JSX.Element - The rendered mode toggle component.
  */
+import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
+import { useTheme } from '@/Components/ThemeProvider';
 import { Moon, Sun } from 'lucide-react';
-import { Button } from '../shadcn/components/ui/button';
-import { useTheme } from '../../ThemeProvider';
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function ModeToggle() {
   const { setTheme } = useTheme();
@@ -46,12 +46,14 @@ export function ModeToggle() {
     <div className="relative" ref={dropdownRef}>
       <Button
         variant="ghost"
-        className="hover:bg-gray-100 dark:bg-transparent dark:hover:bg-darkModeCompliment hover:opacity-100 active:bg-transparent focus-none p-1 m-2 h-auto min-h-0"
         size="icon"
+        className="hover:bg-gray-100 dark:bg-transparent dark:hover:bg-darkModeCompliment hover:opacity-100 active:bg-transparent focus-none p-1 my-4"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <Sun className="h-[1rem] w-[1rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 bg-transparent" />
-        <Moon className="absolute h-[1rem] w-[1rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 bg-transparent" />
+        <span className="relative flex items-center justify-center">
+          <Sun className="absolute h-[1rem] w-[1rem] transition-transform duration-300 text-text-paragraph dark:rotate-90 dark:scale-0" />
+          <Moon className="absolute h-[1rem] w-[1rem] transition-transform duration-300 text-text-paragraph scale-0 dark:rotate-0 dark:scale-100" />
+        </span>
         <span className="sr-only">Toggle theme</span>
       </Button>
 

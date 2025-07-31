@@ -8,11 +8,10 @@
  *
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import DownlodrLogo from '@/Assets/Logo/DownlodrLogo-NoName.svg';
 import React, { useEffect, useRef, useState } from 'react';
 import { FiExternalLink } from 'react-icons/fi';
 import { IoMdClose } from 'react-icons/io';
-import DownlodrLogo from '../../../Assets/Logo/DownlodrLogo-NoName.svg';
 
 interface AboutModalProps {
   isOpen: boolean;

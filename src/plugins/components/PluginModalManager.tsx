@@ -1,5 +1,5 @@
+import { PluginModalOptions, PluginModalResult } from '@/plugins/types';
 import React, { useCallback, useState } from 'react';
-import { PluginModalOptions, PluginModalResult } from '../types';
 import PluginModalExtension from './PluginModalExtension';
 
 interface PluginModalRequest {

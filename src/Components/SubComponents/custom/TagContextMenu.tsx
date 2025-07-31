@@ -55,10 +55,10 @@ const RenameModal: React.FC<RenameModalProps> = ({
       onClick={(e) => e.stopPropagation()}
     >
       <div
-        className="bg-white dark:bg-darkModeDropdown rounded-lg p-6 max-w-sm w-full mx-4"
+        className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-medium mb-4 dark:text-gray-200">
+        <h3 className="text-[15px] font-medium mb-3 dark:text-gray-200">
           Rename Tag
         </h3>
         <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
@@ -67,24 +67,15 @@ const RenameModal: React.FC<RenameModalProps> = ({
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             maxLength={10}
-            className="w-full p-2 border rounded mb-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+            className="w-full p-2 border rounded mb-1 dark:bg-darkMode dark:border-inputDarkModeBorder outline-none dark:text-gray-200"
             autoFocus
             onClick={(e) => e.stopPropagation()}
           />
-          <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
             {newName.length}/10 characters
           </div>
-          <hr className="solid mb-2 -mx-6 w-[calc(100%+48px)] border-t-2 border-divider dark:border-gray-700" />
 
-          <div className="flex justify-start space-x-2 mb-[-10px]">
-            <button
-              type="submit"
-              onClick={(e) => e.stopPropagation()}
-              className="px-4 py-1 bg-primary text-white rounded disabled:opacity-50"
-              disabled={!newName.trim() || newName.trim().length > 10}
-            >
-              Save
-            </button>
+          <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
             <button
               type="button"
               onClick={(e) => {
@@ -94,6 +85,14 @@ const RenameModal: React.FC<RenameModalProps> = ({
               className="px-4 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
             >
               Cancel
+            </button>
+            <button
+              type="submit"
+              onClick={(e) => e.stopPropagation()}
+              className="px-4 py-1 bg-primary text-white rounded disabled:opacity-50"
+              disabled={!newName.trim() || newName.trim().length > 10}
+            >
+              Save
             </button>
           </div>
         </form>

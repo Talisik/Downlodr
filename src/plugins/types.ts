@@ -1,6 +1,41 @@
-import { ForDownload } from "src/Store/downloadStore";
+// TypeScript interfaces for plugin system
+interface AllDownloadsResult {
+  downloading: Download[];
+  forDownloads: Download[];
+}
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+interface ProcessOptions {
+  quality?: string;
+  format?: string;
+  [key: string]: unknown;
+}
+
+interface SettingsComponent {
+  [key: string]: unknown;
+}
+
+interface MediaContent {
+  url?: string;
+  data?: string;
+  [key: string]: unknown;
+}
+
+interface PluginContextData {
+  [key: string]: unknown;
+}
+
+interface PluginCallbacks {
+  [key: string]: ((...args: unknown[]) => void) | undefined;
+}
+
+interface PluginResultData {
+  [key: string]: unknown;
+}
+
+interface PluginItemData {
+  [key: string]: unknown;
+}
+
 export interface DownlodrPlugin {
   id: string;
   name: string;
@@ -21,14 +56,64 @@ export interface PluginAPI {
 
 export interface DownloadAPI {
   registerDownloadSource: (source: DownloadSource) => void;
-  getAllDownloads: () => any;
+  getAllDownloads: () => AllDownloadsResult;
   getActiveDownloads: () => Download[];
   addDownload: (url: string, options: DownloadOptions) => Promise<string>;
   cancelDownload?: (id: string) => Promise<boolean>;
   pauseDownload?: (downloadId?: string) => Promise<boolean>;
   pauseAllDownloads?: () => void;
   resumeDownload?: (downloadId?: string) => Promise<boolean>;
-  resumeAllDownloads?: () => void;
+  resumeAllDownloads?: () => Promise<{
+    success: boolean;
+    totalDownloads: number;
+    resumedCount: number;
+    failedCount: number;
+    results: Array<{
+      downloadId: string;
+      downloadName: string;
+      success: boolean;
+      error?: string;
+    }>;
+  }>;
+  resumeAllDownloadsWithCleanup?: (cleanupFormats?: string[]) => Promise<{
+    success: boolean;
+    totalDownloads: number;
+    resumedCount: number;
+    failedCount: number;
+    cleanupCount: number;
+    results: Array<{
+      downloadId: string;
+      downloadName: string;
+      success: boolean;
+      cleanedUp: boolean;
+      format: string;
+      error?: string | null;
+    }>;
+  }>;
+  resumeDownloadWithCleanup?: (
+    downloadId?: string,
+    cleanupFormats?: string[],
+  ) => Promise<{
+    success: boolean;
+    error?: string;
+    cleanedUp: boolean;
+    format?: string;
+    downloadId?: string;
+    downloadName?: string;
+  }>;
+  cleanupDownloadFiles?: (
+    downloadId: string,
+    cleanupFormats?: string[],
+  ) => Promise<{
+    success: boolean;
+    error?: string;
+    cleanedUp: boolean;
+    format?: string;
+    filePath?: string;
+    downloadId?: string;
+    downloadName?: string;
+    message?: string;
+  }>;
   stopAllDownloads?: () => Promise<boolean>;
   getInfo: (url: string) => Promise<DownloadInfo>;
 }
@@ -59,7 +144,7 @@ export interface UIAPI {
 }
 
 export interface FormatAPI {
-  registerFormatHandler?: (handler: any) => string;
+  registerFormatHandler?: (handler: FormatHandler) => string;
   getSupportedFormats?: () => string[];
 }
 
@@ -92,7 +177,7 @@ export interface Format {
 export interface SettingsPage {
   id: string;
   title: string;
-  component: any;
+  component: SettingsComponent;
 }
 
 export interface NotificationOptions {
@@ -129,14 +214,15 @@ export interface DownloadOptions {
   location?: string;
   ext?: string;
   speed?: string;
+  channelName?: string;
   timeLeft?: string;
   formatId?: string;
   audioFormatId?: string;
   audioExt?: string;
   extractorKey?: string;
   limitRate?: string;
-  automaticCaption?: any;
-  thumbnails?: any;
+  automaticCaption?: MediaContent;
+  thumbnails?: MediaContent;
   getTranscript?: boolean;
   getThumbnail?: boolean;
   duration: number;
@@ -155,7 +241,7 @@ export interface FormatHandler {
   name: string;
   supportedExtensions: string[];
   canHandle: (format: string) => boolean;
-  process?: (file: string, options?: any) => Promise<string>;
+  process?: (file: string, options?: ProcessOptions) => Promise<string>;
   getFormatDetails?: (format: string) => {
     name: string;
     description?: string;
@@ -177,7 +263,7 @@ export interface MenuItem {
   icon?: string;
 
   /** Click handler function */
-  onClick: (contextData?: any) => void;
+  onClick: (contextData?: PluginContextData) => void;
 
   /** Whether the menu item is disabled */
   disabled?: boolean;
@@ -204,7 +290,7 @@ export interface MenuItem {
   separator?: boolean;
 
   /** Optional additional data for the item */
-  data?: Record<string, any>;
+  data?: PluginItemData;
 }
 
 export interface MenuItemRegistration {
@@ -218,7 +304,7 @@ export interface MenuItemRegistration {
   icon?: string;
 
   /** Click handler function */
-  onClick: (contextData?: any) => void;
+  onClick: (contextData?: PluginContextData) => void;
 
   /** Whether the menu item is disabled (defaults to false) */
   disabled?: boolean;
@@ -242,7 +328,7 @@ export interface MenuItemRegistration {
   separator?: boolean;
 
   /** Optional additional data for the item */
-  data?: Record<string, any>;
+  data?: PluginItemData;
 }
 
 export interface NotifItem {
@@ -252,7 +338,7 @@ export interface NotifItem {
   message: string;
   type: string;
   duration: number;
-  onClick: (contextData?: any) => void;
+  onClick: (contextData?: PluginContextData) => void;
   disabled?: boolean;
   pluginId?: string;
   tooltip?: string;
@@ -300,12 +386,12 @@ export interface TaskBarItem {
   icon?: React.ReactNode;
   tooltip?: string;
   context: string;
-  onClick?: (contextData?: any) => void;
+  onClick?: (contextData?: PluginContextData) => void;
   pluginId?: string;
   handlerId?: string;
   enabled?: boolean;
   shortcut?: string;
-  data?: Record<string, any>;
+  data?: PluginItemData;
   actionType?: 'single' | 'multiple';
   buttonStyle?: React.CSSProperties | string;
   iconStyle?: React.CSSProperties | string;
@@ -318,13 +404,7 @@ export interface PluginSidePanelOptions {
   icon: string;
   width?: number | string;
   closable?: boolean;
-  callbacks?: {
-    onBrowse?: () => void;
-    onCancel?: () => void;
-    onConvert?: (format: string) => void;
-    onFormatChange?: (format: string) => void;
-    [key: string]: ((...args: any[]) => void) | undefined;
-  };
+  callbacks?: PluginCallbacks;
 }
 
 export interface PluginManifest {
@@ -341,7 +421,7 @@ export interface PluginManifest {
 
 export interface PluginSidePanelResult {
   closed: boolean;
-  data?: any;
+  data?: PluginResultData;
 }
 
 export interface PluginModalOptions {
@@ -352,18 +432,13 @@ export interface PluginModalOptions {
   closable?: boolean;
   centered?: boolean;
   footer?: React.ReactNode | null;
-  callbacks?: {
-    onOk?: () => void;
-    onCancel?: () => void;
-    onClose?: () => void;
-    [key: string]: ((...args: any[]) => void) | undefined;
-  };
+  callbacks?: PluginCallbacks;
 }
 
 export interface PluginModalResult {
   closed: boolean;
   confirmed?: boolean;
-  data?: any;
+  data?: PluginResultData;
 }
 
 export interface SaveDialogOptions {
@@ -409,7 +484,12 @@ export interface PluginInfo {
   version: string;
   description: string;
   author: string;
+  enabled: boolean;
+  location: string;
   icon: string;
+  repoLink?: string;
+  downlodrLink?: string;
+  size?: number;
 }
 
 export interface TaskBarItemRegistration {
@@ -435,7 +515,7 @@ export interface TaskBarItemRegistration {
   shortcut?: string;
 
   /** Optional additional data for the item */
-  data?: Record<string, any>;
+  data?: PluginItemData;
 
   /** Type of the item to be handled by the onClick function */
   actionType?: 'single' | 'multiple';
@@ -454,4 +534,86 @@ export interface TaskBarButtonsVisibility {
   start: boolean;
   stop: boolean;
   stopAll: boolean;
+}
+
+export interface UpdateInfo {
+  hasUpdate?: boolean;
+  latestVersion?: string;
+  currentVersion?: string;
+  releaseUrl?: string;
+  releaseNotes?: string;
+  downloadUrl?: string;
+  publishedAt?: Date;
+}
+
+// TypeScript interfaces for GitHub API responses
+export interface GitHubAuthor {
+  login: string;
+  id: number;
+  avatar_url: string;
+  type: string;
+}
+
+export interface GitHubAsset {
+  id: number;
+  name: string;
+  size: number;
+  download_count: number;
+  browser_download_url: string;
+  content_type: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GitHubRelease {
+  id: number;
+  tag_name: string;
+  name: string;
+  body: string;
+  author: GitHubAuthor;
+  published_at: string;
+  created_at: string;
+  assets: GitHubAsset[];
+  draft: boolean;
+  prerelease: boolean;
+}
+
+export interface ParsedPluginSection {
+  id?: string;
+  name?: string;
+  version?: string;
+  description?: string;
+  author?: string;
+  downloads?: string;
+  size?: string;
+  repoLink?: string;
+  downlodrLink?: string;
+}
+
+export interface PluginData {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  icon: string; // Raw SVG string to match installed plugins (PluginInfo interface)
+  downloads: string;
+  size: string;
+  repoLink: string;
+  downlodrLink: string;
+  category?: string;
+  tags?: string[];
+  featured?: boolean;
+  lastUpdated?: string;
+  // Add these to match PluginInfo interface
+  enabled?: boolean;
+  location?: string;
+}
+
+export interface FetchResult {
+  success: boolean;
+  data: PluginData[];
+  source: 'github' | 'fallback';
+  error?: string;
+  lastFetched?: Date;
 }

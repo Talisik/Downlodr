@@ -4,10 +4,10 @@
  *
  * @returns JSX.Element - The rendered component displaying a tag page.
  */
+import DownloadList from '@/Components/SubComponents/custom/DownloadList';
+import useDownloadStore from '@/Store/downloadStore';
 import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import useDownloadStore from '../../Store/downloadStore';
-import DownloadList from '../../Components/SubComponents/custom/DownloadList';
 
 const TagPage: React.FC = () => {
   // takes the type of tag from url paramaters

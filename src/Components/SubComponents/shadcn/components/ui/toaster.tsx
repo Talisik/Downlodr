@@ -1,4 +1,4 @@
-import { useToast } from '../../hooks/use-toast';
+import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import {
   Toast,
   ToastClose,
@@ -16,14 +16,14 @@ export function Toaster() {
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>
-            <div className="grid gap-1 sm:gap-2 w-full min-w-0">
+            <div className="flex-1 min-w-0">
               {title && (
-                <ToastTitle className="text-sm sm:text-base truncate">
+                <ToastTitle className="text-sm sm:text-base break-words">
                   {title}
                 </ToastTitle>
               )}
               {description && (
-                <ToastDescription className="text-xs sm:text-sm break-words">
+                <ToastDescription className="text-xs sm:text-sm">
                   {description}
                 </ToastDescription>
               )}

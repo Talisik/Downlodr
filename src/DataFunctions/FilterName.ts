@@ -10,7 +10,7 @@
  * @returns string - The sanitized and validated  filename.
  */
 
-import useDownloadStore from '../Store/downloadStore';
+import useDownloadStore from '@/Store/downloadStore';
 
 // Remove invalid characters from download name
 const removeInvalidChar = (filename: string) => {

@@ -1,6 +1,6 @@
+import { usePluginStore } from '@/Store/pluginStore';
+import { PluginSidePanelOptions, PluginSidePanelResult } from '@/plugins/types';
 import React, { useEffect, useState } from 'react';
-import { usePluginStore } from '../../Store/pluginStore';
-import { PluginSidePanelOptions, PluginSidePanelResult } from '../types';
 import PluginSidePanelExtension from './PluginSidePanelExtension';
 
 interface PluginSidePanelRequest {

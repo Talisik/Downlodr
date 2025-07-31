@@ -32,35 +32,26 @@
  * @returns JSX.Element - The rendered context menu component.
  */
 
-import { PlayCircle } from 'lucide-react';
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { processFileName } from '@/DataFunctions/FilterName';
+import { usePluginState } from '@/plugins/Hooks/usePluginState';
+import { MenuItem } from '@/plugins/types';
+import useDownloadStore, { BaseDownload } from '@/Store/downloadStore';
+import { useMainStore } from '@/Store/mainStore';
 import React, { useEffect, useState } from 'react';
 import { BsArrowCounterclockwise } from 'react-icons/bs';
+import { FaTerminal } from 'react-icons/fa';
 import { GoChevronRight, GoPlus } from 'react-icons/go';
 import { HiOutlineStopCircle } from 'react-icons/hi2';
 import { IoCodeSlashSharp, IoPauseCircleOutline } from 'react-icons/io5';
 import { LiaFileVideoSolid, LiaTagsSolid } from 'react-icons/lia';
 import { LuFolderOpen, LuTrash } from 'react-icons/lu';
-import { MdEdit } from 'react-icons/md';
+import { MdEdit, MdOutlinePlayCircle } from 'react-icons/md';
 import { PiPuzzlePieceBold } from 'react-icons/pi';
-import { VscDebugStart } from 'react-icons/vsc';
-import { processFileName } from '../../../DataFunctions/FilterName';
-import { usePluginState } from '../../../plugins/Hooks/usePluginState';
-import { MenuItem } from '../../../plugins/types';
-import useDownloadStore from '../../../Store/downloadStore';
-import { useMainStore } from '../../../Store/mainStore';
-import { toast } from '../shadcn/hooks/use-toast';
 
-// import CategoryMenu from './CategoryMenu';
-// import TagMenu from './TagsMenu';
-// import FormatConverterMenu from './FormatConverterMenu';
-
-// Interface representing the props for the DownloadContextMenu component
 interface DownloadContextMenuProps {
-  downloadId: string; // Unique identifier for the download
-  position: { x: number; y: number }; // Position of the context menu
-  downloadLocation?: string; // Location of the download file
-  controllerId?: string; // ID of the controller managing the download
-  downloadStatus?: string; // Current status of the download
+  download: BaseDownload;
+  position: { x: number; y: number };
   onClose: () => void; // Function to close the context menu
   onPause: (
     id: string,
@@ -70,6 +61,7 @@ interface DownloadContextMenuProps {
   ) => void; // Function to pause the download'
   onRetry: (downloadId: string) => void; // Function to retry the download
   onShowLog: (downloadId: string) => void; // Function to show the log of the download
+  onShowActivityTracker: (downloadId: string) => void; // Function to show the activity tracker of the download
   onStop: (
     id: string,
     downloadLocation?: string,
@@ -96,300 +88,30 @@ interface DownloadContextMenuProps {
   currentCategories: string[]; // Array of current categories for the download
   availableCategories: string[]; // Array of all available categories in the system
   onViewFolder: (downloadLocation?: string, downloadFile?: string) => void; // Function to view the folder containing the download
-  downloadName?: string; // Name of the download file
-  downloadFile?: string; // File of the download
-  onRename: (downloadId: string, currentName: string) => void; // Add this
+  onRename: (downloadId: string, currentName: string) => void; //
   onShowRemoveModal: (
     downloadId: string,
     downloadLocation?: string,
     controllerId?: string,
-  ) => void; // Add this
+  ) => void;
   onShowStopModal: (
     downloadId: string,
     downloadLocation?: string,
     controllerId?: string,
-  ) => void; // Add this
+  ) => void;
 }
-
-/*
-interface ConfirmModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: (deleteFolder?: boolean) => void;
-  message: string;
-  allowFolderDeletion?: boolean;
-}
-
-interface RenameModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onRename: (newName: string) => void;
-  currentName: string;
-}
-
-const StopModal: React.FC<ConfirmModalProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  message,
-  allowFolderDeletion = false,
-}) => {
-  const [deleteFolder, setDeleteFolder] = useState(false);
-
-  // Reset checkbox when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setDeleteFolder(false);
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-lg w-full mx-2"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-            Stop Download
-          </h3>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-          >
-            <IoMdClose size={20} />
-          </button>
-        </div>
-
-        <p className="text-gray-700 dark:text-gray-300 mb-4">
-          Are you sure you want to stop and remove this download?
-        </p>
-
-        <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="px-4 py-1 text-gray-600 bg-white dark:bg-[#18181B] dark:text-white border dark:border-[#27272A] hover:bg-gray-50 dark:hover:bg-darkModeHover dark:hover:text-gray-200 rounded-md font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onConfirm(deleteFolder);
-            }}
-            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-white hover:text-black font-medium"
-          >
-            Stop
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ConfirmModal: React.FC<ConfirmModalProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  message,
-  allowFolderDeletion = false,
-}) => {
-  const [deleteFolder, setDeleteFolder] = useState(false);
-
-  // Reset checkbox when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setDeleteFolder(false);
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-lg w-full mx-2"
-        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
-      >
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-            Remove selected item
-          </h3>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-          >
-            <IoMdClose size={20} />
-          </button>
-        </div>
-
-        <p className="text-gray-700 dark:text-gray-300 mb-4">
-          Are you sure you want to remove these downloads from the download
-          list?
-        </p>
-
-        {allowFolderDeletion && (
-          <div className="mb-6">
-            <label
-              className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300"
-              onClick={(e) => e.stopPropagation()} // Prevent label click from closing modal
-            >
-              <input
-                type="checkbox"
-                checked={deleteFolder}
-                onChange={(e) => {
-                  e.stopPropagation(); // Prevent checkbox change from closing modal
-                  setDeleteFolder(e.target.checked);
-                }}
-                onClick={(e) => e.stopPropagation()} // Prevent checkbox click from closing modal
-                className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-              />
-              <span>Also remove the downloaded folder</span>
-            </label>
-          </div>
-        )}
-
-        <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="px-4 py-1 text-gray-600 bg-white dark:bg-[#18181B] dark:text-white border dark:border-[#27272A] hover:bg-gray-50 dark:hover:bg-darkModeHover dark:hover:text-gray-200 rounded-md font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onConfirm(deleteFolder);
-            }}
-            className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-white hover:text-black font-medium"
-          >
-            Remove
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const RenameModal: React.FC<RenameModalProps> = ({
-  isOpen,
-  onClose,
-  onRename,
-  currentName,
-}) => {
-  const [newName, setNewName] = useState(currentName);
-
-  // Reset the input when modal opens or currentName changes
-  useEffect(() => {
-    if (isOpen) {
-      setNewName(currentName);
-    }
-  }, [isOpen, currentName]);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newName.trim() && newName.trim().length <= 50) {
-      onRename(newName.trim());
-      toast({
-        variant: 'success',
-        title: 'File Renamed',
-        description: `Successfully renamed to ${newName}`,
-        duration: 3000,
-      });
-      onClose();
-    }
-  };
-
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div
-        className="bg-white dark:bg-darkModeDropdown rounded-lg p-6 max-w-sm w-full mx-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-lg font-medium mb-4 dark:text-gray-200">
-          Rename Download
-        </h3>
-        <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
-          <input
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            maxLength={50}
-            className="w-full p-2 border rounded mb-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-            autoFocus
-            onClick={(e) => e.stopPropagation()}
-          />
-          <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            {newName.length}/50 characters
-          </div>
-          <hr className="solid mb-2 -mx-6 w-[calc(100%+48px)] border-t-2 border-divider dark:border-gray-700" />
-
-          <div className="flex justify-start space-x-2 mb-[-10px]">
-            <button
-              type="submit"
-              onClick={(e) => e.stopPropagation()}
-              className="px-4 py-1 bg-primary text-white rounded disabled:opacity-50"
-              disabled={!newName.trim() || newName.trim().length > 50}
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
-              className="px-4 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-*/
 
 const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
-  downloadId,
+  download,
   position,
-  downloadLocation,
-  controllerId,
-  downloadStatus,
-  downloadFile,
   onClose,
   onPause,
   onRetry,
   onShowLog,
-  // onStop,
-  // onForceStart,
-  // onRemove,
+  onShowActivityTracker,
+  onStop,
+  onForceStart,
+  onRemove,
   onViewDownload,
   onAddTag,
   onRemoveTag,
@@ -400,7 +122,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   currentCategories = [],
   availableCategories = [],
   onViewFolder,
-  downloadName = '',
   onRename,
   onShowRemoveModal,
   onShowStopModal,
@@ -409,15 +130,18 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const tagButtonRef = React.useRef<HTMLButtonElement>(null);
   const categoryButtonRef = React.useRef<HTMLButtonElement>(null);
   const pluginButtonRef = React.useRef<HTMLButtonElement>(null);
-  const [showTagMenu, setShowTagMenu] = useState(false); // State to track visibility of the tag menu
-  const [showCategoryMenu, setShowCategoryMenu] = useState(false); // State to track visibility of the category menu
-  const [showPluginMenu, setShowPluginMenu] = useState(false); // State to track visibility of the plugin menu
+  const [showTagMenu, setShowTagMenu] = useState(false);
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const [showPluginMenu, setShowPluginMenu] = useState(false);
   const [submenuPosition, setSubmenuPosition] = useState({ x: 0, y: 0 });
-
+  const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
+  const setSelectedDownloads = useMainStore(
+    (state) => state.setSelectedDownloads,
+  );
   const { settings } = useMainStore();
   const {
     downloading,
-    addDownload,
+    addQueue,
     removeFromForDownloads,
     forDownloads,
     finishedDownloads,
@@ -460,6 +184,78 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     fetchPluginMenuItems();
   }, [enabledPlugins]);
 
+  // Function to recalculate submenu position
+  const recalculateSubmenuPosition = (
+    buttonRef: React.RefObject<HTMLButtonElement>,
+    itemCount: number,
+    menuType: 'tag' | 'category' | 'plugin',
+  ) => {
+    if (buttonRef.current && menuRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const menuRect = menuRef.current.getBoundingClientRect();
+
+      let submenuX = menuRect.right + 1;
+      let submenuY = buttonRect.top;
+
+      // Calculate the height of the submenu based on type
+      let submenuHeight;
+      if (menuType === 'plugin') {
+        submenuHeight = Math.min(itemCount * 40, 300);
+      } else {
+        const inputAreaHeight = 80; // approximate height of input area + divider
+        const maxListHeight = 192; // max-h-48 = 192px
+        const actualListHeight = Math.min(itemCount * 40, maxListHeight);
+        submenuHeight = inputAreaHeight + actualListHeight;
+      }
+
+      // If the submenu would overflow the bottom, shift up
+      if (submenuY + submenuHeight > window.innerHeight - 10) {
+        submenuY = Math.max(10, window.innerHeight - submenuHeight - 10);
+      }
+      // If the submenu would overflow the top, shift down
+      if (submenuY < 10) {
+        submenuY = 10;
+      }
+
+      // Check if submenu would overflow viewport horizontally and adjust if needed
+      const submenuWidth = 200; // approximate width
+      if (submenuX + submenuWidth > window.innerWidth) {
+        submenuX = menuRect.left - submenuWidth - 1; // Position to the left instead
+      }
+
+      setSubmenuPosition({ x: submenuX, y: submenuY });
+    }
+  };
+
+  // Recalculate tag submenu position when available tags change
+  useEffect(() => {
+    if (showTagMenu) {
+      recalculateSubmenuPosition(tagButtonRef, availableTags.length, 'tag');
+    }
+  }, [availableTags.length, showTagMenu]);
+
+  // Recalculate category submenu position when available categories change
+  useEffect(() => {
+    if (showCategoryMenu) {
+      recalculateSubmenuPosition(
+        categoryButtonRef,
+        availableCategories.length,
+        'category',
+      );
+    }
+  }, [availableCategories.length, showCategoryMenu]);
+
+  // Recalculate plugin submenu position when plugin items change
+  useEffect(() => {
+    if (showPluginMenu) {
+      recalculateSubmenuPosition(
+        pluginButtonRef,
+        pluginMenuItems.length,
+        'plugin',
+      );
+    }
+  }, [pluginMenuItems.length, showPluginMenu]);
+
   // Helper function to check if a string is an SVG
   const isSvgString = (str: string): boolean => {
     return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
@@ -479,7 +275,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
           // Calculate approximate menu height based on number of items
           const itemHeight = 40; // approximate height of each menu item
-          const baseMenuHeight = itemHeight * 6; // All download statuses have 6 base menu items (including Tags and Category)
+          const baseMenuHeight = itemHeight * 7; // All download statuses have 6 base menu items (including Tags and Category)
           const pluginItemsHeight =
             pluginMenuItems.length <= 4
               ? pluginMenuItems.length * itemHeight +
@@ -518,116 +314,72 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       // Use requestAnimationFrame to ensure DOM is ready
       requestAnimationFrame(checkAndAdjustPosition);
     }
-  }, [position, pluginMenuItems.length, downloadStatus]);
+  }, [position, pluginMenuItems.length, download.status]);
 
   // Function to handle opening tag menu
   const handleTagMenuClick = (e: React.MouseEvent) => {
-    console.log(pluginMenuItems);
     e.stopPropagation();
 
-    // Calculate position for submenu
-    if (tagButtonRef.current && menuRef.current) {
-      const buttonRect = tagButtonRef.current.getBoundingClientRect();
-      const menuRect = menuRef.current.getBoundingClientRect();
-
-      // Position submenu to the right of the main menu
-      let submenuX = menuRect.right + 1;
-      const submenuY = buttonRect.top;
-
-      // Check if submenu would overflow viewport and adjust if needed
-      const submenuWidth = 200; // approximate width
-      if (submenuX + submenuWidth > window.innerWidth) {
-        submenuX = menuRect.left - submenuWidth - 1; // Position to the left instead
-      }
-
-      setSubmenuPosition({ x: submenuX, y: submenuY });
-    }
-
     setShowCategoryMenu(false); // Close category menu
-    setShowTagMenu(!showTagMenu);
+    setShowPluginMenu(false); // Close plugin menu
+    const newShowTagMenu = !showTagMenu;
+    setShowTagMenu(newShowTagMenu);
+
+    // Calculate position for submenu
+    if (newShowTagMenu) {
+      recalculateSubmenuPosition(tagButtonRef, availableTags.length, 'tag');
+    }
   };
 
   // Function to handle opening category menu
   const handleCategoryMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // Calculate position for submenu
-    if (categoryButtonRef.current && menuRef.current) {
-      const buttonRect = categoryButtonRef.current.getBoundingClientRect();
-      const menuRect = menuRef.current.getBoundingClientRect();
-
-      // Position submenu to the right of the main menu
-      let submenuX = menuRect.right + 1;
-      const submenuY = buttonRect.top;
-
-      // Check if submenu would overflow viewport and adjust if needed
-      const submenuWidth = 200; // approximate width
-      if (submenuX + submenuWidth > window.innerWidth) {
-        submenuX = menuRect.left - submenuWidth - 1; // Position to the left instead
-      }
-
-      setSubmenuPosition({ x: submenuX, y: submenuY });
-    }
-
     setShowTagMenu(false); // Close tag menu
-    setShowCategoryMenu(!showCategoryMenu);
+    setShowPluginMenu(false); // Close plugin menu
+    const newShowCategoryMenu = !showCategoryMenu;
+    setShowCategoryMenu(newShowCategoryMenu);
+
+    // Calculate position for submenu
+    if (newShowCategoryMenu) {
+      recalculateSubmenuPosition(
+        categoryButtonRef,
+        availableCategories.length,
+        'category',
+      );
+    }
   };
 
   // Function to handle opening plugin menu
   const handlePluginMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
 
+    setShowTagMenu(false);
+    setShowCategoryMenu(false);
+    const newShowPluginMenu = !showPluginMenu;
+    setShowPluginMenu(newShowPluginMenu);
+
     // Calculate position for submenu
-    if (pluginButtonRef.current && menuRef.current) {
-      const buttonRect = pluginButtonRef.current.getBoundingClientRect();
-      const menuRect = menuRef.current.getBoundingClientRect();
-
-      // Position submenu to the right of the main menu
-      let submenuX = menuRect.right + 1;
-      let submenuY = buttonRect.top;
-
-      // Always align submenu to the TOP of the plugin button
-      // Calculate the height of the submenu
-      const submenuHeight = Math.min(pluginMenuItems.length * 40, 300); // approximate height
-      // If the submenu would overflow the bottom, shift up
-      if (submenuY + submenuHeight > window.innerHeight - 10) {
-        submenuY = Math.max(10, window.innerHeight - submenuHeight - 10);
-      }
-      // If the submenu would overflow the top, shift down
-      if (submenuY < 10) {
-        submenuY = 10;
-      }
-
-      // Check if submenu would overflow viewport horizontally and adjust if needed
-      const submenuWidth = 200; // approximate width
-      if (submenuX + submenuWidth > window.innerWidth) {
-        submenuX = menuRect.left - submenuWidth - 1; // Position to the left instead
-      }
-
-      setSubmenuPosition({ x: submenuX, y: submenuY });
+    if (newShowPluginMenu) {
+      recalculateSubmenuPosition(
+        pluginButtonRef,
+        pluginMenuItems.length,
+        'plugin',
+      );
     }
-
-    setShowTagMenu(false); // Close tag menu
-    setShowCategoryMenu(false); // Close category menu
-    setShowPluginMenu(!showPluginMenu);
   };
 
   // Function to start the download
   const handleStartDownload = async () => {
-    // Find the download information from forDownloads using downloadId
-    const currentDownload = forDownloads.find((d) => d.id === downloadId);
-
-    if (!currentDownload) {
-      console.error('Download not found in forDownloads');
-      return;
-    }
-
     // Process the filename first
     const processedName = await processFileName(
-      currentDownload.location,
-      currentDownload.name,
-      currentDownload.ext || currentDownload.audioExt,
+      download.location || '',
+      download.name || '',
+      download.ext || download.audioExt,
     );
+
+    setSelectedRowIds([]);
+    setSelectedDownloads([]);
 
     if (downloading.length >= settings.maxDownloadNum) {
       toast({
@@ -638,80 +390,243 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       });
       return;
     }
-    // calls the addDownload function from store to start each selected download
-    addDownload(
-      currentDownload.videoUrl,
-      `${processedName}.${currentDownload.ext}`,
-      `${processedName}.${currentDownload.ext}`,
-      currentDownload.size || 0,
-      currentDownload.speed || '0 KB/s',
-      currentDownload.timeLeft || '0:00:00',
+
+    // Add to queue - let the download controller handle starting it
+    addQueue(
+      download.videoUrl || '',
+      `${processedName}.${download.ext || ''}`,
+      `${processedName}.${download.ext || ''}`,
+      download.size || 0,
+      download.speed || '0 KB/s',
+      download.channelName || '',
+      download.timeLeft || '0:00:00',
       new Date().toISOString(),
-      0,
-      currentDownload.location,
-      'downloading',
-      currentDownload.ext || 'mp4',
-      currentDownload.formatId || '',
-      currentDownload.audioExt || '',
-      currentDownload.audioFormatId || '',
-      currentDownload.extractorKey || '',
+      download.progress || 0,
+      download.location || '',
+      'queued',
+      download.ext || '',
+      download.formatId || '',
+      download.audioExt || '',
+      download.audioFormatId || '',
+      download.extractorKey || '',
       settings.defaultDownloadSpeed === 0
         ? ''
         : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`,
-      currentDownload.automaticCaption,
-      currentDownload.thumbnails,
-      currentDownload.getTranscript || false,
-      currentDownload.getThumbnail || false,
-      currentDownload.duration || 0,
+      download.automaticCaption || false,
+      download.thumbnails || [],
+      download.getTranscript || false,
+      download.getThumbnail || false,
+      download.duration || 60,
       true,
     );
 
-    removeFromForDownloads(currentDownload.id); // Remove from forDownloads after starting
+    // Remove from forDownloads
+    removeFromForDownloads(download.id || '');
+
+    toast({
+      title: 'Download Added to Queue',
+      description: `"${processedName}" added to queue. The download controller will start it automatically.`,
+      duration: 3000,
+    });
+
     onClose();
   };
 
   // Function to render menu options based on download status
   const renderMenuOptions = () => {
-    // Common options for tags and categories
-    const commonOptions = (
+    const viewFolderOption = (
       <>
         <button
-          ref={tagButtonRef}
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-          onClick={handleTagMenuClick}
+          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+          onClick={() => {
+            onViewFolder(download.location, download.name);
+            onClose();
+          }}
         >
           <span className="flex items-center space-x-2">
-            <LiaTagsSolid size={20} />
-            <span>Tags</span>
-          </span>
-          <span className="ml-auto">
-            <GoChevronRight size={20} />
-          </span>
-        </button>
-
-        <button
-          ref={categoryButtonRef}
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-          onClick={handleCategoryMenuClick}
-        >
-          <span className="flex items-center space-x-2">
-            <LiaTagsSolid size={20} />
-            <span>Category</span>
-          </span>
-          <span className="ml-auto">
-            <GoChevronRight size={20} />
+            <LuFolderOpen size={18} />
+            <span>View Folder</span>
           </span>
         </button>
       </>
     );
 
-    if (downloadStatus === 'failed') {
+    const commonOptions = (
+      <>
+        <button
+          ref={tagButtonRef}
+          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+          onClick={handleTagMenuClick}
+        >
+          <span className="flex items-center space-x-2">
+            <LiaTagsSolid size={18} />
+            <span>Tags</span>
+          </span>
+          <span className="ml-auto">
+            <GoChevronRight size={18} />
+          </span>
+        </button>
+
+        <button
+          ref={categoryButtonRef}
+          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+          onClick={handleCategoryMenuClick}
+        >
+          <span className="flex items-center space-x-2">
+            <LiaTagsSolid size={18} />
+            <span>Category</span>
+          </span>
+          <span className="ml-auto">
+            <GoChevronRight size={18} />
+          </span>
+        </button>
+      </>
+    );
+
+    const activityTrackerOption = (
+      <>
+        <button
+          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+          onClick={() => {
+            onShowActivityTracker(download.id || '');
+            onClose();
+          }}
+        >
+          <span className="flex items-center space-x-2">
+            <FaTerminal size={13} />
+            <span>Show Activity Tracker</span>
+          </span>
+        </button>
+      </>
+    );
+
+    const pausedOptions = (
+      <>
+        <button
+          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+          onClick={() => {
+            onPause(
+              download.id || '',
+              download.location,
+              download.controllerId,
+              download.status,
+            );
+            onClose();
+          }}
+        >
+          <span className="flex items-center space-x-2">
+            <IoPauseCircleOutline size={20} />
+            <span>Pause</span>
+          </span>
+        </button>
+      </>
+    );
+
+    const stopOptions = (
+      <>
+        <button
+          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+          onClick={(e) => {
+            e.stopPropagation();
+            onShowStopModal(
+              download.id || '',
+              download.location,
+              download.controllerId,
+            );
+            onClose();
+          }}
+        >
+          <span className="flex items-center space-x-2">
+            <HiOutlineStopCircle size={20} />
+            <span>Stop</span>
+          </span>
+        </button>
+      </>
+    );
+
+    const removeOptions = (
+      <>
+        <button
+          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+          onClick={(e) => {
+            e.stopPropagation();
+            onShowRemoveModal(
+              download.id || '',
+              download.location,
+              download.controllerId,
+            );
+            onClose();
+          }}
+        >
+          <span className="flex items-center space-x-2">
+            <LuTrash size={16} />
+            <span>Remove</span>
+          </span>
+        </button>
+      </>
+    );
+
+    const showLogOption = (
+      <>
+        <button
+          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+          onClick={() => {
+            onShowLog(download.id || '');
+            onClose();
+          }}
+        >
+          <span className="flex items-center space-x-2">
+            <IoCodeSlashSharp size={16} />
+            <span>Show Logs</span>
+          </span>
+        </button>
+      </>
+    );
+
+    const startOption = (
+      <>
+        <button
+          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+          onClick={handleStartDownload}
+        >
+          <span className="flex items-center space-x-2">
+            <MdOutlinePlayCircle size={16} />
+            <span>Start</span>
+          </span>
+        </button>
+      </>
+    );
+
+    const startFromPausedOption = (
+      <>
+        <button
+          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+          onClick={() => {
+            onPause(
+              download.id || '',
+              download.location,
+              download.controllerId,
+              download.status,
+            );
+            onClose();
+          }}
+        >
+          <span className="flex items-center space-x-2">
+            <MdOutlinePlayCircle size={20} />
+            <span>Start</span>
+          </span>
+        </button>
+      </>
+    );
+
+    if (download.status === 'failed') {
       return (
         <>
+          {viewFolderOption}
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onRetry(downloadId);
+              onRetry(download.id || '');
               onClose();
             }}
           >
@@ -720,59 +635,21 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <span>Retry</span>
             </span>
           </button>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onViewFolder(
-                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
-                downloadFile,
-              );
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <LuFolderOpen size={20} />
-              <span>View Folder</span>
-            </span>
-          </button>
-
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowRemoveModal(downloadId, downloadLocation, controllerId);
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <LuTrash size={16} />
-              <span>Remove</span>
-            </span>
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onShowLog(downloadId);
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <IoCodeSlashSharp size={20} />
-              <span>Show Log</span>
-            </span>
-          </button>
-          {commonOptions}
+          {removeOptions}
+          {showLogOption}
+          {activityTrackerOption}
         </>
       );
     }
 
-    if (downloadStatus === 'finished') {
+    if (download.status === 'finished') {
       return (
         <>
+          {viewFolderOption}
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={() => {
-              onViewDownload(downloadLocation, downloadId);
+              onViewDownload(download.location, download.id);
               onClose();
             }}
           >
@@ -781,256 +658,49 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <span>Play Download</span>
             </span>
           </button>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onViewFolder(
-                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
-                downloadFile,
-              );
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <LuFolderOpen size={20} />
-              <span>View Folder</span>
-            </span>
-          </button>
-
-          {/* Add Format Converter option 
-          <div className="relative">
-            <button
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-              onClick={handleFormatConverterClick}
-            >
-              <span className="flex items-center space-x-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M17 15h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-2"></path>
-                  <path d="M7 15H5a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h2"></path>
-                  <line x1="8" y1="9" x2="16" y2="9"></line>
-                  <line x1="8" y1="15" x2="16" y2="15"></line>
-                </svg>
-                <span>Format converter</span>
-              </span>
-              <span className="ml-auto">
-                <GoChevronRight size={20} />
-              </span>
-            </button>
-
-            {showFormatConverterMenu && (
-              <FormatConverterMenu
-                downloadId={downloadId}
-                menuPositionClass={getTagMenuPositionClass()}
-                onConvert={handleConvert}
-              />
-            )}
-          </div>
-*/}
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowRemoveModal(downloadId, downloadLocation, controllerId);
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <LuTrash size={16} />
-              <span>Remove</span>
-            </span>
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onShowLog(downloadId);
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <IoCodeSlashSharp size={20} />
-              <span>Show Log</span>
-            </span>
-          </button>
+          {removeOptions}
+          {showLogOption}
+          {activityTrackerOption}
           {commonOptions}
           {renderPluginMenuItems()}
         </>
       );
     }
 
-    if (downloadStatus === 'initializing') {
+    if (download.status === 'initializing') {
       return (
         <>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onViewFolder(
-                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
-                downloadFile,
-              );
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <LuFolderOpen size={20} />
-              <span>View Folder</span>
-            </span>
-          </button>
-
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onPause(
-                downloadId,
-                downloadLocation,
-                controllerId,
-                downloadStatus,
-              );
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <IoPauseCircleOutline size={20} />
-              <span>Pause</span>
-            </span>
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowStopModal(downloadId, downloadLocation, controllerId);
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <HiOutlineStopCircle size={20} />
-              <span>Stop</span>
-            </span>
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onShowLog(downloadId);
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <IoCodeSlashSharp size={20} />
-              <span>Show Logs</span>
-            </span>
-          </button>
-          {commonOptions}
+          {viewFolderOption}
+          {pausedOptions}
+          {stopOptions}
+          {showLogOption}
+          {activityTrackerOption}
         </>
       );
     }
 
-    if (downloadStatus === 'paused') {
+    if (download.status === 'paused') {
       return (
         <>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onViewFolder(
-                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
-                downloadFile,
-              );
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <LuFolderOpen size={20} />
-              <span>View Folder</span>
-            </span>
-          </button>
-
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onPause(
-                downloadId,
-                downloadLocation,
-                controllerId,
-                downloadStatus,
-              );
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <VscDebugStart size={20} />
-              <span>Start</span>
-            </span>
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowStopModal(downloadId, downloadLocation, controllerId);
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <HiOutlineStopCircle size={20} />
-              <span>Stop</span>
-            </span>
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onShowLog(downloadId);
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <VscDebugStart size={20} />
-              <span>Start</span>
-            </span>
-          </button>
-          {commonOptions}
+          {viewFolderOption}
+          {startFromPausedOption}
+          {stopOptions}
+          {showLogOption}
+          {activityTrackerOption}
         </>
       );
     }
 
-    if (downloadStatus === 'to download') {
+    if (download.status === 'to download') {
       return (
         <>
+          {viewFolderOption}
+          {startOption}
           <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={handleStartDownload}
-          >
-            <span className="flex items-center space-x-2">
-              <PlayCircle size={20} />
-              <span>Start</span>
-            </span>
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onViewFolder(
-                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
-                downloadFile,
-              );
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <LuFolderOpen size={20} />
-              <span>View Folder</span>
-            </span>
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+            className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
             onClick={(e) => {
               e.stopPropagation();
-              onRename(downloadId, downloadName);
+              onRename(download.id || '', download.name || '');
               onClose();
             }}
           >
@@ -1039,139 +709,27 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <span>Rename</span>
             </span>
           </button>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowRemoveModal(downloadId, downloadLocation, controllerId);
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <LuTrash size={16} />
-              <span>Remove</span>
-            </span>
-          </button>
-          {commonOptions}
+          {removeOptions}
+          {activityTrackerOption}
         </>
       );
     }
 
-    if (downloadStatus === 'downloading') {
+    if (download.status === 'downloading') {
       return (
         <>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onViewFolder(
-                downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
-                downloadFile,
-              );
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <LuFolderOpen size={20} />
-              <span>View Folder</span>
-            </span>
-          </button>
-
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onPause(
-                downloadId,
-                downloadLocation,
-                controllerId,
-                downloadStatus,
-              );
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <IoPauseCircleOutline size={20} />
-              <span>Pause</span>
-            </span>
-          </button>
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowStopModal(downloadId, downloadLocation, controllerId);
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <HiOutlineStopCircle size={20} />
-              <span>Stop</span>
-            </span>
-          </button>
-          {/* 
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onForceStart(downloadId, downloadLocation, controllerId);
-              onClose();
-            }}
-          >
-
-            <span className="flex items-center space-x-2">
-              <BiRightArrow size={18} />
-              <span>Force Start</span>
-            </span>
-          </button>
-          */}
-          <button
-            className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-            onClick={() => {
-              onShowLog(downloadId);
-              onClose();
-            }}
-          >
-            <span className="flex items-center space-x-2">
-              <IoCodeSlashSharp size={20} />
-              <span>Show Log</span>
-            </span>
-          </button>
+          {viewFolderOption}
+          {pausedOptions}
+          {stopOptions}
+          {showLogOption}
+          {activityTrackerOption}
           {commonOptions}
         </>
       );
     }
 
-    // Default case (downloading)
-    return (
-      <>
-        <button
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-          onClick={() => {
-            onViewFolder(
-              downloadLocation?.replace(/(\/|\\)[^/\\]+$/, ''),
-              downloadFile,
-            );
-            onClose();
-          }}
-        >
-          <span className="flex items-center space-x-2">
-            <LuFolderOpen size={20} />
-            <span>View Folder</span>
-          </span>
-        </button>
-      </>
-    );
+    return <>{viewFolderOption}</>;
   };
-
-  /*
-  function handleMenuItemClick(menuItemId: string) {
-    const downloadInfo = allDownloads.find((d) => d.id === downloadId);
-
-    if (downloadInfo) {
-      // Use the IPC channel instead of direct call
-      window.plugins.executeMenuItem(menuItemId, downloadInfo);
-    } else {
-      window.plugins.executeMenuItem(menuItemId, { id: downloadId });
-    }
-  }
-*/
 
   const renderPluginMenuItems = () => {
     if (!pluginMenuItems || pluginMenuItems.length === 0) return null;
@@ -1187,29 +745,28 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           {pluginMenuItems.map((item) => (
             <button
               key={item.id || item.label}
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+              className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
               onClick={() => {
                 const contextData = {
-                  name: downloadName,
-                  downloadId,
-                  videoUrl: allDownloads.find((d) => d.id === downloadId)
+                  name: download.name || '',
+                  downloadId: download.id || '',
+                  videoUrl: allDownloads.find((d) => d.id === download.id)
                     ?.videoUrl,
-                  location: downloadLocation,
-                  status: downloadStatus,
-                  duration: allDownloads.find((d) => d.id === downloadId)
+                  location: download.location,
+                  status: download.status,
+                  duration: allDownloads.find((d) => d.id === download.id)
                     ?.duration,
-                  size: allDownloads.find((d) => d.id === downloadId)?.size,
-                  ext: allDownloads.find((d) => d.id === downloadId)?.ext,
-                  captionLocation: allDownloads.find((d) => d.id === downloadId)
-                    ?.autoCaptionLocation,
+                  size: allDownloads.find((d) => d.id === download.id)?.size,
+                  ext: allDownloads.find((d) => d.id === download.id)?.ext,
+                  captionLocation: allDownloads.find(
+                    (d) => d.id === download.id,
+                  )?.autoCaptionLocation,
                   thumbnailLocation: allDownloads.find(
-                    (d) => d.id === downloadId,
+                    (d) => d.id === download.id,
                   )?.thumnailsLocation,
-                  extractorKey: allDownloads.find((d) => d.id === downloadId)
+                  extractorKey: allDownloads.find((d) => d.id === download.id)
                     ?.extractorKey,
                 };
-
-                console.log('Context data:', contextData);
 
                 if (
                   item.handlerId &&
@@ -1272,7 +829,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     <>
       <div
         ref={menuRef}
-        className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 z-50 dark:border-gray-700 min-w-[180px]"
+        className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 z-50 dark:border-gray-700 min-w-[175px]"
         style={{
           left: `${position.x}px`,
           top: `${position.y}px`,
@@ -1295,7 +852,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="m-2 px-4 py-2 flex flex-row border rounded dark:border-gray-700">
+          <div className="m-2 px-3 py-2 flex flex-row border rounded dark:border-gray-700">
             <GoPlus size={22} className="ml-[-10px] mr-2 dark:text-gray-200" />
             <div className="flex-1">
               <input
@@ -1309,7 +866,29 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                     target.value.trim() &&
                     target.value.trim().length <= 10
                   ) {
-                    onAddTag(downloadId, target.value.trim());
+                    const newTag = target.value.trim();
+
+                    // Check for duplicates (case-insensitive)
+                    const isDuplicate = availableTags.some(
+                      (existingTag) =>
+                        existingTag.toLowerCase() === newTag.toLowerCase(),
+                    );
+
+                    if (isDuplicate) {
+                      toast({
+                        variant: 'destructive',
+                        title: 'Duplicate Tag',
+                        description: `Tag "${newTag}" already exists.`,
+                        duration: 2000,
+                      });
+                    } else {
+                      onAddTag(download.id || '', newTag);
+                      toast({
+                        title: 'Tag Added',
+                        description: `Tag "${newTag}" has been added.`,
+                        duration: 2000,
+                      });
+                    }
                     target.value = '';
                   }
                 }}
@@ -1325,13 +904,13 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             {availableTags.map((tag) => (
               <button
                 key={tag}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
+                className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (currentTags.includes(tag)) {
-                    onRemoveTag(downloadId, tag);
+                    onRemoveTag(download.id || '', tag);
                   } else {
-                    onAddTag(downloadId, tag);
+                    onAddTag(download.id || '', tag);
                   }
                 }}
               >
@@ -1356,7 +935,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="m-2 px-4 py-2 flex flex-row border rounded dark:border-gray-700">
+          <div className="m-2 px-3 py-2 flex flex-row border rounded dark:border-gray-700">
             <GoPlus size={22} className="ml-[-10px] mr-2 dark:text-gray-200" />
             <div className="flex-1">
               <input
@@ -1370,10 +949,34 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                     target.value.trim() &&
                     target.value.trim().length <= 10
                   ) {
-                    if (currentCategories.length > 0) {
-                      onRemoveCategory(downloadId, currentCategories[0]);
+                    const newCategory = target.value.trim();
+
+                    // Check for duplicates (case-insensitive)
+                    const isDuplicate = availableCategories.some(
+                      (existingCategory) =>
+                        existingCategory.toLowerCase() ===
+                        newCategory.toLowerCase(),
+                    );
+
+                    if (isDuplicate) {
+                      toast({
+                        variant: 'destructive',
+                        title: 'Duplicate Category',
+                        description: `Category "${newCategory}" already exists.`,
+                        duration: 2000,
+                      });
+                    } else {
+                      // Remove current category first (single category per download)
+                      if (currentCategories.length > 0) {
+                        onRemoveCategory(download.id, currentCategories[0]);
+                      }
+                      onAddCategory(download.id, newCategory);
+                      toast({
+                        title: 'Category Added',
+                        description: `Category "${newCategory}" has been added.`,
+                        duration: 2000,
+                      });
                     }
-                    onAddCategory(downloadId, target.value.trim());
                     target.value = '';
                   }
                 }}
@@ -1389,16 +992,16 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             {availableCategories.map((category) => (
               <button
                 key={category}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
+                className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (currentCategories.includes(category)) {
-                    onRemoveCategory(downloadId, category);
+                    onRemoveCategory(download.id, category);
                   } else {
                     if (currentCategories.length > 0) {
-                      onRemoveCategory(downloadId, currentCategories[0]);
+                      onRemoveCategory(download.id, currentCategories[0]);
                     }
-                    onAddCategory(downloadId, category);
+                    onAddCategory(download.id, category);
                   }
                 }}
               >
@@ -1426,25 +1029,26 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           {pluginMenuItems.map((item) => (
             <button
               key={item.id || item.label}
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2"
+              className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2"
               onClick={() => {
                 const contextData = {
-                  name: downloadName,
-                  downloadId,
-                  videoUrl: allDownloads.find((d) => d.id === downloadId)
+                  name: download.name,
+                  downloadId: download.id,
+                  videoUrl: allDownloads.find((d) => d.id === download.id)
                     ?.videoUrl,
-                  location: downloadLocation,
-                  status: downloadStatus,
-                  duration: allDownloads.find((d) => d.id === downloadId)
+                  location: download.location,
+                  status: download.status,
+                  duration: allDownloads.find((d) => d.id === download.id)
                     ?.duration,
-                  size: allDownloads.find((d) => d.id === downloadId)?.size,
-                  ext: allDownloads.find((d) => d.id === downloadId)?.ext,
-                  captionLocation: allDownloads.find((d) => d.id === downloadId)
-                    ?.autoCaptionLocation,
+                  size: allDownloads.find((d) => d.id === download.id)?.size,
+                  ext: allDownloads.find((d) => d.id === download.id)?.ext,
+                  captionLocation: allDownloads.find(
+                    (d) => d.id === download.id,
+                  )?.autoCaptionLocation,
                   thumbnailLocation: allDownloads.find(
-                    (d) => d.id === downloadId,
+                    (d) => d.id === download.id,
                   )?.thumnailsLocation,
-                  extractorKey: allDownloads.find((d) => d.id === downloadId)
+                  extractorKey: allDownloads.find((d) => d.id === download.id)
                     ?.extractorKey,
                 };
 
@@ -1484,5 +1088,4 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   );
 };
 
-// export { ConfirmModal, RenameModal, StopModal };
 export default DownloadContextMenu;

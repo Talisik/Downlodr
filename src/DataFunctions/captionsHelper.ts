@@ -1,9 +1,22 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Checks if content is an M3U playlist by looking for the header
  * @param content The file content to check
  * @returns boolean indicating if it's an M3U playlist
  */
+
+// TypeScript interfaces for caption data
+interface CaptionInfo {
+  ext: string;
+  url: string;
+  name?: string;
+}
+
+type VideoInfo = CaptionInfo[] & {
+  id?: string;
+  title?: string;
+  name?: string;
+};
+
 function isM3UPlaylist(content: string): boolean {
   return content.trim().startsWith('#EXTM3U');
 }
@@ -121,7 +134,7 @@ async function processM3UPlaylist(filePath: string): Promise<boolean> {
  */
 
 export async function downloadEnglishCaptions(
-  videoInfo: any,
+  videoInfo: VideoInfo,
   outputPath: string,
   fileName: string,
 ): Promise<string | undefined> {
@@ -148,7 +161,7 @@ export async function downloadEnglishCaptions(
 
     for (const format of formatPreference) {
       selectedCaption = captionsData.find(
-        (caption: any) => caption.ext === format,
+        (caption: CaptionInfo) => caption.ext === format,
       );
       if (selectedCaption) break;
     }

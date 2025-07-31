@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * A custom React Page Component for Status-Specific Downloads
@@ -7,6 +6,30 @@
  *
  * @returns JSX.Element - The rendered component displaying status-filtered downloads.
  */
+import ActivityTracker from '@/Components/SubComponents/custom/ActivityTracker';
+import ColumnHeaderContextMenu from '@/Components/SubComponents/custom/ColumnHeaderContextMenu';
+import DownloadButton from '@/Components/SubComponents/custom/DownloadButton';
+import DownloadContextMenu from '@/Components/SubComponents/custom/DownloadContextMenu';
+import DownloadLogs from '@/Components/SubComponents/custom/DownloadLogs';
+import ExpandedDownloadDetails from '@/Components/SubComponents/custom/ExpandedDownloadDetail';
+import FormatSelector from '@/Components/SubComponents/custom/FormatSelector';
+import { AnimatedLinearProgressBar } from '@/Components/SubComponents/custom/LinearProgress';
+import RemoveModal from '@/Components/SubComponents/custom/RemoveModal';
+import RenameModal from '@/Components/SubComponents/custom/RenameModal';
+import ResizableHeader from '@/Components/SubComponents/custom/ResizableColumns/ResizableHeader';
+import { useResizableColumns } from '@/Components/SubComponents/custom/ResizableColumns/useResizableColumns';
+import ShareButton from '@/Components/SubComponents/custom/ShareButton';
+import SpeedGraph from '@/Components/SubComponents/custom/SpeedGraph';
+import StopModal from '@/Components/SubComponents/custom/StopModal';
+import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
+import { Skeleton } from '@/Components/SubComponents/shadcn/components/ui/skeleton';
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { getExtractorIcon, getStatusIcon } from '@/DataFunctions/IconMapper';
+import { DownloadItem } from '@/schema/componentSchema';
+import useDownloadStore from '@/Store/downloadStore';
+import { useMainStore } from '@/Store/mainStore';
+import { usePluginStore } from '@/Store/pluginStore';
+import { useTaskbarDownloadStore } from '@/Store/taskbarDownloadStore';
 import React, {
   useCallback,
   useEffect,
@@ -14,37 +37,14 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { AiOutlineStop } from 'react-icons/ai';
+import { FaRegClosedCaptioning } from 'react-icons/fa';
+import { HiOutlineFolderOpen } from 'react-icons/hi';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import { VscPlayCircle } from 'react-icons/vsc';
 import { useParams } from 'react-router-dom';
-import ColumnHeaderContextMenu from '../Components/SubComponents/custom/ColumnHeaderContextMenu';
-import DownloadButton from '../Components/SubComponents/custom/DownloadButton';
-/*import DownloadContextMenu, {
-  ConfirmModal as RemoveModal,
-  RenameModal,
-  StopModal,
-} from '../Components/SubComponents/custom/DownloadContextMenu'; */
-import LogModal from '../Components/Main/Modal/LogModal';
-import DownloadContextMenu from '../Components/SubComponents/custom/DownloadContextMenu';
-import ExpandedDownloadDetails from '../Components/SubComponents/custom/ExpandedDownloadDetail';
-import FileNotExistModal, {
-  DownloadItem,
-} from '../Components/SubComponents/custom/FileNotExistModal';
-import FormatSelector from '../Components/SubComponents/custom/FormatSelector';
-import { AnimatedCircularProgressBar } from '../Components/SubComponents/custom/RadialProgress';
-import RemoveModal from '../Components/SubComponents/custom/RemoveModal';
-import RenameModal from '../Components/SubComponents/custom/RenameModal';
-import ResizableHeader from '../Components/SubComponents/custom/ResizableColumns/ResizableHeader';
-import { useResizableColumns } from '../Components/SubComponents/custom/ResizableColumns/useResizableColumns';
-import ShareButton from '../Components/SubComponents/custom/ShareButton';
-import StopModal from '../Components/SubComponents/custom/StopModal';
-import { Skeleton } from '../Components/SubComponents/shadcn/components/ui/skeleton';
-import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
-import useDownloadStore from '../Store/downloadStore';
-import { useMainStore } from '../Store/mainStore';
-import { usePluginStore } from '../Store/pluginStore';
+import FileNotExistModal from '../Components/Main/Modal/FileNotExistModal';
 
-// Reuse helper functions from AllDownloads
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -100,7 +100,7 @@ const statusMapping: Record<string, string> = {
   all: 'all',
 };
 
-// Add this helper function before the StatusSpecificDownloads component
+//  helper function before the StatusSpecificDownloads component
 const calculateContextMenuPosition = (
   clientX: number,
   clientY: number,
@@ -138,6 +138,23 @@ const calculateContextMenuPosition = (
   return { x: x + scrollX, y: y + scrollY };
 };
 
+// TypeScript interface for download objects used in context menu
+interface ContextMenuDownload {
+  id: string;
+  status: string;
+  controllerId?: string;
+  location: string;
+  name: string;
+  videoUrl: string;
+  extractorKey: string;
+  size?: number;
+  progress?: number;
+  DateAdded: string;
+  channelName?: string;
+  thumnailsLocation?: string;
+  autoCaptionLocation?: string;
+}
+
 const StatusSpecificDownloads = () => {
   // Get status from URL parameters
   const { status } = useParams<{ status: string }>();
@@ -145,6 +162,13 @@ const StatusSpecificDownloads = () => {
   const [thumbnailDataUrls, setThumbnailDataUrls] = useState<
     Record<string, string>
   >({});
+
+  // Add window width state for responsive columns
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [windowHeight, setWindowHeight] = useState(window.innerHeight);
+
+  // Calculate SpeedGraph height as 33% of app height
+  const speedGraphHeight = Math.floor(windowHeight * 0.027);
 
   // Set page title based on status
   useEffect(() => {
@@ -200,10 +224,39 @@ const StatusSpecificDownloads = () => {
   const visibleColumns = useMainStore((state) => state.visibleColumns);
   const { updateIsOpenPluginSidebar } = usePluginStore();
 
+  const searchState = useTaskbarDownloadStore((state) => state.searchState);
+  const { isSearchActive, searchQuery, searchResults } = searchState;
+
   // Downloads
   const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
   const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
+  const [showActivityTracker, setShowActivityTracker] = useState(false);
+  const [activityTrackerDownloadId, setActivityTrackerDownloadId] = useState<
+    string | null
+  >(null);
+
+  // Memoize initial columns to prevent re-initialization on window resize
+  const initialColumns = useMemo(
+    () => [
+      {
+        id: 'name',
+        width: Math.max(Math.floor(window.innerWidth * 0.3), 180),
+        minWidth: 180,
+      },
+      { id: 'size', width: 50, minWidth: 50 },
+      { id: 'format', width: 90, minWidth: 90 },
+      { id: 'status', width: 90, minWidth: 90 },
+      { id: 'speed', width: 60, minWidth: 60 },
+      { id: 'dateAdded', width: 70, minWidth: 70 },
+      { id: 'transcript', width: 20, minWidth: 20 },
+      { id: 'thumbnail', width: 20, minWidth: 20 },
+      { id: 'source', width: 20, minWidth: 20 },
+      { id: 'action', width: 10, minWidth: 10 },
+    ],
+    [],
+  ); // Empty dependency array ensures this only runs once
+
   // Call the hook with visible column IDs
   const {
     columns,
@@ -214,109 +267,108 @@ const StatusSpecificDownloads = () => {
     cancelDrag,
     dragging,
     dragOverIndex,
-  } = useResizableColumns(
-    [
-      { id: 'name', width: 100, minWidth: 100 },
-      { id: 'size', width: 65, minWidth: 65 },
-      { id: 'format', width: 90, minWidth: 90 },
-      { id: 'status', width: 110, minWidth: 110 },
-      { id: 'speed', width: 100, minWidth: 100 },
-      { id: 'dateAdded', width: 100, minWidth: 100 },
-      { id: 'transcript', width: 20, minWidth: 20 },
-      { id: 'thumbnail', width: 10, minWidth: 10 },
-      { id: 'source', width: 20, minWidth: 20 },
-      { id: 'action', width: 10, minWidth: 10 },
-    ],
-    visibleColumns,
-  );
+  } = useResizableColumns(initialColumns, visibleColumns);
 
   // PERFORMANCE OPTIMIZATION: Memoize expensive computations
   // Combine and process downloads only when dependencies change
   const allDownloads = useMemo(() => {
-    const combined = [
-      ...forDownloads,
-      ...downloading,
-      ...finishedDownloads,
-      ...history,
-      ...queuedDownloads,
-    ]
-      .filter(
-        (download, index, self) =>
-          index === self.findIndex((d) => d.id === download.id),
-      )
-      // Filter by status if we're on a status-specific page
-      .filter((download) => {
-        if (!currentStatus) return true; // If no status filter, show all
-        if (currentStatus.toLowerCase() === 'all') return true; // Show all for 'all' status
-        return download.status.toLowerCase() === currentStatus.toLowerCase();
-      })
-      .sort((a, b) => {
-        // Apply sorting based on sortColumn and sortDirection
-        switch (sortColumn) {
-          case 'name':
-            return sortDirection === 'asc'
-              ? a.name.localeCompare(b.name)
-              : b.name.localeCompare(a.name);
-          case 'size': {
-            const sizeA = a.size || 0;
-            const sizeB = b.size || 0;
-            return sortDirection === 'asc' ? sizeA - sizeB : sizeB - sizeA;
+    let combined;
+
+    // If search is active, use search results
+    if (isSearchActive) {
+      combined = searchResults;
+    } else {
+      combined = [
+        ...forDownloads,
+        ...downloading,
+        ...finishedDownloads,
+        ...history,
+        ...queuedDownloads,
+      ]
+        .filter(
+          (download, index, self) =>
+            index === self.findIndex((d) => d.id === download.id),
+        )
+        // Filter by status if we're on a status-specific page
+        .filter((download) => {
+          if (!currentStatus) return true; // If no status filter, show all
+          if (currentStatus.toLowerCase() === 'all') return true; // Show all for 'all' status
+          return download.status.toLowerCase() === currentStatus.toLowerCase();
+        })
+        .sort((a, b) => {
+          // Apply sorting based on sortColumn and sortDirection
+          switch (sortColumn) {
+            case 'name':
+              return sortDirection === 'asc'
+                ? a.name.localeCompare(b.name)
+                : b.name.localeCompare(a.name);
+            case 'size': {
+              const sizeA = a.size || 0;
+              const sizeB = b.size || 0;
+              return sortDirection === 'asc' ? sizeA - sizeB : sizeB - sizeA;
+            }
+            case 'format': {
+              const formatA = a.ext || '';
+              const formatB = b.ext || '';
+              return sortDirection === 'asc'
+                ? formatA.localeCompare(formatB)
+                : formatB.localeCompare(formatA);
+            }
+            case 'status': {
+              return sortDirection === 'asc'
+                ? a.status.localeCompare(b.status)
+                : b.status.localeCompare(a.status);
+            }
+            case 'speed': {
+              // Handle speed sorting (numbers with units)
+              const speedA = a.speed
+                ? parseFloat(a.speed.split(' ')[0]) || 0
+                : 0;
+              const speedB = b.speed
+                ? parseFloat(b.speed.split(' ')[0]) || 0
+                : 0;
+              return sortDirection === 'asc'
+                ? speedA - speedB
+                : speedB - speedA;
+            }
+            case 'dateAdded': {
+              return sortDirection === 'asc'
+                ? new Date(a.DateAdded).getTime() -
+                    new Date(b.DateAdded).getTime()
+                : new Date(b.DateAdded).getTime() -
+                    new Date(a.DateAdded).getTime();
+            }
+            case 'source': {
+              const sourceA = a.extractorKey || '';
+              const sourceB = b.extractorKey || '';
+              return sortDirection === 'asc'
+                ? sourceA.localeCompare(sourceB)
+                : sourceB.localeCompare(sourceA);
+            }
+            case 'thumbnail': {
+              const sourceA = a.extractorKey || '';
+              const sourceB = b.extractorKey || '';
+              return sortDirection === 'asc'
+                ? sourceA.localeCompare(sourceB)
+                : sourceB.localeCompare(sourceA);
+            }
+            case 'transcript': {
+              const sourceA = a.extractorKey || '';
+              const sourceB = b.extractorKey || '';
+              return sortDirection === 'asc'
+                ? sourceA.localeCompare(sourceB)
+                : sourceB.localeCompare(sourceA);
+            }
+            default: {
+              return sortDirection === 'asc'
+                ? new Date(a.DateAdded).getTime() -
+                    new Date(b.DateAdded).getTime()
+                : new Date(b.DateAdded).getTime() -
+                    new Date(a.DateAdded).getTime();
+            }
           }
-          case 'format': {
-            const formatA = a.ext || '';
-            const formatB = b.ext || '';
-            return sortDirection === 'asc'
-              ? formatA.localeCompare(formatB)
-              : formatB.localeCompare(formatA);
-          }
-          case 'status': {
-            return sortDirection === 'asc'
-              ? a.status.localeCompare(b.status)
-              : b.status.localeCompare(a.status);
-          }
-          case 'speed': {
-            // Handle speed sorting (numbers with units)
-            const speedA = a.speed ? parseFloat(a.speed.split(' ')[0]) || 0 : 0;
-            const speedB = b.speed ? parseFloat(b.speed.split(' ')[0]) || 0 : 0;
-            return sortDirection === 'asc' ? speedA - speedB : speedB - speedA;
-          }
-          case 'dateAdded': {
-            return sortDirection === 'asc'
-              ? new Date(a.DateAdded).getTime() -
-                  new Date(b.DateAdded).getTime()
-              : new Date(b.DateAdded).getTime() -
-                  new Date(a.DateAdded).getTime();
-          }
-          case 'source': {
-            const sourceA = a.extractorKey || '';
-            const sourceB = b.extractorKey || '';
-            return sortDirection === 'asc'
-              ? sourceA.localeCompare(sourceB)
-              : sourceB.localeCompare(sourceA);
-          }
-          case 'thumbnail': {
-            const sourceA = a.extractorKey || '';
-            const sourceB = b.extractorKey || '';
-            return sortDirection === 'asc'
-              ? sourceA.localeCompare(sourceB)
-              : sourceB.localeCompare(sourceA);
-          }
-          case 'transcript': {
-            const sourceA = a.extractorKey || '';
-            const sourceB = b.extractorKey || '';
-            return sortDirection === 'asc'
-              ? sourceA.localeCompare(sourceB)
-              : sourceB.localeCompare(sourceA);
-          }
-          default: {
-            return sortDirection === 'asc'
-              ? new Date(a.DateAdded).getTime() -
-                  new Date(b.DateAdded).getTime()
-              : new Date(b.DateAdded).getTime() -
-                  new Date(a.DateAdded).getTime();
-          }
-        }
-      });
+        });
+    }
 
     return combined;
   }, [
@@ -328,6 +380,8 @@ const StatusSpecificDownloads = () => {
     currentStatus,
     sortColumn,
     sortDirection,
+    isSearchActive,
+    searchQuery,
   ]);
 
   // Memoize display columns computation
@@ -347,7 +401,6 @@ const StatusSpecificDownloads = () => {
     }));
   }, [displayColumns]);
 
-  // Memoize selected download
   const selectedDownload = useMemo(() => {
     return selectedDownloadId
       ? allDownloads.find((d) => d.id === selectedDownloadId)
@@ -385,17 +438,20 @@ const StatusSpecificDownloads = () => {
   const handleFileNotExistModal = useCallback(
     async (contextDownload: DownloadItem | null = null) => {
       const missing = [];
-
       // If a specific download is provided via context menu, check only that one
       const downloadsToCheck = contextDownload
         ? [contextDownload]
         : selectedDownloads;
-
       // Check each download to see if it exists
       for (const download of downloadsToCheck) {
         if (download.status === 'finished' && download.location) {
+          const fullDownloadLocation =
+            await window.downlodrFunctions.joinDownloadPath(
+              download.location,
+              download.downloadName,
+            );
           const exists = await window.downlodrFunctions.fileExists(
-            download.location,
+            fullDownloadLocation,
           );
           if (!exists) {
             missing.push(download);
@@ -405,7 +461,12 @@ const StatusSpecificDownloads = () => {
 
       // Set the missing files and show the modal if any were found
       if (missing.length > 0) {
-        setMissingFiles(missing);
+        // Filter and ensure all items are valid DownloadItem objects
+        const validMissingFiles = missing.filter(
+          (item): item is DownloadItem =>
+            'videoUrl' in item && item.videoUrl !== undefined,
+        );
+        setMissingFiles(validMissingFiles);
         setShowFileNotExistModal(true);
       }
     },
@@ -450,14 +511,14 @@ const StatusSpecificDownloads = () => {
     [sortColumn, sortDirection],
   );
 
-  // Add this new state for the column header context menu
+  //  new state for the column header context menu
   const [columnHeaderContextMenu, setColumnHeaderContextMenu] = useState<{
     x: number;
     y: number;
     visible: boolean;
   }>({ x: 0, y: 0, visible: false });
 
-  // Add this handler for the column header right-click
+  //  handler for the column header right-click
   const handleColumnHeaderContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -478,7 +539,7 @@ const StatusSpecificDownloads = () => {
     });
   }, []);
 
-  // Add this to close the column header context menu
+  //  to close the column header context menu
   const handleCloseColumnHeaderContextMenu = useCallback(() => {
     setColumnHeaderContextMenu((prev) => ({ ...prev, visible: false }));
   }, []);
@@ -562,7 +623,7 @@ const StatusSpecificDownloads = () => {
       speed: 'Speed',
       dateAdded: 'Date Added',
       thumbnail: 'Thumbnail',
-      transcript: 'Captions',
+      transcript: 'Caption',
       source: 'Source',
       action: 'Action',
     };
@@ -575,7 +636,6 @@ const StatusSpecificDownloads = () => {
     () => [
       { id: 'name', label: 'Title', required: true },
       { id: 'action', label: 'Action', required: true },
-
       { id: 'format', label: 'Format', required: true },
       { id: 'status', label: 'Status', required: true },
       { id: 'speed', label: 'Speed', required: false },
@@ -591,32 +651,31 @@ const StatusSpecificDownloads = () => {
   // Memoize menu item count calculation
   const getMenuItemCount = useCallback(
     (downloadStatus: string, pluginCount: number) => {
-      // Base items for each status (adjust as needed for your menu)
       let baseCount = 0;
       switch (downloadStatus) {
         case 'finished':
-          baseCount = 5; // Play, View Folder, Remove, Tags, Category
+          baseCount = 6; // Play, View Folder, Remove, Tags, Category
           break;
         case 'to download':
-          baseCount = 6; // Start, View Folder, Rename, Remove, Tags, Category
+          baseCount = 7; // Start, View Folder, Rename, Remove, Tags, Category
           break;
         case 'paused':
         case 'downloading':
         case 'initializing':
-          baseCount = 5; // View Folder, Pause/Start, Stop, Tags, Category
+          baseCount = 6; // View Folder, Pause/Start, Stop, Tags, Category
           break;
         default:
-          baseCount = 5;
+          baseCount = 6;
       }
       // Plugins: if <=4, add all; if >4, add just 1 for the Plugins button
-      return baseCount + (pluginCount > 4 ? 1 : pluginCount);
+      return baseCount + (pluginCount > 3 ? 1 : pluginCount);
     },
     [],
   );
 
   const handleContextMenu = async (
     event: React.MouseEvent,
-    allDownloads: any,
+    download: ContextMenuDownload,
   ) => {
     event.preventDefault();
     event.stopPropagation();
@@ -635,9 +694,9 @@ const StatusSpecificDownloads = () => {
     });
 
     // Pre-calculate values to avoid stale closures
-    const downloadId = allDownloads.id;
-    const downloadStatus = allDownloads.status;
-    const controllerId = allDownloads.controllerId;
+    const downloadId = download.id;
+    const downloadStatus = download.status;
+    const controllerId = download.controllerId;
 
     // Get plugin count from the window.plugins API
     const pluginCount = await window.plugins
@@ -665,8 +724,8 @@ const StatusSpecificDownloads = () => {
 
     // Pre-fetch the download location to avoid async issues in timeout
     const downloadLocation = await window.downlodrFunctions.joinDownloadPath(
-      allDownloads.location,
-      allDownloads.name,
+      download.location,
+      download.name,
     );
 
     // Check if a context menu is already open
@@ -718,6 +777,11 @@ const StatusSpecificDownloads = () => {
     setShowLogModal(true);
   };
 
+  const handleShowActivityTracker = (downloadId: string) => {
+    setActivityTrackerDownloadId(downloadId);
+    setShowActivityTracker(true);
+  };
+
   //Context Menu actons
 
   const handleRetry = (downloadId: string) => {
@@ -730,6 +794,7 @@ const StatusSpecificDownloads = () => {
       currentDownload.downloadName,
       currentDownload.size,
       currentDownload.speed,
+      currentDownload.channelName,
       currentDownload.timeLeft,
       new Date().toISOString(),
       0,
@@ -749,6 +814,9 @@ const StatusSpecificDownloads = () => {
       false,
     );
     deleteDownload(downloadId);
+    // Clear selected downloads after retrying download
+    setSelectedRowIds([]);
+    setSelectedDownloads([]);
     toast({
       variant: 'success',
       title: 'Download Retried',
@@ -757,13 +825,46 @@ const StatusSpecificDownloads = () => {
     });
   };
 
-  const handlePause = (downloadId: string, downloadLocation?: string) => {
+  const handlePause = async (downloadId: string, downloadLocation?: string) => {
     // Get fresh state each time
     const { downloading, deleteDownloading } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
     const { updateDownloadStatus } = useDownloadStore.getState();
 
     if (currentDownload?.status === 'paused') {
+      // Check if this is an m4a download and handle existing partial file
+      const isM4aDownload =
+        currentDownload.ext === 'm4a' || currentDownload.audioExt === 'm4a';
+
+      if (
+        isM4aDownload &&
+        currentDownload.location &&
+        currentDownload.downloadName
+      ) {
+        try {
+          // Construct the full file path the same way as in the download store
+          const fullFilePath = await window.downlodrFunctions.joinDownloadPath(
+            currentDownload.location,
+            currentDownload.downloadName,
+          );
+
+          // Check if the partial file exists
+          const fileExists = await window.downlodrFunctions.fileExists(
+            fullFilePath,
+          );
+
+          if (fileExists) {
+            // Delete the existing partial m4a file to prevent corruption
+            const deleteSuccess = await window.downlodrFunctions.deleteFile(
+              fullFilePath,
+            );
+          }
+        } catch (error) {
+          console.error('Error handling existing m4a file:', error);
+          // Continue with resume even if file deletion fails
+        }
+      }
+
       const { addDownload } = useDownloadStore.getState();
       addDownload(
         currentDownload.videoUrl,
@@ -771,6 +872,7 @@ const StatusSpecificDownloads = () => {
         currentDownload.downloadName,
         currentDownload.size,
         currentDownload.speed,
+        currentDownload.channelName,
         currentDownload.timeLeft,
         new Date().toISOString(),
         currentDownload.progress,
@@ -790,6 +892,9 @@ const StatusSpecificDownloads = () => {
         false,
       );
       deleteDownloading(downloadId);
+      // Clear selected downloads after starting/resuming download
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
       toast({
         variant: 'success',
         title: 'Download Resumed',
@@ -829,11 +934,14 @@ const StatusSpecificDownloads = () => {
 
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
-  const handleViewDownload = async (
+
+  const handleViewFile = async (
     downloadLocation?: string,
     downloadId?: string,
   ) => {
     if (downloadLocation) {
+      const download = allDownloads.find((d) => d.id === downloadId);
+
       try {
         const exists = await window.downlodrFunctions.fileExists(
           downloadLocation,
@@ -841,15 +949,59 @@ const StatusSpecificDownloads = () => {
         if (exists) {
           window.downlodrFunctions.openVideo(downloadLocation);
         } else {
+          toast({
+            variant: 'destructive',
+            title: 'No Download Location',
+            description: 'Invalid Download Location',
+            duration: 3000,
+          });
+        }
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description:
+            error?.message || String(error) || 'Failed to view download',
+          duration: 5000,
+        });
+      }
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'No Download Location',
+        description: 'Invalid Download Location',
+        duration: 3000,
+      });
+    }
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+  const handleViewDownload = async (
+    downloadLocation?: string,
+    downloadId?: string,
+  ) => {
+    if (downloadLocation) {
+      const download = allDownloads.find((d) => d.id === downloadId);
+
+      try {
+        const fullDownloadLocation =
+          await window.downlodrFunctions.joinDownloadPath(
+            downloadLocation,
+            download.name,
+          );
+        const exists = await window.downlodrFunctions.fileExists(
+          fullDownloadLocation,
+        );
+        if (exists) {
+          window.downlodrFunctions.openVideo(fullDownloadLocation);
+        } else {
           // If the file doesn't exist, find the download and show the modal
           if (downloadId) {
-            const download = allDownloads.find((d) => d.id === downloadId);
             if (download) {
               // Pass the specific download to the modal function
               const downloadItem: DownloadItem = {
                 id: download.id,
                 videoUrl: download.videoUrl,
-                location: downloadLocation,
+                location: download.location,
                 name: download.name,
                 ext: download.ext,
                 downloadName: download.downloadName,
@@ -973,7 +1125,9 @@ const StatusSpecificDownloads = () => {
         });
       }
     }
-
+    // Clear selected downloads after removal
+    setSelectedRowIds([]);
+    setSelectedDownloads([]);
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
@@ -1003,6 +1157,9 @@ const StatusSpecificDownloads = () => {
     // Handle pending downloads
     if (download.status === 'to download') {
       deleteDownload(downloadId);
+      // Clear selected downloads after removal
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
       toast({
         variant: 'success',
         title: 'Download Deleted',
@@ -1017,6 +1174,9 @@ const StatusSpecificDownloads = () => {
     // Handle cancelled or paused downloads
     if (download.status === 'cancelled' || download.status === 'paused') {
       deleteDownload(downloadId);
+      // Clear selected downloads after removal
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
       toast({
         variant: 'success',
         title: 'Download Removed',
@@ -1026,6 +1186,23 @@ const StatusSpecificDownloads = () => {
         duration: 3000,
       });
       // Process queue after removing a paused/cancelled download
+      processQueue();
+      return;
+    }
+
+    // Handle failed downloads - just remove from list since no file was created
+    if (download.status === 'failed') {
+      deleteDownload(downloadId);
+      // Clear selected downloads after removal
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
+      toast({
+        variant: 'success',
+        title: 'Download Removed',
+        description: 'Failed download has been removed successfully',
+        duration: 3000,
+      });
+      // Process queue after removing a failed download
       processQueue();
       return;
     }
@@ -1058,14 +1235,33 @@ const StatusSpecificDownloads = () => {
 
     try {
       let success = false;
+      const folderExists = await window.downlodrFunctions.fileExists(
+        downloadLocation,
+      );
 
       if (deleteFolder) {
         // Get the parent folder path
-        const folderPath = downloadLocation.replace(/(\/|\\)[^/\\]+$/, '');
-        success = await window.downlodrFunctions.deleteFolder(folderPath);
+        // const folderPath = downloadLocation.replace(/(\/|\\)[^/\\]+$/, '');
+        if (!folderExists) {
+          deleteDownload(downloadId);
+          // Clear selected downloads after removal
+          setSelectedRowIds([]);
+          setSelectedDownloads([]);
+          toast({
+            variant: 'success',
+            title: 'Download Deleted',
+            description: 'Download has been deleted successfully',
+            duration: 3000,
+          });
+          return;
+        }
+        success = await window.downlodrFunctions.deleteFolder(downloadLocation);
 
         if (success) {
           deleteDownload(downloadId);
+          // Clear selected downloads after removal
+          setSelectedRowIds([]);
+          setSelectedDownloads([]);
           toast({
             variant: 'success',
             title: 'Folder Deleted',
@@ -1088,6 +1284,9 @@ const StatusSpecificDownloads = () => {
 
         if (success) {
           deleteDownload(downloadId);
+          // Clear selected downloads after removal
+          setSelectedRowIds([]);
+          setSelectedDownloads([]);
           toast({
             variant: 'success',
             title: 'File Deleted',
@@ -1255,39 +1454,34 @@ const StatusSpecificDownloads = () => {
     downloadLocation?: string,
     filePath?: string,
   ) => {
-    if (downloadLocation) {
+    if (!downloadLocation) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to view folder',
+        duration: 3000,
+      });
+      setContextMenu({ downloadId: null, x: 0, y: 0 });
+      return;
+    }
+
+    try {
+      // Handle old format with comma-separated paths
       if (downloadLocation.includes(',') && !filePath) {
         const [folderPath, filePathFromString] = downloadLocation.split(',');
-        const success = await window.downlodrFunctions.openFolder(
-          folderPath,
-          filePathFromString,
-        );
-        // Check if the location contains a comma (indicating old format)
-        const exists = await window.downlodrFunctions.fileExists(folderPath);
-        if (!exists) {
-          toast({
-            variant: 'destructive',
-            title: 'Missing Folder',
-            description: 'The folder does not exist in the given location',
-            duration: 3000,
-          });
-        }
+        await openFolderWithFallback(folderPath, filePathFromString);
       } else {
-        // Normal case with separate parameters
-        const success = await window.downlodrFunctions.openFolder(
-          downloadLocation,
-          filePath,
-        );
-        if (!success) {
-          toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Failed to view folder',
-            duration: 3000,
-          });
-        }
+        // Handle normal case with separate parameters
+        const fullPath = filePath
+          ? await window.downlodrFunctions.joinDownloadPath(
+              downloadLocation,
+              filePath,
+            )
+          : null;
+        await openFolderWithFallback(downloadLocation, fullPath);
       }
-    } else {
+    } catch (error) {
+      console.error('Error in handleViewFolder:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -1295,7 +1489,51 @@ const StatusSpecificDownloads = () => {
         duration: 3000,
       });
     }
+
     setContextMenu({ downloadId: null, x: 0, y: 0 });
+  };
+
+  // Helper function to handle folder opening with fallback
+  const openFolderWithFallback = async (
+    folderPath: string,
+    filePath?: string | null,
+  ) => {
+    if (filePath) {
+      // Check if file exists first
+      const fileExists = await window.downlodrFunctions.fileExists(filePath);
+
+      if (fileExists) {
+        // File exists, try to open folder and highlight file
+        const success = await window.downlodrFunctions.openFolder(
+          folderPath,
+          filePath,
+        );
+        if (success) return; // Success, we're done
+
+        // If highlighting failed, fall through to just opening folder
+      }
+    }
+
+    // Either no file path, file doesn't exist, or highlighting failed
+    // Try to just open the folder
+    const folderExists = await window.downlodrFunctions.fileExists(folderPath);
+
+    if (folderExists) {
+      const success = await window.downlodrFunctions.openFolder(
+        folderPath,
+        null,
+      );
+      if (!success) {
+        throw new Error('Failed to open folder');
+      }
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Folder',
+        description: 'The download folder does not exist yet',
+        duration: 3000,
+      });
+    }
   };
 
   // Update click outside handler to clean up timeouts
@@ -1308,8 +1546,15 @@ const StatusSpecificDownloads = () => {
         '.download-details-panel',
       );
 
-      // Check if we're clicking on a context menu
-      const isClickInsideContextMenu = target.closest('[data-context-menu]');
+      // Check if we're clicking on a context menu by checking for common context menu classes
+      const isClickInsideContextMenu =
+        target.closest(
+          '.fixed.bg-white.dark\\:bg-darkMode.border.rounded-md.shadow-lg',
+        ) ||
+        target.closest(
+          '.fixed.bg-white.dark\\:bg-darkMode.border.rounded-md.shadow-lg.py-1.z-50',
+        ) ||
+        target.closest('div[style*="position: fixed"]');
 
       // Always close context menu if we're clicking on a different row
       const clickedRow = target.closest('tr');
@@ -1441,15 +1686,26 @@ const StatusSpecificDownloads = () => {
     setStopControllerId('');
   }, [stopDownloadId, stopDownloadLocation, stopControllerId]);
 
+  // Add effect to handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      setWindowHeight(window.innerHeight);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
       {/* Table container with scrolling */}
       <div className="flex-grow overflow-auto">
         <div className="min-w-full">
           <table className="min-w-full table-fixed">
-            <thead className="dark:bg-darkModeCompliment">
+            <thead className="bg-titleBar dark:bg-alternateBlack">
               <tr
-                className="border-b border-t text-left dark:border-darkModeBorderColor"
+                className="border-b border-t text-left font-sans dark:border-inputDarkModeBorder font-bold"
                 onContextMenu={handleColumnHeaderContextMenu}
               >
                 <th className="w-6 px-2 py-1">
@@ -1464,18 +1720,16 @@ const StatusSpecificDownloads = () => {
                         borderColor: '#6b7280',
                       }),
                     }}
-                    checked={selectedRowIds.length === allDownloads.length}
+                    checked={
+                      allDownloads.length > 0 &&
+                      selectedRowIds.length === allDownloads.length
+                    }
                     onChange={handleSelectAll}
                   />
                 </th>
                 {displayColumns.map((column, displayIndex) => {
                   if (column.id === 'end') {
-                    return (
-                      <th
-                        key={column.id}
-                        className="w-18 p-2 font-semibold"
-                      ></th>
-                    );
+                    return <th key={column.id} className="w-18 p-2"></th>;
                   }
 
                   // Find original index in the full columns array
@@ -1502,8 +1756,19 @@ const StatusSpecificDownloads = () => {
                         className="flex items-center cursor-pointer whitespace-nowrap"
                         onClick={() => handleSortClick(column.id)}
                       >
-                        {getColumnDisplayName(column.id)}
-                        {renderSortIndicator(column.id)}
+                        <span className="flex items-center gap-[0.5px]">
+                          {getColumnDisplayName(column.id)}
+                          {renderSortIndicator(column.id)}
+
+                          {column.id === 'name' &&
+                            selectedRowIds.length > 0 && (
+                              <span className="text-xs">
+                                ({selectedRowIds.length}{' '}
+                                {selectedRowIds.length === 1 ? 'item' : 'items'}{' '}
+                                selected)
+                              </span>
+                            )}
+                        </span>
                       </div>
                     </ResizableHeader>
                   );
@@ -1511,13 +1776,15 @@ const StatusSpecificDownloads = () => {
               </tr>
             </thead>
             <tbody>
-              {allDownloads.map((download) => (
+              {allDownloads.map((download, index) => (
                 <React.Fragment key={download.id}>
                   <tr
-                    className={`border-b-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover cursor-pointer ${
+                    className={`border-b-2 hover:bg-gray-50 dark:border-[#27272ACC] dark:hover:bg-darkModeHover cursor-pointer ${
                       selectedDownloadId === download.id
                         ? 'bg-blue-50 dark:bg-gray-600'
-                        : 'dark:bg-darkMode'
+                        : index % 2 === 0
+                        ? 'dark:bg-darkMode'
+                        : 'bg-titleBar dark:bg-alternateBlack'
                     }`}
                     onContextMenu={(e) => handleContextMenu(e, download)}
                     onClick={() => {
@@ -1556,15 +1823,38 @@ const StatusSpecificDownloads = () => {
                             >
                               {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1">
-                                  <Skeleton className="h-4 w-[90px] rounded-[3px]" />
-                                  <Skeleton className="h-4 w-[100px] rounded-[3px]" />
+                                  <Skeleton
+                                    className="h-4 rounded-[3px]"
+                                    style={{ width: `${column.width - 20}px` }}
+                                  />
+                                  <Skeleton
+                                    className="h-4 rounded-[3px]"
+                                    style={{ width: `${column.width - 60}px` }}
+                                  />
                                 </div>
                               ) : (
-                                <div
-                                  className="line-clamp-2 break-words break-all"
-                                  title={download.name}
-                                >
-                                  {download.name}
+                                <div className="line-clamp-2 break-words flex justify-start items-start">
+                                  <div>
+                                    <TooltipWrapper
+                                      content={download.name}
+                                      side="bottom"
+                                      contentClassname="text-start justify-start"
+                                    >
+                                      <div>
+                                        <span
+                                          className={` line-clamp-1 break-words break-all font-semibold`}
+                                        >
+                                          {download.name}
+                                        </span>
+                                      </div>
+                                    </TooltipWrapper>
+
+                                    <div>
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        {download.channelName}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                             </td>
@@ -1577,9 +1867,8 @@ const StatusSpecificDownloads = () => {
                               className="px-2 py-2 dark:text-gray-200 text-left"
                             >
                               {download.status === 'fetching metadata' ? (
-                                <div className="space-y-1">
-                                  <Skeleton className="h-4 w-[50px] rounded-[3px]" />
-                                  <Skeleton className="h-4 w-[70px] rounded-[3px]" />
+                                <div className="flex justify-center items-center">
+                                  <Skeleton className="h-8 w-[50px] rounded-[3px]" />
                                 </div>
                               ) : (
                                 <span className="whitespace-nowrap overflow-hidden">
@@ -1592,40 +1881,53 @@ const StatusSpecificDownloads = () => {
                           return (
                             <td
                               key={column.id}
-                              style={{ width: column.width }}
-                              className="p-2 ml-2"
+                              style={{
+                                width: Math.max(column.width),
+                                minWidth: '70px',
+                              }}
+                              className="p-2 text-center align-middle"
                             >
                               {download.status === 'fetching metadata' ? (
-                                <div className="space-y-1">
-                                  <Skeleton className="h-8 w-[50px] rounded-[3px]" />
+                                <div className="flex justify-center items-center w-full">
+                                  <Skeleton
+                                    className="h-8 rounded-[3px]"
+                                    style={{
+                                      width: `${Math.max(
+                                        column.width - 30,
+                                        90,
+                                      )}px`,
+                                    }}
+                                  />
                                 </div>
                               ) : download.status === 'finished' ? (
-                                <div className="ml-1 font-medium text-sm text-gray-600 dark:text-gray-300">
+                                <div className="font-medium text-sm text-gray-600 dark:text-gray-300 text-center">
                                   {download.ext ||
                                     download.audioExt ||
                                     'Unknown'}
                                 </div>
                               ) : (
-                                <FormatSelector
-                                  download={download}
-                                  onFormatSelect={(formatData) => {
-                                    useDownloadStore.setState((state) => ({
-                                      forDownloads: state.forDownloads.map(
-                                        (d) =>
-                                          d.id === download.id
-                                            ? {
-                                                ...d,
-                                                ext: formatData.ext,
-                                                formatId: formatData.formatId,
-                                                audioExt: formatData.audioExt,
-                                                audioFormatId:
-                                                  formatData.audioFormatId,
-                                              }
-                                            : d,
-                                      ),
-                                    }));
-                                  }}
-                                />
+                                <div className="w-full">
+                                  <FormatSelector
+                                    download={download}
+                                    onFormatSelect={(formatData) => {
+                                      useDownloadStore.setState((state) => ({
+                                        forDownloads: state.forDownloads.map(
+                                          (d) =>
+                                            d.id === download.id
+                                              ? {
+                                                  ...d,
+                                                  ext: formatData.ext,
+                                                  formatId: formatData.formatId,
+                                                  audioExt: formatData.audioExt,
+                                                  audioFormatId:
+                                                    formatData.audioFormatId,
+                                                }
+                                              : d,
+                                        ),
+                                      }));
+                                    }}
+                                  />
+                                </div>
                               )}
                             </td>
                           );
@@ -1633,101 +1935,115 @@ const StatusSpecificDownloads = () => {
                           return (
                             <td
                               key={column.id}
-                              style={{ width: column.width }}
-                              className="p-2"
+                              style={{ width: column.width - 10 }}
+                              className="p-1"
                             >
-                              <div className="flex justify-start">
-                                <span className="text-sm text-gray-600 dark:text-gray-300 ml-1">
-                                  {download.status === 'cancelled' ||
-                                  download.status === 'initializing' ||
-                                  download.status === 'queued' ||
-                                  download.status === 'fetching metadata' ||
-                                  download.status === 'failed' ? (
-                                    <span
-                                      style={{
-                                        color: getStatusColor(download.status),
-                                        fontWeight: '500',
-                                        textTransform: 'capitalize',
-                                      }}
+                              {download.status === 'cancelled' ||
+                              download.status === 'initializing' ||
+                              download.status === 'queued' ||
+                              download.status === 'fetching metadata' ||
+                              download.status === 'failed' ? (
+                                <div className="flex justify-center">
+                                  <TooltipWrapper
+                                    content={
+                                      download.status.charAt(0).toUpperCase() +
+                                      download.status.slice(1)
+                                    }
+                                    side="bottom"
+                                  >
+                                    <div className="flex items-center justify-center space-x-2">
+                                      {getStatusIcon(download.status, 20)}
+                                    </div>
+                                  </TooltipWrapper>
+                                </div>
+                              ) : download.status === 'finished' ? (
+                                <div className="flex items-center space-x-2 justify-center">
+                                  <button
+                                    className="relative flex items-center text-sm underline"
+                                    style={{
+                                      color: getStatusColor(download.status),
+                                    }}
+                                  >
+                                    <TooltipWrapper
+                                      content="View video"
+                                      side="bottom"
                                     >
-                                      {download.status}
-                                    </span>
-                                  ) : download.status === 'finished' ? (
-                                    <button
-                                      className="relative flex items-center text-sm underline"
-                                      style={{
-                                        color: getStatusColor(download.status),
-                                      }}
-                                    >
-                                      <VscPlayCircle
-                                        size={18}
-                                        className="mr-3 text-green-600 hover:text-green-400 transition-colors duration-200"
-                                        onClick={async (e) => {
-                                          e.stopPropagation();
-                                          handleViewDownload(
-                                            await window.downlodrFunctions.joinDownloadPath(
+                                      <span>
+                                        <VscPlayCircle
+                                          size={20}
+                                          className="ml-2 text-green-600 hover:text-green-400 transition-colors duration-200"
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            handleViewDownload(
                                               download.location,
-                                              download.name,
-                                            ),
-                                            download.id,
-                                          );
-                                        }}
-                                      />
+                                              download.id,
+                                            );
+                                          }}
+                                        />
+                                      </span>
+                                    </TooltipWrapper>
+                                    <TooltipWrapper
+                                      content="Open folder"
+                                      side="bottom"
+                                    >
                                       <span
-                                        className="hover:text-green-400 transition-colors"
+                                        className="ml-2 hover:text-green-400 transition-colors"
                                         onClick={async (e) => {
                                           e.stopPropagation();
                                           handleViewFolder(
-                                            `${
-                                              download.location
-                                            },${await window.downlodrFunctions.joinDownloadPath(
-                                              download.location,
-                                              download.name,
-                                            )}`,
+                                            download.location,
+                                            download.name,
                                           );
                                         }}
                                       >
-                                        Finished
+                                        <HiOutlineFolderOpen
+                                          size={20}
+                                          className="mr-3 text-green-600 hover:text-green-400 transition-colors duration-200"
+                                        />
                                       </span>
-                                    </button>
-                                  ) : download.status === 'to download' ? (
-                                    <div
-                                      style={{
-                                        color: getStatusColor(download.status),
-                                      }}
-                                    >
-                                      <DownloadButton download={download} />
-                                    </div>
-                                  ) : download.status === 'paused' ||
-                                    download.status === 'downloading' ? (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handlePause(download.id);
-                                      }}
-                                      className="hover:bg-gray-100 dark:hover:bg-darkModeHover p-1 rounded-full"
-                                    >
-                                      <AnimatedCircularProgressBar
-                                        status={download.status}
-                                        max={100}
-                                        min={0}
-                                        value={download.progress}
-                                        gaugePrimaryColor="#4CAF50"
-                                        gaugeSecondaryColor="#EEEEEE"
-                                      />
-                                    </button>
-                                  ) : (
-                                    <AnimatedCircularProgressBar
-                                      status={download.status}
-                                      max={100}
-                                      min={0}
-                                      value={download.progress}
-                                      gaugePrimaryColor="#4CAF50"
-                                      gaugeSecondaryColor="#EEEEEE"
-                                    />
-                                  )}
-                                </span>
-                              </div>
+                                    </TooltipWrapper>
+                                  </button>
+                                </div>
+                              ) : download.status === 'to download' ? (
+                                <div className="flex items-center space-x-2 justify-center">
+                                  <div
+                                    style={{
+                                      color: getStatusColor(download.status),
+                                    }}
+                                  >
+                                    <DownloadButton download={download} />
+                                  </div>
+                                </div>
+                              ) : download.status === 'paused' ||
+                                download.status === 'downloading' ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePause(download.id);
+                                  }}
+                                  className="hover:bg-gray-100 dark:hover:bg-darkModeHover w-full flex items-center justify-center"
+                                >
+                                  <AnimatedLinearProgressBar
+                                    status={download.status}
+                                    max={100}
+                                    min={0}
+                                    value={download.progress}
+                                    gaugePrimaryColor="#4CAF50"
+                                    gaugeSecondaryColor="#EEEEEE"
+                                    width={column.width - 10}
+                                  />
+                                </button>
+                              ) : (
+                                <AnimatedLinearProgressBar
+                                  status={download.status}
+                                  max={100}
+                                  min={0}
+                                  value={download.progress}
+                                  gaugePrimaryColor="#4CAF50"
+                                  gaugeSecondaryColor="#EEEEEE"
+                                  width={column.width - 10}
+                                />
+                              )}
                             </td>
                           );
                         case 'speed':
@@ -1735,17 +2051,34 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200"
+                              className="pl-2 py-2 dark:text-gray-200 flex justify-center items-center"
                             >
-                              {download.status === 'downloading' ? (
-                                <span className="whitespace-nowrap overflow-hidden">
-                                  {download.speed}
-                                </span>
+                              {[
+                                'downloading',
+                                'finished',
+                                'paused',
+                                'failed',
+                                'initializing',
+                              ].includes(download.status) ? (
+                                <div className="w-full">
+                                  <SpeedGraph
+                                    key={`speed-graph-${download.id}`}
+                                    currentSpeed={download.speed}
+                                    downloadStatus={download.status}
+                                    downloadId={download.id}
+                                    showHeader={false}
+                                    height={25}
+                                  />
+                                </div>
+                              ) : download.status === 'fetching metadata' ? (
+                                <div className="space-y-1 flex justify-center items-center">
+                                  <Skeleton className="h-8 w-[50px] rounded-[3px]" />
+                                </div>
                               ) : (
                                 <div className="flex justify-center w-full">
                                   <span>—</span>
                                 </div>
-                              )}{' '}
+                              )}
                             </td>
                           );
                         case 'dateAdded':
@@ -1753,9 +2086,18 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200 ml-2"
+                              className="p-2 dark:text-gray-200 ml-2 justify-center text-center"
                             >
-                              {formatRelativeTime(download.DateAdded)}
+                              <TooltipWrapper
+                                content={new Date(
+                                  download.DateAdded,
+                                ).toLocaleDateString()}
+                                side="bottom"
+                              >
+                                <div>
+                                  {formatRelativeTime(download.DateAdded)}
+                                </div>
+                              </TooltipWrapper>
                             </td>
                           );
                         case 'thumbnail':
@@ -1763,41 +2105,65 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200 text-center"
+                              className="p-2 dark:text-gray-200"
                             >
                               {download.status === 'fetching metadata' ? (
-                                <div className="flex justify-center w-full">
+                                <div className=" w-full flex justify-center items-center">
                                   <Skeleton className="h-8 w-[50px] rounded-[3px]" />
                                 </div>
-                              ) : download.status === 'finished' &&
+                              ) : [
+                                  'finished',
+                                  'paused',
+                                  'downloading',
+                                  'failed',
+                                  'initializing',
+                                ].includes(download.status) &&
                                 download.thumnailsLocation &&
                                 download.thumnailsLocation !== '—' ? (
                                 <div className="flex justify-center items-center w-full">
                                   {thumbnailDataUrls[download.id] ? (
-                                    <img
-                                      src={thumbnailDataUrls[download.id]}
-                                      alt="Thumbnail"
-                                      className="h-10 w-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
-                                      onClick={() =>
-                                        handleViewDownload(
-                                          download.thumnailsLocation,
-                                        )
-                                      }
-                                      title="Click to view full thumbnail"
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                        e.currentTarget.parentElement.innerHTML =
-                                          'Unable to load';
-                                      }}
-                                    />
+                                    <TooltipWrapper
+                                      content="View full thumbnail"
+                                      side="bottom"
+                                    >
+                                      <img
+                                        src={thumbnailDataUrls[download.id]}
+                                        alt="Thumbnail"
+                                        className="h-10 object-cover rounded cursor-pointer hover:opacity-70 transition-opacity"
+                                        onClick={() =>
+                                          handleViewFile(
+                                            download.thumnailsLocation,
+                                            download.id,
+                                          )
+                                        }
+                                        onError={(e) => {
+                                          e.currentTarget.style.display =
+                                            'none';
+                                          e.currentTarget.parentElement.innerHTML =
+                                            'Unable to load';
+                                        }}
+                                      />
+                                    </TooltipWrapper>
                                   ) : (
-                                    <span>—</span>
+                                    <TooltipWrapper
+                                      content="Thumbnail not downloaded"
+                                      side="bottom"
+                                    >
+                                      <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center w-full">
+                                        —
+                                      </span>
+                                    </TooltipWrapper>
                                   )}
                                 </div>
                               ) : (
-                                <div className="flex justify-center w-full">
-                                  <span>—</span>
-                                </div>
+                                <TooltipWrapper
+                                  content="Thumbnail not downloaded"
+                                  side="bottom"
+                                >
+                                  <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center w-full">
+                                    —
+                                  </span>
+                                </TooltipWrapper>
                               )}
                             </td>
                           );
@@ -1806,7 +2172,7 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="dark:text-gray-200 outline-1"
+                              className="dark:text-gray-200 outline-1 text-center align-middle justify-center"
                             >
                               {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1 flex justify-center items-center">
@@ -1814,24 +2180,46 @@ const StatusSpecificDownloads = () => {
                                 </div>
                               ) : download.autoCaptionLocation === '' ||
                                 download.autoCaptionLocation === null ? (
-                                <div className="flex justify-center w-full">
-                                  <span>—</span>
-                                </div>
-                              ) : download.autoCaptionLocation === undefined ? (
-                                <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center w-full">
-                                  Not available
-                                </span>
-                              ) : (
-                                <button
-                                  onClick={() =>
-                                    handleViewDownload(
-                                      download.autoCaptionLocation,
-                                    )
-                                  }
-                                  className="text-availableStatus hover:underline flex justify-center items-center hover:text-green-400 transition-colors duration-200 w-full"
+                                <TooltipWrapper
+                                  content="Transcript not downloaded"
+                                  side="bottom"
                                 >
-                                  Available
-                                </button>
+                                  <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center w-full">
+                                    —
+                                  </span>
+                                </TooltipWrapper>
+                              ) : download.autoCaptionLocation === undefined ? (
+                                <TooltipWrapper
+                                  content="Transcript not available"
+                                  side="bottom"
+                                >
+                                  <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center w-full">
+                                    <AiOutlineStop
+                                      size={20}
+                                      className="text-red-500 hover:text-red-400 transition-colors duration-200"
+                                    />
+                                  </span>
+                                </TooltipWrapper>
+                              ) : (
+                                <TooltipWrapper
+                                  content="View transcript"
+                                  side="bottom"
+                                >
+                                  <button
+                                    onClick={() =>
+                                      handleViewFile(
+                                        download.autoCaptionLocation,
+                                        download.id,
+                                      )
+                                    }
+                                    className="text-availableStatus hover:underline flex justify-center items-center hover:text-green-400 transition-colors duration-200 w-full text-center"
+                                  >
+                                    <FaRegClosedCaptioning
+                                      size={20}
+                                      className="text-green-600 hover:text-green-400 transition-colors duration-200 text-center align-middle justify-center"
+                                    />
+                                  </button>
+                                </TooltipWrapper>
                               )}
                             </td>
                           );
@@ -1843,25 +2231,27 @@ const StatusSpecificDownloads = () => {
                               className="p-2 dark:text-gray-200"
                             >
                               {download.status === 'fetching metadata' ? (
-                                <div>
-                                  <Skeleton className="h-6 w-[55px] rounded-[3px]" />
+                                <div className="flex justify-center items-center">
+                                  <Skeleton className="h-6 w-[25px] rounded-[3px]" />
                                 </div>
                               ) : (
-                                <div
-                                  className="line-clamp-2 break-words"
-                                  title={download.extractorKey}
+                                <TooltipWrapper
+                                  content={download.extractorKey}
+                                  side="bottom"
                                 >
-                                  <a
-                                    onClick={() =>
-                                      window.downlodrFunctions.openExternalLink(
-                                        download.videoUrl,
-                                      )
-                                    }
-                                    className="hover:underline cursor-pointer"
-                                  >
-                                    {download.extractorKey}
-                                  </a>
-                                </div>
+                                  <div className="line-clamp-2 break-words flex justify-center items-center text-lg">
+                                    <a
+                                      onClick={() =>
+                                        window.downlodrFunctions.openExternalLink(
+                                          download.videoUrl,
+                                        )
+                                      }
+                                      className="hover:underline cursor-pointer hover:opacity-80 transition-opacity"
+                                    >
+                                      {getExtractorIcon(download.extractorKey)}
+                                    </a>
+                                  </div>
+                                </TooltipWrapper>
                               )}
                             </td>
                           );
@@ -1896,46 +2286,54 @@ const StatusSpecificDownloads = () => {
         </div>
       </div>
 
-      {/* Fixed bottom panel for download details - always present */}
       <div className="flex-shrink-0">
-        <ExpandedDownloadDetails download={selectedDownload || null} />
+        <ExpandedDownloadDetails
+          download={
+            selectedDownload
+              ? {
+                  ...selectedDownload,
+                  elapsed: selectedDownload.elapsed || 0,
+                }
+              : null
+          }
+        />
       </div>
 
       {/* Context Menus - keep these unchanged */}
-      {contextMenu.downloadId && !isTransitioning && (
-        <DownloadContextMenu
-          data-context-menu
-          downloadId={contextMenu.downloadId}
-          position={{ x: contextMenu.x, y: contextMenu.y }}
-          downloadLocation={contextMenu.downloadLocation}
-          controllerId={contextMenu.controllerId}
-          downloadStatus={contextMenu.downloadStatus}
-          onShowLog={handleShowLog}
-          onClose={handleCloseContextMenu}
-          onRetry={handleRetry}
-          onPause={handlePause}
-          onStop={handleStop}
-          onForceStart={handleForceStart}
-          onRemove={handleRemove}
-          onViewDownload={handleViewDownload}
-          onViewFolder={handleViewFolder}
-          onAddTag={addTag}
-          onRemoveTag={removeTag}
-          currentTags={getCurrentTags(contextMenu.downloadId)}
-          availableTags={availableTags}
-          onAddCategory={addCategory}
-          onRemoveCategory={removeCategory}
-          currentCategories={getCurrentCategories(contextMenu.downloadId)}
-          availableCategories={availableCategories}
-          downloadName={
-            allDownloads.find((d) => d.id === contextMenu.downloadId)?.name ||
-            ''
-          }
-          onRename={handleRename}
-          onShowRemoveModal={handleShowRemoveModal}
-          onShowStopModal={handleShowStopModal}
-        />
-      )}
+      {contextMenu.downloadId &&
+        !isTransitioning &&
+        (() => {
+          const download = allDownloads.find(
+            (d) => d.id === contextMenu.downloadId,
+          );
+          return download ? (
+            <DownloadContextMenu
+              download={download}
+              position={{ x: contextMenu.x, y: contextMenu.y }}
+              onShowLog={handleShowLog}
+              onShowActivityTracker={handleShowActivityTracker}
+              onClose={handleCloseContextMenu}
+              onRetry={handleRetry}
+              onPause={handlePause}
+              onStop={handleStop}
+              onForceStart={handleForceStart}
+              onRemove={handleRemove}
+              onViewDownload={handleViewDownload}
+              onViewFolder={handleViewFolder}
+              onAddTag={addTag}
+              onRemoveTag={removeTag}
+              currentTags={getCurrentTags(contextMenu.downloadId)}
+              availableTags={availableTags}
+              onAddCategory={addCategory}
+              onRemoveCategory={removeCategory}
+              currentCategories={getCurrentCategories(contextMenu.downloadId)}
+              availableCategories={availableCategories}
+              onRename={handleRename}
+              onShowRemoveModal={handleShowRemoveModal}
+              onShowStopModal={handleShowStopModal}
+            />
+          ) : null;
+        })()}
 
       <ColumnHeaderContextMenu
         position={{
@@ -1994,15 +2392,26 @@ const StatusSpecificDownloads = () => {
         message="Are you sure you want to stop this download?"
       />
 
-      {/* Add the LogModal */}
-      <LogModal
-        isOpen={showLogModal}
-        onClose={() => {
-          setShowLogModal(false);
-          setLogModalDownloadId('');
-        }}
-        downloadId={logModalDownloadId}
-      />
+      {/* Only render ActivityTracker when it's actually open */}
+      {showActivityTracker && (
+        <ActivityTracker
+          isOpen={showActivityTracker}
+          onClose={() => setShowActivityTracker(false)}
+          downloadId={activityTrackerDownloadId}
+        />
+      )}
+
+      {/* Only render DownloadLogs when it's actually open */}
+      {showLogModal && (
+        <DownloadLogs
+          isOpen={showLogModal}
+          onClose={() => {
+            setShowLogModal(false);
+            setLogModalDownloadId('');
+          }}
+          downloadId={logModalDownloadId}
+        />
+      )}
     </div>
   );
 };
