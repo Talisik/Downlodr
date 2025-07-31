@@ -212,7 +212,20 @@ const PluginTaskBarExtension: React.FC = () => {
               )
             }
             aria-label={item.label}
-          />
+          >
+            {item.label && !item.icon && (
+              <span
+                className="text-xs"
+                style={
+                  typeof item.labelStyle === 'string'
+                    ? { ...(item.labelStyle as React.CSSProperties) }
+                    : item.labelStyle
+                }
+              >
+                {item.label}
+              </span>
+            )}
+          </Button>
         </TooltipWrapper>
       ))}
     </div>

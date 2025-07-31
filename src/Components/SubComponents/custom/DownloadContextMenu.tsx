@@ -134,7 +134,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [showPluginMenu, setShowPluginMenu] = useState(false);
   const [submenuPosition, setSubmenuPosition] = useState({ x: 0, y: 0 });
-
+  const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
+  const setSelectedDownloads = useMainStore(
+    (state) => state.setSelectedDownloads,
+  );
   const { settings } = useMainStore();
   const {
     downloading,
@@ -374,6 +377,9 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       download.name || '',
       download.ext || download.audioExt,
     );
+
+    setSelectedRowIds([]);
+    setSelectedDownloads([]);
 
     if (downloading.length >= settings.maxDownloadNum) {
       toast({

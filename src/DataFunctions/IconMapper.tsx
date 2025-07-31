@@ -10,6 +10,7 @@ import {
   FaSoundcloud,
   FaStop
 } from 'react-icons/fa';
+import { FaSquareXTwitter } from "react-icons/fa6";
 import { HiMiniArrowPath } from 'react-icons/hi2';
 import { LiaMixcloud } from "react-icons/lia";
 import { MdOndemandVideo, MdOutlineWeb, MdPodcasts } from 'react-icons/md';
@@ -30,7 +31,6 @@ import {
   TbBrandTiktok,
   TbBrandTumblr,
   TbBrandTwitch,
-  TbBrandTwitter,
   TbBrandVimeo,
   TbBrandYoutube,
   TbDeviceTabletSearch
@@ -68,7 +68,7 @@ export const getExtractorIcon = (extractorKey: string) => {
 
   // Twitter/X
   if (key.includes('twitter') || key.includes('x.com')) {
-    return <TbBrandTwitter className="text-sky-500" size={22} />;
+    return <FaSquareXTwitter fill='currentColor' size={22} />;
   }
 
   // Facebook

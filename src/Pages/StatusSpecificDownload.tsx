@@ -636,7 +636,6 @@ const StatusSpecificDownloads = () => {
     () => [
       { id: 'name', label: 'Title', required: true },
       { id: 'action', label: 'Action', required: true },
-
       { id: 'format', label: 'Format', required: true },
       { id: 'status', label: 'Status', required: true },
       { id: 'speed', label: 'Speed', required: false },
@@ -815,6 +814,9 @@ const StatusSpecificDownloads = () => {
       false,
     );
     deleteDownload(downloadId);
+    // Clear selected downloads after retrying download
+    setSelectedRowIds([]);
+    setSelectedDownloads([]);
     toast({
       variant: 'success',
       title: 'Download Retried',
@@ -833,15 +835,12 @@ const StatusSpecificDownloads = () => {
       // Check if this is an m4a download and handle existing partial file
       const isM4aDownload =
         currentDownload.ext === 'm4a' || currentDownload.audioExt === 'm4a';
-      console.log('isM4aDownload', isM4aDownload);
 
       if (
         isM4aDownload &&
         currentDownload.location &&
         currentDownload.downloadName
       ) {
-        console.log('yesss');
-
         try {
           // Construct the full file path the same way as in the download store
           const fullFilePath = await window.downlodrFunctions.joinDownloadPath(
@@ -859,13 +858,6 @@ const StatusSpecificDownloads = () => {
             const deleteSuccess = await window.downlodrFunctions.deleteFile(
               fullFilePath,
             );
-            if (deleteSuccess) {
-              console.log(`Deleted existing partial m4a file: ${fullFilePath}`);
-            } else {
-              console.warn(
-                `Failed to delete existing partial m4a file: ${fullFilePath}`,
-              );
-            }
           }
         } catch (error) {
           console.error('Error handling existing m4a file:', error);
@@ -900,6 +892,9 @@ const StatusSpecificDownloads = () => {
         false,
       );
       deleteDownloading(downloadId);
+      // Clear selected downloads after starting/resuming download
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
       toast({
         variant: 'success',
         title: 'Download Resumed',
@@ -1130,7 +1125,9 @@ const StatusSpecificDownloads = () => {
         });
       }
     }
-
+    // Clear selected downloads after removal
+    setSelectedRowIds([]);
+    setSelectedDownloads([]);
     setContextMenu({ downloadId: null, x: 0, y: 0 });
   };
 
@@ -1160,6 +1157,9 @@ const StatusSpecificDownloads = () => {
     // Handle pending downloads
     if (download.status === 'to download') {
       deleteDownload(downloadId);
+      // Clear selected downloads after removal
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
       toast({
         variant: 'success',
         title: 'Download Deleted',
@@ -1174,6 +1174,9 @@ const StatusSpecificDownloads = () => {
     // Handle cancelled or paused downloads
     if (download.status === 'cancelled' || download.status === 'paused') {
       deleteDownload(downloadId);
+      // Clear selected downloads after removal
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
       toast({
         variant: 'success',
         title: 'Download Removed',
@@ -1183,6 +1186,23 @@ const StatusSpecificDownloads = () => {
         duration: 3000,
       });
       // Process queue after removing a paused/cancelled download
+      processQueue();
+      return;
+    }
+
+    // Handle failed downloads - just remove from list since no file was created
+    if (download.status === 'failed') {
+      deleteDownload(downloadId);
+      // Clear selected downloads after removal
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
+      toast({
+        variant: 'success',
+        title: 'Download Removed',
+        description: 'Failed download has been removed successfully',
+        duration: 3000,
+      });
+      // Process queue after removing a failed download
       processQueue();
       return;
     }
@@ -1215,13 +1235,33 @@ const StatusSpecificDownloads = () => {
 
     try {
       let success = false;
+      const folderExists = await window.downlodrFunctions.fileExists(
+        downloadLocation,
+      );
+
       if (deleteFolder) {
         // Get the parent folder path
         // const folderPath = downloadLocation.replace(/(\/|\\)[^/\\]+$/, '');
+        if (!folderExists) {
+          deleteDownload(downloadId);
+          // Clear selected downloads after removal
+          setSelectedRowIds([]);
+          setSelectedDownloads([]);
+          toast({
+            variant: 'success',
+            title: 'Download Deleted',
+            description: 'Download has been deleted successfully',
+            duration: 3000,
+          });
+          return;
+        }
         success = await window.downlodrFunctions.deleteFolder(downloadLocation);
 
         if (success) {
           deleteDownload(downloadId);
+          // Clear selected downloads after removal
+          setSelectedRowIds([]);
+          setSelectedDownloads([]);
           toast({
             variant: 'success',
             title: 'Folder Deleted',
@@ -1244,6 +1284,9 @@ const StatusSpecificDownloads = () => {
 
         if (success) {
           deleteDownload(downloadId);
+          // Clear selected downloads after removal
+          setSelectedRowIds([]);
+          setSelectedDownloads([]);
           toast({
             variant: 'success',
             title: 'File Deleted',
@@ -1677,7 +1720,10 @@ const StatusSpecificDownloads = () => {
                         borderColor: '#6b7280',
                       }),
                     }}
-                    checked={selectedRowIds.length === allDownloads.length}
+                    checked={
+                      allDownloads.length > 0 &&
+                      selectedRowIds.length === allDownloads.length
+                    }
                     onChange={handleSelectAll}
                   />
                 </th>
@@ -1710,8 +1756,19 @@ const StatusSpecificDownloads = () => {
                         className="flex items-center cursor-pointer whitespace-nowrap"
                         onClick={() => handleSortClick(column.id)}
                       >
-                        {getColumnDisplayName(column.id)}
-                        {renderSortIndicator(column.id)}
+                        <span className="flex items-center gap-[0.5px]">
+                          {getColumnDisplayName(column.id)}
+                          {renderSortIndicator(column.id)}
+
+                          {column.id === 'name' &&
+                            selectedRowIds.length > 0 && (
+                              <span className="text-xs">
+                                ({selectedRowIds.length}{' '}
+                                {selectedRowIds.length === 1 ? 'item' : 'items'}{' '}
+                                selected)
+                              </span>
+                            )}
+                        </span>
                       </div>
                     </ResizableHeader>
                   );
@@ -1993,7 +2050,7 @@ const StatusSpecificDownloads = () => {
                           return (
                             <td
                               key={column.id}
-                              style={{ width: column.width - 10 }}
+                              style={{ width: column.width }}
                               className="pl-2 py-2 dark:text-gray-200 flex justify-center items-center"
                             >
                               {[
@@ -2054,11 +2111,13 @@ const StatusSpecificDownloads = () => {
                                 <div className=" w-full flex justify-center items-center">
                                   <Skeleton className="h-8 w-[50px] rounded-[3px]" />
                                 </div>
-                              ) : (download.status === 'finished' ||
-                                  download.status === 'paused' ||
-                                  download.status === 'downloading' ||
-                                  download.status === 'failed' ||
-                                  download.status === 'initializing') &&
+                              ) : [
+                                  'finished',
+                                  'paused',
+                                  'downloading',
+                                  'failed',
+                                  'initializing',
+                                ].includes(download.status) &&
                                 download.thumnailsLocation &&
                                 download.thumnailsLocation !== '—' ? (
                                 <div className="flex justify-center items-center w-full">

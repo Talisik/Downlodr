@@ -54,7 +54,7 @@ export const usePluginStore = create<PluginStore>()(
       loadPlugins: async () => {
         try {
           const installedPlugins = await window.plugins.list();
-          console.log('Loaded plugins:', installedPlugins);
+          // console.log('Loaded plugins:', installedPlugins);
           set({ plugins: installedPlugins });
         } catch (error) {
           console.error('Failed to load plugins:', error);

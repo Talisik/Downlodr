@@ -221,7 +221,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       {/* Directory selection overlay - blocks all app interaction */}
       {isSelectingDirectory && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-[9999] cursor-not-allowed flex items-center justify-center">
-          <div className="bg-white dark:bg-darkModeDropdown pt-3 rounded-lg shadow-lg max-w-md text-center">
+          <div className="p-6 bg-white dark:bg-darkModeDropdown rounded-lg shadow-lg max-w-md text-center">
             <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
               Directory Selection In Progress
             </h3>

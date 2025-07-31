@@ -41,7 +41,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
   useEffect(() => {
-    console.log('UpdateNotification mounting/re-mounting');
+    // console.log('UpdateNotification mounting/re-mounting');
 
     // Only add the listener for app updates when no external control is provided
     if (!externalUpdateInfo && updateType === 'app') {

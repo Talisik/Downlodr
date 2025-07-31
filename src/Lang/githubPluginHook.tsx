@@ -203,16 +203,8 @@ function parseReleaseBodyForPlugins(body: string): ParsedPluginSection[] {
   const pluginRegex = /##\s+([^\n]+)\n(.*?)(?=##|\n$)/gs;
   let match;
 
-  console.log('=== Parsing Release Body ===');
-  console.log('Body to parse:', body);
-  console.log('Using regex:', pluginRegex);
-
   while ((match = pluginRegex.exec(body)) !== null) {
     const [, name, content] = match;
-    console.log('Found plugin match:', {
-      name: name.trim(),
-      content: content.trim(),
-    });
 
     const plugin: ParsedPluginSection = {
       name: name.trim(),
@@ -320,7 +312,6 @@ async function fetchFromGitHubRelease(): Promise<PluginData[]> {
     // Parse plugin data directly from the release
     const pluginsData = parsePluginDataFromRelease(releaseData);
 
-    console.log('Parsed plugins from GitHub release:', pluginsData);
     return pluginsData;
   } catch (error) {
     console.error('Failed to fetch plugins from GitHub release:', error);

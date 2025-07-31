@@ -446,13 +446,13 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
 
   // Calculate responsive icon sizing based on component dimensions
   const iconContainerSize = Math.min(actualWidth * 0.7, height * 1.5, 70); // Max 48px, min 15% of width or 40% of height
-  const iconSize = iconContainerSize * 0.5; // Icon is 50% of container size
+  const iconSize = iconContainerSize * 0.5;
 
   return (
     <TooltipWrapper content={currentSpeedDisplay} side="bottom">
       <div
         ref={containerRef}
-        className={`relative rounded-lg transition-all duration-200 ${
+        className={`relative rounded-lg transition-all duration-200 min-w-12 ${
           colors.bg
         } ${isResponsive ? 'w-full' : ''} ${className}`}
         style={
