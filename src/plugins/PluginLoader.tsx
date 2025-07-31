@@ -1,5 +1,5 @@
+import { createPluginAPI } from '@/plugins/pluginAPI';
 import React, { useEffect, useState } from 'react';
-import { createPluginAPI } from '../plugins/pluginAPI';
 
 export const PluginLoader: React.FC = () => {
   const [, setEnabledPlugins] = useState<Record<string, boolean>>({});
@@ -62,7 +62,6 @@ export const PluginLoader: React.FC = () => {
       // Load each plugin in the renderer process
       for (const plugin of plugins) {
         try {
-          console.log(`Loading plugin: ${plugin.id}`);
           const { code, manifest, error } = await window.plugins.getCode(
             plugin.id,
           );
@@ -86,7 +85,6 @@ export const PluginLoader: React.FC = () => {
           // Initialize the plugin with its API
           if (pluginExports.initialize) {
             await pluginExports.initialize(api);
-            console.log(`Plugin ${plugin.id} initialized successfully`);
           }
         } catch (error) {
           console.error(`Error initializing plugin ${plugin.id}:`, error);
@@ -101,18 +99,7 @@ export const PluginLoader: React.FC = () => {
   async function executePluginCode(code: string, pluginId: string) {
     try {
       const sandbox = {
-        // Provide limited globals
-        console: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          log: (...args: any[]) => console.log(`[Plugin ${pluginId}]`, ...args),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          error: (...args: any[]) =>
-            console.error(`[Plugin ${pluginId}]`, ...args),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          warn: (...args: any[]) =>
-            console.warn(`[Plugin ${pluginId}]`, ...args),
-        },
-        setTimeout: (callback: TimerHandler, ms?: number, ...args: any[]) => 
+        setTimeout: (callback: TimerHandler, ms?: number, ...args: unknown[]) =>
           setTimeout(callback, ms, ...args),
         clearTimeout: (id?: number) => clearTimeout(id),
         exports: {},

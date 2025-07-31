@@ -10,10 +10,10 @@
  * @returns JSX.Element - The rendered component displaying an AdvancedSettingsModal
  */
 
+import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import React, { useEffect, useRef, useState } from 'react';
 import { FiCheck, FiDownload } from 'react-icons/fi';
 import { IoMdClose } from 'react-icons/io';
-import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
 
 interface AdvancedSettingsModalProps {
   isOpen: boolean;

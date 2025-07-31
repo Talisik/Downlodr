@@ -9,42 +9,27 @@
  * @returns JSX.Element - The rendered download button component.
  */
 
+import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { processFileName } from '@/DataFunctions/FilterName';
+import { AddDownload } from '@/schema/download';
+import useDownloadStore from '@/Store/downloadStore';
+import { useMainStore } from '@/Store/mainStore';
 import React from 'react';
 import { IoMdDownload } from 'react-icons/io';
-import { processFileName } from '../../../DataFunctions/FilterName';
-import useDownloadStore from '../../../Store/downloadStore';
-import { useMainStore } from '../../../Store/mainStore';
-import { toast } from '../shadcn/hooks/use-toast';
 
 // Interface representing the props for the DownloadButton component
 interface DownloadButtonProps {
-  download: {
-    id: string; // Unique identifier for the download
-    location: string; // Location of the file to download
-    name: string; // Name of the file
-    status: string; // Current status of the download
-    ext: string; // File extension
-    audioExt: string; // Audio file extension
-    videoUrl: string; // URL of the video to download
-    size: number; // Size of the file in bytes
-    speed: string; // Download speed
-    timeLeft: string; // Estimated time left for the download
-    progress: number; // Download progress percentage
-    formatId: string; // Format ID of the download
-    audioFormatId: string; // Audio format ID
-    extractorKey: string; // Key for the extractor
-    automaticCaption: string;
-    thumbnails: string;
-    getTranscript: boolean;
-    getThumbnail: boolean;
-    duration: number;
-  };
+  download: AddDownload;
 }
 
 const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
   const { settings } = useMainStore();
   const { removeFromForDownloads, addQueue } = useDownloadStore();
-
+  const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
+  const setSelectedDownloads = useMainStore(
+    (state) => state.setSelectedDownloads,
+  );
   /**
    * Handles the click event for the download button.
    * Initiates the download process and updates the download store.
@@ -53,7 +38,8 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
    */
   const handleDownloadClick = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row expansion
-
+    setSelectedRowIds([]);
+    setSelectedDownloads([]);
     // Process the filename first
     const processedName = await processFileName(
       download.location,
@@ -68,6 +54,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
       `${processedName}.${download.ext}`,
       download.size,
       download.speed,
+      download.channelName,
       download.timeLeft,
       new Date().toISOString(),
       download.progress,
@@ -100,13 +87,17 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
   };
 
   return (
-    <button onClick={handleDownloadClick} className="text-left relative">
-      <div className="relative flex items-center text-sm whitespace-nowrap">
-        {' '}
-        <IoMdDownload className="mr-1" size={18} />
-        Start Download
-      </div>
-    </button>
+    <TooltipWrapper content="Download video" side="bottom">
+      <button
+        onClick={handleDownloadClick}
+        className="text-center items-center relative"
+      >
+        <div className="relative flex items-center text-sm whitespace-nowrap">
+          {' '}
+          <IoMdDownload className="mr-1" size={22} />
+        </div>
+      </button>
+    </TooltipWrapper>
   );
 };
 

@@ -1,70 +1,68 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/Components/Pages/PluginManager.tsx
-import React, { useEffect, useRef, useState } from 'react';
-import { FaPlus } from 'react-icons/fa6';
+import NoPlugin from '@/Assets/Images/extension_light_nobg 1.svg';
+import ConfirmModal from '@/Components/Main/Modal/ConfirmModal';
+import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
+import UpdateNotification from '@/Components/SubComponents/custom/UpdateNotifications';
+import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/Components/SubComponents/shadcn/components/ui/tabs';
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import browsePluginsLang, {
+  getBrowsePluginsData,
+  PluginData,
+  refreshPluginData,
+} from '@/Lang/githubPluginHook';
+import PluginCard from '@/plugins/components/PluginCard';
+import { useBrowsePlugin } from '@/plugins/Hooks/useBrowsePlugin';
+import { PluginInfo, UpdateInfo } from '@/plugins/types';
+import { usePluginStore } from '@/Store/pluginStore';
+import { useTaskbarDownloadStore } from '@/Store/taskbarDownloadStore';
+import { renderIcon } from '@/Utils/iconHelpers';
+import { getFirstParagraph } from '@/Utils/stringHelpers';
+import { useEffect, useRef, useState } from 'react';
+import { FaArrowsRotate, FaPlus } from 'react-icons/fa6';
 import { FiSearch } from 'react-icons/fi';
 import { NavLink } from 'react-router-dom';
-import NoPlugin from '../Assets/Images/extension_light_nobg 1.svg';
-import { Button } from '../Components/SubComponents/shadcn/components/ui/button';
-import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
 
-interface PluginInfo {
-  id: string;
-  name: string;
-  version: string;
-  description: string;
-  author: string;
-  icon: string;
+// Extended interface for browse plugins with formatted size
+interface BrowsePluginInfo extends PluginInfo {
+  formattedSize: string;
 }
 
-interface ConfirmModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  message: string;
-}
+const PluginManager = () => {
+  const { plugins, loadPlugins } = usePluginStore();
+  const { isSelectingDirectory, setIsSelectingDirectory } =
+    useTaskbarDownloadStore();
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
+  const [currentUpdatingPlugin, setCurrentUpdatingPlugin] =
+    useState<PluginInfo | null>(null);
+  const {
+    installPlugin: installFromGitHub,
+    checkForUpdates,
+    updatePlugin,
+    isInstalling,
+    // getInstallationProgress,
+  } = useBrowsePlugin();
 
-const ConfirmModal: React.FC<ConfirmModalProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  message,
-}) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-4">
-        <p className="text-gray-800 dark:text-gray-200 mb-4">{message}</p>
-        <div className="flex justify-end space-x-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-          >
-            Remove
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const PluginManager: React.FC = () => {
-  //Plugins
-  const [plugins, setPlugins] = useState<PluginInfo[]>([]);
+  // Plugins
   const [loading, setLoading] = useState(true);
   const [enabledPlugins, setEnabledPlugins] = useState<Record<string, boolean>>(
     {},
   );
-  // New state to track if directory selection is in progress
-  const [isSelectingDirectory, setIsSelectingDirectory] =
-    useState<boolean>(false);
+
+  // Browse plugins state
+  const [browsePlugins, setBrowsePlugins] =
+    useState<PluginData[]>(browsePluginsLang);
+  const [browsePluginsLoading, setBrowsePluginsLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [browsePluginsSource, setBrowsePluginsSource] = useState<
+    'github' | 'fallback'
+  >('fallback');
 
   // Confirmation modal state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -76,60 +74,10 @@ const PluginManager: React.FC = () => {
   const [searchResults, setSearchResults] = useState<PluginInfo[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Helper function to check if string is SVG
-  const isSvgString = (str: string): boolean => {
-    if (typeof str !== 'string') return false;
-    const trimmed = str.trim();
-    return trimmed.startsWith('<svg') && trimmed.endsWith('</svg>');
-  };
+  // track active tab
+  const [activeTab, setActiveTab] = useState('installed');
 
-  // Helper function to get first paragraph of description
-  const getFirstParagraph = (description: string): string => {
-    if (!description) return '';
-
-    // Split by double line breaks first (common paragraph separator)
-    const paragraphs = description.split(/\n\s*\n/);
-    if (paragraphs.length > 1 && paragraphs[0].trim()) {
-      return paragraphs[0].trim();
-    }
-
-    // If no double line breaks, try single line breaks
-    const lines = description.split('\n');
-    if (lines.length > 1 && lines[0].trim()) {
-      return lines[0].trim();
-    }
-
-    // If no line breaks, return the full description (will be truncated by CSS)
-    return description;
-  };
-
-  // Render icon helper function
-  const renderIcon = (icon: any, size: 'sm' | 'md' = 'sm') => {
-    const sizeClass = size === 'md' ? 'w-6 h-6' : 'w-5 h-5';
-
-    if (typeof icon === 'string' && isSvgString(icon)) {
-      return (
-        <div
-          dangerouslySetInnerHTML={{ __html: icon }}
-          className={`${sizeClass} flex items-center justify-center rounded-sm [&>svg]:w-full [&>svg]:h-full`}
-        />
-      );
-    } else if (icon) {
-      return <span>{icon}</span>;
-    } else {
-      return (
-        <div
-          className={`${sizeClass} bg-gray-300 dark:bg-gray-600 rounded-sm flex items-center justify-center`}
-        >
-          <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
-            P
-          </span>
-        </div>
-      );
-    }
-  };
-
-  // Filter search results when search term changes
+  // filter search results
   useEffect(() => {
     if (searchTerm.trim() === '') {
       setSearchResults([]);
@@ -147,8 +95,81 @@ const PluginManager: React.FC = () => {
   }, [searchTerm, plugins]);
 
   useEffect(() => {
-    loadPlugins();
+    handleLoadPlugins();
   }, []);
+
+  // Load browse plugins data from GitHub release
+  const loadBrowsePlugins = async () => {
+    setBrowsePluginsLoading(true);
+    try {
+      const result = await getBrowsePluginsData();
+      setBrowsePlugins(result.data);
+      setBrowsePluginsSource(result.source);
+      /*
+      if (result.source === 'github') {
+        toast({
+          title: 'Browse Plugins Updated',
+          description: 'Plugin data loaded from GitHub release',
+          variant: 'success',
+          duration: 3000,
+        });  
+      } else if (result.error) {
+        toast({
+          title: 'GitHub Fetch Failed',
+          description: `Using fallback data: ${result.error}`,
+          variant: 'default',
+          duration: 5000,
+        });
+      } */
+    } catch (error) {
+      console.error('Failed to load browse plugins:', error);
+      toast({
+        title: 'Failed to Load Plugins',
+        description: 'Using fallback plugin data',
+        variant: 'destructive',
+        duration: 5000,
+      });
+    } finally {
+      setBrowsePluginsLoading(false);
+    }
+  };
+
+  // Load browse plugins when component mounts
+  useEffect(() => {
+    // Clear any cached data that might contain JSX objects
+    localStorage.removeItem('downlodr-plugins-cache');
+    loadBrowsePlugins();
+  }, []);
+
+  // Manual refresh function
+  const handleRefreshBrowsePlugins = async () => {
+    setBrowsePluginsLoading(true);
+    try {
+      const result = await refreshPluginData();
+      setBrowsePlugins(result.data);
+      setBrowsePluginsSource(result.source);
+
+      toast({
+        title: 'Plugins Refreshed',
+        description:
+          result.source === 'github'
+            ? 'Plugin data updated from GitHub release'
+            : 'Using fallback data due to GitHub API issues',
+        variant: result.source === 'github' ? 'success' : 'default',
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Failed to refresh browse plugins:', error);
+      toast({
+        title: 'Refresh Failed',
+        description: 'Could not refresh plugin data',
+        variant: 'destructive',
+        duration: 5000,
+      });
+    } finally {
+      setBrowsePluginsLoading(false);
+    }
+  };
 
   // Load enabled plugins state
   useEffect(() => {
@@ -181,15 +202,10 @@ const PluginManager: React.FC = () => {
     };
   }, []);
 
-  const loadPlugins = async () => {
+  const handleLoadPlugins = async () => {
     try {
       setLoading(true);
-      const installedPlugins = await window.plugins.list();
-
-      // Add this line to see what the plugin data contains
-      console.log('Loaded plugins:', installedPlugins);
-
-      setPlugins(installedPlugins);
+      await loadPlugins();
     } catch (error) {
       console.error('Failed to load plugins:', error);
     } finally {
@@ -210,7 +226,7 @@ const PluginManager: React.FC = () => {
           // First reload the plugins in the main process
           await window.plugins.reload();
           // Then update the UI list
-          await loadPlugins();
+          await handleLoadPlugins();
           toast({
             title: 'Success',
             description: 'Plugin was installed successfully',
@@ -274,7 +290,7 @@ const PluginManager: React.FC = () => {
         // First reload the plugins in the main process
         await window.plugins.reload();
         // Then update the UI list
-        await loadPlugins();
+        await handleLoadPlugins();
         toast({
           title: 'Plugin Removed',
           description: `${pluginName} has been successfully removed`,
@@ -308,24 +324,6 @@ const PluginManager: React.FC = () => {
     setPluginToRemove(null);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleLoadUnzipped = async () => {
-    try {
-      const pluginDirPath = await window.ytdlp.selectDownloadDirectory();
-      if (pluginDirPath) {
-        const success = await window.plugins.loadUnzipped(pluginDirPath);
-        if (success) {
-          // First reload the plugins in the main process
-          await window.plugins.reload();
-          // Then update the UI list
-          await loadPlugins();
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load unzipped plugin:', error);
-    }
-  };
-
   // enable and disable toggle functionality
   const handleToggle = async (pluginId: string) => {
     try {
@@ -355,6 +353,86 @@ const PluginManager: React.FC = () => {
     }
   };
 
+  // Handle plugin installation from GitHub
+  const handleInstallFromGitHub = async (plugin: PluginInfo) => {
+    try {
+      const success = await installFromGitHub(plugin);
+      if (success) {
+        // First reload the plugins in the main process
+        await window.plugins.reload();
+        // Then update the UI list
+        await handleLoadPlugins();
+      }
+    } catch (error) {
+      console.error('Installation failed:', error);
+    }
+  };
+
+  // Handle checking for updates
+  const handleCheckForUpdates = async (plugin: PluginInfo) => {
+    try {
+      const updateInfoResult = await checkForUpdates(plugin);
+
+      if (updateInfoResult.hasUpdate) {
+        setUpdateInfo(updateInfoResult);
+        setIsUpdateAvailable(true);
+        setCurrentUpdatingPlugin(plugin);
+      } else {
+        toast({
+          title: 'No Updates Available',
+          description: `${plugin.name} is already up to date (v${updateInfoResult.currentVersion})`,
+          variant: 'default',
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to check for updates:', error);
+      toast({
+        title: 'Update Check Failed',
+        description:
+          error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: 'destructive',
+        duration: 5000,
+      });
+    }
+  };
+
+  // Handle plugin update when user confirms
+  const handlePluginUpdate = async () => {
+    if (!currentUpdatingPlugin) return;
+
+    try {
+      const success = await updatePlugin(currentUpdatingPlugin);
+      if (success) {
+        // Reload plugins if update was successful
+        await handleLoadPlugins();
+        toast({
+          title: 'Update Successful',
+          description: `${currentUpdatingPlugin.name} has been updated successfully`,
+          variant: 'success',
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Plugin update failed:', error);
+      toast({
+        title: 'Update Failed',
+        description: `Failed to update ${currentUpdatingPlugin.name}`,
+        variant: 'destructive',
+        duration: 5000,
+      });
+    } finally {
+      handleCloseUpdateNotification();
+    }
+  };
+
+  // Handle closing the update notification
+  const handleCloseUpdateNotification = () => {
+    setIsUpdateAvailable(false);
+    setUpdateInfo(null);
+    setCurrentUpdatingPlugin(null);
+  };
+  // dark:bg-darkModeCompliment bg-[#fcf0e3] text-gray-950 shadow-sm dark:text-gray-50
   return (
     <div className="min-h-screen w-full bg-[#FBFBFB] dark:bg-darkModeDropdown">
       {/* Confirmation Modal */}
@@ -369,179 +447,228 @@ const PluginManager: React.FC = () => {
             : 'this plugin'
         }"? This action cannot be undone.`}
       />
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          {/* Directory selection overlay - blocks all app interaction */}
-          {isSelectingDirectory && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] cursor-not-allowed flex items-center justify-center">
-              <div className="bg-white dark:bg-darkMode p-4 rounded-md shadow-lg max-w-md text-center">
-                <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
-                  Directory Selection In Progress
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Please complete the directory selection dialog before
-                  continuing.
-                </p>
-              </div>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <h1 className="text-[20px] font-medium mr-4">Plugins</h1>
-            {/* Search Bar with increased width */}
-            <div ref={searchRef} className="relative">
-              <div className="flex items-center bg-[#FFFFFF] dark:bg-darkModeDropdown rounded-md border dark:border-2 border-[#D1D5DB] dark:border-darkModeCompliment px-2">
-                <FiSearch className="text-gray-500 dark:text-gray-400 h-4 w-4 mr-1" />
-                <input
-                  type="text"
-                  placeholder="Search"
-                  className="py-1 px-2 bg-transparent focus:outline-none text-sm w-full"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setShowResults(e.target.value.trim() !== '');
-                  }}
-                  onFocus={() => {
-                    if (searchTerm.trim() !== '') {
-                      setShowResults(true);
-                    }
-                  }}
-                />
-              </div>
-
-              {/* Search Results Dropdown */}
-              {showResults && searchResults.length > 0 && (
-                <div className="absolute top-full left-0 mt-1 w-full max-h-60 overflow-y-auto bg-white dark:bg-darkModeCompliment rounded-md shadow-lg z-10">
-                  {searchResults.map((plugin) => (
-                    <NavLink
-                      key={plugin.id}
-                      to="/plugins/details"
-                      state={{ plugin }}
-                      className="block px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover cursor-pointer text-sm"
-                      onClick={() => setShowResults(false)}
-                    >
-                      <div className="flex items-center">
-                        <span className="inline-flex items-center justify-center w-5 h-5 mr-2 flex-shrink-0">
-                          {renderIcon(plugin.icon)}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div
-                            className="font-medium truncate"
-                            title={plugin.name}
-                          >
-                            {plugin.name}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {getFirstParagraph(plugin.description)}
-                          </div>
-                        </div>
-                      </div>
-                    </NavLink>
-                  ))}
-                </div>
-              )}
-
-              {/* No Results Message */}
-              {showResults &&
-                searchTerm.trim() !== '' &&
-                searchResults.length === 0 && (
-                  <div className="absolute top-full left-0 mt-1 w-60 bg-white dark:bg-darkModeCompliment rounded-md shadow-lg z-10">
-                    <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                      No plugins found
-                    </div>
-                  </div>
-                )}
-            </div>
-          </div>
-          {plugins.length > 0 && (
-            <div className="flex items-center">
-              <Button
-                onClick={handleInstall}
-                className="bg-[#F45513] dark:bg-[#F45513] dark:text-white dark:hover:text-black dark:hover:bg-white text-sm font-normal px-4 py-1 h-8 ml-4"
-              >
-                <FaPlus />
-                <span>Add Plugin</span>
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {loading ? (
-          <div>Loading plugins...</div>
-        ) : plugins.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center text-gray-500 p-8 min-h-[60vh]">
-            <img
-              src={NoPlugin}
-              alt="No plugins available"
-              className="mx-auto"
-            />
-            <span className="mx-auto mt-8 dark:text-gray-200">
-              You haven't installed any plugins
-            </span>
-            <Button
-              onClick={handleInstall}
-              className="bg-[#F45513] dark:bg-[#F45513] dark:text-white dark:hover:text-black dark:hover:bg-white text-sm font-normal px-4 py-1 h-8 mt-4"
+      <UpdateNotification
+        updateInfo={updateInfo}
+        isOpen={isUpdateAvailable}
+        onClose={handleCloseUpdateNotification}
+        onUpdate={handlePluginUpdate}
+        updateType="plugin"
+        pluginName={currentUpdatingPlugin?.name}
+      />
+      <div className="p-4">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center w-full">
+            <Tabs
+              defaultValue="installed"
+              className="w-full"
+              onValueChange={setActiveTab}
             >
-              <FaPlus />
-              <span>Add Plugin</span>
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-            {plugins.map((plugin) => (
-              <div
-                key={plugin.id}
-                className="w-sm bg-[#FFFFFF] dark:bg-darkMode rounded-sm p-4 shadow-sm ring-1 ring-gray-200 dark:ring-darkModeCompliment border-l-4 border-l-[#FFFFFF] dark:border-l-4 dark:border-l-darkMode hover:border-l-4 hover:border-l-[#F45513] hover:dark:border-l-[#F45513] h-58 flex flex-col"
-              >
-                <div className="flex-1 flex flex-col">
-                  <div className="flex-1">
-                    <div className="flex items-center mb-2">
-                      <span className="inline-flex items-center justify-center w-6 h-6 mr-2 flex-shrink-0">
-                        {renderIcon(plugin.icon, 'md')}
-                      </span>
-                      <h3 className="text-lg text-[14px] font-bold truncate">
-                        {plugin.name}
-                      </h3>
-                    </div>
-                    <p className="mt-2 text-sm line-clamp-3 overflow-hidden h-16">
-                      {getFirstParagraph(plugin.description)}
-                    </p>
+              <TabsList className="flex justify-between items-center w-full">
+                <div className="bg-[#F4F4F4] dark:bg-darkModeCompliment rounded-md -ml-1 p-1">
+                  <div>
+                    <TabsTrigger
+                      value="installed"
+                      className="text-sm font-medium data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-divider dark:data-[state=active]:bg-darkMode dark:data-[state=active]:border-darkModeBorderColor dark:data-[state=active]:text-white"
+                    >
+                      Installed Plugins
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="browse"
+                      className="text-sm font-medium data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-divider dark:data-[state=active]:bg-darkMode dark:data-[state=active]:border-darkModeBorderColor dark:data-[state=active]:text-white"
+                    >
+                      Browse Plugins
+                    </TabsTrigger>
                   </div>
-                  <hr className="solid my-4 w-full border-t border-divider dark:border-darkModeCompliment" />
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <div className="flex gap-2 flex-wrap ">
-                      <NavLink to="/plugins/details" state={{ plugin }}>
-                        <Button
-                          variant="outline"
-                          className="dark:border-darkModeCompliment border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
-                        >
-                          Details
-                        </Button>
-                      </NavLink>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Refresh button - only show when browse tab is active */}
+                  {activeTab === 'browse' && (
+                    <TooltipWrapper
+                      content="Refresh Featured Plugins"
+                      side="bottom"
+                      contentClassname="text-start justify-start"
+                    >
                       <Button
                         variant="outline"
-                        className="border-2 py-4 px-2 h-8 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown dark:border-darkModeCompliment hover:text-primary dark:hover:text-primary"
-                        onClick={() => handleUninstall(plugin.id)}
+                        onClick={handleRefreshBrowsePlugins}
+                        disabled={browsePluginsLoading}
+                        className="text-sm flex items-center gap-2 dark:bg-darkMode dark:border-darkModeCompliment dark:hover:bg-darkModeHover dark:hover:border-darkModeHover"
                       >
-                        Remove
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={enabledPlugins[plugin.id] || false}
-                          onChange={() => handleToggle(plugin.id)}
+                        <FaArrowsRotate
+                          className={browsePluginsLoading ? 'animate-spin' : ''}
                         />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
-                      </label>
+                      </Button>
+                    </TooltipWrapper>
+                  )}
+
+                  {/* Search Bar with increased width */}
+                  <div ref={searchRef} className="relative">
+                    <div className="flex items-center bg-[#FFFFFF] dark:bg-darkModeDropdown rounded-md border dark:border-2 border-[#D1D5DB] dark:border-darkModeCompliment px-2">
+                      <FiSearch className="text-gray-500 dark:text-gray-400 h-4 w-4 mr-1" />
+                      <input
+                        type="text"
+                        placeholder="Search"
+                        className="py-1 px-2 bg-transparent focus:outline-none text-sm w-full"
+                        value={searchTerm}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setShowResults(e.target.value.trim() !== '');
+                        }}
+                        onFocus={() => {
+                          if (searchTerm.trim() !== '') {
+                            setShowResults(true);
+                          }
+                        }}
+                      />
                     </div>
+
+                    {/* Search Results Dropdown */}
+                    {showResults && searchResults.length > 0 && (
+                      <div className="absolute top-full left-0 mt-1 w-full max-h-60 overflow-y-auto bg-white dark:bg-darkModeCompliment rounded-md shadow-lg z-10">
+                        {searchResults.map((plugin) => (
+                          <NavLink
+                            key={plugin.id}
+                            to="/plugins/details"
+                            state={{ plugin }}
+                            className="block px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover cursor-pointer text-sm"
+                            onClick={() => setShowResults(false)}
+                          >
+                            <div className="flex items-center">
+                              <span className="inline-flex items-center justify-center w-5 h-5 mr-2 flex-shrink-0">
+                                {renderIcon(plugin.icon)}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div
+                                  className="font-medium truncate"
+                                  title={plugin.name}
+                                >
+                                  {plugin.name}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                  {getFirstParagraph(plugin.description)}
+                                </div>
+                              </div>
+                            </div>
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* No Results Message */}
+                    {showResults &&
+                      searchTerm.trim() !== '' &&
+                      searchResults.length === 0 && (
+                        <div className="absolute top-full left-0 mt-1 w-60 bg-white dark:bg-darkModeCompliment rounded-md shadow-lg z-10">
+                          <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                            No plugins found
+                          </div>
+                        </div>
+                      )}
                   </div>
                 </div>
-              </div>
-            ))}
+              </TabsList>
+              <TabsContent value="installed" className="my-6">
+                {loading ? (
+                  <div>Loading plugins...</div>
+                ) : plugins.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center text-gray-500 p-8 min-h-[60vh]">
+                    <img
+                      src={NoPlugin}
+                      alt="No plugins available"
+                      className="mx-auto"
+                    />
+                    <span className="mx-auto mt-8 dark:text-gray-200">
+                      You haven't installed any plugins
+                    </span>
+                    <Button
+                      variant="default"
+                      onClick={handleInstall}
+                      className="text-md bg-[#F45513] dark:bg-[#F45513] dark:text-white dark:hover:text-black dark:hover:bg-white font-normal px-4 py-1 h-8 mt-4"
+                      icon={<FaPlus />}
+                    >
+                      Add Plugin
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+                    {plugins.map((plugin) => (
+                      <PluginCard
+                        key={plugin.id}
+                        plugin={plugin}
+                        pluginType="installed"
+                        onClickButton={() => handleUninstall(plugin.id)}
+                        enabledPlugins={enabledPlugins}
+                        onClickToggle={() => handleToggle(plugin.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+              <TabsContent value="browse" className="my-6 w-full">
+                {browsePluginsLoading ? (
+                  <div className="flex justify-center items-center py-10">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900 dark:border-white"></div>
+                    <span className="ml-2 text-gray-500 dark:text-gray-400">
+                      Loading plugins from GitHub...
+                    </span>
+                  </div>
+                ) : browsePlugins.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center text-gray-500 p-8 min-h-[60vh]">
+                    <img
+                      src={NoPlugin}
+                      alt="No plugins available"
+                      className="mx-auto"
+                    />
+                    <span className="mx-auto mt-8 dark:text-gray-200">
+                      No plugins found. Try refreshing the list.
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={handleRefreshBrowsePlugins}
+                      className="mt-4"
+                    >
+                      Refresh Plugins
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+                    {browsePlugins.map((plugin) => {
+                      // Convert PluginData to PluginInfo format
+                      const pluginInfo: BrowsePluginInfo = {
+                        id: plugin.id,
+                        name: plugin.name,
+                        version: plugin.version,
+                        description: plugin.description,
+                        author: plugin.author,
+                        icon: plugin.icon, // Raw SVG string
+                        enabled: plugin.enabled || false,
+                        location: plugin.location || '',
+                        repoLink: plugin.repoLink,
+                        downlodrLink: plugin.downlodrLink,
+                        size: 0, // For browse plugins, size is handled as a string in the component
+                        formattedSize: plugin.size,
+                      };
+
+                      return (
+                        <PluginCard
+                          key={plugin.id}
+                          plugin={pluginInfo}
+                          pluginType="browse"
+                          onInstall={() => handleInstallFromGitHub(pluginInfo)}
+                          onCheckUpdates={() =>
+                            handleCheckForUpdates(pluginInfo)
+                          }
+                          isInstalling={isInstalling(plugin.id)}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

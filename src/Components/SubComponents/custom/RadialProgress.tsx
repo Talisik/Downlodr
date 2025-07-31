@@ -15,9 +15,9 @@
  * @returns JSX.Element - The rendered animated circular progress bar component.
  */
 
-import { cn } from '../shadcn/lib/utils';
-import { MdPause } from 'react-icons/md';
+import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
 import { FaPlay } from 'react-icons/fa';
+import { MdPause } from 'react-icons/md';
 
 interface AnimatedCircularProgressBarProps {
   status: string; // Current status of the progress

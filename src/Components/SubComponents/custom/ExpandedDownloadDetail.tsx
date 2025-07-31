@@ -8,9 +8,9 @@
  *
  * @returns JSX.Element - The rendered expanded download details component.
  */
-import React, { useState } from 'react';
-import { formatElapsedTime } from '../../../Store/downloadStore';
-import { useMainStore } from '../../../Store/mainStore';
+import { formatElapsedTime } from '@/DataFunctions/FormatElapsedTime';
+import { useMainStore } from '@/Store/mainStore';
+import React from 'react';
 
 // Interface representing the details of a download
 interface DownloadDetails {
@@ -80,9 +80,7 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   isEmpty || !download.progress || download.progress === 0
                     ? 'bg-gray-400 dark:bg-darkModeDarkGray'
-                    : download.progress === 100
-                    ? 'bg-green-500'
-                    : 'bg-orange-500'
+                    : 'bg-green-500'
                 }`}
                 style={{ width: `${isEmpty ? 0 : download.progress || 0}%` }}
               ></div>

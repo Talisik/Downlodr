@@ -1,6 +1,6 @@
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { useMainStore } from '@/Store/mainStore';
 import React, { useEffect, useState } from 'react';
-import { useMainStore } from '../../../Store/mainStore';
-import { toast } from '../shadcn/hooks/use-toast';
 
 interface FormatConverterMenuProps {
   downloadId: string;
@@ -65,10 +65,7 @@ const FormatConverterMenu: React.FC<FormatConverterMenuProps> = ({
     toast({
       variant: 'success',
       title: 'Conversion Started',
-      description: `Converting ${
-        selectedDownloads.length
-      } file(s) to ${selectedFormat}${
-        keepOriginal ? ' (keeping original)' : ''
+      description: `Converting ${selectedDownloads.length} file(s) to ${selectedFormat}
       }`,
       duration: 3000,
     });

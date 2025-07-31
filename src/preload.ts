@@ -35,6 +35,8 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
     ipcRenderer.invoke('open-folder', folderPath, filePath),
   fileExists: (path: string) => ipcRenderer.invoke('file-exists', path),
   getFileSize: (path: string) => ipcRenderer.invoke('get-file-size', path),
+  getDirectorySize: (path: string) =>
+    ipcRenderer.invoke('get-directory-size', path),
   showInputContextMenu: () => ipcRenderer.send('show-input-context-menu'),
   invokeMainProcess: (channel: any, ...args: any) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -335,6 +337,8 @@ contextBridge.exposeInMainWorld('plugins', {
     ipcRenderer.invoke('plugins:execute-menu-item', id, contextData),
   loadUnzipped: (pluginDirPath: any) =>
     ipcRenderer.invoke('plugins:loadUnzipped', pluginDirPath),
+  extractPlugin: (zipPath: string, extractTo: string) =>
+    ipcRenderer.invoke('plugins:extractPlugin', zipPath, extractTo),
 
   // Safe file operations for plugins
   writeFile: (options: any) => ipcRenderer.invoke('plugins:writeFile', options),

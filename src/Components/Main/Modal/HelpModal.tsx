@@ -36,7 +36,7 @@ const AccordionSection: React.FC<AccordionSectionProps> = ({
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className="w-full p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-darkModeHover/50 transition-colors"
+        className="w-full px-4 py-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-darkModeHover/50 transition-colors"
       >
         <span className="text-md dark:text-gray-300">{title}</span>
         <IoChevronDownOutline
@@ -47,7 +47,7 @@ const AccordionSection: React.FC<AccordionSectionProps> = ({
       </button>
       <div
         className={`overflow-hidden transition-all duration-200 ${
-          isOpen ? 'max-h-[1000px] p-4' : 'max-h-0'
+          isOpen ? 'max-h-[1000px] px-4 pb-4 pt-1' : 'max-h-0'
         }`}
       >
         {content}
@@ -144,7 +144,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 onClick={(e) => handleTabChange('guide', e)}
                 className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-2 py-1 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 ${
                   activeTab === 'guide'
-                    ? 'dark:bg-darkModeCompliment bg-[#fcf0e3] text-gray-950 shadow-sm  dark:text-gray-50'
+                    ? 'dark:bg-darkModeCompliment bg-[#fcf0e3] text-gray-950 shadow-xs dark:text-gray-50'
                     : 'dark:text-gray-300'
                 }`}
               >
@@ -154,7 +154,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 onClick={(e) => handleTabChange('common', e)}
                 className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-2 py-1 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 ${
                   activeTab === 'common'
-                    ? 'dark:bg-darkModeCompliment bg-[#fcf0e3] text-gray-950 shadow-sm  dark:text-gray-50'
+                    ? 'dark:bg-darkModeCompliment bg-[#fcf0e3] text-gray-950 shadow-xs  dark:text-gray-50'
                     : 'dark:text-gray-300'
                 }`}
               >
@@ -164,7 +164,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 onClick={(e) => handleTabChange('advanced', e)}
                 className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-2 py-1 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 ${
                   activeTab === 'advanced'
-                    ? 'dark:bg-darkModeCompliment bg-[#fcf0e3] text-gray-950 shadow-sm  dark:text-gray-50'
+                    ? 'dark:bg-darkModeCompliment bg-[#fcf0e3] text-gray-950 shadow-xs  dark:text-gray-50'
                     : 'dark:text-gray-300'
                 }`}
               >
@@ -180,7 +180,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                     <AccordionSection
                       title="Download Steps"
                       content={
-                        <ul className="list-decimal pl-6 space-y-3 dark:text-gray-300 text-sm">
+                        <ul className="list-decimal pl-6 space-y-3 dark:text-gray-300 text-xs">
                           <li>Open the "Add URL" section.</li>
                           <li>
                             Paste a valid video URL and select the download
@@ -201,7 +201,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                             After completion, right-click on the entry for
                             additional options. You can:
                           </li>
-                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-sm">
+                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-xs">
                             <li>View the download details</li>
                             <li>Open the download folder</li>
                             <li>Delete the download</li>
@@ -224,12 +224,12 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                     <AccordionSection
                       title="Pausing, Stopping, Removing and Starting downloads"
                       content={
-                        <ul className="list-decimal pl-6 space-y-3 dark:text-gray-300 text-sm">
+                        <ul className="list-decimal pl-6 space-y-3 dark:text-gray-300 text-xs">
                           <li>
                             Each download has control buttons on the status
                             columns and the context menu
                           </li>
-                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-sm">
+                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-xs">
                             <li>
                               Play button (▶️) - Starts or resumes the download
                             </li>
@@ -246,7 +246,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                             Download control buttons are also available within
                             the task bar and task dropdown
                           </li>
-                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-sm">
+                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-xs">
                             <li>
                               Users would able to select multiple downloads to
                               either play or stop
@@ -257,7 +257,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                             </li>
                           </ul>
                           <li>Removing Downloads</li>
-                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-sm">
+                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-xs">
                             <li>
                               Removing downloads affects currently finished
                               downloads. This action deletes the downloaded file
@@ -284,12 +284,12 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                     <AccordionSection
                       title="What is History"
                       content={
-                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
+                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-xs">
                           <li>
                             History is a record of all your past downloads
                           </li>
                           <li>Unlike status pages, History:</li>
-                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-sm">
+                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-xs">
                             <li>Doesn't show download progress or controls</li>
                             <li>Only keeps track of what you've downloaded</li>
                             <li>Shows if files still exist on your device</li>
@@ -307,7 +307,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                     <AccordionSection
                       title="How to view videos"
                       content={
-                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
+                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-xs">
                           <li>
                             Right-click video row in status pages to open
                             context menu and access the video view from there
@@ -321,12 +321,12 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                     <AccordionSection
                       title="How to use context menus"
                       content={
-                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
+                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-xs">
                           <li>
                             Right-click any download to access additional
                             options:
                           </li>
-                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-sm">
+                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-xs">
                             <li>View downloaded video</li>
                             <li>Open containing folder</li>
                             <li>Control download status</li>
@@ -347,12 +347,12 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                     <AccordionSection
                       title="Download is stuck in initializing"
                       content={
-                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
+                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-xs">
                           <li>Check your internet connection</li>
                           <li>Verify the video URL is still valid</li>
                           <li>
                             Restart the download:
-                            <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-sm">
+                            <ul className="mt-2 list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-xs">
                               <li>Pause Download</li>
                               <li>
                                 Go to folder and delete any lingering part file
@@ -369,9 +369,9 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                     <AccordionSection
                       title="Failed to delete video"
                       content={
-                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
+                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-xs">
                           <li>If you can't delete a video:</li>
-                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-sm">
+                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-xs">
                             <li>Close any applications using the video file</li>
                             <li>Restart the application</li>
                             <li>
@@ -388,9 +388,9 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                     <AccordionSection
                       title="Download speed is slow"
                       content={
-                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
+                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-xs">
                           <li>To improve download speed:</li>
-                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-sm">
+                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-xs">
                             <li>Check your internet connection</li>
                             <li>Reduce number of simultaneous downloads</li>
                             <li>Adjust speed limit in settings if enabled</li>
@@ -404,9 +404,9 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                     <AccordionSection
                       title="Permission (EPERM) errors"
                       content={
-                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-sm">
+                        <ul className="list-disc pl-6 space-y-3 dark:text-gray-300 text-xs">
                           <li>If you see permission errors:</li>
-                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-sm">
+                          <ul className="list-inside list-disc pl-4 space-y-1 dark:text-gray-300 text-xs">
                             <li>Run the application as administrator</li>
                             <li>Check folder permissions</li>
                             <li>Choose a different download location</li>

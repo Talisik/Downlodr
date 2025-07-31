@@ -246,3 +246,100 @@ function filterReleasesByChannel(releases: GitHubRelease[], targetChannel: strin
 - Current version `1.3.9-exp` → Only checks releases tagged with `-exp`
 - Current version `1.3.9-stable` → Only checks releases tagged with `-stable`
 - Current version `1.3.9` → Only checks releases without channel suffixes
+
+#### Enhanced Return Object
+The `checkForUpdates()` function now returns:
+- `currentChannel`: The detected channel of the current version
+- `message`: Informative message when no releases found for channel
+- Improved error handling with channel context
+
+### SpeedGraph Component
+
+**Real-time Download Speed Visualization**
+
+The SpeedGraph component provides a Windows-like line graph visualization for tracking download speeds in real-time. It features gradient fills, trend detection, and performance optimizations.
+
+#### Key Features
+
+- **Real-time Updates**: Efficiently tracks and displays speed changes every second
+- **Trend Detection**: Automatically detects increasing, decreasing, or stable speed patterns
+- **Visual Feedback**: Background color changes (green for increasing, red for decreasing speeds)
+- **Gradient Fills**: Beautiful area fills under the speed curve
+- **Performance Optimized**: Throttling and memoization to prevent excessive re-renders
+- **Configurable**: Customizable dimensions, data points, and update intervals
+
+#### Technical Implementation
+
+```typescript
+interface SpeedGraphProps {
+  currentSpeed: string; // Current speed string (e.g., "1.5 MB/s", "512 KB/s")
+  className?: string;
+  width?: number;
+  height?: number;
+  maxDataPoints?: number; // Maximum number of data points to keep
+  updateInterval?: number; // Update frequency in milliseconds
+  showHeader?: boolean; // Whether to show the header with speed text
+  showStatus?: boolean; // Whether to show the status indicator
+}
+```
+
+#### Usage Examples
+
+```typescript
+// Basic usage
+<SpeedGraph currentSpeed={download.speed} />
+
+// With status indicator
+<SpeedGraph currentSpeed={download.speed} showStatus={true} />
+
+// Custom size and settings
+<SpeedGraph 
+  currentSpeed={download.speed}
+  width={300}
+  height={100}
+  maxDataPoints={45}
+  updateInterval={500}
+  showStatus={true}
+/>
+
+// Integration with download store
+const DownloadSpeedDisplay = ({ downloadId }) => {
+  const downloads = useDownloadStore((state) => state.downloading);
+  const download = downloads.find(d => d.id === downloadId);
+  
+  if (!download) return null;
+  
+  return (
+    <SpeedGraph 
+      currentSpeed={download.speed}
+      showStatus={true}
+      width={250}
+      height={90}
+    />
+  );
+};
+```
+
+#### Performance Optimizations
+
+- **Throttling**: Updates are throttled to prevent excessive re-renders
+- **Memoization**: Speed parsing is memoized to avoid unnecessary calculations
+- **Data Limiting**: Automatically limits data points to prevent memory issues
+- **Efficient Rendering**: Uses SVG for smooth graphics without performance overhead
+
+#### Trend Detection Algorithm
+
+The component uses a sophisticated trend detection algorithm:
+
+1. **Data Collection**: Collects speed data points over time
+2. **Moving Average**: Calculates moving averages to smooth out fluctuations
+3. **Threshold Detection**: Uses configurable thresholds to determine trends
+4. **Visual Feedback**: Changes colors and gradients based on detected trends
+
+#### Color Scheme
+
+- **Green**: Increasing speeds (`#10b981`)
+- **Red**: Decreasing speeds (`#ef4444`)
+- **Gray**: Stable speeds (`#6b7280`)
+
+All colors include gradient variations for visual appeal and dark mode support.

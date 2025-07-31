@@ -4,14 +4,29 @@
  * It manages the state of the columns, handles mouse events for resizing, and updates
  * the column widths dynamically based on user interactions.
  *
+ * Features:
+ * - Auto-resizes ALL columns proportionally when window is resized (maintains relative proportions)
+ * - Manual column resizing with flexible minWidth enforcement:
+ *   - Window width ≤ 1400px: Enforces minWidth constraints
+ *   - Window width > 1400px: Allows resizing below minWidth (table becomes narrower)
+ * - Drag and drop column reordering
+ * - Cursor and state management for smooth user experience
+ * - Proportional scaling preserves user's manual adjustments while adapting to window size
+ *
  * @param initialColumns - An array of Column objects that define the initial state of the columns.
  * @param visibleColumnIds - An optional array of column IDs to filter the visible columns.
- * @returns An object containing the current columns and a function to start resizing.
+ * @returns An object containing the current columns and functions for resizing and reordering.
  *   - columns: The current state of the columns with updated widths.
  *   - startResizing: A function to initiate the resizing process for a specific column.
+ *   - startDragging: A function to initiate column drag operation.
+ *   - handleDragOver: A function to handle drag over events.
+ *   - handleDrop: A function to handle drop events for reordering.
+ *   - cancelDrag: A function to cancel drag operations.
+ *   - dragging: Current dragging state.
+ *   - dragOverIndex: Current drag over index.
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 // Interface representing a column in the table
 interface Column {
@@ -48,6 +63,9 @@ export const useResizableColumns = (
 ) => {
   // State to hold the current columns
   const [columns, setColumns] = useState(initialColumns);
+  // State to track the window width
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
   // State to track the resizing state
   const [resizing, setResizing] = useState<{
     columnId: string;
@@ -60,6 +78,42 @@ export const useResizableColumns = (
     index: number;
   } | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  // Function to calculate if minWidth should be enforced during manual resize
+  const shouldEnforceMinWidth = useCallback(() => {
+    // Only enforce minWidth when window width <= 1400px
+    // Above 1400px, allow users to resize smaller and make table narrower
+    // Auto-resizing scales all columns proportionally and always respects minWidth
+    return windowWidth <= 1400;
+  }, [windowWidth]);
+
+  // Window resize handler - always allow auto-resizing
+  useEffect(() => {
+    const handleResize = () => {
+      const newWidth = window.innerWidth;
+      const oldWidth = windowWidth;
+      setWindowWidth(newWidth);
+
+      // Calculate the scale factor for proportional resizing
+      const scaleFactor = newWidth / oldWidth;
+
+      // Only apply scaling if the change is significant (avoid tiny adjustments)
+      if (Math.abs(scaleFactor - 1) > 0.05) {
+        // Scale all columns proportionally based on window width change
+        setColumns((prevColumns) => {
+          return prevColumns.map((col) => {
+            const newColumnWidth = Math.round(col.width * scaleFactor);
+            // Ensure the new width respects the minimum width
+            const finalWidth = Math.max(col.minWidth || 5, newColumnWidth);
+            return { ...col, width: finalWidth };
+          });
+        });
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [windowWidth]);
 
   // Add window focus handler to reset cursor and drag states when window regains focus
   useEffect(() => {
@@ -125,8 +179,16 @@ export const useResizableColumns = (
       // Exit if the column is not found
       if (!currentColumn) return;
 
-      // Calculate the new width, ensuring it respects the minimum width
-      const newWidth = Math.max(currentColumn.minWidth || 5, startWidth + diff);
+      // Calculate the new width
+      let newWidth = startWidth + diff;
+
+      // Only enforce minWidth if conditions require it
+      if (shouldEnforceMinWidth()) {
+        newWidth = Math.max(currentColumn.minWidth || 5, newWidth);
+      } else {
+        // Allow smaller than minWidth but keep a reasonable minimum
+        newWidth = Math.max(5, newWidth);
+      }
 
       // Update the columns state with the new width
       setColumns((prevColumns) =>
@@ -178,7 +240,7 @@ export const useResizableColumns = (
         resetCursor();
       }
     };
-  }, [resizing, columns]);
+  }, [resizing, columns, shouldEnforceMinWidth]);
 
   // Function to initiate the resizing process for a specific column.
   // columnId - The ID of the column to resize.
@@ -199,7 +261,7 @@ export const useResizableColumns = (
   const startDragging = (columnId: string, index: number) => {
     setDragging({ columnId, index });
 
-    // Add a safety timeout to reset drag state if it gets stuck
+    // full safety timeout to reset drag state if it gets stuck
     setTimeout(() => {
       // Only reset if we're still in the same drag operation
       setDragging((current) => {
@@ -246,7 +308,7 @@ export const useResizableColumns = (
     }, 100);
   };
 
-  // Add a new function to cancel drag operations
+  // full new function to cancel drag operations
   const cancelDrag = () => {
     resetDragStates(setDragging, setDragOverIndex);
   };
