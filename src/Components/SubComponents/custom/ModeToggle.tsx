@@ -5,10 +5,10 @@
  *
  * @returns JSX.Element - The rendered mode toggle component.
  */
+import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
+import { useTheme } from '@/Components/ThemeProvider';
 import { Moon, Sun } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useTheme } from '../../ThemeProvider';
-import { Button } from '../shadcn/components/ui/button';
 
 export function ModeToggle() {
   const { setTheme } = useTheme();

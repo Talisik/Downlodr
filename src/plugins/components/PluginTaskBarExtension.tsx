@@ -1,12 +1,12 @@
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
+import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
+import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
+import useDownloadStore from '@/Store/downloadStore';
+import { useMainStore } from '@/Store/mainStore';
+import { usePluginState } from '@/plugins/Hooks/usePluginState';
+import { TaskBarItem } from '@/plugins/types';
 import React, { useEffect, useState } from 'react';
-import { Button } from '../../Components/SubComponents/shadcn/components/ui/button';
-import { useToast } from '../../Components/SubComponents/shadcn/hooks/use-toast';
-import { cn } from '../../Components/SubComponents/shadcn/lib/utils';
-import useDownloadStore from '../../Store/downloadStore';
-import { useMainStore } from '../../Store/mainStore';
-import { usePluginState } from '../Hooks/usePluginState';
-import { TaskBarItem } from '../types';
 
 const PluginTaskBarExtension: React.FC = () => {
   const [taskBarItems, setTaskBarItems] = useState<TaskBarItem[]>([]);
@@ -94,7 +94,10 @@ const PluginTaskBarExtension: React.FC = () => {
   }
 
   // Render icon helper function
-  const renderIcon = (icon: any, size: 'sm' | 'md' = 'sm') => {
+  const renderIcon = (
+    icon: string | React.ReactNode,
+    size: 'sm' | 'md' = 'sm',
+  ) => {
     const sizeClass = size === 'md' ? 'w-6 h-6' : 'w-5 h-5';
 
     if (typeof icon === 'string' && isSvgString(icon)) {
@@ -209,7 +212,20 @@ const PluginTaskBarExtension: React.FC = () => {
               )
             }
             aria-label={item.label}
-          />
+          >
+            {item.label && !item.icon && (
+              <span
+                className="text-xs"
+                style={
+                  typeof item.labelStyle === 'string'
+                    ? { ...(item.labelStyle as React.CSSProperties) }
+                    : item.labelStyle
+                }
+              >
+                {item.label}
+              </span>
+            )}
+          </Button>
         </TooltipWrapper>
       ))}
     </div>

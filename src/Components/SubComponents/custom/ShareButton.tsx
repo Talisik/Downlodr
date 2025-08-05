@@ -1,3 +1,12 @@
+import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/Components/SubComponents/shadcn/components/ui/dialog';
+import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
 import React, { useState } from 'react';
 import { FaFacebookF } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
@@ -6,15 +15,6 @@ import { IoIosInformationCircleOutline } from 'react-icons/io';
 import { IoLinkOutline } from 'react-icons/io5';
 import { MdOutlineMailOutline } from 'react-icons/md';
 import { TalisikClient } from 'talisik-shortener';
-import { Button } from '../shadcn/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '../shadcn/components/ui/dialog';
-import { useToast } from '../shadcn/hooks/use-toast';
-import { cn } from '../shadcn/lib/utils';
 import TooltipWrapper from './TooltipWrapper';
 
 interface ShareButtonProps {

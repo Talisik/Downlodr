@@ -1,10 +1,10 @@
 import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { usePluginStore } from '@/Store/pluginStore';
 import { useTaskbarDownloadStore } from '@/Store/taskbarDownloadStore';
 import React from 'react';
 import { FaPlus } from 'react-icons/fa';
 import { NavLink, useLocation } from 'react-router-dom';
-import { usePluginStore } from '../../../Store/pluginStore';
 
 interface PageNavigationProps {
   className?: string;
@@ -117,7 +117,7 @@ const PageNavigation: React.FC<PageNavigationProps> = ({ className = '' }) => {
           <Button
             variant="default"
             onClick={handleInstall}
-            className="bg-[#F45513] dark:bg-[#F45513] dark:text-white dark:hover:text-black dark:hover:bg-white text-sm font-normal px-4 py-1 h-8 ml-4"
+            className="text-md bg-[#F45513] dark:bg-[#F45513] dark:text-white dark:hover:text-black dark:hover:bg-white font-normal px-4 py-1 h-8 ml-4"
             icon={<FaPlus />}
           >
             Add Plugin

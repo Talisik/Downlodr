@@ -1,6 +1,6 @@
+import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
+import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
 import * as React from 'react';
-import TooltipWrapper from '../../../custom/TooltipWrapper';
-import { cn } from '../../lib/utils';
 
 // New interface for clickable icons
 export interface ClickableIcon {

@@ -7,12 +7,12 @@
  * @returns JSX.Element - The rendered component displaying a SettingsModal
  *
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Slider } from '@/Components/SubComponents/shadcn/components/ui/slider';
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { useMainStore } from '@/Store/mainStore';
+import { useTaskbarDownloadStore } from '@/Store/taskbarDownloadStore';
 import React, { useEffect, useRef, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
-import { useMainStore } from '../../../Store/mainStore';
-import { Slider } from '../../SubComponents/shadcn/components/ui/slider';
-import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -31,7 +31,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setVisibleColumns,
     updateRunInBackground,
     updateEnableClipboardMonitoring,
+    updateTelemetryEnabled,
+    updateDontShowAppUpdates,
+    updateDontShowPluginUpdates,
   } = useMainStore();
+
+  // Get taskbar store to keep download folder in sync
+  const { setDownloadFolder } = useTaskbarDownloadStore();
 
   // Form submission
   const [biteUnit, setBiteUnit] = useState('');
@@ -62,6 +68,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     settings.enableClipboardMonitoring,
   );
 
+  // update notification settings
+  const [dontShowAppUpdates, setDontShowAppUpdates] = useState(
+    settings.dontShowAppUpdates,
+  );
+  const [dontShowPluginUpdates, setDontShowPluginUpdates] = useState(
+    settings.dontShowPluginUpdates,
+  );
+
   // sync with the mainStore's visibleColumns
   useEffect(() => {
     if (isOpen) {
@@ -89,6 +103,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setRunInBackground(settings.runInBackground ?? true);
     // reset the clipboard monitoring setting
     setEnableClipboardMonitoring(settings.enableClipboardMonitoring ?? false);
+    // reset the telemetry setting
+    // setTelemetryEnabled(settings.telemetryEnabled ?? false); // Removed as per edit hint
+    // reset the update notification settings
+    setDontShowAppUpdates(settings.dontShowAppUpdates ?? false);
+    setDontShowPluginUpdates(settings.dontShowPluginUpdates ?? false);
   };
   // New state to track if directory selection is in progress
   const [isSelectingDirectory, setIsSelectingDirectory] =
@@ -147,6 +166,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setBiteUnitVal(settings.defaultDownloadSpeedBit);
   }, [settings.defaultDownloadSpeedBit]);
 
+  // Single useEffect for settings that can change from other modals
+  useEffect(() => {
+    // Only sync settings that can actually be changed elsewhere
+    setRunInBackground(settings.runInBackground ?? true);
+    setEnableClipboardMonitoring(settings.enableClipboardMonitoring ?? false);
+    setDontShowAppUpdates(settings.dontShowAppUpdates ?? false);
+    setDontShowPluginUpdates(settings.dontShowPluginUpdates ?? false);
+  }, [
+    settings.runInBackground,
+    settings.enableClipboardMonitoring,
+    settings.dontShowAppUpdates,
+    settings.dontShowPluginUpdates,
+  ]);
+
   // Column options with required flag
   const columnOptions = [
     { id: 'format', label: 'Format', required: true },
@@ -175,6 +208,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   // Modify handleSubmit to consider the checkbox
   const handleSubmit = () => {
     updateDefaultLocation(downloadLocation);
+    // Also update the taskbar download store to keep them in sync
+    setDownloadFolder(downloadLocation);
+
     updateDefaultDownloadSpeed(biteVal);
     updateDefaultDownloadSpeedBit(biteUnitVal);
     updatePermitConnectionLimit(isConnectionLimitEnabled);
@@ -189,12 +225,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       window.backgroundSettings.setRunInBackground(runInBackground);
     }
 
-    // Save clipboard monitoring setting
-    console.log(
-      'Saving enableClipboardMonitoring value:',
-      enableClipboardMonitoring,
-    );
     updateEnableClipboardMonitoring(enableClipboardMonitoring);
+
+    updateTelemetryEnabled(settings.telemetryEnabled);
+
+    updateDontShowAppUpdates(dontShowAppUpdates);
+    updateDontShowPluginUpdates(dontShowPluginUpdates);
 
     onClose();
   };
@@ -215,7 +251,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       {/* Directory selection overlay - blocks all app interaction */}
       {isSelectingDirectory && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-[9999] cursor-not-allowed flex items-center justify-center">
-          <div className="bg-white dark:bg-darkModeDropdown pt-3 rounded-lg shadow-lg max-w-md text-center">
+          <div className="p-6 bg-white dark:bg-darkModeDropdown rounded-lg shadow-lg max-w-md text-center">
             <h3 className="text-lg font-medium mb-2 dark:text-gray-200">
               Directory Selection In Progress
             </h3>
@@ -362,60 +398,128 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
               </div>
 
-              <div className="flex items-center gap-2 mt-3 ml-2">
-                <input
-                  type="checkbox"
-                  id="run-in-background"
-                  checked={runInBackground}
-                  onChange={(e) => {
-                    console.log('Checkbox toggled:', e.target.checked);
-                    setRunInBackground(e.target.checked);
-                  }}
-                  className="w-4 h-4 text-primary rounded focus:ring-primary"
-                />
-                <label
-                  htmlFor="run-in-background"
-                  className="dark:text-gray-200 cursor-pointer"
-                >
-                  Run in background when window is closed
-                </label>
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 mt-1">
-                When disabled, closing the window will completely exit the
-                application
-              </div>
-              <div className="flex items-center gap-2 mt-3 ml-2">
-                <input
-                  type="checkbox"
-                  id="clipboard-monitoring"
-                  checked={enableClipboardMonitoring}
-                  onChange={(e) => {
-                    console.log(
-                      'Clipboard monitoring toggled:',
-                      e.target.checked,
-                    );
-                    setEnableClipboardMonitoring(e.target.checked);
-                    toast({
-                      title: e.target.checked
-                        ? 'Clipboard Monitoring Will Be Enabled'
-                        : 'Clipboard Monitoring Will Be Disabled',
-                      description:
-                        'Click "Okay" to save this setting and apply the changes.',
-                      duration: 3000,
-                    });
-                  }}
-                  className="w-4 h-4 text-primary rounded focus:ring-primary"
-                />
-                <label
-                  htmlFor="clipboard-monitoring"
-                  className="dark:text-gray-200 cursor-pointer"
-                >
-                  Automatically download links from clipboard
-                </label>
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 mt-1">
-                When enabled, Downlodr will detect copied URLs and automatically
-                download them
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-3 mt-3 ml-2">
+                {/* Run in background toggle */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="run-in-background"
+                      checked={runInBackground}
+                      onChange={(e) => {
+                        setRunInBackground(e.target.checked);
+                      }}
+                      className="w-4 h-4 text-primary rounded focus:ring-primary"
+                    />
+                    <label
+                      htmlFor="run-in-background"
+                      className="dark:text-gray-200 cursor-pointer"
+                    >
+                      Run in background when window is closed
+                    </label>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 hidden sm:block h-sm1:hidden">
+                    When disabled, closing the window will completely exit the
+                    application
+                  </div>
+                </div>
+
+                {/* Clipboard monitoring toggle */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="clipboard-monitoring"
+                      checked={enableClipboardMonitoring}
+                      onChange={(e) => {
+                        setEnableClipboardMonitoring(e.target.checked);
+                        toast({
+                          title: e.target.checked
+                            ? 'Clipboard Monitoring Will Be Enabled'
+                            : 'Clipboard Monitoring Will Be Disabled',
+                          description:
+                            'Click "Okay" to save this setting and apply the changes.',
+                          duration: 3000,
+                        });
+                      }}
+                      className="w-4 h-4 text-primary rounded focus:ring-primary"
+                    />
+                    <label
+                      htmlFor="clipboard-monitoring"
+                      className="dark:text-gray-200 cursor-pointer"
+                    >
+                      Automatically download links from clipboard
+                    </label>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 hidden sm:block h-sm1:hidden">
+                    When enabled, Downlodr will detect copied URLs and
+                    automatically download them
+                  </div>
+                </div>
+
+                {/* Telemetry setting */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="telemetry-enabled"
+                      checked={settings.telemetryEnabled}
+                      onChange={(e) => {
+                        updateTelemetryEnabled(e.target.checked);
+                        toast({
+                          title: e.target.checked
+                            ? 'Telemetry Will Be Enabled'
+                            : 'Telemetry Will Be Disabled',
+                          description: e.target.checked
+                            ? 'Anonymous usage data and error reports will be sent to help improve Downlodr.'
+                            : 'No telemetry data will be collected.',
+                          duration: 3000,
+                        });
+                      }}
+                      className="w-4 h-4 text-primary rounded focus:ring-primary"
+                    />
+                    <label
+                      htmlFor="telemetry-enabled"
+                      className="dark:text-gray-200 cursor-pointer"
+                    >
+                      Downlodr app data usage
+                    </label>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 hidden lg:block h-sm1:hidden">
+                    Sends anonymous error reports and performance metrics to
+                    help us improve the app.
+                  </div>
+                </div>
+
+                {/* Update notification settings */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="enable-app-updates"
+                      checked={!dontShowAppUpdates}
+                      onChange={(e) => {
+                        setDontShowAppUpdates(!e.target.checked);
+                        toast({
+                          title: e.target.checked
+                            ? 'App Update Notifications Enabled'
+                            : 'App Update Notifications Disabled',
+                          description: e.target.checked
+                            ? 'You will receive notifications when app updates are available.'
+                            : 'App update notifications have been disabled.',
+                          duration: 3000,
+                        });
+                      }}
+                      className="w-4 h-4 text-primary rounded focus:ring-primary"
+                    />
+                    <label
+                      htmlFor="enable-app-updates"
+                      className="dark:text-gray-200 cursor-pointer"
+                    >
+                      Show app update notifications
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -481,7 +585,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             <button
               type="button"
               onClick={handleSubmit}
-              className="h-8 w-12 bg-primary text-white text-sm px-2 py-1 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
+              className="h-7.5 w-12 bg-primary text-white text-sm px-2 py-1 rounded-md hover:bg-orange-600 dark:hover:text-black dark:hover:bg-white"
             >
               Okay
             </button>

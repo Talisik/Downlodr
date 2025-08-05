@@ -13,12 +13,13 @@ interface SpeedGraphProps {
   downloadStatus: string; // Current download status
   downloadId: string; // Download ID for persistence
   className?: string;
-  width?: number;
+  width?: number; // Made optional - when not provided, component will be responsive
   height?: number;
   maxDataPoints?: number; // Maximum number of data points to keep
   showHeader?: boolean; // Whether to show the header with speed text
   showStatus?: boolean; // Whether to show the status indicator
   debug?: boolean; // Enable debug logging
+  responsive?: boolean; // Whether to use responsive width (defaults to true when width not specified)
 }
 
 // Speed History Service using localStorage
@@ -83,7 +84,6 @@ class SpeedHistoryService {
     const allHistory = this.getStoredHistory();
     const downloadHistory = allHistory[downloadId] || [];
 
-    // Add new point
     downloadHistory.push(speedPoint);
 
     // Keep only the most recent points
@@ -175,12 +175,13 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
   downloadStatus,
   downloadId,
   className = '',
-  width = 240,
+  width, // No default - will be responsive when not provided
   height = 80,
   maxDataPoints = 60, // Increased to show more history
   showHeader = true,
   showStatus = false,
   debug = false,
+  responsive, // Will auto-determine based on width prop
 }) => {
   const [speedHistory, setSpeedHistory] = useState<SpeedDataPoint[]>([]);
   const lastSpeedRef = useRef<string>('');
@@ -188,6 +189,37 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
   const mountedRef = useRef(true);
   const componentIdRef = useRef(Math.random().toString(36).substr(2, 9));
   const speedHistoryService = SpeedHistoryService.getInstance();
+
+  // Determine if we should use responsive behavior
+  const isResponsive =
+    responsive !== undefined ? responsive : width === undefined;
+  const actualWidth = width || 240; // Fallback width for calculations
+
+  // Track container width for responsive behavior
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(actualWidth);
+
+  // Effect to track container width when responsive
+  useEffect(() => {
+    if (!isResponsive || !containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width: observedWidth } = entry.contentRect;
+        setContainerWidth(Math.max(observedWidth - 6, 120)); // Account for padding, minimum width
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [isResponsive]);
+
+  // Use container width for calculations when responsive, fallback to actualWidth
+  const graphWidth = isResponsive ? containerWidth : actualWidth;
+  const graphHeight = height;
 
   // Generate unique gradient ID for this component instance
   const gradientId = `speedGradient-${componentIdRef.current}`;
@@ -230,31 +262,6 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
       );
     }
   }, [downloadId, debug]);
-
-  // Debug component lifecycle
-  useEffect(() => {
-    if (debug) {
-      console.log(
-        `SpeedGraph [${componentIdRef.current}]: Component mounted with status: ${downloadStatus}`,
-      );
-    }
-    return () => {
-      if (debug) {
-        console.log(
-          `SpeedGraph [${componentIdRef.current}]: Component unmounting. Had ${speedHistory.length} data points.`,
-        );
-      }
-    };
-  }, []);
-
-  // Debug status changes
-  useEffect(() => {
-    if (debug) {
-      console.log(
-        `SpeedGraph [${componentIdRef.current}]: Status changed to: ${downloadStatus}, History length: ${speedHistory.length}`,
-      );
-    }
-  }, [downloadStatus, debug, speedHistory.length]);
 
   // Memoized speed parsing to avoid unnecessary recalculations
   const currentSpeedValue = useCallback(
@@ -354,10 +361,6 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
     };
   }, []);
 
-  // Calculate graph dimensions - use full available space
-  const graphWidth = width;
-  const graphHeight = height;
-
   // Calculate max speed for scaling with better scaling
   const maxSpeed =
     speedHistory.length > 0
@@ -441,14 +444,21 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
   const currentTrend = calculateTrendFromHistory(speedHistory);
 
   // Calculate responsive icon sizing based on component dimensions
-  const iconContainerSize = Math.min(width * 0.7, height * 1.5, 70); // Max 48px, min 15% of width or 40% of height
-  const iconSize = iconContainerSize * 0.5; // Icon is 50% of container size
+  const iconContainerSize = Math.min(actualWidth * 0.7, height * 1.5, 70); // Max 48px, min 15% of width or 40% of height
+  const iconSize = iconContainerSize * 0.5;
 
   return (
     <TooltipWrapper content={currentSpeedDisplay} side="bottom">
       <div
-        className={`relative rounded-lg transition-all duration-200 ${colors.bg} ${className}`}
-        style={{ width: `${width + 6}px`, height: `${height + 4}px` }}
+        ref={containerRef}
+        className={`relative rounded-lg transition-all duration-200 min-w-12 ${
+          colors.bg
+        } ${isResponsive ? 'w-full' : ''} ${className}`}
+        style={
+          isResponsive
+            ? { height: `${height + 2}px` }
+            : { width: `${actualWidth + 6}px`, height: `${height + 4}px` }
+        }
       >
         {/* Header */}
         {showHeader && (
@@ -474,9 +484,13 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
         {/* Graph */}
         <div className="p-1 pt-1">
           <svg
-            width={width}
+            width={isResponsive ? undefined : actualWidth}
             height={height}
-            className="rounded overflow-hidden"
+            className={`rounded overflow-hidden ${
+              isResponsive ? 'w-full' : ''
+            }`}
+            viewBox={isResponsive ? `0 0 ${graphWidth} ${height}` : undefined}
+            preserveAspectRatio={isResponsive ? 'none' : undefined}
           >
             {/* Gradient definitions */}
             <defs>
@@ -511,9 +525,9 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
             </defs>
 
             {/* Background grid - only for larger graphs */}
-            {width > 120 && (
+            {actualWidth > 120 && (
               <rect
-                width={width}
+                width={graphWidth}
                 height={height}
                 fill={`url(#${gridPatternId})`}
               />
@@ -554,30 +568,6 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
                 fill={colors.line}
                 className="animate-pulse"
               />
-            )}
-
-            {/* Y-axis labels - only show for larger graphs */}
-            {width > 120 && (
-              <>
-                <text
-                  x="0"
-                  y="8"
-                  fontSize="7"
-                  fill="currentColor"
-                  opacity="0.6"
-                >
-                  {formatSpeed(maxSpeed)}
-                </text>
-                <text
-                  x="0"
-                  y={height - 1}
-                  fontSize="7"
-                  fill="currentColor"
-                  opacity="0.6"
-                >
-                  0
-                </text>
-              </>
             )}
           </svg>
         </div>

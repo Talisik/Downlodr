@@ -1,5 +1,5 @@
+import { PluginModalOptions, PluginModalResult } from '@/plugins/types';
 import React, { useCallback, useState } from 'react';
-import { PluginModalOptions, PluginModalResult } from '../types';
 import PluginModalExtension from './PluginModalExtension';
 
 interface PluginModalRequest {
@@ -96,14 +96,3 @@ const PluginModalManager: React.FC = () => {
 };
 
 export default PluginModalManager;
-
-// Add typings for the window object
-declare global {
-  interface Window {
-    pluginModalManager?: {
-      showPluginModal: (
-        options: PluginModalOptions,
-      ) => Promise<PluginModalResult | null>;
-    };
-  }
-}

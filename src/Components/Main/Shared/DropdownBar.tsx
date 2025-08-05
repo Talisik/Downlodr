@@ -13,6 +13,13 @@
  * @returns JSX.Element - The rendered component displaying a DropdownBar
  *
  */
+import AboutModal from '@/Components/Main/Modal/AboutModal';
+import AdvancedSettingsModal from '@/Components/Main/Modal/AdvancedSettingsModal';
+import HelpModal from '@/Components/Main/Modal/HelpModal';
+import SettingsModal from '@/Components/Main/Modal/SettingsModal';
+import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { DownloadItem } from '@/schema/componentSchema';
+import useDownloadStore, { HistoryDownloads } from '@/Store/downloadStore';
 import { useTaskbarDownloadStore } from '@/Store/taskbarDownloadStore';
 import { useEffect, useRef, useState } from 'react';
 import { AiOutlineExclamationCircle } from 'react-icons/ai';
@@ -20,18 +27,7 @@ import { FiBook, FiSearch } from 'react-icons/fi';
 import { MdOutlineHistory } from 'react-icons/md';
 import { RxExit, RxUpdate } from 'react-icons/rx';
 import { NavLink } from 'react-router-dom';
-import useDownloadStore, {
-  HistoryDownloads,
-} from '../../../Store/downloadStore';
-import FileNotExistModal, {
-  DownloadItem,
-} from '../../SubComponents/custom/FileNotExistModal';
-import { useToast } from '../../SubComponents/shadcn/hooks/use-toast';
-import AboutModal from '../Modal/AboutModal';
-import AdvancedSettingsModal from '../Modal/AdvancedSettingsModal';
-import DownloadModal from '../Modal/DownloadModal';
-import HelpModal from '../Modal/HelpModal';
-import SettingsModal from '../Modal/SettingsModal';
+import FileNotExistModal from '../Modal/FileNotExistModal';
 
 const DropdownBar = ({ className }: { className?: string }) => {
   // Dropdown element states
@@ -168,7 +164,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
     if (window.updateAPI?.checkForUpdates) {
       try {
         const result = await window.updateAPI.checkForUpdates();
-        console.log('Update check result:', result);
         if (!result.hasUpdate) {
           toast({
             title: "You're up to date!",
@@ -421,10 +416,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
       <AboutModal
         isOpen={isAboutModalOpen}
         onClose={() => setAboutModalOpen(false)}
-      />
-      <DownloadModal
-        isOpen={isDownloadModalOpen}
-        onClose={() => setDownloadModalOpen(false)}
       />
 
       <FileNotExistModal

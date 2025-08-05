@@ -1,5 +1,5 @@
+import { createPluginAPI } from '@/plugins/pluginAPI';
 import React, { useEffect, useState } from 'react';
-import { createPluginAPI } from '../plugins/pluginAPI';
 
 export const PluginLoader: React.FC = () => {
   const [, setEnabledPlugins] = useState<Record<string, boolean>>({});
@@ -99,7 +99,7 @@ export const PluginLoader: React.FC = () => {
   async function executePluginCode(code: string, pluginId: string) {
     try {
       const sandbox = {
-        setTimeout: (callback: TimerHandler, ms?: number, ...args: any[]) =>
+        setTimeout: (callback: TimerHandler, ms?: number, ...args: unknown[]) =>
           setTimeout(callback, ms, ...args),
         clearTimeout: (id?: number) => clearTimeout(id),
         exports: {},

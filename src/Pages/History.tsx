@@ -6,18 +6,29 @@
  * @returns JSX.Element - The rendered component displaying download history.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
-import { getExtractorIcon } from '@/DataFunctions/IconMapper';
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import useDownloadStore from '@/Store/downloadStore';
+import { useMainStore } from '@/Store/mainStore';
+import { getExtractorIcon } from '@/Utils/Icons/IconMapper';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import { LuTrash } from 'react-icons/lu';
 import { VscPlayCircle } from 'react-icons/vsc';
-import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
-import useDownloadStore from '../Store/downloadStore';
-import { useMainStore } from '../Store/mainStore';
+
+// TypeScript interface for history download objects
+interface HistoryDownload {
+  id: string;
+  name: string;
+  location: string;
+  videoUrl: string;
+  DateAdded: string;
+  downloadName: string;
+  channelName: string;
+  extractorKey: string;
+}
 
 interface FileExistsMap {
   [key: string]: boolean;
@@ -26,11 +37,16 @@ const History = () => {
   // get download historical logs and other functions from downloadStore
   const { historyDownloads, deleteDownload, setDownload } = useDownloadStore();
   // get settings from MainStore
-  const { settings, setSelectedDownloads } = useMainStore();
+  const { settings } = useMainStore();
   // values of longs are based on historical logs
-  const [logs, setLogs] = useState(historyDownloads);
+  const [logs, setLogs] = useState<HistoryDownload[]>(historyDownloads);
   // handle selected states
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const setSelectedDownloads = useMainStore(
+    (state) => state.setSelectedDownloads,
+  );
+  const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
+
   const [allChecked, setAllChecked] = useState(false);
   // error handling
   const [errorMessage, setErrorMessage] = useState('');
@@ -73,15 +89,15 @@ const History = () => {
     return () => clearInterval(interval);
   }, [logs]);
   // handle context menu
-  const [hoveredVideo, setHoveredVideo] = useState<{
-    id: number;
-    location: string;
-    name: string;
-    position: { top: number; left: number };
-  } | null>(null);
+  const [hoveredVideo, setHoveredVideo] = useState<
+    | (HistoryDownload & {
+        position: { top: number; left: number };
+      })
+    | null
+  >(null);
   const miniModalRef = useRef<HTMLDivElement | null>(null);
 
-  const handleRowClick = (event: React.MouseEvent, video: any) => {
+  const handleRowClick = (event: React.MouseEvent, video: HistoryDownload) => {
     const target = event.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
@@ -127,7 +143,7 @@ const History = () => {
   }, []);
 
   // handle deleting file
-  const handleDelete = async (videoFile: any, id: any) => {
+  const handleDelete = async (videoFile: string, id: string) => {
     try {
       if (fileExistsMap[id]) {
         // If file exists, try to delete it from logs
@@ -171,6 +187,8 @@ const History = () => {
       for (const id of selectedItems) {
         const video = logs.find((product) => product.id === String(id));
         if (video) {
+          setSelectedRowIds([]);
+          setSelectedDownloads([]);
           deleteDownload(video.id);
           toast({
             variant: 'success',
@@ -195,7 +213,7 @@ const History = () => {
   };
 
   // handle redownload using setDownload
-  const handleRedownload = async (video: any) => {
+  const handleRedownload = async (video: HistoryDownload) => {
     setDownload(video.videoUrl, video.location, maxDownload);
     setHoveredVideo(null);
     toast({
@@ -263,120 +281,126 @@ const History = () => {
   };
 
   return (
-    <div className="w-full p-1">
+    <div className="flex flex-col h-full p-1">
       {renderDeleteButton()}
-      <table className="w-full">
-        <thead>
-          <tr className="border-b text-left dark:border-gray-700">
-            <th className="w-8 p-2">
-              <input
-                type="checkbox"
-                className="rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                checked={allChecked}
-                onChange={handleAllCheckboxChange}
-              />
-            </th>
-            <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
-              Name
-            </th>
-            <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
-              <div
-                className="flex items-center gap-1 cursor-pointer"
-                onClick={handleSortClick}
-              >
-                Date Added
-                <HiChevronUpDown className="h-4 w-4" />
-              </div>
-            </th>
-            <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
-              Source
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedlogs.map((product) => (
-            <tr
-              key={product.id}
-              className={`border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-darkModeHover cursor-pointer
+      <div className="flex-grow overflow-auto relative">
+        <div className="min-w-full">
+          <table className="w-full">
+            <thead className="sticky top-0 z-20 b bg-white dark:bg-darkMode">
+              <tr className="sticky top-0 border-b text-left border-gray-200 dark:border-darkModeCompliment">
+                <th className="w-8 p-2">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                    checked={
+                      logs.length > 0 && selectedItems.length === logs.length
+                    }
+                    onChange={handleAllCheckboxChange}
+                  />
+                </th>
+                <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
+                  Name
+                </th>
+                <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={handleSortClick}
+                  >
+                    Date Added
+                    <HiChevronUpDown className="h-4 w-4" />
+                  </div>
+                </th>
+                <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
+                  Source
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedlogs.map((product) => (
+                <tr
+                  key={product.id}
+                  className={`border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-darkModeHover cursor-pointer
                 ${
                   selectedItems.length === 1 &&
                   selectedItems.includes(product.id)
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'
                 }`}
-              onContextMenu={(e) => handleRowClick(e, product)}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCheckboxChange(product.id);
-              }}
-            >
-              <td className="w-8 p-2">
-                <input
-                  type="checkbox"
-                  checked={selectedItems.includes(product.id)}
-                  onChange={(e) => {
+                  onContextMenu={(e) => handleRowClick(e, product)}
+                  onClick={(e) => {
                     e.stopPropagation();
                     handleCheckboxChange(product.id);
                   }}
-                  className="rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                />
-              </td>
-              <td className="p-2 dark:text-gray-200 w-3/6">
-                <div className="line-clamp-2 break-words flex justify-start items-start">
-                  <div>
-                    <TooltipWrapper
-                      content={product.name}
-                      side="bottom"
-                      contentClassname="text-start justify-start"
-                    >
+                >
+                  <td className="w-8 p-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(product.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleCheckboxChange(product.id);
+                      }}
+                      className="rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                    />
+                  </td>
+                  <td className="p-2 dark:text-gray-200 w-3/6">
+                    <div className="line-clamp-2 break-words flex justify-start items-start">
                       <div>
-                        <span
-                          className={`${
-                            fileExistsMap[product.id]
-                              ? 'text-gray-700 dark:text-gray-200'
-                              : 'line-through text-gray-400 dark:text-gray-500'
-                          } line-clamp-1 break-words break-all font-medium`}
+                        <TooltipWrapper
+                          content={product.name}
+                          side="bottom"
+                          contentClassname="text-start justify-start"
                         >
-                          {product.name}
-                        </span>
-                      </div>
-                    </TooltipWrapper>
+                          <div>
+                            <span
+                              className={`${
+                                fileExistsMap[product.id]
+                                  ? 'text-gray-700 dark:text-gray-200'
+                                  : 'line-through text-gray-400 dark:text-gray-500'
+                              } line-clamp-1 break-words break-all font-medium`}
+                            >
+                              {product.name}
+                            </span>
+                          </div>
+                        </TooltipWrapper>
 
-                    <div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {product.channelName}
-                      </span>
+                        <div>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {product.channelName}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </td>
-              <td className="p-4 text-gray-500 dark:text-gray-400">
-                {new Date(product.DateAdded).toLocaleDateString()}
-              </td>
-              <td className="p-4">
-                <div className="line-clamp-2 break-words flex justify-start items-start text-lg">
-                  <TooltipWrapper
-                    content={product.extractorKey}
-                    side="bottom"
-                    contentClassname="text-start justify-start"
-                  >
-                    <a
-                      onClick={() =>
-                        window.downlodrFunctions.openExternalLink(
-                          product.videoUrl,
-                        )
-                      }
-                      className="hover:underline cursor-pointer"
-                    >
-                      {getExtractorIcon(product.extractorKey)}
-                    </a>
-                  </TooltipWrapper>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                  </td>
+                  <td className="p-4 text-gray-500 dark:text-gray-400">
+                    {new Date(product.DateAdded).toLocaleDateString()}
+                  </td>
+                  <td className="p-4">
+                    <div className="line-clamp-2 break-words flex justify-start items-start text-lg">
+                      <TooltipWrapper
+                        content={product.extractorKey}
+                        side="bottom"
+                        contentClassname="text-start justify-start"
+                      >
+                        <a
+                          onClick={() =>
+                            window.downlodrFunctions.openExternalLink(
+                              product.videoUrl,
+                            )
+                          }
+                          className="hover:underline cursor-pointer"
+                        >
+                          {getExtractorIcon(product.extractorKey)}
+                        </a>
+                      </TooltipWrapper>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {hoveredVideo && (
         <div

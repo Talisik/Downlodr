@@ -1,11 +1,11 @@
+import DropdownBar from '@/Components/Main/Shared/DropdownBar';
+import Navigation from '@/Components/Main/Shared/Navigation';
+import TaskBar from '@/Components/Main/Shared/TaskBar';
+import TitleBar from '@/Components/Main/Shared/TitleBar';
 import SelectingDirectory from '@/Components/SubComponents/custom/Overlays/SelectingDirectory';
+import { useMainStore } from '@/Store/mainStore';
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { Outlet } from 'react-router-dom';
-import DropdownBar from '../Components/Main/Shared/DropdownBar';
-import Navigation from '../Components/Main/Shared/Navigation';
-import TaskBar from '../Components/Main/Shared/TaskBar';
-import TitleBar from '../Components/Main/Shared/TitleBar';
-import { useMainStore } from '../Store/mainStore';
 
 // Error Boundary component
 class ErrorBoundary extends Component<

@@ -25,6 +25,9 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
   normalizePath: (filepath: string) =>
     ipcRenderer.invoke('normalizePath', filepath),
   getDownloadFolder: () => ipcRenderer.invoke('getDownloadFolder'),
+  getHostInfo: () => ipcRenderer.invoke('getHostInfo'),
+  getBrowserInfo: () => ipcRenderer.invoke('getBrowserInfo'),
+  getAppInfo: () => ipcRenderer.invoke('getAppInfo'),
   isValidPath: (filepath: string) =>
     ipcRenderer.invoke('isValidPath', filepath),
   joinDownloadPath: (downloadPath: string, fileName: string) =>
@@ -35,6 +38,8 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
     ipcRenderer.invoke('open-folder', folderPath, filePath),
   fileExists: (path: string) => ipcRenderer.invoke('file-exists', path),
   getFileSize: (path: string) => ipcRenderer.invoke('get-file-size', path),
+  getDirectorySize: (path: string) =>
+    ipcRenderer.invoke('get-directory-size', path),
   showInputContextMenu: () => ipcRenderer.send('show-input-context-menu'),
   invokeMainProcess: (channel: any, ...args: any) => {
     return ipcRenderer.invoke(channel, ...args);
@@ -276,7 +281,6 @@ contextBridge.exposeInMainWorld('updateAPI', {
   getCurrentVersion: () => ipcRenderer.invoke('get-current-version'),
 });
 
-// Add these to your existing preload API exposures
 contextBridge.exposeInMainWorld('appControl', {
   showWindow: () => ipcRenderer.invoke('show-window'),
   hideWindow: () => ipcRenderer.invoke('hide-window'),
@@ -335,6 +339,8 @@ contextBridge.exposeInMainWorld('plugins', {
     ipcRenderer.invoke('plugins:execute-menu-item', id, contextData),
   loadUnzipped: (pluginDirPath: any) =>
     ipcRenderer.invoke('plugins:loadUnzipped', pluginDirPath),
+  extractPlugin: (zipPath: string, extractTo: string) =>
+    ipcRenderer.invoke('plugins:extractPlugin', zipPath, extractTo),
 
   // Safe file operations for plugins
   writeFile: (options: any) => ipcRenderer.invoke('plugins:writeFile', options),

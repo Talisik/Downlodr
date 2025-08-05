@@ -1,22 +1,24 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/plugins/registry.ts
 import { MenuItem, NotifItem, TaskBarItem } from './types';
+
+// TypeScript schemas for registry data
+type ContextData = Record<string, unknown> | string | number | null | undefined;
+type PluginExtension = Record<string, unknown> & { pluginId?: string };
+type ContextHandler = (contextData?: ContextData) => void;
 
 // Simple registry to keep track of plugin registrations
 export class PluginRegistry {
   private menuItems: MenuItem[] = [];
-  private menuItemHandlers: Map<string, (contextData?: any) => void> =
-    new Map();
+  private menuItemHandlers: Map<string, ContextHandler> = new Map();
 
   private notifItems: NotifItem[] = [];
-  private notifItemHandlers: Map<string, (contextData?: any) => void> =
-    new Map();
+  private notifItemHandlers: Map<string, ContextHandler> = new Map();
 
   // Keep a reference to enabled plugin states
   private enabledPlugins: Record<string, boolean> = {};
 
-  // Add this property near the other private property declarations
-  private _extensions: Record<string, any[]> = {};
+  //  property near the other private property declarations
+  private _extensions: Record<string, PluginExtension[]> = {};
 
   // New array for taskbar items
   private taskBarItems: TaskBarItem[] = [];
@@ -34,7 +36,7 @@ export class PluginRegistry {
     const serializableItem = {
       ...item,
       id,
-      onClick: undefined as unknown as (contextData?: any) => void,
+      onClick: undefined as unknown as (contextData?: ContextData) => void,
     };
 
     // Replace any existing item with the same ID
@@ -74,15 +76,15 @@ export class PluginRegistry {
     return Array.from(itemMap.values());
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  executeTaskBarItemAction(id: string, contextData?: any): void {
+  executeTaskBarItemAction(id: string, contextData?: ContextData): void {
+    /*
     console.log('Executing with contextData:', contextData);
     console.log('ContextData type:', typeof contextData);
     console.log(
       'ContextData keys:',
       contextData ? Object.keys(contextData) : 'none',
     );
-
+    */
     const handler = this.taskBarActionHandlers.get(id);
     if (handler) {
       handler(contextData);
@@ -96,7 +98,7 @@ export class PluginRegistry {
     this.enabledPlugins = enabledStates;
   }
 
-  // Add this method to clear everything
+  //  method to clear everything
   clearAllRegistrations(pluginId?: string) {
     if (pluginId) {
       // Clear only items from this plugin
@@ -107,7 +109,7 @@ export class PluginRegistry {
       // Clear handlers from this plugin
       const handlersToRemove: string[] = [];
       this.menuItemHandlers.forEach((_, key) => {
-        console.log(this.menuItemHandlers);
+        // console.log(this.menuItemHandlers);
         if (key.startsWith(pluginId)) {
           handlersToRemove.push(key);
         }
@@ -187,8 +189,7 @@ export class PluginRegistry {
     return uniqueItems;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  executeMenuItemAction(id: string, contextData?: any): void {
+  executeMenuItemAction(id: string, contextData?: ContextData): void {
     const handler = this.menuItemHandlers.get(id);
     if (handler) {
       handler(contextData);
@@ -261,15 +262,9 @@ export class PluginRegistry {
   }
 
   // taskbar action handlers map
-  private taskBarActionHandlers = new Map<
-    string,
-    (contextData?: any) => void
-  >();
+  private taskBarActionHandlers = new Map<string, ContextHandler>();
 
-  setTaskBarItemHandler(
-    id: string,
-    handler: (contextData?: any) => void,
-  ): void {
+  setTaskBarItemHandler(id: string, handler: ContextHandler): void {
     this.taskBarActionHandlers.set(id, handler);
   }
 }

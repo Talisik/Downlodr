@@ -32,6 +32,12 @@
  * @returns JSX.Element - The rendered context menu component.
  */
 
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { usePluginState } from '@/plugins/Hooks/usePluginState';
+import { MenuItem } from '@/plugins/types';
+import useDownloadStore, { BaseDownload } from '@/Store/downloadStore';
+import { useMainStore } from '@/Store/mainStore';
+import { processFileName } from '@/Utils/Data/FilterName';
 import React, { useEffect, useState } from 'react';
 import { BsArrowCounterclockwise } from 'react-icons/bs';
 import { FaTerminal } from 'react-icons/fa';
@@ -42,12 +48,6 @@ import { LiaFileVideoSolid, LiaTagsSolid } from 'react-icons/lia';
 import { LuFolderOpen, LuTrash } from 'react-icons/lu';
 import { MdEdit, MdOutlinePlayCircle } from 'react-icons/md';
 import { PiPuzzlePieceBold } from 'react-icons/pi';
-import { processFileName } from '../../../DataFunctions/FilterName';
-import { usePluginState } from '../../../plugins/Hooks/usePluginState';
-import { MenuItem } from '../../../plugins/types';
-import useDownloadStore, { BaseDownload } from '../../../Store/downloadStore';
-import { useMainStore } from '../../../Store/mainStore';
-import { toast } from '../shadcn/hooks/use-toast';
 
 interface DownloadContextMenuProps {
   download: BaseDownload;
@@ -88,7 +88,7 @@ interface DownloadContextMenuProps {
   currentCategories: string[]; // Array of current categories for the download
   availableCategories: string[]; // Array of all available categories in the system
   onViewFolder: (downloadLocation?: string, downloadFile?: string) => void; // Function to view the folder containing the download
-  onRename: (downloadId: string, currentName: string) => void; // Add this
+  onRename: (downloadId: string, currentName: string) => void; //
   onShowRemoveModal: (
     downloadId: string,
     downloadLocation?: string,
@@ -134,7 +134,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [showPluginMenu, setShowPluginMenu] = useState(false);
   const [submenuPosition, setSubmenuPosition] = useState({ x: 0, y: 0 });
-
+  const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
+  const setSelectedDownloads = useMainStore(
+    (state) => state.setSelectedDownloads,
+  );
   const { settings } = useMainStore();
   const {
     downloading,
@@ -180,6 +183,78 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   useEffect(() => {
     fetchPluginMenuItems();
   }, [enabledPlugins]);
+
+  // Function to recalculate submenu position
+  const recalculateSubmenuPosition = (
+    buttonRef: React.RefObject<HTMLButtonElement>,
+    itemCount: number,
+    menuType: 'tag' | 'category' | 'plugin',
+  ) => {
+    if (buttonRef.current && menuRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const menuRect = menuRef.current.getBoundingClientRect();
+
+      let submenuX = menuRect.right + 1;
+      let submenuY = buttonRect.top;
+
+      // Calculate the height of the submenu based on type
+      let submenuHeight;
+      if (menuType === 'plugin') {
+        submenuHeight = Math.min(itemCount * 40, 300);
+      } else {
+        const inputAreaHeight = 80; // approximate height of input area + divider
+        const maxListHeight = 192; // max-h-48 = 192px
+        const actualListHeight = Math.min(itemCount * 40, maxListHeight);
+        submenuHeight = inputAreaHeight + actualListHeight;
+      }
+
+      // If the submenu would overflow the bottom, shift up
+      if (submenuY + submenuHeight > window.innerHeight - 10) {
+        submenuY = Math.max(10, window.innerHeight - submenuHeight - 10);
+      }
+      // If the submenu would overflow the top, shift down
+      if (submenuY < 10) {
+        submenuY = 10;
+      }
+
+      // Check if submenu would overflow viewport horizontally and adjust if needed
+      const submenuWidth = 200; // approximate width
+      if (submenuX + submenuWidth > window.innerWidth) {
+        submenuX = menuRect.left - submenuWidth - 1; // Position to the left instead
+      }
+
+      setSubmenuPosition({ x: submenuX, y: submenuY });
+    }
+  };
+
+  // Recalculate tag submenu position when available tags change
+  useEffect(() => {
+    if (showTagMenu) {
+      recalculateSubmenuPosition(tagButtonRef, availableTags.length, 'tag');
+    }
+  }, [availableTags.length, showTagMenu]);
+
+  // Recalculate category submenu position when available categories change
+  useEffect(() => {
+    if (showCategoryMenu) {
+      recalculateSubmenuPosition(
+        categoryButtonRef,
+        availableCategories.length,
+        'category',
+      );
+    }
+  }, [availableCategories.length, showCategoryMenu]);
+
+  // Recalculate plugin submenu position when plugin items change
+  useEffect(() => {
+    if (showPluginMenu) {
+      recalculateSubmenuPosition(
+        pluginButtonRef,
+        pluginMenuItems.length,
+        'plugin',
+      );
+    }
+  }, [pluginMenuItems.length, showPluginMenu]);
 
   // Helper function to check if a string is an SVG
   const isSvgString = (str: string): boolean => {
@@ -243,94 +318,55 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
   // Function to handle opening tag menu
   const handleTagMenuClick = (e: React.MouseEvent) => {
-    console.log(pluginMenuItems);
     e.stopPropagation();
 
-    // Calculate position for submenu
-    if (tagButtonRef.current && menuRef.current) {
-      const buttonRect = tagButtonRef.current.getBoundingClientRect();
-      const menuRect = menuRef.current.getBoundingClientRect();
-
-      // Position submenu to the right of the main menu
-      let submenuX = menuRect.right + 1;
-      const submenuY = buttonRect.top;
-
-      // Check if submenu would overflow viewport and adjust if needed
-      const submenuWidth = 200; // approximate width
-      if (submenuX + submenuWidth > window.innerWidth) {
-        submenuX = menuRect.left - submenuWidth - 1; // Position to the left instead
-      }
-
-      setSubmenuPosition({ x: submenuX, y: submenuY });
-    }
-
     setShowCategoryMenu(false); // Close category menu
-    setShowTagMenu(!showTagMenu);
+    setShowPluginMenu(false); // Close plugin menu
+    const newShowTagMenu = !showTagMenu;
+    setShowTagMenu(newShowTagMenu);
+
+    // Calculate position for submenu
+    if (newShowTagMenu) {
+      recalculateSubmenuPosition(tagButtonRef, availableTags.length, 'tag');
+    }
   };
 
   // Function to handle opening category menu
   const handleCategoryMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // Calculate position for submenu
-    if (categoryButtonRef.current && menuRef.current) {
-      const buttonRect = categoryButtonRef.current.getBoundingClientRect();
-      const menuRect = menuRef.current.getBoundingClientRect();
-
-      // Position submenu to the right of the main menu
-      let submenuX = menuRect.right + 1;
-      const submenuY = buttonRect.top;
-
-      // Check if submenu would overflow viewport and adjust if needed
-      const submenuWidth = 200; // approximate width
-      if (submenuX + submenuWidth > window.innerWidth) {
-        submenuX = menuRect.left - submenuWidth - 1; // Position to the left instead
-      }
-
-      setSubmenuPosition({ x: submenuX, y: submenuY });
-    }
-
     setShowTagMenu(false); // Close tag menu
-    setShowCategoryMenu(!showCategoryMenu);
+    setShowPluginMenu(false); // Close plugin menu
+    const newShowCategoryMenu = !showCategoryMenu;
+    setShowCategoryMenu(newShowCategoryMenu);
+
+    // Calculate position for submenu
+    if (newShowCategoryMenu) {
+      recalculateSubmenuPosition(
+        categoryButtonRef,
+        availableCategories.length,
+        'category',
+      );
+    }
   };
 
   // Function to handle opening plugin menu
   const handlePluginMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // Calculate position for submenu
-    if (pluginButtonRef.current && menuRef.current) {
-      const buttonRect = pluginButtonRef.current.getBoundingClientRect();
-      const menuRect = menuRef.current.getBoundingClientRect();
-
-      // Position submenu to the right of the main menu
-      let submenuX = menuRect.right + 1;
-      let submenuY = buttonRect.top;
-
-      // Always align submenu to the TOP of the plugin button
-      // Calculate the height of the submenu
-      const submenuHeight = Math.min(pluginMenuItems.length * 40, 300); // approximate height
-      // If the submenu would overflow the bottom, shift up
-      if (submenuY + submenuHeight > window.innerHeight - 10) {
-        submenuY = Math.max(10, window.innerHeight - submenuHeight - 10);
-      }
-      // If the submenu would overflow the top, shift down
-      if (submenuY < 10) {
-        submenuY = 10;
-      }
-
-      // Check if submenu would overflow viewport horizontally and adjust if needed
-      const submenuWidth = 200; // approximate width
-      if (submenuX + submenuWidth > window.innerWidth) {
-        submenuX = menuRect.left - submenuWidth - 1; // Position to the left instead
-      }
-
-      setSubmenuPosition({ x: submenuX, y: submenuY });
-    }
-
     setShowTagMenu(false);
     setShowCategoryMenu(false);
-    setShowPluginMenu(!showPluginMenu);
+    const newShowPluginMenu = !showPluginMenu;
+    setShowPluginMenu(newShowPluginMenu);
+
+    // Calculate position for submenu
+    if (newShowPluginMenu) {
+      recalculateSubmenuPosition(
+        pluginButtonRef,
+        pluginMenuItems.length,
+        'plugin',
+      );
+    }
   };
 
   // Function to start the download
@@ -341,6 +377,9 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       download.name || '',
       download.ext || download.audioExt,
     );
+
+    setSelectedRowIds([]);
+    setSelectedDownloads([]);
 
     if (downloading.length >= settings.maxDownloadNum) {
       toast({
@@ -420,11 +459,11 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           onClick={handleTagMenuClick}
         >
           <span className="flex items-center space-x-2">
-            <LiaTagsSolid size={20} />
+            <LiaTagsSolid size={18} />
             <span>Tags</span>
           </span>
           <span className="ml-auto">
-            <GoChevronRight size={20} />
+            <GoChevronRight size={18} />
           </span>
         </button>
 
@@ -434,11 +473,11 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           onClick={handleCategoryMenuClick}
         >
           <span className="flex items-center space-x-2">
-            <LiaTagsSolid size={20} />
+            <LiaTagsSolid size={18} />
             <span>Category</span>
           </span>
           <span className="ml-auto">
-            <GoChevronRight size={20} />
+            <GoChevronRight size={18} />
           </span>
         </button>
       </>
@@ -537,7 +576,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           }}
         >
           <span className="flex items-center space-x-2">
-            <IoCodeSlashSharp size={20} />
+            <IoCodeSlashSharp size={16} />
             <span>Show Logs</span>
           </span>
         </button>
@@ -551,7 +590,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           onClick={handleStartDownload}
         >
           <span className="flex items-center space-x-2">
-            <MdOutlinePlayCircle size={20} />
+            <MdOutlinePlayCircle size={16} />
             <span>Start</span>
           </span>
         </button>
@@ -827,7 +866,29 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                     target.value.trim() &&
                     target.value.trim().length <= 10
                   ) {
-                    onAddTag(download.id || '', target.value.trim());
+                    const newTag = target.value.trim();
+
+                    // Check for duplicates (case-insensitive)
+                    const isDuplicate = availableTags.some(
+                      (existingTag) =>
+                        existingTag.toLowerCase() === newTag.toLowerCase(),
+                    );
+
+                    if (isDuplicate) {
+                      toast({
+                        variant: 'destructive',
+                        title: 'Duplicate Tag',
+                        description: `Tag "${newTag}" already exists.`,
+                        duration: 2000,
+                      });
+                    } else {
+                      onAddTag(download.id || '', newTag);
+                      toast({
+                        title: 'Tag Added',
+                        description: `Tag "${newTag}" has been added.`,
+                        duration: 2000,
+                      });
+                    }
                     target.value = '';
                   }
                 }}
@@ -888,10 +949,34 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                     target.value.trim() &&
                     target.value.trim().length <= 10
                   ) {
-                    if (currentCategories.length > 0) {
-                      onRemoveCategory(download.id, currentCategories[0]);
+                    const newCategory = target.value.trim();
+
+                    // Check for duplicates (case-insensitive)
+                    const isDuplicate = availableCategories.some(
+                      (existingCategory) =>
+                        existingCategory.toLowerCase() ===
+                        newCategory.toLowerCase(),
+                    );
+
+                    if (isDuplicate) {
+                      toast({
+                        variant: 'destructive',
+                        title: 'Duplicate Category',
+                        description: `Category "${newCategory}" already exists.`,
+                        duration: 2000,
+                      });
+                    } else {
+                      // Remove current category first (single category per download)
+                      if (currentCategories.length > 0) {
+                        onRemoveCategory(download.id, currentCategories[0]);
+                      }
+                      onAddCategory(download.id, newCategory);
+                      toast({
+                        title: 'Category Added',
+                        description: `Category "${newCategory}" has been added.`,
+                        duration: 2000,
+                      });
                     }
-                    onAddCategory(download.id, target.value.trim());
                     target.value = '';
                   }
                 }}

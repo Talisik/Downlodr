@@ -26,44 +26,8 @@ jobs:
           node-version: '24'
           cache: 'yarn'
       
-      - name: Clean up conflicting lockfiles
-        run: |
-          if (Test-Path "package-lock.json") {
-            Remove-Item "package-lock.json" -Force
-            Write-Host "Removed conflicting package-lock.json"
-          }
-        shell: pwsh
-
-      - name: Clean Yarn cache
-        run: yarn cache clean
-        
       - name: Install dependencies
-        run: |
-          if (Test-Path "yarn.lock") {
-            Write-Host "Found yarn.lock, installing with frozen lockfile..."
-            yarn install --frozen-lockfile --network-timeout 100000 --network-concurrency 1
-          } else {
-            Write-Host "No yarn.lock found, generating lockfile..."
-            yarn install --network-timeout 100000 --network-concurrency 1
-          }
-        shell: pwsh
-        env:
-          YARN_ENABLE_IMMUTABLE_INSTALLS: false
-      
-      - name: Commit yarn.lock if generated
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          
-          if (git diff --name-only | Select-String "yarn.lock") {
-            Write-Host "yarn.lock was modified, committing changes..."
-            git add yarn.lock
-            git commit -m "Update yarn.lock [skip ci]"
-            git push
-          } else {
-            Write-Host "No changes to yarn.lock"
-          }
-        shell: pwsh
+        run: yarn install --frozen-lockfile
       
       - name: Build Electron app
         run: yarn make
@@ -119,7 +83,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.version.outputs.version }}-exp
+          tag_name: v${{ steps.version.outputs.version }}
           name: Experimental build v${{ steps.version.outputs.version }} - ${{ steps.commit.outputs.message }}
           body: |
             Automated weekly build of downlodr for Windows

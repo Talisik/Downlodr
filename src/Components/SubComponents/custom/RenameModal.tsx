@@ -1,5 +1,5 @@
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { useEffect, useState } from 'react';
-import { toast } from '../shadcn/hooks/use-toast';
 
 interface RenameModalProps {
   isOpen: boolean;

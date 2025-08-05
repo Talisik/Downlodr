@@ -1,11 +1,13 @@
+import PlaylistSkeleton from '@/Components/SubComponents/custom/Skeletons/PlaylistSkeleton';
 import Input from '@/Components/SubComponents/shadcn/components/ui/input';
-import { isValidUrl } from '@/DataFunctions/urlValidation';
+import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
 import { useTaskbarDownloadStore, Video } from '@/Store/taskbarDownloadStore';
+import { isValidUrl } from '@/Utils/Data/urlValidation';
+import { useState } from 'react';
 import { MdOutlineInfo } from 'react-icons/md';
-import { cn } from '../../shadcn/lib/utils';
-import PlaylistSkeleton from '../Skeletons/PlaylistSkeleton';
 
 interface AdditionalOptionsProps {
+  // isOpenOptions: boolean;
   isPlaylist: boolean;
   isLoading: boolean;
   selectAll: boolean;
@@ -17,6 +19,7 @@ interface AdditionalOptionsProps {
 }
 
 const AdditionalOptions = ({
+  // isOpenOptions,
   isPlaylist,
   isLoading,
   selectAll,
@@ -28,6 +31,7 @@ const AdditionalOptions = ({
 }: AdditionalOptionsProps) => {
   const { getTranscript, setGetTranscript, getThumbnail, setGetThumbnail } =
     useTaskbarDownloadStore();
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div
@@ -139,7 +143,7 @@ const AdditionalOptions = ({
                     className="mr-2"
                   />
                   <label htmlFor={`select-all`}>
-                    <p className="w-6/7 dark:text-darkModeLight font-medium">
+                    <p className="w-6/7 dark:text-darkModeLight font-medium px-2">
                       {videoTitle}
                     </p>
                   </label>
@@ -149,7 +153,7 @@ const AdditionalOptions = ({
                 {playlistVideos.map((video) => (
                   <div
                     key={video.id}
-                    className="flex items-center gap-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
+                    className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded-lg"
                   >
                     <input
                       type="checkbox"

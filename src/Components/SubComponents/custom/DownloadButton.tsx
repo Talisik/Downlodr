@@ -9,14 +9,14 @@
  * @returns JSX.Element - The rendered download button component.
  */
 
+import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { AddDownload } from '@/schema/download';
+import useDownloadStore from '@/Store/downloadStore';
+import { useMainStore } from '@/Store/mainStore';
+import { processFileName } from '@/Utils/Data/FilterName';
 import React from 'react';
 import { IoMdDownload } from 'react-icons/io';
-import { processFileName } from '../../../DataFunctions/FilterName';
-import { AddDownload } from '../../../schema/download';
-import useDownloadStore from '../../../Store/downloadStore';
-import { useMainStore } from '../../../Store/mainStore';
-import { toast } from '../shadcn/hooks/use-toast';
-import TooltipWrapper from './TooltipWrapper';
 
 // Interface representing the props for the DownloadButton component
 interface DownloadButtonProps {
@@ -26,7 +26,10 @@ interface DownloadButtonProps {
 const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
   const { settings } = useMainStore();
   const { removeFromForDownloads, addQueue } = useDownloadStore();
-
+  const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
+  const setSelectedDownloads = useMainStore(
+    (state) => state.setSelectedDownloads,
+  );
   /**
    * Handles the click event for the download button.
    * Initiates the download process and updates the download store.
@@ -35,7 +38,8 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
    */
   const handleDownloadClick = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row expansion
-
+    setSelectedRowIds([]);
+    setSelectedDownloads([]);
     // Process the filename first
     const processedName = await processFileName(
       download.location,

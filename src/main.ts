@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Main process entry point for the Electron application.
  * This file is responsible for creating the main application window,
@@ -19,11 +20,12 @@ import {
 } from 'electron';
 import started from 'electron-squirrel-startup';
 import fs, { existsSync } from 'fs';
+import http from 'http';
 import https from 'https';
 import os from 'os';
 import path from 'path';
 import * as YTDLP from 'yt-dlp-helper';
-import { checkForUpdates } from './DataFunctions/updateChecker';
+import { checkForUpdates } from './Utils/Data/updateChecker';
 import { PluginManager } from './plugins/pluginManager';
 import { pluginRegistry } from './plugins/registry';
 
@@ -56,12 +58,11 @@ let tray: Tray | null = null;
 let mainWindow: BrowserWindow | null = null;
 let forceQuit = false;
 let runInBackgroundSetting = true;
+let pluginManager: PluginManager;
 
 let normalTrayIcon: Electron.NativeImage;
 let alertTrayIcon: Electron.NativeImage;
 let isDownloadComplete = false;
-
-let pluginManager: PluginManager;
 
 /*
 // Rate limiting for GitHub API calls
@@ -91,7 +92,7 @@ function getCachedVersion(): string | null {
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 1300,
+    width: 1350,
     height: 680,
     frame: false,
     autoHideMenuBar: true,
@@ -134,12 +135,12 @@ const createWindow = () => {
   // focus tracking for clipboard monitoring
   mainWindow.on('focus', () => {
     isWindowFocused = true;
-    console.log('Window focused - clipboard monitoring paused');
+    // console.log('Window focused - clipboard monitoring paused');
   });
 
   mainWindow.on('blur', () => {
     isWindowFocused = false;
-    console.log('Window unfocused - clipboard monitoring resumed');
+    // console.log('Window unfocused - clipboard monitoring resumed');
   });
 
   // MAIN FUNCTIONS FOR TITLE BAR
@@ -148,11 +149,11 @@ const createWindow = () => {
 
     if (runInBackgroundSetting) {
       // If running in background is enabled, hide the window
-      console.log('Close button clicked, hiding window (background enabled)');
+      // console.log('Close button clicked, hiding window (background enabled)');
       mainWindow.hide();
     } else {
       // If running in background is disabled, actually quit the app
-      console.log('Close button clicked, quitting app (background disabled)');
+      // console.log('Close button clicked, quitting app (background disabled)');
       forceQuit = true;
       app.quit();
     }
@@ -320,6 +321,138 @@ ipcMain.handle('getDownloadFolder', async () => {
     }
 
     return downloadsPath;
+  } catch (error) {
+    // console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+// Function for getting default download folder from each OS
+ipcMain.handle('getHostInfo', async () => {
+  try {
+    if (os) {
+      const cpus = os.cpus();
+      const totalMemory = os.totalmem();
+      const freeMemory = os.freemem();
+      return {
+        host_name: os.hostname(),
+        host_id: os.hostname(),
+        host_type: 'desktop',
+        host_arch: os.arch(),
+        os_type: os.platform(),
+        os_description: `${os.type()} ${os.release()}`,
+        os_name: os.type(),
+        os_version: os.release(),
+        cpu_model: cpus[0]?.model || 'unknown',
+        cpu_cores: cpus.length,
+        cpu_threads: cpus.length,
+        memory_total_gb:
+          Math.round((totalMemory / 1024 / 1024 / 1024) * 10) / 10,
+        memory_available_gb:
+          Math.round((freeMemory / 1024 / 1024 / 1024) * 10) / 10,
+      };
+    } else {
+      // Renderer process fallbacks using available web APIs
+      const navigatorInfo = typeof navigator !== 'undefined' ? navigator : null;
+
+      return {
+        host_name: 'renderer-host',
+        host_id: 'www',
+        host_type: 'desktop',
+        host_arch: navigatorInfo?.platform || 'unknown',
+        os_type: 'unknown',
+        os_description: navigatorInfo?.userAgent || 'Unknown OS',
+        os_name: 'unknown',
+        os_version: 'unknown',
+        cpu_model: 'unknown',
+        cpu_cores: navigatorInfo?.hardwareConcurrency || 4,
+        cpu_threads: navigatorInfo?.hardwareConcurrency || 4,
+        memory_total_gb: 0,
+        memory_available_gb: 0,
+      };
+    }
+  } catch (error) {
+    console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+ipcMain.handle('getAppInfo', async () => {
+  try {
+    return {
+      app_name: 'Downlodr',
+      app_platform: process.platform,
+      electron_version: process.versions.electron,
+      app_arch: os.arch(),
+    };
+  } catch (error) {
+    console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+function getCpuUsagePercent() {
+  const startTime = process.hrtime();
+  const startUsage = process.cpuUsage();
+
+  // Simulate some work or wait for a short interval
+  const now = Date.now();
+  while (Date.now() - now < 500) {
+    /* spin the CPU for 500ms */
+  }
+
+  const elapTime = process.hrtime(startTime);
+  const elapUsage = process.cpuUsage(startUsage);
+
+  const elapTimeMS = elapTime[0] * 1000 + elapTime[1] / 1000000;
+  const elapUserMS = elapUsage.user / 1000;
+  const elapSystMS = elapUsage.system / 1000;
+
+  const cpuPercent = Math.round((100 * (elapUserMS + elapSystMS)) / elapTimeMS);
+  return cpuPercent;
+}
+
+ipcMain.handle('getPerformanceMetrics', async () => {
+  try {
+    const cpuUsage = getCpuUsagePercent();
+    return {
+      cpu_usage: cpuUsage,
+    };
+  } catch (error) {
+    console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+// Function for getting default download folder from each OS
+ipcMain.handle('getBrowserInfo', async () => {
+  try {
+    if (os) {
+      return {
+        browser_name: 'Chromium',
+        browser_version: process.versions.chrome,
+        browser_arch: os.arch(),
+      };
+    } else {
+      // Renderer process fallbacks using available web APIs
+      const navigatorInfo = typeof navigator !== 'undefined' ? navigator : null;
+
+      return {
+        host_name: 'renderer-host',
+        host_id: 'host_id',
+        host_type: 'desktop',
+        host_arch: navigatorInfo?.platform || 'unknown',
+        os_type: 'unknown',
+        os_description: navigatorInfo?.userAgent || 'Unknown OS',
+        os_name: 'unknown',
+        os_version: 'unknown',
+        cpu_model: 'unknown',
+        cpu_cores: navigatorInfo?.hardwareConcurrency || 4,
+        cpu_threads: navigatorInfo?.hardwareConcurrency || 4,
+        memory_total_gb: 0,
+        memory_available_gb: 0,
+      };
+    }
   } catch (error) {
     console.error('Error determining Downloads folder:', error);
     return null;
@@ -993,7 +1126,7 @@ const startClipboardMonitoring = () => {
     }, 1000); // Standard 1 second polling
   };
 
-  // add a small delay to prevent immediate detection of current clipboard content
+  // delay to prevent immediate detection of current clipboard content
   setTimeout(startMonitoringInterval, 500);
 };
 
@@ -1319,6 +1452,48 @@ ipcMain.handle('get-file-size', async (_event, filePath) => {
   }
 });
 
+// Function to get directory size (sum of all files)
+ipcMain.handle('get-directory-size', async (_event, dirPath) => {
+  try {
+    const stats = await fs.promises.stat(dirPath);
+
+    if (stats.isFile()) {
+      return stats.size;
+    }
+
+    if (!stats.isDirectory()) {
+      return 0;
+    }
+
+    let totalSize = 0;
+    const calculateSize = async (currentPath: string): Promise<void> => {
+      const items = await fs.promises.readdir(currentPath);
+
+      for (const item of items) {
+        const itemPath = path.join(currentPath, item);
+        try {
+          const itemStats = await fs.promises.stat(itemPath);
+
+          if (itemStats.isFile()) {
+            totalSize += itemStats.size;
+          } else if (itemStats.isDirectory()) {
+            await calculateSize(itemPath);
+          }
+        } catch (error) {
+          // Skip files/directories that can't be accessed
+          console.warn(`Skipping ${itemPath}: ${error.message}`);
+        }
+      }
+    };
+
+    await calculateSize(dirPath);
+    return totalSize;
+  } catch (error) {
+    console.error('Error calculating directory size:', error);
+    return 0;
+  }
+});
+
 // handler to get plugin menu items
 ipcMain.handle('plugins:menu-items', (event, context) => {
   return pluginRegistry.getMenuItems(context);
@@ -1371,51 +1546,92 @@ ipcMain.handle('plugins:reload', async (event) => {
   return true;
 });
 
-// When uninstalling a specific plugin
-ipcMain.handle('plugins:uninstall', async (event, pluginId) => {
-  // Clear registrations specific to this plugin
-  pluginRegistry.clearAllRegistrations(pluginId);
-
-  const success = await pluginManager.unloadPlugin(pluginId);
-  if (success) {
-    await pluginManager.loadPlugins();
-    event.sender.send('plugins:reloaded');
-  }
-  return success;
-});
-
-ipcMain.handle('plugins:loadUnzipped', async (event, pluginDirPath) => {
-  if (!pluginManager) {
-    console.error('Plugin manager not initialized');
-    return false;
-  }
-  return await pluginManager.loadUnzippedPlugin(pluginDirPath);
-});
-
-// handler to download a file
+//  near your other ipcMain handlers
 ipcMain.handle('downloadFile', async (_event, url, outputPath) => {
   try {
     return new Promise((resolve, reject) => {
-      const file = fs.createWriteStream(outputPath);
-      https
-        .get(url, (response) => {
-          response.pipe(file);
+      const downloadWithRedirects = (downloadUrl: string, maxRedirects = 5) => {
+        if (maxRedirects <= 0) {
+          reject({ success: false, error: 'Too many redirects' });
+          return;
+        }
 
-          file.on('finish', () => {
+        // Choose http or https based on URL
+        const client = downloadUrl.startsWith('https:') ? https : http;
+
+        const file = fs.createWriteStream(outputPath);
+
+        client
+          .get(downloadUrl, (response: any) => {
+            // Handle redirects
+            if (
+              response.statusCode >= 300 &&
+              response.statusCode < 400 &&
+              response.headers.location
+            ) {
+              file.close();
+              fs.unlink(outputPath, (unlinkErr) => {
+                // Ignore deletion errors for cleanup
+                if (unlinkErr)
+                  console.warn('Failed to clean up partial file:', unlinkErr);
+              });
+              console.log(`Redirecting to: ${response.headers.location}`);
+              downloadWithRedirects(
+                response.headers.location,
+                maxRedirects - 1,
+              );
+              return;
+            }
+
+            // Handle non-success status codes
+            if (response.statusCode !== 200) {
+              file.close();
+              fs.unlink(outputPath, (unlinkErr) => {
+                if (unlinkErr)
+                  console.warn(
+                    'Failed to clean up failed download:',
+                    unlinkErr,
+                  );
+              });
+              reject({
+                success: false,
+                error: `HTTP ${response.statusCode}: ${response.statusMessage}`,
+              });
+              return;
+            }
+
+            // Pipe the response to file
+            response.pipe(file);
+
+            file.on('finish', () => {
+              file.close();
+              resolve({ success: true, path: outputPath });
+            });
+
+            file.on('error', (err: any) => {
+              fs.unlink(outputPath, (unlinkErr) => {
+                if (unlinkErr)
+                  console.warn('Failed to clean up partial file:', unlinkErr);
+              });
+              reject({
+                success: false,
+                error: `File write error: ${err.message}`,
+              });
+            });
+          })
+          .on('error', (err: any) => {
             file.close();
-            resolve({ success: true, path: outputPath });
+            fs.unlink(outputPath, (unlinkErr) => {
+              if (unlinkErr)
+                console.error('Failed to delete incomplete file:', unlinkErr);
+            });
+            reject({ success: false, error: `Network error: ${err.message}` });
           });
-        })
-        .on('error', (err) => {
-          fs.unlink(outputPath, (unlinkErr) => {
-            // Ignoring deletion errors since the download already failed
-            if (unlinkErr)
-              console.error('Failed to delete incomplete file:', unlinkErr);
-          });
-          reject({ success: false, error: err.message });
-        });
+      };
+
+      downloadWithRedirects(url);
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error downloading file:', error);
     return { success: false, error: error.message };
   }
@@ -1489,7 +1705,7 @@ ipcMain.handle('plugins:taskbar-items', (event) => {
 
 // handler to execute taskbar items
 ipcMain.handle('plugins:execute-taskbar-item', (event, id, contextData) => {
-  console.log('Executing taskbar item action:', id, contextData);
+  // console.log('Executing taskbar item action:', id, contextData);
   pluginRegistry.executeTaskBarItemAction(id, contextData);
   return true;
 });
@@ -1537,10 +1753,10 @@ ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
     const resolvedPath = path.resolve(normalizedPath);
 
     if (!fs.existsSync(resolvedPath)) {
-      console.log('file doesnt exist');
+      // console.log('file doesnt exist');
       return { success: false, error: 'File does not exist' };
     }
-    console.log('path given to read:', resolvedPath);
+    // console.log('path given to read:', resolvedPath);
 
     const fileContents = await fs.promises.readFile(resolvedPath, 'utf8');
     return { success: true, data: fileContents };

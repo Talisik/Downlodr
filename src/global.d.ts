@@ -5,7 +5,7 @@
  * This file extends the Window interface to include custom functions and properties
  * that are accessible in the renderer process.
  */
-import { FormatSelectorResult, GetInfoResponse, MenuItem, PluginInfo, PluginManifest, PluginModalOptions, PluginSidePanelOptions, PluginSidePanelResult, TaskBarItem } from './plugins/types';
+import { FormatSelectorResult, MenuItem, PluginInfo, PluginManifest, PluginModalOptions, PluginSidePanelOptions, PluginSidePanelResult, TaskBarItem } from './plugins/types';
 import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult } from './schema/downlodrFunction';
 
 declare global {
@@ -22,6 +22,9 @@ declare global {
       deleteFile: (videoPath: string) => Promise<boolean>; // Deletes a specified file from storage/drive
       deleteFolder: (folderPath: string) => Promise<boolean>; // Deletes a specified folder from storage/drive
       getDownloadFolder: () => Promise<string>; // Retrieves the default download folder path
+      getAppInfo: () => Promise<AppInfo>; // Retrieves the app information
+      getBrowserInfo: () => Promise<BrowserInfo>; // Retrieves the browser information
+      getHostInfo: () => Promise<DeviceInfo>; // Retrieves the device information
       isValidPath: (videoPath: string) => Promise<boolean>; // Validates a given file path if it exists
       joinDownloadPath: (
         downloadPath: string,
@@ -34,6 +37,7 @@ declare global {
       ) => Promise<{ success: boolean; error?: string }>; // Opens a specified folder
       fileExists: (path: string) => Promise<boolean>; // Checks if a file exists at the specified path
       getFileSize: (path: string) => Promise<number | null>; // Gets the size of a file in bytes
+      getDirectorySize: (path: string) => Promise<number>; // Gets the total size of all files in a directory in bytes
       showInputContextMenu: () => void; // Shows the input field context menu (right-click menu)
       invokeMainProcess: (channel: string, ...args: any[]) => Promise<any>;
       downloadFile: (
@@ -115,6 +119,7 @@ declare global {
       getMenuItems: (context: string) => Promise<MenuItem[]>;
       executeMenuItem: (id: string, contextData?: any) => Promise<void>;
       loadUnzipped: (pluginDirPath: string) => Promise<boolean>;
+      extractPlugin: (zipPath: string, extractTo: string) => Promise<string>;
       writeFile: (options: WriteFileOptions) => Promise<WriteFileResult>;
       readFile: (
         filePath: string,
@@ -171,6 +176,24 @@ declare global {
       clearLastClipboardText: () => Promise<void>;
       clearClipboard: () => Promise<boolean>;
       isWindowFocused: () => Promise<boolean>;
+    };
+
+    formatSelectorManager?: {
+      showFormatSelector: (
+        options: FormatSelectorOptions,
+      ) => Promise<FormatSelectorResult | null>;
+    };
+
+    pluginModalManager?: {
+      showPluginModal: (
+        options: PluginModalOptions,
+      ) => Promise<PluginModalResult | null>;
+    };
+
+    pluginSidePanelManager?: {
+      showPluginSidePanel: (
+        options: PluginSidePanelOptions,
+      ) => Promise<PluginSidePanelResult>;
     };
     
   }

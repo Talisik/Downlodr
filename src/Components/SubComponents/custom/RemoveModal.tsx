@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import { IoMdClose } from 'react-icons/io';
 
+// TypeScript interfaces for event handlers
+type ButtonClickEvent = React.MouseEvent<HTMLButtonElement>;
+type DivClickEvent = React.MouseEvent<HTMLDivElement>;
+type LabelClickEvent = React.MouseEvent<HTMLLabelElement>;
+type InputClickEvent = React.MouseEvent<HTMLInputElement>;
+type CheckboxChangeEvent = React.ChangeEvent<HTMLInputElement>;
+
 interface RemoveModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -30,7 +37,7 @@ const RemoveModal: React.FC<RemoveModalProps> = ({
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      onClick={(e) => {
+      onClick={(e: DivClickEvent) => {
         // Only close if clicking the overlay background
         if (e.target === e.currentTarget) {
           e.stopPropagation();
@@ -40,7 +47,7 @@ const RemoveModal: React.FC<RemoveModalProps> = ({
     >
       <div
         className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-lg w-full mx-2"
-        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
+        onClick={(e: DivClickEvent) => e.stopPropagation()} // Prevent clicks inside modal from closing it
       >
         {/* Header with title and close button */}
         <div className="flex justify-between items-center mb-4">
@@ -48,7 +55,7 @@ const RemoveModal: React.FC<RemoveModalProps> = ({
             Remove selected item
           </h3>
           <button
-            onClick={(e) => {
+            onClick={(e: ButtonClickEvent) => {
               e.stopPropagation();
               onClose();
             }}
@@ -68,16 +75,16 @@ const RemoveModal: React.FC<RemoveModalProps> = ({
           <div className="mb-6">
             <label
               className="flex items-center space-x-2 text-xs text-gray-700 dark:text-gray-300"
-              onClick={(e) => e.stopPropagation()} // Prevent label click from closing modal
+              onClick={(e: LabelClickEvent) => e.stopPropagation()} // Prevent label click from closing modal
             >
               <input
                 type="checkbox"
                 checked={deleteFolder}
-                onChange={(e) => {
+                onChange={(e: CheckboxChangeEvent) => {
                   e.stopPropagation(); // Prevent checkbox change from closing modal
                   setDeleteFolder(e.target.checked);
                 }}
-                onClick={(e) => e.stopPropagation()} // Prevent checkbox click from closing modal
+                onClick={(e: InputClickEvent) => e.stopPropagation()} // Prevent checkbox click from closing modal
                 className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
               />
               <span>Also remove the downloaded folder and its files</span>
@@ -88,7 +95,7 @@ const RemoveModal: React.FC<RemoveModalProps> = ({
         {/* Action buttons */}
         <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
           <button
-            onClick={(e: any) => {
+            onClick={(e: ButtonClickEvent) => {
               e.stopPropagation();
               onClose();
             }}
@@ -97,7 +104,7 @@ const RemoveModal: React.FC<RemoveModalProps> = ({
             Cancel
           </button>
           <button
-            onClick={(e) => {
+            onClick={(e: ButtonClickEvent) => {
               e.stopPropagation();
               onConfirm(deleteFolder);
             }}

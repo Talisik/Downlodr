@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import FormatSelectorExtension from '../../Components/SubComponents/custom/FormatSelectorExtension';
-import { FormatSelectorOptions, FormatSelectorResult } from '../types';
+import FormatSelectorExtension from '@/Components/SubComponents/custom/FormatSelectorExtension';
+import { FormatSelectorOptions, FormatSelectorResult } from '@/plugins/types';
+import React, { useCallback, useState } from 'react';
 
 interface FormatSelectorRequest {
   options: FormatSelectorOptions;
@@ -68,14 +68,3 @@ const FormatSelectorManager: React.FC = () => {
 };
 
 export default FormatSelectorManager;
-
-// Add typings for the window object
-declare global {
-  interface Window {
-    formatSelectorManager?: {
-      showFormatSelector: (
-        options: FormatSelectorOptions,
-      ) => Promise<FormatSelectorResult | null>;
-    };
-  }
-}

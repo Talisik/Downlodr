@@ -5,7 +5,7 @@
  * across the application for consistent URL validation.
  */
 
-import { toast } from '../Components/SubComponents/shadcn/hooks/use-toast';
+import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 
 /**
  * Checks if a URL is a YouTube link and determines its type

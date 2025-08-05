@@ -6,16 +6,16 @@
  * @returns JSX.Element - The rendered component displaying a TitleBar
  *
  */
+import downlodrLogoLight from '@/Assets/Logo/Downlodr-Logo.svg';
+import downlodrLogoDark from '@/Assets/Logo/Downlodr-LogoDark.svg';
+import ExitModal from '@/Components/Main/Modal/ExitModal';
+import { ModeToggle } from '@/Components/SubComponents/custom/ModeToggle';
+import { useTheme } from '@/Components/ThemeProvider';
+import { useMainStore } from '@/Store/mainStore';
 import React from 'react';
 import { IoMdClose, IoMdRemove } from 'react-icons/io';
 import { PiBrowsers } from 'react-icons/pi';
 import { RxBox } from 'react-icons/rx';
-import downlodrLogoLight from '../../../Assets/Logo/Downlodr-Logo.svg';
-import downlodrLogoDark from '../../../Assets/Logo/Downlodr-LogoDark.svg';
-import { ModeToggle } from '../../../Components/SubComponents/custom/ModeToggle';
-import { useTheme } from '../../../Components/ThemeProvider';
-import { useMainStore } from '../../../Store/mainStore';
-import ExitModal from '../Modal/ExitModal';
 interface TitleBarProps {
   className?: string;
 }
@@ -37,10 +37,6 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
 
   // Handle close button click
   const handleCloseClick = () => {
-    console.log('Settings object:', settings);
-    console.log('runInBackgroundEnabled:', runInBackgroundEnabled);
-    console.log('showExitModal:', showExitModal);
-    console.log('settings.exitModal:', settings.exitModal);
     // If run in background is enabled and user hasn't disabled the exit modal, show the modal
     if (runInBackgroundEnabled && showExitModal) {
       setIsExitModalOpen(true);

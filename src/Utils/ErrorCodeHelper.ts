@@ -40,7 +40,7 @@ const ERROR_CODE_MAP: Record<string, ErrorCodeInfo> = {
     code: 1,
     title: 'Permission Denied/Network Error',
     description:
-      'Operation not permitted - Service was unable to connect to the server',
+      'Downlodr Operation not permitted - Service was unable to connect to the server',
     category: 'system/network',
     severity: 'high',
     canRetry: true,

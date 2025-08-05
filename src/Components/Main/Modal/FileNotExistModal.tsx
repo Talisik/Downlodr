@@ -2,50 +2,13 @@
  * A modal component displayed when downloaded files don't exist at their expected location.
  * Provides options to either redownload the video(s) or delete the download log(s).
  */
+import { FileNotExistModalProps } from '@/schema/componentSchema';
 import React from 'react';
 import { IoMdClose } from 'react-icons/io';
-import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
-import { toast } from '../shadcn/hooks/use-toast';
-
-export interface DownloadItem {
-  id: string;
-  videoUrl: string;
-  location?: string;
-  name?: string;
-  ext?: string;
-  downloadName?: string;
-  extractorKey?: string;
-  download: {
-    location: string;
-    name: string;
-    ext: string;
-    size: number;
-    speed: string;
-    channelName: string;
-    timeLeft: string;
-    progress: number;
-    formatId: string;
-    audioExt: string;
-    audioFormatId: string;
-    extractorKey: string;
-    automaticCaption: boolean;
-    thumbnails: string[];
-    getTranscript: boolean;
-    getThumbnail: boolean;
-    duration?: number;
-  };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-}
-
-interface FileNotExistModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  download?: DownloadItem | null; // Single download from context menu
-  selectedDownloads?: DownloadItem[]; // Multiple downloads from selection
-}
+import { processFileName } from '../../../Utils/Data/FilterName';
+import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 
 const FileNotExistModal: React.FC<FileNotExistModalProps> = ({
   isOpen,

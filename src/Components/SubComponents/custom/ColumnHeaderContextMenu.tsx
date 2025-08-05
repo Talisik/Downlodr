@@ -1,5 +1,5 @@
+import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
 import React, { useEffect, useRef } from 'react';
-import { cn } from '../shadcn/lib/utils';
 
 interface ColumnOption {
   id: string;
@@ -26,7 +26,7 @@ const ColumnHeaderContextMenu: React.FC<ColumnHeaderContextMenuProps> = ({
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Add effect to handle clicks outside menu
+  // effect to handle clicks outside menu
   useEffect(() => {
     if (!visible) return;
 

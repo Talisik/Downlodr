@@ -1,11 +1,11 @@
-import React, { PropsWithChildren } from 'react';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '../shadcn/components/ui/tooltip';
-import { cn } from '../shadcn/lib/utils';
+} from '@/Components/SubComponents/shadcn/components/ui/tooltip';
+import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
+import React, { PropsWithChildren } from 'react';
 
 interface TooltipWrapperProps extends PropsWithChildren {
   children: React.ReactNode;

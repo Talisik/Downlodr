@@ -2,7 +2,6 @@ import { Copy, Download, Folder as FolderIcon, Settings } from '@/Assets/Icons';
 import Input from '@/Components/SubComponents/shadcn/components/ui/input';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
-import { cleanRawLink } from '@/DataFunctions/urlValidation';
 import useDownloadStore from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import {
@@ -10,7 +9,8 @@ import {
   useTaskbarDownloadStore,
   Video,
 } from '@/Store/taskbarDownloadStore';
-import { useEffect, useRef, useState } from 'react';
+import { cleanRawLink } from '@/Utils/Data/urlValidation';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AdditionalOptions from './AdditionalOptions';
 import FolderDirectory from './FolderDirectory';
 
@@ -49,12 +49,17 @@ const TaskbarInputField = () => {
   const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
   const [playlistVideos, setPlaylistVideos] = useState<Video[]>([]);
   const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
+  const [isAdditionalOptionsOpen, setIsAdditionalOptionsOpen] =
+    useState<boolean>(false);
+
+  //  constant near the top of the component after other constants
+  const RAW_YOUTUBE_PATTERN = /^https:\/\/youtu\.be\/[\w-]+(?:\?.*)?$/;
 
   // Calculate selectAll state
   const selectAll =
     selectedVideos.size === playlistVideos.length && playlistVideos.length > 0;
 
-  // Add a debounce timer and URL validation states
+  // full debounce timer and URL validation states
   const [validationTimer, setValidationTimer] = useState<NodeJS.Timeout | null>(
     null,
   );
@@ -135,9 +140,8 @@ const TaskbarInputField = () => {
     const videoPattern = /^https:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/;
     const playlistPattern =
       /^https:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+$/;
-    const rawPattern = /^https:\/\/youtu\.be\/[\w-]+(?:\?.*)?$/;
 
-    if (rawPattern.test(url)) {
+    if (RAW_YOUTUBE_PATTERN.test(url)) {
       const cleanedUrl = cleanRawLink(url);
       setVideoUrl(cleanedUrl);
       return 'video';
@@ -278,20 +282,55 @@ const TaskbarInputField = () => {
 
   // Keydown handler that determines whether to search or download
   const handleKeyDown = () => {
-    if (!videoUrl.trim()) {
+    const trimmedUrl = videoUrl.trim();
+
+    // Early return for empty input
+    if (!trimmedUrl) {
       if (searchState.isSearchActive) {
         clearSearch();
       }
       return;
     }
 
-    // If it's a valid URL and has been validated, proceed with download
-    if (urlPattern.test(videoUrl) && isValidUrl) {
+    // Check if input is a URL (http/https) or search query
+    const isUrlInput =
+      trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://');
+
+    if (!isUrlInput) {
+      // Non-URL input should trigger search
+      setSearchState({
+        ...searchState,
+        isSearchActive: true,
+      });
+      handleSearchDownloads(trimmedUrl);
+      return;
+    }
+
+    // For URL inputs, check if it's been validated and ready for download
+    const isValidYouTubeShort = RAW_YOUTUBE_PATTERN.test(trimmedUrl);
+    const isValidStandardUrl = urlPattern.test(trimmedUrl);
+
+    if ((isValidStandardUrl || isValidYouTubeShort) && isValidUrl) {
       handleDownload();
+    } else if (isValidStandardUrl || isValidYouTubeShort) {
+      // URL format is valid but not yet validated - trigger immediate validation
+      // Clear any existing validation timer and validate immediately
+      if (validationTimer) {
+        clearTimeout(validationTimer);
+        setValidationTimer(null);
+      }
+      validateUrl(trimmedUrl);
     } else {
-      handleSearchDownloads(videoUrl);
+      // Invalid URL format - treat as search
+      handleSearchDownloads(trimmedUrl);
     }
   };
+
+  // Centralized function to close additional options
+  const closeAdditionalOptions = useCallback(() => {
+    setActiveButton(null);
+    setIsAdditionalOptionsOpen(false);
+  }, []);
 
   // Cleans up states of download modal variable
   const resetModal = () => {
@@ -302,6 +341,7 @@ const TaskbarInputField = () => {
     setPlaylistVideos([]);
     setSelectedVideos(new Set());
     setDownloadFolder(settings.defaultLocation);
+    closeAdditionalOptions();
   };
 
   const handleDownload = async () => {
@@ -328,8 +368,6 @@ const TaskbarInputField = () => {
             getThumbnail,
           });
         }
-
-        setActiveButton(null);
       } else {
         // Single video download with user preferences
         setDownload(videoUrl, downloadFolder, maxDownload, {
@@ -386,7 +424,7 @@ const TaskbarInputField = () => {
         !target.closest('#folder-directory-modal') &&
         !target.closest('#taskbar-input-field')
       ) {
-        setActiveButton(null);
+        closeAdditionalOptions();
       }
     };
 
@@ -395,12 +433,13 @@ const TaskbarInputField = () => {
     return () => {
       document.removeEventListener('click', handleClickOutside);
     };
-  }, []);
+  }, [closeAdditionalOptions]);
 
   // Opens additional options when playlist is valid
   useEffect(() => {
     if (isPlaylist && isValidUrl) {
       setActiveButton('settings');
+      setIsAdditionalOptionsOpen(true);
     }
   }, [isPlaylist, isValidUrl]);
 
@@ -431,7 +470,7 @@ const TaskbarInputField = () => {
   return (
     <div
       id="taskbar-input-field"
-      className="flex-shrink flex-grow-0 w-full max-w-[538px] min-w-[200px] relative"
+      className="flex-shrink flex-grow-0 w-full max-w-[538px] min-w-[200px] relative ml-2"
     >
       <Input
         ref={inputRef}
@@ -476,6 +515,9 @@ const TaskbarInputField = () => {
             ),
             onClick: () => {
               setActiveButton(activeButton === 'settings' ? null : 'settings');
+              setIsAdditionalOptionsOpen(
+                activeButton === 'settings' ? false : true,
+              );
             },
             tooltip:
               'Get the transcript and Thumbnail along with your download.',
@@ -527,8 +569,9 @@ const TaskbarInputField = () => {
         }}
       />
 
-      {activeButton === 'settings' && (
+      {activeButton === 'settings' && isAdditionalOptionsOpen && (
         <AdditionalOptions
+          // isOpenOptions={isAdditionalOptionsOpen}
           isPlaylist={isPlaylist}
           isLoading={isLoading}
           selectAll={selectAll}

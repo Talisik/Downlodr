@@ -12,18 +12,6 @@ export const getFirstParagraph = (
 ): string => {
   if (!description) return '';
 
-  if (pluginName === 'CC to Markdown') {
-    return 'Converts videos to different formats using customizable quality and settings.';
-  }
-
-  if (pluginName === 'Metadata Exporter') {
-    return 'View and edit video metadata with powerful batch processing tools.';
-  }
-
-  if (pluginName === 'Format Converter') {
-    return 'Converts videos to different formats using customizable quality and settings';
-  }
-
   // Split by double line breaks first (common paragraph separator)
   const paragraphs = description.split(/\n\s*\n/);
   if (paragraphs.length > 1 && paragraphs[0].trim()) {

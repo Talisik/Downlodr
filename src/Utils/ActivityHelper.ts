@@ -10,7 +10,7 @@ import useDownloadStore, {
   Downloading,
   FinishedDownloads,
   QueuedDownload,
-} from '../Store/downloadStore';
+} from '@/Store/downloadStore';
 import {
   generateErrorMessage,
   getErrorCodeInfo,

@@ -1,5 +1,6 @@
 import Input from '@/Components/SubComponents/shadcn/components/ui/input';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { useMainStore } from '@/Store/mainStore';
 import { useTaskbarDownloadStore } from '@/Store/taskbarDownloadStore';
 import { Folder } from 'lucide-react';
 
@@ -11,6 +12,9 @@ const FolderDirectory = () => {
     setDownloadFolder,
   } = useTaskbarDownloadStore();
 
+  // Get main store to keep settings in sync
+  const { updateDefaultLocation } = useMainStore();
+
   // set download folder location
   const handleDirectory = async () => {
     // Prevent multiple dialogs from being opened
@@ -21,6 +25,8 @@ const FolderDirectory = () => {
       const path = await window.ytdlp.selectDownloadDirectory();
       if (path) {
         setDownloadFolder(path);
+        // Also update the main store to keep them in sync
+        updateDefaultLocation(path);
       }
     } catch (error) {
       console.error('Error selecting directory:', error);
