@@ -40,7 +40,30 @@ function getYtdlpBinaryPath(): string {
     console.log('Development mode yt-dlp path calculation:');
     console.log('  __dirname:', __dirname);
     console.log('  Calculated path:', binaryPath);
-    console.log('  Binary exists:', require('fs').existsSync(binaryPath));
+    console.log('  Binary exists:', fs.existsSync(binaryPath));
+
+    // Create compatibility symlink for yt-dlp-helper if needed
+    const expectedPath = path.join(__dirname, '..', '..', 'yt-dlp_macos');
+    if (!fs.existsSync(expectedPath) && fs.existsSync(binaryPath)) {
+      console.log('Creating yt-dlp-helper compatibility symlink...');
+      try {
+        fs.symlinkSync(binaryPath, expectedPath);
+        console.log('✅ Symlink created successfully');
+      } catch (error) {
+        console.log('Symlink creation failed, copying binary:', error.message);
+        try {
+          fs.copyFileSync(binaryPath, expectedPath);
+          fs.chmodSync(expectedPath, 0o755);
+          console.log('✅ Binary copied successfully');
+        } catch (copyError) {
+          console.error(
+            'Failed to create compatibility binary:',
+            copyError.message,
+          );
+        }
+      }
+    }
+
     return binaryPath;
   }
 }
@@ -48,7 +71,7 @@ function getYtdlpBinaryPath(): string {
 // Configure ffmpeg binary path and ensure it's in PATH
 function setupFfmpegPath(): void {
   let ffmpegPath: string;
-  
+
   if (app.isPackaged) {
     // In packaged app, ffmpeg is in Resources directory
     ffmpegPath = path.join(process.resourcesPath, 'ffmpeg');
@@ -56,7 +79,7 @@ function setupFfmpegPath(): void {
     // In development, use the binary in the project root
     ffmpegPath = path.join(__dirname, '..', '..', 'ffmpeg');
   }
-  
+
   if (require('fs').existsSync(ffmpegPath)) {
     // Add the directory containing ffmpeg to PATH
     const ffmpegDir = path.dirname(ffmpegPath);
@@ -594,18 +617,83 @@ ipcMain.handle('normalizePath', async (event, filepath) => {
 ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
   try {
     const ytdlpPath = getYtdlpBinaryPath();
+    console.log('🔄 Fetching playlist info for:', videoUrl.url);
     console.log('Using yt-dlp binary for playlist at:', ytdlpPath);
-    console.log('Playlist binary exists:', require('fs').existsSync(ytdlpPath));
-    
+    console.log('Playlist binary exists:', fs.existsSync(ytdlpPath));
+
+    // Validate the URL before processing
+    if (!videoUrl.url || typeof videoUrl.url !== 'string') {
+      throw new Error('Invalid URL provided for playlist fetching');
+    }
+
+    // Enable verbose logging for yt-dlp-helper
+    YTDLP.Config.log = true;
+
     const info = await YTDLP.getPlaylistInfo({
       url: videoUrl.url,
       ytdlpDownloadDestination: ytdlpPath,
-      downloadBinary: { ytdlp: false, ffmpeg: true } // Enable ffmpeg for playlist info
+      downloadBinary: { ytdlp: false, ffmpeg: true }, // Enable ffmpeg for playlist info
     });
+
+    console.log('📊 Playlist info result:', {
+      success: info.ok,
+      hasData: !!info.data,
+      title: info.data?.title || 'No title',
+      entryCount: info.data?.entries?.length || 0,
+    });
+
+    // If the result is not ok, provide more detailed error information
+    if (!info.ok) {
+      console.warn('⚠️ Playlist info fetch was not successful');
+      console.warn('Full result:', JSON.stringify(info, null, 2));
+
+      // Return a more descriptive error
+      return {
+        ok: false,
+        error:
+          'Failed to fetch playlist information. This could be due to a private playlist, network issues, or the playlist being unavailable.',
+        originalResult: info,
+      };
+    }
+
     return info;
   } catch (error) {
-    console.error('Error fetching playlist info:', error);
-    throw error; // Propagate the error to the renderer process
+    console.error('❌ Error fetching playlist info:', {
+      message: error.message,
+      stack: error.stack,
+      url: videoUrl.url,
+    });
+
+    // Provide more specific error messages based on error content
+    let userFriendlyMessage = 'Failed to fetch playlist information';
+
+    if (error.message.includes('spawn') || error.message.includes('ENOENT')) {
+      userFriendlyMessage = 'yt-dlp binary not found or not executable';
+    } else if (
+      error.message.includes('network') ||
+      error.message.includes('timeout')
+    ) {
+      userFriendlyMessage = 'Network error while fetching playlist information';
+    } else if (error.message.includes('playlist does not exist')) {
+      userFriendlyMessage =
+        'The playlist is private, does not exist, or is unavailable';
+    } else if (
+      error.message.includes('permission') ||
+      error.message.includes('forbidden')
+    ) {
+      userFriendlyMessage =
+        'Access denied - the playlist may be private or restricted';
+    }
+
+    // Create an enhanced error object
+    const enhancedError = new Error(userFriendlyMessage) as Error & {
+      originalError?: Error;
+      url?: string;
+    };
+    enhancedError.originalError = error;
+    enhancedError.url = videoUrl.url;
+
+    throw enhancedError;
   }
 });
 
@@ -616,23 +704,23 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
     const ytdlpPath = getYtdlpBinaryPath();
     console.log('Using yt-dlp binary at:', ytdlpPath);
     console.log('Binary exists:', require('fs').existsSync(ytdlpPath));
-    
+
     // Use invoke instead of getInfo to specify binary path
     const result = await YTDLP.invoke({
-      args: [url, "--no-warnings", "--dump-json"],
+      args: [url, '--no-warnings', '--dump-json'],
       ytdlpDownloadDestination: ytdlpPath,
-      downloadBinary: { ytdlp: false, ffmpeg: true } // Enable ffmpeg for info extraction
+      downloadBinary: { ytdlp: false, ffmpeg: true }, // Enable ffmpeg for info extraction
     });
-    
+
     if (!result.ok) {
       throw new Error('Failed to get video info');
     }
-    
+
     const info = {
       ok: true,
-      data: JSON.parse(result.data || "")
+      data: JSON.parse(result.data || ''),
     };
-    
+
     if (!info) {
       throw new Error('No info returned from yt-dlp');
     }
@@ -909,7 +997,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     const ytdlpPath = getYtdlpBinaryPath();
     console.log('Using yt-dlp binary for download at:', ytdlpPath);
     console.log('Download binary exists:', require('fs').existsSync(ytdlpPath));
-    
+
     const controller = await YTDLP.download({
       // args needed for download
       args: {
@@ -922,7 +1010,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
         limitRate: args.limitRate,
       },
       ytdlpDownloadDestination: ytdlpPath,
-      downloadBinary: { ytdlp: false, ffmpeg: true } // Enable ffmpeg for remuxing
+      downloadBinary: { ytdlp: false, ffmpeg: true }, // Enable ffmpeg for remuxing
     });
 
     if (!controller || typeof controller.listen !== 'function') {
@@ -1170,10 +1258,10 @@ app.on('ready', async () => {
   createWindow();
   createTray();
   updateCloseHandler();
-  
+
   // Setup ffmpeg path for yt-dlp merging
   setupFfmpegPath();
-  
+
   // Test yt-dlp path on startup
   console.log('=== YT-DLP PATH TEST ===');
   const testPath = getYtdlpBinaryPath();
