@@ -72,7 +72,24 @@ if [ -n "$APPLE_IDENTITY" ]; then
     echo "🔐 Code signing enabled with CSC_NAME: $CSC_NAME"
 fi
 
-yarn make --platform=darwin
+# Build for both Intel (x64) and Apple Silicon (arm64)
+echo "🏗️  Building for Apple Silicon (arm64)..."
+yarn make --platform=darwin --arch=arm64
+
+# Rename ARM64 DMG
+if [ -f "out/make/Downlodr.dmg" ]; then
+    mv "out/make/Downlodr.dmg" "out/make/Downlodr-arm64.dmg"
+    echo "✅ Renamed ARM64 DMG to Downlodr-arm64.dmg"
+fi
+
+echo "🏗️  Building for Intel Macs (x64)..."
+yarn make --platform=darwin --arch=x64
+
+# Rename Intel DMG
+if [ -f "out/make/Downlodr.dmg" ]; then
+    mv "out/make/Downlodr.dmg" "out/make/Downlodr-x64.dmg"
+    echo "✅ Renamed Intel DMG to Downlodr-x64.dmg"
+fi
 
 # Verify yt-dlp binary signing if code signing is enabled
 if [ -n "$APPLE_IDENTITY" ] && [ -f "out/Downlodr-darwin-arm64/Downlodr.app/Contents/Resources/yt-dlp" ]; then

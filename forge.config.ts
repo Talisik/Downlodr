@@ -1,5 +1,6 @@
 import { MakerPKG } from '@electron-forge/maker-pkg';
 import { MakerZIP } from '@electron-forge/maker-zip';
+import { MakerDMG } from '@electron-forge/maker-dmg';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import type { ForgeConfig } from '@electron-forge/shared-types';
@@ -22,10 +23,11 @@ const config: ForgeConfig = {
         osxSign: {
           identity: process.env.APPLE_IDENTITY,
           'hardened-runtime': true,
-          entitlements: path.join(__dirname, 'entitlements.plist'),
-          'entitlements-inherit': path.join(__dirname, 'entitlements.plist'),
+          'gatekeeper-assess': false,
+          'signature-flags': ['runtime'],
         } as any, // Type assertion to bypass TypeScript restrictions
-        // Temporarily disable notarization to test signing with bundled ffmpeg
+        // Temporarily disable notarization due to signing verification issues
+        // TODO: Fix notarization signing process in future release
         // ...(process.env.APPLE_ID && {
         //   osxNotarize: {
         //     appleId: process.env.APPLE_ID,
@@ -37,6 +39,14 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   makers: [
+    // macOS DMG installer - preferred by most macOS users
+    new MakerDMG({
+      icon: './src/Assets/AppLogo/256x256.ico',
+      name: 'Downlodr',
+      title: 'Install Downlodr',
+      format: 'ULFO',
+    }),
+
     // macOS PKG installer - requires "Developer ID Installer" certificate (different from Application cert)
     // If you get signing errors, you need both certificates from Apple Developer Portal
     new MakerPKG({
