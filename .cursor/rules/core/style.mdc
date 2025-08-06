@@ -1,0 +1,81 @@
+---
+description: Code style and formatting standards for the Downlodr project
+globs:
+  - 'src/**/*.{ts,tsx,js,jsx}'
+  - '*.{ts,tsx,js,jsx}'
+alwaysApply: true
+priority: high
+tags: [style, formatting, consistency]
+version: 1.0
+lastUpdated: 2024-12-28
+---
+
+# Code Style and Formatting
+
+## Objective
+Maintain consistent code style across the Downlodr project using ESLint and Prettier for automated formatting and quality enforcement.
+
+## Context
+- TypeScript/JavaScript project with React components
+- Uses ESLint with TypeScript and import plugins
+- Prettier for consistent formatting
+- Single quotes preferred over double quotes
+- Semicolons required for statement termination
+- Auto end-of-line handling for cross-platform compatibility
+
+## Rules
+
+### Formatting Standards
+- **Single quotes**: Use single quotes for all string literals
+  ```typescript
+  ✅ const message = 'Hello world';
+  ❌ const message = "Hello world";
+  ```
+
+- **Semicolons**: Always include semicolons at the end of statements
+  ```typescript
+  ✅ const value = 42;
+  ❌ const value = 42
+  ```
+
+- **Line endings**: Use `endOfLine: 'auto'` for cross-platform compatibility
+- **Indentation**: Use 2 spaces for indentation (configured in Prettier)
+
+### Import Organization
+- **Order**: Built-in modules → external packages → internal modules
+- **Grouping**: Separate groups with blank lines
+- **Relative imports**: Use `@/` path alias for src directory references
+  ```typescript
+  ✅ import { useMainStore } from '@/Store/mainStore';
+  ❌ import { useMainStore } from '../../../Store/mainStore';
+  ```
+
+### TypeScript Specifics
+- **Type annotations**: Prefer explicit types over `any`
+- **Interface naming**: Use PascalCase for interfaces
+- **Unused variables**: Warn level (not error) to allow development flexibility
+  ```typescript
+  ✅ interface DownloadSettings { defaultLocation: string; }
+  ❌ interface downloadSettings { defaultLocation: any; }
+  ```
+
+### React Specifics
+- **JSX**: No need to import React in scope (using new JSX transform)
+- **Props**: No requirement for default props on functional components
+- **Children**: Allow children prop usage without restrictions
+
+## Exceptions
+- Configuration files (*.config.ts) may have relaxed import rules
+- Development and testing files may use more flexible rules
+- Legacy code migration can temporarily bypass some rules with explicit comments
+
+## Enforcement
+- ESLint runs on `yarn lint` command
+- Prettier integration with ESLint for automatic formatting
+- Pre-commit hooks recommended for enforcement
+- IDE integration strongly recommended
+
+## Resources
+- [ESLint Configuration](.eslintrc.json)
+- [Prettier Configuration](.prettierrc)
+- [TypeScript ESLint Rules](https://typescript-eslint.io/rules/)

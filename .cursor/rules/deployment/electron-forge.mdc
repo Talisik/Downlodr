@@ -1,0 +1,492 @@
+---
+description: Electron Forge packaging and distribution standards
+globs:
+  - 'forge.config.ts'
+  - 'package.json'
+  - 'vite.*.config.ts'
+alwaysApply: true
+priority: high
+tags: [electron-forge, packaging, distribution, ci-cd]
+version: 1.0
+lastUpdated: 2024-12-28
+---
+
+# Electron Forge Deployment Standards
+
+## Objective
+Establish consistent, secure, and efficient packaging and distribution processes for the Downlodr application across all supported platforms.
+
+## Context
+- Electron Forge 7.6+ for packaging and distribution
+- Cross-platform builds (Windows, macOS, Linux)
+- Code signing and notarization requirements
+- Auto-update capabilities
+- CI/CD integration for automated builds
+
+## Rules
+
+### Build Configuration
+
+#### Forge Configuration Structure
+- **Platform-specific makers**: Configure makers for each target platform
+- **Security configuration**: Include proper security settings
+- **Asset management**: Ensure all required assets are included
+  ```typescript
+  ✅ // forge.config.ts - Comprehensive configuration
+  import { MakerPKG } from '@electron-forge/maker-pkg';
+  import { MakerZIP } from '@electron-forge/maker-zip';
+  import { MakerNSIS } from '@felixrieseberg/electron-forge-maker-nsis';
+  import { VitePlugin } from '@electron-forge/plugin-vite';
+  import { FusesPlugin } from '@electron-forge/plugin-fuses';
+  import { FuseV1Options, FuseVersion } from '@electron/fuses';
+  
+  const config: ForgeConfig = {
+    packagerConfig: {
+      asar: true,
+      icon: './src/Assets/AppLogo/256x256',
+      name: 'Downlodr',
+      executableName: 'Downlodr',
+      extraResource: [
+        './src/Assets/AppLogo',
+        './yt-dlp.exe' // Platform-specific binaries
+      ],
+      ignore: [
+        /^\/\.vscode/,
+        /^\/\.git/,
+        /^\/node_modules\/\.cache/,
+        /^\/coverage/,
+        /^\/\.nyc_output/
+      ]
+    },
+    makers: [
+      // macOS PKG installer
+      new MakerPKG({
+        identity: process.env.APPLE_IDENTITY,
+        signing: {
+          identity: process.env.APPLE_IDENTITY,
+          entitlements: './entitlements.plist',
+          'entitlements-inherit': './entitlements.plist',
+          'gatekeeper-assess': false,
+        },
+      }),
+      
+      // Windows NSIS installer
+      new MakerNSIS({
+        async getAppBuilderConfig() {
+          return {
+            nsis: {
+              oneClick: false,
+              allowElevation: true,
+              installerIcon: './src/Assets/AppLogo/256x256.ico',
+              uninstallerIcon: './src/Assets/AppLogo/256x256.ico',
+              allowToChangeInstallationDirectory: true,
+              createDesktopShortcut: true,
+              createStartMenuShortcut: true,
+              deleteAppDataOnUninstall: false,
+              perMachine: false,
+              include: './installer.nsh'
+            }
+          };
+        }
+      }),
+      
+      // Cross-platform ZIP packages
+      new MakerZIP({}, ['darwin', 'win32', 'linux'])
+    ]
+  };
+  
+  ❌ // Minimal configuration
+  const config = {
+    makers: [new MakerZIP()]
+  };
+  ```
+
+#### Package.json Scripts
+- **Consistent scripts**: Use standard script names across environments
+- **Environment-specific builds**: Configure different build types
+- **Version management**: Include proper versioning scripts
+  ```json
+  ✅ {
+    "scripts": {
+      "start": "electron-forge start",
+      "package": "electron-forge package",
+      "make": "electron-forge make",
+      "make:all": "electron-forge make --platform=win32,darwin,linux",
+      "make:win": "electron-forge make --platform=win32",
+      "make:mac": "electron-forge make --platform=darwin",
+      "make:linux": "electron-forge make --platform=linux",
+      "publish": "electron-forge publish",
+      "lint": "eslint --ext .ts,.tsx .",
+      "build:prod": "NODE_ENV=production electron-forge make",
+      "prepackage": "yarn lint && yarn test",
+      "version:patch": "yarn version --patch && git push --tags",
+      "version:minor": "yarn version --minor && git push --tags"
+    }
+  }
+  
+  ❌ // Incomplete scripts
+  {
+    "scripts": {
+      "start": "electron ."
+    }
+  }
+  ```
+
+### Platform-Specific Configuration
+
+#### Windows Configuration
+- **NSIS installer**: Use NSIS for Windows installers
+- **Code signing**: Configure Authenticode signing
+- **Auto-updater**: Configure Squirrel.Windows updates
+  ```typescript
+  ✅ // Windows-specific configuration
+  new MakerNSIS({
+    async getAppBuilderConfig() {
+      return {
+        nsis: {
+          artifactName: '${productName}-${version}-${arch}.${ext}',
+          oneClick: false,
+          allowElevation: true,
+          installerIcon: './src/Assets/AppLogo/256x256.ico',
+          uninstallerIcon: './src/Assets/AppLogo/256x256.ico',
+          allowToChangeInstallationDirectory: true,
+          createDesktopShortcut: true,
+          createStartMenuShortcut: true,
+          shortcutName: 'Downlodr',
+          uninstallDisplayName: 'Downlodr',
+          deleteAppDataOnUninstall: false,
+          warningsAsErrors: false,
+          perMachine: false,
+          include: './installer.nsh',
+          // Code signing configuration
+          sign: process.env.WINDOWS_SIGN_TOOL,
+          signDlls: true
+        }
+      };
+    }
+  })
+  
+  ❌ // Minimal Windows configuration
+  new MakerNSIS({})
+  ```
+
+#### macOS Configuration
+- **PKG installer**: Use PKG for macOS distribution
+- **Code signing**: Configure Apple Developer ID signing
+- **Notarization**: Include notarization process
+  ```typescript
+  ✅ // macOS-specific configuration
+  new MakerPKG({
+    identity: process.env.APPLE_IDENTITY,
+    signing: {
+      identity: process.env.APPLE_IDENTITY,
+      entitlements: './entitlements.plist',
+      'entitlements-inherit': './entitlements.plist',
+      'gatekeeper-assess': false,
+      'signature-flags': 'library'
+    },
+    // Notarization configuration
+    notarize: {
+      tool: 'notarytool',
+      appleId: process.env.APPLE_ID,
+      appleIdPassword: process.env.APPLE_PASSWORD,
+      teamId: process.env.APPLE_TEAM_ID
+    }
+  })
+  
+  // entitlements.plist
+  ✅ <?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  <plist version="1.0">
+    <dict>
+      <key>com.apple.security.cs.allow-jit</key>
+      <false/>
+      <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+      <false/>
+      <key>com.apple.security.cs.disable-library-validation</key>
+      <false/>
+      <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+      <false/>
+    </dict>
+  </plist>
+  
+  ❌ // No signing configuration
+  new MakerPKG({})
+  ```
+
+### Security Configuration
+
+#### Electron Fuses
+- **Security fuses**: Configure Electron fuses for enhanced security
+- **Feature restrictions**: Disable unnecessary Electron features
+- **Runtime security**: Enhance runtime security
+  ```typescript
+  ✅ new FusesPlugin({
+    version: FuseVersion.V1,
+    [FuseV1Options.RunAsNode]: false,
+    [FuseV1Options.EnableCookieEncryption]: true,
+    [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
+    [FuseV1Options.EnableNodeCliInspectArguments]: false,
+    [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+    [FuseV1Options.OnlyLoadAppFromAsar]: true,
+    [FuseV1Options.LoadBrowserProcessSpecificV8Snapshot]: false
+  })
+  
+  ❌ // Default/insecure fuse configuration
+  new FusesPlugin({
+    version: FuseVersion.V1,
+    [FuseV1Options.RunAsNode]: true // Security risk
+  })
+  ```
+
+#### Asset Protection
+- **ASAR integrity**: Enable ASAR integrity validation
+- **Resource protection**: Protect application resources
+- **Binary inclusion**: Securely include external binaries
+  ```typescript
+  ✅ // Secure asset configuration
+  packagerConfig: {
+    asar: {
+      unpack: '*.{node,dll,dylib,so}' // Unpack native modules
+    },
+    extraResource: [
+      {
+        from: './binaries',
+        to: 'binaries',
+        filter: ['**/*'] // Include all binary files
+      }
+    ],
+    // Exclude development files
+    ignore: [
+      /^\/\.vscode/,
+      /^\/\.git/,
+      /^\/src\/.*\.test\./,
+      /^\/coverage/,
+      /^\/\.nyc_output/,
+      /^\/docs/
+    ]
+  }
+  
+  ❌ // Insecure asset handling
+  packagerConfig: {
+    asar: false, // No protection
+    extraResource: ['./'] // Include everything
+  }
+  ```
+
+### Build Optimization
+
+#### Size Optimization
+- **Bundle analysis**: Analyze and optimize bundle size
+- **Dependency optimization**: Exclude unnecessary dependencies
+- **Asset optimization**: Compress and optimize assets
+  ```typescript
+  ✅ // Size optimization configuration
+  packagerConfig: {
+    // Exclude development dependencies
+    ignore: [
+      /^\/node_modules\/.*\/test/,
+      /^\/node_modules\/.*\/\.nyc_output/,
+      /^\/node_modules\/.*\/coverage/,
+      /^\/node_modules\/.*\/docs/,
+      /^\/node_modules\/.*\/examples/,
+      /^\/node_modules\/@types/,
+      /^\/node_modules\/typescript/,
+      /^\/node_modules\/eslint/
+    ],
+    
+    // Prune dependencies
+    prune: true,
+    
+    // Optimize for production
+    derefSymlinks: true
+  }
+  
+  // Vite configuration for renderer optimization
+  export default defineConfig({
+    build: {
+      minify: 'terser',
+      rollupOptions: {
+        external: ['electron'],
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            ui: ['@radix-ui/react-dialog', '@radix-ui/react-toast']
+          }
+        }
+      }
+    }
+  });
+  
+  ❌ // No optimization
+  packagerConfig: {
+    prune: false,
+    ignore: []
+  }
+  ```
+
+#### Performance Configuration
+- **Parallel builds**: Enable parallel processing when possible
+- **Caching**: Use build caching for faster builds
+- **Progressive builds**: Optimize for incremental builds
+  ```typescript
+  ✅ // Performance optimization
+  const config: ForgeConfig = {
+    // Enable parallel builds
+    buildConcurrency: os.cpus().length,
+    
+    // Cache configuration
+    plugins: [
+      new VitePlugin({
+        build: [
+          {
+            entry: 'src/main.ts',
+            config: 'vite.main.config.ts',
+            target: 'main'
+          }
+        ],
+        renderer: [
+          {
+            name: 'main_window',
+            config: 'vite.renderer.config.ts'
+          }
+        ]
+      })
+    ]
+  };
+  
+  ❌ // No performance considerations
+  const config = {
+    plugins: [new VitePlugin({})]
+  };
+  ```
+
+### CI/CD Integration
+
+#### GitHub Actions Configuration
+- **Multi-platform builds**: Build for all target platforms
+- **Artifact management**: Properly handle build artifacts
+- **Release automation**: Automate release process
+  ```yaml
+  ✅ # .github/workflows/build.yml
+  name: Build and Release
+  
+  on:
+    push:
+      tags: ['v*']
+    pull_request:
+      branches: [main]
+  
+  jobs:
+    build:
+      strategy:
+        matrix:
+          os: [ubuntu-latest, windows-latest, macos-latest]
+          
+      runs-on: ${{ matrix.os }}
+      
+      steps:
+        - uses: actions/checkout@v3
+        
+        - name: Setup Node.js
+          uses: actions/setup-node@v3
+          with:
+            node-version: '20'
+            cache: 'yarn'
+            
+        - name: Install dependencies
+          run: yarn install --frozen-lockfile
+          
+        - name: Run tests
+          run: yarn test
+          
+        - name: Run linting
+          run: yarn lint
+          
+        - name: Build application
+          run: yarn make
+          env:
+            APPLE_ID: ${{ secrets.APPLE_ID }}
+            APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+            APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+            
+        - name: Upload artifacts
+          uses: actions/upload-artifact@v3
+          with:
+            name: ${{ matrix.os }}-build
+            path: out/make/**/*
+  
+  ❌ # Minimal CI configuration
+  name: Build
+  on: [push]
+  jobs:
+    build:
+      runs-on: ubuntu-latest
+      steps:
+        - run: npm run build
+  ```
+
+#### Environment Configuration
+- **Environment variables**: Proper environment variable management
+- **Secret management**: Secure handling of signing certificates
+- **Build variants**: Support different build configurations
+  ```bash
+  ✅ # Environment configuration
+  # Production build
+  NODE_ENV=production yarn make
+  
+  # Development build with debugging
+  DEBUG=electron-forge:* yarn start
+  
+  # Release build with signing
+  APPLE_ID=$APPLE_ID \
+  APPLE_PASSWORD=$APPLE_PASSWORD \
+  WINDOWS_SIGN_TOOL=$SIGN_TOOL \
+  yarn make:all
+  
+  ❌ # No environment configuration
+  yarn make # Uses default settings
+  ```
+
+### Post-Build Processing
+
+#### Binary Verification
+- **Signature verification**: Verify code signatures
+- **Size checks**: Monitor build size changes
+- **Dependency auditing**: Check for security vulnerabilities
+  ```bash
+  ✅ # Post-build verification scripts
+  #!/bin/bash
+  
+  # Verify macOS signature
+  codesign --verify --deep --strict out/make/pkg/darwin/x64/Downlodr-*.pkg
+  
+  # Verify Windows signature
+  signtool verify /pa out/make/nsis/win32/x64/Downlodr-*.exe
+  
+  # Check bundle size
+  ls -lh out/make/**/* | awk '{print $5, $9}' | sort -hr
+  
+  # Security audit
+  yarn audit --audit-level moderate
+  
+  ❌ # No verification
+  # Build completes without verification
+  ```
+
+## Exceptions
+- **Development builds**: May skip signing and optimization
+- **Testing environments**: May use simplified configurations
+- **Emergency releases**: May bypass some checks with approval
+- **Platform limitations**: Some features may not be available on all platforms
+
+## Enforcement
+- CI/CD pipeline enforcement
+- Build size monitoring
+- Security scanning in builds
+- Code review for configuration changes
+
+## Resources
+- [Electron Forge Documentation](https://www.electronforge.io/)
+- [Electron Builder vs Forge Comparison](https://www.electronforge.io/guides/framework-integration)
+- [Code Signing Guide](https://www.electronjs.org/docs/latest/tutorial/code-signing)

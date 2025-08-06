@@ -1,0 +1,200 @@
+---
+description: Naming conventions for files, variables, functions, and components
+globs:
+  - 'src/**/*.{ts,tsx,js,jsx}'
+  - '*.{ts,tsx,js,jsx}'
+alwaysApply: true
+priority: high
+tags: [naming, conventions, consistency]
+version: 1.0
+lastUpdated: 2024-12-28
+---
+
+# Naming Conventions
+
+## Objective
+Establish consistent naming patterns that improve code readability, maintainability, and team collaboration in the Downlodr project.
+
+## Context
+- TypeScript React application with Electron framework
+- Component-based architecture with clear separation of concerns
+- Plugin system requiring consistent interface naming
+- Cross-platform desktop application with file system interactions
+
+## Rules
+
+### File and Directory Naming
+
+#### React Components
+- **PascalCase**: Use PascalCase for component files
+  ```
+  ✅ DownloadButton.tsx
+  ✅ FormatSelector.tsx
+  ✅ CategoryContextMenu.tsx
+  ❌ downloadButton.tsx
+  ❌ format-selector.tsx
+  ```
+
+#### Utilities and Helpers
+- **camelCase**: Use camelCase for utility files
+  ```
+  ✅ stringHelpers.ts
+  ✅ iconHelpers.tsx
+  ✅ updateChecker.ts
+  ❌ StringHelpers.ts
+  ❌ icon_helpers.ts
+  ```
+
+#### Stores and State
+- **camelCase with descriptive suffix**: End with 'Store' for Zustand stores
+  ```
+  ✅ mainStore.tsx
+  ✅ downloadStore.tsx
+  ✅ pluginStore.tsx
+  ❌ main.tsx
+  ❌ download-state.ts
+  ```
+
+#### Directories
+- **PascalCase**: For component directories and major sections
+- **lowercase**: For utility and configuration directories
+  ```
+  ✅ Components/
+  ✅ DataFunctions/
+  ✅ Store/
+  ✅ plugins/
+  ❌ components/
+  ❌ Plugin-Manager/
+  ```
+
+### Variable and Function Naming
+
+#### Variables
+- **camelCase**: For all variables and object properties
+  ```typescript
+  ✅ const downloadLocation = '/path/to/downloads';
+  ✅ const maxConnectionLimit = 5;
+  ❌ const download_location = '/path/to/downloads';
+  ❌ const MAX_CONNECTION_LIMIT = 5;
+  ```
+
+#### Functions
+- **camelCase**: For regular functions with descriptive verbs
+- **Prefix conventions**:
+  - `handle` for event handlers
+  - `get/set` for data access
+  - `is/has/can` for boolean functions
+  - `use` for custom hooks
+  ```typescript
+  ✅ function handleDownloadStart() {}
+  ✅ function getDownloadMetaData() {}
+  ✅ function isDownloadComplete() {}
+  ✅ function usePluginState() {}
+  ❌ function downloadStart() {}
+  ❌ function DownloadMetaData() {}
+  ```
+
+#### Constants
+- **SCREAMING_SNAKE_CASE**: For module-level constants
+- **camelCase**: For local constants and configuration objects
+  ```typescript
+  ✅ const MAX_DOWNLOAD_SPEED = 1000;
+  ✅ const defaultSettings = { location: '...' };
+  ❌ const max_download_speed = 1000;
+  ❌ const DEFAULT_SETTINGS = { location: '...' };
+  ```
+
+### Component and Interface Naming
+
+#### React Components
+- **PascalCase**: All React components
+- **Descriptive and specific**: Avoid generic names
+  ```typescript
+  ✅ export const DownloadContextMenu: React.FC = () => {};
+  ✅ export const TaskbarInputField: React.FC = () => {};
+  ❌ export const Menu: React.FC = () => {};
+  ❌ export const Input: React.FC = () => {};
+  ```
+
+#### Interfaces and Types
+- **PascalCase**: All interfaces and type definitions
+- **Descriptive suffixes**: Use suffixes like `Props`, `State`, `Config`, `API`
+  ```typescript
+  ✅ interface DownloadSettings {}
+  ✅ interface ButtonProps {}
+  ✅ interface PluginAPI {}
+  ✅ type DownloadStatus = 'pending' | 'downloading' | 'completed';
+  ❌ interface downloadSettings {}
+  ❌ interface Props {}
+  ❌ type status = string;
+  ```
+
+#### Custom Hooks
+- **camelCase starting with 'use'**: Follow React convention
+  ```typescript
+  ✅ function useDownloadProgress() {}
+  ✅ function usePluginState() {}
+  ✅ function useBrowsePlugin() {}
+  ❌ function downloadProgress() {}
+  ❌ function UsePluginState() {}
+  ```
+
+### Plugin System Naming
+
+#### Plugin IDs
+- **kebab-case**: For plugin identifiers and file names
+  ```
+  ✅ format-converter
+  ✅ metadata-scraper
+  ✅ cc-to-markdown
+  ❌ formatConverter
+  ❌ format_converter
+  ```
+
+#### Plugin Components
+- **PascalCase with Plugin prefix**: For plugin-specific components
+  ```typescript
+  ✅ PluginModalManager
+  ✅ PluginSidePanelExtension
+  ✅ PluginTaskBarExtension
+  ❌ modalManager
+  ❌ pluginmodal
+  ```
+
+### Event and State Naming
+
+#### State Variables
+- **Descriptive and specific**: Clearly indicate what state represents
+  ```typescript
+  ✅ const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  ✅ const [selectedDownloads, setSelectedDownloads] = useState([]);
+  ❌ const [open, setOpen] = useState(false);
+  ❌ const [items, setItems] = useState([]);
+  ```
+
+#### Event Handlers
+- **handle + specific action**: Clear action being handled
+  ```typescript
+  ✅ const handleDownloadStart = () => {};
+  ✅ const handleModalClose = () => {};
+  ✅ const handleFileSelect = () => {};
+  ❌ const onClick = () => {};
+  ❌ const doSomething = () => {};
+  ```
+
+## Exceptions
+- **Third-party libraries**: Follow the library's naming conventions
+- **Configuration files**: May use different conventions (e.g., kebab-case)
+- **Environment variables**: Use SCREAMING_SNAKE_CASE as per convention
+- **Legacy code**: Gradual migration acceptable with clear migration plan
+
+## Enforcement
+- ESLint rules for variable naming patterns
+- TypeScript strict mode for type checking
+- Code review checklist for naming consistency
+- IDE extensions for real-time feedback
+
+## Resources
+- [Naming Conventions Guide](https://google.github.io/styleguide/tsguide.html#naming)
+- [React Naming Conventions](https://kentcdodds.com/blog/what-is-jsx)
+- [TypeScript Handbook - Naming](https://www.typescriptlang.org/docs/handbook/2/everyday-types.html)

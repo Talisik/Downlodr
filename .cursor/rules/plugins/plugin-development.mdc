@@ -1,0 +1,460 @@
+---
+description: Plugin development standards and architecture guidelines
+globs:
+  - 'src/plugins/**/*.{ts,tsx}'
+  - 'plugins/**/*.{ts,tsx,js}'
+alwaysApply: true
+priority: high
+tags: [plugins, architecture, security, api]
+version: 1.0
+lastUpdated: 2024-12-28
+---
+
+# Plugin Development Standards
+
+## Objective
+Establish secure, maintainable, and performant patterns for developing plugins in the Downlodr ecosystem while ensuring system stability and user safety.
+
+## Context
+- Extensible plugin architecture with secure sandboxing
+- TypeScript-based plugin API with strong typing
+- Dynamic loading and unloading of plugins
+- Cross-platform compatibility requirements
+- Security-first approach to third-party code execution
+
+## Rules
+
+### Plugin Architecture
+
+#### Plugin Structure
+- **Standard manifest**: Every plugin must have a manifest.json
+- **Entry point consistency**: Use standard entry point naming
+- **TypeScript support**: Prefer TypeScript for plugin development
+  ```typescript
+  ✅ // manifest.json
+  {
+    "id": "format-converter",
+    "name": "Format Converter",
+    "version": "1.0.0",
+    "description": "Convert downloads between different formats",
+    "main": "index.ts",
+    "author": "Plugin Author",
+    "license": "MIT",
+    "minAppVersion": "1.7.0",
+    "icon": "icon.png"
+  }
+  
+  ✅ // index.ts - Plugin entry point
+  export const plugin: DownlodrPlugin = {
+    id: 'format-converter',
+    name: 'Format Converter',
+    version: '1.0.0',
+    description: 'Convert downloads between different formats',
+    author: 'Plugin Author',
+    
+    async initialize(api: PluginAPI) {
+      // Plugin initialization
+    },
+    
+    async onUnload() {
+      // Cleanup logic
+    }
+  };
+  
+  ❌ // Non-standard structure
+  export default function() { /* plugin code */ }
+  ```
+
+#### Plugin Interface Implementation
+- **Standard interface**: Implement the DownlodrPlugin interface
+- **Proper initialization**: Handle initialization and cleanup properly
+- **Error handling**: Include comprehensive error handling
+  ```typescript
+  ✅ export const plugin: DownlodrPlugin = {
+    id: 'my-plugin',
+    name: 'My Plugin',
+    version: '1.0.0',
+    description: 'Plugin description',
+    author: 'Author Name',
+    
+    async initialize(api: PluginAPI): Promise<void> {
+      try {
+        // Register plugin features
+        await this.registerFeatures(api);
+        
+        // Set up event listeners
+        this.setupEventListeners(api);
+        
+        console.log(`${this.name} initialized successfully`);
+      } catch (error) {
+        console.error(`Failed to initialize ${this.name}:`, error);
+        throw error;
+      }
+    },
+    
+    async onUnload(): Promise<void> {
+      // Clean up resources
+      this.removeEventListeners();
+      this.disposeResources();
+    }
+  };
+  
+  ❌ // Incomplete implementation
+  export const plugin = {
+    initialize() {
+      // Minimal initialization without error handling
+    }
+  };
+  ```
+
+### Plugin API Usage
+
+#### API Access Patterns
+- **Use provided APIs**: Only use APIs exposed through the PluginAPI
+- **Respect boundaries**: Don't access application internals directly
+- **Type safety**: Use TypeScript interfaces for API calls
+  ```typescript
+  ✅ // Proper API usage
+  async function registerDownloadHandler(api: PluginAPI) {
+    api.downloads.registerDownloadSource({
+      id: 'custom-source',
+      name: 'Custom Source',
+      matcher: (url: string) => url.includes('custom-site.com'),
+      handler: async (url: string) => {
+        return await processCustomDownload(url);
+      }
+    });
+  }
+  
+  ✅ // UI extension
+  function addUIExtension(api: PluginAPI) {
+    api.ui.addTaskbarButton({
+      id: 'my-button',
+      label: 'My Feature',
+      icon: 'icon-name',
+      onClick: () => handleButtonClick()
+    });
+  }
+  
+  ❌ // Direct access to internals
+  const mainStore = window.electronAPI.getMainStore(); // Don't access directly
+  ```
+
+#### Event Handling
+- **Subscribe to events**: Use the event system for reactive behavior
+- **Clean event listeners**: Always clean up event listeners
+- **Error handling**: Handle events gracefully
+  ```typescript
+  ✅ class PluginEventManager {
+    private unsubscribeFunctions: Array<() => void> = [];
+    
+    setupEventListeners(api: PluginAPI): void {
+      const unsubscribeProgress = api.downloads.onDownloadProgress((event) => {
+        try {
+          this.handleProgressUpdate(event);
+        } catch (error) {
+          console.error('Error handling progress update:', error);
+        }
+      });
+      
+      this.unsubscribeFunctions.push(unsubscribeProgress);
+    }
+    
+    cleanup(): void {
+      this.unsubscribeFunctions.forEach(unsubscribe => unsubscribe());
+      this.unsubscribeFunctions = [];
+    }
+  }
+  
+  ❌ // No cleanup
+  api.downloads.onDownloadProgress((event) => {
+    // Handle event without storing unsubscribe function
+  });
+  ```
+
+### UI Extensions
+
+#### Component Registration
+- **Standard component patterns**: Follow established UI patterns
+- **Responsive design**: Ensure components work across screen sizes
+- **Accessibility**: Include proper accessibility attributes
+  ```typescript
+  ✅ function registerModalExtension(api: PluginAPI) {
+    api.ui.registerModal({
+      id: 'plugin-settings',
+      title: 'Plugin Settings',
+      component: SettingsModal,
+      size: 'md',
+      closable: true,
+      callbacks: {
+        onMount: () => console.log('Modal mounted'),
+        onUnmount: () => console.log('Modal unmounted')
+      }
+    });
+  }
+  
+  ✅ const SettingsModal: React.FC<PluginModalProps> = ({ pluginId, onClose }) => {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Settings</h2>
+        <form onSubmit={handleSubmit}>
+          {/* Form content */}
+        </form>
+      </div>
+    );
+  };
+  
+  ❌ // Non-standard component
+  const BadModal = () => <div>Settings</div>;
+  ```
+
+#### Side Panel Extensions
+- **Consistent layout**: Follow side panel layout guidelines
+- **State management**: Properly manage component state
+- **Integration**: Integrate well with existing UI
+  ```typescript
+  ✅ function registerSidePanelExtension(api: PluginAPI) {
+    api.ui.registerSidePanel({
+      id: 'plugin-panel',
+      title: 'Plugin Panel',
+      icon: 'plugin-icon',
+      component: PluginSidePanel,
+      position: 'right',
+      defaultWidth: 300,
+      resizable: true
+    });
+  }
+  
+  ✅ const PluginSidePanel: React.FC = () => {
+    const [data, setData] = useState<PluginData>([]);
+    
+    useEffect(() => {
+      // Load panel data
+      loadPanelData().then(setData);
+    }, []);
+    
+    return (
+      <div className="p-4 space-y-4">
+        <h3 className="font-semibold">Plugin Panel</h3>
+        {/* Panel content */}
+      </div>
+    );
+  };
+  ```
+
+### Security Guidelines
+
+#### Input Validation
+- **Validate all inputs**: Sanitize and validate user inputs
+- **URL validation**: Properly validate URLs and file paths
+- **Data sanitization**: Sanitize data before processing
+  ```typescript
+  ✅ function validateDownloadUrl(url: string): boolean {
+    try {
+      const parsedUrl = new URL(url);
+      const allowedProtocols = ['http:', 'https:'];
+      
+      if (!allowedProtocols.includes(parsedUrl.protocol)) {
+        return false;
+      }
+      
+      // Additional validation logic
+      return isValidDomain(parsedUrl.hostname);
+    } catch {
+      return false;
+    }
+  }
+  
+  ✅ function sanitizeFileName(fileName: string): string {
+    return fileName
+      .replace(/[<>:"/\\|?*]/g, '') // Remove invalid characters
+      .trim()
+      .substring(0, 255); // Limit length
+  }
+  
+  ❌ // No validation
+  function processUrl(url) {
+    return fetch(url); // Dangerous without validation
+  }
+  ```
+
+#### Permission Model
+- **Request permissions**: Explicitly request needed permissions
+- **Principle of least privilege**: Only request minimum required permissions
+- **Permission documentation**: Document why permissions are needed
+  ```typescript
+  ✅ // In manifest.json
+  {
+    "permissions": [
+      "downloads:read",
+      "downloads:write",
+      "filesystem:read"
+    ],
+    "permissionReason": {
+      "downloads:write": "Required to add custom download sources",
+      "filesystem:read": "Needed to read format conversion templates"
+    }
+  }
+  
+  ✅ // Permission checking
+  async function performAction(api: PluginAPI) {
+    if (!await api.permissions.hasPermission('downloads:write')) {
+      throw new Error('Insufficient permissions for this action');
+    }
+    
+    // Proceed with action
+  }
+  
+  ❌ // Overly broad permissions
+  "permissions": ["*"] // Too permissive
+  ```
+
+### Performance Best Practices
+
+#### Resource Management
+- **Memory efficiency**: Manage memory usage carefully
+- **Async operations**: Use async operations for I/O
+- **Resource cleanup**: Clean up resources on unload
+  ```typescript
+  ✅ class PluginResourceManager {
+    private resources: Set<Disposable> = new Set();
+    private timers: Set<NodeJS.Timeout> = new Set();
+    
+    addResource(resource: Disposable): void {
+      this.resources.add(resource);
+    }
+    
+    addTimer(timer: NodeJS.Timeout): void {
+      this.timers.add(timer);
+    }
+    
+    async cleanup(): Promise<void> {
+      // Clear timers
+      this.timers.forEach(timer => clearTimeout(timer));
+      this.timers.clear();
+      
+      // Dispose resources
+      await Promise.all(
+        Array.from(this.resources).map(resource => resource.dispose())
+      );
+      this.resources.clear();
+    }
+  }
+  
+  ❌ // No resource management
+  setInterval(() => {
+    // Long-running timer without cleanup
+  }, 1000);
+  ```
+
+#### Efficient Processing
+- **Batch operations**: Batch API calls when possible
+- **Debounce frequent operations**: Use debouncing for frequent updates
+- **Lazy loading**: Load resources only when needed
+  ```typescript
+  ✅ // Debounced processing
+  const debouncedProcessDownloads = debounce(async (downloads: Download[]) => {
+    await processDownloadBatch(downloads);
+  }, 500);
+  
+  ✅ // Lazy loading
+  async function getFormatConverter(): Promise<FormatConverter> {
+    if (!this.converter) {
+      this.converter = await import('./format-converter');
+    }
+    return this.converter;
+  }
+  
+  ❌ // Inefficient processing
+  downloads.forEach(async download => {
+    await api.processDownload(download); // Sequential processing
+  });
+  ```
+
+### Error Handling and Logging
+
+#### Comprehensive Error Handling
+- **Try-catch blocks**: Use try-catch for error-prone operations
+- **Error classification**: Classify different types of errors
+- **Recovery strategies**: Implement recovery where possible
+  ```typescript
+  ✅ class PluginErrorHandler {
+    async handleOperation<T>(
+      operation: () => Promise<T>,
+      context: string
+    ): Promise<T | null> {
+      try {
+        return await operation();
+      } catch (error) {
+        this.logError(error, context);
+        
+        if (this.isRecoverable(error)) {
+          return await this.attemptRecovery(operation, context);
+        }
+        
+        throw new PluginError(
+          `${context} failed: ${error.message}`,
+          error.code || 'UNKNOWN_ERROR'
+        );
+      }
+    }
+    
+    private logError(error: Error, context: string): void {
+      console.error(`[Plugin Error] ${context}:`, {
+        message: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+  
+  ❌ // Poor error handling
+  async function riskyOperation() {
+    const result = await fetch(url); // No error handling
+    return result.json(); // Could throw
+  }
+  ```
+
+#### Logging Best Practices
+- **Structured logging**: Use structured log formats
+- **Appropriate log levels**: Use correct log levels
+- **No sensitive data**: Don't log sensitive information
+  ```typescript
+  ✅ class PluginLogger {
+    info(message: string, data?: Record<string, unknown>): void {
+      console.log(`[${this.pluginId}] INFO: ${message}`, data);
+    }
+    
+    warn(message: string, data?: Record<string, unknown>): void {
+      console.warn(`[${this.pluginId}] WARN: ${message}`, data);
+    }
+    
+    error(message: string, error?: Error, data?: Record<string, unknown>): void {
+      console.error(`[${this.pluginId}] ERROR: ${message}`, {
+        error: error?.message,
+        stack: error?.stack,
+        ...data
+      });
+    }
+  }
+  
+  ❌ // Poor logging
+  console.log('Something happened', sensitiveUserData); // Don't log sensitive data
+  ```
+
+## Exceptions
+- **Legacy plugin compatibility**: May require different patterns
+- **Performance-critical plugins**: May need optimized approaches
+- **Platform-specific functionality**: May require platform-specific code
+- **Development and testing**: May have relaxed security for development
+
+## Enforcement
+- Plugin validation during loading
+- API usage monitoring
+- Security audits for plugins
+- Performance monitoring and limits
+
+## Resources
+- [Plugin Development Documentation](../docs/PLUGIN_DEVELOPMENT.MD)
+- [Plugin API Reference](src/plugins/pluginAPI.ts)
+- [Security Guidelines](src/plugins/security.ts)

@@ -1,0 +1,500 @@
+---
+description: Security standards and best practices for application and plugin security
+globs:
+  - 'src/**/*.{ts,tsx}'
+  - 'src/plugins/**/*.{ts,tsx}'
+  - 'src/main.ts'
+  - 'src/preload.ts'
+alwaysApply: true
+priority: critical
+tags: [security, electron, plugins, data-protection]
+version: 1.0
+lastUpdated: 2024-12-28
+---
+
+# Security Standards
+
+## Objective
+Implement comprehensive security measures to protect user data, system integrity, and ensure safe operation of the Downlodr application and its plugin ecosystem.
+
+## Context
+- Electron desktop application with privileged access
+- Plugin system executing third-party code
+- File system operations and network requests
+- Cross-platform security considerations
+- User data privacy and protection
+
+## Rules
+
+### Electron Security
+
+#### Context Isolation
+- **Always enable**: Context isolation must be enabled for all windows
+- **No Node.js in renderer**: Never enable nodeIntegration in renderer
+- **Secure preload**: Use preload scripts for controlled API exposure
+  ```typescript
+  ✅ // Secure window configuration
+  const mainWindow = new BrowserWindow({
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      enableRemoteModule: false,
+      allowRunningInsecureContent: false,
+      experimentalFeatures: false,
+      preload: path.join(__dirname, 'preload.js'),
+      sandbox: true // Enable when possible
+    }
+  });
+  
+  ✅ // Secure preload script
+  const { contextBridge, ipcRenderer } = require('electron');
+  
+  contextBridge.exposeInMainWorld('electronAPI', {
+    downloadFile: (url: string, destination: string) => 
+      ipcRenderer.invoke('download-file', url, destination),
+    
+    // Validate and sanitize all parameters
+    updateSettings: (settings: Partial<DownloadSettings>) => {
+      const sanitizedSettings = sanitizeSettings(settings);
+      return ipcRenderer.invoke('update-settings', sanitizedSettings);
+    }
+  });
+  
+  ❌ // Insecure configuration
+  webPreferences: {
+    nodeIntegration: true, // Security risk
+    contextIsolation: false, // Allows direct access to Node.js
+    allowRunningInsecureContent: true // Allows mixed content
+  }
+  ```
+
+#### Content Security Policy
+- **Strict CSP**: Implement restrictive content security policies
+- **No unsafe-eval**: Avoid unsafe-eval except where absolutely necessary
+- **Resource restrictions**: Limit resource loading sources
+  ```typescript
+  ✅ // Strict CSP implementation
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self';" +
+          "script-src 'self' 'unsafe-eval';" + // Only when needed for React DevTools
+          "style-src 'self' 'unsafe-inline';" + // For Tailwind/styled components
+          "img-src 'self' data: https:;" +
+          "connect-src 'self' https:;" +
+          "font-src 'self';" +
+          "object-src 'none';" +
+          "base-uri 'self';" +
+          "form-action 'self';"
+        ]
+      }
+    });
+  });
+  
+  ❌ // Permissive CSP
+  'Content-Security-Policy': ["default-src *; script-src * 'unsafe-eval' 'unsafe-inline';"]
+  ```
+
+### Input Validation and Sanitization
+
+#### URL Validation
+- **URL format validation**: Validate URL format and protocols
+- **Domain restrictions**: Implement domain allowlists when appropriate
+- **Path traversal prevention**: Prevent directory traversal attacks
+  ```typescript
+  ✅ function validateDownloadUrl(url: string): boolean {
+    try {
+      const parsedUrl = new URL(url);
+      
+      // Only allow HTTP and HTTPS protocols
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return false;
+      }
+      
+      // Check for suspicious patterns
+      if (parsedUrl.hostname.includes('localhost') || 
+          parsedUrl.hostname.includes('127.0.0.1') ||
+          parsedUrl.hostname.includes('0.0.0.0')) {
+        return false;
+      }
+      
+      // Additional validation logic
+      return isValidDomain(parsedUrl.hostname);
+    } catch {
+      return false;
+    }
+  }
+  
+  ✅ function sanitizeFilePath(filePath: string): string {
+    // Remove dangerous characters and sequences
+    const sanitized = filePath
+      .replace(/\.\./g, '') // Remove parent directory references
+      .replace(/[<>:"|?*]/g, '') // Remove invalid filename characters
+      .replace(/^[/\\]+/, '') // Remove leading slashes
+      .trim();
+    
+    // Ensure the path is not too long
+    return sanitized.substring(0, 255);
+  }
+  
+  ❌ // No validation
+  function processUrl(url: string) {
+    return fetch(url); // Dangerous without validation
+  }
+  ```
+
+#### File Path Security
+- **Path traversal prevention**: Prevent access to unauthorized directories
+- **Filename sanitization**: Clean filenames of dangerous characters
+- **Directory access control**: Restrict access to safe directories
+  ```typescript
+  ✅ import path from 'path';
+  import { app } from 'electron';
+  
+  function validateDownloadPath(filePath: string): boolean {
+    try {
+      const normalizedPath = path.normalize(filePath);
+      const allowedDir = app.getPath('downloads');
+      
+      // Ensure the path is within allowed directory
+      return normalizedPath.startsWith(path.normalize(allowedDir));
+    } catch {
+      return false;
+    }
+  }
+  
+  ✅ function createSafeFilePath(directory: string, filename: string): string {
+    const sanitizedFilename = sanitizeFilename(filename);
+    const safePath = path.join(directory, sanitizedFilename);
+    
+    if (!validateDownloadPath(safePath)) {
+      throw new Error('Invalid file path');
+    }
+    
+    return safePath;
+  }
+  
+  ❌ // Vulnerable to path traversal
+  const filePath = path.join(userInput, '../../sensitive-file.txt');
+  ```
+
+### Plugin Security
+
+#### Plugin Validation
+- **Code validation**: Validate plugin code before execution
+- **Manifest verification**: Verify plugin manifest integrity
+- **Permission enforcement**: Enforce declared permissions
+  ```typescript
+  ✅ async function validatePlugin(pluginPath: string): Promise<boolean> {
+    try {
+      // Validate manifest
+      const manifest = await readPluginManifest(pluginPath);
+      if (!isValidManifest(manifest)) {
+        return false;
+      }
+      
+      // Check code for dangerous patterns
+      const code = await readPluginCode(pluginPath);
+      if (containsDangerousCode(code)) {
+        return false;
+      }
+      
+      // Verify digital signature if available
+      if (manifest.signature && !await verifySignature(pluginPath, manifest.signature)) {
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Plugin validation failed:', error);
+      return false;
+    }
+  }
+  
+  ✅ function containsDangerousCode(code: string): boolean {
+    const dangerousPatterns = [
+      /require\s*\(\s*['"]child_process['"]\s*\)/, // Process execution
+      /require\s*\(\s*['"]fs['"]\s*\)/, // File system access
+      /eval\s*\(/, // Code evaluation
+      /Function\s*\(/, // Dynamic function creation
+      /import\s*\(\s*['"][^'"]*\.\./, // Path traversal in imports
+    ];
+    
+    return dangerousPatterns.some(pattern => pattern.test(code));
+  }
+  
+  ❌ // No validation
+  const plugin = require(userProvidedPath); // Dangerous
+  ```
+
+#### Sandboxed Execution
+- **Isolated execution**: Execute plugins in isolated contexts
+- **API restrictions**: Limit plugin access to approved APIs
+- **Resource limits**: Implement resource usage limits
+  ```typescript
+  ✅ class PluginSandbox {
+    private permittedAPIs: Set<string>;
+    private resourceLimits: ResourceLimits;
+    
+    constructor(permissions: string[], limits: ResourceLimits) {
+      this.permittedAPIs = new Set(permissions);
+      this.resourceLimits = limits;
+    }
+    
+    async executePlugin(pluginCode: string, pluginId: string): Promise<any> {
+      // Create restricted global context
+      const restrictedGlobal = this.createRestrictedGlobal(pluginId);
+      
+      // Execute with timeout and memory limits
+      return await this.executeWithLimits(pluginCode, restrictedGlobal);
+    }
+    
+    private createRestrictedGlobal(pluginId: string): any {
+      return {
+        console: createRestrictedConsole(pluginId),
+        setTimeout: this.createLimitedTimeout.bind(this),
+        setInterval: this.createLimitedInterval.bind(this),
+        // Only expose permitted APIs
+        pluginAPI: this.createRestrictedAPI(pluginId)
+      };
+    }
+  }
+  
+  ❌ // No sandboxing
+  eval(pluginCode); // Direct code execution
+  ```
+
+### Data Protection
+
+#### Sensitive Data Handling
+- **Data encryption**: Encrypt sensitive data at rest
+- **Memory protection**: Clear sensitive data from memory
+- **Secure storage**: Use secure storage for credentials
+  ```typescript
+  ✅ import { safeStorage } from 'electron';
+  
+  class SecureDataManager {
+    encryptSensitiveData(data: string): Buffer {
+      if (!safeStorage.isEncryptionAvailable()) {
+        throw new Error('Encryption not available on this platform');
+      }
+      
+      return safeStorage.encryptString(data);
+    }
+    
+    decryptSensitiveData(encryptedData: Buffer): string {
+      return safeStorage.decryptString(encryptedData);
+    }
+    
+    clearSensitiveData(obj: any): void {
+      // Clear sensitive properties
+      Object.keys(obj).forEach(key => {
+        if (this.isSensitiveProperty(key)) {
+          obj[key] = null;
+          delete obj[key];
+        }
+      });
+    }
+    
+    private isSensitiveProperty(propertyName: string): boolean {
+      const sensitivePatterns = ['password', 'token', 'key', 'secret'];
+      return sensitivePatterns.some(pattern => 
+        propertyName.toLowerCase().includes(pattern)
+      );
+    }
+  }
+  
+  ❌ // Storing sensitive data in plain text
+  localStorage.setItem('password', userPassword); // Insecure
+  ```
+
+#### Privacy Protection
+- **Data minimization**: Collect only necessary data
+- **User consent**: Obtain consent for data collection
+- **Data retention**: Implement data retention policies
+  ```typescript
+  ✅ interface PrivacySettings {
+    collectAnalytics: boolean;
+    collectCrashReports: boolean;
+    shareUsageData: boolean;
+    retentionPeriod: number; // days
+  }
+  
+  class PrivacyManager {
+    private settings: PrivacySettings;
+    
+    async collectAnalytics(eventData: AnalyticsEvent): Promise<void> {
+      if (!this.settings.collectAnalytics) {
+        return; // Respect user preference
+      }
+      
+      // Remove PII before sending
+      const sanitizedData = this.removePII(eventData);
+      await this.sendAnalytics(sanitizedData);
+    }
+    
+    private removePII(data: any): any {
+      const cleaned = { ...data };
+      
+      // Remove personally identifiable information
+      delete cleaned.userEmail;
+      delete cleaned.userName;
+      delete cleaned.filePaths; // May contain user info
+      
+      return cleaned;
+    }
+  }
+  
+  ❌ // Collecting data without consent
+  analytics.track('user-action', {
+    userEmail: user.email, // PII without consent
+    filePath: downloadPath // Potentially sensitive
+  });
+  ```
+
+### Network Security
+
+#### HTTPS Enforcement
+- **HTTPS only**: Use HTTPS for all external requests
+- **Certificate validation**: Validate SSL certificates
+- **Request sanitization**: Sanitize request parameters
+  ```typescript
+  ✅ import https from 'https';
+  
+  class SecureHTTPClient {
+    private agent: https.Agent;
+    
+    constructor() {
+      this.agent = new https.Agent({
+        rejectUnauthorized: true, // Validate certificates
+        secureProtocol: 'TLSv1_2_method' // Use secure TLS version
+      });
+    }
+    
+    async makeRequest(url: string, options: RequestOptions): Promise<any> {
+      // Validate URL
+      if (!this.isSecureUrl(url)) {
+        throw new Error('Only HTTPS URLs are allowed');
+      }
+      
+      // Sanitize headers and parameters
+      const sanitizedOptions = this.sanitizeRequestOptions(options);
+      
+      return new Promise((resolve, reject) => {
+        const req = https.request(url, {
+          ...sanitizedOptions,
+          agent: this.agent
+        });
+        
+        req.on('error', reject);
+        req.on('response', resolve);
+        req.end();
+      });
+    }
+    
+    private isSecureUrl(url: string): boolean {
+      try {
+        const parsedUrl = new URL(url);
+        return parsedUrl.protocol === 'https:';
+      } catch {
+        return false;
+      }
+    }
+  }
+  
+  ❌ // Insecure request
+  http.get('http://api.example.com/data'); // Unencrypted
+  ```
+
+### Error Handling and Logging
+
+#### Secure Error Handling
+- **No sensitive data in errors**: Don't expose sensitive data in error messages
+- **Proper error logging**: Log errors securely without exposing details
+- **Error boundaries**: Implement error boundaries for graceful failure
+  ```typescript
+  ✅ class SecureErrorHandler {
+    logError(error: Error, context: string, userId?: string): void {
+      // Create safe error for logging
+      const safeError = {
+        message: error.message,
+        stack: this.sanitizeStackTrace(error.stack),
+        context,
+        timestamp: new Date().toISOString(),
+        userId: userId ? this.hashUserId(userId) : undefined // Hash PII
+      };
+      
+      // Log without sensitive data
+      console.error('Application error:', safeError);
+    }
+    
+    createUserFriendlyError(error: Error): Error {
+      // Return generic error message to user
+      if (this.isSecurityRelatedError(error)) {
+        return new Error('A security error occurred. Please try again.');
+      }
+      
+      return new Error('An error occurred. Please try again.');
+    }
+    
+    private sanitizeStackTrace(stack?: string): string {
+      if (!stack) return '';
+      
+      // Remove file paths that might contain sensitive info
+      return stack.replace(/\/Users\/[^\/]+/g, '/Users/***')
+                  .replace(/C:\\Users\\[^\\]+/g, 'C:\\Users\\***');
+    }
+  }
+  
+  ❌ // Exposing sensitive data in errors
+  throw new Error(`Database connection failed with password: ${password}`);
+  ```
+
+### Regular Security Practices
+
+#### Security Updates
+- **Dependency updates**: Regularly update dependencies
+- **Security audits**: Perform regular security audits
+- **Vulnerability scanning**: Scan for known vulnerabilities
+  ```bash
+  ✅ # Regular security practices
+  yarn audit --audit-level moderate
+  npm audit fix
+  yarn outdated
+  
+  # Security-focused linting
+  eslint --ext .js,.ts,.tsx src/ --config .eslintrc.security.json
+  ```
+
+#### Secure Development Lifecycle
+- **Security reviews**: Include security in code reviews
+- **Threat modeling**: Regular threat modeling exercises
+- **Penetration testing**: Periodic security testing
+  ```typescript
+  ✅ // Security checklist for code review
+  // - Input validation implemented?
+  // - Sensitive data protected?
+  // - Plugin permissions checked?
+  // - Error messages sanitized?
+  // - Dependencies up to date?
+  // - CSP properly configured?
+  ```
+
+## Exceptions
+- **Development environment**: Some restrictions may be relaxed for development
+- **Performance-critical sections**: May require careful security/performance balance
+- **Legacy system integration**: May need specific security adaptations
+- **Emergency security patches**: May bypass normal review process
+
+## Enforcement
+- Security-focused ESLint rules
+- Automated security scanning in CI/CD
+- Regular dependency vulnerability scans
+- Security-focused code review guidelines
+
+## Resources
+- [Electron Security Guidelines](https://www.electronjs.org/docs/latest/tutorial/security)
+- [OWASP Security Guidelines](https://owasp.org/www-project-top-ten/)
+- [Node.js Security Best Practices](https://nodejs.org/en/docs/guides/security/)

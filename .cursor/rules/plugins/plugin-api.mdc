@@ -1,0 +1,393 @@
+---
+description: Plugin API design and usage standards
+globs:
+  - 'src/plugins/pluginAPI.ts'
+  - 'src/plugins/types.ts'
+  - 'src/plugins/extensionPoints.ts'
+alwaysApply: true
+priority: high
+tags: [plugin-api, interfaces, extensibility]
+version: 1.0
+lastUpdated: 2024-12-28
+---
+
+# Plugin API Standards
+
+## Objective
+Maintain a consistent, powerful, and secure Plugin API that enables rich extensibility while preserving application stability and performance.
+
+## Context
+- TypeScript-based API with strong typing
+- Event-driven architecture for reactive plugins
+- Secure API surface with permission model
+- Extensible architecture supporting multiple extension points
+- Backward compatibility considerations
+
+## Rules
+
+### API Design Principles
+
+#### Consistency
+- **Naming conventions**: Use consistent naming across all API methods
+- **Parameter patterns**: Follow consistent parameter and return patterns
+- **Error handling**: Use consistent error handling approaches
+  ```typescript
+  ✅ // Consistent API naming
+  interface DownloadAPI {
+    registerDownloadSource: (source: DownloadSource) => void;
+    unregisterDownloadSource: (sourceId: string) => void;
+    getDownloadSources: () => DownloadSource[];
+    
+    onDownloadProgress: (callback: ProgressCallback) => UnsubscribeFunction;
+    onDownloadComplete: (callback: CompleteCallback) => UnsubscribeFunction;
+    onDownloadError: (callback: ErrorCallback) => UnsubscribeFunction;
+  }
+  
+  ❌ // Inconsistent naming
+  interface BadAPI {
+    addSource: (source: DownloadSource) => void;
+    removeDownloadSource: (id: string) => void;
+    getSources: () => DownloadSource[];
+    
+    progressListener: (callback: Function) => void;
+    onComplete: (cb: Function) => Function;
+  }
+  ```
+
+#### Type Safety
+- **Strong typing**: Provide comprehensive TypeScript types
+- **Generic support**: Use generics for flexible APIs
+- **Union types**: Use union types for controlled options
+  ```typescript
+  ✅ // Strong typing
+  interface UIAPI {
+    registerModal<T extends PluginModalProps>(
+      config: PluginModalConfig<T>
+    ): Promise<void>;
+    
+    showModal<T extends PluginModalResult>(
+      modalId: string,
+      props?: Partial<T>
+    ): Promise<T | null>;
+    
+    addTaskbarButton(config: TaskbarButtonConfig): void;
+    removeTaskbarButton(buttonId: string): void;
+  }
+  
+  interface TaskbarButtonConfig {
+    id: string;
+    label: string;
+    icon: IconName | React.ReactNode;
+    position?: 'left' | 'right';
+    tooltip?: string;
+    onClick: () => void;
+    visible?: boolean;
+  }
+  
+  ❌ // Weak typing
+  interface BadUIAPI {
+    addButton(config: any): void;
+    showDialog(id: string, data: object): Promise<any>;
+  }
+  ```
+
+### Extension Points
+
+#### Modal Extensions
+- **Standard modal interface**: Consistent modal extension pattern
+- **Lifecycle management**: Proper modal lifecycle handling
+- **Size and positioning**: Flexible modal sizing options
+  ```typescript
+  ✅ interface PluginModalConfig<T extends PluginModalProps = PluginModalProps> {
+    id: string;
+    title: string;
+    component: React.ComponentType<T>;
+    size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+    closable?: boolean;
+    backdrop?: boolean;
+    keyboard?: boolean;
+    callbacks?: PluginModalCallbacks;
+  }
+  
+  interface PluginModalCallbacks {
+    onMount?: () => void;
+    onUnmount?: () => void;
+    onShow?: () => void;
+    onHide?: () => void;
+  }
+  
+  ✅ // Usage example
+  api.ui.registerModal({
+    id: 'plugin-settings',
+    title: 'Plugin Settings',
+    component: SettingsModal,
+    size: 'md',
+    closable: true,
+    callbacks: {
+      onMount: () => loadSettings(),
+      onUnmount: () => saveSettings()
+    }
+  });
+  ```
+
+#### Taskbar Extensions
+- **Button management**: Add/remove taskbar buttons
+- **Visual consistency**: Maintain visual consistency with existing buttons
+- **Responsive behavior**: Handle different taskbar states
+  ```typescript
+  ✅ interface TaskbarButtonConfig {
+    id: string;
+    label: string;
+    icon: IconName | React.ReactNode;
+    position?: 'left' | 'right';
+    tooltip?: string;
+    onClick: () => void;
+    visible?: boolean;
+    disabled?: boolean;
+    badge?: string | number;
+  }
+  
+  ✅ // Register taskbar button
+  api.ui.addTaskbarButton({
+    id: 'format-converter',
+    label: 'Convert Format',
+    icon: 'convert',
+    position: 'right',
+    tooltip: 'Convert download formats',
+    onClick: () => openFormatConverter(),
+    visible: true
+  });
+  
+  ❌ // Minimal configuration
+  api.ui.addButton({ id: 'btn', click: handler });
+  ```
+
+#### Side Panel Extensions
+- **Panel registration**: Register collapsible side panels
+- **State persistence**: Handle panel state persistence
+- **Integration**: Seamless integration with main UI
+  ```typescript
+  ✅ interface PluginSidePanelConfig {
+    id: string;
+    title: string;
+    icon?: IconName | React.ReactNode;
+    component: React.ComponentType<PluginSidePanelProps>;
+    position: 'left' | 'right';
+    defaultWidth?: number;
+    minWidth?: number;
+    maxWidth?: number;
+    resizable?: boolean;
+    collapsible?: boolean;
+    defaultCollapsed?: boolean;
+    callbacks?: PluginSidePanelCallbacks;
+  }
+  
+  ✅ // Register side panel
+  api.ui.registerSidePanel({
+    id: 'plugin-info',
+    title: 'Plugin Information',
+    icon: 'info',
+    component: PluginInfoPanel,
+    position: 'right',
+    defaultWidth: 300,
+    resizable: true,
+    collapsible: true
+  });
+  ```
+
+### Event System
+
+#### Event Registration
+- **Typed events**: Use strongly typed event interfaces
+- **Subscription management**: Provide subscription management
+- **Error handling**: Handle event errors gracefully
+  ```typescript
+  ✅ interface DownloadEventAPI {
+    onDownloadStart(callback: (event: DownloadStartEvent) => void): UnsubscribeFunction;
+    onDownloadProgress(callback: (event: DownloadProgressEvent) => void): UnsubscribeFunction;
+    onDownloadComplete(callback: (event: DownloadCompleteEvent) => void): UnsubscribeFunction;
+    onDownloadError(callback: (event: DownloadErrorEvent) => void): UnsubscribeFunction;
+  }
+  
+  interface DownloadProgressEvent {
+    downloadId: string;
+    progress: number; // 0-100
+    speed: number; // bytes per second
+    eta: number; // seconds remaining
+    downloadedBytes: number;
+    totalBytes: number;
+  }
+  
+  ✅ // Event subscription with cleanup
+  const unsubscribe = api.downloads.onDownloadProgress((event) => {
+    updateProgressDisplay(event.downloadId, event.progress);
+  });
+  
+  // Store unsubscribe function for cleanup
+  this.eventCleanupFunctions.push(unsubscribe);
+  
+  ❌ // No cleanup management
+  api.downloads.onProgress((data) => {
+    // Handle progress without storing cleanup function
+  });
+  ```
+
+#### Custom Events
+- **Plugin-specific events**: Allow plugins to emit custom events
+- **Event namespacing**: Namespace events by plugin
+- **Cross-plugin communication**: Enable secure plugin communication
+  ```typescript
+  ✅ interface PluginEventAPI {
+    emit<T = unknown>(eventName: string, data: T): void;
+    on<T = unknown>(eventName: string, callback: (data: T) => void): UnsubscribeFunction;
+    off(eventName: string, callback: Function): void;
+    once<T = unknown>(eventName: string, callback: (data: T) => void): void;
+  }
+  
+  ✅ // Plugin event usage
+  // Emit custom event
+  api.events.emit('plugin:format-converter:conversion-complete', {
+    originalFormat: 'mp4',
+    targetFormat: 'mp3',
+    downloadId: 'abc123'
+  });
+  
+  // Listen for events from other plugins
+  api.events.on('plugin:metadata-scraper:metadata-extracted', (data) => {
+    handleMetadataUpdate(data);
+  });
+  ```
+
+### Storage API
+
+#### Plugin Data Storage
+- **Isolated storage**: Each plugin gets isolated storage
+- **Type-safe operations**: Provide type-safe storage operations
+- **Migration support**: Support data migration between versions
+  ```typescript
+  ✅ interface PluginStorageAPI {
+    get<T = unknown>(key: string): Promise<T | null>;
+    set<T = unknown>(key: string, value: T): Promise<void>;
+    delete(key: string): Promise<void>;
+    clear(): Promise<void>;
+    keys(): Promise<string[]>;
+    
+    // Bulk operations
+    getMultiple<T = unknown>(keys: string[]): Promise<Array<T | null>>;
+    setMultiple<T = unknown>(entries: Array<[string, T]>): Promise<void>;
+  }
+  
+  ✅ // Type-safe storage usage
+  interface PluginSettings {
+    theme: 'light' | 'dark';
+    autoConvert: boolean;
+    defaultFormat: string;
+  }
+  
+  const settings = await api.storage.get<PluginSettings>('settings');
+  await api.storage.set('settings', {
+    theme: 'dark',
+    autoConvert: true,
+    defaultFormat: 'mp3'
+  });
+  
+  ❌ // Untyped storage
+  const data = await api.storage.get('data'); // Unknown type
+  await api.storage.set('data', someObject); // No type checking
+  ```
+
+### Format API
+
+#### Format Registration
+- **Format definitions**: Register custom download formats
+- **Conversion support**: Support format conversion
+- **Metadata handling**: Handle format-specific metadata
+  ```typescript
+  ✅ interface FormatAPI {
+    registerFormat(format: DownloadFormat): void;
+    unregisterFormat(formatId: string): void;
+    getFormats(): DownloadFormat[];
+    
+    registerConverter(converter: FormatConverter): void;
+    convert(fromFormat: string, toFormat: string, filePath: string): Promise<string>;
+    
+    getSupportedFormats(url: string): Promise<string[]>;
+  }
+  
+  interface DownloadFormat {
+    id: string;
+    name: string;
+    extension: string;
+    mimeType: string;
+    quality?: QualityOption[];
+    audioCodec?: string[];
+    videoCodec?: string[];
+    containerFormat?: string;
+  }
+  
+  ✅ // Register custom format
+  api.formats.registerFormat({
+    id: 'custom-hd',
+    name: 'Custom HD',
+    extension: 'mp4',
+    mimeType: 'video/mp4',
+    quality: [
+      { id: '720p', name: '720p HD', resolution: '1280x720' },
+      { id: '1080p', name: '1080p Full HD', resolution: '1920x1080' }
+    ],
+    videoCodec: ['h264', 'h265'],
+    audioCodec: ['aac', 'mp3']
+  });
+  ```
+
+### Permission System
+
+#### Permission Declaration
+- **Explicit permissions**: Require explicit permission declarations
+- **Granular permissions**: Provide fine-grained permission control
+- **Runtime checks**: Enforce permission checks at runtime
+  ```typescript
+  ✅ interface PluginPermissions {
+    'downloads:read': 'Read download information';
+    'downloads:write': 'Modify downloads and add new sources';
+    'filesystem:read': 'Read files from the filesystem';
+    'filesystem:write': 'Write files to the filesystem';
+    'network:request': 'Make network requests';
+    'ui:modal': 'Show modal dialogs';
+    'ui:notification': 'Display notifications';
+    'settings:read': 'Read application settings';
+    'settings:write': 'Modify application settings';
+  }
+  
+  ✅ // Permission checking
+  async function performSecureOperation(api: PluginAPI) {
+    if (!await api.permissions.hasPermission('downloads:write')) {
+      throw new PluginPermissionError(
+        'This operation requires downloads:write permission'
+      );
+    }
+    
+    // Proceed with operation
+    await api.downloads.addDownload(downloadInfo);
+  }
+  
+  ❌ // No permission checking
+  api.downloads.addDownload(downloadInfo); // Could fail silently
+  ```
+
+## Exceptions
+- **Legacy plugin support**: May require backward compatibility APIs
+- **Performance optimization**: Critical paths may bypass some checks
+- **Development mode**: May have additional debugging APIs
+- **Platform-specific extensions**: May require platform-specific APIs
+
+## Enforcement
+- TypeScript compiler for type checking
+- Runtime permission validation
+- API usage monitoring and rate limiting
+- Plugin lifecycle management
+
+## Resources
+- [Plugin API Documentation](src/plugins/pluginAPI.ts)
+- [Extension Points Reference](src/plugins/extensionPoints.ts)
+- [Plugin Types Definition](src/plugins/types.ts)

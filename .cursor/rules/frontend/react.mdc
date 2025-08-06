@@ -1,0 +1,342 @@
+---
+description: React development standards and best practices for Downlodr
+globs:
+  - 'src/**/*.{tsx,jsx}'
+  - 'src/Components/**/*.tsx'
+  - 'src/Pages/**/*.tsx'
+alwaysApply: true
+priority: high
+tags: [react, components, frontend, jsx]
+version: 1.0
+lastUpdated: 2024-12-28
+---
+
+# React Development Standards
+
+## Objective
+Establish consistent React development patterns that promote maintainability, performance, and team collaboration in the Downlodr application.
+
+## Context
+- React 18+ with functional components and hooks
+- TypeScript for type safety
+- Zustand for state management
+- Component composition over inheritance
+- Desktop application context (Electron renderer process)
+
+## Rules
+
+### Component Architecture
+
+#### Functional Components Only
+- **Use functional components**: No class components for new code
+- **Hooks over lifecycle methods**: Leverage React hooks for state and side effects
+  ```typescript
+  ✅ const DownloadButton: React.FC<DownloadButtonProps> = ({ url, onDownload }) => {
+    const [isLoading, setIsLoading] = useState(false);
+    
+    useEffect(() => {
+      // Side effect logic
+    }, []);
+    
+    return <button onClick={onDownload}>Download</button>;
+  };
+  
+  ❌ class DownloadButton extends React.Component {
+    // Avoid class components
+  }
+  ```
+
+#### Component Props
+- **TypeScript interfaces**: Define props with proper TypeScript interfaces
+- **Optional vs required**: Be explicit about optional and required props
+- **Default values**: Use default parameters or destructuring defaults
+  ```typescript
+  ✅ interface DownloadButtonProps {
+    url: string;
+    onDownload: (url: string) => void;
+    disabled?: boolean;
+    variant?: 'primary' | 'secondary';
+  }
+  
+  const DownloadButton: React.FC<DownloadButtonProps> = ({ 
+    url, 
+    onDownload, 
+    disabled = false,
+    variant = 'primary' 
+  }) => {};
+  
+  ❌ const DownloadButton = (props: any) => {};
+  ❌ const DownloadButton = ({ url, onDownload, ...rest }) => {};
+  ```
+
+#### Component Composition
+- **Small, focused components**: Single responsibility principle
+- **Composition over complex components**: Break down complex UI into smaller pieces
+- **Reusable patterns**: Extract common patterns into reusable components
+  ```typescript
+  ✅ // Good composition
+  const DownloadCard = ({ download }: { download: Download }) => (
+    <Card>
+      <DownloadThumbnail src={download.thumbnail} />
+      <DownloadInfo download={download} />
+      <DownloadActions download={download} />
+    </Card>
+  );
+  
+  ❌ // Monolithic component
+  const DownloadCard = ({ download }) => (
+    <div>
+      {/* 200+ lines of complex UI */}
+    </div>
+  );
+  ```
+
+### State Management
+
+#### useState Hook
+- **Local state only**: Use useState for component-local state
+- **Descriptive state names**: Clear naming for state variables
+- **State updates**: Use functional updates for complex state logic
+  ```typescript
+  ✅ const [isDownloading, setIsDownloading] = useState(false);
+  ✅ const [downloadProgress, setDownloadProgress] = useState(0);
+  ✅ setDownloads(prev => prev.filter(d => d.id !== downloadId));
+  
+  ❌ const [state, setState] = useState({});
+  ❌ const [data, setData] = useState();
+  ```
+
+#### Zustand Integration
+- **Global state**: Use Zustand stores for application-wide state
+- **Store access**: Access stores through custom hooks
+- **State selection**: Select only needed state slices
+  ```typescript
+  ✅ const { downloads, addDownload } = useDownloadStore();
+  ✅ const settings = useMainStore(state => state.settings);
+  ✅ const selectedDownloads = useMainStore(state => state.selectedDownloads);
+  
+  ❌ const allStore = useMainStore(); // Avoid selecting entire store
+  ❌ const { ...everythingElse } = useMainStore(); // Avoid destructuring everything
+  ```
+
+#### State Effects
+- **useEffect cleanup**: Always clean up subscriptions and timers
+- **Dependency arrays**: Be explicit about effect dependencies
+- **Avoid unnecessary effects**: Consider if effect is actually needed
+  ```typescript
+  ✅ useEffect(() => {
+    const interval = setInterval(() => {
+      updateProgress();
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  ✅ useEffect(() => {
+    updateDownloadStatus(downloadId);
+  }, [downloadId]); // Explicit dependencies
+  
+  ❌ useEffect(() => {
+    updateSomething();
+  }); // Missing dependency array
+  ```
+
+### Event Handling
+
+#### Event Handler Naming
+- **handle prefix**: Use 'handle' prefix for event handlers
+- **Specific action**: Include the specific action being handled
+  ```typescript
+  ✅ const handleDownloadStart = () => {};
+  ✅ const handleModalClose = () => {};
+  ✅ const handleFileSelect = (file: File) => {};
+  
+  ❌ const onClick = () => {};
+  ❌ const doSomething = () => {};
+  ```
+
+#### Event Handler Implementation
+- **Inline for simple handlers**: One-line handlers can be inline
+- **Separate functions for complex logic**: Extract complex handlers
+- **Prevent default when needed**: Be explicit about event prevention
+  ```typescript
+  ✅ <button onClick={() => setOpen(false)}>Close</button>
+  
+  ✅ const handleComplexAction = (event: React.MouseEvent) => {
+    event.preventDefault();
+    // Complex logic here
+  };
+  
+  ❌ <button onClick={(e) => {
+    // 20+ lines of complex logic
+  }}>Action</button>
+  ```
+
+### JSX and Rendering
+
+#### JSX Structure
+- **Self-closing tags**: Use self-closing syntax for elements without children
+- **Conditional rendering**: Use logical operators for simple conditions
+- **Lists and keys**: Always provide keys for list items
+  ```typescript
+  ✅ <DownloadButton disabled={!url} />
+  ✅ {isLoading && <LoadingSpinner />}
+  ✅ {downloads.map(download => (
+    <DownloadItem key={download.id} download={download} />
+  ))}
+  
+  ❌ <DownloadButton disabled={!url}></DownloadButton>
+  ❌ {downloads.map((download, index) => (
+    <DownloadItem key={index} download={download} />
+  ))}
+  ```
+
+#### Component Return Types
+- **Explicit return types**: Use React.FC or explicit JSX.Element
+- **Fragment usage**: Use React.Fragment or short syntax when needed
+  ```typescript
+  ✅ const Component: React.FC = () => {
+    return (
+      <>
+        <Header />
+        <Content />
+      </>
+    );
+  };
+  
+  ✅ const Component = (): JSX.Element => {
+    return <div>Content</div>;
+  };
+  ```
+
+### Performance Optimization
+
+#### Memoization
+- **React.memo**: Use for components that render frequently with same props
+- **useMemo**: Use for expensive calculations
+- **useCallback**: Use for event handlers passed to child components
+  ```typescript
+  ✅ const ExpensiveComponent = React.memo<Props>(({ data }) => {
+    const processedData = useMemo(() => 
+      expensiveProcessing(data), [data]
+    );
+    
+    return <div>{processedData}</div>;
+  });
+  
+  ✅ const Parent = () => {
+    const handleClick = useCallback((id: string) => {
+      // Handler logic
+    }, []);
+    
+    return <Child onClick={handleClick} />;
+  };
+  ```
+
+#### Avoid Unnecessary Re-renders
+- **Split state**: Separate frequently changing state
+- **State colocation**: Keep state close to where it's used
+- **Lazy initial state**: Use functions for expensive initial state
+  ```typescript
+  ✅ const [count, setCount] = useState(0);
+  ✅ const [name, setName] = useState('');
+  
+  ✅ const [data, setData] = useState(() => 
+    expensiveComputation()
+  );
+  
+  ❌ const [state, setState] = useState({
+    count: 0,
+    name: '',
+    // Many other properties
+  });
+  ```
+
+### Custom Hooks
+
+#### Hook Creation
+- **Use prefix**: All custom hooks must start with 'use'
+- **Single responsibility**: Focus on one piece of logic
+- **Return consistency**: Use consistent return patterns
+  ```typescript
+  ✅ function useDownloadProgress(downloadId: string) {
+    const [progress, setProgress] = useState(0);
+    
+    useEffect(() => {
+      // Progress tracking logic
+    }, [downloadId]);
+    
+    return { progress, isComplete: progress === 100 };
+  }
+  
+  ✅ function usePluginState(pluginId: string) {
+    return usePluginStore(state => 
+      state.plugins.find(p => p.id === pluginId)
+    );
+  }
+  ```
+
+#### Hook Dependencies
+- **Explicit dependencies**: Include all dependencies in effect arrays
+- **Stable references**: Use useCallback/useMemo for stable references
+  ```typescript
+  ✅ function useDebounced<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+    
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value);
+      }, delay);
+      
+      return () => clearTimeout(handler);
+    }, [value, delay]); // All dependencies included
+    
+    return debouncedValue;
+  }
+  ```
+
+### Error Handling
+
+#### Error Boundaries
+- **Wrap risky components**: Use error boundaries for plugin components
+- **Graceful degradation**: Provide fallback UI for errors
+  ```typescript
+  ✅ <ErrorBoundary fallback={<PluginError />}>
+    <PluginComponent />
+  </ErrorBoundary>
+  ```
+
+#### Try-Catch in Effects
+- **Async operations**: Wrap async operations in try-catch
+- **Error state**: Track error state when appropriate
+  ```typescript
+  ✅ useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await api.getData();
+        setData(data);
+      } catch (error) {
+        setError(error);
+      }
+    };
+    
+    fetchData();
+  }, []);
+  ```
+
+## Exceptions
+- **Third-party component integration**: May require different patterns
+- **Performance critical sections**: May require class components for optimization
+- **Legacy component migration**: Gradual migration acceptable
+- **Plugin system components**: May need special error handling patterns
+
+## Enforcement
+- ESLint React hooks rules
+- TypeScript strict mode
+- React Developer Tools for debugging
+- Code review checklist for React patterns
+
+## Resources
+- [React Documentation](https://react.dev/)
+- [React TypeScript Guide](https://react-typescript-cheatsheet.netlify.app/)
+- [React Performance Optimization](https://react.dev/learn/render-and-commit)

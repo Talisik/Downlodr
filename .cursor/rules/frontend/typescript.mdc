@@ -1,0 +1,410 @@
+---
+description: TypeScript development standards and type safety practices
+globs:
+  - 'src/**/*.{ts,tsx}'
+  - '*.{ts,tsx}'
+  - 'src/schema/**/*.ts'
+alwaysApply: true
+priority: high
+tags: [typescript, types, safety, interfaces]
+version: 1.0
+lastUpdated: 2024-12-28
+---
+
+# TypeScript Development Standards
+
+## Objective
+Leverage TypeScript's type system to create robust, maintainable code with excellent developer experience and reduced runtime errors in the Downlodr application.
+
+## Context
+- TypeScript 4.5+ with strict mode enabled
+- Electron application with React frontend
+- Complex data structures for downloads, plugins, and settings
+- Inter-process communication requiring type safety
+- Plugin system with dynamic types
+
+## Rules
+
+### Type Definitions
+
+#### Interface Design
+- **Descriptive interfaces**: Use clear, specific interface names
+- **Property organization**: Group related properties logically
+- **Optional vs required**: Be explicit about optionality
+  ```typescript
+  ✅ interface DownloadSettings {
+    // Core settings
+    defaultLocation: string;
+    defaultDownloadSpeed: number;
+    defaultDownloadSpeedBit: 'kb' | 'mb' | 'gb';
+    
+    // Limits
+    permitConnectionLimit: boolean;
+    maxUploadNum: number;
+    maxDownloadNum: number;
+    
+    // Features
+    runInBackground?: boolean;
+    enableClipboardMonitoring?: boolean;
+  }
+  
+  ❌ interface Settings {
+    location: any;
+    speed: number;
+    other: object;
+  }
+  ```
+
+#### Type Unions and Literals
+- **String literals**: Use for specific value sets
+- **Union types**: Prefer unions over enums for simple cases
+- **Discriminated unions**: Use for complex state representations
+  ```typescript
+  ✅ type DownloadStatus = 'pending' | 'downloading' | 'completed' | 'failed' | 'paused';
+  
+  ✅ type PluginExtensionPoint = 
+    | 'format-selector'
+    | 'taskbar'
+    | 'modal'
+    | 'side-panel';
+  
+  ✅ type DownloadEvent = 
+    | { type: 'start'; url: string }
+    | { type: 'progress'; percentage: number }
+    | { type: 'complete'; filePath: string }
+    | { type: 'error'; message: string };
+  
+  ❌ type Status = string; // Too generic
+  ❌ enum DownloadStatus { PENDING, DOWNLOADING } // Use unions instead
+  ```
+
+#### Generic Types
+- **Reusable interfaces**: Use generics for reusable patterns
+- **Constraint generics**: Add constraints when needed
+- **Default type parameters**: Provide sensible defaults
+  ```typescript
+  ✅ interface APIResponse<T = unknown> {
+    success: boolean;
+    data: T;
+    error?: string;
+  }
+  
+  ✅ interface Store<T extends Record<string, unknown>> {
+    state: T;
+    setState: (updates: Partial<T>) => void;
+  }
+  
+  ✅ function createPlugin<TConfig extends PluginConfig = PluginConfig>(
+    config: TConfig
+  ): Plugin<TConfig> {
+    // Implementation
+  }
+  ```
+
+### Function and Method Types
+
+#### Function Signatures
+- **Parameter types**: Explicit types for all parameters
+- **Return types**: Explicit return types for public functions
+- **Async functions**: Proper Promise typing
+  ```typescript
+  ✅ async function downloadFile(
+    url: string,
+    destination: string,
+    options?: DownloadOptions
+  ): Promise<DownloadResult> {
+    // Implementation
+  }
+  
+  ✅ function formatElapsedTime(
+    startTime: Date,
+    endTime: Date
+  ): string {
+    // Implementation
+  }
+  
+  ✅ const handleDownloadProgress = (
+    downloadId: string,
+    progress: number
+  ): void => {
+    // Implementation
+  };
+  
+  ❌ function download(url, dest) { // Missing types
+    return fetch(url); // Unclear return type
+  }
+  ```
+
+#### Event Handler Types
+- **React event types**: Use specific React event types
+- **Custom event types**: Define for application-specific events
+  ```typescript
+  ✅ const handleClick = (event: React.MouseEvent<HTMLButtonElement>): void => {
+    event.preventDefault();
+    // Implementation
+  };
+  
+  ✅ const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (event.key === 'Enter') {
+      // Implementation
+    }
+  };
+  
+  ✅ interface DownloadProgressEvent {
+    downloadId: string;
+    progress: number;
+    speed: number;
+  }
+  
+  ❌ const handleClick = (event: any) => {}; // Too generic
+  ```
+
+### Component and Props Types
+
+#### Component Props
+- **Interface inheritance**: Extend HTML element props when appropriate
+- **Generic components**: Use generics for flexible components
+- **Ref types**: Proper typing for ref props
+  ```typescript
+  ✅ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+    variant?: 'primary' | 'secondary' | 'outline';
+    loading?: boolean;
+    icon?: React.ReactNode;
+  }
+  
+  ✅ interface ListProps<T> {
+    items: T[];
+    renderItem: (item: T, index: number) => React.ReactNode;
+    keyExtractor: (item: T) => string;
+  }
+  
+  ✅ interface InputProps {
+    ref?: React.Ref<HTMLInputElement>;
+    onChange: (value: string) => void;
+  }
+  
+  ❌ interface Props {
+    data: any;
+    callback: Function;
+  }
+  ```
+
+#### Component State Types
+- **State interfaces**: Define interfaces for complex state
+- **State updates**: Type state update functions properly
+  ```typescript
+  ✅ interface DownloadState {
+    downloads: Download[];
+    selectedIds: string[];
+    sortBy: 'name' | 'date' | 'size';
+    filterStatus?: DownloadStatus;
+  }
+  
+  ✅ const [state, setState] = useState<DownloadState>({
+    downloads: [],
+    selectedIds: [],
+    sortBy: 'date',
+  });
+  
+  ✅ const updateDownload = (id: string, updates: Partial<Download>): void => {
+    setState(prev => ({
+      ...prev,
+      downloads: prev.downloads.map(d => 
+        d.id === id ? { ...d, ...updates } : d
+      )
+    }));
+  };
+  ```
+
+### Store and State Management Types
+
+#### Zustand Store Types
+- **Store interfaces**: Define clear store interfaces
+- **Action types**: Type store actions properly
+- **Selector types**: Use proper selector typing
+  ```typescript
+  ✅ interface MainStore {
+    settings: DownloadSettings;
+    selectedDownloads: SelectedDownload[];
+    isDownloadModalOpen: boolean;
+    
+    // Actions
+    updateSettings: (settings: Partial<DownloadSettings>) => void;
+    setSelectedDownloads: (downloads: SelectedDownload[]) => void;
+    toggleDownloadModal: () => void;
+  }
+  
+  ✅ const useMainStore = create<MainStore>((set, get) => ({
+    settings: defaultSettings,
+    selectedDownloads: [],
+    isDownloadModalOpen: false,
+    
+    updateSettings: (newSettings) => set(state => ({
+      settings: { ...state.settings, ...newSettings }
+    })),
+    // Other actions...
+  }));
+  
+  ✅ const settings = useMainStore(state => state.settings);
+  ✅ const downloadCount = useMainStore(state => state.selectedDownloads.length);
+  ```
+
+### Plugin System Types
+
+#### Plugin Interface Types
+- **Plugin API types**: Strong typing for plugin APIs
+- **Extension point types**: Define extension interfaces
+- **Plugin manifest types**: Type plugin configuration
+  ```typescript
+  ✅ interface PluginAPI {
+    downloads: DownloadAPI;
+    ui: UIAPI;
+    formats: FormatAPI;
+    storage: StorageAPI;
+  }
+  
+  ✅ interface DownloadAPI {
+    registerDownloadSource: (source: DownloadSource) => void;
+    onDownloadProgress: (callback: (event: DownloadProgressEvent) => void) => void;
+    getDownloads: () => Promise<Download[]>;
+  }
+  
+  ✅ interface PluginManifest {
+    id: string;
+    name: string;
+    version: string;
+    description: string;
+    main: string;
+    author: string;
+    license: string;
+    minAppVersion: string;
+    icon?: string;
+  }
+  ```
+
+#### Plugin Component Types
+- **Extension components**: Type plugin extension components
+- **Plugin callbacks**: Strong typing for plugin callbacks
+  ```typescript
+  ✅ interface PluginModalProps {
+    pluginId: string;
+    title: string;
+    size?: 'sm' | 'md' | 'lg' | 'xl';
+    closable?: boolean;
+    onClose?: () => void;
+  }
+  
+  ✅ interface PluginCallbacks {
+    onMount?: () => void;
+    onUnmount?: () => void;
+    onDataChange?: (data: unknown) => void;
+  }
+  ```
+
+### Error Handling Types
+
+#### Error Types
+- **Custom error classes**: Define specific error types
+- **Error union types**: Use unions for expected errors
+- **Result types**: Consider Result pattern for error handling
+  ```typescript
+  ✅ class DownloadError extends Error {
+    constructor(
+      message: string,
+      public readonly code: string,
+      public readonly downloadId?: string
+    ) {
+      super(message);
+      this.name = 'DownloadError';
+    }
+  }
+  
+  ✅ type DownloadResult = 
+    | { success: true; filePath: string }
+    | { success: false; error: DownloadError };
+  
+  ✅ interface APIError {
+    message: string;
+    code: number;
+    details?: Record<string, unknown>;
+  }
+  ```
+
+### Utility Types
+
+#### Type Helpers
+- **Utility type usage**: Leverage TypeScript utility types
+- **Custom utility types**: Create project-specific utilities
+  ```typescript
+  ✅ type PartialDownload = Partial<Download>;
+  ✅ type DownloadKeys = keyof Download;
+  ✅ type RequiredSettings = Required<DownloadSettings>;
+  
+  ✅ type DeepPartial<T> = {
+    [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+  };
+  
+  ✅ type EventMap = {
+    [K in DownloadEventType]: Extract<DownloadEvent, { type: K }>;
+  };
+  ```
+
+### Type Assertions and Guards
+
+#### Type Guards
+- **User-defined type guards**: Create for runtime type checking
+- **Proper narrowing**: Use guards for type narrowing
+  ```typescript
+  ✅ function isDownload(obj: unknown): obj is Download {
+    return typeof obj === 'object' &&
+           obj !== null &&
+           'id' in obj &&
+           'url' in obj &&
+           'status' in obj;
+  }
+  
+  ✅ function isPluginManifest(obj: unknown): obj is PluginManifest {
+    return typeof obj === 'object' &&
+           obj !== null &&
+           typeof (obj as any).id === 'string' &&
+           typeof (obj as any).name === 'string';
+  }
+  
+  ✅ if (isDownload(data)) {
+    // data is now typed as Download
+    console.log(data.url);
+  }
+  ```
+
+#### Type Assertions
+- **Minimal usage**: Use type assertions sparingly
+- **Safe assertions**: Only when you're certain of the type
+- **Document reasoning**: Comment why assertion is safe
+  ```typescript
+  ✅ // Safe: we know electron API is available in main process
+  const result = (window as any).electronAPI.downloadFile(url) as Promise<string>;
+  
+  ✅ // Safe: validated before this point
+  const manifest = validatedData as PluginManifest;
+  
+  ❌ const data = response as any; // Too broad
+  ❌ const user = getData() as User; // Unsafe assumption
+  ```
+
+## Exceptions
+- **Third-party library types**: May require any for untyped libraries
+- **Legacy code migration**: Gradual typing acceptable with plan
+- **Dynamic plugin loading**: May require careful any usage with guards
+- **Electron API integration**: May need specific typing workarounds
+
+## Enforcement
+- TypeScript strict mode enabled
+- ESLint TypeScript rules
+- No implicit any rule
+- Type checking in CI/CD pipeline
+- Code review for type safety
+
+## Resources
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [TypeScript ESLint Rules](https://typescript-eslint.io/rules/)
+- [React TypeScript Cheatsheet](https://react-typescript-cheatsheet.netlify.app/)

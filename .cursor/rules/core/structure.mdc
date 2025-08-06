@@ -1,0 +1,242 @@
+---
+description: Project structure and file organization standards
+globs:
+  - 'src/**/*'
+  - '*.{ts,tsx,js,jsx,json,md}'
+alwaysApply: true
+priority: high
+tags: [structure, organization, architecture]
+version: 1.0
+lastUpdated: 2024-12-28
+---
+
+# Project Structure and Organization
+
+## Objective
+Maintain a clean, scalable, and logical project structure that supports the Downlodr application's architecture and enables team collaboration.
+
+## Context
+- Electron desktop application with React frontend
+- TypeScript for type safety and better development experience
+- Component-based architecture with clear separation of concerns
+- Plugin system requiring modular organization
+- Cross-platform builds with Electron Forge
+
+## Rules
+
+### Root Directory Organization
+
+#### Core Configuration Files
+- **Root level**: Keep configuration files at project root
+  ```
+  ✅ package.json, tsconfig.json, tailwind.config.js
+  ✅ forge.config.ts, vite.*.config.ts
+  ✅ .eslintrc.json, .prettierrc
+  ❌ config/package.json, src/tsconfig.json
+  ```
+
+#### Source Code Structure
+- **src/**: All source code must be in src directory
+- **Clear separation**: Separate main process, renderer, and preload scripts
+  ```
+  ✅ src/main.ts (Electron main process)
+  ✅ src/renderer.tsx (React app entry)
+  ✅ src/preload.ts (Electron preload script)
+  ❌ main.ts, renderer.tsx (in root)
+  ```
+
+### Component Organization
+
+#### Directory Hierarchy
+- **Components/**: Primary UI components
+  - **Main/**: Core application components (layout, navigation)
+  - **SubComponents/**: Reusable and utility components
+    - **custom/**: Project-specific components
+    - **shadcn/**: Third-party UI library components
+  ```
+  ✅ Components/Main/Modal/SettingsModal.tsx
+  ✅ Components/SubComponents/custom/DownloadButton.tsx
+  ✅ Components/SubComponents/shadcn/components/ui/button.tsx
+  ❌ Components/SettingsModal.tsx
+  ❌ UI/Button.tsx
+  ```
+
+#### Component File Structure
+- **Single component per file**: One main export per component file
+- **Co-location**: Related types and utilities near component usage
+- **Index files**: Use for clean imports when beneficial
+  ```typescript
+  ✅ // DownloadButton.tsx
+  interface DownloadButtonProps {}
+  export const DownloadButton: React.FC<DownloadButtonProps> = () => {};
+  
+  ✅ // Icons/index.tsx
+  export { Download } from './Download';
+  export { Settings } from './Settings';
+  ```
+
+### Feature-Based Organization
+
+#### Pages and Layouts
+- **Pages/**: Top-level page components
+- **Layout/**: Layout wrapper components
+- **SubPages/**: Nested or specialized page components
+  ```
+  ✅ Pages/History.tsx
+  ✅ Pages/SubPages/CategoryPage.tsx
+  ✅ Layout/MainLayout.tsx
+  ❌ Components/Pages/History.tsx
+  ❌ Pages/Layout/MainLayout.tsx
+  ```
+
+#### Domain-Specific Modules
+- **Store/**: State management (Zustand stores)
+- **plugins/**: Plugin system implementation
+- **schema/**: Type definitions and schemas
+- **DataFunctions/**: Business logic and data processing
+  ```
+  ✅ Store/downloadStore.tsx
+  ✅ plugins/types.ts, plugins/pluginAPI.ts
+  ✅ schema/download.ts, schema/metadata.ts
+  ✅ DataFunctions/updateChecker.ts
+  ```
+
+### Asset Management
+
+#### Static Assets
+- **Assets/**: All static assets in organized subdirectories
+- **Logical grouping**: Group by type and usage
+  ```
+  ✅ Assets/AppLogo/256x256.ico
+  ✅ Assets/Icons/Download.tsx
+  ✅ Assets/Images/FormatConverter.jpg
+  ❌ images/logo.ico
+  ❌ Assets/download-icon.tsx
+  ```
+
+#### Asset Naming
+- **Descriptive names**: Clear indication of content and usage
+- **Size specifications**: Include dimensions for icons/images where relevant
+- **Platform variants**: Separate platform-specific assets
+  ```
+  ✅ systemTray/logo/systemIcon.png
+  ✅ AppLogo/256x256.ico
+  ❌ icon.png, logo.ico
+  ```
+
+### Plugin System Structure
+
+#### Plugin Organization
+- **plugins/**: All plugin-related code
+- **Separation of concerns**: Components, hooks, types, and utilities
+  ```
+  ✅ plugins/types.ts
+  ✅ plugins/components/PluginModalManager.tsx
+  ✅ plugins/Hooks/usePluginState.ts
+  ✅ plugins/security.ts
+  ❌ Components/PluginComponents/
+  ❌ Hooks/PluginHooks/
+  ```
+
+#### Plugin Components
+- **Manager pattern**: Centralized management components
+- **Extension pattern**: Components that extend functionality
+  ```
+  ✅ PluginModalManager.tsx
+  ✅ PluginSidePanelExtension.tsx
+  ✅ FormatSelectorManager.tsx
+  ❌ PluginModal.tsx
+  ❌ SidePanel.tsx
+  ```
+
+### Utility and Helper Organization
+
+#### Utility Functions
+- **Utils/**: Generic utility functions
+- **DataFunctions/**: Business logic and data processing
+- **Descriptive naming**: Clear indication of functionality
+  ```
+  ✅ Utils/stringHelpers.ts
+  ✅ Utils/iconHelpers.tsx
+  ✅ DataFunctions/GetDownloadMetaData.ts
+  ✅ DataFunctions/ErrorCodeHelper.ts
+  ❌ helpers.ts, utils.ts
+  ```
+
+#### Type Definitions
+- **schema/**: Centralized type definitions and schemas
+- **global.d.ts**: Global type augmentations
+- **Co-located types**: Component-specific types near components
+  ```
+  ✅ schema/download.ts, schema/metadata.ts
+  ✅ global.d.ts (window API extensions)
+  ✅ plugins/types.ts (plugin-specific types)
+  ```
+
+### Configuration and Build
+
+#### Build Configuration
+- **Separate configs**: Different Vite configs for different targets
+- **Environment-specific**: Development vs production configurations
+  ```
+  ✅ vite.main.config.ts (main process)
+  ✅ vite.renderer.config.ts (renderer process)
+  ✅ vite.preload.config.ts (preload script)
+  ❌ vite.config.ts (single config)
+  ```
+
+#### Documentation
+- **docs/**: Comprehensive documentation in separate directory
+- **Inline documentation**: JSDoc for functions and components
+  ```
+  ✅ docs/architecture.md
+  ✅ docs/PLUGIN_DEVELOPMENT.MD
+  ✅ README.md, CONTRIBUTING.md (root level)
+  ```
+
+### Import Path Management
+
+#### Path Aliases
+- **@/ alias**: Use for src directory references
+- **Relative imports**: Only for nearby files (same directory or parent)
+- **Absolute imports**: For cross-feature dependencies
+  ```typescript
+  ✅ import { useMainStore } from '@/Store/mainStore';
+  ✅ import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
+  ✅ import './LocalStyles.css'; // Same directory
+  ❌ import { useMainStore } from '../../../Store/mainStore';
+  ```
+
+#### Import Organization
+- **Logical grouping**: External libraries, internal modules, relative imports
+- **Alphabetical within groups**: Consistent ordering within import groups
+  ```typescript
+  ✅
+  // External libraries
+  import React from 'react';
+  import { create } from 'zustand';
+  
+  // Internal modules
+  import { useMainStore } from '@/Store/mainStore';
+  import { DownloadButton } from '@/Components/SubComponents/custom/DownloadButton';
+  
+  // Relative imports
+  import './Component.css';
+  ```
+
+## Exceptions
+- **Third-party components**: May follow library-specific organization
+- **Legacy migrations**: Gradual restructuring acceptable with clear plan
+- **Generated files**: Auto-generated files may have different structure
+- **Platform-specific code**: May require different organization patterns
+
+## Enforcement
+- Path alias configuration in tsconfig.json and Vite config
+- ESLint import rules for consistent import patterns
+- Code review checklist for structural consistency
+- Documentation updates when structure changes
+
+## Resources
+- [Project Architecture Documentation](docs/architecture.md)
+- [Electron File Structure Best Practices](https://www.electronjs.org/docs/latest/tutorial/quick-start)
+- [React Project Structure Guide](https://create-react-app.dev/docs/folder-structure/)

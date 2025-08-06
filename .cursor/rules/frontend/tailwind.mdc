@@ -1,0 +1,253 @@
+---
+description: Tailwind CSS best practices and design system guidelines
+globs:
+  - 'src/**/*.{tsx,jsx}'
+  - 'tailwind.config.js'
+  - 'src/**/*.css'
+alwaysApply: true
+priority: medium
+tags: [tailwind, css, styling, design-system]
+version: 1.0
+lastUpdated: 2024-12-28
+---
+
+# Tailwind CSS Development Standards
+
+## Objective
+Establish consistent styling patterns using Tailwind CSS that promote maintainable, responsive, and accessible designs in the Downlodr application.
+
+## Context
+- Tailwind CSS 3.4+ with custom design tokens
+- Dark mode support with class-based strategy
+- Custom color palette for brand consistency
+- Responsive design for desktop application
+- Component-based styling approach
+
+## Rules
+
+### Design System Usage
+
+#### Color Palette
+- **Use design tokens**: Prefer custom colors over default Tailwind colors
+- **Semantic naming**: Use colors that convey meaning and purpose
+- **Dark mode support**: Always provide dark mode variants
+  ```tsx
+  ✅ className="bg-primary text-white dark:bg-darkMode dark:text-darkModeLight"
+  ✅ className="border-divider dark:border-darkModeBorderColor"
+  ✅ className="text-availableStatus dark:text-darkModeNotAvailableStatus"
+  
+  ❌ className="bg-red-500 text-white" // Use semantic colors
+  ❌ className="bg-blue-600" // Use custom design tokens
+  ```
+
+#### Typography
+- **Consistent text sizes**: Use standard Tailwind text utilities
+- **Font weights**: Limit to established weights (normal, medium, semibold)
+- **Line heights**: Use appropriate line heights for readability
+  ```tsx
+  ✅ className="text-sm font-medium leading-5"
+  ✅ className="text-lg font-semibold"
+  ✅ className="text-xs text-darkModeLight dark:text-darkModeLight"
+  
+  ❌ className="text-[13px]" // Use standard sizes
+  ❌ className="font-[550]" // Use standard weights
+  ```
+
+#### Spacing
+- **Consistent spacing scale**: Use Tailwind's spacing scale
+- **Logical spacing**: Group related elements with appropriate spacing
+- **Component padding**: Use consistent padding patterns
+  ```tsx
+  ✅ className="p-4 space-y-2"
+  ✅ className="mx-2 my-4"
+  ✅ className="gap-4 grid grid-cols-1"
+  
+  ❌ className="p-[15px]" // Use scale values
+  ❌ className="ml-[13px]" // Arbitrary values
+  ```
+
+### Layout Patterns
+
+#### Flexbox Layouts
+- **Flex containers**: Use flex for one-dimensional layouts
+- **Alignment utilities**: Use semantic alignment classes
+- **Responsive behavior**: Consider how layouts adapt
+  ```tsx
+  ✅ className="flex items-center justify-between gap-2"
+  ✅ className="flex flex-col space-y-4"
+  ✅ className="flex flex-wrap items-start"
+  
+  ❌ className="flex justify-center items-center gap-1 gap-2" // Conflicting gaps
+  ```
+
+#### Grid Layouts
+- **Grid for two-dimensional layouts**: Use grid for complex layouts
+- **Responsive grids**: Use responsive grid patterns
+- **Grid alignment**: Proper use of grid alignment utilities
+  ```tsx
+  ✅ className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+  ✅ className="grid grid-cols-[1fr_auto_1fr] items-center"
+  ✅ className="grid place-items-center min-h-screen"
+  
+  ❌ className="grid grid-cols-1 grid-cols-2" // Conflicting values
+  ```
+
+### Component Styling
+
+#### Button Variants
+- **Consistent button patterns**: Use established button variants
+- **State variants**: Include hover, focus, and disabled states
+- **Size variants**: Use consistent sizing patterns
+  ```tsx
+  ✅ className="bg-primary hover:bg-primary/90 disabled:opacity-50 px-4 py-2 rounded-md"
+  ✅ className="border border-componentBorder hover:bg-lightGray dark:border-darkModeBorderColor"
+  ✅ className="h-7 px-4 text-sm" // Small button
+  
+  ❌ className="bg-blue-500 hover:bg-blue-600" // Use design tokens
+  ```
+
+#### Modal and Dialog Styling
+- **Consistent modal patterns**: Use established modal styling
+- **Backdrop styling**: Consistent overlay styling
+- **Modal sizing**: Use responsive modal sizes
+  ```tsx
+  ✅ className="fixed inset-0 bg-black/50 flex items-center justify-center"
+  ✅ className="bg-body dark:bg-darkMode rounded-lg shadow-lg max-w-md w-full m-4"
+  ✅ className="p-6 space-y-4"
+  
+  ❌ className="absolute top-0 left-0 w-full h-full" // Use inset utilities
+  ```
+
+#### Form Elements
+- **Input styling**: Consistent input field styling
+- **Form layout**: Proper form element spacing
+- **Validation states**: Include error and success states
+  ```tsx
+  ✅ className="border border-border dark:border-darkModeBorderColor rounded-md px-3 py-2"
+  ✅ className="focus:ring-2 focus:ring-primary focus:border-primary"
+  ✅ className="border-red-500 text-red-500" // Error state
+  
+  ❌ className="border-gray-300" // Use design tokens
+  ```
+
+### Responsive Design
+
+#### Breakpoint Usage
+- **Desktop-first approach**: Design for desktop, adapt for smaller screens
+- **Logical breakpoints**: Use breakpoints that make sense for content
+- **Consistent breakpoint usage**: Use established breakpoints
+  ```tsx
+  ✅ className="grid grid-cols-3 md:grid-cols-2 sm:grid-cols-1"
+  ✅ className="text-lg md:text-base sm:text-sm"
+  ✅ className="px-6 md:px-4 sm:px-2"
+  
+  ❌ className="lg:grid-cols-3 xl:grid-cols-3" // Unnecessary duplication
+  ```
+
+#### Content Adaptation
+- **Text scaling**: Appropriate text sizes for different screens
+- **Spacing adaptation**: Adjust spacing for different screen sizes
+- **Component visibility**: Show/hide elements appropriately
+  ```tsx
+  ✅ className="hidden md:block" // Hide on mobile
+  ✅ className="block md:hidden" // Show only on mobile
+  ✅ className="p-4 md:p-6 lg:p-8" // Progressive spacing
+  ```
+
+### Dark Mode Implementation
+
+#### Color Switching
+- **Consistent dark mode patterns**: Use established dark mode colors
+- **Complete coverage**: Ensure all elements have dark mode variants
+- **Readable contrast**: Maintain good contrast ratios
+  ```tsx
+  ✅ className="bg-body dark:bg-darkMode text-gray-900 dark:text-darkModeLight"
+  ✅ className="border-border dark:border-darkModeBorderColor"
+  ✅ className="hover:bg-lightGray dark:hover:bg-darkModeHover"
+  
+  ❌ className="bg-white dark:bg-gray-800" // Use design tokens
+  ```
+
+#### Component Adaptation
+- **State-aware styling**: Dark mode variants for all interactive states
+- **Icon and media adaptation**: Ensure icons work in both modes
+- **Focus states**: Maintain visibility in both modes
+  ```tsx
+  ✅ className="focus:ring-primary dark:focus:ring-primary"
+  ✅ className="bg-inputDarkMode dark:bg-inputDarkMode border-inputDarkModeBorder"
+  ```
+
+### Performance Optimization
+
+#### Class Organization
+- **Logical grouping**: Group related utilities together
+- **Avoid duplication**: Don't repeat the same utility
+- **Use component variants**: Extract common patterns
+  ```tsx
+  ✅ // Grouped by concern
+  className="
+    flex items-center justify-between
+    bg-body dark:bg-darkMode
+    border border-border dark:border-darkModeBorderColor
+    p-4 rounded-lg
+  "
+  
+  ❌ className="flex bg-body flex items-center border" // Poor organization
+  ```
+
+#### Utility Composition
+- **Compose utilities**: Build complex styles from simple utilities
+- **Component extraction**: Extract frequently used patterns
+- **Conditional classes**: Use conditional class application properly
+  ```tsx
+  ✅ const buttonClasses = cn(
+    "px-4 py-2 rounded-md font-medium transition-colors",
+    variant === 'primary' && "bg-primary text-white hover:bg-primary/90",
+    variant === 'secondary' && "border border-border bg-transparent",
+    disabled && "opacity-50 cursor-not-allowed"
+  );
+  
+  ❌ // Inline conditional styling
+  className={`px-4 py-2 ${variant === 'primary' ? 'bg-blue-500' : 'bg-gray-200'}`}
+  ```
+
+### Accessibility
+
+#### Focus States
+- **Visible focus indicators**: Ensure focus states are visible
+- **Consistent focus styling**: Use consistent focus patterns
+- **Keyboard navigation**: Support keyboard navigation
+  ```tsx
+  ✅ className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+  ✅ className="focus-visible:ring-2 focus-visible:ring-primary"
+  
+  ❌ className="focus:outline-none" // Without alternative focus indicator
+  ```
+
+#### Color Contrast
+- **Sufficient contrast**: Ensure adequate color contrast
+- **Text readability**: Maintain readable text in all states
+- **Interactive element clarity**: Make interactive elements obvious
+  ```tsx
+  ✅ className="text-gray-900 dark:text-darkModeLight"
+  ✅ className="bg-availableStatus text-white" // High contrast
+  
+  ❌ className="text-gray-400 bg-gray-300" // Poor contrast
+  ```
+
+## Exceptions
+- **Third-party component styling**: May require custom CSS
+- **Complex animations**: May need custom CSS or CSS-in-JS
+- **Legacy component migration**: Gradual migration acceptable
+- **Performance-critical sections**: May require optimized approaches
+
+## Enforcement
+- Tailwind CSS IntelliSense for IDE support
+- ESLint plugin for Tailwind CSS
+- Prettier plugin for class sorting
+- Design system documentation and examples
+
+## Resources
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [Tailwind CSS Best Practices](https://tailwindcss.com/docs/reusing-styles)
+- [Design System Tokens](tailwind.config.js)

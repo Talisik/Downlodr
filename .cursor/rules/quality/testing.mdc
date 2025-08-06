@@ -1,0 +1,448 @@
+---
+description: Testing standards and best practices for comprehensive quality assurance
+globs:
+  - 'src/**/*.{test,spec}.{ts,tsx}'
+  - 'tests/**/*.{ts,tsx}'
+  - '__tests__/**/*.{ts,tsx}'
+alwaysApply: true
+priority: medium
+tags: [testing, quality, reliability, coverage]
+version: 1.0
+lastUpdated: 2024-12-28
+---
+
+# Testing Standards
+
+## Objective
+Establish comprehensive testing practices that ensure code reliability, maintainability, and confidence in deployments for the Downlodr application.
+
+## Context
+- Desktop Electron application requiring multi-process testing
+- React frontend with complex state management
+- Plugin system requiring isolated testing
+- Cross-platform compatibility testing needs
+- Integration with external services (yt-dlp, ffmpeg)
+
+## Rules
+
+### Test Structure and Organization
+
+#### Test File Organization
+- **Co-location**: Place test files next to the code they test
+- **Naming convention**: Use `.test.ts` or `.spec.ts` extensions
+- **Test suites**: Group related tests logically
+  ```typescript
+  ✅ // File structure
+  src/
+    Components/
+      DownloadButton.tsx
+      DownloadButton.test.tsx
+    Store/
+      mainStore.tsx
+      mainStore.test.tsx
+    Utils/
+      stringHelpers.ts
+      stringHelpers.test.ts
+  
+  ✅ // Test file naming
+  DownloadButton.test.tsx
+  mainStore.spec.tsx
+  stringHelpers.unit.test.ts
+  
+  ❌ // Poor organization
+  tests/all-tests.js
+  test.js
+  ```
+
+#### Test Suite Structure
+- **Descriptive test names**: Use clear, descriptive test names
+- **Logical grouping**: Group tests using describe blocks
+- **Setup and teardown**: Use proper setup and cleanup
+  ```typescript
+  ✅ describe('DownloadButton', () => {
+    let component: RenderResult;
+    
+    beforeEach(() => {
+      component = render(<DownloadButton url="test-url" onDownload={jest.fn()} />);
+    });
+    
+    afterEach(() => {
+      cleanup();
+    });
+    
+    describe('when URL is provided', () => {
+      it('should render the download button', () => {
+        expect(component.getByRole('button')).toBeInTheDocument();
+      });
+      
+      it('should call onDownload when clicked', () => {
+        const onDownload = jest.fn();
+        component.rerender(<DownloadButton url="test-url" onDownload={onDownload} />);
+        
+        fireEvent.click(component.getByRole('button'));
+        expect(onDownload).toHaveBeenCalledWith('test-url');
+      });
+    });
+    
+    describe('when URL is empty', () => {
+      it('should disable the button', () => {
+        component.rerender(<DownloadButton url="" onDownload={jest.fn()} />);
+        expect(component.getByRole('button')).toBeDisabled();
+      });
+    });
+  });
+  
+  ❌ // Poor test structure
+  test('button works', () => {
+    // Unclear what is being tested
+  });
+  ```
+
+### Unit Testing
+
+#### Component Testing
+- **Render testing**: Test component rendering with different props
+- **Interaction testing**: Test user interactions
+- **State testing**: Test component state changes
+  ```typescript
+  ✅ import { render, fireEvent, screen, waitFor } from '@testing-library/react';
+  import { DownloadProgress } from './DownloadProgress';
+  
+  describe('DownloadProgress', () => {
+    const defaultProps = {
+      downloadId: 'test-id',
+      progress: 50,
+      speed: 1024,
+      eta: 30
+    };
+    
+    it('should display progress percentage', () => {
+      render(<DownloadProgress {...defaultProps} />);
+      expect(screen.getByText('50%')).toBeInTheDocument();
+    });
+    
+    it('should format download speed correctly', () => {
+      render(<DownloadProgress {...defaultProps} speed={1048576} />);
+      expect(screen.getByText('1.0 MB/s')).toBeInTheDocument();
+    });
+    
+    it('should update progress when props change', async () => {
+      const { rerender } = render(<DownloadProgress {...defaultProps} />);
+      
+      rerender(<DownloadProgress {...defaultProps} progress={75} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('75%')).toBeInTheDocument();
+      });
+    });
+  });
+  
+  ❌ // Incomplete testing
+  test('progress works', () => {
+    render(<DownloadProgress progress={50} />);
+    // Missing assertions
+  });
+  ```
+
+#### Store Testing
+- **State mutations**: Test state changes
+- **Action testing**: Test store actions
+- **Selector testing**: Test state selectors
+  ```typescript
+  ✅ import { renderHook, act } from '@testing-library/react-hooks';
+  import { useMainStore } from './mainStore';
+  
+  describe('mainStore', () => {
+    beforeEach(() => {
+      // Reset store state before each test
+      useMainStore.getState().reset?.();
+    });
+    
+    describe('updateSettings', () => {
+      it('should update download settings', () => {
+        const { result } = renderHook(() => useMainStore());
+        
+        act(() => {
+          result.current.updateSettings({
+            defaultLocation: '/new/path',
+            maxDownloadNum: 10
+          });
+        });
+        
+        expect(result.current.settings.defaultLocation).toBe('/new/path');
+        expect(result.current.settings.maxDownloadNum).toBe(10);
+      });
+      
+      it('should merge settings with existing values', () => {
+        const { result } = renderHook(() => useMainStore());
+        
+        act(() => {
+          result.current.updateSettings({ maxDownloadNum: 5 });
+        });
+        
+        // Other settings should remain unchanged
+        expect(result.current.settings.defaultLocation).toBeTruthy();
+        expect(result.current.settings.maxDownloadNum).toBe(5);
+      });
+    });
+  });
+  ```
+
+#### Utility Function Testing
+- **Input validation**: Test with various inputs
+- **Edge cases**: Test boundary conditions
+- **Error handling**: Test error scenarios
+  ```typescript
+  ✅ import { formatElapsedTime, validateUrl } from './stringHelpers';
+  
+  describe('formatElapsedTime', () => {
+    it('should format time correctly for different durations', () => {
+      expect(formatElapsedTime(0, 30)).toBe('30s');
+      expect(formatElapsedTime(0, 90)).toBe('1m 30s');
+      expect(formatElapsedTime(0, 3665)).toBe('1h 1m 5s');
+    });
+    
+    it('should handle zero duration', () => {
+      expect(formatElapsedTime(100, 100)).toBe('0s');
+    });
+    
+    it('should handle negative duration', () => {
+      expect(formatElapsedTime(200, 100)).toBe('0s');
+    });
+  });
+  
+  describe('validateUrl', () => {
+    it('should validate correct URLs', () => {
+      expect(validateUrl('https://youtube.com/watch?v=123')).toBe(true);
+      expect(validateUrl('http://example.com')).toBe(true);
+    });
+    
+    it('should reject invalid URLs', () => {
+      expect(validateUrl('not-a-url')).toBe(false);
+      expect(validateUrl('ftp://example.com')).toBe(false);
+      expect(validateUrl('')).toBe(false);
+    });
+  });
+  ```
+
+### Integration Testing
+
+#### API Integration Testing
+- **IPC communication**: Test main-renderer communication
+- **External services**: Test integration with yt-dlp and ffmpeg
+- **File system operations**: Test file operations
+  ```typescript
+  ✅ describe('Download Integration', () => {
+    let mockElectronAPI: jest.Mocked<ElectronAPI>;
+    
+    beforeEach(() => {
+      mockElectronAPI = {
+        downloadFile: jest.fn(),
+        getSettings: jest.fn(),
+        updateSettings: jest.fn()
+      };
+      
+      (window as any).electronAPI = mockElectronAPI;
+    });
+    
+    it('should start download through IPC', async () => {
+      const downloadResult = { id: 'test-id', status: 'started' };
+      mockElectronAPI.downloadFile.mockResolvedValue(downloadResult);
+      
+      const result = await window.electronAPI.downloadFile(
+        'https://youtube.com/watch?v=123',
+        '/downloads'
+      );
+      
+      expect(mockElectronAPI.downloadFile).toHaveBeenCalledWith(
+        'https://youtube.com/watch?v=123',
+        '/downloads'
+      );
+      expect(result).toEqual(downloadResult);
+    });
+  });
+  ```
+
+#### Plugin Integration Testing
+- **Plugin loading**: Test plugin loading and initialization
+- **API access**: Test plugin API usage
+- **Event system**: Test plugin event communication
+  ```typescript
+  ✅ describe('Plugin Integration', () => {
+    let mockPluginAPI: jest.Mocked<PluginAPI>;
+    let testPlugin: DownlodrPlugin;
+    
+    beforeEach(() => {
+      mockPluginAPI = createMockPluginAPI();
+      testPlugin = {
+        id: 'test-plugin',
+        name: 'Test Plugin',
+        version: '1.0.0',
+        description: 'Test plugin',
+        author: 'Test Author',
+        initialize: jest.fn(),
+        onUnload: jest.fn()
+      };
+    });
+    
+    it('should initialize plugin with API', async () => {
+      await testPlugin.initialize(mockPluginAPI);
+      
+      expect(testPlugin.initialize).toHaveBeenCalledWith(mockPluginAPI);
+    });
+    
+    it('should register download source through API', async () => {
+      const downloadSource = {
+        id: 'test-source',
+        name: 'Test Source',
+        matcher: (url: string) => url.includes('test.com'),
+        handler: jest.fn()
+      };
+      
+      await testPlugin.initialize(mockPluginAPI);
+      mockPluginAPI.downloads.registerDownloadSource(downloadSource);
+      
+      expect(mockPluginAPI.downloads.registerDownloadSource)
+        .toHaveBeenCalledWith(downloadSource);
+    });
+  });
+  ```
+
+### End-to-End Testing
+
+#### User Workflow Testing
+- **Complete workflows**: Test end-to-end user scenarios
+- **Cross-process testing**: Test main and renderer process interaction
+- **Real file operations**: Test with actual file system
+  ```typescript
+  ✅ describe('Download Workflow E2E', () => {
+    let app: Application;
+    
+    beforeAll(async () => {
+      app = new Application({
+        path: electronPath,
+        args: [path.join(__dirname, '../src/main.ts')],
+        env: { NODE_ENV: 'test' }
+      });
+      
+      await app.start();
+    });
+    
+    afterAll(async () => {
+      if (app && app.isRunning()) {
+        await app.stop();
+      }
+    });
+    
+    it('should complete download workflow', async () => {
+      // Navigate to download page
+      await app.client.click('[data-testid="add-download-button"]');
+      
+      // Enter URL
+      await app.client.setValue(
+        '[data-testid="url-input"]',
+        'https://youtube.com/watch?v=test'
+      );
+      
+      // Select destination
+      await app.client.click('[data-testid="browse-button"]');
+      // Handle file dialog...
+      
+      // Start download
+      await app.client.click('[data-testid="start-download-button"]');
+      
+      // Wait for download to appear in list
+      await app.client.waitForExist('[data-testid="download-item"]');
+      
+      // Verify download status
+      const status = await app.client.getText('[data-testid="download-status"]');
+      expect(status).toBe('Downloading');
+    });
+  });
+  ```
+
+### Performance Testing
+
+#### Component Performance
+- **Render performance**: Test component render times
+- **Memory usage**: Monitor memory consumption
+- **Re-render optimization**: Test memoization effectiveness
+  ```typescript
+  ✅ describe('DownloadList Performance', () => {
+    it('should render large lists efficiently', async () => {
+      const manyDownloads = Array.from({ length: 1000 }, (_, i) => ({
+        id: `download-${i}`,
+        name: `Download ${i}`,
+        status: 'completed' as const,
+        progress: 100
+      }));
+      
+      const startTime = performance.now();
+      render(<DownloadList downloads={manyDownloads} />);
+      const endTime = performance.now();
+      
+      expect(endTime - startTime).toBeLessThan(100); // Should render in < 100ms
+    });
+    
+    it('should not re-render unnecessarily', () => {
+      const renderSpy = jest.fn();
+      const TestComponent = () => {
+        renderSpy();
+        return <DownloadList downloads={[]} />;
+      };
+      
+      const { rerender } = render(<TestComponent />);
+      
+      // Re-render with same props
+      rerender(<TestComponent />);
+      
+      expect(renderSpy).toHaveBeenCalledTimes(1); // Should be memoized
+    });
+  });
+  ```
+
+### Test Coverage
+
+#### Coverage Requirements
+- **Minimum coverage**: Maintain minimum 80% code coverage
+- **Critical path coverage**: 100% coverage for critical paths
+- **Coverage reporting**: Generate and review coverage reports
+  ```json
+  ✅ // jest.config.js coverage configuration
+  {
+    "collectCoverage": true,
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "lcov", "html"],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      },
+      "./src/critical-path/": {
+        "branches": 100,
+        "functions": 100,
+        "lines": 100,
+        "statements": 100
+      }
+    }
+  }
+  ```
+
+## Exceptions
+- **Legacy code**: May have lower coverage during migration
+- **Third-party integrations**: May require mocked testing
+- **Platform-specific code**: May need conditional testing
+- **Development utilities**: May not require full coverage
+
+## Enforcement
+- Pre-commit hooks for test execution
+- CI/CD pipeline test gates
+- Coverage reporting and monitoring
+- Code review requirements for test coverage
+
+## Resources
+- [Jest Documentation](https://jestjs.io/docs/getting-started)
+- [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+- [Electron Testing Guide](https://www.electronjs.org/docs/latest/tutorial/automated-testing)

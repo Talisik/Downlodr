@@ -1,0 +1,367 @@
+---
+description: Electron-specific development standards and best practices
+globs:
+  - 'src/main.ts'
+  - 'src/preload.ts'
+  - 'forge.config.ts'
+  - 'vite.*.config.ts'
+alwaysApply: true
+priority: high
+tags: [electron, desktop, ipc, security]
+version: 1.0
+lastUpdated: 2024-12-28
+---
+
+# Electron Development Standards
+
+## Objective
+Establish secure, performant, and maintainable Electron application patterns that leverage desktop capabilities while maintaining security in the Downlodr application.
+
+## Context
+- Electron 33+ with security best practices
+- Multi-process architecture (main, renderer, preload)
+- Cross-platform desktop application (Windows, macOS, Linux)
+- File system access and native integrations
+- Plugin system requiring secure sandboxing
+
+## Rules
+
+### Application Architecture
+
+#### Process Separation
+- **Clear separation**: Maintain distinct responsibilities for each process
+- **Secure communication**: Use IPC for process communication
+- **Context isolation**: Always enable context isolation
+  ```typescript
+  ✅ // main.ts - Main process responsibilities
+  const mainWindow = new BrowserWindow({
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.js')
+    }
+  });
+  
+  ✅ // preload.ts - Secure API exposure
+  contextBridge.exposeInMainWorld('electronAPI', {
+    downloadFile: (url: string) => ipcRenderer.invoke('download-file', url)
+  });
+  
+  ❌ // renderer - Direct Node.js access
+  const fs = require('fs'); // Never do this
+  ```
+
+#### Window Management
+- **Consistent window configuration**: Use standard window settings
+- **Security headers**: Include proper security configurations
+- **Window state management**: Persist and restore window state
+  ```typescript
+  ✅ const createWindow = (): BrowserWindow => {
+    const mainWindow = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      minWidth: 800,
+      minHeight: 600,
+      icon: path.join(__dirname, '../Assets/AppLogo/256x256.ico'),
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+        sandbox: false // Only when necessary for file access
+      }
+    });
+    
+    return mainWindow;
+  };
+  
+  ❌ // Insecure window configuration
+  webPreferences: {
+    nodeIntegration: true, // Security risk
+    contextIsolation: false // Security risk
+  }
+  ```
+
+### Inter-Process Communication (IPC)
+
+#### IPC Channel Naming
+- **Descriptive names**: Use clear, descriptive channel names
+- **Consistent patterns**: Follow established naming conventions
+- **Namespace organization**: Group related channels
+  ```typescript
+  ✅ // Well-named channels
+  ipcMain.handle('download:start', handleDownloadStart);
+  ipcMain.handle('download:pause', handleDownloadPause);
+  ipcMain.handle('download:cancel', handleDownloadCancel);
+  ipcMain.handle('settings:get', getSettings);
+  ipcMain.handle('settings:update', updateSettings);
+  
+  ❌ // Poor naming
+  ipcMain.handle('do-something', handler);
+  ipcMain.handle('action1', handler);
+  ```
+
+#### IPC Security
+- **Input validation**: Always validate IPC inputs
+- **Permission checks**: Verify operations are authorized
+- **Error handling**: Proper error handling and reporting
+  ```typescript
+  ✅ ipcMain.handle('download:start', async (event, url: string, destination: string) => {
+    // Input validation
+    if (!url || typeof url !== 'string') {
+      throw new Error('Invalid URL provided');
+    }
+    
+    if (!isValidUrl(url)) {
+      throw new Error('URL format is invalid');
+    }
+    
+    // Permission check
+    if (!await canAccessPath(destination)) {
+      throw new Error('Access denied to destination path');
+    }
+    
+    try {
+      return await startDownload(url, destination);
+    } catch (error) {
+      console.error('Download failed:', error);
+      throw error;
+    }
+  });
+  
+  ❌ // No validation or error handling
+  ipcMain.handle('download', async (event, data) => {
+    return downloadFile(data.url, data.dest);
+  });
+  ```
+
+#### Type-Safe IPC
+- **TypeScript interfaces**: Define IPC method signatures
+- **Consistent return types**: Use consistent response patterns
+- **Promise-based**: Use async/await for IPC handlers
+  ```typescript
+  ✅ // Typed IPC definitions
+  interface ElectronAPI {
+    downloadFile: (url: string, destination: string) => Promise<DownloadResult>;
+    getSettings: () => Promise<DownloadSettings>;
+    updateSettings: (settings: Partial<DownloadSettings>) => Promise<void>;
+  }
+  
+  ✅ // Implementation
+  contextBridge.exposeInMainWorld('electronAPI', {
+    downloadFile: (url: string, destination: string): Promise<DownloadResult> =>
+      ipcRenderer.invoke('download:start', url, destination),
+    
+    getSettings: (): Promise<DownloadSettings> =>
+      ipcRenderer.invoke('settings:get'),
+  });
+  
+  ❌ // Untyped IPC
+  contextBridge.exposeInMainWorld('api', {
+    download: (...args) => ipcRenderer.invoke('download', args)
+  });
+  ```
+
+### File System Operations
+
+#### Path Handling
+- **Cross-platform paths**: Use path utilities for cross-platform compatibility
+- **Path validation**: Validate paths before file operations
+- **User directory access**: Use appropriate user directories
+  ```typescript
+  ✅ import path from 'path';
+  import { app } from 'electron';
+  
+  const defaultDownloadPath = path.join(app.getPath('downloads'), 'Downlodr');
+  const configPath = path.join(app.getPath('userData'), 'config.json');
+  
+  // Path validation
+  function isValidPath(filePath: string): boolean {
+    try {
+      return path.isAbsolute(path.resolve(filePath));
+    } catch {
+      return false;
+    }
+  }
+  
+  ❌ // Platform-specific paths
+  const downloadPath = 'C:\\Downloads\\Downlodr'; // Windows only
+  const configPath = '/Users/user/config.json'; // macOS only
+  ```
+
+#### File Operations
+- **Async operations**: Use async file operations
+- **Error handling**: Proper error handling for file operations
+- **Permission checks**: Verify file permissions before operations
+  ```typescript
+  ✅ import { promises as fs } from 'fs';
+  
+  async function saveConfig(config: Config): Promise<void> {
+    try {
+      const configPath = getConfigPath();
+      await fs.mkdir(path.dirname(configPath), { recursive: true });
+      await fs.writeFile(configPath, JSON.stringify(config, null, 2));
+    } catch (error) {
+      console.error('Failed to save config:', error);
+      throw new Error('Configuration save failed');
+    }
+  }
+  
+  ❌ // Synchronous operations
+  function saveConfig(config) {
+    fs.writeFileSync('/path/to/config.json', JSON.stringify(config));
+  }
+  ```
+
+### Native Integrations
+
+#### System Tray
+- **Consistent tray behavior**: Use standard tray patterns
+- **Context menus**: Provide useful context menu options
+- **Icon management**: Handle tray icon updates properly
+  ```typescript
+  ✅ function createSystemTray(): Tray {
+    const tray = new Tray(getTrayIconPath());
+    
+    const contextMenu = Menu.buildFromTemplate([
+      { label: 'Show Downlodr', click: () => showMainWindow() },
+      { type: 'separator' },
+      { label: 'Quit', click: () => app.quit() }
+    ]);
+    
+    tray.setContextMenu(contextMenu);
+    tray.setToolTip('Downlodr');
+    
+    return tray;
+  }
+  
+  ❌ // Minimal tray implementation
+  const tray = new Tray(icon);
+  ```
+
+#### Notifications
+- **User preferences**: Respect notification preferences
+- **Appropriate timing**: Send notifications at appropriate times
+- **Clear content**: Provide clear, actionable notification content
+  ```typescript
+  ✅ function showDownloadCompleteNotification(downloadName: string): void {
+    if (!settings.enableNotifications) return;
+    
+    new Notification({
+      title: 'Download Complete',
+      body: `${downloadName} has finished downloading`,
+      icon: path.join(__dirname, '../Assets/AppLogo/notif.png'),
+      silent: settings.silentNotifications
+    }).show();
+  }
+  
+  ❌ // No preference checking
+  new Notification('Done').show();
+  ```
+
+### Security Best Practices
+
+#### Content Security Policy
+- **Strict CSP**: Use restrictive content security policies
+- **No inline scripts**: Avoid inline scripts and styles
+- **Resource restrictions**: Limit resource loading
+  ```typescript
+  ✅ // In main window creation
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+        ]
+      }
+    });
+  });
+  
+  ❌ // No CSP or overly permissive
+  'Content-Security-Policy': ["default-src *; script-src *;"]
+  ```
+
+#### Plugin Security
+- **Sandboxed execution**: Execute plugins in controlled environments
+- **Permission model**: Implement permission-based access
+- **Code validation**: Validate plugin code before execution
+  ```typescript
+  ✅ async function loadPlugin(pluginPath: string): Promise<Plugin> {
+    // Validate plugin before loading
+    const isValid = await validatePlugin(pluginPath);
+    if (!isValid) {
+      throw new Error('Plugin validation failed');
+    }
+    
+    // Load in controlled context
+    return await executeInSandbox(pluginPath);
+  }
+  
+  ❌ // Direct plugin execution
+  require(pluginPath);
+  ```
+
+### Performance Optimization
+
+#### Memory Management
+- **Event listener cleanup**: Clean up event listeners
+- **Resource disposal**: Properly dispose of resources
+- **Memory monitoring**: Monitor memory usage
+  ```typescript
+  ✅ class DownloadManager {
+    private listeners: Array<() => void> = [];
+    
+    addListener(listener: () => void): void {
+      this.listeners.push(listener);
+    }
+    
+    cleanup(): void {
+      this.listeners.forEach(removeListener => removeListener());
+      this.listeners = [];
+    }
+  }
+  
+  ❌ // No cleanup
+  process.on('some-event', handler); // Memory leak potential
+  ```
+
+#### Background Processing
+- **Worker threads**: Use worker threads for CPU-intensive tasks
+- **Background limits**: Respect background processing settings
+- **Progress reporting**: Provide progress updates
+  ```typescript
+  ✅ import { Worker } from 'worker_threads';
+  
+  function processVideoInBackground(videoPath: string): Promise<ProcessedVideo> {
+    return new Promise((resolve, reject) => {
+      const worker = new Worker('./video-processor.js', {
+        workerData: { videoPath }
+      });
+      
+      worker.on('message', resolve);
+      worker.on('error', reject);
+    });
+  }
+  
+  ❌ // Blocking main thread
+  function processVideo(videoPath) {
+    // Heavy synchronous processing
+  }
+  ```
+
+## Exceptions
+- **Development environment**: Some security restrictions may be relaxed for development
+- **Legacy plugin support**: May require specific compatibility patterns
+- **Platform-specific features**: May need platform-specific implementations
+- **Performance-critical sections**: May require native modules
+
+## Enforcement
+- Electron security linting rules
+- Regular security audits
+- Performance monitoring
+- Code review for IPC implementations
+
+## Resources
+- [Electron Security Guidelines](https://www.electronjs.org/docs/latest/tutorial/security)
+- [Electron Best Practices](https://www.electronjs.org/docs/latest/tutorial/best-practices)
+- [Electron Forge Documentation](https://www.electronforge.io/)
