@@ -24,6 +24,14 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   const { theme } = useTheme();
   const [isMaximized, setIsMaximized] = React.useState<boolean>(false);
 
+  // Detect macOS platform in renderer
+  const isMacOS = React.useMemo(() => {
+    if (typeof navigator !== 'undefined') {
+      return /mac/i.test(navigator.platform);
+    }
+    return false;
+  }, []);
+
   // Get settings from store
   const { settings, isExitModalOpen, setIsExitModalOpen } = useMainStore();
   const runInBackgroundEnabled = settings.runInBackground;
@@ -68,44 +76,52 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   return (
     <>
       <div className={className}>
-        <div className="flex justify-between items-center h-full px-4 py-2">
-          {/* Title */}
-          <div className="text-sm flex-1 drag-area">
-            <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
+        {isMacOS ? (
+          // macOS native title bar - fully draggable with controls on right
+          <div className="flex items-center justify-between h-full px-6 drag-area">
+            {/* Left spacer for traffic lights */}
+            <div className="w-20" />
+
+            {/* Right controls */}
+            <div className="flex items-center space-x-3 no-drag">
+              <ModeToggle />
+              <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
+            </div>
           </div>
-
-          {/* Buttons */}
-          <div className="flex space-x-4 no-drag">
-            {/* Help Button */}
-
-            {/*Dark Mode/Light Mode */}
-            <ModeToggle />
-
-            {/* Minimize Button */}
-            <button
-              className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
-              onClick={() => window.downlodrFunctions.minimizeApp()}
-            >
-              <IoMdRemove size={16} />
-            </button>
-
-            {/* Maximize Button with dynamic icon */}
-            <button
-              className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
-              onClick={handleMaximizeRestore}
-            >
-              {isMaximized ? <PiBrowsers size={16} /> : <RxBox size={14} />}
-            </button>
-
-            {/* Close Button */}
-            <button
-              className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
-              onClick={handleCloseClick}
-            >
-              <IoMdClose size={16} />
-            </button>
+        ) : (
+          // Windows/Linux custom title bar
+          <div className="flex justify-between items-center h-full px-4 py-2">
+            {/* Title */}
+            <div className="text-sm flex-1 drag-area">
+              <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
+            </div>
+            {/* Buttons */}
+            <div className="flex space-x-4 no-drag">
+              <ModeToggle />
+              {/* Minimize Button */}
+              <button
+                className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
+                onClick={() => window.downlodrFunctions.minimizeApp()}
+              >
+                <IoMdRemove size={16} />
+              </button>
+              {/* Maximize Button with dynamic icon */}
+              <button
+                className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
+                onClick={handleMaximizeRestore}
+              >
+                {isMaximized ? <PiBrowsers size={16} /> : <RxBox size={14} />}
+              </button>
+              {/* Close Button */}
+              <button
+                className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
+                onClick={handleCloseClick}
+              >
+                <IoMdClose size={16} />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <ExitModal

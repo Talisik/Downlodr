@@ -5,29 +5,49 @@ import { VitePlugin } from '@electron-forge/plugin-vite';
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import MakerNSIS from '@felixrieseberg/electron-forge-maker-nsis';
+
 import fs from 'fs/promises';
 import path from 'path';
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: './src/Assets/AppLogo/256x256',
+    icon: './src/Assets/AppLogo/icon', // Will use icon.icns on macOS, icon.ico on Windows
     name: 'Downlodr',
     executableName: 'Downlodr',
-    extraResource: ['./src/Assets/AppLogo'],
+    extraResource: ['./src/Assets/AppLogo', './yt-dlp', './ffmpeg'],
+    // macOS specific settings for code signing and notarization
+    ...(process.platform === 'darwin' &&
+      process.env.APPLE_IDENTITY && {
+        osxSign: {
+          identity: process.env.APPLE_IDENTITY,
+          'hardened-runtime': true,
+          entitlements: path.join(__dirname, 'entitlements.plist'),
+          'entitlements-inherit': path.join(__dirname, 'entitlements.plist'),
+        } as any, // Type assertion to bypass TypeScript restrictions
+        // Temporarily disable notarization to test signing with bundled ffmpeg
+        // ...(process.env.APPLE_ID && {
+        //   osxNotarize: {
+        //     appleId: process.env.APPLE_ID,
+        //     appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD || '',
+        //     teamId: process.env.APPLE_TEAM_ID || '',
+        //   },
+        // }),
+      }),
   },
   rebuildConfig: {},
   makers: [
-    // macOS PKG installer
+    // macOS PKG installer - requires "Developer ID Installer" certificate (different from Application cert)
+    // If you get signing errors, you need both certificates from Apple Developer Portal
     new MakerPKG({
-      identity: null, // Set to null for development, add your Apple Developer ID for production
-      /*signing: {
-        identity: null, // Same as above
-        "entitlements": null,
-        "entitlements-inherit": null,
-        "gatekeeper-assess": false,
-      },*/
+      identity:
+        process.env.APPLE_INSTALLER_IDENTITY ||
+        process.env.APPLE_IDENTITY ||
+        null,
     }),
+
+    // macOS ZIP for distribution
+    new MakerZIP({}, ['darwin']),
 
     // Windows NSIS installer
     new MakerNSIS({
@@ -54,18 +74,23 @@ const config: ForgeConfig = {
     }),
 
     // Cross-platform ZIP packages
-    new MakerZIP({}, ['darwin', 'win32', 'linux']),
+    new MakerZIP({}, ['win32', 'linux']),
   ],
   hooks: {
     postPackage: async (forgeConfig, packageResult) => {
       for (const outputPath of packageResult.outputPaths) {
         try {
-          await fs.copyFile(
-            path.resolve(__dirname, 'yt-dlp.exe'),
-            path.join(outputPath, 'yt-dlp.exe'),
-          );
+          // Copy the appropriate yt-dlp binary based on platform
+          const binaryName =
+            process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+          const binaryPath = path.join(outputPath, binaryName);
+
+          await fs.copyFile(path.resolve(__dirname, binaryName), binaryPath);
+
+          // Note: yt-dlp binary will be automatically signed by the main app signing process
+          console.log(`✅ Copied ${binaryName} to ${binaryPath}`);
         } catch (error) {
-          console.error(`Failed to copy yt-dlp for ${outputPath}:`, error);
+          console.error(`Failed to process yt-dlp for ${outputPath}:`, error);
         }
       }
     },
@@ -91,15 +116,20 @@ const config: ForgeConfig = {
         },
       ],
     }),
-    new FusesPlugin({
-      version: FuseVersion.V1,
-      [FuseV1Options.RunAsNode]: false,
-      [FuseV1Options.EnableCookieEncryption]: true,
-      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
-      [FuseV1Options.EnableNodeCliInspectArguments]: false,
-      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-      [FuseV1Options.OnlyLoadAppFromAsar]: true,
-    }),
+    // Disable Fuses plugin when code signing is enabled to avoid conflicts
+    ...(!process.env.APPLE_IDENTITY
+      ? [
+          new FusesPlugin({
+            version: FuseVersion.V1,
+            [FuseV1Options.RunAsNode]: false,
+            [FuseV1Options.EnableCookieEncryption]: true,
+            [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
+            [FuseV1Options.EnableNodeCliInspectArguments]: false,
+            [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+            [FuseV1Options.OnlyLoadAppFromAsar]: true,
+          }),
+        ]
+      : []),
   ],
 };
 

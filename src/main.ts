@@ -28,6 +28,48 @@ import { checkForUpdates } from './DataFunctions/updateChecker';
 import { PluginManager } from './plugins/pluginManager';
 import { pluginRegistry } from './plugins/registry';
 
+// Configure yt-dlp binary path for packaged app
+function getYtdlpBinaryPath(): string {
+  if (app.isPackaged) {
+    // In packaged app, yt-dlp is in Resources directory
+    return path.join(process.resourcesPath, 'yt-dlp');
+  } else {
+    // In development, use the binary in the project root
+    // __dirname points to .vite/build, so we need to go up two levels
+    const binaryPath = path.join(__dirname, '..', '..', 'yt-dlp');
+    console.log('Development mode yt-dlp path calculation:');
+    console.log('  __dirname:', __dirname);
+    console.log('  Calculated path:', binaryPath);
+    console.log('  Binary exists:', require('fs').existsSync(binaryPath));
+    return binaryPath;
+  }
+}
+
+// Configure ffmpeg binary path and ensure it's in PATH
+function setupFfmpegPath(): void {
+  let ffmpegPath: string;
+  
+  if (app.isPackaged) {
+    // In packaged app, ffmpeg is in Resources directory
+    ffmpegPath = path.join(process.resourcesPath, 'ffmpeg');
+  } else {
+    // In development, use the binary in the project root
+    ffmpegPath = path.join(__dirname, '..', '..', 'ffmpeg');
+  }
+  
+  if (require('fs').existsSync(ffmpegPath)) {
+    // Add the directory containing ffmpeg to PATH
+    const ffmpegDir = path.dirname(ffmpegPath);
+    const currentPath = process.env.PATH || '';
+    if (!currentPath.includes(ffmpegDir)) {
+      process.env.PATH = ffmpegDir + path.delimiter + currentPath;
+      console.log('Added ffmpeg to PATH:', ffmpegDir);
+    }
+  } else {
+    console.warn('Static ffmpeg binary not found at:', ffmpegPath);
+  }
+}
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
@@ -89,12 +131,10 @@ function getCachedVersion(): string | null {
 */
 // Function to create the main application window
 const createWindow = () => {
-  // Create the browser window.
-  mainWindow = new BrowserWindow({
+  // Platform-specific window configuration
+  const windowConfig: Electron.BrowserWindowConstructorOptions = {
     width: 1350,
     height: 680,
-    frame: false,
-    autoHideMenuBar: true,
     minWidth: 1000,
     minHeight: 600,
     webPreferences: {
@@ -104,7 +144,26 @@ const createWindow = () => {
       nodeIntegration: true,
       // devTools: false,
     },
-  });
+  };
+
+  // Configure title bar based on platform
+  if (process.platform === 'darwin') {
+    // macOS: Use native title bar with traffic light buttons
+    windowConfig.frame = true;
+    windowConfig.titleBarStyle = 'hidden';
+    windowConfig.trafficLightPosition = { x: 10, y: 10 };
+    windowConfig.title = 'Downlodr';
+    windowConfig.transparent = false;
+    windowConfig.vibrancy = 'titlebar';
+    windowConfig.visualEffectState = 'active';
+  } else {
+    // Windows/Linux: Keep custom frame
+    windowConfig.frame = false;
+    windowConfig.autoHideMenuBar = true;
+  }
+
+  // Create the browser window.
+  mainWindow = new BrowserWindow(windowConfig);
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -186,27 +245,37 @@ const createTray = () => {
     // Development mode paths
     iconPath = path.join(
       process.cwd(),
-      'src/Assets/AppLogo/systemTray/systemTray.png',
+      'src/Assets/AppLogo/systemTray/logo/systemIcon.png',
     );
     alertIconPath = path.join(
       process.cwd(),
-      'src/Assets/AppLogo/systemTray/systemNotif.png',
+      'src/Assets/AppLogo/systemTray/logo/systemNotif.png',
     );
   } else {
     // Production mode paths
     iconPath = path.join(
       process.resourcesPath,
-      'AppLogo/systemTray/systemTray.png', // "C:\Users\Mikaela\Desktop\Development\codebase\Electron\v2\Electron\ui_downlodr_v2\src\Assets\AppLogo\systemTray\systemIcon.svg"
+      'AppLogo/systemTray/logo/systemIcon.png',
     );
     alertIconPath = path.join(
       process.resourcesPath,
-      'AppLogo/systemTray/systemNotif.png',
+      'AppLogo/systemTray/logo/systemNotif.png',
     );
   }
 
-  // Create both icons upfront
+  // Create both icons with proper sizing for macOS
   normalTrayIcon = nativeImage.createFromPath(iconPath);
   alertTrayIcon = nativeImage.createFromPath(alertIconPath);
+
+  // Resize icons for macOS tray (16x16 points with 2x scale for Retina)
+  if (process.platform === 'darwin') {
+    normalTrayIcon = normalTrayIcon.resize({ width: 16, height: 16 });
+    alertTrayIcon = alertTrayIcon.resize({ width: 16, height: 16 });
+
+    // Set template image for macOS (enables dark mode adaptation)
+    normalTrayIcon.setTemplateImage(true);
+    alertTrayIcon.setTemplateImage(true);
+  }
 
   // Initialize with normal icon
   tray = new Tray(normalTrayIcon);
@@ -216,11 +285,36 @@ const createTray = () => {
       label: 'Show Downlodr',
       click: () => {
         if (mainWindow) {
+          if (mainWindow.isMinimized()) mainWindow.restore();
           mainWindow.show();
+          mainWindow.focus();
           resetTrayIcon(); // Reset icon when showing app
+
+          // On macOS, bring app to front
+          if (process.platform === 'darwin') {
+            app.dock.show();
+          }
         }
       },
     },
+    {
+      label: 'New Download',
+      click: () => {
+        if (mainWindow) {
+          if (mainWindow.isMinimized()) mainWindow.restore();
+          mainWindow.show();
+          mainWindow.focus();
+
+          // Focus on the download input
+          mainWindow.webContents.send('focus-download-input');
+
+          if (process.platform === 'darwin') {
+            app.dock.show();
+          }
+        }
+      },
+    },
+    { type: 'separator' },
     {
       label: 'Check for Updates',
       click: async () => {
@@ -230,9 +324,27 @@ const createTray = () => {
         }
       },
     },
+    {
+      label: 'Settings',
+      click: () => {
+        if (mainWindow) {
+          if (mainWindow.isMinimized()) mainWindow.restore();
+          mainWindow.show();
+          mainWindow.focus();
+
+          // Open settings modal
+          mainWindow.webContents.send('open-settings-modal');
+
+          if (process.platform === 'darwin') {
+            app.dock.show();
+          }
+        }
+      },
+    },
     { type: 'separator' },
     {
-      label: 'Quit',
+      label: 'Quit Downlodr',
+      accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
       click: () => {
         forceQuit = true;
         // Set to BLANK_STATE before quitting
@@ -242,16 +354,32 @@ const createTray = () => {
     },
   ]);
 
-  tray.setToolTip('Downlodr');
+  tray.setToolTip('Downlodr - Download Manager');
   tray.setContextMenu(contextMenu);
 
-  // Double click on tray icon shows the app and resets the icon
-  tray.on('double-click', () => {
-    if (mainWindow) {
-      mainWindow.show();
-      resetTrayIcon();
-    }
-  });
+  // Handle tray icon click behavior (different per platform)
+  if (process.platform === 'darwin') {
+    // macOS: Single click shows context menu, double click shows app
+    tray.on('double-click', () => {
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.show();
+        mainWindow.focus();
+        resetTrayIcon();
+        app.dock.show();
+      }
+    });
+  } else {
+    // Windows/Linux: Single click shows app
+    tray.on('click', () => {
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.show();
+        mainWindow.focus();
+        resetTrayIcon();
+      }
+    });
+  }
 };
 
 // set the alert icon
@@ -465,10 +593,14 @@ ipcMain.handle('normalizePath', async (event, filepath) => {
 // get the playlist information
 ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
   try {
+    const ytdlpPath = getYtdlpBinaryPath();
+    console.log('Using yt-dlp binary for playlist at:', ytdlpPath);
+    console.log('Playlist binary exists:', require('fs').existsSync(ytdlpPath));
+    
     const info = await YTDLP.getPlaylistInfo({
       url: videoUrl.url,
-      //ytdlpDownloadDestination: os.tmpdir(),
-      // ffmpegDownloadDestination: os.tmpdir(),
+      ytdlpDownloadDestination: ytdlpPath,
+      downloadBinary: { ytdlp: false, ffmpeg: true } // Enable ffmpeg for playlist info
     });
     return info;
   } catch (error) {
@@ -481,9 +613,28 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
 ipcMain.handle('ytdlp:info', async (e, url) => {
   YTDLP.Config.log = true;
   try {
-    const info = await YTDLP.getInfo(url);
+    const ytdlpPath = getYtdlpBinaryPath();
+    console.log('Using yt-dlp binary at:', ytdlpPath);
+    console.log('Binary exists:', require('fs').existsSync(ytdlpPath));
+    
+    // Use invoke instead of getInfo to specify binary path
+    const result = await YTDLP.invoke({
+      args: [url, "--no-warnings", "--dump-json"],
+      ytdlpDownloadDestination: ytdlpPath,
+      downloadBinary: { ytdlp: false, ffmpeg: true } // Enable ffmpeg for info extraction
+    });
+    
+    if (!result.ok) {
+      throw new Error('Failed to get video info');
+    }
+    
+    const info = {
+      ok: true,
+      data: JSON.parse(result.data || "")
+    };
+    
     if (!info) {
-      throw new Error('No info returned from YTDLP.getInfo');
+      throw new Error('No info returned from yt-dlp');
     }
     return info;
   } catch (error) {
@@ -755,6 +906,10 @@ ipcMain.handle('kill-controller', async (_, id) => {
 // download video from link
 ipcMain.handle('ytdlp:download', async (e, id, args) => {
   try {
+    const ytdlpPath = getYtdlpBinaryPath();
+    console.log('Using yt-dlp binary for download at:', ytdlpPath);
+    console.log('Download binary exists:', require('fs').existsSync(ytdlpPath));
+    
     const controller = await YTDLP.download({
       // args needed for download
       args: {
@@ -766,6 +921,8 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
         audioQuality: args.audioFormatId,
         limitRate: args.limitRate,
       },
+      ytdlpDownloadDestination: ytdlpPath,
+      downloadBinary: { ytdlp: false, ffmpeg: true } // Enable ffmpeg for remuxing
     });
 
     if (!controller || typeof controller.listen !== 'function') {
@@ -1013,6 +1170,15 @@ app.on('ready', async () => {
   createWindow();
   createTray();
   updateCloseHandler();
+  
+  // Setup ffmpeg path for yt-dlp merging
+  setupFfmpegPath();
+  
+  // Test yt-dlp path on startup
+  console.log('=== YT-DLP PATH TEST ===');
+  const testPath = getYtdlpBinaryPath();
+  console.log('Resolved yt-dlp path:', testPath);
+  console.log('=== END PATH TEST ===');
 
   // Start clipboard monitoring
   // Don't start automatically - let the renderer control it
