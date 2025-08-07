@@ -1,4 +1,4 @@
-# Downlodr Installation Guide
+# Downlodr macOS Installation Guide
 
 ## 🎯 Choose Your Mac Type
 
@@ -23,7 +23,7 @@
 
 🥇 **Method 1 (Recommended - Right-click bypass):**
 1. Click **Cancel** on the error dialog
-2. **Right-click** on Downlodr app in the DMG  
+2. **Right-click** on Downlodr app in Applications (or in the DMG)
 3. Select **Open** from context menu
 4. Click **Open** when macOS asks for confirmation
 5. ✅ The app will launch and be trusted forever
@@ -32,10 +32,19 @@
 1. Click **Cancel** on the error dialog
 2. Open **Terminal** and run:
    ```bash
-   sudo xattr -r -d com.apple.quarantine "/Volumes/Install Downlodr/Downlodr.app"
+   sudo xattr -r -d com.apple.quarantine /Applications/Downlodr.app
    ```
 3. Enter your password when prompted
-4. Now drag the app to Applications - it will work!
+4. Launch Downlodr normally
+
+🥉 **Method 3 (Use Our Script - Automated):**
+1. Download `remove_quarantine.sh` 
+2. Open Terminal in the download folder
+3. Run:
+   ```bash
+   chmod +x remove_quarantine.sh
+   ./remove_quarantine.sh
+   ```
 
 **Why this happens:** macOS applies quarantine attributes to downloaded files as a security measure. This is normal for all apps downloaded from the internet.
 
@@ -78,9 +87,24 @@ sudo xattr -r -d com.apple.quarantine /Applications/Downlodr.app
 2. Click **"Open Anyway"** next to Downlodr message
 3. Or use **right-click → Open** method above
 
+### "App is damaged" persists
+- Try Method 2 (Terminal command) even after right-click open
+- Ensure you downloaded from official source
+- Re-download if file might be corrupted
+
+### Permission denied errors
+- Ensure you have administrator privileges
+- Try running terminal commands with `sudo`
+
 ### Still having issues?
 - Try the **ZIP archive method**
 - Contact support with your macOS version
+
+## System Requirements
+
+- **macOS 10.15** (Catalina) or later
+- **Apple Silicon** or **Intel** processor
+- **100MB** free disk space
 
 ## ✅ What's Included
 

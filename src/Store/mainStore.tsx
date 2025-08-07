@@ -24,6 +24,19 @@ interface DownloadSettings {
   runInBackground: boolean;
   enableClipboardMonitoring: boolean; // Whether to monitor clipboard for links
   exitModal: boolean; // Whether to show exit modal when closing
+  notificationPreferences: {
+    downloadComplete: boolean;
+    downloadFailed: boolean;
+    conversionComplete: boolean;
+    batchComplete: boolean;
+    appUpdates: boolean;
+    soundEnabled: boolean;
+  };
+  dockBadgePreferences: {
+    showBadge: boolean;
+    includeConversions: boolean;
+    includePausedDownloads: boolean;
+  };
 }
 
 // Interface for selected downloads
@@ -65,6 +78,12 @@ interface MainStore {
   setVisibleColumns: (columns: string[]) => void;
   updateRunInBackground: (value: boolean) => void;
   updateEnableClipboardMonitoring: (value: boolean) => void;
+  updateNotificationPreferences: (
+    preferences: Partial<DownloadSettings['notificationPreferences']>,
+  ) => void;
+  updateDockBadgePreferences: (
+    preferences: Partial<DownloadSettings['dockBadgePreferences']>,
+  ) => void;
   taskBarButtonsVisibility: TaskBarButtonsVisibility; // State for task bar buttons visibility
   setTaskBarButtonsVisibility: (
     visibility: Partial<TaskBarButtonsVisibility>,
@@ -111,6 +130,19 @@ const migrateMainStore = (persistedState: unknown, version: number) => {
         maxDownloadNum: 5,
         runInBackground: false,
         enableClipboardMonitoring: false,
+        notificationPreferences: {
+          downloadComplete: true,
+          downloadFailed: true,
+          conversionComplete: true,
+          batchComplete: true,
+          appUpdates: true,
+          soundEnabled: true,
+        },
+        dockBadgePreferences: {
+          showBadge: true,
+          includeConversions: true,
+          includePausedDownloads: false,
+        },
       },
       selectedDownloads: [] as SelectedDownload[],
       isDownloadModalOpen: false,
@@ -210,6 +242,19 @@ export const useMainStore = create<MainStore>()(
         maxDownloadNum: 5,
         runInBackground: false,
         enableClipboardMonitoring: false,
+        notificationPreferences: {
+          downloadComplete: true,
+          downloadFailed: true,
+          conversionComplete: true,
+          batchComplete: true,
+          appUpdates: true,
+          soundEnabled: true,
+        },
+        dockBadgePreferences: {
+          showBadge: true,
+          includeConversions: true,
+          includePausedDownloads: false,
+        },
       },
       selectedDownloads: [] as SelectedDownload[],
       isDownloadModalOpen: false,
@@ -262,6 +307,28 @@ export const useMainStore = create<MainStore>()(
       updateEnableClipboardMonitoring: (value) =>
         set({
           settings: { ...get().settings, enableClipboardMonitoring: value },
+        }),
+
+      updateNotificationPreferences: (preferences) =>
+        set({
+          settings: {
+            ...get().settings,
+            notificationPreferences: {
+              ...get().settings.notificationPreferences,
+              ...preferences,
+            },
+          },
+        }),
+
+      updateDockBadgePreferences: (preferences) =>
+        set({
+          settings: {
+            ...get().settings,
+            dockBadgePreferences: {
+              ...get().settings.dockBadgePreferences,
+              ...preferences,
+            },
+          },
         }),
 
       selectedRows: [] as string[],
