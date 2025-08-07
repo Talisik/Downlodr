@@ -122,3 +122,6 @@ typings/
 
 # Electron-Forge
 out/
+ffmpeg
+yt-dlp
+*.exe
