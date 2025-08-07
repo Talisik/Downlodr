@@ -32,6 +32,10 @@ import { PluginLoader } from './plugins/PluginLoader';
 import FormatSelectorManager from './plugins/components/FormatSelectorManager';
 import PluginModalManager from './plugins/components/PluginModalManager';
 import PluginSidePanelManager from './plugins/components/PluginSidePanelManager';
+import SystemTrayHandler from './Components/SubComponents/custom/SystemTrayHandler';
+import ActivityMonitor from './Components/SubComponents/custom/ActivityMonitor';
+import NotificationManager from './Components/SubComponents/custom/NotificationManager';
+import { testNotifications } from './Utils/testNotifications';
 
 const App = () => {
   const { settings } = useMainStore();
@@ -45,6 +49,14 @@ const App = () => {
         .catch((err) =>
           console.error('Failed to sync background setting:', err),
         );
+    }
+
+    // Initialize test utilities for development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📱 Notification system loaded! Test with:');
+      console.log('• window.testNotifications.testAll() - Test all features');
+      console.log('• window.testNotifications.testDownloadComplete() - Test download notification');
+      console.log('• window.testNotifications.testDockBadge() - Test dock badge');
     }
   }, [settings.runInBackground]);
 
@@ -77,6 +89,9 @@ const App = () => {
       <FormatSelectorManager />
       <PluginSidePanelManager />
       <PluginModalManager />
+      <SystemTrayHandler />
+      <ActivityMonitor />
+      <NotificationManager />
     </ThemeProvider>
   );
 };
