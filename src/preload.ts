@@ -274,6 +274,30 @@ contextBridge.exposeInMainWorld('updateAPI', {
     return () =>
       ipcRenderer.removeListener('update-available', wrappedCallback);
   },
+  onUpdateCheckStarted: (callback: any) => {
+    const wrappedCallback = (_: any) => callback();
+    ipcRenderer.on('update-check-started', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('update-check-started', wrappedCallback);
+  },
+  onUpdateCheckCompleted: (callback: any) => {
+    const wrappedCallback = (_: any, updateInfo: any) => callback(updateInfo);
+    ipcRenderer.on('update-check-completed', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('update-check-completed', wrappedCallback);
+  },
+  onUpdateCheckError: (callback: any) => {
+    const wrappedCallback = (_: any, error: any) => callback(error);
+    ipcRenderer.on('update-check-error', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('update-check-error', wrappedCallback);
+  },
+  onOpenSettingsModal: (callback: any) => {
+    const wrappedCallback = (_: any) => callback();
+    ipcRenderer.on('open-settings-modal', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('open-settings-modal', wrappedCallback);
+  },
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   getCurrentVersion: () => ipcRenderer.invoke('get-current-version'),
 });
@@ -307,6 +331,12 @@ contextBridge.exposeInMainWorld('appControl', {
   isWindowFocused: () => ipcRenderer.invoke('is-window-focused'),
   clearLastClipboardText: () => ipcRenderer.invoke('clear-last-clipboard-text'),
   clearClipboard: () => ipcRenderer.invoke('clear-clipboard'),
+});
+
+// Activity indicator controls
+contextBridge.exposeInMainWorld('activityIndicator', {
+  start: () => ipcRenderer.invoke('start-activity-indicator'),
+  stop: () => ipcRenderer.invoke('stop-activity-indicator'),
 });
 
 // Change this from a separate exposure to include both functions
@@ -394,4 +424,27 @@ contextBridge.exposeInMainWorld('plugins', {
 
   // Close plugin panel
   closePluginPanel: () => ipcRenderer.invoke('plugins:close-panel'),
+});
+
+// Notification API exposure
+contextBridge.exposeInMainWorld('notificationAPI', {
+  showNotification: (config: {
+    title: string;
+    body: string;
+    icon?: string;
+    actions?: Array<{ action: string; title: string }>;
+  }) => ipcRenderer.invoke('notification:show', config),
+  
+  requestPermissions: () => ipcRenderer.invoke('notification:request-permissions'),
+  
+  hasPermissions: () => ipcRenderer.invoke('notification:has-permissions'),
+});
+
+// Dock Badge API exposure
+contextBridge.exposeInMainWorld('dockBadgeAPI', {
+  setBadgeCount: (count: number) => ipcRenderer.invoke('dock-badge:set-count', count),
+  
+  getBadgeCount: () => ipcRenderer.invoke('dock-badge:get-count'),
+  
+  clearBadge: () => ipcRenderer.invoke('dock-badge:clear'),
 });

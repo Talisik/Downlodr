@@ -92,6 +92,12 @@ declare global {
       onUpdateAvailable: (
         callback: (updateInfo: UpdateInfo) => void,
       ) => () => void;
+      onUpdateCheckStarted: (callback: () => void) => () => void;
+      onUpdateCheckCompleted: (
+        callback: (updateInfo: UpdateInfo) => void,
+      ) => () => void;
+      onUpdateCheckError: (callback: (error: any) => void) => () => void;
+      onOpenSettingsModal: (callback: () => void) => () => void;
       checkForUpdates: () => Promise<UpdateInfo>;
       getCurrentVersion: () => Promise<string>; // Gets current app version without GitHub API call
     };
@@ -173,6 +179,30 @@ declare global {
       clearLastClipboardText: () => Promise<void>;
       clearClipboard: () => Promise<boolean>;
       isWindowFocused: () => Promise<boolean>;
+    };
+    activityIndicator: {
+      start: () => Promise<boolean>;
+      stop: () => Promise<boolean>;
+    };
+    notificationAPI?: {
+      showNotification: (config: {
+        title: string;
+        body: string;
+        icon?: string;
+        actions?: Array<{ action: string; title: string }>;
+      }) => Promise<{
+        title: string;
+        body: string;
+        icon?: string;
+        onclick?: (event: Event) => void;
+      }>;
+      requestPermissions: () => Promise<boolean>;
+      hasPermissions: () => Promise<boolean>;
+    };
+    dockBadgeAPI?: {
+      setBadgeCount: (count: number) => Promise<void>;
+      getBadgeCount: () => Promise<number>;
+      clearBadge: () => Promise<void>;
     };
     
   }

@@ -126,7 +126,11 @@ let pluginManager: PluginManager;
 
 let normalTrayIcon: Electron.NativeImage;
 let alertTrayIcon: Electron.NativeImage;
+let activityTrayIcon: Electron.NativeImage;
 let isDownloadComplete = false;
+let activityBlinkTimer: NodeJS.Timeout | null = null;
+let isActivityActive = false;
+let isBlinkOn = false;
 
 /*
 // Rate limiting for GitHub API calls
@@ -260,6 +264,59 @@ const createWindow = () => {
   });
 };
 
+
+
+// Function to start activity indicator (blinking green dot)
+function startActivityIndicator() {
+  if (isActivityActive || !tray || !activityTrayIcon || !normalTrayIcon) {
+    return;
+  }
+
+  isActivityActive = true;
+  isBlinkOn = false;
+
+  // Set initial activity icon
+  tray.setImage(activityTrayIcon);
+  tray.setToolTip('Downlodr - Download in progress');
+
+  // Start blinking timer (blink every 800ms)
+  activityBlinkTimer = setInterval(() => {
+    if (!tray || !isActivityActive) {
+      return;
+    }
+
+    if (isBlinkOn) {
+      tray.setImage(normalTrayIcon);
+      isBlinkOn = false;
+    } else {
+      tray.setImage(activityTrayIcon);
+      isBlinkOn = true;
+    }
+  }, 800);
+}
+
+// Function to stop activity indicator
+function stopActivityIndicator() {
+  if (!isActivityActive) {
+    return;
+  }
+
+  isActivityActive = false;
+  isBlinkOn = false;
+
+  // Clear the blinking timer
+  if (activityBlinkTimer) {
+    clearInterval(activityBlinkTimer);
+    activityBlinkTimer = null;
+  }
+
+  // Reset to normal icon
+  if (tray && normalTrayIcon) {
+    tray.setImage(normalTrayIcon);
+    tray.setToolTip('Downlodr');
+  }
+}
+
 const createTray = () => {
   // Get correct path based on whether in dev or production
   let iconPath, alertIconPath;
@@ -289,15 +346,20 @@ const createTray = () => {
   // Create both icons with proper sizing for macOS
   normalTrayIcon = nativeImage.createFromPath(iconPath);
   alertTrayIcon = nativeImage.createFromPath(alertIconPath);
+  
+  // Use alert icon as activity icon for simplicity
+  activityTrayIcon = alertTrayIcon;
 
   // Resize icons for macOS tray (16x16 points with 2x scale for Retina)
   if (process.platform === 'darwin') {
     normalTrayIcon = normalTrayIcon.resize({ width: 16, height: 16 });
     alertTrayIcon = alertTrayIcon.resize({ width: 16, height: 16 });
+    activityTrayIcon = activityTrayIcon.resize({ width: 16, height: 16 });
 
     // Set template image for macOS (enables dark mode adaptation)
     normalTrayIcon.setTemplateImage(true);
     alertTrayIcon.setTemplateImage(true);
+    // Don't set activity icon as template to preserve green color
   }
 
   // Initialize with normal icon
@@ -320,30 +382,32 @@ const createTray = () => {
         }
       },
     },
-    {
-      label: 'New Download',
-      click: () => {
-        if (mainWindow) {
-          if (mainWindow.isMinimized()) mainWindow.restore();
-          mainWindow.show();
-          mainWindow.focus();
 
-          // Focus on the download input
-          mainWindow.webContents.send('focus-download-input');
-
-          if (process.platform === 'darwin') {
-            app.dock.show();
-          }
-        }
-      },
-    },
     { type: 'separator' },
     {
       label: 'Check for Updates',
       click: async () => {
-        const updateInfo = await checkForUpdates();
-        if (updateInfo.hasUpdate && mainWindow) {
-          mainWindow.webContents.send('update-available', updateInfo);
+        if (mainWindow) {
+          // Show the window first to ensure toast notifications are visible
+          if (mainWindow.isMinimized()) mainWindow.restore();
+          mainWindow.show();
+          mainWindow.focus();
+
+          if (process.platform === 'darwin') {
+            app.dock.show();
+          }
+
+          // Send checking message to renderer
+          mainWindow.webContents.send('update-check-started');
+          
+          try {
+            const updateInfo = await checkForUpdates();
+            // Send update result to renderer for proper toast handling
+            mainWindow.webContents.send('update-check-completed', updateInfo);
+          } catch (error) {
+            // Send error to renderer for error toast
+            mainWindow.webContents.send('update-check-error', error);
+          }
         }
       },
     },
@@ -1452,6 +1516,17 @@ ipcMain.handle('check-for-updates', async () => {
   return updateInfo;
 });
 
+// Activity indicator controls
+ipcMain.handle('start-activity-indicator', async () => {
+  startActivityIndicator();
+  return true;
+});
+
+ipcMain.handle('stop-activity-indicator', async () => {
+  stopActivityIndicator();
+  return true;
+});
+
 // function for showing window by opening it
 ipcMain.handle('show-window', () => {
   if (mainWindow) {
@@ -1524,9 +1599,11 @@ ipcMain.handle('sync-background-setting-on-startup', (_event, value) => {
 
 // function for update the download-finished handler to also change the tray icon
 ipcMain.on('download-finished', (_event, downloadInfo) => {
-  const { name } = downloadInfo;
+  const { name, location } = downloadInfo;
 
-  // Show notification
+  // Show notification using new system (will respect user preferences)
+  // The NotificationManager component will handle this automatically
+  // but we'll also maintain backward compatibility with the legacy system
   showNotification(
     'Download Complete',
     `"${name}" has finished downloading`,
@@ -1562,6 +1639,131 @@ function showNotification(title: string, body: string, onClick?: () => void) {
   }
   notification.show();
 }
+
+// Enhanced notification system with native macOS support
+let notificationPermissionGranted = false;
+
+// Check for notification permissions
+async function checkNotificationPermissions(): Promise<boolean> {
+  if (!Notification.isSupported()) {
+    return false;
+  }
+  
+  // On macOS, Electron handles permissions automatically for bundled apps
+  notificationPermissionGranted = true;
+  return true;
+}
+
+// Native notification handler
+ipcMain.handle('notification:show', async (_event, config: {
+  title: string;
+  body: string;
+  icon?: string;
+  actions?: Array<{ action: string; title: string }>;
+}) => {
+  try {
+    if (!Notification.isSupported() || !notificationPermissionGranted) {
+      console.warn('Notifications not supported or permission not granted');
+      return null;
+    }
+
+    const notification = new Notification({
+      title: config.title,
+      body: config.body,
+      icon: config.icon || normalTrayIcon,
+      sound: 'default', // macOS system sound
+      urgency: 'normal' as const
+    });
+
+    // Handle notification click to show app window
+    notification.on('click', () => {
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) {
+          mainWindow.restore();
+        }
+        mainWindow.show();
+        mainWindow.focus();
+        
+        // Reset tray icon when app is shown via notification
+        resetTrayIcon();
+      }
+    });
+
+    // Show the notification
+    notification.show();
+
+    return {
+      title: config.title,
+      body: config.body,
+      icon: config.icon
+    };
+  } catch (error) {
+    console.error('Failed to show notification:', error);
+    return null;
+  }
+});
+
+// Request notification permissions
+ipcMain.handle('notification:request-permissions', async () => {
+  try {
+    notificationPermissionGranted = await checkNotificationPermissions();
+    return notificationPermissionGranted;
+  } catch (error) {
+    console.error('Failed to request notification permissions:', error);
+    return false;
+  }
+});
+
+// Check if notifications are allowed
+ipcMain.handle('notification:has-permissions', async () => {
+  return notificationPermissionGranted;
+});
+
+// Dock badge counter management
+let currentBadgeCount = 0;
+
+// Set dock badge count
+ipcMain.handle('dock-badge:set-count', async (_event, count: number) => {
+  try {
+    currentBadgeCount = Math.max(0, count);
+    
+    // On macOS, set the dock badge
+    if (process.platform === 'darwin') {
+      app.setBadgeCount(currentBadgeCount);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to set dock badge count:', error);
+    return false;
+  }
+});
+
+// Get current dock badge count
+ipcMain.handle('dock-badge:get-count', async () => {
+  return currentBadgeCount;
+});
+
+// Clear dock badge
+ipcMain.handle('dock-badge:clear', async () => {
+  try {
+    currentBadgeCount = 0;
+    
+    if (process.platform === 'darwin') {
+      app.setBadgeCount(0);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to clear dock badge:', error);
+    return false;
+  }
+});
+
+// Initialize notification permissions on app ready
+app.whenReady().then(async () => {
+  await checkNotificationPermissions();
+});
 
 // Function to get file size
 ipcMain.handle('get-file-size', async (_event, filePath) => {

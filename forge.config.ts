@@ -17,25 +17,25 @@ const config: ForgeConfig = {
     name: 'Downlodr',
     executableName: 'Downlodr',
     extraResource: ['./src/Assets/AppLogo', './yt-dlp', './ffmpeg'],
-    // macOS specific settings for code signing and notarization
-    ...(process.platform === 'darwin' &&
-      process.env.APPLE_IDENTITY && {
-        osxSign: {
+    // Simplified macOS code signing - always applied on macOS when certificate is available
+    osxSign: process.env.APPLE_IDENTITY
+      ? ({
           identity: process.env.APPLE_IDENTITY,
           'hardened-runtime': true,
           'gatekeeper-assess': false,
-          'signature-flags': ['runtime'],
-        } as any, // Type assertion to bypass TypeScript restrictions
-        // Temporarily disable notarization due to signing verification issues
-        // TODO: Fix notarization signing process in future release
-        // ...(process.env.APPLE_ID && {
-        //   osxNotarize: {
-        //     appleId: process.env.APPLE_ID,
-        //     appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD || '',
-        //     teamId: process.env.APPLE_TEAM_ID || '',
-        //   },
-        // }),
-      }),
+          entitlements: path.join(__dirname, 'entitlements.plist'),
+          'entitlements-inherit': path.join(__dirname, 'entitlements.plist'),
+        } as any)
+      : undefined,
+    // Enable notarization when credentials are available
+    osxNotarize:
+      process.env.APPLE_ID && process.env.APPLE_IDENTITY
+        ? {
+            appleId: process.env.APPLE_ID,
+            appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD || '',
+            teamId: process.env.APPLE_TEAM_ID || '',
+          }
+        : undefined,
   },
   rebuildConfig: {},
   makers: [
@@ -126,9 +126,10 @@ const config: ForgeConfig = {
         },
       ],
     }),
-    // Disable Fuses plugin when code signing is enabled to avoid conflicts
-    ...(!process.env.APPLE_IDENTITY
-      ? [
+    // Only enable Fuses plugin when NOT code signing to avoid conflicts
+    ...(process.env.APPLE_IDENTITY
+      ? []
+      : [
           new FusesPlugin({
             version: FuseVersion.V1,
             [FuseV1Options.RunAsNode]: false,
@@ -138,8 +139,7 @@ const config: ForgeConfig = {
             [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
             [FuseV1Options.OnlyLoadAppFromAsar]: true,
           }),
-        ]
-      : []),
+        ]),
   ],
 };
 

@@ -31,6 +31,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setVisibleColumns,
     updateRunInBackground,
     updateEnableClipboardMonitoring,
+    updateNotificationPreferences,
+    updateDockBadgePreferences,
   } = useMainStore();
 
   // Get taskbar store to keep download folder in sync
@@ -63,6 +65,27 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   // clipboard monitoring setting
   const [enableClipboardMonitoring, setEnableClipboardMonitoring] = useState(
     settings.enableClipboardMonitoring,
+  );
+
+  // notification preferences
+  const [notificationPreferences, setNotificationPreferences] = useState(
+    settings.notificationPreferences || {
+      downloadComplete: true,
+      downloadFailed: true,
+      conversionComplete: true,
+      batchComplete: true,
+      appUpdates: true,
+      soundEnabled: true,
+    },
+  );
+
+  // dock badge preferences
+  const [dockBadgePreferences, setDockBadgePreferences] = useState(
+    settings.dockBadgePreferences || {
+      showBadge: true,
+      includeConversions: true,
+      includePausedDownloads: false,
+    },
   );
 
   // sync with the mainStore's visibleColumns
@@ -201,6 +224,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       enableClipboardMonitoring,
     );
     updateEnableClipboardMonitoring(enableClipboardMonitoring);
+
+    // Save notification preferences
+    updateNotificationPreferences(notificationPreferences);
+
+    // Save dock badge preferences
+    updateDockBadgePreferences(dockBadgePreferences);
 
     onClose();
   };
@@ -422,6 +451,183 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 mt-1">
                 When enabled, Downlodr will detect copied URLs and automatically
                 download them
+              </div>
+            </div>
+
+            {/* notification settings section */}
+            <div className="pt-3">
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block dark:text-gray-200 text-nowrap font-bold">
+                  Notifications & Dock Badge
+                </label>
+                <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
+              </div>
+
+              {/* Notification Preferences */}
+              <div className="ml-2 space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="notifications-download-complete"
+                    checked={notificationPreferences.downloadComplete}
+                    onChange={(e) =>
+                      setNotificationPreferences((prev) => ({
+                        ...prev,
+                        downloadComplete: e.target.checked,
+                      }))
+                    }
+                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  />
+                  <label
+                    htmlFor="notifications-download-complete"
+                    className="dark:text-gray-200 cursor-pointer text-sm"
+                  >
+                    Show notification when downloads complete
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="notifications-download-failed"
+                    checked={notificationPreferences.downloadFailed}
+                    onChange={(e) =>
+                      setNotificationPreferences((prev) => ({
+                        ...prev,
+                        downloadFailed: e.target.checked,
+                      }))
+                    }
+                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  />
+                  <label
+                    htmlFor="notifications-download-failed"
+                    className="dark:text-gray-200 cursor-pointer text-sm"
+                  >
+                    Show notification when downloads fail
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="notifications-conversion-complete"
+                    checked={notificationPreferences.conversionComplete}
+                    onChange={(e) =>
+                      setNotificationPreferences((prev) => ({
+                        ...prev,
+                        conversionComplete: e.target.checked,
+                      }))
+                    }
+                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  />
+                  <label
+                    htmlFor="notifications-conversion-complete"
+                    className="dark:text-gray-200 cursor-pointer text-sm"
+                  >
+                    Show notification when conversions complete
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="notifications-batch-complete"
+                    checked={notificationPreferences.batchComplete}
+                    onChange={(e) =>
+                      setNotificationPreferences((prev) => ({
+                        ...prev,
+                        batchComplete: e.target.checked,
+                      }))
+                    }
+                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  />
+                  <label
+                    htmlFor="notifications-batch-complete"
+                    className="dark:text-gray-200 cursor-pointer text-sm"
+                  >
+                    Show notification when batch downloads complete
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="notifications-sound-enabled"
+                    checked={notificationPreferences.soundEnabled}
+                    onChange={(e) =>
+                      setNotificationPreferences((prev) => ({
+                        ...prev,
+                        soundEnabled: e.target.checked,
+                      }))
+                    }
+                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  />
+                  <label
+                    htmlFor="notifications-sound-enabled"
+                    className="dark:text-gray-200 cursor-pointer text-sm"
+                  >
+                    Play sound with notifications
+                  </label>
+                </div>
+              </div>
+
+              {/* Dock Badge Preferences */}
+              <div className="ml-2 space-y-2 mt-4">
+                <div className="text-sm font-medium dark:text-gray-200 mb-2">
+                  Dock Badge Settings
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="dock-badge-show"
+                    checked={dockBadgePreferences.showBadge}
+                    onChange={(e) =>
+                      setDockBadgePreferences((prev) => ({
+                        ...prev,
+                        showBadge: e.target.checked,
+                      }))
+                    }
+                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  />
+                  <label
+                    htmlFor="dock-badge-show"
+                    className="dark:text-gray-200 cursor-pointer text-sm"
+                  >
+                    Show badge counter on dock icon
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="dock-badge-include-conversions"
+                    checked={dockBadgePreferences.includeConversions}
+                    onChange={(e) =>
+                      setDockBadgePreferences((prev) => ({
+                        ...prev,
+                        includeConversions: e.target.checked,
+                      }))
+                    }
+                    disabled={!dockBadgePreferences.showBadge}
+                    className="w-4 h-4 text-primary rounded focus:ring-primary disabled:opacity-50"
+                  />
+                  <label
+                    htmlFor="dock-badge-include-conversions"
+                    className={`cursor-pointer text-sm ${
+                      dockBadgePreferences.showBadge
+                        ? 'dark:text-gray-200'
+                        : 'dark:text-gray-500 opacity-50'
+                    }`}
+                  >
+                    Include conversions in badge count
+                  </label>
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-500 dark:text-gray-400 ml-2 mt-2">
+                Notifications appear in macOS Notification Center and can be
+                clicked to bring Downlodr to the foreground
               </div>
             </div>
 
