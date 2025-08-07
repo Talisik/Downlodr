@@ -43,6 +43,7 @@ import { HiOutlineFolderOpen } from 'react-icons/hi';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import { VscPlayCircle } from 'react-icons/vsc';
 import { useParams } from 'react-router-dom';
+import { isAudioFormat } from '@/Utils/stringHelpers';
 import FileNotExistModal from '../Components/Main/Modal/FileNotExistModal';
 
 const formatRelativeTime = (dateString: string) => {
@@ -1965,7 +1966,13 @@ const StatusSpecificDownloads = () => {
                                     }}
                                   >
                                     <TooltipWrapper
-                                      content="View video"
+                                      content={
+                                        isAudioFormat(
+                                          download.ext || download.audioExt,
+                                        )
+                                          ? 'Listen to Audio'
+                                          : 'View video'
+                                      }
                                       side="bottom"
                                     >
                                       <span>
