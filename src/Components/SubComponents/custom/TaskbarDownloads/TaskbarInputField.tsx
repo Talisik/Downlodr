@@ -95,16 +95,18 @@ const TaskbarInputField = () => {
         ok: info.ok,
         hasData: !!info.data,
         title: info.data?.title || 'No title',
-        entries: info.data?.entries?.length || 0
+        entries: info.data?.entries?.length || 0,
       });
 
       // Check if the playlist fetch was successful
       if (!info.ok) {
         console.warn('⚠️ Playlist fetch was not successful:', info);
-        
+
         // Use enhanced error message if available
-        const errorMessage = info.error || 'Failed to fetch playlist information. The playlist may be private, unavailable, or there might be a network issue.';
-        
+        const errorMessage =
+          info.error ||
+          'Failed to fetch playlist information. The playlist may be private, unavailable, or there might be a network issue.';
+
         toast({
           variant: 'destructive',
           title: 'Playlist Error',
@@ -119,7 +121,8 @@ const TaskbarInputField = () => {
         toast({
           variant: 'destructive',
           title: 'Empty Playlist',
-          description: 'The playlist appears to be empty or contains no accessible videos.',
+          description:
+            'The playlist appears to be empty or contains no accessible videos.',
           duration: 4000,
         });
         return;
@@ -156,40 +159,54 @@ const TaskbarInputField = () => {
 
       // Start with no videos selected when loading new playlist
       setSelectedVideos(new Set());
-      
-      console.log(`✅ Successfully loaded playlist with ${videos.length} videos`);
-      
+
+      console.log(
+        `✅ Successfully loaded playlist with ${videos.length} videos`,
+      );
+
       // Show success message for better UX
       toast({
         title: 'Playlist Loaded',
         description: `Successfully loaded ${videos.length} videos from the playlist`,
         duration: 3000,
       });
-      
     } catch (error) {
       console.error('❌ Error fetching playlist info:', error);
-      
+
       // Provide more specific error messages based on error content
       let errorMessage = 'Failed to fetch playlist information';
       let errorTitle = 'Playlist Error';
-      
+
       if (error.message.includes('yt-dlp binary')) {
-        errorMessage = 'Video downloader is not properly configured. Please restart the application.';
+        errorMessage =
+          'Video downloader is not properly configured. Please restart the application.';
         errorTitle = 'Configuration Error';
-      } else if (error.message.includes('network') || error.message.includes('timeout')) {
-        errorMessage = 'Network error occurred. Please check your internet connection and try again.';
+      } else if (
+        error.message.includes('network') ||
+        error.message.includes('timeout')
+      ) {
+        errorMessage =
+          'Network error occurred. Please check your internet connection and try again.';
         errorTitle = 'Network Error';
-      } else if (error.message.includes('private') || error.message.includes('unavailable')) {
-        errorMessage = 'The playlist is private, does not exist, or is currently unavailable.';
+      } else if (
+        error.message.includes('private') ||
+        error.message.includes('unavailable')
+      ) {
+        errorMessage =
+          'The playlist is private, does not exist, or is currently unavailable.';
         errorTitle = 'Playlist Not Accessible';
-      } else if (error.message.includes('permission') || error.message.includes('forbidden')) {
-        errorMessage = 'Access denied. The playlist may be private or restricted.';
+      } else if (
+        error.message.includes('permission') ||
+        error.message.includes('forbidden')
+      ) {
+        errorMessage =
+          'Access denied. The playlist may be private or restricted.';
         errorTitle = 'Access Denied';
       } else {
         // Use the enhanced error message if available
         errorMessage = error.message || errorMessage;
       }
-      
+
       toast({
         variant: 'destructive',
         title: errorTitle,

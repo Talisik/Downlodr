@@ -35,7 +35,6 @@ import PluginSidePanelManager from './plugins/components/PluginSidePanelManager'
 import SystemTrayHandler from './Components/SubComponents/custom/SystemTrayHandler';
 import ActivityMonitor from './Components/SubComponents/custom/ActivityMonitor';
 import NotificationManager from './Components/SubComponents/custom/NotificationManager';
-import { testNotifications } from './Utils/testNotifications';
 
 const App = () => {
   const { settings } = useMainStore();
@@ -55,8 +54,77 @@ const App = () => {
     if (process.env.NODE_ENV === 'development') {
       console.log('📱 Notification system loaded! Test with:');
       console.log('• window.testNotifications.testAll() - Test all features');
-      console.log('• window.testNotifications.testDownloadComplete() - Test download notification');
-      console.log('• window.testNotifications.testDockBadge() - Test dock badge');
+      console.log(
+        '• window.testNotifications.testDownloadComplete() - Test download notification',
+      );
+      console.log(
+        '• window.testNotifications.testDockBadge() - Test dock badge',
+      );
+
+      // Add comprehensive test functions
+      (window as any).testNotifications = {
+        testAll: async () => {
+          console.log('🧪 Testing all notification features...');
+          await (window as any).testNotifications.testPermissions();
+          await (window as any).testNotifications.testDownloadComplete();
+          await (window as any).testNotifications.testDockBadge();
+        },
+
+        testPermissions: async () => {
+          console.log('🔐 Testing notification permissions...');
+          if (window.notificationAPI) {
+            const hasPermissions =
+              await window.notificationAPI.hasPermissions();
+            console.log('Current permissions:', hasPermissions);
+
+            if (!hasPermissions) {
+              const granted = await window.notificationAPI.requestPermissions();
+              console.log('Permission request result:', granted);
+            }
+          }
+        },
+
+        testDownloadComplete: async () => {
+          console.log('📥 Testing download complete notification...');
+          if (window.notificationAPI) {
+            try {
+              const result = await window.notificationAPI.showNotification({
+                title: 'Download Complete',
+                body: 'Test video has finished downloading',
+                icon: '/Assets/AppLogo/notif.png',
+              });
+              console.log('Notification result:', result);
+            } catch (error) {
+              console.error('Notification test failed:', error);
+            }
+          } else {
+            console.error('notificationAPI not available');
+          }
+        },
+
+        testDockBadge: async () => {
+          console.log('🏷️ Testing dock badge...');
+          if (window.dockBadgeAPI) {
+            try {
+              // Test setting badge
+              await window.dockBadgeAPI.setBadgeCount(5);
+              const count = await window.dockBadgeAPI.getBadgeCount();
+              console.log('Badge count set to 5, actual count:', count);
+
+              // Test clearing badge after 3 seconds
+              setTimeout(async () => {
+                await window.dockBadgeAPI.clearBadge();
+                const newCount = await window.dockBadgeAPI.getBadgeCount();
+                console.log('Badge cleared, new count:', newCount);
+              }, 3000);
+            } catch (error) {
+              console.error('Dock badge test failed:', error);
+            }
+          } else {
+            console.error('dockBadgeAPI not available');
+          }
+        },
+      };
     }
 
     // Add test functions for dock badge in global window for debugging
@@ -106,7 +174,7 @@ const App = () => {
           console.error('dockBadgeAPI not available');
           return false;
         }
-      }
+      },
     };
   }, [settings.runInBackground]);
 

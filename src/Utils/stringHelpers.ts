@@ -31,9 +31,18 @@ export const getFirstParagraph = (
 // Helper function to check if a format is audio-only
 export const isAudioFormat = (format: string | undefined): boolean => {
   if (!format) return false;
-  
-  const audioFormats = ['mp3', 'm4a', 'aac', 'wav', 'flac', 'ogg', 'opus', 'wma'];
+
+  const audioFormats = [
+    'mp3',
+    'm4a',
+    'aac',
+    'wav',
+    'flac',
+    'ogg',
+    'opus',
+    'wma',
+  ];
   const normalizedFormat = format.toLowerCase().trim();
-  
+
   return audioFormats.includes(normalizedFormat);
 };

@@ -25,8 +25,47 @@ const NotificationManager: React.FC = () => {
 
   // Initialize notification handlers
   useEffect(() => {
+    console.log('🔧 NotificationManager: Initializing...');
+
+    // Check if APIs are available
+    console.log('📡 API availability check:');
+    console.log('  - notificationAPI:', !!window.notificationAPI);
+    console.log('  - dockBadgeAPI:', !!window.dockBadgeAPI);
+    console.log('  - appControl:', !!window.appControl);
+
+    // Log all available window APIs for debugging
+    const availableAPIs = Object.keys(window).filter(
+      (key) => key.includes('API') || key.includes('Control'),
+    );
+    console.log('📋 Available APIs:', availableAPIs);
+
+    // Test dock badge API immediately
+    if (window.dockBadgeAPI) {
+      console.log('🧪 Testing dock badge API...');
+      window.dockBadgeAPI
+        .setBadgeCount(0)
+        .then(() => console.log('✅ Dock badge API test successful'))
+        .catch((error) =>
+          console.error('❌ Dock badge API test failed:', error),
+        );
+    }
+
+    // Test notification API immediately
+    if (window.notificationAPI) {
+      console.log('🧪 Testing notification API permissions...');
+      window.notificationAPI
+        .hasPermissions()
+        .then((hasPerms) =>
+          console.log('🔐 Notification permissions available:', hasPerms),
+        )
+        .catch((error) =>
+          console.error('❌ Notification permission check failed:', error),
+        );
+    }
+
     // Set up window handler for notification clicks
     notificationManager.setWindowHandler(() => {
+      console.log('📱 Notification clicked, showing window...');
       if (window.appControl) {
         window.appControl.showWindow();
       }
@@ -34,6 +73,7 @@ const NotificationManager: React.FC = () => {
 
     // Set up show in finder handler
     notificationManager.setShowInFinderHandler((path: string) => {
+      console.log('📁 Show in finder requested for:', path);
       const electronAPI = (window as any).electronAPI;
       if (electronAPI?.openPath) {
         electronAPI.openPath(path);
@@ -43,10 +83,12 @@ const NotificationManager: React.FC = () => {
     // Request notification permissions on startup
     notificationManager.requestPermissions().then((hasPermission) => {
       console.log(
-        'Notification permissions:',
-        hasPermission ? 'granted' : 'denied',
+        '🔐 Notification permissions:',
+        hasPermission ? 'granted ✅' : 'denied ❌',
       );
     });
+
+    console.log('✅ NotificationManager: Initialization complete');
   }, []);
 
   // Update preferences when settings change
@@ -97,9 +139,17 @@ const NotificationManager: React.FC = () => {
 
   // Handle finished downloads
   useEffect(() => {
+    console.log(
+      '📋 NotificationManager: Checking finished downloads:',
+      finishedDownloads.length,
+    );
     finishedDownloads.forEach((download) => {
       if (!processedFinishedIds.current.has(download.id)) {
         processedFinishedIds.current.add(download.id);
+        console.log(
+          '📱 NotificationManager: Showing completion notification for:',
+          download.name,
+        );
 
         // Show completion notification
         notificationManager.showNotification(
@@ -116,16 +166,31 @@ const NotificationManager: React.FC = () => {
 
   // Handle failed downloads
   useEffect(() => {
+    console.log(
+      '❌ NotificationManager: Checking failed downloads:',
+      failedDownloads.length,
+    );
     failedDownloads.forEach((download) => {
       if (!processedFailedIds.current.has(download.id)) {
         processedFailedIds.current.add(download.id);
+        console.log(
+          '💥 NotificationManager: Showing failure notification for:',
+          download.name,
+        );
+
+        // Extract error message from failure reason or status
+        const errorMessage =
+          download.failureReason ||
+          download.status ||
+          'Download failed - check logs for details';
 
         // Show failure notification
         notificationManager.showNotification(
           NotificationType.DOWNLOAD_FAILED,
           download.name || download.downloadName,
           {
-            error: download.status || 'Unknown error',
+            error: errorMessage,
+            canRetry: download.canRetry,
           },
         );
       }

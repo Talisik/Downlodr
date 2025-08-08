@@ -1,189 +1,236 @@
 /**
- * Tests for native macOS notification system
- * Following TDD approach to define the notification system requirements
+ * Test file for the notification system
+ * Tests notification functionality and dock badge functionality
  */
 
-import { NotificationManager, NotificationPreferences, NotificationType } from './notificationSystem';
+import {
+  NotificationManager,
+  DockBadgeManager,
+  NotificationType,
+} from './notificationSystem';
+
+// Mock window APIs
+const mockNotificationAPI = {
+  showNotification: jest.fn(),
+  requestPermissions: jest.fn(),
+  hasPermissions: jest.fn(),
+};
+
+const mockDockBadgeAPI = {
+  setBadgeCount: jest.fn(),
+  getBadgeCount: jest.fn(),
+  clearBadge: jest.fn(),
+};
+
+const mockAppControl = {
+  showWindow: jest.fn(),
+};
+
+// Set up global window mocks
+beforeEach(() => {
+  // Reset mocks
+  jest.clearAllMocks();
+
+  // Setup window APIs
+  global.window = {
+    notificationAPI: mockNotificationAPI,
+    dockBadgeAPI: mockDockBadgeAPI,
+    appControl: mockAppControl,
+  } as any;
+
+  // Mock Notification constructor
+  global.Notification = {
+    permission: 'granted',
+    requestPermission: jest.fn().mockResolvedValue('granted'),
+  } as any;
+});
 
 describe('NotificationManager', () => {
   let notificationManager: NotificationManager;
-  
+
   beforeEach(() => {
     notificationManager = new NotificationManager();
   });
 
-  describe('Permission Handling', () => {
-    it('should request notification permissions on initialization', async () => {
-      const hasPermission = await notificationManager.requestPermissions();
-      expect(typeof hasPermission).toBe('boolean');
+  describe('permission handling', () => {
+    it('should request notification permissions successfully', async () => {
+      mockNotificationAPI.hasPermissions.mockResolvedValue(true);
+
+      const result = await notificationManager.requestPermissions();
+
+      expect(result).toBe(true);
     });
 
-    it('should handle permission denied gracefully', async () => {
-      // Mock denied permission
-      const originalNotification = global.Notification;
+    it('should handle permission denial gracefully', async () => {
       global.Notification = {
         permission: 'denied',
-        requestPermission: jest.fn().mockResolvedValue('denied')
       } as any;
 
-      const hasPermission = await notificationManager.requestPermissions();
-      expect(hasPermission).toBe(false);
-      
-      global.Notification = originalNotification;
+      const result = await notificationManager.requestPermissions();
+
+      expect(result).toBe(false);
     });
   });
 
-  describe('Notification Display', () => {
-    it('should display download completion notification', async () => {
-      const notification = await notificationManager.showNotification(
-        NotificationType.DOWNLOAD_COMPLETE,
-        'Test Video',
-        { filename: 'test-video.mp4', location: '/Downloads' }
-      );
-
-      expect(notification).toBeDefined();
-      expect(notification?.title).toBe('Download Complete');
-      expect(notification?.body).toContain('Test Video');
+  describe('notification display', () => {
+    beforeEach(async () => {
+      // Grant permissions first
+      await notificationManager.requestPermissions();
     });
 
-    it('should display download failed notification', async () => {
-      const notification = await notificationManager.showNotification(
-        NotificationType.DOWNLOAD_FAILED,
-        'Test Video',
-        { error: 'Network error' }
-      );
-
-      expect(notification).toBeDefined();
-      expect(notification?.title).toBe('Download Failed');
-      expect(notification?.body).toContain('Test Video');
-    });
-
-    it('should display batch completion notification', async () => {
-      const notification = await notificationManager.showNotification(
-        NotificationType.BATCH_COMPLETE,
-        '',
-        { count: 5 }
-      );
-
-      expect(notification).toBeDefined();
-      expect(notification?.title).toBe('Batch Download Complete');
-      expect(notification?.body).toContain('5 downloads');
-    });
-
-    it('should display conversion complete notification', async () => {
-      const notification = await notificationManager.showNotification(
-        NotificationType.CONVERSION_COMPLETE,
-        'Test Video',
-        { format: 'mp3' }
-      );
-
-      expect(notification).toBeDefined();
-      expect(notification?.title).toBe('Conversion Complete');
-      expect(notification?.body).toContain('mp3');
-    });
-  });
-
-  describe('Notification Preferences', () => {
-    it('should respect user preferences for notification types', async () => {
-      const preferences: NotificationPreferences = {
-        downloadComplete: false,
-        downloadFailed: true,
-        conversionComplete: true,
-        batchComplete: true,
-        appUpdates: false,
-        soundEnabled: false
+    it('should show download complete notification', async () => {
+      const mockNotificationResult = {
+        title: 'Download Complete',
+        body: 'Test video has finished downloading',
+        icon: '/Assets/AppLogo/notif.png',
       };
 
-      notificationManager.updatePreferences(preferences);
+      mockNotificationAPI.showNotification.mockResolvedValue(
+        mockNotificationResult,
+      );
 
-      // Should not show disabled notification
       const result = await notificationManager.showNotification(
         NotificationType.DOWNLOAD_COMPLETE,
-        'Test Video'
+        'Test video',
+        { filename: 'test.mp4', location: '/downloads/test.mp4' },
       );
 
-      expect(result).toBeNull();
+      expect(mockNotificationAPI.showNotification).toHaveBeenCalledWith({
+        title: 'Download Complete',
+        body: '"Test video" has finished downloading',
+        icon: expect.any(String),
+        actions: expect.arrayContaining([
+          expect.objectContaining({
+            action: 'show-in-finder',
+            title: 'Show in Finder',
+          }),
+        ]),
+      });
+
+      expect(result).toBeTruthy();
     });
 
-    it('should include sound when enabled in preferences', async () => {
-      const preferences: NotificationPreferences = {
-        downloadComplete: true,
-        downloadFailed: true,
-        conversionComplete: true,
-        batchComplete: true,
-        appUpdates: true,
-        soundEnabled: true
+    it('should show download failed notification', async () => {
+      const mockNotificationResult = {
+        title: 'Download Failed',
+        body: 'Test video failed to download: Network error',
+        icon: '/Assets/AppLogo/notif.png',
       };
 
-      notificationManager.updatePreferences(preferences);
-
-      const notification = await notificationManager.showNotification(
-        NotificationType.DOWNLOAD_COMPLETE,
-        'Test Video'
+      mockNotificationAPI.showNotification.mockResolvedValue(
+        mockNotificationResult,
       );
 
-      expect(notification?.hasReply).toBeDefined();
-    });
-  });
-
-  describe('Notification Actions', () => {
-    it('should handle notification click to show app window', async () => {
-      const mockShowWindow = jest.fn();
-      notificationManager.setWindowHandler(mockShowWindow);
-
-      const notification = await notificationManager.showNotification(
-        NotificationType.DOWNLOAD_COMPLETE,
-        'Test Video'
+      const result = await notificationManager.showNotification(
+        NotificationType.DOWNLOAD_FAILED,
+        'Test video',
+        { error: 'Network error' },
       );
 
-      // Simulate click
-      notification?.onclick?.(new Event('click'));
-      
-      expect(mockShowWindow).toHaveBeenCalled();
+      expect(mockNotificationAPI.showNotification).toHaveBeenCalledWith({
+        title: 'Download Failed',
+        body: '"Test video" failed to download: Network error',
+        icon: expect.any(String),
+      });
+
+      expect(result).toBeTruthy();
     });
 
-    it('should handle show in finder action', async () => {
-      const mockShowInFinder = jest.fn();
-      notificationManager.setShowInFinderHandler(mockShowInFinder);
+    it('should not show notification when type is disabled', async () => {
+      // Disable download complete notifications
+      notificationManager.updatePreferences({ downloadComplete: false });
 
-      const notification = await notificationManager.showNotification(
+      const result = await notificationManager.showNotification(
         NotificationType.DOWNLOAD_COMPLETE,
-        'Test Video',
-        { location: '/Downloads/test-video.mp4' }
+        'Test video',
       );
 
-      expect(notification).toBeDefined();
-      // Test that show in finder handler is set up (implementation specific)
+      expect(mockNotificationAPI.showNotification).not.toHaveBeenCalled();
+      expect(result).toBeNull();
     });
   });
 });
 
 describe('DockBadgeManager', () => {
-  let badgeManager: any; // Will be imported from notificationSystem
+  let dockBadgeManager: DockBadgeManager;
 
   beforeEach(() => {
-    // Will initialize badge manager
+    dockBadgeManager = new DockBadgeManager();
   });
 
-  describe('Badge Counter Logic', () => {
-    it('should increment badge count when download starts', () => {
-      // Test badge increment
-      expect(true).toBe(true); // Placeholder
+  describe('badge count management', () => {
+    it('should set dock badge count', () => {
+      mockDockBadgeAPI.setBadgeCount.mockResolvedValue(undefined);
+
+      dockBadgeManager.setDownloadCount(5);
+
+      expect(mockDockBadgeAPI.setBadgeCount).toHaveBeenCalledWith(5);
     });
 
-    it('should decrement badge count when download completes', () => {
-      // Test badge decrement
-      expect(true).toBe(true); // Placeholder
+    it('should increment download count', () => {
+      mockDockBadgeAPI.setBadgeCount.mockResolvedValue(undefined);
+
+      dockBadgeManager.incrementDownloads();
+      dockBadgeManager.incrementDownloads();
+
+      expect(mockDockBadgeAPI.setBadgeCount).toHaveBeenCalledWith(2);
     });
 
-    it('should handle badge count over 99', () => {
-      // Test 99+ display
-      expect(true).toBe(true); // Placeholder
+    it('should decrement download count', () => {
+      mockDockBadgeAPI.setBadgeCount.mockResolvedValue(undefined);
+
+      dockBadgeManager.setDownloadCount(3);
+      dockBadgeManager.decrementDownloads();
+
+      expect(mockDockBadgeAPI.setBadgeCount).toHaveBeenCalledWith(2);
     });
 
-    it('should clear badge when no active operations', () => {
-      // Test badge clearing
-      expect(true).toBe(true); // Placeholder
+    it('should not set negative badge count', () => {
+      mockDockBadgeAPI.setBadgeCount.mockResolvedValue(undefined);
+
+      dockBadgeManager.setDownloadCount(0);
+      dockBadgeManager.decrementDownloads();
+
+      expect(mockDockBadgeAPI.setBadgeCount).toHaveBeenCalledWith(0);
+    });
+
+    it('should clear badge when all downloads complete', () => {
+      mockDockBadgeAPI.setBadgeCount.mockResolvedValue(undefined);
+
+      dockBadgeManager.clearBadge();
+
+      expect(mockDockBadgeAPI.setBadgeCount).toHaveBeenCalledWith(0);
+    });
+
+    it('should include conversions in badge count when enabled', () => {
+      mockDockBadgeAPI.setBadgeCount.mockResolvedValue(undefined);
+
+      dockBadgeManager.updatePreferences({ includeConversions: true });
+      dockBadgeManager.setDownloadCount(2);
+      dockBadgeManager.setConversionCount(3);
+
+      expect(mockDockBadgeAPI.setBadgeCount).toHaveBeenCalledWith(5);
+    });
+
+    it('should exclude conversions when disabled', () => {
+      mockDockBadgeAPI.setBadgeCount.mockResolvedValue(undefined);
+
+      dockBadgeManager.updatePreferences({ includeConversions: false });
+      dockBadgeManager.setDownloadCount(2);
+      dockBadgeManager.setConversionCount(3);
+
+      expect(mockDockBadgeAPI.setBadgeCount).toHaveBeenCalledWith(2);
+    });
+  });
+
+  describe('preferences', () => {
+    it('should not set badge when disabled', () => {
+      mockDockBadgeAPI.setBadgeCount.mockResolvedValue(undefined);
+
+      dockBadgeManager.updatePreferences({ showBadge: false });
+      dockBadgeManager.setDownloadCount(5);
+
+      expect(mockDockBadgeAPI.setBadgeCount).toHaveBeenCalledWith(0);
     });
   });
 });

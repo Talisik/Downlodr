@@ -434,17 +434,19 @@ contextBridge.exposeInMainWorld('notificationAPI', {
     icon?: string;
     actions?: Array<{ action: string; title: string }>;
   }) => ipcRenderer.invoke('notification:show', config),
-  
-  requestPermissions: () => ipcRenderer.invoke('notification:request-permissions'),
-  
+
+  requestPermissions: () =>
+    ipcRenderer.invoke('notification:request-permissions'),
+
   hasPermissions: () => ipcRenderer.invoke('notification:has-permissions'),
 });
 
 // Dock Badge API exposure
 contextBridge.exposeInMainWorld('dockBadgeAPI', {
-  setBadgeCount: (count: number) => ipcRenderer.invoke('dock-badge:set-count', count),
-  
+  setBadgeCount: (count: number) =>
+    ipcRenderer.invoke('dock-badge:set-count', count),
+
   getBadgeCount: () => ipcRenderer.invoke('dock-badge:get-count'),
-  
+
   clearBadge: () => ipcRenderer.invoke('dock-badge:clear'),
 });

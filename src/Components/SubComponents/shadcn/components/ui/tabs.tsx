@@ -61,4 +61,3 @@ const TabsContent = ({
 };
 
 export { Tabs, TabsContent, TabsList, TabsTrigger };
-

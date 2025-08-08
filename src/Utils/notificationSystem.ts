@@ -7,14 +7,16 @@ export enum NotificationType {
   DOWNLOAD_COMPLETE = 'download-complete',
   DOWNLOAD_FAILED = 'download-failed',
   CONVERSION_COMPLETE = 'conversion-complete',
+  CONVERSION_FAILED = 'conversion-failed',
   BATCH_COMPLETE = 'batch-complete',
-  APP_UPDATE = 'app-update'
+  APP_UPDATE = 'app-update',
 }
 
 export interface NotificationPreferences {
   downloadComplete: boolean;
   downloadFailed: boolean;
   conversionComplete: boolean;
+  conversionFailed: boolean;
   batchComplete: boolean;
   appUpdates: boolean;
   soundEnabled: boolean;
@@ -26,6 +28,7 @@ export interface NotificationData {
   error?: string;
   count?: number;
   format?: string;
+  canRetry?: boolean;
   version?: string;
 }
 
@@ -48,9 +51,10 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   downloadComplete: true,
   downloadFailed: true,
   conversionComplete: true,
+  conversionFailed: true,
   batchComplete: true,
   appUpdates: true,
-  soundEnabled: true
+  soundEnabled: true,
 };
 
 export class NotificationManager {
@@ -113,50 +117,49 @@ export class NotificationManager {
   async showNotification(
     type: NotificationType,
     itemName: string,
-    data?: NotificationData
+    data?: NotificationData,
   ): Promise<DownlodrNotification | null> {
     // Check if this notification type is enabled
     if (!this.isNotificationTypeEnabled(type)) {
+      console.log(`🔕 Notification type ${type} is disabled`);
       return null;
     }
 
     // Check if we have permission
     if (!this.hasPermission) {
-      console.warn('No notification permission available');
+      console.warn('❌ No notification permission available');
       return null;
     }
 
-    const notificationConfig = this.createNotificationConfig(type, itemName, data);
-    
+    const notificationConfig = this.createNotificationConfig(
+      type,
+      itemName,
+      data,
+    );
+
     try {
-      // In Electron context, we'll use the native Notification API through IPC
+      console.log(
+        `📱 Attempting to show notification: ${notificationConfig.title}`,
+      );
+
+      // Use the IPC notification API
       if (window.notificationAPI) {
-        return await window.notificationAPI.showNotification(notificationConfig);
+        console.log(`📡 Using IPC notification API`);
+        const result = await window.notificationAPI.showNotification(
+          notificationConfig,
+        );
+        console.log(`✅ Notification shown via IPC:`, result);
+        return result;
+      } else {
+        console.warn('❌ notificationAPI not available in window object');
+        console.log(
+          'Available APIs:',
+          Object.keys(window).filter((key) => key.includes('API')),
+        );
+        return null;
       }
-
-      // Fallback to web notification API for testing
-      const notification = new Notification(notificationConfig.title, {
-        body: notificationConfig.body,
-        icon: notificationConfig.icon,
-        silent: !this.preferences.soundEnabled
-      });
-
-      const downlodrNotification: DownlodrNotification = {
-        title: notificationConfig.title,
-        body: notificationConfig.body,
-        icon: notificationConfig.icon,
-        hasReply: this.preferences.soundEnabled,
-        onclick: (event: Event) => {
-          event.preventDefault();
-          this.handleNotificationClick(type, data);
-        }
-      };
-
-      notification.onclick = downlodrNotification.onclick;
-
-      return downlodrNotification;
     } catch (error) {
-      console.error('Failed to show notification:', error);
+      console.error('❌ Failed to show notification:', error);
       return null;
     }
   }
@@ -169,6 +172,8 @@ export class NotificationManager {
         return this.preferences.downloadFailed;
       case NotificationType.CONVERSION_COMPLETE:
         return this.preferences.conversionComplete;
+      case NotificationType.CONVERSION_FAILED:
+        return this.preferences.conversionFailed;
       case NotificationType.BATCH_COMPLETE:
         return this.preferences.batchComplete;
       case NotificationType.APP_UPDATE:
@@ -181,7 +186,7 @@ export class NotificationManager {
   private createNotificationConfig(
     type: NotificationType,
     itemName: string,
-    data?: NotificationData
+    data?: NotificationData,
   ): DownlodrNotification {
     switch (type) {
       case NotificationType.DOWNLOAD_COMPLETE:
@@ -189,58 +194,78 @@ export class NotificationManager {
           title: 'Download Complete',
           body: `"${itemName}" has finished downloading`,
           icon: this.getNotificationIcon(),
-          actions: data?.location ? [
-            {
-              action: 'show-in-finder',
-              title: 'Show in Finder',
-              handler: () => this.showInFinderHandler?.(data.location!)
-            }
-          ] : undefined
+          actions: data?.location
+            ? [
+                {
+                  action: 'show-in-finder',
+                  title: 'Show in Finder',
+                  handler: () =>
+                    this.showInFinderHandler?.(data.location || ''),
+                },
+              ]
+            : undefined,
         };
 
       case NotificationType.DOWNLOAD_FAILED:
         return {
           title: 'Download Failed',
-          body: `"${itemName}" failed to download${data?.error ? `: ${data.error}` : ''}`,
-          icon: this.getNotificationIcon()
+          body: `"${itemName}" failed to download${
+            data?.error ? `: ${data.error}` : ''
+          }`,
+          icon: this.getNotificationIcon(),
         };
 
       case NotificationType.CONVERSION_COMPLETE:
         return {
           title: 'Conversion Complete',
-          body: `"${itemName}" has been converted${data?.format ? ` to ${data.format}` : ''}`,
-          icon: this.getNotificationIcon()
+          body: `"${itemName}" has been converted${
+            data?.format ? ` to ${data.format}` : ''
+          }`,
+          icon: this.getNotificationIcon(),
+        };
+
+      case NotificationType.CONVERSION_FAILED:
+        return {
+          title: 'Conversion Failed',
+          body: `"${itemName}" failed to convert${
+            data?.format ? ` to ${data.format}` : ''
+          }${data?.error ? `: ${data.error}` : ''}`,
+          icon: this.getNotificationIcon(),
         };
 
       case NotificationType.BATCH_COMPLETE:
         return {
           title: 'Batch Download Complete',
           body: `${data?.count || 'Multiple'} downloads have finished`,
-          icon: this.getNotificationIcon()
+          icon: this.getNotificationIcon(),
         };
 
       case NotificationType.APP_UPDATE:
         return {
           title: 'Downlodr Update Available',
           body: `Version ${data?.version || 'latest'} is now available`,
-          icon: this.getNotificationIcon()
+          icon: this.getNotificationIcon(),
         };
 
       default:
         return {
           title: 'Downlodr',
           body: itemName,
-          icon: this.getNotificationIcon()
+          icon: this.getNotificationIcon(),
         };
     }
   }
 
   private getNotificationIcon(): string {
-    // In Electron, this will be the app icon path
-    return '/Assets/AppLogo/notif.png';
+    // Use the app icon for notifications
+    // In production, this will be resolved properly by the main process
+    return 'notif.png'; // Simple filename - let main process resolve the path
   }
 
-  private handleNotificationClick(type: NotificationType, data?: NotificationData): void {
+  private handleNotificationClick(
+    type: NotificationType,
+    data?: NotificationData,
+  ): void {
     // Always bring app to foreground
     this.windowHandler?.();
 
@@ -273,7 +298,7 @@ export class DockBadgeManager {
   private preferences = {
     showBadge: true,
     includeConversions: true,
-    includePausedDownloads: false
+    includePausedDownloads: false,
   };
 
   constructor() {
@@ -328,7 +353,7 @@ export class DockBadgeManager {
     }
 
     let totalCount = this.activeDownloads;
-    
+
     if (this.preferences.includeConversions) {
       totalCount += this.activeConversions;
     }
@@ -336,31 +361,41 @@ export class DockBadgeManager {
     this.setBadgeCount(totalCount);
   }
 
-  private setBadgeCount(count: number): void {
-    if (window.dockBadgeAPI) {
-      window.dockBadgeAPI.setBadgeCount(count)
-        .catch((error) => console.error('Failed to set badge count:', error));
-    } else if (typeof require !== 'undefined') {
-      // Fallback for main process
-      try {
-        const { app } = require('electron');
-        app.setBadgeCount(count);
-      } catch (error) {
-        console.warn('Could not set dock badge count:', error);
+  private async setBadgeCount(count: number): Promise<void> {
+    try {
+      console.log(
+        `🏷️ DockBadgeManager: Attempting to set badge count to ${count}`,
+      );
+
+      if (window.dockBadgeAPI) {
+        console.log(`📡 DockBadgeManager: Using IPC API`);
+        await window.dockBadgeAPI.setBadgeCount(count);
+        console.log(
+          `✅ DockBadgeManager: Badge count set successfully via IPC`,
+        );
+      } else {
+        console.warn(
+          '❌ DockBadgeManager: dockBadgeAPI not available in window object',
+        );
+        console.log(
+          'Available APIs:',
+          Object.keys(window).filter((key) => key.includes('API')),
+        );
       }
-    } else {
-      console.warn('DockBadgeManager: No badge API available');
+    } catch (error) {
+      console.error('❌ Failed to set badge count:', error);
     }
   }
 
   getActiveCount(): { downloads: number; conversions: number; total: number } {
-    const total = this.activeDownloads + 
+    const total =
+      this.activeDownloads +
       (this.preferences.includeConversions ? this.activeConversions : 0);
-    
+
     return {
       downloads: this.activeDownloads,
       conversions: this.activeConversions,
-      total
+      total,
     };
   }
 }

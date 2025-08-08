@@ -17,9 +17,10 @@ const ActivityMonitor: React.FC = () => {
     const hasActivity = hasActiveDownloads || hasQueuedDownloads;
 
     // Check for conversions (downloads with initializing status that are likely converting)
-    const hasConversions = downloading.some(download => 
-      download.status === 'initializing' || 
-      (download.status === 'downloading' && download.progress === 100)
+    const hasConversions = downloading.some(
+      (download) =>
+        download.status === 'initializing' ||
+        (download.status === 'downloading' && download.progress === 100),
     );
 
     const shouldShowActivity = hasActivity || hasConversions;
@@ -27,14 +28,14 @@ const ActivityMonitor: React.FC = () => {
     // Only call the activity indicator API if the state has changed
     if (shouldShowActivity !== lastActivityState.current) {
       lastActivityState.current = shouldShowActivity;
-      
+
       if (window.activityIndicator) {
         if (shouldShowActivity) {
-          window.activityIndicator.start().catch(error => {
+          window.activityIndicator.start().catch((error) => {
             console.error('Failed to start activity indicator:', error);
           });
         } else {
-          window.activityIndicator.stop().catch(error => {
+          window.activityIndicator.stop().catch((error) => {
             console.error('Failed to stop activity indicator:', error);
           });
         }
@@ -46,7 +47,7 @@ const ActivityMonitor: React.FC = () => {
   useEffect(() => {
     return () => {
       if (window.activityIndicator && lastActivityState.current) {
-        window.activityIndicator.stop().catch(error => {
+        window.activityIndicator.stop().catch((error) => {
           console.error('Failed to stop activity indicator on cleanup:', error);
         });
       }

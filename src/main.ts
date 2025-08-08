@@ -1599,22 +1599,11 @@ ipcMain.handle('sync-background-setting-on-startup', (_event, value) => {
 ipcMain.on('download-finished', (_event, downloadInfo) => {
   const { name } = downloadInfo;
 
-  // Show notification using new system (will respect user preferences)
-  // The NotificationManager component will handle this automatically
-  // but we'll also maintain backward compatibility with the legacy system
-  showNotification(
-    'Download Complete',
-    `"${name}" has finished downloading`,
-    () => {
-      // Show the app window when notification is clicked
-      if (mainWindow) {
-        mainWindow.show();
-        mainWindow.focus();
-        resetTrayIcon(); // Reset icon when app is shown via notification
-      }
-    },
-  );
+  console.log('📱 Download finished event received:', name);
 
+  // NOTE: Notification is now handled by NotificationManager component in renderer
+  // This maintains the legacy tray icon behavior only
+  
   // Change the tray icon to the alert version
   setAlertTrayIcon();
 });
@@ -1644,11 +1633,26 @@ let notificationPermissionGranted = false;
 // Check for notification permissions
 async function checkNotificationPermissions(): Promise<boolean> {
   if (!Notification.isSupported()) {
+    console.warn('Notifications not supported on this platform');
     return false;
+  }
+
+  // On macOS, ensure dock icon is visible for notifications to work
+  if (process.platform === 'darwin') {
+    try {
+      // Show dock icon to enable notifications
+      if (app.dock) {
+        app.dock.show();
+        console.log('✅ Dock icon shown for notifications');
+      }
+    } catch (error) {
+      console.warn('Failed to show dock icon:', error);
+    }
   }
 
   // On macOS, Electron handles permissions automatically for bundled apps
   notificationPermissionGranted = true;
+  console.log('✅ Notification permissions granted');
   return true;
 }
 
@@ -1665,15 +1669,78 @@ ipcMain.handle(
     },
   ) => {
     try {
+      console.log('📱 Main process: Received notification request:', config.title);
+      console.log('🔍 Notification.isSupported():', Notification.isSupported());
+      console.log('🔍 notificationPermissionGranted:', notificationPermissionGranted);
+      
       if (!Notification.isSupported() || !notificationPermissionGranted) {
-        console.warn('Notifications not supported or permission not granted');
+        console.warn('❌ Notifications not supported or permission not granted');
         return null;
       }
+
+      // Resolve notification icon path
+      let iconPath: string;
+
+              if (config.icon) {
+          if (app.isPackaged) {
+            // In production, notification icon is in Contents/Resources/AppLogo/
+            const productionIconPath = path.join(
+              process.resourcesPath,
+              'AppLogo',
+              'notif.png',
+            );
+
+            // Check if notification icon exists, otherwise use tray icon path
+            if (fs.existsSync(productionIconPath)) {
+              iconPath = productionIconPath;
+              console.log('✅ Using production notification icon:', productionIconPath);
+            } else {
+              console.log(
+                '⚠️ Notification icon not found at:',
+                productionIconPath,
+                'using tray icon',
+              );
+              iconPath = normalTrayIcon.toDataURL
+                ? normalTrayIcon.toDataURL()
+                : (normalTrayIcon as any);
+            }
+          } else {
+            // In development, use relative path
+            const devIconPath = path.join(
+              __dirname,
+              '..',
+              'src',
+              'Assets',
+              'AppLogo',
+              'notif.png',
+            );
+            if (fs.existsSync(devIconPath)) {
+              iconPath = devIconPath;
+              console.log('✅ Using development notification icon:', devIconPath);
+            } else {
+              console.log('⚠️ Dev notification icon not found, using tray icon');
+              iconPath = normalTrayIcon.toDataURL
+                ? normalTrayIcon.toDataURL()
+                : (normalTrayIcon as any);
+            }
+          }
+        } else {
+          // Use tray icon as fallback
+          iconPath = normalTrayIcon.toDataURL
+            ? normalTrayIcon.toDataURL()
+            : (normalTrayIcon as any);
+        }
+
+      console.log(
+        `📱 Creating notification with icon: ${
+          typeof iconPath === 'string' ? iconPath : 'NativeImage'
+        }`,
+      );
 
       const notification = new Notification({
         title: config.title,
         body: config.body,
-        icon: config.icon || normalTrayIcon,
+        icon: iconPath,
         sound: 'default', // macOS system sound
         urgency: 'normal' as const,
       });
@@ -1733,7 +1800,20 @@ ipcMain.handle('dock-badge:set-count', async (_event, count: number) => {
 
     // On macOS, set the dock badge
     if (process.platform === 'darwin') {
-      app.setBadgeCount(currentBadgeCount);
+      // Ensure dock icon is visible when setting badge
+      if (app.dock && currentBadgeCount > 0) {
+        app.dock.show();
+      }
+
+      const success = app.setBadgeCount(currentBadgeCount);
+      console.log(
+        `🏷️ Dock badge set to ${currentBadgeCount}, success:`,
+        success !== false,
+      );
+
+      // Verify the badge was set
+      const actualCount = app.getBadgeCount();
+      console.log(`🔍 Actual dock badge count: ${actualCount}`);
     }
 
     return true;
@@ -1754,7 +1834,12 @@ ipcMain.handle('dock-badge:clear', async () => {
     currentBadgeCount = 0;
 
     if (process.platform === 'darwin') {
-      app.setBadgeCount(0);
+      const success = app.setBadgeCount(0);
+      console.log('🏷️ Dock badge cleared, success:', success !== false);
+
+      // Verify the badge was cleared
+      const actualCount = app.getBadgeCount();
+      console.log(`🔍 Actual dock badge count after clear: ${actualCount}`);
     }
 
     return true;

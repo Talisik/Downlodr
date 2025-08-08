@@ -28,19 +28,21 @@ const SystemTrayHandler: React.FC = () => {
       });
 
       // Listen for update check completed
-      removeUpdateCheckCompleted = window.updateAPI.onUpdateCheckCompleted((updateInfo) => {
-        if (updateInfo.hasUpdate) {
-          // The UpdateNotification component will handle showing the update modal
-          // This is already handled by the existing 'update-available' message
-          console.log('Update available:', updateInfo);
-        } else {
-          toast({
-            title: "You're up to date!",
-            description: `You're using the latest version (v${updateInfo.currentVersion}).`,
-            duration: 3000,
-          });
-        }
-      });
+      removeUpdateCheckCompleted = window.updateAPI.onUpdateCheckCompleted(
+        (updateInfo) => {
+          if (updateInfo.hasUpdate) {
+            // The UpdateNotification component will handle showing the update modal
+            // This is already handled by the existing 'update-available' message
+            console.log('Update available:', updateInfo);
+          } else {
+            toast({
+              title: "You're up to date!",
+              description: `You're using the latest version (v${updateInfo.currentVersion}).`,
+              duration: 3000,
+            });
+          }
+        },
+      );
 
       // Listen for update check error
       removeUpdateCheckError = window.updateAPI.onUpdateCheckError((error) => {

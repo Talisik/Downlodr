@@ -21,12 +21,12 @@ export const getPlatformInfo = async (): Promise<PlatformInfo> => {
       const platform = await window.electronAPI.getPlatform();
       return {
         isMacOS: platform === 'darwin',
-        isWindows: platform === 'win32', 
+        isWindows: platform === 'win32',
         isLinux: platform === 'linux',
-        platform
+        platform,
       };
     }
-    
+
     // Fallback for development/browser context
     const userAgent = navigator.userAgent.toLowerCase();
     if (userAgent.indexOf('mac') !== -1) {
@@ -34,21 +34,21 @@ export const getPlatformInfo = async (): Promise<PlatformInfo> => {
         isMacOS: true,
         isWindows: false,
         isLinux: false,
-        platform: 'darwin'
+        platform: 'darwin',
       };
     } else if (userAgent.indexOf('win') !== -1) {
       return {
         isMacOS: false,
         isWindows: true,
         isLinux: false,
-        platform: 'win32'
+        platform: 'win32',
       };
     } else {
       return {
         isMacOS: false,
         isWindows: false,
         isLinux: true,
-        platform: 'linux'
+        platform: 'linux',
       };
     }
   } catch (error) {
@@ -57,7 +57,7 @@ export const getPlatformInfo = async (): Promise<PlatformInfo> => {
       isMacOS: false,
       isWindows: true,
       isLinux: false,
-      platform: 'win32'
+      platform: 'win32',
     };
   }
 };
@@ -70,7 +70,7 @@ export const usePlatform = () => {
     isMacOS: false,
     isWindows: true,
     isLinux: false,
-    platform: 'win32'
+    platform: 'win32',
   });
 
   React.useEffect(() => {
