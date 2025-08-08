@@ -21,7 +21,7 @@ const NotificationManager: React.FC = () => {
   const processedFinishedIds = useRef(new Set<string>());
   const processedFailedIds = useRef(new Set<string>());
 
-  console.log('NotificationManager: Successfully initialized hooks');
+  // Component successfully initialized
 
   // Initialize notification handlers
   useEffect(() => {
@@ -34,8 +34,9 @@ const NotificationManager: React.FC = () => {
 
     // Set up show in finder handler
     notificationManager.setShowInFinderHandler((path: string) => {
-      if (window.electronAPI?.openPath) {
-        window.electronAPI.openPath(path);
+      const electronAPI = (window as any).electronAPI;
+      if (electronAPI?.openPath) {
+        electronAPI.openPath(path);
       }
     });
 
@@ -62,12 +63,24 @@ const NotificationManager: React.FC = () => {
   useEffect(() => {
     const activeCount = downloading.length;
 
+    console.log(
+      `NotificationManager: Active downloads changed to ${activeCount}`,
+    );
+    console.log(
+      'Downloads:',
+      downloading.map((d) => ({ id: d.id, name: d.name, status: d.status })),
+    );
+
     // Update dock badge with current download count
+    console.log(
+      `NotificationManager: Calling dockBadgeManager.setDownloadCount(${activeCount})`,
+    );
     dockBadgeManager.setDownloadCount(activeCount);
 
     // If downloads decreased, it means some completed
     if (activeCount < lastDownloadingCount.current) {
       const completedCount = lastDownloadingCount.current - activeCount;
+      console.log(`NotificationManager: ${completedCount} downloads completed`);
 
       // Show batch completion notification if multiple completed
       if (completedCount > 1) {

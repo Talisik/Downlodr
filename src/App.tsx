@@ -58,6 +58,56 @@ const App = () => {
       console.log('• window.testNotifications.testDownloadComplete() - Test download notification');
       console.log('• window.testNotifications.testDockBadge() - Test dock badge');
     }
+
+    // Add test functions for dock badge in global window for debugging
+    (window as any).testDockBadge = {
+      setBadgeCount: async (count: number) => {
+        console.log(`Testing dock badge with count: ${count}`);
+        if (window.dockBadgeAPI) {
+          try {
+            const result = await window.dockBadgeAPI.setBadgeCount(count);
+            console.log('Dock badge set result:', result);
+            return result;
+          } catch (error) {
+            console.error('Failed to set dock badge:', error);
+            return false;
+          }
+        } else {
+          console.error('dockBadgeAPI not available');
+          return false;
+        }
+      },
+      getBadgeCount: async () => {
+        if (window.dockBadgeAPI) {
+          try {
+            const count = await window.dockBadgeAPI.getBadgeCount();
+            console.log('Current dock badge count:', count);
+            return count;
+          } catch (error) {
+            console.error('Failed to get dock badge count:', error);
+            return null;
+          }
+        } else {
+          console.error('dockBadgeAPI not available');
+          return null;
+        }
+      },
+      clearBadge: async () => {
+        if (window.dockBadgeAPI) {
+          try {
+            const result = await window.dockBadgeAPI.clearBadge();
+            console.log('Badge cleared:', result);
+            return result;
+          } catch (error) {
+            console.error('Failed to clear badge:', error);
+            return false;
+          }
+        } else {
+          console.error('dockBadgeAPI not available');
+          return false;
+        }
+      }
+    };
   }, [settings.runInBackground]);
 
   return (

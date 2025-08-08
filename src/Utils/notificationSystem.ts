@@ -338,7 +338,8 @@ export class DockBadgeManager {
 
   private setBadgeCount(count: number): void {
     if (window.dockBadgeAPI) {
-      window.dockBadgeAPI.setBadgeCount(count);
+      window.dockBadgeAPI.setBadgeCount(count)
+        .catch((error) => console.error('Failed to set badge count:', error));
     } else if (typeof require !== 'undefined') {
       // Fallback for main process
       try {
@@ -347,6 +348,8 @@ export class DockBadgeManager {
       } catch (error) {
         console.warn('Could not set dock badge count:', error);
       }
+    } else {
+      console.warn('DockBadgeManager: No badge API available');
     }
   }
 

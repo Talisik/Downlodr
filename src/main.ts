@@ -80,7 +80,7 @@ function setupFfmpegPath(): void {
     ffmpegPath = path.join(__dirname, '..', '..', 'ffmpeg');
   }
 
-  if (require('fs').existsSync(ffmpegPath)) {
+  if (fs.existsSync(ffmpegPath)) {
     // Add the directory containing ffmpeg to PATH
     const ffmpegDir = path.dirname(ffmpegPath);
     const currentPath = process.env.PATH || '';
@@ -264,8 +264,6 @@ const createWindow = () => {
   });
 };
 
-
-
 // Function to start activity indicator (blinking green dot)
 function startActivityIndicator() {
   if (isActivityActive || !tray || !activityTrayIcon || !normalTrayIcon) {
@@ -346,7 +344,7 @@ const createTray = () => {
   // Create both icons with proper sizing for macOS
   normalTrayIcon = nativeImage.createFromPath(iconPath);
   alertTrayIcon = nativeImage.createFromPath(alertIconPath);
-  
+
   // Use alert icon as activity icon for simplicity
   activityTrayIcon = alertTrayIcon;
 
@@ -399,7 +397,7 @@ const createTray = () => {
 
           // Send checking message to renderer
           mainWindow.webContents.send('update-check-started');
-          
+
           try {
             const updateInfo = await checkForUpdates();
             // Send update result to renderer for proper toast handling
@@ -767,7 +765,7 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
   try {
     const ytdlpPath = getYtdlpBinaryPath();
     console.log('Using yt-dlp binary at:', ytdlpPath);
-    console.log('Binary exists:', require('fs').existsSync(ytdlpPath));
+    console.log('Binary exists:', fs.existsSync(ytdlpPath));
 
     // Use invoke instead of getInfo to specify binary path
     const result = await YTDLP.invoke({
@@ -1060,7 +1058,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
   try {
     const ytdlpPath = getYtdlpBinaryPath();
     console.log('Using yt-dlp binary for download at:', ytdlpPath);
-    console.log('Download binary exists:', require('fs').existsSync(ytdlpPath));
+    console.log('Download binary exists:', fs.existsSync(ytdlpPath));
 
     const controller = await YTDLP.download({
       // args needed for download
@@ -1599,7 +1597,7 @@ ipcMain.handle('sync-background-setting-on-startup', (_event, value) => {
 
 // function for update the download-finished handler to also change the tray icon
 ipcMain.on('download-finished', (_event, downloadInfo) => {
-  const { name, location } = downloadInfo;
+  const { name } = downloadInfo;
 
   // Show notification using new system (will respect user preferences)
   // The NotificationManager component will handle this automatically
@@ -1648,60 +1646,66 @@ async function checkNotificationPermissions(): Promise<boolean> {
   if (!Notification.isSupported()) {
     return false;
   }
-  
+
   // On macOS, Electron handles permissions automatically for bundled apps
   notificationPermissionGranted = true;
   return true;
 }
 
 // Native notification handler
-ipcMain.handle('notification:show', async (_event, config: {
-  title: string;
-  body: string;
-  icon?: string;
-  actions?: Array<{ action: string; title: string }>;
-}) => {
-  try {
-    if (!Notification.isSupported() || !notificationPermissionGranted) {
-      console.warn('Notifications not supported or permission not granted');
+ipcMain.handle(
+  'notification:show',
+  async (
+    _event,
+    config: {
+      title: string;
+      body: string;
+      icon?: string;
+      actions?: Array<{ action: string; title: string }>;
+    },
+  ) => {
+    try {
+      if (!Notification.isSupported() || !notificationPermissionGranted) {
+        console.warn('Notifications not supported or permission not granted');
+        return null;
+      }
+
+      const notification = new Notification({
+        title: config.title,
+        body: config.body,
+        icon: config.icon || normalTrayIcon,
+        sound: 'default', // macOS system sound
+        urgency: 'normal' as const,
+      });
+
+      // Handle notification click to show app window
+      notification.on('click', () => {
+        if (mainWindow) {
+          if (mainWindow.isMinimized()) {
+            mainWindow.restore();
+          }
+          mainWindow.show();
+          mainWindow.focus();
+
+          // Reset tray icon when app is shown via notification
+          resetTrayIcon();
+        }
+      });
+
+      // Show the notification
+      notification.show();
+
+      return {
+        title: config.title,
+        body: config.body,
+        icon: config.icon,
+      };
+    } catch (error) {
+      console.error('Failed to show notification:', error);
       return null;
     }
-
-    const notification = new Notification({
-      title: config.title,
-      body: config.body,
-      icon: config.icon || normalTrayIcon,
-      sound: 'default', // macOS system sound
-      urgency: 'normal' as const
-    });
-
-    // Handle notification click to show app window
-    notification.on('click', () => {
-      if (mainWindow) {
-        if (mainWindow.isMinimized()) {
-          mainWindow.restore();
-        }
-        mainWindow.show();
-        mainWindow.focus();
-        
-        // Reset tray icon when app is shown via notification
-        resetTrayIcon();
-      }
-    });
-
-    // Show the notification
-    notification.show();
-
-    return {
-      title: config.title,
-      body: config.body,
-      icon: config.icon
-    };
-  } catch (error) {
-    console.error('Failed to show notification:', error);
-    return null;
-  }
-});
+  },
+);
 
 // Request notification permissions
 ipcMain.handle('notification:request-permissions', async () => {
@@ -1726,12 +1730,12 @@ let currentBadgeCount = 0;
 ipcMain.handle('dock-badge:set-count', async (_event, count: number) => {
   try {
     currentBadgeCount = Math.max(0, count);
-    
+
     // On macOS, set the dock badge
     if (process.platform === 'darwin') {
       app.setBadgeCount(currentBadgeCount);
     }
-    
+
     return true;
   } catch (error) {
     console.error('Failed to set dock badge count:', error);
@@ -1748,11 +1752,11 @@ ipcMain.handle('dock-badge:get-count', async () => {
 ipcMain.handle('dock-badge:clear', async () => {
   try {
     currentBadgeCount = 0;
-    
+
     if (process.platform === 'darwin') {
       app.setBadgeCount(0);
     }
-    
+
     return true;
   } catch (error) {
     console.error('Failed to clear dock badge:', error);
