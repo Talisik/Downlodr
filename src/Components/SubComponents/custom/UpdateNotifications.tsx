@@ -10,6 +10,7 @@ import {
 } from '@/Components/SubComponents/shadcn/components/ui/alert-dialog';
 import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
 import { UpdateInfo } from '@/plugins/types';
+import { useMainStore } from '@/Store/mainStore';
 import React, { useEffect, useState } from 'react';
 import { FaArrowCircleUp } from 'react-icons/fa';
 
@@ -35,6 +36,16 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
   const [internalUpdateInfo, setInternalUpdateInfo] =
     useState<UpdateInfo | null>(null);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  // Access main store for "don't show again" preferences
+  const settings = useMainStore((state) => state.settings);
+  const updateDontShowAppUpdates = useMainStore(
+    (state) => state.updateDontShowAppUpdates,
+  );
+  const updateDontShowPluginUpdates = useMainStore(
+    (state) => state.updateDontShowPluginUpdates,
+  );
 
   // Determine which state to use
   const updateInfo = externalUpdateInfo || internalUpdateInfo;
@@ -50,7 +61,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
       if (window.updateAPI?.onUpdateAvailable) {
         // Listen for update notifications from the main process
         removeListener = window.updateAPI.onUpdateAvailable((info) => {
-          if (info.hasUpdate) {
+          if (info.hasUpdate && !settings.dontShowAppUpdates) {
             setInternalUpdateInfo(info);
             setInternalIsOpen(true);
           }
@@ -59,22 +70,36 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
 
       // Clean up the listener when the component unmounts
       return () => {
-        console.log('UpdateNotification unmounting');
+        // console.log('UpdateNotification unmounting');
         if (removeListener) {
           removeListener();
         }
       };
     }
-  }, [externalUpdateInfo, updateType]);
+  }, [externalUpdateInfo, updateType, settings.dontShowAppUpdates]);
 
   // Effect to handle external open state changes for plugin updates
   useEffect(() => {
     if (externalIsOpen !== undefined) {
+      // For plugin updates, check the preference before showing
+      if (updateType === 'plugin' && settings.dontShowPluginUpdates) {
+        // Don't show plugin update if user chose not to see them
+        return;
+      }
       setInternalIsOpen(externalIsOpen);
     }
-  }, [externalIsOpen]);
+  }, [externalIsOpen, updateType, settings.dontShowPluginUpdates]);
 
   const handleClose = () => {
+    // Save "don't show again" preference if checked
+    if (dontShowAgain) {
+      if (updateType === 'app') {
+        updateDontShowAppUpdates(true);
+      } else if (updateType === 'plugin') {
+        updateDontShowPluginUpdates(true);
+      }
+    }
+
     if (onClose) {
       onClose();
     } else {
@@ -96,6 +121,15 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
   };
 
   if (!updateInfo || !updateInfo.hasUpdate) {
+    return null;
+  }
+
+  // Check "don't show again" preferences
+  if (updateType === 'app' && settings.dontShowAppUpdates) {
+    return null;
+  }
+
+  if (updateType === 'plugin' && settings.dontShowPluginUpdates) {
     return null;
   }
 
@@ -126,7 +160,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleClose}>
-      <AlertDialogContent className="sm:max-w-lg bg-white dark:bg-darkModeDropdown rounded-lg pb-4 pt-6 px-6">
+      <AlertDialogContent className="sm:max-w-lg bg-white dark:bg-darkModeDropdown rounded-lg pb-4 pt-6 px-6 z-[10000]">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2 dark:text-gray-200 text-[15px]">
             <div className="bg-slate-100 rounded-full dark:bg-darkMode">
@@ -151,6 +185,23 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
             </p>
           </div>
         )}
+
+        {/* Don't show this again checkbox */}
+        <div className="flex items-center space-x-2 px-1">
+          <input
+            id="dontShowAgain"
+            type="checkbox"
+            checked={dontShowAgain}
+            onChange={(e) => setDontShowAgain(e.target.checked)}
+            className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded dark:border-gray-600 dark:bg-darkMode"
+          />
+          <label
+            htmlFor="dontShowAgain"
+            className="text-sm text-gray-600 dark:text-gray-400 select-none cursor-pointer"
+          >
+            Don't show this again
+          </label>
+        </div>
 
         <AlertDialogFooter className="flex items-center justify-end gap-2 py-1">
           <AlertDialogCancel asChild>

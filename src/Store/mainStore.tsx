@@ -24,6 +24,10 @@ interface DownloadSettings {
   runInBackground: boolean;
   enableClipboardMonitoring: boolean; // Whether to monitor clipboard for links
   exitModal: boolean; // Whether to show exit modal when closing
+  telemetryEnabled: boolean; // Whether telemetry data collection is enabled
+  telemetryConsentShown: boolean; // Whether the telemetry consent dialog has been shown
+  dontShowAppUpdates: boolean; // Whether to suppress app update notifications
+  dontShowPluginUpdates: boolean; // Whether to suppress plugin update notifications
 }
 
 // Interface for selected downloads
@@ -65,6 +69,10 @@ interface MainStore {
   setVisibleColumns: (columns: string[]) => void;
   updateRunInBackground: (value: boolean) => void;
   updateEnableClipboardMonitoring: (value: boolean) => void;
+  updateTelemetryEnabled: (enabled: boolean) => void; // Update telemetry enabled setting
+  updateTelemetryConsentShown: (shown: boolean) => void; // Update telemetry consent shown status
+  updateDontShowAppUpdates: (dontShow: boolean) => void; // Update app update notification preference
+  updateDontShowPluginUpdates: (dontShow: boolean) => void; // Update plugin update notification preference
   taskBarButtonsVisibility: TaskBarButtonsVisibility; // State for task bar buttons visibility
   setTaskBarButtonsVisibility: (
     visibility: Partial<TaskBarButtonsVisibility>,
@@ -75,15 +83,12 @@ interface MainStore {
   setIsDownloadDetailExpanded: (value: boolean) => void; // Set the expansion state of the download detail
 }
 
-// Add version constant for migration tracking
-const MAIN_STORE_VERSION = 1;
+// version constant for migration tracking
+const MAIN_STORE_VERSION = 3; // Incremented for update notification preferences
 
 // Interface for legacy persisted state structure
 interface LegacyPersistedState {
   settings?: Partial<DownloadSettings>;
-  selectedDownloads?: SelectedDownload[];
-  selectedRows?: string[];
-  selectedRowIds?: string[];
   visibleColumns?: string[];
   taskBarButtonsVisibility?: Partial<TaskBarButtonsVisibility>;
   isNavCollapsed?: boolean;
@@ -91,7 +96,7 @@ interface LegacyPersistedState {
   [key: string]: unknown; // Allow for other potential fields
 }
 
-// Add migration function
+// migration function
 const migrateMainStore = (persistedState: unknown, version: number) => {
   console.log(
     `Migrating mainStore from version ${version} to ${MAIN_STORE_VERSION}`,
@@ -99,7 +104,7 @@ const migrateMainStore = (persistedState: unknown, version: number) => {
 
   // If no version exists, this is a legacy state - migrate to current structure
   if (version === undefined || version === 0) {
-    // Define default serializable state only
+    // Define default serializable state only (excluding temporary session state)
     const defaultState = {
       settings: {
         defaultLocation: '',
@@ -111,12 +116,11 @@ const migrateMainStore = (persistedState: unknown, version: number) => {
         maxDownloadNum: 5,
         runInBackground: false,
         enableClipboardMonitoring: false,
+        telemetryEnabled: false, // Default to disabled
+        telemetryConsentShown: false, // Haven't shown consent dialog yet
+        dontShowAppUpdates: false, // Default to false
+        dontShowPluginUpdates: false, // Default to false
       },
-      selectedDownloads: [] as SelectedDownload[],
-      isDownloadModalOpen: false,
-      isExitModalOpen: false,
-      selectedRows: [] as string[],
-      selectedRowIds: [] as string[],
       visibleColumns: [
         'name',
         'size',
@@ -148,15 +152,6 @@ const migrateMainStore = (persistedState: unknown, version: number) => {
           ...legacy.settings,
         },
         // Preserve other persisted data if it exists and is valid
-        selectedDownloads: Array.isArray(legacy.selectedDownloads)
-          ? legacy.selectedDownloads
-          : defaultState.selectedDownloads,
-        selectedRows: Array.isArray(legacy.selectedRows)
-          ? legacy.selectedRows
-          : defaultState.selectedRows,
-        selectedRowIds: Array.isArray(legacy.selectedRowIds)
-          ? legacy.selectedRowIds
-          : defaultState.selectedRowIds,
         visibleColumns: Array.isArray(legacy.visibleColumns)
           ? legacy.visibleColumns
           : defaultState.visibleColumns,
@@ -183,14 +178,34 @@ const migrateMainStore = (persistedState: unknown, version: number) => {
   }
 
   // Handle future migrations here
-  // Example for version 1 to 2:
-  // if (version === 1) {
-  //   return {
-  //     ...persistedState,
-  //     // Add new fields or transform existing ones
-  //     newField: 'defaultValue',
-  //   };
-  // }
+  // Migration from version 1 to 2: Add telemetry settings
+  if (version === 1) {
+    return {
+      ...(persistedState as any),
+      settings: {
+        ...(persistedState as any).settings,
+        telemetryEnabled: false, // Default to disabled for existing users
+        telemetryConsentShown: false, // Show consent dialog for existing users
+      },
+    };
+  }
+
+  // Migration from version 2 to 3: Add update notification preferences
+  if (version === 2) {
+    return {
+      ...(persistedState as any),
+      settings: {
+        ...(persistedState as any).settings,
+        dontShowAppUpdates: false, // Default to show app updates for existing users
+        dontShowPluginUpdates: false, // Default to show plugin updates for existing users
+      },
+    };
+  }
+
+  // If version is already current or newer, return as-is
+  if (version >= MAIN_STORE_VERSION) {
+    return persistedState;
+  }
 
   // If version is current or higher, return as-is
   return persistedState;
@@ -201,8 +216,8 @@ export const useMainStore = create<MainStore>()(
   persist(
     (set, get) => ({
       settings: {
-        defaultLocation: '', // Start with empty string
-        exitModal: true, // Show exit modal by default to inform users
+        defaultLocation: '',
+        exitModal: true,
         defaultDownloadSpeed: 0,
         defaultDownloadSpeedBit: 'kb',
         permitConnectionLimit: false,
@@ -210,6 +225,10 @@ export const useMainStore = create<MainStore>()(
         maxDownloadNum: 5,
         runInBackground: false,
         enableClipboardMonitoring: false,
+        telemetryEnabled: false, // Default to disabled
+        telemetryConsentShown: false, // Haven't shown consent dialog yet
+        dontShowAppUpdates: false, // Default to false
+        dontShowPluginUpdates: false, // Default to false
       },
       selectedDownloads: [] as SelectedDownload[],
       isDownloadModalOpen: false,
@@ -262,6 +281,20 @@ export const useMainStore = create<MainStore>()(
       updateEnableClipboardMonitoring: (value) =>
         set({
           settings: { ...get().settings, enableClipboardMonitoring: value },
+        }),
+
+      updateTelemetryEnabled: (enabled: boolean) =>
+        set({ settings: { ...get().settings, telemetryEnabled: enabled } }),
+
+      updateTelemetryConsentShown: (shown: boolean) =>
+        set({ settings: { ...get().settings, telemetryConsentShown: shown } }),
+
+      updateDontShowAppUpdates: (dontShow: boolean) =>
+        set({ settings: { ...get().settings, dontShowAppUpdates: dontShow } }),
+
+      updateDontShowPluginUpdates: (dontShow: boolean) =>
+        set({
+          settings: { ...get().settings, dontShowPluginUpdates: dontShow },
         }),
 
       selectedRows: [] as string[],
@@ -333,10 +366,24 @@ export const useMainStore = create<MainStore>()(
     }),
     {
       name: 'download-settings-storage', // Name of the storage
-      version: MAIN_STORE_VERSION, // Add version tracking
+      version: MAIN_STORE_VERSION, // version tracking
       storage: createJSONStorage(() => localStorage), // Use local storage for persistence
-      migrate: migrateMainStore, // Add migration function
-      // Add onRehydrateStorage to handle initialization
+      migrate: migrateMainStore, // migration function
+      // Exclude temporary session state from persistence
+      partialize: (state) => ({
+        settings: state.settings,
+        visibleColumns: state.visibleColumns,
+        taskBarButtonsVisibility: state.taskBarButtonsVisibility,
+        isNavCollapsed: state.isNavCollapsed,
+        isDownloadDetailExpanded: state.isDownloadDetailExpanded,
+        // Explicitly exclude temporary session state:
+        // - selectedDownloads
+        // - selectedRows
+        // - selectedRowIds
+        // - isDownloadModalOpen
+        // - isExitModalOpen
+      }),
+      // onRehydrateStorage to handle initialization
       onRehydrateStorage: () => (state) => {
         if (!state?.settings.defaultLocation) {
           window.downlodrFunctions.getDownloadFolder().then((path) => {

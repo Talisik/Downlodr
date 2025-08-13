@@ -605,7 +605,6 @@ export interface PluginData {
   tags?: string[];
   featured?: boolean;
   lastUpdated?: string;
-  // Add these to match PluginInfo interface
   enabled?: boolean;
   location?: string;
 }

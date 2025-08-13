@@ -2,7 +2,6 @@ import { Copy, Download, Folder as FolderIcon, Settings } from '@/Assets/Icons';
 import Input from '@/Components/SubComponents/shadcn/components/ui/input';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
-import { cleanRawLink } from '@/DataFunctions/urlValidation';
 import useDownloadStore from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import {
@@ -10,7 +9,8 @@ import {
   useTaskbarDownloadStore,
   Video,
 } from '@/Store/taskbarDownloadStore';
-import { useEffect, useRef, useState } from 'react';
+import { cleanRawLink } from '@/Utils/Data/urlValidation';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AdditionalOptions from './AdditionalOptions';
 import FolderDirectory from './FolderDirectory';
 
@@ -49,6 +49,8 @@ const TaskbarInputField = () => {
   const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
   const [playlistVideos, setPlaylistVideos] = useState<Video[]>([]);
   const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
+  const [isAdditionalOptionsOpen, setIsAdditionalOptionsOpen] =
+    useState<boolean>(false);
 
   //  constant near the top of the component after other constants
   const RAW_YOUTUBE_PATTERN = /^https:\/\/youtu\.be\/[\w-]+(?:\?.*)?$/;
@@ -324,6 +326,12 @@ const TaskbarInputField = () => {
     }
   };
 
+  // Centralized function to close additional options
+  const closeAdditionalOptions = useCallback(() => {
+    setActiveButton(null);
+    setIsAdditionalOptionsOpen(false);
+  }, []);
+
   // Cleans up states of download modal variable
   const resetModal = () => {
     setVideoUrl('');
@@ -333,6 +341,7 @@ const TaskbarInputField = () => {
     setPlaylistVideos([]);
     setSelectedVideos(new Set());
     setDownloadFolder(settings.defaultLocation);
+    closeAdditionalOptions();
   };
 
   const handleDownload = async () => {
@@ -359,8 +368,6 @@ const TaskbarInputField = () => {
             getThumbnail,
           });
         }
-
-        setActiveButton(null);
       } else {
         // Single video download with user preferences
         setDownload(videoUrl, downloadFolder, maxDownload, {
@@ -417,7 +424,7 @@ const TaskbarInputField = () => {
         !target.closest('#folder-directory-modal') &&
         !target.closest('#taskbar-input-field')
       ) {
-        setActiveButton(null);
+        closeAdditionalOptions();
       }
     };
 
@@ -426,12 +433,13 @@ const TaskbarInputField = () => {
     return () => {
       document.removeEventListener('click', handleClickOutside);
     };
-  }, []);
+  }, [closeAdditionalOptions]);
 
   // Opens additional options when playlist is valid
   useEffect(() => {
     if (isPlaylist && isValidUrl) {
       setActiveButton('settings');
+      setIsAdditionalOptionsOpen(true);
     }
   }, [isPlaylist, isValidUrl]);
 
@@ -507,6 +515,9 @@ const TaskbarInputField = () => {
             ),
             onClick: () => {
               setActiveButton(activeButton === 'settings' ? null : 'settings');
+              setIsAdditionalOptionsOpen(
+                activeButton === 'settings' ? false : true,
+              );
             },
             tooltip:
               'Get the transcript and Thumbnail along with your download.',
@@ -558,8 +569,9 @@ const TaskbarInputField = () => {
         }}
       />
 
-      {activeButton === 'settings' && (
+      {activeButton === 'settings' && isAdditionalOptionsOpen && (
         <AdditionalOptions
+          // isOpenOptions={isAdditionalOptionsOpen}
           isPlaylist={isPlaylist}
           isLoading={isLoading}
           selectAll={selectAll}

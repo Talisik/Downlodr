@@ -164,7 +164,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
     if (window.updateAPI?.checkForUpdates) {
       try {
         const result = await window.updateAPI.checkForUpdates();
-        console.log('Update check result:', result);
         if (!result.hasUpdate) {
           toast({
             title: "You're up to date!",

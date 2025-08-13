@@ -11,10 +11,10 @@
 
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { processFileName } from '@/DataFunctions/FilterName';
 import { AddDownload } from '@/schema/download';
 import useDownloadStore from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
+import { processFileName } from '@/Utils/Data/FilterName';
 import React from 'react';
 import { IoMdDownload } from 'react-icons/io';
 

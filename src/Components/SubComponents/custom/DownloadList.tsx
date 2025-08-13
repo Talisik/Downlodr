@@ -17,10 +17,10 @@ import ShareButton from '@/Components/SubComponents/custom/ShareButton';
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { Skeleton } from '@/Components/SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { getExtractorIcon, getStatusIcon } from '@/DataFunctions/IconMapper';
 import { DownloadItem } from '@/schema/componentSchema';
 import useDownloadStore, { BaseDownload } from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
+import { getExtractorIcon, getStatusIcon } from '@/Utils/Icons/IconMapper';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FaPlay } from 'react-icons/fa';
 import { HiOutlineFolderOpen } from 'react-icons/hi';
@@ -823,7 +823,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     downloadLocation?: string,
     downloadId?: string,
   ) => {
-    console.log(downloadLocation, downloadId);
     if (downloadLocation) {
       try {
         const exists = await window.downlodrFunctions.fileExists(
@@ -1062,7 +1061,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   return (
     <div className="w-full">
       <table className="w-full">
-        <thead>
+        <thead className="sticky top-0 z-20 bg-titleBar dark:bg-alternateBlack">
           <tr
             className="border-b text-left border-gray-200 dark:border-darkModeCompliment"
             onContextMenu={handleColumnHeaderContextMenu}
@@ -1102,8 +1101,18 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                   className="flex items-center cursor-pointer"
                   onClick={() => handleSortClick(column.id)}
                 >
-                  {getColumnDisplayName(column.id)}
-                  {renderSortIndicator(column.id)}
+                  <span className="flex items-center gap-[0.5px]">
+                    {getColumnDisplayName(column.id)}
+                    {renderSortIndicator(column.id)}
+
+                    {column.id === 'title' && selectedRowIds.length > 0 && (
+                      <span className="text-xs">
+                        ({selectedRowIds.length}{' '}
+                        {selectedRowIds.length === 1 ? 'item' : 'items'}{' '}
+                        selected)
+                      </span>
+                    )}
+                  </span>
                 </div>
               </ResizableHeader>
             ))}

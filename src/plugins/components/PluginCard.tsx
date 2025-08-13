@@ -1,7 +1,7 @@
 import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
 import { usePluginStore } from '@/Store/pluginStore';
-import { renderIcon } from '@/Utils/iconHelpers';
-import { getFirstParagraph } from '@/Utils/stringHelpers';
+import { getFirstParagraph } from '@/Utils/Data/stringHelpers';
+import { renderIcon } from '@/Utils/Icons/iconHelpers';
 import { useEffect, useState } from 'react';
 import { LuDownload, LuFiles, LuUsers } from 'react-icons/lu';
 import { RxUpdate } from 'react-icons/rx';

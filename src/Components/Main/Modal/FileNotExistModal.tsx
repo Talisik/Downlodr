@@ -5,9 +5,9 @@
 import { FileNotExistModalProps } from '@/schema/componentSchema';
 import React from 'react';
 import { IoMdClose } from 'react-icons/io';
-import { processFileName } from '../../../DataFunctions/FilterName';
 import useDownloadStore from '../../../Store/downloadStore';
 import { useMainStore } from '../../../Store/mainStore';
+import { processFileName } from '../../../Utils/Data/FilterName';
 import { toast } from '../../SubComponents/shadcn/hooks/use-toast';
 
 const FileNotExistModal: React.FC<FileNotExistModalProps> = ({

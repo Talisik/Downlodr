@@ -33,11 +33,11 @@
  */
 
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { processFileName } from '@/DataFunctions/FilterName';
 import { usePluginState } from '@/plugins/Hooks/usePluginState';
 import { MenuItem } from '@/plugins/types';
 import useDownloadStore, { BaseDownload } from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
+import { processFileName } from '@/Utils/Data/FilterName';
 import React, { useEffect, useState } from 'react';
 import { BsArrowCounterclockwise } from 'react-icons/bs';
 import { FaTerminal } from 'react-icons/fa';

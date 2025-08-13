@@ -22,6 +22,9 @@ declare global {
       deleteFile: (videoPath: string) => Promise<boolean>; // Deletes a specified file from storage/drive
       deleteFolder: (folderPath: string) => Promise<boolean>; // Deletes a specified folder from storage/drive
       getDownloadFolder: () => Promise<string>; // Retrieves the default download folder path
+      getAppInfo: () => Promise<AppInfo>; // Retrieves the app information
+      getBrowserInfo: () => Promise<BrowserInfo>; // Retrieves the browser information
+      getHostInfo: () => Promise<DeviceInfo>; // Retrieves the device information
       isValidPath: (videoPath: string) => Promise<boolean>; // Validates a given file path if it exists
       joinDownloadPath: (
         downloadPath: string,
@@ -173,6 +176,24 @@ declare global {
       clearLastClipboardText: () => Promise<void>;
       clearClipboard: () => Promise<boolean>;
       isWindowFocused: () => Promise<boolean>;
+    };
+
+    formatSelectorManager?: {
+      showFormatSelector: (
+        options: FormatSelectorOptions,
+      ) => Promise<FormatSelectorResult | null>;
+    };
+
+    pluginModalManager?: {
+      showPluginModal: (
+        options: PluginModalOptions,
+      ) => Promise<PluginModalResult | null>;
+    };
+
+    pluginSidePanelManager?: {
+      showPluginSidePanel: (
+        options: PluginSidePanelOptions,
+      ) => Promise<PluginSidePanelResult>;
     };
     
   }

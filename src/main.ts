@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Main process entry point for the Electron application.
  * This file is responsible for creating the main application window,
@@ -24,7 +25,7 @@ import https from 'https';
 import os from 'os';
 import path from 'path';
 import * as YTDLP from 'yt-dlp-helper';
-import { checkForUpdates } from './DataFunctions/updateChecker';
+import { checkForUpdates } from './Utils/Data/updateChecker';
 import { PluginManager } from './plugins/pluginManager';
 import { pluginRegistry } from './plugins/registry';
 
@@ -134,12 +135,12 @@ const createWindow = () => {
   // focus tracking for clipboard monitoring
   mainWindow.on('focus', () => {
     isWindowFocused = true;
-    console.log('Window focused - clipboard monitoring paused');
+    // console.log('Window focused - clipboard monitoring paused');
   });
 
   mainWindow.on('blur', () => {
     isWindowFocused = false;
-    console.log('Window unfocused - clipboard monitoring resumed');
+    // console.log('Window unfocused - clipboard monitoring resumed');
   });
 
   // MAIN FUNCTIONS FOR TITLE BAR
@@ -148,11 +149,11 @@ const createWindow = () => {
 
     if (runInBackgroundSetting) {
       // If running in background is enabled, hide the window
-      console.log('Close button clicked, hiding window (background enabled)');
+      // console.log('Close button clicked, hiding window (background enabled)');
       mainWindow.hide();
     } else {
       // If running in background is disabled, actually quit the app
-      console.log('Close button clicked, quitting app (background disabled)');
+      // console.log('Close button clicked, quitting app (background disabled)');
       forceQuit = true;
       app.quit();
     }
@@ -320,6 +321,138 @@ ipcMain.handle('getDownloadFolder', async () => {
     }
 
     return downloadsPath;
+  } catch (error) {
+    // console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+// Function for getting default download folder from each OS
+ipcMain.handle('getHostInfo', async () => {
+  try {
+    if (os) {
+      const cpus = os.cpus();
+      const totalMemory = os.totalmem();
+      const freeMemory = os.freemem();
+      return {
+        host_name: os.hostname(),
+        host_id: os.hostname(),
+        host_type: 'desktop',
+        host_arch: os.arch(),
+        os_type: os.platform(),
+        os_description: `${os.type()} ${os.release()}`,
+        os_name: os.type(),
+        os_version: os.release(),
+        cpu_model: cpus[0]?.model || 'unknown',
+        cpu_cores: cpus.length,
+        cpu_threads: cpus.length,
+        memory_total_gb:
+          Math.round((totalMemory / 1024 / 1024 / 1024) * 10) / 10,
+        memory_available_gb:
+          Math.round((freeMemory / 1024 / 1024 / 1024) * 10) / 10,
+      };
+    } else {
+      // Renderer process fallbacks using available web APIs
+      const navigatorInfo = typeof navigator !== 'undefined' ? navigator : null;
+
+      return {
+        host_name: 'renderer-host',
+        host_id: 'www',
+        host_type: 'desktop',
+        host_arch: navigatorInfo?.platform || 'unknown',
+        os_type: 'unknown',
+        os_description: navigatorInfo?.userAgent || 'Unknown OS',
+        os_name: 'unknown',
+        os_version: 'unknown',
+        cpu_model: 'unknown',
+        cpu_cores: navigatorInfo?.hardwareConcurrency || 4,
+        cpu_threads: navigatorInfo?.hardwareConcurrency || 4,
+        memory_total_gb: 0,
+        memory_available_gb: 0,
+      };
+    }
+  } catch (error) {
+    console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+ipcMain.handle('getAppInfo', async () => {
+  try {
+    return {
+      app_name: 'Downlodr',
+      app_platform: process.platform,
+      electron_version: process.versions.electron,
+      app_arch: os.arch(),
+    };
+  } catch (error) {
+    console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+function getCpuUsagePercent() {
+  const startTime = process.hrtime();
+  const startUsage = process.cpuUsage();
+
+  // Simulate some work or wait for a short interval
+  const now = Date.now();
+  while (Date.now() - now < 500) {
+    /* spin the CPU for 500ms */
+  }
+
+  const elapTime = process.hrtime(startTime);
+  const elapUsage = process.cpuUsage(startUsage);
+
+  const elapTimeMS = elapTime[0] * 1000 + elapTime[1] / 1000000;
+  const elapUserMS = elapUsage.user / 1000;
+  const elapSystMS = elapUsage.system / 1000;
+
+  const cpuPercent = Math.round((100 * (elapUserMS + elapSystMS)) / elapTimeMS);
+  return cpuPercent;
+}
+
+ipcMain.handle('getPerformanceMetrics', async () => {
+  try {
+    const cpuUsage = getCpuUsagePercent();
+    return {
+      cpu_usage: cpuUsage,
+    };
+  } catch (error) {
+    console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+// Function for getting default download folder from each OS
+ipcMain.handle('getBrowserInfo', async () => {
+  try {
+    if (os) {
+      return {
+        browser_name: 'Chromium',
+        browser_version: process.versions.chrome,
+        browser_arch: os.arch(),
+      };
+    } else {
+      // Renderer process fallbacks using available web APIs
+      const navigatorInfo = typeof navigator !== 'undefined' ? navigator : null;
+
+      return {
+        host_name: 'renderer-host',
+        host_id: 'host_id',
+        host_type: 'desktop',
+        host_arch: navigatorInfo?.platform || 'unknown',
+        os_type: 'unknown',
+        os_description: navigatorInfo?.userAgent || 'Unknown OS',
+        os_name: 'unknown',
+        os_version: 'unknown',
+        cpu_model: 'unknown',
+        cpu_cores: navigatorInfo?.hardwareConcurrency || 4,
+        cpu_threads: navigatorInfo?.hardwareConcurrency || 4,
+        memory_total_gb: 0,
+        memory_available_gb: 0,
+      };
+    }
   } catch (error) {
     console.error('Error determining Downloads folder:', error);
     return null;
@@ -1572,7 +1705,7 @@ ipcMain.handle('plugins:taskbar-items', (event) => {
 
 // handler to execute taskbar items
 ipcMain.handle('plugins:execute-taskbar-item', (event, id, contextData) => {
-  console.log('Executing taskbar item action:', id, contextData);
+  // console.log('Executing taskbar item action:', id, contextData);
   pluginRegistry.executeTaskBarItemAction(id, contextData);
   return true;
 });
@@ -1620,10 +1753,10 @@ ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
     const resolvedPath = path.resolve(normalizedPath);
 
     if (!fs.existsSync(resolvedPath)) {
-      console.log('file doesnt exist');
+      // console.log('file doesnt exist');
       return { success: false, error: 'File does not exist' };
     }
-    console.log('path given to read:', resolvedPath);
+    // console.log('path given to read:', resolvedPath);
 
     const fileContents = await fs.promises.readFile(resolvedPath, 'utf8');
     return { success: true, data: fileContents };

@@ -1,8 +1,8 @@
 {
   "name": "downlodr",
   "productName": "Downlodr",
-  "version": "1.7.2-stable",
-  "description": "Downlodr is a powerful, user-friendly video downloading solution that supports over 1,800 platforms, including YouTube, Vimeo, and many more. Downlodr provides a seamless experience for managing your video downloads.",
+  "version": "1.7.4-stable",
+  "description": "Downlodr is a powerful, user-friendly video downloading solution that supports over 1,800 platforms",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
@@ -65,7 +65,7 @@
     "@tanstack/react-query": "^4.36.1",
     "@types/yauzl": "^2.10.3",
     "@vitejs/plugin-react": "^4.3.4",
-    "axios": "^1.8.4",
+    "axios": "^1.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

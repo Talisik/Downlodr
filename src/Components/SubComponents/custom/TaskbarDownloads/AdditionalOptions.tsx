@@ -1,11 +1,13 @@
 import PlaylistSkeleton from '@/Components/SubComponents/custom/Skeletons/PlaylistSkeleton';
 import Input from '@/Components/SubComponents/shadcn/components/ui/input';
 import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
-import { isValidUrl } from '@/DataFunctions/urlValidation';
 import { useTaskbarDownloadStore, Video } from '@/Store/taskbarDownloadStore';
+import { isValidUrl } from '@/Utils/Data/urlValidation';
+import { useState } from 'react';
 import { MdOutlineInfo } from 'react-icons/md';
 
 interface AdditionalOptionsProps {
+  // isOpenOptions: boolean;
   isPlaylist: boolean;
   isLoading: boolean;
   selectAll: boolean;
@@ -17,6 +19,7 @@ interface AdditionalOptionsProps {
 }
 
 const AdditionalOptions = ({
+  // isOpenOptions,
   isPlaylist,
   isLoading,
   selectAll,
@@ -28,6 +31,7 @@ const AdditionalOptions = ({
 }: AdditionalOptionsProps) => {
   const { getTranscript, setGetTranscript, getThumbnail, setGetThumbnail } =
     useTaskbarDownloadStore();
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div

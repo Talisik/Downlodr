@@ -47,20 +47,58 @@
  * - Better error handling and status management
  * - Cleaner phase transitions
  * - More robust queue processing
+ * - **NEW**: IndexedDB persistence for better performance and larger storage capacity
+ * - **NEW**: Automatic migration from localStorage to IndexedDB
+ * - **NEW**: Enhanced storage statistics and monitoring
  *
  * Dependencies:
  * - Zustand: A small, fast state-management solution.
  * - Zustand middleware for persistence.
  * - VideoFormatService: A service for processing video formats.
  * - Toast: A notification system for user feedback.
+ * - IndexedDB Storage: Custom adapter for better performance and capacity.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { downloadEnglishCaptions } from '@/DataFunctions/captionsHelper';
-import { VideoFormatService } from '@/DataFunctions/GetDownloadMetaData';
 import { useMainStore } from '@/Store/mainStore'; //  import
+import { downloadEnglishCaptions } from '@/Utils/Metadata/captionsHelper';
+import { VideoFormatService } from '@/Utils/Metadata/GetDownloadMetaData';
+import { TelemetryService } from '@/Utils/Telemetry/telemetryService';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import {
+  createIndexedDBStorageWithMigration,
+  IndexedDBStorageAdapter,
+} from '../Utils/indexedDBStorage';
+
+// Debounced storage adapter to reduce write frequency during rapid updates
+const createDebouncedStorage = (baseStorage: any, debounceMs = 500) => {
+  let timeoutId: NodeJS.Timeout | null = null;
+  let pendingState: any = null;
+
+  return {
+    getItem: baseStorage.getItem,
+    removeItem: baseStorage.removeItem,
+    setItem: (name: string, value: string) => {
+      // Store the latest state
+      pendingState = { name, value };
+
+      // Clear existing timeout
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      // Debounce the write
+      timeoutId = setTimeout(() => {
+        if (pendingState) {
+          baseStorage.setItem(pendingState.name, pendingState.value);
+          pendingState = null;
+          timeoutId = null;
+        }
+      }, debounceMs);
+    },
+  };
+};
 
 export interface SpeedDataPoint {
   timestamp: number;
@@ -78,38 +116,38 @@ function uuidv4() {
   );
 }
 
-// version constant for migration tracking
-const DOWNLOAD_STORE_VERSION = 1;
-
-// migration function for download store
+// Simplified migration with essential validation (appropriate for Electron)
 const migrateDownloadStore = (persistedState: any, version: number) => {
   console.log(
     `Migrating downloadStore from version ${version} to ${DOWNLOAD_STORE_VERSION}`,
   );
 
+  // Create safe default state
+  const defaultState = {
+    forDownloads: [] as ForDownload[],
+    downloading: [] as Downloading[],
+    finishedDownloads: [] as FinishedDownloads[],
+    failedDownloads: [] as FailedDownloads[],
+    historyDownloads: [] as HistoryDownloads[],
+    queuedDownloads: [] as QueuedDownload[],
+    availableTags: [] as string[],
+    availableCategories: [] as string[],
+  };
+
   // If no version exists, this is a legacy state - migrate to current structure
   if (version === undefined || version === 0) {
-    // Define default serializable state only
-    const defaultState = {
-      forDownloads: [] as ForDownload[],
-      downloading: [] as Downloading[],
-      finishedDownloads: [] as FinishedDownloads[],
-      failedDownloads: [] as FailedDownloads[],
-      historyDownloads: [] as HistoryDownloads[],
-      queuedDownloads: [] as QueuedDownload[],
-      availableTags: [] as string[],
-      availableCategories: [] as string[],
-    };
+    if (!persistedState || typeof persistedState !== 'object') {
+      console.log('No valid persisted state found, using default state');
+      return defaultState;
+    }
 
-    // Merge existing data with defaults if they exist
-    if (persistedState && typeof persistedState === 'object') {
+    try {
+      // Simple migration with essential field updates
       const migratedState = {
         ...defaultState,
-        // Preserve download arrays if they exist and are valid
         forDownloads: Array.isArray((persistedState as any).forDownloads)
           ? (persistedState as any).forDownloads.map((download: any) => ({
               ...download,
-              // Ensure new fields exist with defaults
               downloadPhase: download.downloadPhase || 'video',
               completionCount: download.completionCount || 0,
               rawProgress: download.rawProgress || download.progress || 0,
@@ -122,7 +160,6 @@ const migrateDownloadStore = (persistedState: any, version: number) => {
         downloading: Array.isArray((persistedState as any).downloading)
           ? (persistedState as any).downloading.map((download: any) => ({
               ...download,
-              // Ensure new fields exist with defaults
               downloadPhase: download.downloadPhase || 'video',
               completionCount: download.completionCount || 0,
               rawProgress: download.rawProgress || download.progress || 0,
@@ -137,9 +174,8 @@ const migrateDownloadStore = (persistedState: any, version: number) => {
         )
           ? (persistedState as any).finishedDownloads.map((download: any) => ({
               ...download,
-              // Ensure new fields exist with defaults
               downloadPhase: download.downloadPhase || 'video',
-              completionCount: download.completionCount || 2, // Finished downloads should be complete
+              completionCount: download.completionCount || 2,
               rawProgress: download.rawProgress || 100,
               speedHistory: download.speedHistory || [],
               tags: download.tags || [],
@@ -154,7 +190,6 @@ const migrateDownloadStore = (persistedState: any, version: number) => {
         failedDownloads: Array.isArray((persistedState as any).failedDownloads)
           ? (persistedState as any).failedDownloads.map((download: any) => ({
               ...download,
-              // Ensure new fields exist with defaults
               downloadPhase: download.downloadPhase || 'video',
               completionCount: download.completionCount || 0,
               rawProgress: download.rawProgress || download.progress || 0,
@@ -167,7 +202,7 @@ const migrateDownloadStore = (persistedState: any, version: number) => {
                 '',
               failureReason:
                 download.failureReason || 'Download process failed',
-              canRetry: download.canRetry !== false, // Default to true unless explicitly false
+              canRetry: download.canRetry !== false,
             }))
           : defaultState.failedDownloads,
 
@@ -176,7 +211,6 @@ const migrateDownloadStore = (persistedState: any, version: number) => {
         )
           ? (persistedState as any).historyDownloads.map((download: any) => ({
               ...download,
-              // Ensure new fields exist with defaults
               downloadPhase: download.downloadPhase || 'video',
               completionCount:
                 download.completionCount ||
@@ -195,7 +229,6 @@ const migrateDownloadStore = (persistedState: any, version: number) => {
         queuedDownloads: Array.isArray((persistedState as any).queuedDownloads)
           ? (persistedState as any).queuedDownloads.map((download: any) => ({
               ...download,
-              // Ensure new fields exist with defaults
               downloadPhase: download.downloadPhase || 'video',
               completionCount: download.completionCount || 0,
               rawProgress: download.rawProgress || 0,
@@ -219,27 +252,22 @@ const migrateDownloadStore = (persistedState: any, version: number) => {
 
       console.log('Successfully migrated downloadStore to version 1');
       return migratedState;
+    } catch (error) {
+      console.error('Migration error, using default state:', error);
+      return defaultState;
     }
-
-    console.log('No valid persisted state found, using default state');
-    return defaultState;
   }
 
   // Handle future migrations here
-  // Example for version 1 to 2:
-  // if (version === 1) {
-  //   return {
-  //     ...persistedState,
-  //     // Add new fields or transform existing ones
-  //     newArrayField: Array.isArray(persistedState.oldArrayField)
-  //       ? persistedState.oldArrayField.map(item => ({ ...item, newProperty: 'defaultValue' }))
-  //       : [],
-  //   };
-  // }
+  if (version >= DOWNLOAD_STORE_VERSION) {
+    return persistedState;
+  }
 
-  // If version is current or higher, return as-is
   return persistedState;
 };
+
+// version constant for migration tracking
+const DOWNLOAD_STORE_VERSION = 1;
 
 // Download Controller - implements Token Bucket Algorithm for rate limiting
 class DownloadController {
@@ -567,8 +595,8 @@ export interface ForDownload extends BaseDownload {
   formatId: string; // ID of the selected format
   audioExt: string; // Audio file extension
   audioFormatId: string; // ID of the audio format
-  formats?: any[]; // Add formats property to the interface
-  error?: string; // Add error property for error handling
+  formats?: any[]; //  formats property to the interface
+  error?: string; //  error property for error handling
 }
 
 // Interface for downloads that are currently downloading
@@ -675,7 +703,36 @@ interface DownloadStore {
     getThumbnail: boolean,
     duration: number,
     isCreateFolder: boolean,
+    autoCaptionLocation?: string,
+    thumnailsLocation?: string,
   ) => void; // Add a new download
+  retryDownload: (
+    videoUrl: string,
+    name: string,
+    downloadName: string,
+    size: number,
+    speed: string,
+    channelName: string,
+    timeLeft: string,
+    DateAdded: string,
+    progress: number,
+    location: string,
+    status: string,
+    ext: string,
+    formatId: string,
+    audioExt: string,
+    audioFormatId: string,
+    extractorKey: string,
+    limitRate: string,
+    automaticCaption: any,
+    thumbnails: any,
+    getTranscript: boolean,
+    getThumbnail: boolean,
+    duration: number,
+    thumnailsLocation: string,
+    autoCaptionLocation: string,
+    isCreateFolder: boolean,
+  ) => void; // Add retry download
   setDownload: (
     videoUrl: string,
     location: string,
@@ -753,7 +810,59 @@ interface DownloadStore {
   testLocalStorage: () => void;
 }
 
-// Utility function to check localStorage usage
+// Utility function to check IndexedDB usage instead of localStorage
+async function checkIndexedDBUsage(): Promise<{
+  total: number;
+  downlodrSize: number;
+  itemCount: number;
+  items: Array<{ key: string; size: number; timestamp: number }>;
+}> {
+  try {
+    // Create a temporary adapter to check storage usage
+    const adapter = new IndexedDBStorageAdapter({
+      dbName: 'downlodr-database',
+      storeName: 'zustand-storage',
+      version: DOWNLOAD_STORE_VERSION,
+    });
+
+    const stats = await adapter.getStorageStats();
+
+    // Also check localStorage for comparison
+    const localStorageTotal = JSON.stringify(localStorage).length;
+
+    console.log('Storage usage comparison:', {
+      indexedDB: {
+        totalSize: `${(stats.totalSize / 1024).toFixed(2)} KB`,
+        itemCount: stats.itemCount,
+        items: stats.items,
+      },
+      localStorage: `${(localStorageTotal / 1024).toFixed(2)} KB`,
+    });
+
+    return {
+      total: stats.totalSize,
+      downlodrSize: stats.totalSize,
+      itemCount: stats.itemCount,
+      items: stats.items,
+    };
+  } catch (error) {
+    console.error('Error checking IndexedDB usage:', error);
+
+    // Fallback to localStorage check
+    const total = JSON.stringify(localStorage).length;
+    const downlodrStorage = localStorage.getItem('downlodr-storage');
+    const downlodrSize = downlodrStorage ? downlodrStorage.length : 0;
+
+    return {
+      total,
+      downlodrSize,
+      itemCount: Object.keys(localStorage).length,
+      items: [],
+    };
+  }
+}
+
+// Legacy function for backward compatibility
 function checkLocalStorageUsage() {
   try {
     const total = JSON.stringify(localStorage).length;
@@ -773,8 +882,8 @@ function checkLocalStorageUsage() {
   }
 }
 
-// Export the store and utility function
-export { checkLocalStorageUsage };
+// Export both utility functions
+export { checkIndexedDBUsage, checkLocalStorageUsage };
 
 const useDownloadStore = create<DownloadStore>()(
   persist(
@@ -958,6 +1067,54 @@ const useDownloadStore = create<DownloadStore>()(
                 updates.status = 'finished';
               } else {
                 updates.status = 'failed';
+
+                // 📊 TELEMETRY: Send error report when download fails
+                // Non-blocking background telemetry - won't interfere with store updates
+                setTimeout(async () => {
+                  try {
+                    const telemetryService = new TelemetryService({
+                      apiEndpoint:
+                        'https://logging-api-staging.salina.app/api/v1/logs/',
+                    });
+                    await telemetryService.init();
+
+                    const success = await telemetryService.sendDownloadError({
+                      error: new Error(
+                        `Download failed: ${downloading.status || 'failed'}`,
+                      ),
+                      logMessage: completeLog || '',
+                      downloadContext: {
+                        url: downloading.videoUrl || '',
+                        format:
+                          downloading.formatId ||
+                          downloading.audioFormatId ||
+                          'unknown',
+                        quality:
+                          downloading.formatId ||
+                          downloading.audioFormatId ||
+                          'unknown',
+                        downloadName: downloading.name || 'Unknown Download',
+                        downloadId: downloading.id,
+                        progress: downloading.progress || 0,
+                        location: downloading.location || '',
+                        fileExtension: downloading.ext || downloading.audioExt,
+                        sessionDurationSeconds: downloading.elapsed || 0,
+                      },
+                    });
+
+                    console.log(
+                      success
+                        ? `📊 Auto-telemetry sent for failed download: ${downloading.name}`
+                        : `⚠️ Auto-telemetry failed for download: ${downloading.name}`,
+                    );
+                  } catch (error) {
+                    console.error(
+                      'Error sending auto-telemetry from store:',
+                      error,
+                    );
+                    // Don't throw - telemetry failures shouldn't break the app
+                  }
+                }, 0); // Non-blocking async execution
               }
 
               return { ...downloading, ...updates };
@@ -1129,6 +1286,8 @@ const useDownloadStore = create<DownloadStore>()(
         getThumbnail,
         duration,
         isCreateFolder,
+        autoCaptionLocation,
+        thumnailsLocation,
       ) => {
         if (!location || !downloadName) {
           return;
@@ -1199,8 +1358,192 @@ const useDownloadStore = create<DownloadStore>()(
             useDownloadStore.getState().updateDownload(downloadId, result);
           },
         );
-        let captionsPath = '';
-        let thumbnailPath = ' ';
+        let captionsPath = autoCaptionLocation || '';
+        let thumbnailPath = thumnailsLocation || '';
+        if (isCreateFolder) {
+          if (automatic_caption && getTranscript) {
+            captionsPath = await downloadEnglishCaptions(
+              automatic_caption,
+              zustandLocation,
+              downloadName,
+            );
+          } else {
+            captionsPath = '';
+            console.log('No transcript requested or available');
+          }
+          thumbnailPath = await window.downlodrFunctions.joinDownloadPath(
+            zustandLocation,
+            `thumb1.jpg`,
+          );
+          if (thumbnails && getThumbnail) {
+            try {
+              // Extract the URL from the thumbnails object
+              const thumbnailUrl = thumbnails;
+              if (thumbnailUrl) {
+                await window.downlodrFunctions.downloadFile(
+                  thumbnailUrl,
+                  thumbnailPath,
+                );
+              }
+            } catch (error) {
+              console.log('Error downloading thumbnail:', error);
+            }
+          } else {
+            console.log('No thumbnail requested or available');
+          }
+        }
+        // Add the download to state with the final location
+        set((state) => ({
+          downloading: [
+            ...state.downloading,
+            {
+              id: downloadId,
+              videoUrl,
+              name,
+              downloadName,
+              size,
+              speed,
+              timeLeft,
+              DateAdded,
+              progress,
+              location: zustandLocation, // Use the subfolder path for the download location
+              status: 'downloading',
+              channelName: channelName,
+              ext: ext,
+              formatId,
+              backupExt: ext,
+              backupFormatId: formatId,
+              backupAudioExt: audioExt,
+              backupAudioFormatId: audioFormatId,
+              controllerId: '---',
+              tags: [],
+              category: [],
+              extractorKey,
+              audioExt: audioExt,
+              audioFormatId: '',
+              isLive: false,
+              elapsed: null,
+              automaticCaption: automatic_caption,
+              thumbnails: thumbnails,
+              autoCaptionLocation: captionsPath,
+              thumnailsLocation: thumbnailPath,
+              getTranscript,
+              getThumbnail,
+              duration: duration,
+              isCreateFolder: isCreateFolder,
+              log: '',
+              downloadPhase: 'video',
+              completionCount: 0,
+              rawProgress: 0,
+              speedHistory: [] as SpeedDataPoint[],
+            },
+          ],
+        }));
+      },
+
+      retryDownload: async (
+        videoUrl,
+        name,
+        downloadName,
+        size,
+        speed,
+        channelName,
+        timeLeft,
+        DateAdded,
+        progress,
+        location,
+        status,
+        ext,
+        formatId,
+        audioExt,
+        audioFormatId,
+        extractorKey,
+        limitRate,
+        automatic_caption,
+        thumbnails,
+        getTranscript,
+        getThumbnail,
+        duration,
+        thumnailsLocation,
+        autoCaptionLocation,
+        isCreateFolder,
+      ) => {
+        if (!location || !downloadName) {
+          return;
+        }
+        let finalLocation = await window.downlodrFunctions.joinDownloadPath(
+          location,
+          downloadName,
+        );
+        let zustandLocation = location;
+        if (isCreateFolder) {
+          // Create a sanitized name for the subfolder
+          const sanitizedTitle = name.replace(/[\\/:'*ñ?"<>.|]/g, '_');
+
+          // Create initial subfolder path
+          let subfolderPath = await window.downlodrFunctions.joinDownloadPath(
+            location,
+            sanitizedTitle,
+          );
+
+          // Check if folder already exists and append counter if needed
+          let counter = 1;
+          let folderExists = await window.downlodrFunctions.fileExists(
+            subfolderPath,
+          );
+
+          while (folderExists) {
+            const success = await window.downlodrFunctions.deleteFolder(
+              subfolderPath,
+            );
+            if (!success) {
+              // Create a new path with counter appended
+              const newFolderName = `${sanitizedTitle} (${counter})`;
+              subfolderPath = await window.downlodrFunctions.joinDownloadPath(
+                location,
+                newFolderName,
+              );
+
+              // Check if this new path exists
+              folderExists = await window.downlodrFunctions.fileExists(
+                subfolderPath,
+              );
+              counter++;
+            }
+          }
+
+          // Ensure directory exists
+          const dirCreated =
+            await window.downlodrFunctions.ensureDirectoryExists(subfolderPath);
+          if (!dirCreated) {
+            console.error('Failed to create subfolder:', subfolderPath);
+          }
+
+          // Use subfolder path if created successfully, otherwise use original location
+          zustandLocation = dirCreated ? subfolderPath : location;
+          finalLocation = await window.downlodrFunctions.joinDownloadPath(
+            zustandLocation,
+            downloadName,
+          );
+        }
+        // Create a download ID before starting the download
+        const downloadId = (window as any).ytdlp.download(
+          {
+            url: videoUrl,
+            outputFilepath: finalLocation,
+            videoFormat: formatId,
+            remuxVideo: ext,
+            audioExt: audioExt,
+            audioFormatId: audioFormatId,
+            limitRate: limitRate,
+          },
+          async (result: any) => {
+            // Use the optimized updateDownload method instead of inline callbacks
+            useDownloadStore.getState().updateDownload(downloadId, result);
+          },
+        );
+        let captionsPath = autoCaptionLocation;
+        let thumbnailPath = thumnailsLocation;
         if (isCreateFolder) {
           if (automatic_caption && getTranscript) {
             captionsPath = await downloadEnglishCaptions(
@@ -2001,14 +2344,37 @@ const useDownloadStore = create<DownloadStore>()(
         });
       },
 
-      // Debug method to test localStorage
-      testLocalStorage: () => {
-        const { total, downlodrSize } = checkLocalStorageUsage();
-        toast({
-          title: 'LocalStorage Test',
-          description: `Total LocalStorage size: ${total}, downlodr-storage size: ${downlodrSize}`,
-          duration: 5000,
-        });
+      // Debug method to test IndexedDB storage
+      testLocalStorage: async () => {
+        try {
+          const indexedDBStats = await checkIndexedDBUsage();
+          const localStorageStats = checkLocalStorageUsage();
+
+          toast({
+            title: 'Storage Test Results',
+            description: `IndexedDB: ${(indexedDBStats.total / 1024).toFixed(
+              2,
+            )} KB (${indexedDBStats.itemCount} items) | localStorage: ${(
+              localStorageStats.total / 1024
+            ).toFixed(2)} KB`,
+            duration: 8000,
+          });
+
+          console.log('Complete storage analysis:', {
+            indexedDB: indexedDBStats,
+            localStorage: localStorageStats,
+          });
+        } catch (error) {
+          console.error('Error testing storage:', error);
+          const { total, downlodrSize } = checkLocalStorageUsage();
+          toast({
+            title: 'Storage Test (localStorage fallback)',
+            description: `Total: ${(total / 1024).toFixed(2)} KB, downlodr: ${(
+              downlodrSize / 1024
+            ).toFixed(2)} KB`,
+            duration: 5000,
+          });
+        }
       },
 
       //End of store
@@ -2016,7 +2382,17 @@ const useDownloadStore = create<DownloadStore>()(
     {
       name: 'downlodr-storage',
       version: DOWNLOAD_STORE_VERSION,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() =>
+        createDebouncedStorage(
+          createIndexedDBStorageWithMigration({
+            dbName: 'downlodr-database',
+            storeName: 'zustand-storage',
+            version: DOWNLOAD_STORE_VERSION,
+            localStorageKey: 'downlodr-storage',
+          }),
+          250, // Debounce IndexedDB writes by 250ms (faster than default 500ms for better responsiveness)
+        ),
+      ),
       partialize: (state) => ({
         historyDownloads: state.historyDownloads,
         availableTags: state.availableTags,
@@ -2031,7 +2407,9 @@ const useDownloadStore = create<DownloadStore>()(
       }),
       migrate: migrateDownloadStore,
       onRehydrateStorage: () => {
-        console.log('Rehydrating download store from localStorage');
+        console.log(
+          'Rehydrating download store from IndexedDB with concurrent write protection',
+        );
         return (state, error) => {
           if (error) {
             console.error('Error rehydrating download store:', error);
