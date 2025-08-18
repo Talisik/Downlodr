@@ -16,6 +16,7 @@ import RemoveModal from '@/Components/SubComponents/custom/RemoveModal';
 import StopModal from '@/Components/SubComponents/custom/StopModal';
 import TaskbarInputField from '@/Components/SubComponents/custom/TaskbarDownloads/TaskbarInputField';
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
+import { FfmpegStatus } from '@/Components/SubComponents/custom/FfmpegStatus';
 import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
 import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
@@ -702,6 +703,11 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
               )}
 
             <TaskbarInputField />
+
+            {/* FFmpeg Status Indicator */}
+            <div className="ml-3 hidden md:block">
+              <FfmpegStatus className="text-xs" />
+            </div>
           </div>
         </div>
       </div>

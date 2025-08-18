@@ -37,6 +37,8 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
   getFileSize: (path: string) => ipcRenderer.invoke('get-file-size', path),
   getDirectorySize: (path: string) =>
     ipcRenderer.invoke('get-directory-size', path),
+  // Enhanced FFmpeg status checking
+  checkFfmpegStatus: () => ipcRenderer.invoke('check-ffmpeg-status'),
   showInputContextMenu: () => ipcRenderer.send('show-input-context-menu'),
   invokeMainProcess: (channel: any, ...args: any) => {
     return ipcRenderer.invoke(channel, ...args);

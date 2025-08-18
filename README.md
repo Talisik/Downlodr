@@ -6,7 +6,7 @@ Downlodr is a powerful, user-friendly video downloading solution that supports m
 
 Built with Electron Forge and Vite, Downlodr offers a modern desktop experience with robust functionality and an intuitive interface.
 
-Current application has only been packaged for Windows.
+Available for **Windows** and **macOS** with comprehensive build and distribution systems.
 
 To download current version and learn more about Downlodr, visit site: <a href="https://downlodr.com/">Downlodr Official Site</a>
 
@@ -69,12 +69,24 @@ yarn start
 
 ### Building and Packaging
 
-To build and package the application:
-   ```
+#### For macOS (Enhanced Build System)
+```bash
+# Full production build with code signing and notarization
+yarn build:dmg
+
+# Test DMG creation without notarization
+yarn test:dmg
+```
+
+#### For Other Platforms
+```bash
+# Standard Electron Forge packaging
 yarn make
-   ```
+```
 
 This will create distributable packages for your platform in the `out` directory.
+
+📚 **Documentation**: See [`BUILD_SYSTEM_README.md`](BUILD_SYSTEM_README.md) for comprehensive build documentation.
 
 ## Usage Guide
 
@@ -92,6 +104,30 @@ This will create distributable packages for your platform in the `out` directory
    - Set your default download location
    - Configure download speed limits
    - Adjust maximum concurrent downloads
+
+## Documentation
+
+### Build and Distribution
+| Document | Purpose |
+|----------|---------|
+| [`BUILD_SYSTEM_README.md`](BUILD_SYSTEM_README.md) | Overview of enhanced build system |
+| [`docs/MACOS_BUILD_DISTRIBUTION.md`](docs/MACOS_BUILD_DISTRIBUTION.md) | Complete macOS build documentation |
+| [`docs/TROUBLESHOOTING_MACOS.md`](docs/TROUBLESHOOTING_MACOS.md) | Troubleshooting build and distribution issues |
+| [`docs/USER_INSTALLATION_GUIDE.md`](docs/USER_INSTALLATION_GUIDE.md) | User-friendly installation guide |
+
+### Development
+| Document | Purpose |
+|----------|---------|
+| [`docs/architecture.md`](docs/architecture.md) | Application architecture overview |
+| [`docs/PLUGIN_DEVELOPMENT.MD`](docs/PLUGIN_DEVELOPMENT.MD) | Plugin development guide |
+| [`docs/technical.md`](docs/technical.md) | Technical implementation details |
+
+### Additional Resources
+| Document | Purpose |
+|----------|---------|
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contributing guidelines |
+| [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Community standards |
+| [`CHANGELOG.md`](CHANGELOG.md) | Version history and changes |
 
 ## Contributing
 

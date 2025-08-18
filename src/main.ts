@@ -28,68 +28,324 @@ import { checkForUpdates } from './DataFunctions/updateChecker';
 import { PluginManager } from './plugins/pluginManager';
 import { pluginRegistry } from './plugins/registry';
 
-// Configure yt-dlp binary path for packaged app
-function getYtdlpBinaryPath(): string {
-  if (app.isPackaged) {
-    // In packaged app, yt-dlp is in Resources directory
-    return path.join(process.resourcesPath, 'yt-dlp');
-  } else {
-    // In development, use the binary in the project root
-    // __dirname points to .vite/build, so we need to go up two levels
-    const binaryPath = path.join(__dirname, '..', '..', 'yt-dlp');
-    console.log('Development mode yt-dlp path calculation:');
-    console.log('  __dirname:', __dirname);
-    console.log('  Calculated path:', binaryPath);
-    console.log('  Binary exists:', fs.existsSync(binaryPath));
+// Enhanced FFmpeg binary path configuration with Apple Silicon support
+function getFfmpegBinaryPath(): string {
+  console.log(
+    `🏗️  System architecture: ${process.arch}, platform: ${process.platform}`,
+  );
 
-    // Create compatibility symlink for yt-dlp-helper if needed
-    const expectedPath = path.join(__dirname, '..', '..', 'yt-dlp_macos');
-    if (!fs.existsSync(expectedPath) && fs.existsSync(binaryPath)) {
-      console.log('Creating yt-dlp-helper compatibility symlink...');
+  // Try system installations first (prioritize Apple Silicon paths)
+  const systemPaths = [
+    '/opt/homebrew/bin/ffmpeg', // Apple Silicon Homebrew (M1/M2/M3/M4)
+    '/usr/local/bin/ffmpeg', // Intel Homebrew (via Rosetta)
+    '/opt/local/bin/ffmpeg', // MacPorts
+    '/usr/bin/ffmpeg', // System installation
+  ];
+
+  for (const systemPath of systemPaths) {
+    if (fs.existsSync(systemPath)) {
+      console.log(`✅ Found system FFmpeg at: ${systemPath}`);
       try {
-        fs.symlinkSync(binaryPath, expectedPath);
-        console.log('✅ Symlink created successfully');
+        // Quick accessibility check
+        fs.accessSync(systemPath, fs.constants.X_OK);
+        return systemPath;
       } catch (error) {
-        console.log('Symlink creation failed, copying binary:', error.message);
+        console.warn(
+          `⚠️ System FFmpeg at ${systemPath} is not executable:`,
+          error.message,
+        );
+      }
+    }
+  }
+
+  // Fallback to bundled FFmpeg with architecture detection
+  if (app.isPackaged) {
+    const arch = process.arch;
+    console.log(
+      `📦 Packaged app detected, looking for architecture-specific binaries...`,
+    );
+
+    // Try architecture-specific binary first
+    const archSpecificPaths = [
+      path.join(process.resourcesPath, `ffmpeg-${arch}`), // e.g., ffmpeg-arm64
+      path.join(process.resourcesPath, 'binaries', `ffmpeg-${arch}`),
+    ];
+
+    for (const archPath of archSpecificPaths) {
+      if (fs.existsSync(archPath)) {
+        console.log(`✅ Using architecture-specific FFmpeg: ${archPath}`);
+        return archPath;
+      }
+    }
+
+    // Try universal/default binary
+    const fallbackPaths = [
+      path.join(process.resourcesPath, 'ffmpeg'),
+      path.join(process.resourcesPath, 'binaries', 'ffmpeg'),
+    ];
+
+    for (const fallbackPath of fallbackPaths) {
+      if (fs.existsSync(fallbackPath)) {
+        console.log(`✅ Using fallback FFmpeg binary: ${fallbackPath}`);
+        return fallbackPath;
+      }
+    }
+
+    console.warn('⚠️ No bundled FFmpeg found! Some features may not work.');
+    console.warn('💡 Install FFmpeg via Homebrew: brew install ffmpeg');
+    return '/usr/bin/ffmpeg'; // Graceful fallback
+  } else {
+    // Development mode - enhanced detection
+    const arch = process.arch;
+    const devPaths = [
+      path.join(__dirname, '..', '..', 'binaries', `ffmpeg-${arch}`),
+      path.join(__dirname, '..', '..', `ffmpeg-${arch}`),
+      path.join(__dirname, '..', '..', 'ffmpeg'),
+      path.join(__dirname, '..', '..', 'binaries', 'ffmpeg'),
+    ];
+
+    for (const devPath of devPaths) {
+      if (fs.existsSync(devPath)) {
+        console.log(`🔧 Development: Using FFmpeg at ${devPath}`);
+        return devPath;
+      }
+    }
+
+    console.warn('⚠️ Development: No FFmpeg found in project directory');
+    return '/usr/bin/ffmpeg';
+  }
+}
+
+// Enhanced yt-dlp binary path configuration with comprehensive fallback
+function getYtdlpBinaryPath(): string {
+  console.log('🔍 Resolving yt-dlp binary path...');
+  console.log(`   App packaged: ${app.isPackaged}`);
+  console.log(`   Platform: ${process.platform}`);
+  console.log(`   Process resourcesPath: ${process.resourcesPath}`);
+  console.log(`   __dirname: ${__dirname}`);
+
+  if (app.isPackaged) {
+    // In packaged app, try multiple potential locations
+    const candidatePaths = [
+      path.join(process.resourcesPath, 'yt-dlp'),
+      path.join(process.resourcesPath, 'yt-dlp_macos'),
+      path.join(path.dirname(process.execPath), 'yt-dlp'),
+      path.join(path.dirname(process.execPath), 'Resources', 'yt-dlp'),
+      path.join(path.dirname(process.execPath), 'Resources', 'yt-dlp_macos'),
+    ];
+
+    console.log('   Checking packaged app paths:');
+    for (const candidatePath of candidatePaths) {
+      const exists = fs.existsSync(candidatePath);
+      console.log(`     ${candidatePath}: ${exists ? '✅' : '❌'}`);
+
+      if (exists) {
         try {
-          fs.copyFileSync(binaryPath, expectedPath);
-          fs.chmodSync(expectedPath, 0o755);
-          console.log('✅ Binary copied successfully');
-        } catch (copyError) {
-          console.error(
-            'Failed to create compatibility binary:',
-            copyError.message,
+          // Check if binary is executable
+          fs.accessSync(candidatePath, fs.constants.X_OK);
+          console.log(`   ✅ Selected packaged binary: ${candidatePath}`);
+          return candidatePath;
+        } catch (accessError) {
+          console.warn(
+            `   ⚠️  Binary found but not executable: ${candidatePath}`,
           );
+          // Try to make it executable
+          try {
+            fs.chmodSync(candidatePath, 0o755);
+            console.log(`   ✅ Made binary executable: ${candidatePath}`);
+            return candidatePath;
+          } catch (chmodError) {
+            console.warn(
+              `   ❌ Failed to make binary executable: ${chmodError.message}`,
+            );
+          }
         }
       }
     }
 
-    return binaryPath;
+    console.warn('⚠️  No valid yt-dlp binary found in packaged app!');
+    // Return the expected path anyway for error handling
+    return path.join(process.resourcesPath, 'yt-dlp');
+  } else {
+    // Development mode - enhanced detection
+    const candidatePaths = [
+      path.join(__dirname, '..', '..', 'yt-dlp'),
+      path.join(__dirname, '..', '..', 'yt-dlp_macos'),
+      path.join(process.cwd(), 'yt-dlp'),
+      path.join(process.cwd(), 'yt-dlp_macos'),
+    ];
+
+    console.log('   Checking development paths:');
+    for (const candidatePath of candidatePaths) {
+      const exists = fs.existsSync(candidatePath);
+      console.log(`     ${candidatePath}: ${exists ? '✅' : '❌'}`);
+
+      if (exists) {
+        try {
+          // Check if binary is executable
+          fs.accessSync(candidatePath, fs.constants.X_OK);
+          console.log(`   ✅ Selected development binary: ${candidatePath}`);
+
+          // Create compatibility symlinks if needed
+          const expectedPaths = [
+            path.join(__dirname, '..', '..', 'yt-dlp'),
+            path.join(__dirname, '..', '..', 'yt-dlp_macos'),
+          ];
+
+          for (const expectedPath of expectedPaths) {
+            if (
+              !fs.existsSync(expectedPath) &&
+              expectedPath !== candidatePath
+            ) {
+              try {
+                fs.symlinkSync(candidatePath, expectedPath);
+                console.log(
+                  `   ✅ Created compatibility symlink: ${expectedPath}`,
+                );
+              } catch (symlinkError) {
+                try {
+                  fs.copyFileSync(candidatePath, expectedPath);
+                  fs.chmodSync(expectedPath, 0o755);
+                  console.log(
+                    `   ✅ Created compatibility copy: ${expectedPath}`,
+                  );
+                } catch (copyError) {
+                  console.warn(
+                    `   ⚠️  Failed to create compatibility binary: ${copyError.message}`,
+                  );
+                }
+              }
+            }
+          }
+
+          return candidatePath;
+        } catch (accessError) {
+          console.warn(
+            `   ⚠️  Binary found but not executable: ${candidatePath}`,
+          );
+          // Try to make it executable
+          try {
+            fs.chmodSync(candidatePath, 0o755);
+            console.log(`   ✅ Made binary executable: ${candidatePath}`);
+            return candidatePath;
+          } catch (chmodError) {
+            console.warn(
+              `   ❌ Failed to make binary executable: ${chmodError.message}`,
+            );
+          }
+        }
+      }
+    }
+
+    console.warn('⚠️  No valid yt-dlp binary found in development!');
+    // Return the expected path anyway for error handling
+    return path.join(__dirname, '..', '..', 'yt-dlp');
   }
 }
 
-// Configure ffmpeg binary path and ensure it's in PATH
-function setupFfmpegPath(): void {
-  let ffmpegPath: string;
+// Enhanced FFmpeg setup with verification and PATH management
+async function setupFfmpegPath(): Promise<void> {
+  const ffmpegPath = getFfmpegBinaryPath();
 
-  if (app.isPackaged) {
-    // In packaged app, ffmpeg is in Resources directory
-    ffmpegPath = path.join(process.resourcesPath, 'ffmpeg');
-  } else {
-    // In development, use the binary in the project root
-    ffmpegPath = path.join(__dirname, '..', '..', 'ffmpeg');
-  }
+  console.log(`🔧 Setting up FFmpeg: ${ffmpegPath}`);
 
-  if (fs.existsSync(ffmpegPath)) {
-    // Add the directory containing ffmpeg to PATH
+  // Verify the binary works
+  const isValid = await verifyFfmpegBinary(ffmpegPath);
+
+  if (isValid) {
+    // Add to PATH for yt-dlp integration
     const ffmpegDir = path.dirname(ffmpegPath);
     const currentPath = process.env.PATH || '';
     if (!currentPath.includes(ffmpegDir)) {
       process.env.PATH = ffmpegDir + path.delimiter + currentPath;
-      console.log('Added ffmpeg to PATH:', ffmpegDir);
+      console.log(`✅ Added FFmpeg to PATH: ${ffmpegDir}`);
     }
   } else {
-    console.warn('Static ffmpeg binary not found at:', ffmpegPath);
+    console.warn('⚠️ FFmpeg verification failed - some features may not work');
+  }
+}
+
+// Enhanced binary verification
+async function verifyFfmpegBinary(binaryPath: string): Promise<boolean> {
+  if (!fs.existsSync(binaryPath)) {
+    console.warn(`❌ FFmpeg binary not found: ${binaryPath}`);
+    return false;
+  }
+
+  try {
+    // Check if binary is executable
+    await fs.promises.access(binaryPath, fs.constants.X_OK);
+
+    // Quick version check to ensure it's working
+    const { exec } = require('child_process'); // eslint-disable-line @typescript-eslint/no-var-requires
+    return new Promise((resolve) => {
+      exec(
+        `"${binaryPath}" -version`,
+        { timeout: 5000 },
+        (error: any, stdout: any) => {
+          if (error) {
+            console.warn(`⚠️ FFmpeg verification failed: ${error.message}`);
+            resolve(false);
+          } else {
+            const versionLine = stdout.split('\n')[0];
+            console.log(`✅ FFmpeg verified: ${versionLine}`);
+            resolve(true);
+          }
+        },
+      );
+    });
+  } catch (error) {
+    console.warn(`⚠️ FFmpeg access check failed: ${error.message}`);
+    return false;
+  }
+}
+
+// Add IPC handler for FFmpeg status checking
+async function getFfmpegStatus(): Promise<{
+  available: boolean;
+  version?: string;
+  path?: string;
+  architecture?: string;
+}> {
+  const ffmpegPath = getFfmpegBinaryPath();
+  const isValid = await verifyFfmpegBinary(ffmpegPath);
+
+  if (!isValid) {
+    return { available: false };
+  }
+
+  try {
+    const { exec } = require('child_process'); // eslint-disable-line @typescript-eslint/no-var-requires
+    return new Promise((resolve) => {
+      exec(
+        `"${ffmpegPath}" -version && file "${ffmpegPath}"`,
+        { timeout: 5000 },
+        (error: any, stdout: any) => {
+          if (error) {
+            resolve({ available: false });
+          } else {
+            const lines = stdout.split('\n');
+            const versionLine = lines[0];
+            const archLine =
+              lines.find((line) => line.includes('Mach-O')) || '';
+            const architecture = archLine.includes('arm64')
+              ? 'Apple Silicon (ARM64)'
+              : archLine.includes('x86_64')
+              ? 'Intel (x86_64)'
+              : 'Unknown';
+
+            resolve({
+              available: true,
+              version: versionLine,
+              path: ffmpegPath,
+              architecture,
+            });
+          }
+        },
+      );
+    });
+  } catch (error) {
+    return { available: false };
   }
 }
 
@@ -566,6 +822,9 @@ ipcMain.handle('validatePath', async (event, folderPath) => {
 ipcMain.handle('dialog:openDirectory', async (event) => {
   // Get the parent browser window
   const browserWindow = BrowserWindow.fromWebContents(event.sender);
+  if (!browserWindow) {
+    return null;
+  }
 
   const result = await dialog.showOpenDialog(browserWindow, {
     properties: ['openDirectory'],
@@ -691,10 +950,14 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
     // Enable verbose logging for yt-dlp-helper
     YTDLP.Config.log = true;
 
+    const ffmpegPath = getFfmpegBinaryPath();
+    console.log('Using ffmpeg binary at:', ffmpegPath);
+    console.log('FFmpeg binary exists:', fs.existsSync(ffmpegPath));
+
     const info = await YTDLP.getPlaylistInfo({
       url: videoUrl.url,
       ytdlpDownloadDestination: ytdlpPath,
-      downloadBinary: { ytdlp: false, ffmpeg: true }, // Enable ffmpeg for playlist info
+      downloadBinary: { ytdlp: false, ffmpeg: false }, // Don't download ffmpeg, use bundled
     });
 
     console.log('📊 Playlist info result:', {
@@ -764,32 +1027,235 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
   YTDLP.Config.log = true;
   try {
     const ytdlpPath = getYtdlpBinaryPath();
-    console.log('Using yt-dlp binary at:', ytdlpPath);
-    console.log('Binary exists:', fs.existsSync(ytdlpPath));
+    console.log('🔍 YT-DLP Info Request Details:');
+    console.log('  URL:', url);
+    console.log('  Binary path:', ytdlpPath);
+    console.log('  Binary exists:', fs.existsSync(ytdlpPath));
+    console.log('  App is packaged:', app.isPackaged);
+    console.log('  Process resourcesPath:', process.resourcesPath);
+
+    // Enhanced binary validation
+    if (!fs.existsSync(ytdlpPath)) {
+      const errorMessage = `yt-dlp binary not found at: ${ytdlpPath}`;
+      console.error('❌', errorMessage);
+      return {
+        error: errorMessage,
+        ok: false,
+        details: {
+          path: ytdlpPath,
+          exists: false,
+          executable: false,
+          packaged: app.isPackaged,
+        },
+      };
+    }
+
+    // Check binary permissions on macOS/Linux
+    if (process.platform !== 'win32') {
+      try {
+        const stats = fs.statSync(ytdlpPath);
+        const isExecutable = !!(stats.mode & parseInt('111', 8));
+        console.log('  Binary mode:', stats.mode.toString(8));
+        console.log('  Binary is executable:', isExecutable);
+
+        if (!isExecutable) {
+          console.log('  🔧 Attempting to make binary executable...');
+          try {
+            fs.chmodSync(ytdlpPath, 0o755);
+            console.log('  ✅ Binary made executable');
+          } catch (chmodError) {
+            const errorMessage = `yt-dlp binary is not executable and cannot be made executable: ${chmodError.message}`;
+            console.error('❌', errorMessage);
+            return {
+              error: errorMessage,
+              ok: false,
+              details: {
+                path: ytdlpPath,
+                exists: true,
+                executable: false,
+                chmodError: chmodError.message,
+              },
+            };
+          }
+        }
+
+        // Test if the binary can actually be accessed
+        try {
+          fs.accessSync(ytdlpPath, fs.constants.X_OK);
+          console.log('  ✅ Binary access confirmed');
+        } catch (accessError) {
+          const errorMessage = `yt-dlp binary cannot be executed: ${accessError.message}`;
+          console.error('❌', errorMessage);
+          return {
+            error: errorMessage,
+            ok: false,
+            details: {
+              path: ytdlpPath,
+              exists: true,
+              executable: false,
+              accessError: accessError.message,
+            },
+          };
+        }
+      } catch (permError) {
+        console.warn(
+          '  ⚠️  Could not check binary permissions:',
+          permError.message,
+        );
+      }
+    }
+
+    if (!fs.existsSync(ytdlpPath)) {
+      // Try alternative paths if the main path doesn't exist
+      const alternativePaths: string[] = [];
+
+      if (app.isPackaged) {
+        // Alternative packaged paths
+        alternativePaths.push(
+          path.join(process.resourcesPath, 'yt-dlp_macos'),
+          path.join(process.resourcesPath, 'yt-dlp.exe'),
+          path.join(path.dirname(process.execPath), 'yt-dlp'),
+          path.join(path.dirname(process.execPath), 'Resources', 'yt-dlp'),
+        );
+      } else {
+        // Alternative development paths
+        alternativePaths.push(
+          path.join(__dirname, '..', '..', 'yt-dlp_macos'),
+          path.join(process.cwd(), 'yt-dlp'),
+          path.join(process.cwd(), 'yt-dlp_macos'),
+        );
+      }
+
+      console.log('  Checking alternative paths:');
+      for (const altPath of alternativePaths) {
+        const exists = fs.existsSync(altPath);
+        console.log(`    ${altPath}: ${exists ? '✅' : '❌'}`);
+        if (exists) {
+          console.log(`  Using alternative path: ${altPath}`);
+          // Try to make it executable
+          try {
+            fs.chmodSync(altPath, 0o755);
+          } catch (chmodError) {
+            console.warn(
+              '  Could not make binary executable:',
+              chmodError.message,
+            );
+          }
+
+          // Update the path for this request
+          const ffmpegPath = getFfmpegBinaryPath();
+          const result = await YTDLP.invoke({
+            args: [
+              url,
+              '--no-warnings',
+              '--dump-json',
+              '--ffmpeg-location',
+              ffmpegPath,
+            ],
+            ytdlpDownloadDestination: altPath,
+            downloadBinary: { ytdlp: false, ffmpeg: false }, // Don't download ffmpeg, use bundled
+          });
+
+          if (!result.ok) {
+            throw new Error(
+              `yt-dlp execution failed: ${result.data || 'Unknown error'}`,
+            );
+          }
+
+          const info = {
+            ok: true,
+            data: JSON.parse(result.data || '{}'),
+          };
+          return info;
+        }
+      }
+
+      throw new Error(
+        `yt-dlp binary not found at ${ytdlpPath} or any alternative locations`,
+      );
+    }
+
+    // Make sure binary is executable
+    try {
+      fs.chmodSync(ytdlpPath, 0o755);
+    } catch (chmodError) {
+      console.warn('Could not make binary executable:', chmodError.message);
+    }
 
     // Use invoke instead of getInfo to specify binary path
+    const ffmpegPath = getFfmpegBinaryPath();
+    console.log('🔧 FFmpeg Configuration:');
+    console.log('  Binary path:', ffmpegPath);
+    console.log('  Binary exists:', fs.existsSync(ffmpegPath));
+
+    // Check FFmpeg binary permissions on macOS/Linux
+    if (process.platform !== 'win32' && fs.existsSync(ffmpegPath)) {
+      try {
+        const ffmpegStats = fs.statSync(ffmpegPath);
+        const ffmpegExecutable = !!(ffmpegStats.mode & parseInt('111', 8));
+        console.log('  Binary mode:', ffmpegStats.mode.toString(8));
+        console.log('  Binary is executable:', ffmpegExecutable);
+
+        if (!ffmpegExecutable) {
+          console.log('  🔧 Attempting to make FFmpeg executable...');
+          try {
+            fs.chmodSync(ffmpegPath, 0o755);
+            console.log('  ✅ FFmpeg made executable');
+          } catch (ffmpegChmodError) {
+            console.warn(
+              '  ⚠️  Could not make FFmpeg executable:',
+              ffmpegChmodError.message,
+            );
+          }
+        }
+      } catch (ffmpegPermError) {
+        console.warn(
+          '  ⚠️  Could not check FFmpeg permissions:',
+          ffmpegPermError.message,
+        );
+      }
+    }
+
     const result = await YTDLP.invoke({
-      args: [url, '--no-warnings', '--dump-json'],
+      args: [
+        url,
+        '--no-warnings',
+        '--dump-json',
+        '--ffmpeg-location',
+        ffmpegPath,
+      ],
       ytdlpDownloadDestination: ytdlpPath,
-      downloadBinary: { ytdlp: false, ffmpeg: true }, // Enable ffmpeg for info extraction
+      downloadBinary: { ytdlp: false, ffmpeg: false }, // Don't download ffmpeg, use bundled
     });
 
     if (!result.ok) {
-      throw new Error('Failed to get video info');
+      throw new Error(
+        `yt-dlp execution failed: ${result.data || 'Unknown error'}`,
+      );
     }
 
     const info = {
       ok: true,
-      data: JSON.parse(result.data || ''),
+      data: JSON.parse(result.data || '{}'),
     };
 
-    if (!info) {
-      throw new Error('No info returned from yt-dlp');
+    if (!info.data || Object.keys(info.data).length === 0) {
+      throw new Error('yt-dlp returned empty data');
     }
+
+    console.log('✅ Video info fetched successfully:', {
+      title: info.data.title || 'Unknown',
+      extractor: info.data.extractor_key || 'Unknown',
+    });
+
     return info;
   } catch (error) {
-    console.error('Error fetching video info:', error);
-    return { error: error.message };
+    console.error('❌ Error fetching video info:', {
+      message: error.message,
+      stack: error.stack,
+      url: url,
+    });
+    return { error: error.message, ok: false };
   }
 });
 
@@ -1060,6 +1526,10 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     console.log('Using yt-dlp binary for download at:', ytdlpPath);
     console.log('Download binary exists:', fs.existsSync(ytdlpPath));
 
+    const ffmpegPath = getFfmpegBinaryPath();
+    console.log('Using ffmpeg binary for download at:', ffmpegPath);
+    console.log('FFmpeg binary exists:', fs.existsSync(ffmpegPath));
+
     const controller = await YTDLP.download({
       // args needed for download
       args: {
@@ -1072,7 +1542,8 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
         limitRate: args.limitRate,
       },
       ytdlpDownloadDestination: ytdlpPath,
-      downloadBinary: { ytdlp: false, ffmpeg: true }, // Enable ffmpeg for remuxing
+      ffmpegDownloadDestination: ffmpegPath, // Use our bundled ffmpeg
+      downloadBinary: { ytdlp: false, ffmpeg: false }, // Don't download ffmpeg, use bundled
     });
 
     if (!controller || typeof controller.listen !== 'function') {
@@ -1322,7 +1793,7 @@ app.on('ready', async () => {
   updateCloseHandler();
 
   // Setup ffmpeg path for yt-dlp merging
-  setupFfmpegPath();
+  await setupFfmpegPath();
 
   // Test yt-dlp path on startup
   console.log('=== YT-DLP PATH TEST ===');
@@ -1474,7 +1945,9 @@ ipcMain.on('show-input-context-menu', (event) => {
   ]);
 
   const win = BrowserWindow.fromWebContents(event.sender);
-  menu.popup({ window: win });
+  if (win) {
+    menu.popup({ window: win });
+  }
 });
 
 // opening external link
@@ -1603,7 +2076,7 @@ ipcMain.on('download-finished', (_event, downloadInfo) => {
 
   // NOTE: Notification is now handled by NotificationManager component in renderer
   // This maintains the legacy tray icon behavior only
-  
+
   // Change the tray icon to the alert version
   setAlertTrayIcon();
 });
@@ -1669,67 +2142,78 @@ ipcMain.handle(
     },
   ) => {
     try {
-      console.log('📱 Main process: Received notification request:', config.title);
+      console.log(
+        '📱 Main process: Received notification request:',
+        config.title,
+      );
       console.log('🔍 Notification.isSupported():', Notification.isSupported());
-      console.log('🔍 notificationPermissionGranted:', notificationPermissionGranted);
-      
+      console.log(
+        '🔍 notificationPermissionGranted:',
+        notificationPermissionGranted,
+      );
+
       if (!Notification.isSupported() || !notificationPermissionGranted) {
-        console.warn('❌ Notifications not supported or permission not granted');
+        console.warn(
+          '❌ Notifications not supported or permission not granted',
+        );
         return null;
       }
 
       // Resolve notification icon path
       let iconPath: string;
 
-              if (config.icon) {
-          if (app.isPackaged) {
-            // In production, notification icon is in Contents/Resources/AppLogo/
-            const productionIconPath = path.join(
-              process.resourcesPath,
-              'AppLogo',
-              'notif.png',
-            );
+      if (config.icon) {
+        if (app.isPackaged) {
+          // In production, notification icon is in Contents/Resources/AppLogo/
+          const productionIconPath = path.join(
+            process.resourcesPath,
+            'AppLogo',
+            'notif.png',
+          );
 
-            // Check if notification icon exists, otherwise use tray icon path
-            if (fs.existsSync(productionIconPath)) {
-              iconPath = productionIconPath;
-              console.log('✅ Using production notification icon:', productionIconPath);
-            } else {
-              console.log(
-                '⚠️ Notification icon not found at:',
-                productionIconPath,
-                'using tray icon',
-              );
-              iconPath = normalTrayIcon.toDataURL
-                ? normalTrayIcon.toDataURL()
-                : (normalTrayIcon as any);
-            }
-          } else {
-            // In development, use relative path
-            const devIconPath = path.join(
-              __dirname,
-              '..',
-              'src',
-              'Assets',
-              'AppLogo',
-              'notif.png',
+          // Check if notification icon exists, otherwise use tray icon path
+          if (fs.existsSync(productionIconPath)) {
+            iconPath = productionIconPath;
+            console.log(
+              '✅ Using production notification icon:',
+              productionIconPath,
             );
-            if (fs.existsSync(devIconPath)) {
-              iconPath = devIconPath;
-              console.log('✅ Using development notification icon:', devIconPath);
-            } else {
-              console.log('⚠️ Dev notification icon not found, using tray icon');
-              iconPath = normalTrayIcon.toDataURL
-                ? normalTrayIcon.toDataURL()
-                : (normalTrayIcon as any);
-            }
+          } else {
+            console.log(
+              '⚠️ Notification icon not found at:',
+              productionIconPath,
+              'using tray icon',
+            );
+            iconPath = normalTrayIcon.toDataURL
+              ? normalTrayIcon.toDataURL()
+              : (normalTrayIcon as any);
           }
         } else {
-          // Use tray icon as fallback
-          iconPath = normalTrayIcon.toDataURL
-            ? normalTrayIcon.toDataURL()
-            : (normalTrayIcon as any);
+          // In development, use relative path
+          const devIconPath = path.join(
+            __dirname,
+            '..',
+            'src',
+            'Assets',
+            'AppLogo',
+            'notif.png',
+          );
+          if (fs.existsSync(devIconPath)) {
+            iconPath = devIconPath;
+            console.log('✅ Using development notification icon:', devIconPath);
+          } else {
+            console.log('⚠️ Dev notification icon not found, using tray icon');
+            iconPath = normalTrayIcon.toDataURL
+              ? normalTrayIcon.toDataURL()
+              : (normalTrayIcon as any);
+          }
         }
+      } else {
+        // Use tray icon as fallback
+        iconPath = normalTrayIcon.toDataURL
+          ? normalTrayIcon.toDataURL()
+          : (normalTrayIcon as any);
+      }
 
       console.log(
         `📱 Creating notification with icon: ${
@@ -2077,6 +2561,9 @@ ipcMain.handle('get-thumbnail-data-url', async (_event, imagePath) => {
 // handler to save a file
 ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
   const browserWindow = BrowserWindow.fromWebContents(event.sender);
+  if (!browserWindow) {
+    return { canceled: true };
+  }
 
   // Security check: validate options
   const sanitizedOptions = {
@@ -2182,7 +2669,9 @@ ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
 ipcMain.handle('plugins:close-panel', async () => {
   try {
     // Send an event to the renderer to close the panel
-    mainWindow.webContents.send('plugin:close-panel');
+    if (mainWindow) {
+      mainWindow.webContents.send('plugin:close-panel');
+    }
     return { success: true };
   } catch (error) {
     console.error('Error closing plugin panel:', error);
@@ -2194,4 +2683,16 @@ ipcMain.handle('plugins:close-panel', async () => {
 ipcMain.handle('get-current-version', async () => {
   // Get version from package.json or app.getVersion()
   return app.getVersion();
+});
+
+// Enhanced FFmpeg status IPC handler
+ipcMain.handle('check-ffmpeg-status', async () => {
+  try {
+    const status = await getFfmpegStatus();
+    console.log('🔧 FFmpeg status check result:', status);
+    return status;
+  } catch (error) {
+    console.error('❌ FFmpeg status check failed:', error);
+    return { available: false, error: error.message };
+  }
 });

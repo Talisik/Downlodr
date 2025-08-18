@@ -1,0 +1,180 @@
+📦 DOWNLODR v1.7.0+ - Enhanced FFmpeg Support for All Macs
+══════════════════════════════════════════════════════════════════
+
+🚀 NEW! AUTOMATIC FFMPEG DETECTION & BUNDLED BINARIES
+══════════════════════════════════════════════════════════════════
+
+Great news! Downlodr v1.7.0+ now includes smart FFmpeg detection and 
+architecture-specific bundled binaries. No manual installation required!
+
+✨ WHAT'S NEW IN v1.7.0+
+──────────────────────────────────────────────────────────────────
+• 🔄 Automatic architecture detection (Apple Silicon vs Intel)
+• 📦 Bundled FFmpeg binaries for both ARM64 and x86_64
+• 🎯 Smart detection priority (system → bundled → fallback)
+• 📊 Real-time FFmpeg status indicator in the UI
+• ⚡ Enhanced performance optimization
+
+🏗️ HOW IT WORKS
+──────────────────────────────────────────────────────────────────
+Downlodr automatically:
+1. Detects your Mac's architecture (Apple Silicon M1/M2/M3/M4 or Intel)
+2. Checks for system FFmpeg installations (Homebrew, MacPorts, etc.)
+3. Falls back to bundled architecture-optimized binaries
+4. Shows status in the taskbar: ✅ FFmpeg Ready or ⚠️ FFmpeg Missing
+
+📊 CHECK YOUR FFMPEG STATUS
+──────────────────────────────────────────────────────────────────
+Look for the FFmpeg status badge in Downlodr's taskbar:
+
+✅ FFmpeg Ready: 
+   • System or bundled binary detected and working
+   • Hover to see: version, architecture, installation path
+   • All video processing features available
+
+⚠️ FFmpeg Missing: 
+   • Limited functionality (basic downloads only)
+   • Consider installing system FFmpeg for optimal performance
+
+🎯 WHEN DO YOU NEED FFMPEG?
+──────────────────────────────────────────────────────────────────
+FFmpeg enables advanced features:
+• Merging video and audio tracks (highest quality downloads)
+• Converting between different video formats  
+• Extracting audio from videos
+• Processing streaming formats and post-processing
+• Remuxing and quality optimization
+
+🏆 RECOMMENDED: SYSTEM INSTALLATION (Best Performance)
+──────────────────────────────────────────────────────────────────
+While bundled binaries work great, installing FFmpeg via Homebrew 
+provides optimal performance:
+
+1. Install Homebrew (if not already installed):
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+2. Install FFmpeg:
+   brew install ffmpeg
+
+3. Restart Downlodr (automatic detection)
+
+This installs the latest FFmpeg optimized for your Mac's architecture.
+
+✅ VERIFICATION METHODS
+──────────────────────────────────────────────────────────────────
+Method 1 - In Downlodr:
+• Check the FFmpeg status badge in the taskbar
+• Hover for detailed information (version, architecture, path)
+
+Method 2 - Terminal:
+• ffmpeg -version          (check version)
+• which ffmpeg            (check installation path)  
+• file $(which ffmpeg)    (check architecture)
+
+📁 BUNDLED BINARY DETAILS
+──────────────────────────────────────────────────────────────────
+Downlodr includes these optimized binaries:
+
+🍎 Apple Silicon (M1/M2/M3/M4):
+   • ffmpeg-arm64: Native ARM64 binary (fast, optimized)
+   • Automatically selected on Apple Silicon systems
+
+💻 Intel Macs:
+   • ffmpeg-x64: Intel x86_64 binary (Rosetta 2 compatible) 
+   • Automatically selected on Intel systems
+
+🔧 INSTALLATION PRIORITY
+──────────────────────────────────────────────────────────────────
+Downlodr checks these locations in order:
+
+1. System Installations (Preferred):
+   • /opt/homebrew/bin/ffmpeg    (Apple Silicon Homebrew)
+   • /usr/local/bin/ffmpeg       (Intel Homebrew)  
+   • /opt/local/bin/ffmpeg       (MacPorts)
+   • /usr/bin/ffmpeg             (System)
+
+2. Bundled Binaries (Automatic Fallback):
+   • Architecture-specific binary selection
+   • No user action required
+
+🔧 PERFORMANCE COMPARISON
+──────────────────────────────────────────────────────────────────
+• System Installation: ⭐⭐⭐⭐⭐ (Best - native compilation)
+• Bundled ARM64:       ⭐⭐⭐⭐⭐ (Excellent on Apple Silicon)
+• Bundled x86_64:      ⭐⭐⭐⭐   (Good on Intel/Rosetta 2)
+
+🚀 ALTERNATIVE INSTALLATION METHODS
+──────────────────────────────────────────────────────────────────
+Option 1 - MacPorts:
+   sudo port install ffmpeg
+
+Option 2 - Manual Download:
+   • Visit: https://evermeet.cx/ffmpeg/ (trusted macOS builds)
+   • Download appropriate architecture version
+   • Place in /usr/local/bin/ and make executable
+
+💡 NO FFMPEG? STILL GREAT!
+──────────────────────────────────────────────────────────────────
+Even without FFmpeg installation:
+• Most video downloads work perfectly with bundled binaries
+• Basic functionality is fully available
+• Advanced features automatically use bundled FFmpeg
+• Only performance difference, not functionality loss
+
+🐛 TROUBLESHOOTING
+──────────────────────────────────────────────────────────────────
+Issue: FFmpeg status shows "Missing"
+Solution:
+1. Restart Downlodr (detection runs at startup)
+2. Check Console.app for detection logs:
+   🏗️ System architecture: arm64, platform: darwin
+   ✅ Found system FFmpeg at: /opt/homebrew/bin/ffmpeg
+
+Issue: Poor performance
+Solution:
+1. Install system FFmpeg via Homebrew for best performance
+2. Ensure correct architecture (ARM64 on Apple Silicon)
+
+Issue: Permission errors
+Solution:
+   cd /Applications/Downlodr.app/Contents/Resources
+   chmod +x ffmpeg-arm64 ffmpeg-x64
+
+🔍 DEBUG INFORMATION
+──────────────────────────────────────────────────────────────────
+Check Console.app for FFmpeg detection logs:
+• 🔧 Setting up FFmpeg: /path/to/binary
+• ✅ FFmpeg verified: ffmpeg version 7.1.1
+• ⚠️ FFmpeg verification failed (if issues occur)
+
+📋 FEATURE AVAILABILITY
+──────────────────────────────────────────────────────────────────
+With FFmpeg (Bundled or System):
+✅ Video format conversion     ✅ Audio extraction
+✅ Quality remuxing           ✅ Post-processing filters  
+✅ Thumbnail generation       ✅ Multi-stream downloads
+✅ Advanced codec support     ✅ Custom processing
+
+Limited Mode (if somehow no FFmpeg):
+⚠️ Basic downloads only       ⚠️ No format conversion
+⚠️ No audio extraction       ⚠️ Limited quality options
+
+📞 NEED HELP?
+──────────────────────────────────────────────────────────────────
+If you encounter issues:
+1. Check the FFmpeg status indicator in Downlodr
+2. Restart the application after any changes
+3. Verify your Mac's architecture: About This Mac > Chip
+4. Contact support with your Mac model and macOS version
+
+🔗 USEFUL RESOURCES
+──────────────────────────────────────────────────────────────────
+• Official FFmpeg: https://ffmpeg.org/
+• Trusted macOS builds: https://evermeet.cx/ffmpeg/
+• Homebrew: https://brew.sh/
+• Downlodr Support: https://github.com/your-repo/downlodr/issues
+
+═══════════════════════════════════════════════════════════════════
+✨ Enhanced for v1.7.0+ - Automatic, Smart, Reliable FFmpeg Support
+═══════════════════════════════════════════════════════════════════
+Thank you for using Downlodr! 🎉

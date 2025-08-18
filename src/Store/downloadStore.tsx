@@ -1450,11 +1450,30 @@ const useDownloadStore = create<DownloadStore>()(
             removeFromForDownloads(downloadId); // Call the method            return;
           }
         } catch (error) {
+          console.error('❌ Metadata fetch failed:', error);
+          
+          // Enhanced error message based on the actual error
+          let errorTitle = 'Could not find video metadata';
+          let errorDescription = 'Please enter a valid video URL';
+          
+          if (error.message) {
+            if (error.message.includes('yt-dlp binary not found')) {
+              errorTitle = 'Download tool not available';
+              errorDescription = 'The video download tool is not properly installed. Please restart the application or reinstall Downlodr.';
+            } else if (error.message.includes('execution failed')) {
+              errorTitle = 'Video processing failed';
+              errorDescription = 'Unable to process this video URL. Please check if the URL is valid and accessible.';
+            } else if (error.message.includes('empty data')) {
+              errorTitle = 'No video information found';
+              errorDescription = 'The URL may be invalid, private, or not supported. Please try a different video URL.';
+            }
+          }
+          
           toast({
             variant: 'destructive',
-            title: `Could not find video metadata`,
-            description: 'Please enter a valid video URL',
-            duration: 3000,
+            title: errorTitle,
+            description: errorDescription,
+            duration: 5000,
           });
 
           // Access the method correctly

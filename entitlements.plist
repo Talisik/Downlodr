@@ -2,21 +2,47 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- JIT compilation - required for Electron -->
     <key>com.apple.security.cs.allow-jit</key>
-    <false/>
+    <true/>
+    
+    <!-- Unsigned executable memory - required for Electron's V8 engine -->
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-    <false/>
+    <true/>
+    
+    <!-- Library validation - disable for Electron compatibility -->
     <key>com.apple.security.cs.disable-library-validation</key>
-    <false/>
+    <true/>
+    
+    <!-- Dynamic library loading environment variables - disable for security -->
     <key>com.apple.security.cs.allow-dyld-environment-variables</key>
     <false/>
+    
+    <!-- Network access for downloading -->
     <key>com.apple.security.network.client</key>
     <true/>
+    
+    <!-- No server functionality needed -->
     <key>com.apple.security.network.server</key>
     <false/>
+    
+    <!-- File access for downloads -->
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
+    
+    <!-- Downloads folder access -->
     <key>com.apple.security.files.downloads.read-write</key>
     <true/>
+    
+    <!-- Child process execution for yt-dlp and ffmpeg -->
+    <key>com.apple.security.cs.allow-subprocess</key>
+    <true/>
+    
+    <!-- Runtime exceptions for debugging (helps with blank screen issues) -->
+    <key>com.apple.security.cs.debugger</key>
+    <true/>
+    
+    <!-- Temporary development entitlement to debug renderer issues -->
+
 </dict>
 </plist>

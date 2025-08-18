@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Basic execution permissions -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <false/>
+    
+    <!-- Network access for yt-dlp -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    
+    <!-- No server functionality needed -->
+    <key>com.apple.security.network.server</key>
+    <false/>
+    
+    <!-- Subprocess execution - required for Python scripts -->
+    <key>com.apple.security.cs.allow-subprocess</key>
+    <true/>
+    
+    <!-- Runtime exceptions for Python execution -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    
+    <!-- Disable library validation for Python compatibility -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    
+    <!-- File access permissions -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    
+    <!-- Downloads folder access -->
+    <key>com.apple.security.files.downloads.read-write</key>
+    <true/>
+</dict>
+</plist>

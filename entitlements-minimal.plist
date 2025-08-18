@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Essential Electron entitlements (cannot be removed) -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    
+    <!-- Dynamic library loading environment variables - disable for security -->
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <false/>
+    
+    <!-- Network access for downloading -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    
+    <!-- File access for downloads -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    
+    <key>com.apple.security.files.downloads.read-write</key>
+    <true/>
+    
+    <!-- Child process execution for yt-dlp and ffmpeg -->
+    <key>com.apple.security.cs.allow-subprocess</key>
+    <true/>
+    
+    <!-- REMOVED problematic entitlements that cause password prompts: -->
+    <!-- com.apple.security.cs.disable-library-validation - causes keychain access -->
+    <!-- com.apple.security.cs.debugger - development only -->
+    
+    <!-- Enable library validation for better security -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <false/>
+</dict>
+</plist>
