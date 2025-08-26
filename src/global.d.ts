@@ -69,6 +69,8 @@ declare global {
       }>;
       ensureDirectoryExists: (dirPath: string) => Promise<boolean>; // Creates directory if it doesn't exist
       getThumbnailDataUrl: (path: string) => Promise<string | null>;
+      getOSType: () => Promise<'windows' | 'macos' | 'linux' | string>; // Gets the current operating system type
+      getPathSeparator: () => Promise<string>; // Gets the path separator for the current OS
       // Enhanced FFmpeg status checking
       checkFfmpegStatus: () => Promise<{
         available: boolean;
@@ -133,6 +135,26 @@ declare global {
     updateAPI: {
       onUpdateAvailable: (
         callback: (updateInfo: UpdateInfo) => void,
+      ) => () => void;
+      onYtdlpAutoUpdated: (
+        callback: (updateInfo: {
+          fromVersion: string;
+          toVersion: string;
+          message: string;
+        }) => void,
+      ) => () => void;
+      onYtdlpAutoInstalled: (
+        callback: (installInfo: {
+          version: string;
+          message: string;
+        }) => void,
+      ) => () => void;
+      onYtdlpUpdateAvailable: (
+        callback: (updateInfo: {
+          currentVersion: string;
+          latestVersion: string;
+          message: string;
+        }) => void,
       ) => () => void;
       onUpdateCheckStarted: (callback: () => void) => () => void;
       onUpdateCheckCompleted: (

@@ -198,6 +198,8 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
     ipcRenderer.invoke('ensureDirectoryExists', dirPath),
   getThumbnailDataUrl: (path: string) =>
     ipcRenderer.invoke('get-thumbnail-data-url', path),
+  getOSType: () => ipcRenderer.invoke('get-os-type'),
+  getPathSeparator: () => ipcRenderer.invoke('get-path-separator'),
 });
 
 // give download a unique id
@@ -346,7 +348,6 @@ contextBridge.exposeInMainWorld('ytdlp', {
 
   selectDownloadDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
 
-  /*
   downloadYTDLP: async (options?: {
     filePath?: string;
     version?: string;
@@ -367,7 +368,6 @@ contextBridge.exposeInMainWorld('ytdlp', {
   checkAndUpdate: async () => {
     return await ipcRenderer.invoke('ytdlp:checkAndUpdate');
   },
-  */
 
   download(args: object, callback: (result: object) => void) {
     const id = uuidv4();
@@ -425,6 +425,26 @@ contextBridge.exposeInMainWorld('updateAPI', {
     return () =>
       ipcRenderer.removeListener('update-available', wrappedCallback);
   },
+  onYtdlpAutoUpdated: (callback: any) => {
+    const wrappedCallback = (_: any, updateInfo: any) => callback(updateInfo);
+    ipcRenderer.on('ytdlp-auto-updated', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('ytdlp-auto-updated', wrappedCallback);
+  },
+  onYtdlpAutoInstalled: (callback: any) => {
+    const wrappedCallback = (_: any, installInfo: any) => callback(installInfo);
+    ipcRenderer.on('ytdlp-auto-installed', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('ytdlp-auto-installed', wrappedCallback);
+  },
+  /*
+  onYtdlpUpdateAvailable: (callback: any) => {
+    const wrappedCallback = (_: any, updateInfo: any) => callback(updateInfo);
+    ipcRenderer.on('ytdlp-update-available', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('ytdlp-update-available', wrappedCallback);
+  },
+  */
   onUpdateCheckStarted: (callback: any) => {
     const wrappedCallback = (_: any) => callback();
     ipcRenderer.on('update-check-started', wrappedCallback);

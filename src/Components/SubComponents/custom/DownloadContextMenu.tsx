@@ -746,7 +746,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             <button
               key={item.id || item.label}
               className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-              onClick={() => {
+              onClick={async () => {
                 const contextData = {
                   name: download.name || '',
                   downloadId: download.id || '',
@@ -766,6 +766,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                   )?.thumnailsLocation,
                   extractorKey: allDownloads.find((d) => d.id === download.id)
                     ?.extractorKey,
+                  osType: await window.downlodrFunctions.getOSType(),
+                  seperatorType: window.downlodrFunctions.getPathSeparator(),
                 };
 
                 if (

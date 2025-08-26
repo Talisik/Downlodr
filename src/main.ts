@@ -3502,3 +3502,35 @@ ipcMain.handle('convert-file', async (event, options) => {
     };
   }
 });
+
+// handler to get operating system type
+ipcMain.handle('get-os-type', async () => {
+  try {
+    const platform = os.platform();
+
+    // Normalize platform names to user-friendly values
+    switch (platform) {
+      case 'win32':
+        return 'windows';
+      case 'darwin':
+        return 'macos';
+      case 'linux':
+        return 'linux';
+      default:
+        return platform; // Return raw platform for other systems
+    }
+  } catch (error) {
+    console.error('Error getting OS type:', error);
+    return 'unknown';
+  }
+});
+
+// handler to get path separator for current OS
+ipcMain.handle('get-path-separator', async () => {
+  try {
+    return path.sep;
+  } catch (error) {
+    console.error('Error getting path separator:', error);
+    return '/'; // Default to Unix-style separator
+  }
+});

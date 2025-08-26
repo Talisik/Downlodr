@@ -1276,5 +1276,25 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
         };
       }
     },
+
+    getOperatingSystem: async (): Promise<
+      'windows' | 'macos' | 'linux' | string
+    > => {
+      try {
+        return await window.downlodrFunctions.getOSType();
+      } catch (error) {
+        console.error('Error getting operating system:', error);
+        return 'unknown';
+      }
+    },
+
+    getPathSeparator: async (): Promise<string> => {
+      try {
+        return await window.downlodrFunctions.getPathSeparator();
+      } catch (error) {
+        console.error('Error getting path separator:', error);
+        return '/'; // Default to Unix-style separator
+      }
+    },
   };
 }

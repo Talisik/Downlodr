@@ -1574,6 +1574,23 @@
   resolved "https://registry.yarnpkg.com/@sindresorhus/is/-/is-4.6.0.tgz#3c7c9c46e678feefe7a2e5bb609d3dbd665ffb3f"
   integrity sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==
 
+"@stagewise-plugins/react@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@stagewise-plugins/react/-/react-0.5.0.tgz#59f0c89b10a7f63100e860fc8d241d41951b7eca"
+  integrity sha512-ZO3l6dEqTaFaSk5HWqcM/6Jn5qLDexeI/uDHvPSXmj0c8i7V4ZZnuoJGGIRZO2+bpOBxEOGI7aZm9gspF2OteA==
+
+"@stagewise/toolbar-react@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@stagewise/toolbar-react/-/toolbar-react-0.5.0.tgz#6e554cf5b8096c9c5f134c4eb14a073b30d87b75"
+  integrity sha512-7dn3ZsX5vrT84RB4nzlcWPqkvcILDpR24cS3CpgKm/q54+9XWj9WxaqGU/D/B5Cef92bLBuCs1DJZj6vp7VPBA==
+  dependencies:
+    "@stagewise/toolbar" "0.5.0"
+
+"@stagewise/toolbar@0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@stagewise/toolbar/-/toolbar-0.5.0.tgz#f4ff81c2df6478f60b13fe0b482e18babc1c771b"
+  integrity sha512-Z8299P7IkXaxy2dTpS4lKyPHMeQ9R3MEtE9CJr9iRAnM8s4Xbc0CRutwzViPF34k/dP83vRZXJFQmEG55YlIOg==
+
 "@szmarczak/http-timer@^4.0.5":
   version "4.0.6"
   resolved "https://registry.yarnpkg.com/@szmarczak/http-timer/-/http-timer-4.0.6.tgz#b4a914bb62e7c272d4e5989fe4440f812ab1d807"
