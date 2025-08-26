@@ -151,6 +151,11 @@ export class PluginManager {
 
     // Register for handling plugin IPC requests
     ipcMain.handle('plugin:fs:writeFile', async (event, args) => {
+      console.log(
+        '🔍 [CC DEBUG] plugin:fs:writeFile called with args:',
+        JSON.stringify(args, null, 2),
+      );
+
       // Validate paths to ensure they're within allowed directories
       const { filePath, content } = args;
       // Security check: only allow writing to plugin data directory
@@ -205,6 +210,11 @@ export class PluginManager {
 
     // Modified writeFile handler
     ipcMain.handle('plugins:writeFile', async (event, options) => {
+      console.log(
+        '🔍 [CC DEBUG] plugins:writeFile called with options:',
+        JSON.stringify(options, null, 2),
+      );
+
       try {
         const {
           pluginId,
@@ -214,6 +224,7 @@ export class PluginManager {
           directory,
           overwrite,
           customPath,
+          videoPath, // New optional parameter for video-relative paths
         } = options;
 
         let finalPath;
@@ -222,6 +233,138 @@ export class PluginManager {
         if (customPath) {
           // For security, you may want to restrict certain paths or require confirmation
           finalPath = customPath;
+        } else if (
+          videoPath &&
+          (pluginId === 'cc-to-markdown-downlodr' ||
+            fileType === 'txt' ||
+            fileType === 'docx' ||
+            fileType === 'md')
+        ) {
+          // Special handling for CC to Markdown and text-based conversions
+          // Save in the same directory as the video file using exact video filename + extension
+          const videoDir = path.dirname(videoPath);
+          const videoBaseName = path.basename(
+            videoPath,
+            path.extname(videoPath),
+          );
+
+          // Use exact video filename with new extension (direct approach)
+          const extension = fileType || 'txt';
+          const finalFileName = `${videoBaseName}.${extension}`;
+
+          finalPath = path.join(videoDir, finalFileName);
+          console.log(`📝 Plugin direct save: ${videoPath} -> ${finalPath}`);
+        } else if (
+          (pluginId &&
+            (pluginId.includes('cc') ||
+              pluginId.includes('markdown') ||
+              pluginId.includes('transcript'))) ||
+          (fileName &&
+            (fileName.includes('transcript') ||
+              fileName.includes('caption') ||
+              fileName.includes('subtitle'))) ||
+          ((fileType === 'txt' || fileType === 'docx' || fileType === 'md') &&
+            content &&
+            content.includes('WEBVTT'))
+        ) {
+          // Enhanced detection for CC/transcript files without explicit videoPath
+          // Try to find ALL video files in Downloads directory and use most recent
+          console.log(
+            '🔍 Detected CC/transcript file, searching for video context...',
+          );
+
+          const downloadsDir = app.getPath('downloads');
+          let videoFile = null;
+
+          try {
+            // Get all video files in Downloads directory
+            const files = fs.readdirSync(downloadsDir);
+            const videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.webm'];
+
+            const videoFiles = files
+              .filter((file) =>
+                videoExtensions.some((ext) =>
+                  file.toLowerCase().endsWith(ext.toLowerCase()),
+                ),
+              )
+              .map((file) => {
+                const fullPath = path.join(downloadsDir, file);
+                const stats = fs.statSync(fullPath);
+                return { path: fullPath, mtime: stats.mtime, name: file };
+              })
+              .sort((a, b) => b.mtime.getTime() - a.mtime.getTime()); // Most recent first
+
+            if (videoFiles.length > 0) {
+              // Try to find exact match first
+              const cleanFileName = fileName
+                .replace(/[<>:"/\\|?*]/g, '_')
+                .trim();
+              let potentialVideoName = cleanFileName.replace(
+                /[_\-\s]*(transcript|caption|subtitle|cc|txt|docx|md).*$/i,
+                '',
+              );
+
+              // Also try to extract from pipe-separated names like "video.mp4|video.txt"
+              if (fileName.includes('|')) {
+                const parts = fileName.split('|');
+                if (parts.length > 1) {
+                  potentialVideoName = parts[0].replace(
+                    /\.(mp4|mkv|avi|mov|webm)$/i,
+                    '',
+                  );
+                }
+              }
+
+              // Look for exact match
+              if (potentialVideoName) {
+                videoFile = videoFiles.find(
+                  (v) =>
+                    path
+                      .basename(v.name, path.extname(v.name))
+                      .toLowerCase() === potentialVideoName.toLowerCase(),
+                )?.path;
+              }
+
+              // If no exact match, use most recent video file
+              if (!videoFile) {
+                videoFile = videoFiles[0].path;
+                console.log(
+                  `📽️ Using most recent video file: ${videoFiles[0].name}`,
+                );
+              }
+            }
+          } catch (error) {
+            console.warn('Error scanning for video files:', error);
+          }
+
+          if (videoFile) {
+            console.log(`✅ Using video file: ${videoFile}`);
+            const videoDir = path.dirname(videoFile);
+            const videoBaseName = path.basename(
+              videoFile,
+              path.extname(videoFile),
+            );
+
+            // Use exact video filename with new extension (direct approach)
+            const extension = fileType || 'txt';
+            const finalFileName = `${videoBaseName}.${extension}`;
+
+            finalPath = path.join(videoDir, finalFileName);
+            console.log(`📝 Saving CC file to video directory: ${finalPath}`);
+          } else {
+            console.log(
+              '⚠️ No video files found, falling back to Downloads directory',
+            );
+            // Fall back to Downloads directory - use clean filename approach
+            const cleanFileName = fileName.replace(/[<>:"/\\|?*]/g, '_').trim();
+            const extension = fileType || 'txt';
+            const finalFileName = cleanFileName.endsWith(`.${extension}`)
+              ? cleanFileName
+              : `${cleanFileName}.${extension}`;
+
+            finalPath = path.join(downloadsDir, finalFileName);
+            console.log(`📝 Saving CC file to Downloads: ${finalPath}`);
+          }
         } else {
           // Create plugin-specific data directory
           const pluginDataDir = path.join(

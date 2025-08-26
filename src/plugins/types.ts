@@ -463,6 +463,7 @@ export interface WriteFileOptions {
   directory?: string; // Optional subdirectory within plugin data directory
   overwrite?: boolean; // Whether to overwrite existing file, defaults to false
   customPath?: string; // Allow custom path (will require permission)
+  videoPath?: string; // Optional video path for CC/transcript related files
 }
 
 export interface SaveFileDialogOptions {
@@ -470,6 +471,7 @@ export interface SaveFileDialogOptions {
   content: string;
   filters?: Array<{ name: string; extensions: string[] }>;
   title?: string;
+  videoPath?: string; // Optional video path for CC/transcript related files
 }
 
 export interface WriteFileResult {

@@ -5,7 +5,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/Components/SubComponents/shadcn/components/ui/dialog';
+} from '@/Components/SubComponents/shadcn/components/ui/enhanced-dialog';
 import { PluginModalOptions, PluginModalResult } from '@/plugins/types';
 import React from 'react';
 
@@ -15,7 +15,7 @@ interface PluginModalExtensionProps {
   isOpen: boolean;
   onClose: () => void;
   onOk: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;
   options: PluginModalOptions;
   onAction: (result: PluginModalResult) => void;
 }
@@ -46,7 +46,7 @@ const PluginModalExtension: React.FC<PluginModalExtensionProps> = ({
     centered = true,
     footer = (
       <>
-        <Button variant="outline" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel || onClose}>
           Cancel
         </Button>
         <Button onClick={onOk}>OK</Button>
@@ -68,7 +68,14 @@ const PluginModalExtension: React.FC<PluginModalExtensionProps> = ({
       open={isOpen}
       onOpenChange={closable ? () => handleClose() : undefined}
     >
-      <DialogContent style={contentStyle} className={centered ? 'mx-auto' : ''}>
+      <DialogContent
+        style={contentStyle}
+        className={centered ? 'mx-auto' : ''}
+        showCloseButton={closable}
+        closeButtonVariant="inspector"
+        closeButtonSize="lg"
+        onCloseClick={handleClose}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>

@@ -685,6 +685,7 @@ interface DownloadStore {
   deleteDownload: (id: string) => void; // Delete a specific download
   deleteDownloading: (id: string) => void; // Delete a downloading item
   removeFromForDownloads: (id: string) => void; // Remove a download from the queue
+  convertDownload: (downloadId: string, targetFormat: string, keepOriginal?: boolean, saveToCustomLocation?: boolean) => Promise<{ success: boolean; outputPath?: string }>; // Convert a download to a different format
   addTag: (downloadId: string, tag: string) => void; // Add a tag to a download
   removeTag: (downloadId: string, tag: string) => void; // Remove a tag from a download
   addCategory: (downloadId: string, category: string) => void; // Add a category to a download
@@ -912,6 +913,81 @@ const useDownloadStore = create<DownloadStore>()(
         }));
       },
 
+      // Add conversion function
+      convertDownload: async (downloadId: string, targetFormat: string, keepOriginal: boolean = false, saveToCustomLocation: boolean = false) => {
+        try {
+          // Find the download to convert
+          const download = get().downloading.find(d => d.id === downloadId) || 
+                         get().finishedDownloads.find(d => d.id === downloadId);
+          
+          if (!download) {
+            throw new Error(`Download with ID ${downloadId} not found`);
+          }
+
+          if (!download.location) {
+            throw new Error('Download location not available for conversion');
+          }
+
+          // Update status to show conversion is starting
+          get().updateDownload(downloadId, {
+            type: 'conversion',
+            data: {
+              status: 'converting',
+              format: targetFormat,
+              log: `Starting conversion to ${targetFormat}...`
+            }
+          });
+
+          // Call the main process to perform the conversion
+          const result = await window.electronAPI.convertFile({
+            downloadId,
+            inputPath: download.location,
+            targetFormat,
+            keepOriginal,
+            downloadName: download.name,
+            saveToCustomLocation
+          });
+
+          if (result.success) {
+            // Update status to show conversion completed
+            get().updateDownload(downloadId, {
+              type: 'conversion',
+              data: {
+                status: 'conversion_complete',
+                format: targetFormat,
+                outputPath: result.outputPath,
+                log: `Conversion to ${targetFormat} completed successfully`
+              }
+            });
+            return { success: true, outputPath: result.outputPath };
+          } else {
+            // Update status to show conversion failed
+            get().updateDownload(downloadId, {
+              type: 'conversion',
+              data: {
+                status: 'conversion_failed',
+                format: targetFormat,
+                error: result.error,
+                log: `Conversion to ${targetFormat} failed: ${result.error}`
+              }
+            });
+            throw new Error(result.error || 'Conversion failed');
+          }
+        } catch (error) {
+          // Update status to show conversion failed
+          get().updateDownload(downloadId, {
+            type: 'conversion',
+            data: {
+              status: 'conversion_failed',
+              format: targetFormat,
+              error: error.message,
+              log: `Conversion to ${targetFormat} failed: ${error.message}`
+            }
+          });
+          throw error;
+        }
+      },
+
       updateDownload: (id: string, result: any) => {
         // Early return if no meaningful data to update
         if (!result) {
@@ -927,6 +1003,67 @@ const useDownloadStore = create<DownloadStore>()(
                 : download,
             ),
           }));
+          return;
+        }
+
+        // Handle conversion status updates
+        if (result.type === 'conversion') {
+          const { status, format, error } = result.data;
+          
+          set((state) => ({
+            downloading: state.downloading.map((downloading) => {
+              if (downloading.id !== id) return downloading;
+
+              const updates: Partial<typeof downloading> = {
+                log: result.data.log || downloading.log,
+              };
+
+              // Update status based on conversion result
+              if (status === 'converting') {
+                updates.status = 'initializing'; // Show as processing
+                updates.progress = downloading.progress || 0;
+              } else if (status === 'conversion_complete') {
+                updates.status = 'finished';
+                updates.progress = 100;
+                updates.convertedFormat = format;
+              } else if (status === 'conversion_failed') {
+                updates.status = 'failed';
+                updates.error = error;
+              }
+
+              return { ...downloading, ...updates };
+            }),
+          }));
+
+          // Show appropriate toast notification for conversion
+          if (result.data.status === 'conversion_complete') {
+            const download = get().downloading.find(d => d.id === id);
+            if (download) {
+              toast({
+                variant: 'success',
+                title: 'Conversion Complete',
+                description: `"${download.name}" has been converted to ${result.data.format} and saved to FormatConverter folder`,
+                duration: 4000,
+              });
+            }
+          } else if (result.data.status === 'conversion_failed') {
+            const download = get().downloading.find(d => d.id === id);
+            if (download) {
+              toast({
+                variant: 'destructive',
+                title: 'Conversion Failed',
+                description: `"${download.name}" conversion failed: ${result.data.error || 'Unknown error'}`,
+                duration: 5000,
+              });
+            }
+          }
+
+          // Trigger finished downloads check if conversion completed
+          if (result.data.status === 'conversion_complete' || result.data.status === 'conversion_failed') {
+            setTimeout(() => {
+              get().checkFinishedDownloads();
+            }, 100);
+          }
           return;
         }
 

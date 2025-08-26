@@ -19,6 +19,133 @@ import {
 } from 'electron';
 import started from 'electron-squirrel-startup';
 import fs, { existsSync } from 'fs';
+
+// File system watcher approach - monitor Downloads directory for CC plugin files
+import * as chokidar from 'chokidar';
+const downloadsDir = path.join(os.homedir(), 'Downloads');
+
+// Set up file watcher for CC plugin files
+const watcher = chokidar.watch(`${downloadsDir}/**/*_mp4/**/*.{txt,docx,md}`, {
+  ignored: /(^|[\/\\])\../, // ignore dotfiles
+  persistent: true,
+  ignoreInitial: true,
+});
+
+watcher.on('add', (filePath) => {
+  console.log('🔍 [WATCHER] CC plugin file detected:', filePath);
+
+  try {
+    // Read the file content
+    const content = fs.readFileSync(filePath, 'utf8');
+
+    // Determine the correct save location (same directory as video)
+    const fileName = path.basename(filePath);
+    const videoName = fileName.split('.')[0]; // Remove extension
+    const extension = path.extname(filePath);
+
+    // Find the actual video file
+    const files = fs.readdirSync(downloadsDir);
+    const videoFiles = files.filter(
+      (file) =>
+        file.includes(videoName) &&
+        (file.endsWith('.mp4') ||
+          file.endsWith('.mkv') ||
+          file.endsWith('.avi')),
+    );
+
+    if (videoFiles.length > 0) {
+      // Save to correct location
+      const correctPath = path.join(
+        downloadsDir,
+        `${path.parse(videoFiles[0]).name}${extension}`,
+      );
+
+      console.log(`🔍 [WATCHER] Moving file from: ${filePath}`);
+      console.log(`🔍 [WATCHER] Moving file to: ${correctPath}`);
+
+      fs.writeFileSync(correctPath, content, 'utf8');
+
+      // Remove the original file and the _mp4 directory if empty
+      fs.unlinkSync(filePath);
+
+      try {
+        const mp4Dir = path.dirname(filePath);
+        if (fs.readdirSync(mp4Dir).length === 0) {
+          fs.rmdirSync(mp4Dir);
+        }
+      } catch (error) {
+        console.log('🔍 [WATCHER] Could not remove empty directory:', error);
+      }
+
+      console.log('🔍 [WATCHER] File successfully moved to video directory!');
+    }
+  } catch (error) {
+    console.error('🔍 [WATCHER] Error moving file:', error);
+  }
+});
+
+console.log(
+  '🔍 [WATCHER] Monitoring Downloads directory for CC plugin files...',
+);
+
+// Also intercept any other potential file operations
+const originalWriteFile = fs.writeFile;
+fs.writeFile = function (filePath, data, options, callback) {
+  if (typeof filePath === 'string') {
+    console.log('🔍 [FS DEBUG] fs.writeFile called:', filePath);
+  }
+  return originalWriteFile.call(this, filePath, data, options, callback);
+};
+
+// Intercept dialog operations too
+let originalShowSaveDialog: any;
+// Global IPC interception to catch ALL IPC calls
+const originalHandle = ipcMain.handle;
+ipcMain.handle = function (channel: string, listener: (...args: any[]) => any) {
+  const wrappedListener = async (...args: any[]) => {
+    // Log ALL IPC calls to see what the CC plugin is using
+    console.log(`🔍 [IPC INTERCEPT] ${channel} called`);
+    if (args.length > 1) {
+      console.log(
+        `🔍 [IPC INTERCEPT] ${channel} args:`,
+        JSON.stringify(args.slice(1), null, 2),
+      );
+    }
+
+    const result = await listener(...args);
+
+    // Log results for file-related operations
+    if (
+      channel.includes('file') ||
+      channel.includes('save') ||
+      channel.includes('write')
+    ) {
+      console.log(
+        `🔍 [IPC INTERCEPT] ${channel} result:`,
+        JSON.stringify(result, null, 2),
+      );
+    }
+
+    return result;
+  };
+  return originalHandle.call(this, channel, wrappedListener);
+};
+
+app.whenReady().then(() => {
+  originalShowSaveDialog = dialog.showSaveDialog;
+  (dialog as any).showSaveDialog = async function (...args: any[]) {
+    console.log(
+      '🔍 [DIALOG DEBUG] showSaveDialog called with args:',
+      JSON.stringify(args, null, 2),
+    );
+    const result = await originalShowSaveDialog.apply(this, args);
+    console.log(
+      '🔍 [DIALOG DEBUG] showSaveDialog result:',
+      JSON.stringify(result, null, 2),
+    );
+    return result;
+  };
+});
 import http from 'http';
 import https from 'https';
 import os from 'os';
@@ -327,7 +454,7 @@ async function getFfmpegStatus(): Promise<{
             const lines = stdout.split('\n');
             const versionLine = lines[0];
             const archLine =
-              lines.find((line) => line.includes('Mach-O')) || '';
+              lines.find((line: string) => line.includes('Mach-O')) || '';
             const architecture = archLine.includes('arm64')
               ? 'Apple Silicon (ARM64)'
               : archLine.includes('x86_64')
@@ -947,17 +1074,19 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
       throw new Error('Invalid URL provided for playlist fetching');
     }
 
-    // Enable verbose logging for yt-dlp-helper
-    YTDLP.Config.log = true;
-
     const ffmpegPath = getFfmpegBinaryPath();
     console.log('Using ffmpeg binary at:', ffmpegPath);
     console.log('FFmpeg binary exists:', fs.existsSync(ffmpegPath));
 
-    const info = await YTDLP.getPlaylistInfo({
+    // Use custom playlist implementation to fix chunking issue
+    // The original yt-dlp-helper has a bug where it tries to parse each chunk
+    // of JSON individually instead of accumulating all chunks first
+    const { getPlaylistInfo } = await import('./Utils/customPlaylistHelper.js');
+
+    const info = await getPlaylistInfo({
       url: videoUrl.url,
-      ytdlpDownloadDestination: ytdlpPath,
-      downloadBinary: { ytdlp: false, ffmpeg: false }, // Don't download ffmpeg, use bundled
+      ytdlpPath,
+      ffmpegPath,
     });
 
     console.log('📊 Playlist info result:', {
@@ -970,12 +1099,13 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
     // If the result is not ok, provide more detailed error information
     if (!info.ok) {
       console.warn('⚠️ Playlist info fetch was not successful');
-      console.warn('Full result:', JSON.stringify(info, null, 2));
+      console.warn('Error details:', info.error);
 
       // Return a more descriptive error
       return {
         ok: false,
         error:
+          info.error ||
           'Failed to fetch playlist information. This could be due to a private playlist, network issues, or the playlist being unavailable.',
         originalResult: info,
       };
@@ -2395,8 +2525,43 @@ ipcMain.handle('plugins:menu-items', (event, context) => {
   return pluginRegistry.getMenuItems(context);
 });
 
+// Storage for current plugin context (video path)
+let currentPluginVideoPath: string | null = null;
+
 // handler to execute plugin menu items
 ipcMain.handle('plugins:execute-menu-item', (event, id, contextData) => {
+  console.log(
+    '🔍 [CC DEBUG] executeMenuItem called with contextData:',
+    JSON.stringify(contextData, null, 2),
+  );
+
+  // Store video path for CC-related plugins
+  if (
+    contextData &&
+    contextData.location &&
+    typeof contextData.location === 'string'
+  ) {
+    // Check if this is a CC-related plugin by ID or context
+    if (
+      id.includes('cc') ||
+      id.includes('markdown') ||
+      id.includes('transcript')
+    ) {
+      currentPluginVideoPath = contextData.location;
+      console.log(
+        `🔍 [CC DEBUG] Stored video path for CC plugin: ${currentPluginVideoPath}`,
+      );
+
+      // Clear the stored path after 30 seconds to prevent stale context
+      setTimeout(() => {
+        if (currentPluginVideoPath === contextData.location) {
+          currentPluginVideoPath = null;
+          console.log('🔍 [CC DEBUG] Cleared stored video path (timeout)');
+        }
+      }, 30000);
+    }
+  }
+
   pluginRegistry.executeMenuItemAction(id, contextData);
   return true;
 });
@@ -2560,26 +2725,147 @@ ipcMain.handle('get-thumbnail-data-url', async (_event, imagePath) => {
 
 // handler to save a file
 ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
+  console.log(
+    '🔍 [CC DEBUG] plugins:save-file-dialog called with options:',
+    JSON.stringify(options, null, 2),
+  );
+
   const browserWindow = BrowserWindow.fromWebContents(event.sender);
   if (!browserWindow) {
     return { canceled: true };
   }
 
+  // Enhanced default path logic for CC/transcript files
+  let defaultPath = app.getPath('downloads');
+  console.log(`🔍 [CC DEBUG] Initial defaultPath: ${defaultPath}`);
+
+  // If this is a CC to Markdown or transcript-related operation, try to use video directory
+  // First check explicit videoPath, then check stored plugin context
+  const videoPath = options.videoPath || currentPluginVideoPath;
+
+  if (videoPath && typeof videoPath === 'string') {
+    console.log(
+      `🔍 [CC DEBUG] Using video path: ${videoPath} (explicit: ${!!options.videoPath}, stored: ${!!currentPluginVideoPath})`,
+    );
+
+    const videoDir = path.dirname(videoPath);
+    const videoBaseName = path.basename(videoPath, path.extname(videoPath));
+
+    // Determine file extension from title or options
+    let extension = '.txt';
+    if (options.title && typeof options.title === 'string') {
+      if (options.title.toLowerCase().includes('markdown')) {
+        extension = '.md';
+      } else if (options.title.toLowerCase().includes('docx')) {
+        extension = '.docx';
+      }
+    }
+
+    // Use exact video filename with new extension (direct approach)
+    const suggestedFileName = `${videoBaseName}${extension}`;
+    defaultPath = path.join(videoDir, suggestedFileName);
+    console.log(`🔍 [CC DEBUG] Using explicit videoPath: ${defaultPath}`);
+  } else if (
+    // Auto-detect CC/transcript operations even without videoPath
+    options.title &&
+    (options.title.toLowerCase().includes('cc') ||
+      options.title.toLowerCase().includes('markdown') ||
+      options.title.toLowerCase().includes('transcript') ||
+      options.title.toLowerCase().includes('caption') ||
+      options.title.toLowerCase().includes('subtitle'))
+  ) {
+    console.log(
+      '🔍 Auto-detecting CC operation, searching for video context...',
+    );
+
+    const downloadsDir = app.getPath('downloads');
+    let videoFile = null;
+
+    try {
+      // Get all video files in Downloads directory
+      const files = fs.readdirSync(downloadsDir);
+      const videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.webm'];
+
+      const videoFiles = files
+        .filter((file) =>
+          videoExtensions.some((ext) =>
+            file.toLowerCase().endsWith(ext.toLowerCase()),
+          ),
+        )
+        .map((file) => {
+          const fullPath = path.join(downloadsDir, file);
+          const stats = fs.statSync(fullPath);
+          return { path: fullPath, mtime: stats.mtime, name: file };
+        })
+        .sort((a, b) => b.mtime.getTime() - a.mtime.getTime()); // Most recent first
+
+      if (videoFiles.length > 0) {
+        // Use most recent video file
+        videoFile = videoFiles[0].path;
+        console.log(`📽️ Using most recent video file: ${videoFiles[0].name}`);
+      }
+    } catch (error) {
+      console.warn('Error scanning for video files:', error);
+    }
+
+    if (videoFile) {
+      const videoDir = path.dirname(videoFile);
+      const videoBaseName = path.basename(videoFile, path.extname(videoFile));
+
+      // Determine extension from title
+      let extension = '.txt';
+      if (options.title.toLowerCase().includes('markdown')) {
+        extension = '.md';
+      } else if (options.title.toLowerCase().includes('docx')) {
+        extension = '.docx';
+      }
+
+      // Use exact video filename with new extension (direct approach)
+      const suggestedFileName = `${videoBaseName}${extension}`;
+      defaultPath = path.join(videoDir, suggestedFileName);
+      console.log(`🔍 [CC DEBUG] Auto-detected CC save path: ${defaultPath}`);
+    }
+  } else if (options.defaultPath && typeof options.defaultPath === 'string') {
+    defaultPath = options.defaultPath;
+    console.log(`🔍 [CC DEBUG] Using provided defaultPath: ${defaultPath}`);
+  } else {
+    console.log(
+      `🔍 [CC DEBUG] No CC detection, using Downloads folder: ${defaultPath}`,
+    );
+  }
+
+  console.log(`🔍 [CC DEBUG] Final defaultPath before dialog: ${defaultPath}`);
+
   // Security check: validate options
   const sanitizedOptions = {
     title: typeof options.title === 'string' ? options.title : 'Save File',
-    defaultPath:
-      typeof options.defaultPath === 'string'
-        ? options.defaultPath
-        : app.getPath('downloads'),
+    defaultPath,
     filters: Array.isArray(options.filters) ? options.filters : undefined,
     message: typeof options.message === 'string' ? options.message : undefined,
   };
 
   try {
+    console.log(
+      `🔍 [CC DEBUG] Showing save dialog with sanitizedOptions:`,
+      JSON.stringify(sanitizedOptions, null, 2),
+    );
     const result = await dialog.showSaveDialog(browserWindow, sanitizedOptions);
+    console.log(
+      `🔍 [CC DEBUG] Save dialog result:`,
+      JSON.stringify(result, null, 2),
+    );
+
+    // Clear stored video path after successful save dialog (user has seen the correct path)
+    if (!result.canceled && currentPluginVideoPath) {
+      console.log(
+        '🔍 [CC DEBUG] Clearing stored video path after successful save dialog',
+      );
+      currentPluginVideoPath = null;
+    }
+
     return result;
   } catch (error) {
+    console.log(`🔍 [CC DEBUG] Save dialog error:`, error);
     return { canceled: true };
   }
 });
@@ -2694,5 +2980,525 @@ ipcMain.handle('check-ffmpeg-status', async () => {
   } catch (error) {
     console.error('❌ FFmpeg status check failed:', error);
     return { available: false, error: error.message };
+  }
+});
+
+// Helper function to handle text format conversions (CC to Markdown, etc.)
+async function handleTextFormatConversion(
+  inputPath: string,
+  outputPath: string,
+  targetFormat: string,
+  downloadId: string,
+  event: Electron.IpcMainInvokeEvent,
+  saveToCustomLocation = false,
+): Promise<{ success: boolean; outputPath?: string; error?: string }> {
+  try {
+    const targetFormatLower = targetFormat.toLowerCase();
+
+    // Check if there's a caption file associated with the video
+    const inputDir = path.dirname(inputPath);
+    const inputBaseName = path.basename(inputPath, path.extname(inputPath));
+
+    // Look for various caption file formats that might exist
+    const possibleCaptionExtensions = [
+      '.vtt',
+      '.srt',
+      '.ass',
+      '.ssa',
+      '.ttml',
+      '.en.vtt',
+    ];
+    let captionFilePath = null;
+
+    for (const ext of possibleCaptionExtensions) {
+      const candidatePath = path.join(inputDir, `${inputBaseName}${ext}`);
+      if (fs.existsSync(candidatePath)) {
+        captionFilePath = candidatePath;
+        break;
+      }
+    }
+
+    if (!captionFilePath) {
+      // If no caption file found, try to extract captions from the video using FFmpeg
+      const ffmpegPath = getFfmpegBinaryPath();
+      if (fs.existsSync(ffmpegPath)) {
+        // Try to extract subtitles using FFmpeg (if embedded)
+        const tempCaptionPath = path.join(
+          inputDir,
+          `${inputBaseName}_temp.vtt`,
+        );
+
+        const { spawn } = require('child_process'); // eslint-disable-line @typescript-eslint/no-var-requires
+        const extractProcess = spawn(ffmpegPath, [
+          '-i',
+          inputPath,
+          '-map',
+          '0:s:0', // Extract first subtitle stream
+          '-c:s',
+          'webvtt',
+          '-y',
+          tempCaptionPath,
+        ]);
+
+        await new Promise((resolve) => {
+          extractProcess.on('close', (code: number) => {
+            if (code === 0 && fs.existsSync(tempCaptionPath)) {
+              captionFilePath = tempCaptionPath;
+            }
+            resolve(code);
+          });
+
+          extractProcess.on('error', () => {
+            resolve(-1);
+          });
+        });
+      }
+    }
+
+    if (!captionFilePath) {
+      return {
+        success: false,
+        error:
+          'No caption file found for conversion. Please ensure the video has captions or download captions first.',
+      };
+    }
+
+    // Read the caption content
+    let captionContent = '';
+    try {
+      captionContent = fs.readFileSync(captionFilePath, 'utf8');
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to read caption file: ${error.message}`,
+      };
+    }
+
+    // Convert to the target format
+    let convertedContent = '';
+
+    switch (targetFormatLower) {
+      case 'txt':
+        convertedContent = convertVttToPlainText(captionContent);
+        break;
+      case 'md':
+      case 'markdown':
+        convertedContent = convertVttToMarkdown(captionContent);
+        break;
+      case 'docx':
+        // For DOCX, we'll create a simple text format and let the user know
+        convertedContent = convertVttToPlainText(captionContent);
+        break;
+      default:
+        return {
+          success: false,
+          error: `Unsupported text format: ${targetFormat}`,
+        };
+    }
+
+    let finalOutputPath = outputPath;
+
+    // Handle custom location saving vs automatic saving
+    if (saveToCustomLocation) {
+      // Show save dialog for custom location
+      const browserWindow = BrowserWindow.fromWebContents(event.sender);
+      if (browserWindow) {
+        const saveResult = await dialog.showSaveDialog(browserWindow, {
+          title: `Save ${targetFormat.toUpperCase()} File`,
+          defaultPath: outputPath,
+          filters: [
+            {
+              name: `${targetFormat.toUpperCase()} files`,
+              extensions: [targetFormatLower],
+            },
+            { name: 'All files', extensions: ['*'] },
+          ],
+        });
+
+        if (saveResult.canceled) {
+          return {
+            success: false,
+            error: 'Save operation was canceled by user',
+          };
+        }
+
+        finalOutputPath = saveResult.filePath;
+      }
+    }
+
+    // Write the converted content to the final output path
+    fs.writeFileSync(finalOutputPath, convertedContent, 'utf8');
+
+    // Clean up temporary caption file if we created one
+    if (captionFilePath.includes('_temp.vtt')) {
+      try {
+        fs.unlinkSync(captionFilePath);
+      } catch (error) {
+        console.warn(
+          'Could not clean up temporary caption file:',
+          error.message,
+        );
+      }
+    }
+
+    return {
+      success: true,
+      outputPath: finalOutputPath,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message || 'Unknown error during text format conversion',
+    };
+  }
+}
+
+// Helper function to convert VTT captions to plain text
+function convertVttToPlainText(vttContent: string): string {
+  const lines = vttContent.split('\n');
+  const textLines: string[] = [];
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    // Skip VTT header, timestamps, and empty lines
+    if (
+      trimmedLine === 'WEBVTT' ||
+      trimmedLine === '' ||
+      trimmedLine.match(
+        /^\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3}/,
+      ) ||
+      trimmedLine.match(/^NOTE/)
+    ) {
+      continue;
+    }
+
+    // Remove HTML tags and style formatting
+    const cleanedLine = trimmedLine
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"');
+
+    if (cleanedLine.length > 0) {
+      textLines.push(cleanedLine);
+    }
+  }
+
+  return textLines.join('\n\n');
+}
+
+// Helper function to convert VTT captions to Markdown
+function convertVttToMarkdown(vttContent: string): string {
+  const plainText = convertVttToPlainText(vttContent);
+  const lines = plainText.split('\n\n');
+
+  // Create a simple markdown format
+  let markdown = '# Video Transcript\n\n';
+
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim().length > 0) {
+      // Add paragraph numbers for better navigation
+      markdown += `**${i + 1}.** ${lines[i]}\n\n`;
+    }
+  }
+
+  markdown += '\n---\n*Transcript generated by Downlodr CC to Markdown*\n';
+
+  return markdown;
+}
+
+// File conversion handler
+ipcMain.handle('convert-file', async (event, options) => {
+  const {
+    downloadId,
+    inputPath,
+    targetFormat,
+    keepOriginal,
+    downloadName,
+    saveToCustomLocation,
+  } = options;
+
+  try {
+    console.log(
+      `🔄 Starting conversion for ${downloadName} (${downloadId}) to ${targetFormat}`,
+    );
+    console.log(`📁 Input path: ${inputPath}`);
+
+    // Validate input file exists
+    if (!fs.existsSync(inputPath)) {
+      throw new Error('Input file does not exist');
+    }
+
+    const inputDir = path.dirname(inputPath);
+    const inputBaseName = path.basename(inputPath, path.extname(inputPath));
+    const targetFormatLower = targetFormat.toLowerCase();
+
+    // Check if this is a text-based format (CC to Markdown conversion)
+    const isTextFormat = ['txt', 'docx', 'md', 'markdown'].includes(
+      targetFormatLower,
+    );
+
+    if (isTextFormat) {
+      // Handle CC to Markdown and other text-based conversions
+      // Save directly in the same directory as the video file using exact video filename + new extension
+      const outputExtension =
+        targetFormatLower === 'txt'
+          ? '.txt'
+          : targetFormatLower === 'docx'
+          ? '.docx'
+          : targetFormatLower === 'md' || targetFormatLower === 'markdown'
+          ? '.md'
+          : '.txt';
+
+      // Use exact video filename with new extension (no timestamp, no underscore)
+      const outputFileName = `${inputBaseName}${outputExtension}`;
+      const outputPath = path.join(inputDir, outputFileName); // Save in same directory as video
+
+      // Send conversion start status
+      event.sender.send(`ytdlp:download:status:${downloadId}`, {
+        type: 'conversion',
+        data: {
+          status: 'converting',
+          format: targetFormat,
+          log: `Starting CC to ${targetFormat} conversion...`,
+        },
+      });
+
+      // For text formats, we delegate to the plugin system but provide the correct output path
+      // The plugin should use the calculated outputPath to save in the video directory
+      try {
+        // Call the CC to Markdown plugin or create the file directly
+        const conversionResult = await handleTextFormatConversion(
+          inputPath,
+          outputPath,
+          targetFormat,
+          downloadId,
+          event,
+          saveToCustomLocation || false,
+        );
+
+        if (conversionResult.success) {
+          event.sender.send(`ytdlp:download:status:${downloadId}`, {
+            type: 'conversion',
+            data: {
+              status: 'conversion_complete',
+              format: targetFormat,
+              outputPath: conversionResult.outputPath,
+              log: `CC to ${targetFormat} conversion completed successfully. File saved in video directory.`,
+            },
+          });
+
+          return conversionResult;
+        } else {
+          throw new Error(
+            conversionResult.error || 'Text format conversion failed',
+          );
+        }
+      } catch (error) {
+        event.sender.send(`ytdlp:download:status:${downloadId}`, {
+          type: 'conversion',
+          data: {
+            status: 'conversion_failed',
+            format: targetFormat,
+            error: error.message,
+            log: `CC to ${targetFormat} conversion failed: ${error.message}`,
+          },
+        });
+
+        throw error;
+      }
+    }
+
+    // For video formats, continue with FFmpeg conversion
+    // Get FFmpeg path (only needed for video conversions)
+    const ffmpegPath = getFfmpegBinaryPath();
+    if (!fs.existsSync(ffmpegPath)) {
+      throw new Error('FFmpeg binary not found');
+    }
+
+    // Generate output path - create a single FormatConverter directory for video formats
+    const outputExtension =
+      targetFormatLower === 'mp3'
+        ? '.mp3'
+        : targetFormatLower === 'mp4'
+        ? '.mp4'
+        : targetFormatLower === 'mov'
+        ? '.mov'
+        : targetFormatLower === 'avi'
+        ? '.avi'
+        : targetFormatLower === 'mkv'
+        ? '.mkv'
+        : '.mp4';
+
+    // Check if we're already in a FormatConverter directory to prevent nesting
+    const parentDirName = path.basename(inputDir);
+    const formatConverterDir =
+      parentDirName === 'FormatConverter'
+        ? inputDir // Use the current directory if it's already FormatConverter
+        : path.join(inputDir, 'FormatConverter'); // Create new FormatConverter subdirectory
+
+    // Ensure the FormatConverter directory exists
+    if (!fs.existsSync(formatConverterDir)) {
+      fs.mkdirSync(formatConverterDir, { recursive: true });
+    }
+
+    // Generate unique filename to avoid conflicts
+    const timestamp = new Date().getTime();
+    const outputFileName = `${inputBaseName}_${targetFormatLower}_${timestamp}${outputExtension}`;
+    const outputPath = path.join(formatConverterDir, outputFileName);
+
+    // Build FFmpeg command based on target format
+    const ffmpegArgs = ['-i', inputPath];
+
+    switch (targetFormatLower) {
+      case 'mp3':
+        ffmpegArgs.push('-vn', '-acodec', 'libmp3lame', '-ab', '192k');
+        break;
+      case 'mp4':
+        ffmpegArgs.push('-c:v', 'libx264', '-c:a', 'aac', '-preset', 'medium');
+        break;
+      case 'mov':
+        ffmpegArgs.push('-c:v', 'libx264', '-c:a', 'aac');
+        break;
+      case 'avi':
+        ffmpegArgs.push('-c:v', 'libx264', '-c:a', 'libmp3lame');
+        break;
+      case 'mkv':
+        ffmpegArgs.push('-c:v', 'libx264', '-c:a', 'aac');
+        break;
+      default:
+        throw new Error(`Unsupported format: ${targetFormat}`);
+    }
+
+    // Add output path and overwrite flag
+    ffmpegArgs.push('-y', outputPath);
+
+    console.log(`🎬 FFmpeg command: ${ffmpegPath} ${ffmpegArgs.join(' ')}`);
+
+    // Execute FFmpeg conversion
+    const { spawn } = require('child_process'); // eslint-disable-line @typescript-eslint/no-var-requires
+    const conversionProcess = spawn(ffmpegPath, ffmpegArgs);
+
+    return new Promise((resolve, reject) => {
+      let errorOutput = '';
+      let lastOutput = '';
+
+      // Send conversion start status
+      event.sender.send(`ytdlp:download:status:${downloadId}`, {
+        type: 'conversion',
+        data: {
+          status: 'converting',
+          format: targetFormat,
+          log: `Starting conversion to ${targetFormat}...`,
+        },
+      });
+
+      conversionProcess.stderr.on('data', (data: Buffer) => {
+        const output = data.toString();
+        errorOutput += output;
+        lastOutput = output;
+
+        // Send progress updates if available
+        event.sender.send(`ytdlp:download:status:${downloadId}`, {
+          type: 'conversion',
+          data: {
+            status: 'converting',
+            format: targetFormat,
+            log: `Converting: ${output.trim()}`,
+          },
+        });
+      });
+
+      conversionProcess.on('close', (code: number | null) => {
+        if (code === 0) {
+          console.log(`✅ Conversion completed successfully!`);
+          console.log(`📁 Output location: ${outputPath}`);
+
+          // Send completion status
+          event.sender.send(`ytdlp:download:status:${downloadId}`, {
+            type: 'conversion',
+            data: {
+              status: 'conversion_complete',
+              format: targetFormat,
+              outputPath: outputPath,
+              log: `Conversion to ${targetFormat} completed successfully. File saved to FormatConverter folder.`,
+            },
+          });
+
+          // Remove original file if not keeping it
+          if (!keepOriginal) {
+            try {
+              fs.unlinkSync(inputPath);
+              console.log(`🗑️ Removed original file: ${inputPath}`);
+            } catch (unlinkError) {
+              console.warn(
+                `⚠️ Could not remove original file: ${unlinkError.message}`,
+              );
+            }
+          }
+
+          resolve({
+            success: true,
+            outputPath: outputPath,
+          });
+        } else {
+          console.error(`❌ Conversion failed with exit code ${code}`);
+          console.error(`Error output: ${errorOutput}`);
+
+          const errorMessage =
+            errorOutput || lastOutput || `Process exited with code ${code}`;
+
+          // Send failure status
+          event.sender.send(`ytdlp:download:status:${downloadId}`, {
+            type: 'conversion',
+            data: {
+              status: 'conversion_failed',
+              format: targetFormat,
+              error: errorMessage,
+              log: `Conversion to ${targetFormat} failed: ${errorMessage}`,
+            },
+          });
+
+          reject(new Error(errorMessage));
+        }
+      });
+
+      conversionProcess.on('error', (error: Error) => {
+        console.error(`❌ Conversion process error: ${error.message}`);
+
+        // Send failure status
+        event.sender.send(`ytdlp:download:status:${downloadId}`, {
+          type: 'conversion',
+          data: {
+            status: 'conversion_failed',
+            format: targetFormat,
+            error: error.message,
+            log: `Conversion to ${targetFormat} failed: ${error.message}`,
+          },
+        });
+
+        reject(error);
+      });
+    });
+  } catch (error) {
+    console.error(`❌ Conversion setup error: ${error.message}`);
+
+    // Send failure status
+    event.sender.send(`ytdlp:download:status:${downloadId}`, {
+      type: 'conversion',
+      data: {
+        status: 'conversion_failed',
+        format: targetFormat,
+        error: error.message,
+        log: `Conversion to ${targetFormat} failed: ${error.message}`,
+      },
+    });
+
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 });

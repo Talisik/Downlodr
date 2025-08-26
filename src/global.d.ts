@@ -10,6 +10,28 @@ import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult 
 
 declare global {
   interface Window {
+    electronAPI: {
+      // File conversion functionality
+      convertFile: (options: {
+        downloadId: string;
+        inputPath: string;
+        targetFormat: string;
+        keepOriginal: boolean;
+        downloadName: string;
+      }) => Promise<{
+        success: boolean;
+        outputPath?: string;
+        error?: string;
+      }>;
+      // Enhanced FFmpeg status checking
+      checkFfmpegStatus: () => Promise<{
+        available: boolean;
+        version?: string;
+        path?: string;
+        architecture?: string;
+        error?: string;
+      }>;
+    };
     downlodrFunctions: {
       //Title bar functions
       closeApp: () => void;
@@ -47,6 +69,26 @@ declare global {
       }>;
       ensureDirectoryExists: (dirPath: string) => Promise<boolean>; // Creates directory if it doesn't exist
       getThumbnailDataUrl: (path: string) => Promise<string | null>;
+      // Enhanced FFmpeg status checking
+      checkFfmpegStatus: () => Promise<{
+        available: boolean;
+        version?: string;
+        path?: string;
+        architecture?: string;
+        error?: string;
+      }>;
+      // File conversion functionality
+      convertFile: (options: {
+        downloadId: string;
+        inputPath: string;
+        targetFormat: string;
+        keepOriginal: boolean;
+        downloadName: string;
+      }) => Promise<{
+        success: boolean;
+        outputPath?: string;
+        error?: string;
+      }>;
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist
@@ -123,7 +165,7 @@ declare global {
       executeMenuItem: (id: string, contextData?: any) => Promise<void>;
       loadUnzipped: (pluginDirPath: string) => Promise<boolean>;
       extractPlugin: (zipPath: string, extractTo: string) => Promise<string>;
-      writeFile: (options: WriteFileOptions) => Promise<WriteFileResult>;
+      writeFile: (options: WriteFileOptions & { videoPath?: string }) => Promise<WriteFileResult>;
       readFile: (
         filePath: string,
       ) => Promise<{ success: boolean; data?: string; error?: string }>;

@@ -3,22 +3,22 @@ import { useMainStore } from '@/Store/mainStore';
 import React, { useEffect, useState } from 'react';
 
 interface FormatConverterMenuProps {
-  downloadId: string;
   menuPositionClass: string;
   onConvert: (
     downloadId: string,
     format: string,
     keepOriginal: boolean,
-  ) => void;
+    saveToCustomLocation?: boolean,
+  ) => void | Promise<void>;
 }
 
 const FormatConverterMenu: React.FC<FormatConverterMenuProps> = ({
-  downloadId,
   menuPositionClass,
   onConvert,
 }) => {
   const [selectedFormat, setSelectedFormat] = useState('MP4');
   const [keepOriginal, setKeepOriginal] = useState(false);
+  const [saveToCustomLocation, setSaveToCustomLocation] = useState(false);
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
 
@@ -30,10 +30,10 @@ const FormatConverterMenu: React.FC<FormatConverterMenuProps> = ({
     );
   }, [selectedDownloads]);
 
-  // Array of available formats
-  const formats = ['MP4', 'MP3', 'MOV', 'AVI', 'MKV'];
+  // Array of available formats (video and text formats)
+  const formats = ['MP4', 'MP3', 'MOV', 'AVI', 'MKV', 'TXT', 'DOCX', 'MD'];
 
-  const handleConvert = () => {
+  const handleConvert = async () => {
     if (!selectedFormat) {
       toast({
         variant: 'destructive',
@@ -54,25 +54,104 @@ const FormatConverterMenu: React.FC<FormatConverterMenuProps> = ({
       return;
     }
 
-    // Convert all selected downloads
-    selectedDownloads.forEach((download) => {
-      onConvert(download.id, selectedFormat, keepOriginal);
-    });
+    let successCount = 0;
+    let failureCount = 0;
+    const totalCount = selectedDownloads.length;
 
-    // Clear selections after conversion
-    clearAllSelections();
-
+    // Show initial toast for conversion start
     toast({
-      variant: 'success',
-      title: 'Conversion Started',
-      description: `Converting ${selectedDownloads.length} file(s) to ${selectedFormat}
-      }`,
-      duration: 3000,
+      variant: 'default',
+      title: 'Conversion Starting',
+      description: `Initiating conversion of ${totalCount} file(s) to ${selectedFormat}...`,
+      duration: 2000,
     });
+
+    // Convert all selected downloads with proper error handling
+    const conversionPromises = selectedDownloads.map(async (download) => {
+      try {
+        // Call onConvert and wait for it to complete if it returns a promise
+        const result = onConvert(download.id, selectedFormat, keepOriginal, saveToCustomLocation);
+
+        // If onConvert returns a promise, await it
+        if (result && typeof result.then === 'function') {
+          await result;
+        }
+
+        successCount++;
+        return { downloadId: download.id, success: true };
+      } catch (error) {
+        console.error(`Conversion failed for download ${download.id}:`, error);
+        failureCount++;
+
+        // Show individual failure toast
+        toast({
+          variant: 'destructive',
+          title: 'Conversion Failed',
+          description: `Failed to convert download to ${selectedFormat}`,
+          duration: 5000,
+        });
+
+        return { downloadId: download.id, success: false, error };
+      }
+    });
+
+    // Wait for all conversions to complete
+    try {
+      const results = await Promise.allSettled(conversionPromises);
+
+      // Count actual results
+      results.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value.success) {
+          // Success already counted
+        } else {
+          // Handle additional failures from Promise.allSettled
+          if (result.status === 'rejected') {
+            failureCount++;
+            successCount = Math.max(0, successCount - 1);
+          }
+        }
+      });
+
+      // Clear selections after all conversions are initiated
+      clearAllSelections();
+
+      // Show final status toast based on actual results
+      if (failureCount === 0) {
+        toast({
+          variant: 'success',
+          title: 'Conversion Successful',
+          description: `Successfully converted ${successCount} file(s) to ${selectedFormat}`,
+          duration: 4000,
+        });
+      } else if (successCount === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Conversion Failed',
+          description: `Failed to convert ${failureCount} file(s) to ${selectedFormat}`,
+          duration: 5000,
+        });
+      } else {
+        toast({
+          variant: 'default',
+          title: 'Conversion Partially Completed',
+          description: `${successCount} succeeded, ${failureCount} failed`,
+          duration: 5000,
+        });
+      }
+    } catch (error) {
+      console.error('Error during batch conversion:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Conversion Error',
+        description: 'An unexpected error occurred during conversion',
+        duration: 5000,
+      });
+    }
   };
 
   return (
     <div
+      data-testid="format-converter-menu"
       className={`absolute ${menuPositionClass} bg-white dark:bg-darkMode border rounded-md shadow-lg py-3 px-4 z-50 w-80 dark:border-gray-700`}
       onClick={(e) => e.stopPropagation()}
     >
@@ -148,6 +227,27 @@ const FormatConverterMenu: React.FC<FormatConverterMenuProps> = ({
             </label>
           </div>
         </div>
+
+        {/* Save Location Option - Only show for text formats */}
+        {['TXT', 'DOCX', 'MD'].includes(selectedFormat) && (
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="save-custom-location"
+                checked={saveToCustomLocation}
+                onChange={() => setSaveToCustomLocation(!saveToCustomLocation)}
+                className="mr-2"
+              />
+              <label
+                htmlFor="save-custom-location"
+                className="text-sm dark:text-gray-200"
+              >
+                Choose save location (default: video directory)
+              </label>
+            </div>
+          </div>
+        )}
 
         {/* Convert Button */}
         <div className="text-right pt-3">

@@ -184,7 +184,7 @@ const PluginTaskBarExtension: React.FC = () => {
                   }
                 : item.buttonStyle
             }
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-2 py-1 rounded flex gap-1 font-semibold dark:text-gray-200 flex-shrink-0"
+            className="bg-transparent hover:bg-lightGray dark:hover:bg-darkModeHover transition-colors duration-200 px-2 py-1 rounded flex gap-1 font-semibold text-gray-700 dark:text-gray-200 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             onClick={() => handleItemClick(item)}
             icon={
               item.icon && (

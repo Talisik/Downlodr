@@ -5,7 +5,6 @@
  *
  * @returns JSX.Element - The rendered mode toggle component.
  */
-import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
 import { useTheme } from '@/Components/ThemeProvider';
 import { Moon, Sun } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -44,18 +43,17 @@ export function ModeToggle() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="hover:bg-gray-100 dark:bg-transparent dark:hover:bg-darkModeCompliment hover:opacity-100 active:bg-transparent focus-none p-1 my-4"
+      <button
+        type="button"
+        className="bg-transparent hover:bg-gray-100 dark:bg-transparent dark:hover:bg-gray-700 hover:shadow-lg transition-all duration-200 p-2 my-4 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer border border-transparent hover:border-gray-200 dark:hover:border-gray-600"
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className="relative flex items-center justify-center">
-          <Sun className="absolute h-[1rem] w-[1rem] transition-transform duration-300 text-text-paragraph dark:rotate-90 dark:scale-0" />
-          <Moon className="absolute h-[1rem] w-[1rem] transition-transform duration-300 text-text-paragraph scale-0 dark:rotate-0 dark:scale-100" />
+          <Sun className="absolute h-[1rem] w-[1rem] transition-transform duration-300 text-gray-700 dark:text-darkModeLight dark:rotate-90 dark:scale-0" />
+          <Moon className="absolute h-[1rem] w-[1rem] transition-transform duration-300 text-gray-700 dark:text-darkModeLight scale-0 dark:rotate-0 dark:scale-100" />
         </span>
         <span className="sr-only">Toggle theme</span>
-      </Button>
+      </button>
 
       {isOpen && (
         <div className="fixed right-[inherit] w-32 rounded-md bg-white dark:bg-darkModeCompliment shadow-lg ring-1 ring-black ring-opacity-5 z-[100]">

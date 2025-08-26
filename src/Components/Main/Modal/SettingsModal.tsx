@@ -11,8 +11,9 @@ import { Slider } from '@/Components/SubComponents/shadcn/components/ui/slider';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { useMainStore } from '@/Store/mainStore';
 import { useTaskbarDownloadStore } from '@/Store/taskbarDownloadStore';
+import CollapsibleSection from '@/Components/SubComponents/custom/CollapsibleSection';
+import EnhancedCloseButton from '@/Components/SubComponents/custom/EnhancedCloseButton';
 import React, { useEffect, useRef, useState } from 'react';
-import { IoMdClose } from 'react-icons/io';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -88,6 +89,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     },
   );
 
+  // Collapsible section states
+  const [isNotificationsSectionExpanded, setIsNotificationsSectionExpanded] =
+    useState(false);
+  const [isColumnsSectionExpanded, setIsColumnsSectionExpanded] =
+    useState(false);
+
   // sync with the mainStore's visibleColumns
   useEffect(() => {
     if (isOpen) {
@@ -115,6 +122,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setRunInBackground(settings.runInBackground ?? true);
     // reset the clipboard monitoring setting
     setEnableClipboardMonitoring(settings.enableClipboardMonitoring ?? false);
+    // Reset collapsible sections
+    setIsNotificationsSectionExpanded(false);
+    setIsColumnsSectionExpanded(false);
   };
   // New state to track if directory selection is in progress
   const [isSelectingDirectory, setIsSelectingDirectory] =
@@ -240,6 +250,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-20 dark:bg-opacity-50 flex items-center justify-center h-full z-[8999]"
+      data-testid="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-modal-title"
       onClick={(e) => {
         // Only close if clicking the overlay background
         if (e.target === e.currentTarget) {
@@ -260,19 +274,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
       )}
-      <div className="bg-white dark:bg-darkModeDropdown border border-gray-200 dark:border-gray-700 rounded-lg pt-5 pr-6 pl-6 pb-3 max-w-2xl w-full mx-4 max-h-[100vh] overflow-y-auto">
+      <div className="bg-white dark:bg-darkModeDropdown border border-gray-200 dark:border-gray-700 rounded-lg pt-5 pr-6 pl-6 pb-3 max-w-2xl w-full mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
         {/* Left side - Form */}
         <div className="w-full">
           <div className="flex justify-between items-center mb-5">
-            <h2 className="text-xl font-semibold dark:text-gray-200">
+            <h2
+              id="settings-modal-title"
+              className="text-xl font-semibold dark:text-gray-200"
+            >
               Settings
             </h2>
-            <button
-              onClick={handleClose}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <IoMdClose size={16} />
-            </button>
+            <EnhancedCloseButton
+              onClose={handleClose}
+              variant="inspector"
+              size="lg"
+              ariaLabel="Close settings dialog"
+              className="relative right-0 top-0"
+            />
           </div>
 
           <form onSubmit={(e) => e.preventDefault()}>
@@ -454,17 +472,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            {/* notification settings section */}
-            <div className="pt-3">
-              <div className="flex items-center gap-2 mb-2">
-                <label className="block dark:text-gray-200 text-nowrap font-bold">
-                  Notifications & Dock Badge
-                </label>
-                <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
-              </div>
-
+            {/* Collapsible notification settings section */}
+            <CollapsibleSection
+              title="Notifications & Dock Badge"
+              defaultExpanded={isNotificationsSectionExpanded}
+              onToggle={setIsNotificationsSectionExpanded}
+              ariaLabel="Toggle notifications and dock badge settings"
+              contentClassName="ml-2 space-y-2"
+            >
               {/* Notification Preferences */}
-              <div className="ml-2 space-y-2">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -572,7 +589,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               </div>
 
               {/* Dock Badge Preferences */}
-              <div className="ml-2 space-y-2 mt-4">
+              <div className="space-y-2 mt-4">
                 <div className="text-sm font-medium dark:text-gray-200 mb-2">
                   Dock Badge Settings
                 </div>
@@ -625,63 +642,59 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              <div className="text-xs text-gray-500 dark:text-gray-400 ml-2 mt-2">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 Notifications appear in macOS Notification Center and can be
                 clicked to bring Downlodr to the foreground
               </div>
-            </div>
+            </CollapsibleSection>
 
-            {/* column visibility section */}
-            <div className="pt-3">
-              <div className="flex items-center gap-2 mb-2">
-                <label className="block dark:text-gray-200 text-nowrap font-bold">
-                  Visible Columns
-                </label>
-                <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
-              </div>
-
-              <div className="grid grid-cols-4 gap-1 mt-2 ml-2">
-                {columnOptions.map((column) => (
-                  <div key={column.id} className="flex items-center mr-2">
-                    <input
-                      type="checkbox"
-                      id={`column-${column.id}`}
-                      checked={
-                        localVisibleColumns.includes(column.id) ||
-                        column.required
-                      }
-                      onChange={() =>
-                        column.required ? null : handleToggleColumn(column.id)
-                      }
-                      disabled={column.required}
-                      style={{
-                        width: '13.5px',
-                        height: '13.5px',
-                        marginBottom: '0.5px',
-                        marginLeft: '0.5px',
-                        accentColor: column.required ? '#ef4444' : '#3b82f6',
-                        transform: 'scale(0.9)',
-                        transformOrigin: 'center',
-                      }}
-                      className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500 mr-2"
-                    />
-                    <label
-                      htmlFor={`column-${column.id}`}
-                      className={`dark:text-gray-200 mr-2 text-xs cursor-pointer ${
-                        column.required ? 'font-semibold' : ''
-                      }`}
-                    >
-                      {column.label}
-                      {column.required && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                          (required)
-                        </span>
-                      )}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Collapsible column visibility section */}
+            <CollapsibleSection
+              title="Visible Columns"
+              defaultExpanded={isColumnsSectionExpanded}
+              onToggle={setIsColumnsSectionExpanded}
+              ariaLabel="Toggle visible columns settings"
+              contentClassName="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1 mt-2 ml-2"
+            >
+              {columnOptions.map((column) => (
+                <div key={column.id} className="flex items-center mr-2 mb-2">
+                  <input
+                    type="checkbox"
+                    id={`column-${column.id}`}
+                    checked={
+                      localVisibleColumns.includes(column.id) || column.required
+                    }
+                    onChange={() =>
+                      column.required ? null : handleToggleColumn(column.id)
+                    }
+                    disabled={column.required}
+                    style={{
+                      width: '13.5px',
+                      height: '13.5px',
+                      marginBottom: '0.5px',
+                      marginLeft: '0.5px',
+                      accentColor: column.required ? '#ef4444' : '#3b82f6',
+                      transform: 'scale(0.9)',
+                      transformOrigin: 'center',
+                    }}
+                    className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500 mr-2"
+                  />
+                  <label
+                    htmlFor={`column-${column.id}`}
+                    className={`dark:text-gray-200 mr-2 text-xs cursor-pointer ${
+                      column.required ? 'font-semibold' : ''
+                    }`}
+                  >
+                    {column.label}
+                    {column.required && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                        (required)
+                      </span>
+                    )}
+                  </label>
+                </div>
+              ))}
+            </CollapsibleSection>
           </form>
         </div>
 

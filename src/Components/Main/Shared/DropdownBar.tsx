@@ -216,9 +216,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
       <div className="flex items-center gap-4">
         <div className="relative">
           <button
-            className={`px-3 py-1 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded font-semibold ${
+            className={`px-3 py-1 bg-transparent hover:bg-lightGray dark:hover:bg-darkModeHover transition-colors duration-200 rounded font-semibold text-gray-700 dark:text-darkModeLight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               activeMenu === 'file'
-                ? 'bg-gray-100 dark:bg-darkModeCompliment font-semibold'
+                ? 'bg-lightGray dark:bg-darkModeHover font-semibold'
                 : ''
             }`}
             onClick={(e) => {

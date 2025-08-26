@@ -675,7 +675,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                     variant="transparent"
                     size="icon"
                     className={cn(
-                      'px-[10px] py-4 rounded-md flex gap-2 text-sm h-7 items-center hover:bg-gray-100 dark:hover:bg-darkModeHover',
+                      'px-[10px] py-4 rounded-md flex gap-2 text-sm h-7 items-center bg-transparent hover:bg-lightGray dark:hover:bg-darkModeHover transition-colors duration-200 text-gray-700 dark:text-darkModeLight',
                       selectedDownloads.length > 0 &&
                         (location.pathname.includes('/status/') ||
                           location.pathname.includes('/tags/') ||

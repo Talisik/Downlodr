@@ -10,6 +10,146 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { MenuItemRegistration, TaskBarItemRegistration } from './plugins/types';
 
+// CRITICAL: Intercept fs operations in renderer process for CC plugin
+// Since nodeIntegration is true, plugins can access fs directly
+// We need to intercept this at the global level before plugins load
+
+declare global {
+  interface Window {
+    require: any;
+  }
+}
+
+// Comprehensive renderer-side interception for CC plugin debugging
+console.log(
+  '🔍 [PRELOAD DEBUG] Preload script executing, setting up interceptions...',
+);
+
+// Method 1: Intercept require calls to patch fs module
+if (window.require) {
+  console.log('🔍 [PRELOAD DEBUG] window.require available, patching...');
+  const originalRequire = window.require;
+  window.require = function (moduleName: string) {
+    console.log('🔍 [PRELOAD DEBUG] Module required:', moduleName);
+    const module = originalRequire(moduleName);
+
+    if (moduleName === 'fs') {
+      console.log('🔍 [RENDERER DEBUG] fs module required by plugin');
+
+      // Patch writeFileSync
+      const originalWriteFileSync = module.writeFileSync;
+      module.writeFileSync = function (
+        filePath: string,
+        data: any,
+        options?: any,
+      ) {
+        console.log('🔍 [RENDERER DEBUG] fs.writeFileSync called:', filePath);
+
+        // Detect CC plugin pattern and redirect
+        if (
+          typeof filePath === 'string' &&
+          (filePath.includes('_mp4\\') || filePath.includes('_mp4/'))
+        ) {
+          console.log('🔍 [RENDERER DEBUG] CC plugin detected! Redirecting...');
+
+          // Remove the _mp4 subfolder and save directly in Downloads
+          const correctedPath = filePath.replace(
+            /RAG Just Got Updated[^\\\/]*_mp4[\\\/]/,
+            '',
+          );
+          console.log(`🔍 [RENDERER DEBUG] Redirecting from: ${filePath}`);
+          console.log(`🔍 [RENDERER DEBUG] Redirecting to: ${correctedPath}`);
+
+          return originalWriteFileSync.call(this, correctedPath, data, options);
+        }
+
+        return originalWriteFileSync.call(this, filePath, data, options);
+      };
+
+      // Patch writeFile as well
+      const originalWriteFile = module.writeFile;
+      module.writeFile = function (
+        filePath: string,
+        data: any,
+        options?: any,
+        callback?: any,
+      ) {
+        console.log('🔍 [RENDERER DEBUG] fs.writeFile called:', filePath);
+
+        if (
+          typeof filePath === 'string' &&
+          (filePath.includes('_mp4\\') || filePath.includes('_mp4/'))
+        ) {
+          const correctedPath = filePath.replace(
+            /RAG Just Got Updated[^\\\/]*_mp4[\\\/]/,
+            '',
+          );
+          console.log(
+            `🔍 [RENDERER DEBUG] Async redirect: ${filePath} -> ${correctedPath}`,
+          );
+          return originalWriteFile.call(
+            this,
+            correctedPath,
+            data,
+            options,
+            callback,
+          );
+        }
+
+        return originalWriteFile.call(this, filePath, data, options, callback);
+      };
+    }
+
+    return module;
+  };
+} else {
+  console.log('🔍 [PRELOAD DEBUG] window.require NOT available');
+}
+
+// Method 2: Intercept via global object monitoring
+(window as any).ccDebugFileWrites = [];
+const originalPostMessage = window.postMessage;
+window.postMessage = function (
+  message: any,
+  targetOrigin: string,
+  transfer?: any,
+) {
+  if (typeof message === 'object' && message.action === 'show-success-popup') {
+    console.log('🔍 [PRELOAD DEBUG] Intercepted panel message:', message);
+    if (message.savePath && message.savePath.includes('_mp4\\')) {
+      console.log(
+        '🔍 [PRELOAD DEBUG] CC plugin save detected via postMessage!',
+      );
+      // Log this for debugging
+      (window as any).ccDebugFileWrites.push({
+        originalPath: message.savePath,
+        timestamp: Date.now(),
+        method: 'postMessage',
+      });
+    }
+  }
+  return originalPostMessage.call(this, message, targetOrigin, transfer);
+};
+
+// Method 3: Set up a global hook that plugins might use
+(window as any).saveFile = function (filePath: string, content: any) {
+  console.log('🔍 [PRELOAD DEBUG] Global saveFile called:', filePath);
+  // This could be how the plugin saves files
+};
+
+// Main electronAPI
+contextBridge.exposeInMainWorld('electronAPI', {
+  convertFile: (options: {
+    downloadId: string;
+    inputPath: string;
+    targetFormat: string;
+    keepOriginal: boolean;
+    downloadName: string;
+    saveToCustomLocation?: boolean;
+  }) => ipcRenderer.invoke('convert-file', options),
+  checkFfmpegStatus: () => ipcRenderer.invoke('check-ffmpeg-status'),
+});
+
 // downlodr exlusive functions
 contextBridge.exposeInMainWorld('downlodrFunctions', {
   invoke: (channel: any, ...args: any) => ipcRenderer.invoke(channel, ...args),
@@ -39,6 +179,15 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
     ipcRenderer.invoke('get-directory-size', path),
   // Enhanced FFmpeg status checking
   checkFfmpegStatus: () => ipcRenderer.invoke('check-ffmpeg-status'),
+  // File conversion functionality
+  convertFile: (options: {
+    downloadId: string;
+    inputPath: string;
+    targetFormat: string;
+    keepOriginal: boolean;
+    downloadName: string;
+    saveToCustomLocation?: boolean;
+  }) => ipcRenderer.invoke('convert-file', options),
   showInputContextMenu: () => ipcRenderer.send('show-input-context-menu'),
   invokeMainProcess: (channel: any, ...args: any) => {
     return ipcRenderer.invoke(channel, ...args);

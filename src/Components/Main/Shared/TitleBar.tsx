@@ -100,21 +100,21 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
               <ModeToggle />
               {/* Minimize Button */}
               <button
-                className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
+                className="rounded-md bg-transparent hover:bg-lightGray dark:hover:bg-darkModeHover transition-colors duration-200 p-1 m-2 text-gray-700 dark:text-darkModeLight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 onClick={() => window.downlodrFunctions.minimizeApp()}
               >
                 <IoMdRemove size={16} />
               </button>
               {/* Maximize Button with dynamic icon */}
               <button
-                className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
+                className="rounded-md bg-transparent hover:bg-lightGray dark:hover:bg-darkModeHover transition-colors duration-200 p-1 m-2 text-gray-700 dark:text-darkModeLight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 onClick={handleMaximizeRestore}
               >
                 {isMaximized ? <PiBrowsers size={16} /> : <RxBox size={14} />}
               </button>
               {/* Close Button */}
               <button
-                className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
+                className="rounded-md bg-transparent hover:bg-red-500 dark:hover:bg-red-600 hover:text-white transition-colors duration-200 p-1 m-2 text-gray-700 dark:text-darkModeLight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 onClick={handleCloseClick}
               >
                 <IoMdClose size={16} />

@@ -73,6 +73,7 @@
     "@types/yauzl": "^2.10.3",
     "@vitejs/plugin-react": "^4.3.4",
     "axios": "^1.8.4",
+    "chokidar": "^4.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
