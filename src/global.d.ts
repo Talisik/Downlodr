@@ -50,6 +50,8 @@ declare global {
       }>;
       ensureDirectoryExists: (dirPath: string) => Promise<boolean>; // Creates directory if it doesn't exist
       getThumbnailDataUrl: (path: string) => Promise<string | null>;
+      getOSType: () => Promise<'windows' | 'macos' | 'linux' | string>; // Gets the current operating system type
+      getPathSeparator: () => Promise<string>; // Gets the path separator for the current OS
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist
@@ -94,6 +96,26 @@ declare global {
     updateAPI: {
       onUpdateAvailable: (
         callback: (updateInfo: UpdateInfo) => void,
+      ) => () => void;
+      onYtdlpAutoUpdated: (
+        callback: (updateInfo: {
+          fromVersion: string;
+          toVersion: string;
+          message: string;
+        }) => void,
+      ) => () => void;
+      onYtdlpAutoInstalled: (
+        callback: (installInfo: {
+          version: string;
+          message: string;
+        }) => void,
+      ) => () => void;
+      onYtdlpUpdateAvailable: (
+        callback: (updateInfo: {
+          currentVersion: string;
+          latestVersion: string;
+          message: string;
+        }) => void,
       ) => () => void;
       checkForUpdates: () => Promise<UpdateInfo>;
       getCurrentVersion: () => Promise<string>; // Gets current app version without GitHub API call

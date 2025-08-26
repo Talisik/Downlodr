@@ -28,6 +28,7 @@ import * as YTDLP from 'yt-dlp-helper';
 import { checkForUpdates } from './Utils/Data/updateChecker';
 import { PluginManager } from './plugins/pluginManager';
 import { pluginRegistry } from './plugins/registry';
+import { DownloadOptions } from './schema/ytdlp';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -51,7 +52,7 @@ app.on('second-instance', () => {
   }
 });
 
-declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
+declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
 let tray: Tray | null = null;
@@ -64,7 +65,6 @@ let normalTrayIcon: Electron.NativeImage;
 let alertTrayIcon: Electron.NativeImage;
 let isDownloadComplete = false;
 
-/*
 // Rate limiting for GitHub API calls
 const GITHUB_API_COOLDOWN = 5 * 60 * 1000; // 5 minutes between API calls
 let lastGitHubApiCall = 0;
@@ -87,7 +87,7 @@ function getCachedVersion(): string | null {
 
   return isExpired ? null : cachedLatestVersion.version;
 }
-*/
+
 // Function to create the main application window
 const createWindow = () => {
   // Create the browser window.
@@ -106,84 +106,113 @@ const createWindow = () => {
       // devTools: false,
     },
   });
+  if (mainWindow) {
+    if (
+      process.env.NODE_ENV === 'development' &&
+      MAIN_WINDOW_VITE_DEV_SERVER_URL
+    ) {
+      mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+      mainWindow.webContents.openDevTools();
+    } else {
+      mainWindow.loadFile(
+        path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+      );
 
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
-    // Only open DevTools in development
-    mainWindow.webContents.openDevTools();
-  } else {
-    mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-    );
-  }
+      // 🚫 Remove all default menus so "View → Toggle Developer Tools" disappears
+      Menu.setApplicationMenu(null);
 
-  // Handle window close events - hide instead of close
-  mainWindow.on('close', async (event) => {
-    if (!forceQuit) {
-      // Get the real-time setting
-      const shouldRunInBackground = await getRunInBackgroundSetting();
-      console.log('Window closing, checking setting:', shouldRunInBackground);
+      // 🚫 Block keyboard shortcuts
+      mainWindow.webContents.on('before-input-event', (event, input) => {
+        if (
+          (input.control && input.shift && input.key.toLowerCase() === 'i') || // Ctrl+Shift+I
+          input.key === 'F12' || // F12
+          (process.platform === 'darwin' &&
+            input.meta &&
+            input.alt &&
+            input.key.toLowerCase() === 'i') // Cmd+Opt+I
+        ) {
+          event.preventDefault();
+        }
+      });
 
-      if (shouldRunInBackground) {
-        event.preventDefault();
-        mainWindow?.hide();
-        return false;
+      // 🚫 If DevTools somehow open, force-close them
+      mainWindow.webContents.on('devtools-opened', () => {
+        mainWindow?.webContents.closeDevTools();
+      });
+
+      // 🚫 Disable right-click → Inspect Element
+      mainWindow.webContents.on('context-menu', (e) => {
+        e.preventDefault();
+      });
+    }
+
+    // Handle window close events - hide instead of close
+    mainWindow.on('close', async (event) => {
+      if (!forceQuit) {
+        // Get the real-time setting
+        const shouldRunInBackground = await getRunInBackgroundSetting();
+        console.log('Window closing, checking setting:', shouldRunInBackground);
+
+        if (shouldRunInBackground) {
+          event.preventDefault();
+          mainWindow?.hide();
+          return false;
+        }
       }
-    }
-  });
+    });
 
-  // focus tracking for clipboard monitoring
-  mainWindow.on('focus', () => {
-    isWindowFocused = true;
-    // console.log('Window focused - clipboard monitoring paused');
-  });
+    // Focus tracking for clipboard monitoring
+    mainWindow.on('focus', () => {
+      isWindowFocused = true;
+      // console.log('Window focused - clipboard monitoring paused');
+    });
 
-  mainWindow.on('blur', () => {
-    isWindowFocused = false;
-    // console.log('Window unfocused - clipboard monitoring resumed');
-  });
+    mainWindow.on('blur', () => {
+      isWindowFocused = false;
+      // console.log('Window unfocused - clipboard monitoring resumed');
+    });
 
-  // MAIN FUNCTIONS FOR TITLE BAR
-  ipcMain.on('close-btn', () => {
-    if (!mainWindow) return;
-
-    if (runInBackgroundSetting) {
-      // If running in background is enabled, hide the window
-      // console.log('Close button clicked, hiding window (background enabled)');
-      mainWindow.hide();
-    } else {
-      // If running in background is disabled, actually quit the app
-      // console.log('Close button clicked, quitting app (background disabled)');
-      forceQuit = true;
-      app.quit();
-    }
-  });
-
-  ipcMain.on('minimize-btn', () => {
-    if (mainWindow) mainWindow.minimize();
-  });
-
-  ipcMain.on('maximize-btn', () => {
-    if (!mainWindow) return;
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize();
-    } else {
-      mainWindow.maximize();
-    }
-  });
-
-  // Prevent navigation to external URLs
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  mainWindow.webContents.on('will-navigate', (event, url) => {
-    event.preventDefault();
-  });
+    // Prevent navigation to external URLs
+    mainWindow.webContents.on('will-navigate', (event) => {
+      event.preventDefault();
+    });
+  }
 };
+
+// MAIN FUNCTIONS FOR TITLE BAR
+ipcMain.on('close-btn', () => {
+  if (!mainWindow) return;
+
+  if (runInBackgroundSetting) {
+    // If running in background is enabled, hide the window
+    // console.log('Close button clicked, hiding window (background enabled)');
+    mainWindow.hide();
+  } else {
+    // If running in background is disabled, actually quit the app
+    // console.log('Close button clicked, quitting app (background disabled)');
+    forceQuit = true;
+    app.quit();
+  }
+});
+
+ipcMain.on('minimize-btn', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.on('maximize-btn', () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow.maximize();
+  }
+});
 
 const createTray = () => {
   // Get correct path based on whether in dev or production
   let iconPath, alertIconPath;
 
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+  if (process.env.NODE_ENV === 'development') {
     // Development mode paths
     iconPath = path.join(
       process.cwd(),
@@ -625,7 +654,6 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
   }
 });
 
-/*
 // Get current YT-DLP version
 ipcMain.handle('ytdlp:getCurrentVersion', async () => {
   try {
@@ -847,7 +875,7 @@ ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
     return { success: false, error: error.message };
   }
 });
-*/
+
 // after identifying ID kill/stop the id
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function killControllerById(id: any) {
@@ -1161,6 +1189,74 @@ app.on('ready', async () => {
     }
   }, 5000); // Check after 5 seconds to not slow startup
 
+  // Check for YT-DLP updates when app starts
+  setTimeout(async () => {
+    try {
+      console.log('Checking for YT-DLP updates on startup...');
+
+      // Get current version first
+      const currentVersion = await YTDLP.getYTDLPVersion();
+
+      // Check if we have a cached version first
+      let latestVersion = getCachedVersion();
+
+      if (!latestVersion && canMakeGitHubApiCall()) {
+        // Make the API call if we can
+        lastGitHubApiCall = Date.now();
+        const latestResponse = await YTDLP.getLatestYTDLPVersionFromGitHub();
+
+        if (latestResponse.ok && latestResponse.version) {
+          latestVersion = latestResponse.version;
+          // Cache the result
+          cachedLatestVersion = {
+            version: latestVersion,
+            timestamp: Date.now(),
+          };
+        }
+      }
+
+      // Only auto-update if we have both versions and they differ
+      if (currentVersion && latestVersion && currentVersion !== latestVersion) {
+        console.log(
+          `Auto-updating YT-DLP from ${currentVersion} to ${latestVersion}...`,
+        );
+        await YTDLP.downloadYTDLP({
+          version: latestVersion,
+          forceDownload: true,
+        });
+        console.log('YT-DLP auto-update completed!');
+
+        // Notify renderer about the update
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send('ytdlp-auto-updated', {
+            fromVersion: currentVersion,
+            toVersion: latestVersion,
+            message: `YT-DLP automatically updated from ${currentVersion} to ${latestVersion}`,
+          });
+        });
+      } else if (!currentVersion) {
+        console.log('YT-DLP not found, downloading latest version...');
+        await YTDLP.downloadYTDLP();
+        console.log('YT-DLP downloaded successfully!');
+
+        // Notify renderer about the installation
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send('ytdlp-auto-installed', {
+            version: latestVersion || 'latest',
+            message: 'YT-DLP was automatically downloaded and installed',
+          });
+        });
+      } else {
+        console.log(
+          'YT-DLP is up to date or update check skipped due to rate limiting',
+        );
+      }
+    } catch (error) {
+      console.error('Error during automatic YT-DLP update check:', error);
+      // Don't notify user about auto-update failures to avoid spam
+    }
+  }, 7000); // Check after 7 seconds, after app updates
+
   // Set up periodic update checking
   const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 4; // Check every 4 hours
   setInterval(async () => {
@@ -1171,7 +1267,44 @@ app.on('ready', async () => {
       );
     }
   }, UPDATE_CHECK_INTERVAL);
-
+  /*
+  // Set up periodic YT-DLP update checking (less frequent to respect rate limits)
+  const YTDLP_UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 12; // Check every 12 hours
+  setInterval(async () => {
+    try {
+      if (!canMakeGitHubApiCall()) {
+        console.log('Skipping periodic YT-DLP check due to rate limiting');
+        return;
+      }
+      
+      const currentVersion = await YTDLP.getYTDLPVersion();
+      if (!currentVersion) return; // Skip if YT-DLP not installed
+      
+      lastGitHubApiCall = Date.now();
+      const latestResponse = await YTDLP.getLatestYTDLPVersionFromGitHub();
+      
+      if (latestResponse.ok && latestResponse.version && 
+          currentVersion !== latestResponse.version) {
+        // Cache the result
+        cachedLatestVersion = {
+          version: latestResponse.version,
+          timestamp: Date.now(),
+        };
+        
+        // Don't auto-update during periodic checks, just notify
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send('ytdlp-update-available', {
+            currentVersion,
+            latestVersion: latestResponse.version,
+            message: `YT-DLP update available: ${currentVersion} → ${latestResponse.version}`,
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error during periodic YT-DLP update check:', error);
+    }
+  }, YTDLP_UPDATE_CHECK_INTERVAL);
+*/
   // Create plugin manager instance
   pluginManager = new PluginManager();
 
@@ -1692,14 +1825,14 @@ ipcMain.handle('plugins:register-taskbar-item', (event, taskBarItem) => {
 });
 
 // handler to unregister taskbar items
-ipcMain.handle('plugins:unregister-taskbar-item', (event, id) => {
+ipcMain.handle('plugins:unregister-taskbar-item', (_, id) => {
   //console.log('Main process unregistering taskbar item:', id);
   pluginRegistry.unregisterTaskBarItem(id);
   return true;
 });
 
 // handler to get taskbar items
-ipcMain.handle('plugins:taskbar-items', (event) => {
+ipcMain.handle('plugins:taskbar-items', () => {
   return pluginRegistry.getTaskBarItems();
 });
 
@@ -1732,14 +1865,8 @@ ipcMain.handle('plugin:fs:readFile', async (event, options) => {
 // handler to read file contents
 ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
   try {
-    const { filePath, pluginId } = options;
+    const { filePath } = options;
     // Security check: Make sure we're not reading outside allowed directories
-    // Get the plugin's data directory as a safe base path
-    const pluginDataDir = path.join(
-      app.getPath('userData'),
-      'plugin-data',
-      pluginId || '',
-    );
 
     // Ensure the requested path is within the plugin's data directory or another safe location
     // Normalize the path to fix double backslashes caused by JSON.stringify/parse
@@ -1782,4 +1909,36 @@ ipcMain.handle('plugins:close-panel', async () => {
 ipcMain.handle('get-current-version', async () => {
   // Get version from package.json or app.getVersion()
   return app.getVersion();
+});
+
+// handler to get operating system type
+ipcMain.handle('get-os-type', async () => {
+  try {
+    const platform = os.platform();
+
+    // Normalize platform names to user-friendly values
+    switch (platform) {
+      case 'win32':
+        return 'windows';
+      case 'darwin':
+        return 'macos';
+      case 'linux':
+        return 'linux';
+      default:
+        return platform; // Return raw platform for other systems
+    }
+  } catch (error) {
+    console.error('Error getting OS type:', error);
+    return 'unknown';
+  }
+});
+
+// handler to get path separator for current OS
+ipcMain.handle('get-path-separator', async () => {
+  try {
+    return path.sep;
+  } catch (error) {
+    console.error('Error getting path separator:', error);
+    return '/'; // Default to Unix-style separator
+  }
 });

@@ -14,9 +14,11 @@ import {
   HashRouter as Router,
   Routes,
 } from 'react-router-dom';
+import TelemetryConsentModal from './Components/Main/Modal/TelemetryConsentModal';
 import ClipboardLinkDetector from './Components/SubComponents/custom/ClipboardLinkDetector';
 import UpdateNotification from './Components/SubComponents/custom/UpdateNotifications';
 import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
+import { useToast } from './Components/SubComponents/shadcn/hooks/use-toast';
 import { ThemeProvider } from './Components/ThemeProvider';
 import MainLayout from './Layout/MainLayout';
 import PluginLayout from './Layout/PluginLayout';
@@ -38,6 +40,7 @@ const App = () => {
   const { settings, updateTelemetryConsentShown } = useMainStore();
   const [showTelemetryConsentModal, setShowTelemetryConsentModal] =
     useState(false);
+  const { toast } = useToast();
 
   // Check if we should show telemetry consent modal
   useEffect(() => {
@@ -93,6 +96,50 @@ const App = () => {
     }
   }, [settings.runInBackground]);
 
+  // Handle YT-DLP auto-update events
+  useEffect(() => {
+    const removeListeners: Array<() => void> = [];
+
+    if (window.updateAPI) {
+      // Handle YT-DLP auto-updated event
+      if (window.updateAPI.onYtdlpAutoUpdated) {
+        const removeYtdlpUpdated = window.updateAPI.onYtdlpAutoUpdated(
+          (updateInfo) => {
+            toast({
+              title: 'YT-DLP Updated Successfully',
+              description: updateInfo.message,
+              duration: 5000,
+            });
+          },
+        );
+        removeListeners.push(removeYtdlpUpdated);
+      }
+
+      // Handle YT-DLP auto-installed event
+      if (window.updateAPI.onYtdlpAutoInstalled) {
+        const removeYtdlpInstalled = window.updateAPI.onYtdlpAutoInstalled(
+          (installInfo) => {
+            toast({
+              title: 'YT-DLP Installed Successfully',
+              description: installInfo.message,
+              duration: 5000,
+            });
+          },
+        );
+        removeListeners.push(removeYtdlpInstalled);
+      }
+    }
+
+    // Cleanup function to remove all event listeners
+    return () => {
+      removeListeners.forEach((removeListener) => {
+        if (removeListener) {
+          removeListener();
+        }
+      });
+    };
+  }, []); // Empty dependency array = runs once on mount
+
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <Router>
@@ -116,12 +163,17 @@ const App = () => {
         </Routes>
       </Router>
       <Toaster />
+
       <UpdateNotification />
       <ClipboardLinkDetector />
       <PluginLoader />
       <FormatSelectorManager />
       <PluginSidePanelManager />
       <PluginModalManager />
+      <TelemetryConsentModal
+        isOpen={showTelemetryConsentModal}
+        onClose={handleTelemetryConsentClose}
+      />
     </ThemeProvider>
   );
 };

@@ -159,6 +159,8 @@ export interface UtilityAPI {
   readFileContents: (
     filePath: string,
   ) => Promise<{ success: boolean; data?: string; error?: string }>;
+  getOperatingSystem: () => Promise<'windows' | 'macos' | 'linux' | string>;
+  getPathSeparator: () => Promise<string>;
 }
 
 export interface FormatProvider {

@@ -124,9 +124,15 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   });
 
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const globalSelectedRowIds = useMainStore((state) => state.selectedRowIds);
   const setSelectedDownloads = useMainStore(
     (state) => state.setSelectedDownloads,
   );
+
+  // Sync local state with global state when global state changes (e.g., from TaskBar operations)
+  useEffect(() => {
+    setSelectedRowIds(globalSelectedRowIds);
+  }, [globalSelectedRowIds]);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [columnHeaderContextMenu, setColumnHeaderContextMenu] = useState<{
     visible: boolean;
@@ -301,11 +307,13 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   };
 
   const handleCheckboxChange = (downloadId: string) => {
-    const newSelected = selectedRowIds.includes(downloadId)
-      ? selectedRowIds.filter((id) => id !== downloadId)
-      : [...selectedRowIds, downloadId];
+    const newSelected = globalSelectedRowIds.includes(downloadId)
+      ? globalSelectedRowIds.filter((id) => id !== downloadId)
+      : [...globalSelectedRowIds, downloadId];
 
     setSelectedRowIds(newSelected);
+    // Also update the global state
+    useMainStore.getState().setSelectedRowIds(newSelected);
 
     // Create promises for each download
     const promises = newSelected.map(async (id) => {
@@ -334,11 +342,13 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
 
   const handleSelectAll = () => {
     const newSelected =
-      selectedRowIds.length === allDownloads.length
+      globalSelectedRowIds.length === allDownloads.length
         ? []
         : allDownloads.map((download) => download.id);
 
     setSelectedRowIds(newSelected);
+    // Also update the global state
+    useMainStore.getState().setSelectedRowIds(newSelected);
 
     // Create promises for each download
     const promises = newSelected.map(async (id) => {
@@ -605,6 +615,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       // Clear selected downloads after starting/resuming download
       setSelectedRowIds([]);
       setSelectedDownloads([]);
+      useMainStore.getState().clearAllSelections();
       toast({
         variant: 'success',
         title: 'Download Resumed',
@@ -1072,7 +1083,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                 className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                 checked={
                   allDownloads.length > 0 &&
-                  selectedRowIds.length === allDownloads.length
+                  globalSelectedRowIds.length === allDownloads.length
                 }
                 onChange={handleSelectAll}
               />
@@ -1105,13 +1116,14 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                     {getColumnDisplayName(column.id)}
                     {renderSortIndicator(column.id)}
 
-                    {column.id === 'title' && selectedRowIds.length > 0 && (
-                      <span className="text-xs">
-                        ({selectedRowIds.length}{' '}
-                        {selectedRowIds.length === 1 ? 'item' : 'items'}{' '}
-                        selected)
-                      </span>
-                    )}
+                    {column.id === 'title' &&
+                      globalSelectedRowIds.length > 0 && (
+                        <span className="text-xs">
+                          ({globalSelectedRowIds.length}{' '}
+                          {globalSelectedRowIds.length === 1 ? 'item' : 'items'}{' '}
+                          selected)
+                        </span>
+                      )}
                   </span>
                 </div>
               </ResizableHeader>
@@ -1148,7 +1160,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                   <input
                     type="checkbox"
                     className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
-                    checked={selectedRowIds.includes(download.id)}
+                    checked={globalSelectedRowIds.includes(download.id)}
                     onChange={(e) => {
                       e.stopPropagation();
                       handleCheckboxChange(download.id);
