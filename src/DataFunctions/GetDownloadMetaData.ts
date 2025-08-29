@@ -12,8 +12,7 @@ import {
   ProcessedFormats,
   VideoFormat,
   VideoInfo,
-} from '@/schema/metadata';
-import { CodecCompatibilityService } from '@/Utils/codecCompatibility';
+} from '@/Schema/metadata';
 
 // TypeScript interfaces for video format data
 
@@ -57,15 +56,6 @@ export class VideoFormatService {
   ): ProcessedFormats {
     const formatMap = new Map<string, FormatInfo>();
     const seenCombinations = new Set<string>();
-    const compatibilityScores = new Map<string, number>();
-
-    // Separate video and audio formats for better QuickTime optimization
-    const videoFormats = formatsArray.filter(
-      (f) => f.vcodec && f.vcodec !== 'none',
-    );
-    const audioFormats = formatsArray.filter(
-      (f) => f.acodec && f.acodec !== 'none',
-    );
 
     formatsArray.forEach((format: VideoFormat) => {
       const resolution = format.resolution;
@@ -82,63 +72,18 @@ export class VideoFormatService {
         !url.startsWith('https://rr')
       )
         return;
-
-      // Enhanced format processing for QuickTime compatibility
-      const compatibility =
-        CodecCompatibilityService.isQuickTimeCompatible(format);
-
-      // Prefer MP4 container for QuickTime compatibility
-      if (video_ext === 'webm' && compatibility.isQuickTimeCompatible) {
-        video_ext = 'mp4'; // Use MP4 instead of MKV for better compatibility
-      } else if (video_ext === 'webm') {
-        video_ext = 'mkv'; // Fallback to MKV for incompatible codecs
-      }
-
+      // Youtube sometimes returns webm as video_ext, but we need to convert it to mkv
+      video_ext = video_ext === 'webm' ? 'mkv' : video_ext;
       const combinationKey = `${video_ext}-${format_note}`;
-
-      // Calculate compatibility score for prioritization (AGGRESSIVE H.264 preference)
-      let score = 0;
-      if (compatibility.isQuickTimeCompatible) score += 1000; // Much higher weight
-      if (video_ext === 'mp4') score += 500;
-      if (format.vcodec?.includes('avc1') || format.vcodec?.includes('h264'))
-        score += 800; // Heavily favor H.264
-      if (format.acodec?.includes('mp4a') || format.acodec?.includes('aac'))
-        score += 400; // Heavily favor AAC
-
-      // SEVERELY penalize VP9, VP8, AV1 codecs
-      if (
-        format.vcodec?.includes('vp9') ||
-        format.vcodec?.includes('vp8') ||
-        format.vcodec?.includes('av01')
-      ) {
-        score -= 2000; // Heavy penalty for incompatible codecs
-      }
-
-      // Bonus for higher quality H.264 formats
-      if (
-        (format.vcodec?.includes('avc1') || format.vcodec?.includes('h264')) &&
-        format.height &&
-        format.height >= 720
-      ) {
-        score += 200;
-      }
 
       if (!seenCombinations.has(combinationKey)) {
         seenCombinations.add(combinationKey);
         formatMap.set(formatId, { formatId, video_ext, format_note });
-        compatibilityScores.set(formatId, score);
       }
     });
 
-    // Find the best audio-only format with QuickTime compatibility preference
+    // Find the best audio-only format using a scoring system
     const audioOnlyFormat = this.findBestAudioFormat(formatsArray);
-
-    // Try to get optimized format combination for QuickTime
-    const optimizedCombination =
-      CodecCompatibilityService.getPreferredQuickTimeFormatCombination(
-        videoFormats,
-        audioFormats,
-      );
 
     const defaultOptions = {
       value: `${default_ext}-${default_format}`,
@@ -146,113 +91,62 @@ export class VideoFormatService {
       formatId: default_format,
       fileExtension: default_ext,
     };
-
     const audioOptions = this.createAudioOptions(audioOnlyFormat);
-
-    // Sort format options by compatibility score (highest first)
     const formatOptions = Array.from(formatMap.entries())
-      .sort(([idA], [idB]) => {
-        const scoreA = compatibilityScores.get(idA) || 0;
-        const scoreB = compatibilityScores.get(idB) || 0;
-        return scoreB - scoreA; // Descending order
-      })
-      .flatMap(([formatId, formatInfo]: [string, FormatInfo]) => {
-        // Use optimized audio format if available, otherwise fallback to default
-        const audioFormatId =
-          optimizedCombination?.audio?.format_id || audioOptions[0]?.formatId;
-
-        return [
-          {
-            value: `${formatInfo.video_ext}-${formatId}`,
-            label: `${formatInfo.video_ext} - ${formatInfo.format_note}`,
-            formatId: `${audioFormatId}+${formatInfo.formatId}`,
-            fileExtension: formatInfo.video_ext,
-          },
-        ];
-      });
-
-    // Determine the best default format (prioritize QuickTime-compatible MP4)
-    const bestFormat =
-      formatOptions.find((option) => option.fileExtension === 'mp4') ||
-      formatOptions[0];
+      .flatMap(([resolution, formatInfo]: [string, FormatInfo]) => [
+        {
+          value: `${formatInfo.video_ext}-${resolution}`,
+          label: `${formatInfo.video_ext} - ${formatInfo.format_note}`,
+          formatId: `${audioOptions[0]?.formatId}+${formatInfo.formatId}`,
+          fileExtension: formatInfo.video_ext,
+        },
+      ])
+      .reverse();
 
     return {
       formatOptions: [...formatOptions, defaultOptions],
       audioOptions,
-      defaultFormatId: bestFormat?.formatId || '',
-      defaultExt: bestFormat?.fileExtension || 'mp4',
+      defaultFormatId: formatOptions[0]?.formatId || '',
+      defaultExt: formatOptions[0]?.fileExtension || 'mp4',
     };
   }
 
   private static findBestAudioFormat(
     formatsArray: VideoFormat[],
   ): VideoFormat | null {
-    // Filter audio-only formats
-    const audioOnlyFormats = formatsArray.filter(
-      (format: VideoFormat) =>
-        format.vcodec === 'none' && format.acodec && format.acodec !== 'none',
-    );
+    // Early termination: define priority patterns in order of preference
+    const priorityPatterns = [
+      // Highest priority: original + default + medium
+      /audio only.*original.*default.*medium/i,
+      /audio only.*default.*original.*medium/i,
 
-    if (audioOnlyFormats.length === 0) {
-      // Fallback to legacy pattern matching
-      const priorityPatterns = [
-        /audio only.*original.*default.*medium/i,
-        /audio only.*default.*original.*medium/i,
-        /audio only.*default.*medium/i,
-        /audio only.*medium.*default/i,
-        /audio only.*medium/i,
-        /audio only.*default.*high/i,
-        /audio only.*high/i,
-        /audio only/i,
-      ];
+      // High priority: default + medium
+      /audio only.*default.*medium/i,
+      /audio only.*medium.*default/i,
 
-      for (const pattern of priorityPatterns) {
-        const match = formatsArray.find(
-          (format: VideoFormat) =>
-            format.vcodec === 'none' &&
-            format.format &&
-            pattern.test(format.format),
-        );
-        if (match) return match;
-      }
-      return null;
+      // Medium priority: just medium quality
+      /audio only.*medium/i,
+
+      // Lower priority: high quality
+      /audio only.*default.*high/i,
+      /audio only.*high/i,
+
+      // Lowest priority: any audio only
+      /audio only/i,
+    ];
+
+    // Fast path: try to find formats in priority order
+    for (const pattern of priorityPatterns) {
+      const match = formatsArray.find(
+        (format: VideoFormat) =>
+          format.vcodec === 'none' &&
+          format.format &&
+          pattern.test(format.format),
+      );
+      if (match) return match;
     }
 
-    // Score and sort audio formats with QuickTime compatibility preference
-    const scoredFormats = audioOnlyFormats.map((format) => {
-      let score = 0;
-
-      // QuickTime compatibility boost
-      const compatibility =
-        CodecCompatibilityService.isQuickTimeCompatible(format);
-      if (compatibility.isQuickTimeCompatible) score += 1000;
-
-      // Codec preference (AAC > MP3 > others)
-      if (format.acodec?.includes('mp4a') || format.acodec?.includes('aac'))
-        score += 500;
-      else if (format.acodec?.includes('mp3')) score += 300;
-
-      // Quality preference based on bitrate
-      const bitrate = format.abr || format.tbr || 0;
-      score += bitrate;
-
-      // Format note preference
-      const formatNote = format.format_note?.toLowerCase() || '';
-      if (formatNote.includes('default')) score += 100;
-      if (formatNote.includes('medium')) score += 80;
-      if (formatNote.includes('high')) score += 60;
-
-      // Container preference
-      if (format.ext === 'm4a') score += 200;
-      else if (format.ext === 'mp3') score += 150;
-
-      return { format, score };
-    });
-
-    // Sort by score (highest first) and return the best
-    scoredFormats.sort((a, b) => b.score - a.score);
-
-    return scoredFormats[0]?.format || null;
+    return null;
   }
 
   private static processDailymotionFormats(
@@ -518,14 +412,6 @@ export class VideoFormatService {
   public static async processVideoFormats(
     info: VideoInfo,
   ): Promise<ProcessedFormats> {
-    console.log(
-      '🔍 VideoFormatService.processVideoFormats - info object:',
-      info,
-    );
-    console.log(
-      '🔍 VideoFormatService.processVideoFormats - info.data:',
-      info.data,
-    );
     const formatsArray = info.data.formats || [];
     const extractorKey = info.data.extractor_key;
     const defaultFormat = info.data.format_id;

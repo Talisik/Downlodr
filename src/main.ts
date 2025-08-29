@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Main process entry point for the Electron application.
  * This file is responsible for creating the main application window,
@@ -19,483 +20,148 @@ import {
 } from 'electron';
 import started from 'electron-squirrel-startup';
 import fs, { existsSync } from 'fs';
-
-// File system watcher approach - monitor Downloads directory for CC plugin files
-import * as chokidar from 'chokidar';
-const downloadsDir = path.join(os.homedir(), 'Downloads');
-
-// Set up file watcher for CC plugin files
-const watcher = chokidar.watch(`${downloadsDir}/**/*_mp4/**/*.{txt,docx,md}`, {
-  ignored: /(^|[\/\\])\../, // ignore dotfiles
-  persistent: true,
-  ignoreInitial: true,
-});
-
-watcher.on('add', (filePath) => {
-  console.log('🔍 [WATCHER] CC plugin file detected:', filePath);
-
-  try {
-    // Read the file content
-    const content = fs.readFileSync(filePath, 'utf8');
-
-    // Determine the correct save location (same directory as video)
-    const fileName = path.basename(filePath);
-    const videoName = fileName.split('.')[0]; // Remove extension
-    const extension = path.extname(filePath);
-
-    // Find the actual video file
-    const files = fs.readdirSync(downloadsDir);
-    const videoFiles = files.filter(
-      (file) =>
-        file.includes(videoName) &&
-        (file.endsWith('.mp4') ||
-          file.endsWith('.mkv') ||
-          file.endsWith('.avi')),
-    );
-
-    if (videoFiles.length > 0) {
-      // Save to correct location
-      const correctPath = path.join(
-        downloadsDir,
-        `${path.parse(videoFiles[0]).name}${extension}`,
-      );
-
-      console.log(`🔍 [WATCHER] Moving file from: ${filePath}`);
-      console.log(`🔍 [WATCHER] Moving file to: ${correctPath}`);
-
-      fs.writeFileSync(correctPath, content, 'utf8');
-
-      // Remove the original file and the _mp4 directory if empty
-      fs.unlinkSync(filePath);
-
-      try {
-        const mp4Dir = path.dirname(filePath);
-        if (fs.readdirSync(mp4Dir).length === 0) {
-          fs.rmdirSync(mp4Dir);
-        }
-      } catch (error) {
-        console.log('🔍 [WATCHER] Could not remove empty directory:', error);
-      }
-
-      console.log('🔍 [WATCHER] File successfully moved to video directory!');
-    }
-  } catch (error) {
-    console.error('🔍 [WATCHER] Error moving file:', error);
-  }
-});
-
-console.log(
-  '🔍 [WATCHER] Monitoring Downloads directory for CC plugin files...',
-);
-
-// Also intercept any other potential file operations
-const originalWriteFile = fs.writeFile;
-fs.writeFile = function (filePath, data, options, callback) {
-  if (typeof filePath === 'string') {
-    console.log('🔍 [FS DEBUG] fs.writeFile called:', filePath);
-  }
-  return originalWriteFile.call(this, filePath, data, options, callback);
-} as typeof fs.writeFile;
-
-// Intercept dialog operations too
-let originalShowSaveDialog: any;
-// Global IPC interception to catch ALL IPC calls
-const originalHandle = ipcMain.handle;
-ipcMain.handle = function (channel: string, listener: (...args: any[]) => any) {
-  const wrappedListener = async (...args: any[]) => {
-    // Log ALL IPC calls to see what the CC plugin is using
-    console.log(`🔍 [IPC INTERCEPT] ${channel} called`);
-    if (args.length > 1) {
-      console.log(
-        `🔍 [IPC INTERCEPT] ${channel} args:`,
-        JSON.stringify(args.slice(1), null, 2),
-      );
-    }
-
-    const result = await listener(...args);
-
-    // Log results for file-related operations
-    if (
-      channel.includes('file') ||
-      channel.includes('save') ||
-      channel.includes('write')
-    ) {
-      console.log(
-        `🔍 [IPC INTERCEPT] ${channel} result:`,
-        JSON.stringify(result, null, 2),
-      );
-    }
-
-    return result;
-  };
-  return originalHandle.call(this, channel, wrappedListener);
-};
-
-app.whenReady().then(() => {
-  originalShowSaveDialog = dialog.showSaveDialog;
-  (dialog as any).showSaveDialog = async function (...args: any[]) {
-    console.log(
-      '🔍 [DIALOG DEBUG] showSaveDialog called with args:',
-      JSON.stringify(args, null, 2),
-    );
-    const result = await originalShowSaveDialog.apply(this, args);
-    console.log(
-      '🔍 [DIALOG DEBUG] showSaveDialog result:',
-      JSON.stringify(result, null, 2),
-    );
-    return result;
-  };
-});
 import http from 'http';
 import https from 'https';
 import os from 'os';
 import path from 'path';
-import * as YTDLP from 'yt-dlp-helper';
 import { checkForUpdates } from './DataFunctions/updateChecker';
+
+// Lazy-load YTDLP to prevent file system errors
+let YTDLP: any = null;
+
+// Configure YTDLP binary for production by copying it to a writable location
+function setupYTDLPBinary() {
+  const binaryName =
+    process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp_macos';
+  
+  // In production, use app's user data directory which is writable
+  // In development, use current working directory
+  const targetDir = app.isPackaged
+    ? app.getPath('userData')
+    : process.cwd();
+    
+  const expectedPath = path.join(targetDir, binaryName);
+
+  if (app.isPackaged) {
+    // In production, copy the binary from Resources to user data directory
+    const sourcePath = path.join(process.resourcesPath, binaryName);
+
+    console.log('Setting up YTDLP binary for production...');
+    console.log('Source path:', sourcePath);
+    console.log('Target path:', expectedPath);
+    console.log('User data directory:', app.getPath('userData'));
+
+    // Check if the binary exists in resources
+    if (existsSync(sourcePath)) {
+      try {
+        // Create user data directory if it doesn't exist
+        const userDataDir = app.getPath('userData');
+        if (!existsSync(userDataDir)) {
+          fs.mkdirSync(userDataDir, { recursive: true });
+        }
+        
+        // Copy the binary to the user data location if it doesn't exist or is outdated
+        if (!existsSync(expectedPath)) {
+          fs.copyFileSync(sourcePath, expectedPath);
+
+          // Make it executable on Unix systems
+          if (process.platform !== 'win32') {
+            fs.chmodSync(expectedPath, 0o755);
+          }
+
+          console.log('YTDLP binary copied and configured at:', expectedPath);
+        } else {
+          // Check if source is newer than target (for updates)
+          const sourceStats = fs.statSync(sourcePath);
+          const targetStats = fs.statSync(expectedPath);
+          
+          if (sourceStats.mtime > targetStats.mtime) {
+            fs.copyFileSync(sourcePath, expectedPath);
+            if (process.platform !== 'win32') {
+              fs.chmodSync(expectedPath, 0o755);
+            }
+            console.log('YTDLP binary updated at:', expectedPath);
+          } else {
+            console.log('YTDLP binary already up-to-date at:', expectedPath);
+          }
+        }
+        
+        // Update YTDLP configuration to use the correct path
+        process.env.YTDLP_PATH = expectedPath;
+        
+      } catch (error) {
+        console.error('Failed to copy YTDLP binary:', error);
+        
+        // Fallback: try to use the binary directly from resources
+        if (existsSync(sourcePath)) {
+          process.env.YTDLP_PATH = sourcePath;
+          console.log('Using YTDLP binary directly from resources:', sourcePath);
+        }
+      }
+    } else {
+      console.error('YTDLP binary not found in resources at:', sourcePath);
+    }
+  } else {
+    // In development, check if the binary exists
+    if (existsSync(expectedPath)) {
+      console.log('Development YTDLP binary found at:', expectedPath);
+      process.env.YTDLP_PATH = expectedPath;
+    } else {
+      console.log('Development YTDLP binary not found at:', expectedPath);
+    }
+  }
+}
+
+// Lazy import functions to prevent early module initialization
+let initializeYTDLP: any = null;
+let ensureYTDLPBinary: any = null;
+
 import { PluginManager } from './plugins/pluginManager';
 import { pluginRegistry } from './plugins/registry';
+import { DownloadOptions } from './schema/ytdlp';
 
-// Enhanced FFmpeg binary path configuration with Apple Silicon support
-function getFfmpegBinaryPath(): string {
-  console.log(
-    `🏗️  System architecture: ${process.arch}, platform: ${process.platform}`,
-  );
-
-  // Try system installations first (prioritize Apple Silicon paths)
-  const systemPaths = [
-    '/opt/homebrew/bin/ffmpeg', // Apple Silicon Homebrew (M1/M2/M3/M4)
-    '/usr/local/bin/ffmpeg', // Intel Homebrew (via Rosetta)
-    '/opt/local/bin/ffmpeg', // MacPorts
-    '/usr/bin/ffmpeg', // System installation
-  ];
-
-  for (const systemPath of systemPaths) {
-    if (fs.existsSync(systemPath)) {
-      console.log(`✅ Found system FFmpeg at: ${systemPath}`);
-      try {
-        // Quick accessibility check
-        fs.accessSync(systemPath, fs.constants.X_OK);
-        return systemPath;
-      } catch (error) {
-        console.warn(
-          `⚠️ System FFmpeg at ${systemPath} is not executable:`,
-          error.message,
-        );
-      }
-    }
-  }
-
-  // Fallback to bundled FFmpeg with architecture detection
-  if (app.isPackaged) {
-    const arch = process.arch;
-    console.log(
-      `📦 Packaged app detected, looking for architecture-specific binaries...`,
-    );
-
-    // Try architecture-specific binary first
-    const archSpecificPaths = [
-      path.join(process.resourcesPath, `ffmpeg-${arch}`), // e.g., ffmpeg-arm64
-      path.join(process.resourcesPath, 'binaries', `ffmpeg-${arch}`),
-    ];
-
-    for (const archPath of archSpecificPaths) {
-      if (fs.existsSync(archPath)) {
-        console.log(`✅ Using architecture-specific FFmpeg: ${archPath}`);
-        return archPath;
-      }
-    }
-
-    // Try universal/default binary
-    const fallbackPaths = [
-      path.join(process.resourcesPath, 'ffmpeg'),
-      path.join(process.resourcesPath, 'binaries', 'ffmpeg'),
-    ];
-
-    for (const fallbackPath of fallbackPaths) {
-      if (fs.existsSync(fallbackPath)) {
-        console.log(`✅ Using fallback FFmpeg binary: ${fallbackPath}`);
-        return fallbackPath;
-      }
-    }
-
-    console.warn('⚠️ No bundled FFmpeg found! Some features may not work.');
-    console.warn('💡 Install FFmpeg via Homebrew: brew install ffmpeg');
-    return '/usr/bin/ffmpeg'; // Graceful fallback
-  } else {
-    // Development mode - enhanced detection
-    const arch = process.arch;
-    const devPaths = [
-      path.join(__dirname, '..', '..', 'binaries', `ffmpeg-${arch}`),
-      path.join(__dirname, '..', '..', `ffmpeg-${arch}`),
-      path.join(__dirname, '..', '..', 'ffmpeg'),
-      path.join(__dirname, '..', '..', 'binaries', 'ffmpeg'),
-    ];
-
-    for (const devPath of devPaths) {
-      if (fs.existsSync(devPath)) {
-        console.log(`🔧 Development: Using FFmpeg at ${devPath}`);
-        return devPath;
-      }
-    }
-
-    console.warn('⚠️ Development: No FFmpeg found in project directory');
-    return '/usr/bin/ffmpeg';
-  }
-}
-
-// Helper function to extract binary name from full path
-function getYtdlpBinaryName(fullPath: string): string {
-  const binaryName = path.basename(fullPath);
-  console.log(`🔧 Extracted binary name: ${binaryName} from path: ${fullPath}`);
-
-  // Validate the binary name
-  if (!binaryName || binaryName === '.' || binaryName === '..') {
-    console.warn(
-      `⚠️ Invalid binary name extracted: ${binaryName}, falling back to 'yt-dlp'`,
-    );
-    return 'yt-dlp';
-  }
-
-  return binaryName;
-}
-
-// Enhanced yt-dlp binary path configuration with comprehensive fallback
-function getYtdlpBinaryPath(): string {
-  console.log('🔍 Resolving yt-dlp binary path...');
-  console.log(`   App packaged: ${app.isPackaged}`);
-  console.log(`   Platform: ${process.platform}`);
-  console.log(`   Process resourcesPath: ${process.resourcesPath}`);
-  console.log(`   __dirname: ${__dirname}`);
-
-  if (app.isPackaged) {
-    // In packaged app, try multiple potential locations
-    const candidatePaths = [
-      path.join(process.resourcesPath, 'yt-dlp'),
-      path.join(process.resourcesPath, 'yt-dlp_macos'),
-      path.join(path.dirname(process.execPath), 'yt-dlp'),
-      path.join(path.dirname(process.execPath), 'Resources', 'yt-dlp'),
-      path.join(path.dirname(process.execPath), 'Resources', 'yt-dlp_macos'),
-    ];
-
-    console.log('   Checking packaged app paths:');
-    for (const candidatePath of candidatePaths) {
-      const exists = fs.existsSync(candidatePath);
-      console.log(`     ${candidatePath}: ${exists ? '✅' : '❌'}`);
-
-      if (exists) {
-        try {
-          // Check if binary is executable
-          fs.accessSync(candidatePath, fs.constants.X_OK);
-          console.log(`   ✅ Selected packaged binary: ${candidatePath}`);
-          return candidatePath;
-        } catch (accessError) {
-          console.warn(
-            `   ⚠️  Binary found but not executable: ${candidatePath}`,
-          );
-          // Try to make it executable
-          try {
-            fs.chmodSync(candidatePath, 0o755);
-            console.log(`   ✅ Made binary executable: ${candidatePath}`);
-            return candidatePath;
-          } catch (chmodError) {
-            console.warn(
-              `   ❌ Failed to make binary executable: ${chmodError.message}`,
-            );
-          }
-        }
-      }
-    }
-
-    console.warn('⚠️  No valid yt-dlp binary found in packaged app!');
-    // Return the expected path anyway for error handling
-    return path.join(process.resourcesPath, 'yt-dlp');
-  } else {
-    // Development mode - enhanced detection
-    const candidatePaths = [
-      path.join(__dirname, '..', '..', 'yt-dlp'),
-      path.join(__dirname, '..', '..', 'yt-dlp_macos'),
-      path.join(process.cwd(), 'yt-dlp'),
-      path.join(process.cwd(), 'yt-dlp_macos'),
-    ];
-
-    console.log('   Checking development paths:');
-    for (const candidatePath of candidatePaths) {
-      const exists = fs.existsSync(candidatePath);
-      console.log(`     ${candidatePath}: ${exists ? '✅' : '❌'}`);
-
-      if (exists) {
-        try {
-          // Check if binary is executable
-          fs.accessSync(candidatePath, fs.constants.X_OK);
-          console.log(`   ✅ Selected development binary: ${candidatePath}`);
-
-          // Create compatibility symlinks if needed
-          const expectedPaths = [
-            path.join(__dirname, '..', '..', 'yt-dlp'),
-            path.join(__dirname, '..', '..', 'yt-dlp_macos'),
-          ];
-
-          for (const expectedPath of expectedPaths) {
-            if (
-              !fs.existsSync(expectedPath) &&
-              expectedPath !== candidatePath
-            ) {
-              try {
-                fs.symlinkSync(candidatePath, expectedPath);
-                console.log(
-                  `   ✅ Created compatibility symlink: ${expectedPath}`,
-                );
-              } catch (symlinkError) {
-                try {
-                  fs.copyFileSync(candidatePath, expectedPath);
-                  fs.chmodSync(expectedPath, 0o755);
-                  console.log(
-                    `   ✅ Created compatibility copy: ${expectedPath}`,
-                  );
-                } catch (copyError) {
-                  console.warn(
-                    `   ⚠️  Failed to create compatibility binary: ${copyError.message}`,
-                  );
-                }
-              }
-            }
-          }
-
-          return candidatePath;
-        } catch (accessError) {
-          console.warn(
-            `   ⚠️  Binary found but not executable: ${candidatePath}`,
-          );
-          // Try to make it executable
-          try {
-            fs.chmodSync(candidatePath, 0o755);
-            console.log(`   ✅ Made binary executable: ${candidatePath}`);
-            return candidatePath;
-          } catch (chmodError) {
-            console.warn(
-              `   ❌ Failed to make binary executable: ${chmodError.message}`,
-            );
-          }
-        }
-      }
-    }
-
-    console.warn('⚠️  No valid yt-dlp binary found in development!');
-    // Return the expected path anyway for error handling
-    return path.join(__dirname, '..', '..', 'yt-dlp');
-  }
-}
-
-// Enhanced FFmpeg setup with verification and PATH management
-async function setupFfmpegPath(): Promise<void> {
-  const ffmpegPath = getFfmpegBinaryPath();
-
-  console.log(`🔧 Setting up FFmpeg: ${ffmpegPath}`);
-
-  // Verify the binary works
-  const isValid = await verifyFfmpegBinary(ffmpegPath);
-
-  if (isValid) {
-    // Add to PATH for yt-dlp integration
-    const ffmpegDir = path.dirname(ffmpegPath);
-    const currentPath = process.env.PATH || '';
-    if (!currentPath.includes(ffmpegDir)) {
-      process.env.PATH = ffmpegDir + path.delimiter + currentPath;
-      console.log(`✅ Added FFmpeg to PATH: ${ffmpegDir}`);
-    }
-  } else {
-    console.warn('⚠️ FFmpeg verification failed - some features may not work');
-  }
-}
-
-// Enhanced binary verification
-async function verifyFfmpegBinary(binaryPath: string): Promise<boolean> {
-  if (!fs.existsSync(binaryPath)) {
-    console.warn(`❌ FFmpeg binary not found: ${binaryPath}`);
-    return false;
-  }
-
-  try {
-    // Check if binary is executable
-    await fs.promises.access(binaryPath, fs.constants.X_OK);
-
-    // Quick version check to ensure it's working
-    const { exec } = require('child_process'); // eslint-disable-line @typescript-eslint/no-var-requires
-    return new Promise((resolve) => {
-      exec(
-        `"${binaryPath}" -version`,
-        { timeout: 5000 },
-        (error: any, stdout: any) => {
-          if (error) {
-            console.warn(`⚠️ FFmpeg verification failed: ${error.message}`);
-            resolve(false);
-          } else {
-            const versionLine = stdout.split('\n')[0];
-            console.log(`✅ FFmpeg verified: ${versionLine}`);
-            resolve(true);
-          }
-        },
-      );
-    });
-  } catch (error) {
-    console.warn(`⚠️ FFmpeg access check failed: ${error.message}`);
-    return false;
-  }
-}
-
-// Add IPC handler for FFmpeg status checking
-async function getFfmpegStatus(): Promise<{
-  available: boolean;
-  version?: string;
-  path?: string;
-  architecture?: string;
-}> {
-  const ffmpegPath = getFfmpegBinaryPath();
-  const isValid = await verifyFfmpegBinary(ffmpegPath);
-
-  if (!isValid) {
-    return { available: false };
-  }
-
-  try {
-    const { exec } = require('child_process'); // eslint-disable-line @typescript-eslint/no-var-requires
-    return new Promise((resolve) => {
-      exec(
-        `"${ffmpegPath}" -version && file "${ffmpegPath}"`,
-        { timeout: 5000 },
-        (error: any, stdout: any) => {
-          if (error) {
-            resolve({ available: false });
-          } else {
-            const lines = stdout.split('\n');
-            const versionLine = lines[0];
-            const archLine =
-              lines.find((line: string) => line.includes('Mach-O')) || '';
-            const architecture = archLine.includes('arm64')
-              ? 'Apple Silicon (ARM64)'
-              : archLine.includes('x86_64')
-              ? 'Intel (x86_64)'
-              : 'Unknown';
-
-            resolve({
-              available: true,
-              version: versionLine,
-              path: ffmpegPath,
-              architecture,
-            });
-          }
-        },
-      );
-    });
-  } catch (error) {
-    return { available: false };
-  }
-}
+// YTDLP will be initialized after app is ready to prevent file system errors
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
 }
+
+// Initialize YTDLP configuration when app is ready
+app.on('will-finish-launching', () => {
+  // Set up working directory early
+  if (app.isPackaged) {
+    try {
+      const userDataPath = app.getPath('userData');
+      process.chdir(userDataPath);
+      console.log('Changed working directory to:', userDataPath);
+    } catch (error) {
+      console.error('Failed to change working directory:', error);
+    }
+  }
+});
+
+// Configure YTDLP after app is ready
+app.whenReady().then(async () => {
+  try {
+    // Import the YTDLP utilities only after app is ready
+    const ytdlpWrapper = await import('./Utils/ytdlpWrapper');
+    initializeYTDLP = ytdlpWrapper.initializeYTDLP;
+    ensureYTDLPBinary = ytdlpWrapper.ensureYTDLPBinary;
+    
+    // Setup additional binary configuration first
+    setupYTDLPBinary();
+    
+    // Ensure binary is in place
+    await ensureYTDLPBinary();
+    
+    // Initialize YTDLP with proper configuration
+    YTDLP = initializeYTDLP();
+    console.log('YTDLP initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize YTDLP:', error);
+  }
+});
 
 // Prevent multiple instances of the app
 const isSingleInstance = app.requestSingleInstanceLock();
@@ -514,7 +180,7 @@ app.on('second-instance', () => {
   }
 });
 
-declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
+declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
 let tray: Tray | null = null;
@@ -525,13 +191,8 @@ let pluginManager: PluginManager;
 
 let normalTrayIcon: Electron.NativeImage;
 let alertTrayIcon: Electron.NativeImage;
-let activityTrayIcon: Electron.NativeImage;
 let isDownloadComplete = false;
-let activityBlinkTimer: NodeJS.Timeout | null = null;
-let isActivityActive = false;
-let isBlinkOn = false;
 
-/*
 // Rate limiting for GitHub API calls
 const GITHUB_API_COOLDOWN = 5 * 60 * 1000; // 5 minutes between API calls
 let lastGitHubApiCall = 0;
@@ -554,15 +215,55 @@ function getCachedVersion(): string | null {
 
   return isExpired ? null : cachedLatestVersion.version;
 }
-*/
+
 // Function to create the main application window
 const createWindow = () => {
-  // Platform-specific window configuration
-  const windowConfig: Electron.BrowserWindowConstructorOptions = {
+  // Create the browser window.
+  mainWindow = new BrowserWindow({
     width: 1350,
     height: 680,
+    frame: process.platform !== 'darwin', // Use native frame on non-macOS platforms
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    titleBarOverlay:
+      process.platform === 'darwin'
+        ? false
+        : {
+            color: '#2f3241',
+            symbolColor: '#74b1be',
+            height: 40,
+          },
+    autoHideMenuBar: process.platform !== 'darwin', // Keep menu on macOS
     minWidth: 1000,
     minHeight: 600,
+    icon: (() => {
+      const iconName =
+        process.platform === 'darwin' ? 'icon.icns' : '256x256.ico';
+
+      if (process.env.NODE_ENV === 'development') {
+        return path.join(process.cwd(), 'src/Assets/AppLogo', iconName);
+      } else {
+        // Try multiple paths for production
+        const possiblePaths = [
+          path.join(
+            process.resourcesPath,
+            'app.asar.unpacked',
+            'Assets/AppLogo',
+            iconName,
+          ),
+          path.join(process.resourcesPath, 'Assets/AppLogo', iconName),
+          path.join(__dirname, '../Assets/AppLogo', iconName),
+        ];
+
+        for (const iconPath of possiblePaths) {
+          if (fs.existsSync(iconPath)) {
+            return iconPath;
+          }
+        }
+
+        // Fallback to the original path
+        return path.join(__dirname, '../Assets/AppLogo', iconName);
+      }
+    })(),
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
@@ -570,207 +271,253 @@ const createWindow = () => {
       nodeIntegration: true,
       // devTools: false,
     },
-  };
+  });
+  if (mainWindow) {
+    if (
+      process.env.NODE_ENV === 'development' &&
+      MAIN_WINDOW_VITE_DEV_SERVER_URL
+    ) {
+      mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+      mainWindow.webContents.openDevTools();
+    } else {
+      mainWindow.loadFile(
+        path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+      );
 
-  // Configure title bar based on platform
-  if (process.platform === 'darwin') {
-    // macOS: Use native title bar with traffic light buttons
-    windowConfig.frame = true;
-    windowConfig.titleBarStyle = 'hidden';
-    windowConfig.trafficLightPosition = { x: 10, y: 10 };
-    windowConfig.title = 'Downlodr';
-    windowConfig.transparent = false;
-    windowConfig.vibrancy = 'titlebar';
-    windowConfig.visualEffectState = 'active';
-  } else {
-    // Windows/Linux: Keep custom frame
-    windowConfig.frame = false;
-    windowConfig.autoHideMenuBar = true;
-  }
+      // Set up platform-appropriate menu
+      if (process.platform === 'darwin') {
+        // macOS needs a proper application menu
+        const template = [
+          {
+            label: app.getName(),
+            submenu: [
+              { label: 'About ' + app.getName(), role: 'about' },
+              { type: 'separator' },
+              { label: 'Services', role: 'services', submenu: [] as any[] },
+              { type: 'separator' },
+              {
+                label: 'Hide ' + app.getName(),
+                accelerator: 'Command+H',
+                role: 'hide',
+              },
+              {
+                label: 'Hide Others',
+                accelerator: 'Command+Shift+H',
+                role: 'hideothers',
+              },
+              { label: 'Show All', role: 'unhide' },
+              { type: 'separator' },
+              { label: 'Quit', accelerator: 'Command+Q', role: 'quit' },
+            ],
+          },
+          {
+            label: 'Edit',
+            submenu: [
+              { label: 'Undo', accelerator: 'CmdOrCtrl+Z', role: 'undo' },
+              { label: 'Redo', accelerator: 'Shift+CmdOrCtrl+Z', role: 'redo' },
+              { type: 'separator' },
+              { label: 'Cut', accelerator: 'CmdOrCtrl+X', role: 'cut' },
+              { label: 'Copy', accelerator: 'CmdOrCtrl+C', role: 'copy' },
+              { label: 'Paste', accelerator: 'CmdOrCtrl+V', role: 'paste' },
+              {
+                label: 'Select All',
+                accelerator: 'CmdOrCtrl+A',
+                role: 'selectall',
+              },
+            ],
+          },
+          {
+            label: 'View',
+            submenu: [
+              { label: 'Reload', accelerator: 'CmdOrCtrl+R', role: 'reload' },
+              {
+                label: 'Force Reload',
+                accelerator: 'CmdOrCtrl+Shift+R',
+                role: 'forceReload',
+              },
+              ...(process.env.NODE_ENV === 'development'
+                ? [
+                    {
+                      label: 'Toggle Developer Tools',
+                      accelerator:
+                        process.platform === 'darwin'
+                          ? 'Alt+Command+I'
+                          : 'Ctrl+Shift+I',
+                      role: 'toggleDevTools',
+                    },
+                  ]
+                : []),
+              { type: 'separator' },
+              {
+                label: 'Actual Size',
+                accelerator: 'CmdOrCtrl+0',
+                role: 'resetZoom',
+              },
+              {
+                label: 'Zoom In',
+                accelerator: 'CmdOrCtrl+Plus',
+                role: 'zoomIn',
+              },
+              {
+                label: 'Zoom Out',
+                accelerator: 'CmdOrCtrl+-',
+                role: 'zoomOut',
+              },
+              { type: 'separator' },
+              {
+                label: 'Toggle Fullscreen',
+                accelerator:
+                  process.platform === 'darwin' ? 'Ctrl+Command+F' : 'F11',
+                role: 'togglefullscreen',
+              },
+            ],
+          },
+          {
+            label: 'Window',
+            submenu: [
+              {
+                label: 'Minimize',
+                accelerator: 'CmdOrCtrl+M',
+                role: 'minimize',
+              },
+              { label: 'Close', accelerator: 'CmdOrCtrl+W', role: 'close' },
+            ],
+          },
+        ];
 
-  // Create the browser window.
-  mainWindow = new BrowserWindow(windowConfig);
-
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
-    // Only open DevTools in development
-    mainWindow.webContents.openDevTools();
-  } else {
-    mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-    );
-  }
-
-  // Handle window close events - hide instead of close
-  mainWindow.on('close', async (event) => {
-    if (!forceQuit) {
-      // Get the real-time setting
-      const shouldRunInBackground = await getRunInBackgroundSetting();
-      console.log('Window closing, checking setting:', shouldRunInBackground);
-
-      if (shouldRunInBackground) {
-        event.preventDefault();
-        mainWindow?.hide();
-        return false;
+        const menu = Menu.buildFromTemplate(template as any);
+        Menu.setApplicationMenu(menu);
+      } else {
+        // Remove all default menus on Windows/Linux so "View → Toggle Developer Tools" disappears
+        Menu.setApplicationMenu(null);
       }
+
+      // 🚫 Block keyboard shortcuts
+      mainWindow.webContents.on('before-input-event', (event, input) => {
+        if (
+          (input.control && input.shift && input.key.toLowerCase() === 'i') || // Ctrl+Shift+I
+          input.key === 'F12' || // F12
+          (process.platform === 'darwin' &&
+            input.meta &&
+            input.alt &&
+            input.key.toLowerCase() === 'i') // Cmd+Opt+I
+        ) {
+          event.preventDefault();
+        }
+      });
+
+      // 🚫 If DevTools somehow open, force-close them
+      mainWindow.webContents.on('devtools-opened', () => {
+        mainWindow?.webContents.closeDevTools();
+      });
+
+      // 🚫 Disable right-click → Inspect Element
+      mainWindow.webContents.on('context-menu', (e) => {
+        e.preventDefault();
+      });
     }
-  });
 
-  // focus tracking for clipboard monitoring
-  mainWindow.on('focus', () => {
-    isWindowFocused = true;
-    console.log('Window focused - clipboard monitoring paused');
-  });
+    // Handle window close events - hide instead of close
+    mainWindow.on('close', async (event) => {
+      if (!forceQuit) {
+        // Get the real-time setting
+        const shouldRunInBackground = await getRunInBackgroundSetting();
+        console.log('Window closing, checking setting:', shouldRunInBackground);
 
-  mainWindow.on('blur', () => {
-    isWindowFocused = false;
-    console.log('Window unfocused - clipboard monitoring resumed');
-  });
+        if (shouldRunInBackground) {
+          event.preventDefault();
+          mainWindow?.hide();
+          return false;
+        }
+      }
+    });
 
-  // MAIN FUNCTIONS FOR TITLE BAR
-  ipcMain.on('close-btn', () => {
-    if (!mainWindow) return;
+    // Focus tracking for clipboard monitoring
+    mainWindow.on('focus', () => {
+      isWindowFocused = true;
+      // console.log('Window focused - clipboard monitoring paused');
+    });
 
-    if (runInBackgroundSetting) {
-      // If running in background is enabled, hide the window
-      console.log('Close button clicked, hiding window (background enabled)');
-      mainWindow.hide();
-    } else {
-      // If running in background is disabled, actually quit the app
-      console.log('Close button clicked, quitting app (background disabled)');
-      forceQuit = true;
-      app.quit();
-    }
-  });
+    mainWindow.on('blur', () => {
+      isWindowFocused = false;
+      // console.log('Window unfocused - clipboard monitoring resumed');
+    });
 
-  ipcMain.on('minimize-btn', () => {
-    if (mainWindow) mainWindow.minimize();
-  });
-
-  ipcMain.on('maximize-btn', () => {
-    if (!mainWindow) return;
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize();
-    } else {
-      mainWindow.maximize();
-    }
-  });
-
-  // Prevent navigation to external URLs
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  mainWindow.webContents.on('will-navigate', (event, url) => {
-    event.preventDefault();
-  });
+    // Prevent navigation to external URLs
+    mainWindow.webContents.on('will-navigate', (event) => {
+      event.preventDefault();
+    });
+  }
 };
 
-// Function to start activity indicator (blinking green dot)
-function startActivityIndicator() {
-  if (isActivityActive || !tray || !activityTrayIcon || !normalTrayIcon) {
-    return;
+// MAIN FUNCTIONS FOR TITLE BAR
+ipcMain.on('close-btn', () => {
+  if (!mainWindow) return;
+
+  if (runInBackgroundSetting) {
+    // If running in background is enabled, hide the window
+    // console.log('Close button clicked, hiding window (background enabled)');
+    mainWindow.hide();
+  } else {
+    // If running in background is disabled, actually quit the app
+    // console.log('Close button clicked, quitting app (background disabled)');
+    forceQuit = true;
+    app.quit();
   }
+});
 
-  isActivityActive = true;
-  isBlinkOn = false;
+ipcMain.on('minimize-btn', () => {
+  if (mainWindow) mainWindow.minimize();
+});
 
-  // Set initial activity icon
-  tray.setImage(activityTrayIcon);
-  tray.setToolTip('Downlodr - Download in progress');
-
-  // Start blinking timer (blink every 800ms)
-  activityBlinkTimer = setInterval(() => {
-    if (!tray || !isActivityActive) {
-      return;
-    }
-
-    if (isBlinkOn) {
-      tray.setImage(normalTrayIcon);
-      isBlinkOn = false;
-    } else {
-      tray.setImage(activityTrayIcon);
-      isBlinkOn = true;
-    }
-  }, 800);
-}
-
-// Function to stop activity indicator
-function stopActivityIndicator() {
-  if (!isActivityActive) {
-    return;
+ipcMain.on('maximize-btn', () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow.maximize();
   }
-
-  isActivityActive = false;
-  isBlinkOn = false;
-
-  // Clear the blinking timer
-  if (activityBlinkTimer) {
-    clearInterval(activityBlinkTimer);
-    activityBlinkTimer = null;
-  }
-
-  // Reset to normal icon
-  if (tray && normalTrayIcon) {
-    tray.setImage(normalTrayIcon);
-    tray.setToolTip('Downlodr');
-  }
-}
+});
 
 const createTray = () => {
-  // Only create tray if running in background is enabled
-  if (!runInBackgroundSetting) {
-    console.log('🚫 Tray creation skipped - background running disabled');
-    return;
-  }
-
-  // If tray already exists, don't recreate it
-  if (tray) {
-    console.log('✅ Tray already exists, skipping creation');
-    return;
-  }
-
-  console.log('🎯 Creating system tray...');
-
   // Get correct path based on whether in dev or production
   let iconPath, alertIconPath;
 
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+  if (process.env.NODE_ENV === 'development') {
     // Development mode paths
     iconPath = path.join(
       process.cwd(),
-      'src/Assets/AppLogo/systemTray/logo/systemIcon.png',
+      'src/Assets/AppLogo/systemTray/systemTray.png',
     );
     alertIconPath = path.join(
       process.cwd(),
-      'src/Assets/AppLogo/systemTray/logo/systemNotif.png',
+      'src/Assets/AppLogo/systemTray/systemNotif.png',
     );
   } else {
     // Production mode paths
     iconPath = path.join(
       process.resourcesPath,
-      'AppLogo/systemTray/logo/systemIcon.png',
+      'AppLogo/systemTray/systemTray.png', // "C:\Users\Mikaela\Desktop\Development\codebase\Electron\v2\Electron\ui_downlodr_v2\src\Assets\AppLogo\systemTray\systemIcon.svg"
     );
     alertIconPath = path.join(
       process.resourcesPath,
-      'AppLogo/systemTray/logo/systemNotif.png',
+      'AppLogo/systemTray/systemNotif.png',
     );
   }
 
-  // Create both icons with proper sizing for macOS
+  // Create both icons upfront
   normalTrayIcon = nativeImage.createFromPath(iconPath);
   alertTrayIcon = nativeImage.createFromPath(alertIconPath);
 
-  // Use alert icon as activity icon for simplicity
-  activityTrayIcon = alertTrayIcon;
-
-  // Resize icons for macOS tray (16x16 points with 2x scale for Retina)
+  // For macOS, ensure proper sizing and template image behavior
   if (process.platform === 'darwin') {
+    // Resize icons to proper macOS tray size (16x16 points)
     normalTrayIcon = normalTrayIcon.resize({ width: 16, height: 16 });
     alertTrayIcon = alertTrayIcon.resize({ width: 16, height: 16 });
-    activityTrayIcon = activityTrayIcon.resize({ width: 16, height: 16 });
 
-    // Set template image for macOS (enables dark mode adaptation)
+    // Set as template images for dark mode compatibility
     normalTrayIcon.setTemplateImage(true);
     alertTrayIcon.setTemplateImage(true);
-    // Don't set activity icon as template to preserve green color
   }
 
   // Initialize with normal icon
@@ -781,68 +528,69 @@ const createTray = () => {
       label: 'Show Downlodr',
       click: () => {
         if (mainWindow) {
-          if (mainWindow.isMinimized()) mainWindow.restore();
           mainWindow.show();
           mainWindow.focus();
           resetTrayIcon(); // Reset icon when showing app
-
-          // On macOS, bring app to front
-          if (process.platform === 'darwin') {
-            app.dock.show();
-          }
         }
       },
     },
-
     { type: 'separator' },
-    {
-      label: 'Check for Updates',
-      click: async () => {
-        if (mainWindow) {
-          // Show the window first to ensure toast notifications are visible
-          if (mainWindow.isMinimized()) mainWindow.restore();
-          mainWindow.show();
-          mainWindow.focus();
-
-          if (process.platform === 'darwin') {
-            app.dock.show();
-          }
-
-          // Send checking message to renderer
-          mainWindow.webContents.send('update-check-started');
-
-          try {
-            const updateInfo = await checkForUpdates();
-            // Send update result to renderer for proper toast handling
-            mainWindow.webContents.send('update-check-completed', updateInfo);
-          } catch (error) {
-            // Send error to renderer for error toast
-            mainWindow.webContents.send('update-check-error', error);
-          }
-        }
-      },
-    },
     {
       label: 'Settings',
       click: () => {
         if (mainWindow) {
-          if (mainWindow.isMinimized()) mainWindow.restore();
           mainWindow.show();
           mainWindow.focus();
-
-          // Open settings modal
+          // Send message to open settings modal
           mainWindow.webContents.send('open-settings-modal');
-
-          if (process.platform === 'darwin') {
-            app.dock.show();
+          resetTrayIcon();
+        }
+      },
+    },
+    {
+      label: 'Check for Updates',
+      click: async () => {
+        try {
+          const updateInfo = await checkForUpdates();
+          if (updateInfo.hasUpdate) {
+            if (mainWindow) {
+              mainWindow.show();
+              mainWindow.focus();
+              mainWindow.webContents.send('update-available', updateInfo);
+            }
+            // Show native notification
+            const notification = new Notification({
+              title: 'Update Available',
+              body: `Version ${
+                updateInfo.latestVersion || 'Unknown'
+              } is available for download`,
+              icon: path.join(__dirname, '../Assets/AppLogo/256x256.png'),
+            });
+            notification.show();
+          } else {
+            // Show "no updates" notification
+            const notification = new Notification({
+              title: 'Downlodr is up to date',
+              body: 'You have the latest version installed',
+              icon: path.join(__dirname, '../Assets/AppLogo/256x256.png'),
+            });
+            notification.show();
           }
+        } catch (error) {
+          console.error('Failed to check for updates:', error);
+          // Show error notification
+          const notification = new Notification({
+            title: 'Update Check Failed',
+            body: 'Unable to check for updates. Please try again later.',
+            icon: path.join(__dirname, '../Assets/AppLogo/256x256.png'),
+          });
+          notification.show();
         }
       },
     },
     { type: 'separator' },
     {
-      label: 'Quit Downlodr',
-      accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
+      label: 'Quit',
       click: () => {
         forceQuit = true;
         // Set to BLANK_STATE before quitting
@@ -852,63 +600,33 @@ const createTray = () => {
     },
   ]);
 
-  tray.setToolTip('Downlodr - Download Manager');
+  tray.setToolTip('Downlodr');
   tray.setContextMenu(contextMenu);
 
-  // Handle tray icon click behavior (different per platform)
-  if (process.platform === 'darwin') {
-    // macOS: Single click shows context menu, double click shows app
-    tray.on('double-click', () => {
-      if (mainWindow) {
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.show();
-        mainWindow.focus();
-        resetTrayIcon();
-        app.dock.show();
-      }
-    });
-  } else {
-    // Windows/Linux: Single click shows app
-    tray.on('click', () => {
-      if (mainWindow) {
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.show();
-        mainWindow.focus();
-        resetTrayIcon();
-      }
-    });
-  }
-
-  console.log('✅ System tray created successfully');
+  // Double click on tray icon shows the app and resets the icon
+  tray.on('double-click', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      resetTrayIcon();
+    }
+  });
 };
 
-// Function to destroy the tray
-const destroyTray = () => {
-  if (tray) {
-    console.log('🗑️ Destroying system tray...');
-
-    // Stop any ongoing activity indicators
-    stopActivityIndicator();
-
-    tray.destroy();
-    tray = null;
-
-    console.log('✅ System tray destroyed');
-  }
-};
-
-// Function to update tray visibility based on runInBackground setting
-const updateTrayVisibility = (runInBackground: boolean) => {
-  console.log(
-    `🔄 Updating tray visibility - runInBackground: ${runInBackground}`,
-  );
-
-  if (runInBackground) {
-    // Create tray if it doesn't exist
-    createTray();
+// Function to manage tray visibility based on runInBackground setting
+const updateTrayVisibility = () => {
+  if (runInBackgroundSetting) {
+    // Create tray if it doesn't exist and background mode is enabled
+    if (!tray) {
+      createTray();
+      console.log('Tray created - background mode enabled');
+    }
   } else {
-    // Destroy tray if it exists
-    destroyTray();
+    // Destroy tray if it exists and background mode is disabled
+    if (tray) {
+      tray.destroy();
+      tray = null;
+      console.log('Tray destroyed - background mode disabled');
+    }
   }
 };
 
@@ -920,17 +638,11 @@ function setAlertTrayIcon() {
     // Force tray update by setting context menu
     // tray.setContextMenu(tray.getContextMenu());
   } else {
-    if (!runInBackgroundSetting) {
-      console.log(
-        '🚫 Cannot set alert icon - background running disabled, tray not available',
-      );
-    } else {
-      console.log(
-        'Cannot set alert icon - tray or icon missing',
-        !!tray,
-        !!alertTrayIcon,
-      );
-    }
+    console.log(
+      'Cannot set alert icon - tray or icon missing',
+      !!tray,
+      !!alertTrayIcon,
+    );
   }
 }
 
@@ -940,9 +652,6 @@ function resetTrayIcon() {
     tray.setImage(normalTrayIcon);
     isDownloadComplete = false;
     tray.setToolTip('Downlodr');
-  } else if (!tray && !runInBackgroundSetting) {
-    // Reset the completion state even if tray is not available
-    isDownloadComplete = false;
   }
 }
 
@@ -988,6 +697,138 @@ ipcMain.handle('getDownloadFolder', async () => {
 
     return downloadsPath;
   } catch (error) {
+    // console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+// Function for getting default download folder from each OS
+ipcMain.handle('getHostInfo', async () => {
+  try {
+    if (os) {
+      const cpus = os.cpus();
+      const totalMemory = os.totalmem();
+      const freeMemory = os.freemem();
+      return {
+        host_name: os.hostname(),
+        host_id: os.hostname(),
+        host_type: 'desktop',
+        host_arch: os.arch(),
+        os_type: os.platform(),
+        os_description: `${os.type()} ${os.release()}`,
+        os_name: os.type(),
+        os_version: os.release(),
+        cpu_model: cpus[0]?.model || 'unknown',
+        cpu_cores: cpus.length,
+        cpu_threads: cpus.length,
+        memory_total_gb:
+          Math.round((totalMemory / 1024 / 1024 / 1024) * 10) / 10,
+        memory_available_gb:
+          Math.round((freeMemory / 1024 / 1024 / 1024) * 10) / 10,
+      };
+    } else {
+      // Renderer process fallbacks using available web APIs
+      const navigatorInfo = typeof navigator !== 'undefined' ? navigator : null;
+
+      return {
+        host_name: 'renderer-host',
+        host_id: 'www',
+        host_type: 'desktop',
+        host_arch: navigatorInfo?.platform || 'unknown',
+        os_type: 'unknown',
+        os_description: navigatorInfo?.userAgent || 'Unknown OS',
+        os_name: 'unknown',
+        os_version: 'unknown',
+        cpu_model: 'unknown',
+        cpu_cores: navigatorInfo?.hardwareConcurrency || 4,
+        cpu_threads: navigatorInfo?.hardwareConcurrency || 4,
+        memory_total_gb: 0,
+        memory_available_gb: 0,
+      };
+    }
+  } catch (error) {
+    console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+ipcMain.handle('getAppInfo', async () => {
+  try {
+    return {
+      app_name: 'Downlodr',
+      app_platform: process.platform,
+      electron_version: process.versions.electron,
+      app_arch: os.arch(),
+    };
+  } catch (error) {
+    console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+function getCpuUsagePercent() {
+  const startTime = process.hrtime();
+  const startUsage = process.cpuUsage();
+
+  // Simulate some work or wait for a short interval
+  const now = Date.now();
+  while (Date.now() - now < 500) {
+    /* spin the CPU for 500ms */
+  }
+
+  const elapTime = process.hrtime(startTime);
+  const elapUsage = process.cpuUsage(startUsage);
+
+  const elapTimeMS = elapTime[0] * 1000 + elapTime[1] / 1000000;
+  const elapUserMS = elapUsage.user / 1000;
+  const elapSystMS = elapUsage.system / 1000;
+
+  const cpuPercent = Math.round((100 * (elapUserMS + elapSystMS)) / elapTimeMS);
+  return cpuPercent;
+}
+
+ipcMain.handle('getPerformanceMetrics', async () => {
+  try {
+    const cpuUsage = getCpuUsagePercent();
+    return {
+      cpu_usage: cpuUsage,
+    };
+  } catch (error) {
+    console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+// Function for getting default download folder from each OS
+ipcMain.handle('getBrowserInfo', async () => {
+  try {
+    if (os) {
+      return {
+        browser_name: 'Chromium',
+        browser_version: process.versions.chrome,
+        browser_arch: os.arch(),
+      };
+    } else {
+      // Renderer process fallbacks using available web APIs
+      const navigatorInfo = typeof navigator !== 'undefined' ? navigator : null;
+
+      return {
+        host_name: 'renderer-host',
+        host_id: 'host_id',
+        host_type: 'desktop',
+        host_arch: navigatorInfo?.platform || 'unknown',
+        os_type: 'unknown',
+        os_description: navigatorInfo?.userAgent || 'Unknown OS',
+        os_name: 'unknown',
+        os_version: 'unknown',
+        cpu_model: 'unknown',
+        cpu_cores: navigatorInfo?.hardwareConcurrency || 4,
+        cpu_threads: navigatorInfo?.hardwareConcurrency || 4,
+        memory_total_gb: 0,
+        memory_available_gb: 0,
+      };
+    }
+  } catch (error) {
     console.error('Error determining Downloads folder:', error);
     return null;
   }
@@ -1020,9 +861,6 @@ ipcMain.handle('validatePath', async (event, folderPath) => {
 ipcMain.handle('dialog:openDirectory', async (event) => {
   // Get the parent browser window
   const browserWindow = BrowserWindow.fromWebContents(event.sender);
-  if (!browserWindow) {
-    return null;
-  }
 
   const result = await dialog.showOpenDialog(browserWindow, {
     properties: ['openDirectory'],
@@ -1135,384 +973,76 @@ ipcMain.handle('normalizePath', async (event, filepath) => {
 // get the playlist information
 ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
   try {
-    const ytdlpPath = getYtdlpBinaryPath();
-    console.log('🔄 Fetching playlist info for:', videoUrl.url);
-    console.log('Using yt-dlp binary for playlist at:', ytdlpPath);
-    console.log('Playlist binary exists:', fs.existsSync(ytdlpPath));
-
-    // Validate the URL before processing
-    if (!videoUrl.url || typeof videoUrl.url !== 'string') {
-      throw new Error('Invalid URL provided for playlist fetching');
+    // Ensure YTDLP is initialized
+    if (!YTDLP) {
+      YTDLP = initializeYTDLP();
+    }
+    
+    // Ensure YTDLP binary is set up before getting playlist info
+    setupYTDLPBinary();
+    
+    // Configure YTDLP to use the correct binary path
+    if (process.env.YTDLP_PATH) {
+      YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
     }
 
-    const ffmpegPath = getFfmpegBinaryPath();
-    console.log('Using ffmpeg binary at:', ffmpegPath);
-    console.log('FFmpeg binary exists:', fs.existsSync(ffmpegPath));
-
-    // Use custom playlist implementation to fix chunking issue
-    // The original yt-dlp-helper has a bug where it tries to parse each chunk
-    // of JSON individually instead of accumulating all chunks first
-    const { getPlaylistInfo } = await import('./Utils/customPlaylistHelper.js');
-
-    const info = await getPlaylistInfo({
+    const info = await YTDLP.getPlaylistInfo({
       url: videoUrl.url,
-      ytdlpPath,
-      ffmpegPath,
+      //ytdlpDownloadDestination: os.tmpdir(),
+      // ffmpegDownloadDestination: os.tmpdir(),
     });
-
-    console.log('📊 Playlist info result:', {
-      success: info.ok,
-      hasData: !!info.data,
-      title: info.data?.title || 'No title',
-      entryCount: info.data?.entries?.length || 0,
-    });
-
-    // If the result is not ok, provide more detailed error information
-    if (!info.ok) {
-      console.warn('⚠️ Playlist info fetch was not successful');
-      console.warn('Error details:', info.error);
-
-      // Return a more descriptive error
-      return {
-        ok: false,
-        error:
-          info.error ||
-          'Failed to fetch playlist information. This could be due to a private playlist, network issues, or the playlist being unavailable.',
-        originalResult: info,
-      };
-    }
-
     return info;
   } catch (error) {
-    console.error('❌ Error fetching playlist info:', {
-      message: error.message,
-      stack: error.stack,
-      url: videoUrl.url,
-    });
-
-    // Provide more specific error messages based on error content
-    let userFriendlyMessage = 'Failed to fetch playlist information';
-
-    if (error.message.includes('spawn') || error.message.includes('ENOENT')) {
-      userFriendlyMessage = 'yt-dlp binary not found or not executable';
-    } else if (
-      error.message.includes('network') ||
-      error.message.includes('timeout')
-    ) {
-      userFriendlyMessage = 'Network error while fetching playlist information';
-    } else if (error.message.includes('playlist does not exist')) {
-      userFriendlyMessage =
-        'The playlist is private, does not exist, or is unavailable';
-    } else if (
-      error.message.includes('permission') ||
-      error.message.includes('forbidden')
-    ) {
-      userFriendlyMessage =
-        'Access denied - the playlist may be private or restricted';
-    }
-
-    // Create an enhanced error object
-    const enhancedError = new Error(userFriendlyMessage) as Error & {
-      originalError?: Error;
-      url?: string;
-    };
-    enhancedError.originalError = error;
-    enhancedError.url = videoUrl.url;
-
-    throw enhancedError;
+    console.error('Error fetching playlist info:', error);
+    throw error; // Propagate the error to the renderer process
   }
 });
 
 // get the video information
 ipcMain.handle('ytdlp:info', async (e, url) => {
-  YTDLP.Config.log = true;
   try {
-    const ytdlpPath = getYtdlpBinaryPath();
-    console.log('🔍 YT-DLP Info Request Details:');
-    console.log('  URL:', url);
-    console.log('  Binary path:', ytdlpPath);
-    console.log('  Binary exists:', fs.existsSync(ytdlpPath));
-    console.log('  App is packaged:', app.isPackaged);
-    console.log('  Process resourcesPath:', process.resourcesPath);
-
-    // Enhanced binary validation
-    if (!fs.existsSync(ytdlpPath)) {
-      const errorMessage = `yt-dlp binary not found at: ${ytdlpPath}`;
-      console.error('❌', errorMessage);
-      return {
-        error: errorMessage,
-        ok: false,
-        details: {
-          path: ytdlpPath,
-          exists: false,
-          executable: false,
-          packaged: app.isPackaged,
-        },
-      };
+    // Ensure YTDLP is initialized
+    if (!YTDLP) {
+      YTDLP = initializeYTDLP();
+    }
+    
+    YTDLP.Config.log = true;
+    
+    // Ensure YTDLP binary is set up before getting info
+    setupYTDLPBinary();
+    
+    // Configure YTDLP to use the correct binary path
+    if (process.env.YTDLP_PATH) {
+      YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
     }
 
-    // Check binary permissions on macOS/Linux
-    if (process.platform !== 'win32') {
-      try {
-        const stats = fs.statSync(ytdlpPath);
-        const isExecutable = !!(stats.mode & parseInt('111', 8));
-        console.log('  Binary mode:', stats.mode.toString(8));
-        console.log('  Binary is executable:', isExecutable);
-
-        if (!isExecutable) {
-          console.log('  🔧 Attempting to make binary executable...');
-          try {
-            fs.chmodSync(ytdlpPath, 0o755);
-            console.log('  ✅ Binary made executable');
-          } catch (chmodError) {
-            const errorMessage = `yt-dlp binary is not executable and cannot be made executable: ${chmodError.message}`;
-            console.error('❌', errorMessage);
-            return {
-              error: errorMessage,
-              ok: false,
-              details: {
-                path: ytdlpPath,
-                exists: true,
-                executable: false,
-                chmodError: chmodError.message,
-              },
-            };
-          }
-        }
-
-        // Test if the binary can actually be accessed
-        try {
-          fs.accessSync(ytdlpPath, fs.constants.X_OK);
-          console.log('  ✅ Binary access confirmed');
-        } catch (accessError) {
-          const errorMessage = `yt-dlp binary cannot be executed: ${accessError.message}`;
-          console.error('❌', errorMessage);
-          return {
-            error: errorMessage,
-            ok: false,
-            details: {
-              path: ytdlpPath,
-              exists: true,
-              executable: false,
-              accessError: accessError.message,
-            },
-          };
-        }
-      } catch (permError) {
-        console.warn(
-          '  ⚠️  Could not check binary permissions:',
-          permError.message,
-        );
-      }
+    const info = await YTDLP.getInfo(url);
+    if (!info) {
+      throw new Error('No info returned from YTDLP.getInfo');
     }
-
-    if (!fs.existsSync(ytdlpPath)) {
-      // Try alternative paths if the main path doesn't exist
-      const alternativePaths: string[] = [];
-
-      if (app.isPackaged) {
-        // Alternative packaged paths
-        alternativePaths.push(
-          path.join(process.resourcesPath, 'yt-dlp_macos'),
-          path.join(process.resourcesPath, 'yt-dlp.exe'),
-          path.join(path.dirname(process.execPath), 'yt-dlp'),
-          path.join(path.dirname(process.execPath), 'Resources', 'yt-dlp'),
-        );
-      } else {
-        // Alternative development paths
-        alternativePaths.push(
-          path.join(__dirname, '..', '..', 'yt-dlp_macos'),
-          path.join(process.cwd(), 'yt-dlp'),
-          path.join(process.cwd(), 'yt-dlp_macos'),
-        );
-      }
-
-      console.log('  Checking alternative paths:');
-      for (const altPath of alternativePaths) {
-        const exists = fs.existsSync(altPath);
-        console.log(`    ${altPath}: ${exists ? '✅' : '❌'}`);
-        if (exists) {
-          console.log(`  Using alternative path: ${altPath}`);
-          // Try to make it executable
-          try {
-            fs.chmodSync(altPath, 0o755);
-          } catch (chmodError) {
-            console.warn(
-              '  Could not make binary executable:',
-              chmodError.message,
-            );
-          }
-
-          // Update the path for this request
-          const ffmpegPath = getFfmpegBinaryPath();
-          const altBinaryName = getYtdlpBinaryName(altPath);
-          const result = await YTDLP.invoke({
-            args: [
-              url,
-              '--no-warnings',
-              '--dump-json',
-              '--ffmpeg-location',
-              ffmpegPath,
-            ],
-            ytdlpDownloadDestination: path.resolve(altPath), // Absolute path to the binary itself
-            ...(altBinaryName !== 'yt-dlp' && {
-              ytdlpBinaryName: altBinaryName,
-            }), // Use binary name only if different from default
-            downloadBinary: { ytdlp: false, ffmpeg: false }, // Don't download ffmpeg, use bundled
-          } as any);
-
-          if (!result.ok) {
-            throw new Error(
-              `yt-dlp execution failed: ${result.data || 'Unknown error'}`,
-            );
-          }
-
-          console.log('🔍 Raw result.data from YTDLP (alt path):', result.data);
-          console.log('🔍 Result.data type (alt path):', typeof result.data);
-
-          const info = {
-            ok: true,
-            data: JSON.parse(result.data || '{}'),
-          };
-
-          console.log('🔍 Parsed info.data (alt path):', info.data);
-          console.log(
-            '🔍 Info.data keys (alt path):',
-            Object.keys(info.data || {}),
-          );
-          console.log(
-            '🔍 Info.data.formats exists (alt path):',
-            !!info.data?.formats,
-          );
-
-          return info;
-        }
-      }
-
-      throw new Error(
-        `yt-dlp binary not found at ${ytdlpPath} or any alternative locations`,
-      );
-    }
-
-    // Make sure binary is executable
-    try {
-      fs.chmodSync(ytdlpPath, 0o755);
-    } catch (chmodError) {
-      console.warn('Could not make binary executable:', chmodError.message);
-    }
-
-    // Use invoke instead of getInfo to specify binary path
-    const ffmpegPath = getFfmpegBinaryPath();
-    console.log('🔧 FFmpeg Configuration:');
-    console.log('  Binary path:', ffmpegPath);
-    console.log('  Binary exists:', fs.existsSync(ffmpegPath));
-
-    // Check FFmpeg binary permissions on macOS/Linux
-    if (process.platform !== 'win32' && fs.existsSync(ffmpegPath)) {
-      try {
-        const ffmpegStats = fs.statSync(ffmpegPath);
-        const ffmpegExecutable = !!(ffmpegStats.mode & parseInt('111', 8));
-        console.log('  Binary mode:', ffmpegStats.mode.toString(8));
-        console.log('  Binary is executable:', ffmpegExecutable);
-
-        if (!ffmpegExecutable) {
-          console.log('  🔧 Attempting to make FFmpeg executable...');
-          try {
-            fs.chmodSync(ffmpegPath, 0o755);
-            console.log('  ✅ FFmpeg made executable');
-          } catch (ffmpegChmodError) {
-            console.warn(
-              '  ⚠️  Could not make FFmpeg executable:',
-              ffmpegChmodError.message,
-            );
-          }
-        }
-      } catch (ffmpegPermError) {
-        console.warn(
-          '  ⚠️  Could not check FFmpeg permissions:',
-          ffmpegPermError.message,
-        );
-      }
-    }
-
-    console.log('🔧 YTDLP Configuration:');
-    const binaryName = getYtdlpBinaryName(ytdlpPath);
-    console.log('  ytdlpPath:', ytdlpPath);
-    console.log('  ytdlpDownloadDestination:', path.resolve(ytdlpPath));
-    console.log('  ytdlpBinaryName:', binaryName);
-    console.log('  ffmpegPath:', ffmpegPath);
-    console.log('  url:', url);
-    console.log('  args:', [
-      url,
-      '--no-warnings',
-      '--dump-json',
-      '--ffmpeg-location',
-      ffmpegPath,
-    ]);
-
-    let result;
-    try {
-      result = await YTDLP.invoke({
-        args: [
-          url,
-          '--no-warnings',
-          '--dump-json',
-          '--ffmpeg-location',
-          ffmpegPath,
-        ],
-        ytdlpDownloadDestination: path.resolve(ytdlpPath), // Absolute path to the binary itself
-        ...(binaryName !== 'yt-dlp' && { ytdlpBinaryName: binaryName }), // Use binary name only if different from default
-        downloadBinary: { ytdlp: false, ffmpeg: false }, // Don't download ffmpeg, use bundled
-      } as any);
-      console.log('✅ YTDLP.invoke() completed:', result);
-    } catch (invokeError) {
-      console.error('❌ YTDLP.invoke() failed with exception:', invokeError);
-      throw new Error(`yt-dlp execution failed: ${invokeError.message}`);
-    }
-
-    if (!result.ok) {
-      console.error('❌ YTDLP result not ok:', result);
-      throw new Error(
-        `yt-dlp execution failed: ${result.data || 'Unknown error'}`,
-      );
-    }
-
-    console.log('🔍 Raw result.data from YTDLP:', result.data);
-    console.log('🔍 Result.data type:', typeof result.data);
-
-    const info = {
-      ok: true,
-      data: JSON.parse(result.data || '{}'),
-    };
-
-    console.log('🔍 Parsed info.data:', info.data);
-    console.log('🔍 Info.data keys:', Object.keys(info.data || {}));
-    console.log('🔍 Info.data.formats exists:', !!info.data?.formats);
-
-    if (!info.data || Object.keys(info.data).length === 0) {
-      throw new Error('yt-dlp returned empty data');
-    }
-
-    console.log('✅ Video info fetched successfully:', {
-      title: info.data.title || 'Unknown',
-      extractor: info.data.extractor_key || 'Unknown',
-    });
-
     return info;
   } catch (error) {
-    console.error('❌ Error fetching video info:', {
-      message: error.message,
-      stack: error.stack,
-      url: url,
-    });
-    return { error: error.message, ok: false };
+    console.error('Error fetching video info:', error);
+    return { error: error.message };
   }
 });
 
-/*
 // Get current YT-DLP version
 ipcMain.handle('ytdlp:getCurrentVersion', async () => {
   try {
+    // Ensure YTDLP is initialized
+    if (!YTDLP) {
+      YTDLP = initializeYTDLP();
+    }
+    
+    // Ensure YTDLP binary is set up before checking version
+    setupYTDLPBinary();
+    
+    // Configure YTDLP to use the correct binary path
+    if (process.env.YTDLP_PATH) {
+      YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
+    }
+
     const version = await YTDLP.getYTDLPVersion();
     return { success: true, version };
   } catch (error) {
@@ -1549,6 +1079,12 @@ ipcMain.handle('ytdlp:getLatestVersion', async () => {
 
     // Make the API call
     lastGitHubApiCall = Date.now();
+    
+    // Ensure YTDLP is initialized
+    if (!YTDLP) {
+      YTDLP = initializeYTDLP();
+    }
+    
     const response = await YTDLP.getLatestYTDLPVersionFromGitHub();
 
     // Cache the result if successful
@@ -1584,6 +1120,14 @@ ipcMain.handle('ytdlp:getLatestVersion', async () => {
 // Check and update YT-DLP
 ipcMain.handle('ytdlp:checkAndUpdate', async () => {
   try {
+    // Ensure YTDLP is initialized
+    if (!YTDLP) {
+      YTDLP = initializeYTDLP();
+    }
+    
+    // Ensure YTDLP binary is set up before checking version
+    setupYTDLPBinary();
+
     const currentVersion = await YTDLP.getYTDLPVersion();
 
     // Check if we have a cached version first
@@ -1630,6 +1174,12 @@ ipcMain.handle('ytdlp:checkAndUpdate', async () => {
 
     if (!currentVersion) {
       console.log('YT-DLP not found. Downloading latest version...');
+      
+      // Ensure YTDLP is initialized
+      if (!YTDLP) {
+        YTDLP = initializeYTDLP();
+      }
+      
       await YTDLP.downloadYTDLP();
       return {
         success: true,
@@ -1645,6 +1195,12 @@ ipcMain.handle('ytdlp:checkAndUpdate', async () => {
 
     if (latestVersion && currentVersion !== latestVersion) {
       console.log('Updating YT-DLP to latest version...');
+      
+      // Ensure YTDLP is initialized
+      if (!YTDLP) {
+        YTDLP = initializeYTDLP();
+      }
+      
       await YTDLP.downloadYTDLP({
         version: latestVersion,
         forceDownload: true,
@@ -1681,6 +1237,14 @@ ipcMain.handle('ytdlp:checkAndUpdate', async () => {
 // Download YTDLP binary with custom options
 ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
   try {
+    // Ensure YTDLP binary is set up first
+    setupYTDLPBinary();
+    
+    // Configure YTDLP to use the correct binary path
+    if (process.env.YTDLP_PATH) {
+      YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
+    }
+
     console.log('YTDLP download options:', options);
 
     const downloadOptions: DownloadOptions = {
@@ -1724,6 +1288,11 @@ ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
 
     console.log('Final YTDLP download options:', downloadOptions);
 
+    // Ensure YTDLP is initialized
+    if (!YTDLP) {
+      YTDLP = initializeYTDLP();
+    }
+    
     await YTDLP.downloadYTDLP(downloadOptions);
     return { success: true };
   } catch (error) {
@@ -1731,11 +1300,16 @@ ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
     return { success: false, error: error.message };
   }
 });
-*/
+
 // after identifying ID kill/stop the id
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function killControllerById(id: any) {
   try {
+    // Ensure YTDLP is initialized
+    if (!YTDLP) {
+      YTDLP = initializeYTDLP();
+    }
+    
     const controller = YTDLP.getTerminalFromID(id);
 
     if (controller) {
@@ -1753,6 +1327,11 @@ function killControllerById(id: any) {
 // get the terminal or controller of the download to stop, then call killControllerById
 ipcMain.handle('ytdlp:stop', (e, id: string) => {
   try {
+    // Ensure YTDLP is initialized
+    if (!YTDLP) {
+      YTDLP = initializeYTDLP();
+    }
+    
     const terminal = YTDLP.getTerminalFromID(id);
     if (!terminal) {
       return false;
@@ -1772,99 +1351,31 @@ ipcMain.handle('kill-controller', async (_, id) => {
 // download video from link
 ipcMain.handle('ytdlp:download', async (e, id, args) => {
   try {
-    const ytdlpPath = getYtdlpBinaryPath();
-    console.log('Using yt-dlp binary for download at:', ytdlpPath);
-    console.log('Download binary exists:', fs.existsSync(ytdlpPath));
-
-    const ffmpegPath = getFfmpegBinaryPath();
-    console.log('Using ffmpeg binary for download at:', ffmpegPath);
-    console.log('FFmpeg binary exists:', fs.existsSync(ffmpegPath));
-
-    // Validate format compatibility for QuickTime Player
-    const { CodecCompatibilityService } = await import(
-      './Utils/codecCompatibility'
-    );
-    const compatibilityValidation =
-      CodecCompatibilityService.validateFormatCombination({
-        videoFormat: args.videoFormat,
-        remuxVideo: args.remuxVideo,
-        audioExt: args.audioExt,
-        audioFormatId: args.audioFormatId,
-      });
-
-    // Log compatibility warnings but continue with download
-    if (!compatibilityValidation.isValid) {
-      console.warn(
-        '⚠️ QuickTime compatibility issues detected:',
-        compatibilityValidation.issues,
-      );
-      console.log('💡 Suggestions:', compatibilityValidation.suggestions);
-
-      // Optionally send warning to renderer process
-      e.sender.send(`ytdlp:download:status:${id}`, {
-        type: 'warning',
-        data: {
-          message: 'Format may have limited QuickTime Player compatibility',
-          details: compatibilityValidation.issues,
-          suggestions: compatibilityValidation.suggestions,
-        },
-      });
-    } else {
-      console.log('✅ Format is QuickTime compatible');
+    // Ensure YTDLP is initialized
+    if (!YTDLP) {
+      YTDLP = initializeYTDLP();
     }
-
-    const downloadBinaryName = getYtdlpBinaryName(ytdlpPath);
-
-    // Enhanced download arguments for QuickTime compatibility
-    const enhancedArgs = {
-      url: args.url,
-      output: args.outputFilepath,
-      videoFormat: args.videoFormat,
-      remuxVideo: args.remuxVideo,
-      audioFormat: args.audioExt,
-      audioQuality: args.audioFormatId,
-      limitRate: args.limitRate,
-    };
-
-    // Add QuickTime compatibility arguments if downloading MP4
-    const extraArgs: string[] = [];
-    if (args.remuxVideo === 'mp4') {
-      // Aggressively force QuickTime-compatible formats and codecs
-      extraArgs.push(
-        // Format selection - prefer H.264 + AAC combinations
-        '--format', 'best[vcodec^=avc1][acodec^=mp4a]/best[ext=mp4]/best',
-        
-        // Post-processing - force re-encode with QuickTime-compatible codecs
-        '--postprocessor-args',
-        'ffmpeg:-c:v libx264 -preset medium -crf 23 -profile:v main -level 3.1 -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart',
-        
-        // Container and format options
-        '--merge-output-format', 'mp4',
-        '--recode-video', 'mp4',
-        '--embed-metadata',
-        '--no-check-certificate',
-        
-        // Prefer formats that are more likely to be H.264
-        '--prefer-free-formats',
-      );
-      
-      console.log(
-        '🎬 Adding AGGRESSIVE QuickTime compatibility arguments for MP4 download',
-      );
-      console.log('📋 Format preference: H.264+AAC in MP4 container');
+    
+    // Ensure YTDLP binary is set up before downloading
+    setupYTDLPBinary();
+    
+    // Configure YTDLP to use the correct binary path
+    if (process.env.YTDLP_PATH) {
+      YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
     }
 
     const controller = await YTDLP.download({
       // args needed for download
-      args: enhancedArgs,
-      ...(extraArgs.length > 0 && { extraArgs }), // Add extra arguments if any
-      ytdlpDownloadDestination: path.resolve(ytdlpPath), // Absolute path to the binary itself
-      ...(downloadBinaryName !== 'yt-dlp' && {
-        ytdlpBinaryName: downloadBinaryName,
-      }), // Use binary name only if different from default
-      ffmpegDownloadDestination: path.dirname(ffmpegPath), // Directory containing our bundled ffmpeg
-      downloadBinary: { ytdlp: false, ffmpeg: false }, // Don't download ffmpeg, use bundled
-    } as any);
+      args: {
+        url: args.url,
+        output: args.outputFilepath,
+        videoFormat: args.videoFormat,
+        remuxVideo: args.remuxVideo,
+        audioFormat: args.audioExt,
+        audioQuality: args.audioFormatId,
+        limitRate: args.limitRate,
+      },
+    });
 
     if (!controller || typeof controller.listen !== 'function') {
       throw new Error(
@@ -1944,171 +1455,6 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
       // Handle download completion notifications
       if (chunk != null && chunk.data && chunk.data.status === 'finished') {
         setAlertTrayIcon();
-
-        // Post-download QuickTime compatibility validation for MP4 files
-        if (args.remuxVideo === 'mp4') {
-          console.log(
-            '🔍 Validating QuickTime compatibility for completed download...',
-          );
-
-          setTimeout(async () => {
-            try {
-              const { VideoCompatibilityValidator } = await import(
-                './Utils/videoCompatibilityValidator'
-              );
-
-              // Set FFmpeg path for the validator
-              VideoCompatibilityValidator.setFFmpegPath(getFfmpegBinaryPath());
-
-              // Validate the downloaded file
-              const validation =
-                await VideoCompatibilityValidator.validateVideoCompatibility(
-                  args.outputFilepath,
-                );
-
-              console.log('🔍 Validation result:', {
-                isCompatible: validation.isCompatible,
-                videoCodec: validation.codecInfo?.videoCodec,
-                audioCodec: validation.codecInfo?.audioCodec,
-                reencodeNeeded: validation.reencodeNeeded,
-              });
-
-              // AGGRESSIVE: Check for VP9, VP8, AV1 codecs specifically
-              const hasIncompatibleCodec =
-                validation.codecInfo?.videoCodec?.toLowerCase().includes('vp9') ||
-                validation.codecInfo?.videoCodec?.toLowerCase().includes('vp8') ||
-                validation.codecInfo?.videoCodec?.toLowerCase().includes('av01');
-
-              if (
-                !validation.isCompatible ||
-                validation.reencodeNeeded ||
-                hasIncompatibleCodec
-              ) {
-                console.log(
-                  `⚠️ Downloaded file uses ${validation.codecInfo?.videoCodec} codec - NOT QuickTime compatible, attempting H.264 conversion...`,
-                );
-
-                e.sender.send(`ytdlp:download:status:${id}`, {
-                  type: 'postprocessing',
-                  data: {
-                    status: 'fixing_compatibility',
-                    message: `Converting ${validation.codecInfo?.videoCodec} to H.264 for QuickTime compatibility...`,
-                    issues: validation.issues || [
-                      `Current codec: ${validation.codecInfo?.videoCodec}`,
-                      'Converting to H.264 + AAC',
-                    ],
-                  },
-                });
-
-                const fixResult =
-                  await VideoCompatibilityValidator.autoFixCompatibility(
-                    args.outputFilepath,
-                  );
-
-                if (fixResult.success && fixResult.wasFixed) {
-                  console.log(
-                    '✅ Successfully created H.264 QuickTime-compatible version',
-                  );
-                  
-                  // Verify the conversion actually worked
-                  try {
-                    const verifyResult =
-                      await VideoCompatibilityValidator.validateVideoCompatibility(
-                        fixResult.outputPath || args.outputFilepath,
-                      );
-
-                    if (
-                      verifyResult.isCompatible &&
-                      verifyResult.codecInfo?.videoCodec?.toLowerCase().includes('h264')
-                    ) {
-                      console.log('✅ Conversion verified: H.264 codec confirmed');
-                      e.sender.send(`ytdlp:download:status:${id}`, {
-                        type: 'postprocessing',
-                        data: {
-                          status: 'compatibility_fixed',
-                          message: `Video successfully converted from ${validation.codecInfo?.videoCodec} to H.264`,
-                          compatibleFile: fixResult.outputPath,
-                        },
-                      });
-                    } else {
-                      console.warn('⚠️ Conversion completed but verification failed');
-                      e.sender.send(`ytdlp:download:status:${id}`, {
-                        type: 'postprocessing',
-                        data: {
-                          status: 'compatibility_warning',
-                          message: 'Conversion completed but verification failed',
-                          compatibleFile: fixResult.outputPath,
-                        },
-                      });
-                    }
-                  } catch (verifyError) {
-                    console.warn('⚠️ Error verifying conversion:', verifyError);
-                    e.sender.send(`ytdlp:download:status:${id}`, {
-                      type: 'postprocessing',
-                      data: {
-                        status: 'compatibility_fixed',
-                        message: 'QuickTime-compatible version created (verification skipped)',
-                        compatibleFile: fixResult.outputPath,
-                      },
-                    });
-                  }
-                } else {
-                  console.warn(
-                    '⚠️ Could not convert to H.264 for QuickTime compatibility:',
-                    fixResult.error,
-                  );
-                  e.sender.send(`ytdlp:download:status:${id}`, {
-                    type: 'postprocessing',
-                    data: {
-                      status: 'compatibility_warning',
-                      message: 'Could not convert to H.264 QuickTime format automatically',
-                      issues: validation.issues,
-                      error: fixResult.error,
-                    },
-                  });
-                }
-              } else if (
-                validation.isCompatible &&
-                validation.codecInfo?.videoCodec?.toLowerCase().includes('h264')
-              ) {
-                console.log('✅ Downloaded file is already H.264 QuickTime compatible');
-                e.sender.send(`ytdlp:download:status:${id}`, {
-                  type: 'postprocessing',
-                  data: {
-                    status: 'compatibility_verified',
-                    message: `Video uses H.264 codec and is compatible with QuickTime Player`,
-                  },
-                });
-              } else {
-                console.warn('⚠️ Video compatibility status unclear');
-                e.sender.send(`ytdlp:download:status:${id}`, {
-                  type: 'postprocessing',
-                  data: {
-                    status: 'compatibility_warning',
-                    message: 'Video compatibility could not be determined',
-                    issues: [
-                      `Codec: ${validation.codecInfo?.videoCodec}`,
-                      'Compatibility unclear',
-                    ],
-                  },
-                });
-              }
-            } catch (validationError: any) {
-              console.warn(
-                '⚠️ Could not validate QuickTime compatibility:',
-                validationError.message,
-              );
-              e.sender.send(`ytdlp:download:status:${id}`, {
-                type: 'postprocessing',
-                data: {
-                  status: 'compatibility_check_failed',
-                  message: 'Could not verify QuickTime compatibility',
-                  error: validationError.message,
-                },
-              });
-            }
-          }, 2000); // Wait 2 seconds after download completion
-        }
 
         // Notify the main process about the finished download
         const win = BrowserWindow.getAllWindows()[0];
@@ -2273,19 +1619,74 @@ const stopClipboardMonitoring = () => {
 
 // once the app opens
 app.on('ready', async () => {
+  // Setup YTDLP binary first
+  setupYTDLPBinary();
+
+  // Set application icon for dock on macOS
+  if (process.platform === 'darwin') {
+    let iconPath: string;
+
+    if (process.env.NODE_ENV === 'development') {
+      iconPath = path.join(process.cwd(), 'src/Assets/AppLogo/icon.icns');
+    } else {
+      // In production, try different possible paths
+      iconPath = path.join(
+        process.resourcesPath,
+        'app.asar.unpacked',
+        'Assets/AppLogo/icon.icns',
+      );
+
+      // Fallback to resourcesPath if asar path doesn't exist
+      if (!fs.existsSync(iconPath)) {
+        iconPath = path.join(process.resourcesPath, 'Assets/AppLogo/icon.icns');
+      }
+
+      // Another fallback relative to main process
+      if (!fs.existsSync(iconPath)) {
+        iconPath = path.join(__dirname, '../Assets/AppLogo/icon.icns');
+      }
+    }
+
+    console.log('Attempting to set dock icon from path:', iconPath);
+    console.log('Icon file exists:', fs.existsSync(iconPath));
+
+    try {
+      // Set both app icon and dock icon
+      const iconImage = nativeImage.createFromPath(iconPath);
+      if (!iconImage.isEmpty()) {
+        app.dock.setIcon(iconImage);
+        console.log('Successfully set dock icon with nativeImage');
+      } else {
+        // Fallback to string path
+        app.dock.setIcon(iconPath);
+        console.log('Successfully set dock icon with path string');
+      }
+    } catch (error) {
+      console.error('Failed to set dock icon:', error);
+
+      // Try one more fallback - set it as application icon
+      try {
+        if (mainWindow) {
+          mainWindow.setIcon(iconPath);
+          console.log('Set icon on main window as fallback');
+        }
+      } catch (windowError) {
+        console.error('Failed to set window icon as fallback:', windowError);
+      }
+    }
+  }
+
   createWindow();
-  // Note: Tray creation is now handled by sync-background-setting-on-startup
-  // which is called after the renderer loads and syncs settings
+
+  // Wait for the renderer to load and sync the background setting
+  mainWindow?.webContents.once('did-finish-load', () => {
+    // Request the current runInBackground setting from the renderer
+    mainWindow?.webContents.send('request-background-setting-sync');
+  });
+
+  // Initialize tray based on runInBackground setting
+  updateTrayVisibility();
   updateCloseHandler();
-
-  // Setup ffmpeg path for yt-dlp merging
-  await setupFfmpegPath();
-
-  // Test yt-dlp path on startup
-  console.log('=== YT-DLP PATH TEST ===');
-  const testPath = getYtdlpBinaryPath();
-  console.log('Resolved yt-dlp path:', testPath);
-  console.log('=== END PATH TEST ===');
 
   // Start clipboard monitoring
   // Don't start automatically - let the renderer control it
@@ -2301,6 +1702,77 @@ app.on('ready', async () => {
     }
   }, 5000); // Check after 5 seconds to not slow startup
 
+  // Check for YT-DLP updates when app starts
+  setTimeout(async () => {
+    try {
+      console.log('Checking for YT-DLP updates on startup...');
+
+      // Ensure YTDLP binary is set up before checking version
+      setupYTDLPBinary();
+
+      // Get current version first
+      const currentVersion = await YTDLP.getYTDLPVersion();
+
+      // Check if we have a cached version first
+      let latestVersion = getCachedVersion();
+
+      if (!latestVersion && canMakeGitHubApiCall()) {
+        // Make the API call if we can
+        lastGitHubApiCall = Date.now();
+        const latestResponse = await YTDLP.getLatestYTDLPVersionFromGitHub();
+
+        if (latestResponse.ok && latestResponse.version) {
+          latestVersion = latestResponse.version;
+          // Cache the result
+          cachedLatestVersion = {
+            version: latestVersion,
+            timestamp: Date.now(),
+          };
+        }
+      }
+
+      // Only auto-update if we have both versions and they differ
+      if (currentVersion && latestVersion && currentVersion !== latestVersion) {
+        console.log(
+          `Auto-updating YT-DLP from ${currentVersion} to ${latestVersion}...`,
+        );
+        await YTDLP.downloadYTDLP({
+          version: latestVersion,
+          forceDownload: true,
+        });
+        console.log('YT-DLP auto-update completed!');
+
+        // Notify renderer about the update
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send('ytdlp-auto-updated', {
+            fromVersion: currentVersion,
+            toVersion: latestVersion,
+            message: `YT-DLP automatically updated from ${currentVersion} to ${latestVersion}`,
+          });
+        });
+      } else if (!currentVersion) {
+        console.log('YT-DLP not found, downloading latest version...');
+        await YTDLP.downloadYTDLP();
+        console.log('YT-DLP downloaded successfully!');
+
+        // Notify renderer about the installation
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send('ytdlp-auto-installed', {
+            version: latestVersion || 'latest',
+            message: 'YT-DLP was automatically downloaded and installed',
+          });
+        });
+      } else {
+        console.log(
+          'YT-DLP is up to date or update check skipped due to rate limiting',
+        );
+      }
+    } catch (error) {
+      console.error('Error during automatic YT-DLP update check:', error);
+      // Don't notify user about auto-update failures to avoid spam
+    }
+  }, 7000); // Check after 7 seconds, after app updates
+
   // Set up periodic update checking
   const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 4; // Check every 4 hours
   setInterval(async () => {
@@ -2311,7 +1783,44 @@ app.on('ready', async () => {
       );
     }
   }, UPDATE_CHECK_INTERVAL);
-
+  /*
+  // Set up periodic YT-DLP update checking (less frequent to respect rate limits)
+  const YTDLP_UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 12; // Check every 12 hours
+  setInterval(async () => {
+    try {
+      if (!canMakeGitHubApiCall()) {
+        console.log('Skipping periodic YT-DLP check due to rate limiting');
+        return;
+      }
+      
+      const currentVersion = await YTDLP.getYTDLPVersion();
+      if (!currentVersion) return; // Skip if YT-DLP not installed
+      
+      lastGitHubApiCall = Date.now();
+      const latestResponse = await YTDLP.getLatestYTDLPVersionFromGitHub();
+      
+      if (latestResponse.ok && latestResponse.version && 
+          currentVersion !== latestResponse.version) {
+        // Cache the result
+        cachedLatestVersion = {
+          version: latestResponse.version,
+          timestamp: Date.now(),
+        };
+        
+        // Don't auto-update during periodic checks, just notify
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send('ytdlp-update-available', {
+            currentVersion,
+            latestVersion: latestResponse.version,
+            message: `YT-DLP update available: ${currentVersion} → ${latestResponse.version}`,
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error during periodic YT-DLP update check:', error);
+    }
+  }, YTDLP_UPDATE_CHECK_INTERVAL);
+*/
   // Create plugin manager instance
   pluginManager = new PluginManager();
 
@@ -2431,9 +1940,7 @@ ipcMain.on('show-input-context-menu', (event) => {
   ]);
 
   const win = BrowserWindow.fromWebContents(event.sender);
-  if (win) {
-    menu.popup({ window: win });
-  }
+  menu.popup({ window: win });
 });
 
 // opening external link
@@ -2473,15 +1980,97 @@ ipcMain.handle('check-for-updates', async () => {
   return updateInfo;
 });
 
-// Activity indicator controls
-ipcMain.handle('start-activity-indicator', async () => {
-  startActivityIndicator();
+// Notification system IPC handlers
+ipcMain.handle('notification:show', async (event, config) => {
+  try {
+    console.log('📱 Showing notification via main process:', config.title);
+
+    const notification = new Notification({
+      title: config.title,
+      body: config.body,
+      icon: config.icon
+        ? path.join(__dirname, '../Assets/AppLogo', config.icon)
+        : undefined,
+      silent: false,
+    });
+
+    notification.show();
+
+    // Handle notification click
+    notification.on('click', () => {
+      const mainWindow = BrowserWindow.getAllWindows()[0];
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) {
+          mainWindow.restore();
+        }
+        mainWindow.focus();
+        mainWindow.show();
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Failed to show notification:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('notification:request-permissions', async () => {
+  // On macOS, notification permissions are handled by the system
+  // Return true as Electron handles this automatically
   return true;
 });
 
-ipcMain.handle('stop-activity-indicator', async () => {
-  stopActivityIndicator();
+ipcMain.handle('notification:has-permissions', async () => {
+  // On macOS, we assume notifications are available
   return true;
+});
+
+// Dock Badge API handlers
+ipcMain.handle('dock-badge:set-count', async (event, count) => {
+  try {
+    if (process.platform === 'darwin') {
+      console.log(`🏷️ Setting dock badge count to: ${count}`);
+      if (count > 0) {
+        app.dock.setBadge(count.toString());
+      } else {
+        app.dock.setBadge('');
+      }
+    } else {
+      console.log('🏷️ Dock badge not supported on this platform');
+    }
+  } catch (error) {
+    console.error('❌ Failed to set dock badge count:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('dock-badge:get-count', async () => {
+  try {
+    if (process.platform === 'darwin') {
+      const badge = app.dock.getBadge();
+      return badge ? parseInt(badge, 10) : 0;
+    } else {
+      return 0;
+    }
+  } catch (error) {
+    console.error('❌ Failed to get dock badge count:', error);
+    return 0;
+  }
+});
+
+ipcMain.handle('dock-badge:clear', async () => {
+  try {
+    if (process.platform === 'darwin') {
+      console.log('🏷️ Clearing dock badge');
+      app.dock.setBadge('');
+    } else {
+      console.log('🏷️ Dock badge not supported on this platform');
+    }
+  } catch (error) {
+    console.error('❌ Failed to clear dock badge:', error);
+    throw error;
+  }
 });
 
 // function for showing window by opening it
@@ -2492,6 +2081,450 @@ ipcMain.handle('show-window', () => {
     return true;
   }
   return false;
+});
+
+// Conversion process management
+interface ConversionProcess {
+  id: string;
+  process: any | null; // FFmpeg process (null when paused)
+  status: 'converting' | 'paused' | 'stopped';
+  inputPath: string;
+  outputPath: string;
+  targetFormat: string;
+  downloadName: string;
+  progress: number;
+}
+
+const activeConversions = new Map<string, ConversionProcess>();
+
+// File conversion functionality
+ipcMain.handle('convert-file', async (event, options) => {
+  const {
+    downloadId,
+    inputPath,
+    targetFormat,
+    keepOriginal,
+    downloadName,
+    saveToCustomLocation,
+  } = options;
+
+  try {
+    console.log(
+      `🔄 Starting conversion for ${downloadName} to ${targetFormat}`,
+    );
+
+    // Check if FFmpeg is available
+    const ffmpegPath =
+      process.platform === 'darwin' ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg';
+
+    // Generate output path
+    const inputDir = path.dirname(inputPath);
+    const inputName = path.basename(inputPath, path.extname(inputPath));
+    const outputPath = path.join(inputDir, `${inputName}.${targetFormat}`);
+
+    // Check if output file already exists
+    if (existsSync(outputPath)) {
+      return {
+        success: false,
+        error: `Output file already exists: ${outputPath}`,
+      };
+    }
+
+    // Import spawn dynamically
+    const { spawn } = await import('child_process');
+
+    // Prepare FFmpeg command
+    const ffmpegArgs = [
+      '-i',
+      inputPath,
+      '-c:v',
+      'libx264', // Video codec
+      '-c:a',
+      'aac', // Audio codec
+      '-y', // Overwrite output file
+      outputPath,
+    ];
+
+    console.log(`🎬 Running FFmpeg: ${ffmpegPath} ${ffmpegArgs.join(' ')}`);
+
+    // Start FFmpeg process
+    const ffmpegProcess = spawn(ffmpegPath, ffmpegArgs);
+
+    // Store the process for pause/resume/stop functionality
+    const conversionProcess: ConversionProcess = {
+      id: downloadId,
+      process: ffmpegProcess,
+      status: 'converting',
+      inputPath,
+      outputPath,
+      targetFormat,
+      downloadName,
+      progress: 0,
+    };
+
+    activeConversions.set(downloadId, conversionProcess);
+
+    return new Promise((resolve) => {
+      let errorOutput = '';
+      let isResolved = false; // Track if promise has been resolved
+
+      ffmpegProcess.stderr?.on('data', (data) => {
+        const output = data.toString();
+        errorOutput += output;
+
+        // Parse progress from FFmpeg output (basic implementation)
+        const timeMatch = output.match(/time=(\d{2}):(\d{2}):(\d{2})/);
+        if (timeMatch) {
+          // Update progress (simplified - would need duration to calculate percentage)
+          conversionProcess.progress += 5; // Increment by 5% per time update
+          console.log(`⏳ Conversion progress: ${conversionProcess.progress}%`);
+        }
+      });
+
+      ffmpegProcess.on('close', (code) => {
+        const conversion = activeConversions.get(downloadId);
+
+        // Check if this was an intentional pause
+        if (conversion && conversion.status === 'paused') {
+          console.log(`⏸️ FFmpeg process closed due to pause for download ${downloadId}`);
+          // Don't delete from activeConversions, don't resolve promise
+          // The pause handler already returned success
+          return;
+        }
+
+        // Prevent duplicate resolutions
+        if (isResolved) return;
+
+        // Only delete if not intentionally paused
+        if (!conversion || conversion.status !== 'paused') {
+          activeConversions.delete(downloadId);
+        }
+
+        if (code === 0) {
+          console.log(`✅ Conversion completed successfully: ${outputPath}`);
+
+          // If not keeping original, delete the input file
+          if (!keepOriginal) {
+            try {
+              fs.unlinkSync(inputPath);
+              console.log(`🗑️ Removed original file: ${inputPath}`);
+            } catch (error) {
+              console.warn(
+                `⚠️ Could not remove original file: ${error.message}`,
+              );
+            }
+          }
+
+          isResolved = true;
+          resolve({
+            success: true,
+            outputPath,
+            message: `Successfully converted to ${targetFormat}`,
+          });
+        } else {
+          console.error(`❌ Conversion failed with code ${code}`);
+          console.error(`FFmpeg error output: ${errorOutput}`);
+
+          // Clean up partial output file
+          if (existsSync(outputPath)) {
+            try {
+              fs.unlinkSync(outputPath);
+            } catch (cleanupError) {
+              console.warn(
+                `Could not clean up partial file: ${cleanupError.message}`,
+              );
+            }
+          }
+
+          isResolved = true;
+          resolve({
+            success: false,
+            error: `Conversion failed: FFmpeg exited with code ${code}`,
+          });
+        }
+      });
+
+      ffmpegProcess.on('error', (error) => {
+        const conversion = activeConversions.get(downloadId);
+
+        // Check if this was an intentional pause
+        if (conversion && conversion.status === 'paused') {
+          console.log(`⏸️ FFmpeg process error during pause (expected): ${error.message}`);
+          // Don't resolve with error if this was a pause
+          return;
+        }
+
+        // Prevent duplicate resolutions
+        if (isResolved) return;
+
+        // Only delete if not intentionally paused
+        if (!conversion || conversion.status !== 'paused') {
+          activeConversions.delete(downloadId);
+        }
+
+        console.error(`❌ FFmpeg process error: ${error.message}`);
+
+        isResolved = true;
+        resolve({
+          success: false,
+          error: `FFmpeg error: ${error.message}`,
+        });
+      });
+    });
+  } catch (error) {
+    console.error(`❌ Conversion setup error: ${error.message}`);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+});
+
+// Pause conversion
+ipcMain.handle('pause-conversion', async (event, downloadId) => {
+  try {
+    const conversion = activeConversions.get(downloadId);
+
+    if (!conversion) {
+      return {
+        success: false,
+        error: 'Conversion not found or already completed',
+      };
+    }
+
+    if (conversion.status === 'paused') {
+      return {
+        success: true,
+        message: 'Conversion is already paused',
+      };
+    }
+
+    // Mark as paused BEFORE killing the process to prevent race conditions
+    conversion.status = 'paused';
+    
+    // Kill the FFmpeg process but keep the conversion state
+    try {
+      if (conversion.process) {
+        conversion.process.kill('SIGTERM');
+        console.log(`🛑 FFmpeg process terminated for pause: ${downloadId}`);
+      }
+    } catch (killError) {
+      console.warn(`⚠️ Could not kill FFmpeg process: ${killError.message}`);
+    }
+
+    conversion.process = null; // Clear the dead process reference
+    console.log(`⏸️ Conversion paused for download ${downloadId}`);
+
+    // Send update to renderer to mark as paused
+    if (event.sender && !event.sender.isDestroyed()) {
+      event.sender.send('conversion-status-update', {
+        downloadId,
+        status: 'paused',
+        message: 'Conversion paused',
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Conversion paused successfully',
+    };
+  } catch (error) {
+    console.error(`❌ Error pausing conversion: ${error.message}`);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+});
+
+// Resume conversion
+ipcMain.handle('resume-conversion', async (event, downloadId) => {
+  try {
+    const conversion = activeConversions.get(downloadId);
+
+    if (!conversion) {
+      return {
+        success: false,
+        error: 'Conversion not found or already completed',
+      };
+    }
+
+    if (conversion.status === 'converting') {
+      return {
+        success: true,
+        message: 'Conversion is already running',
+      };
+    }
+
+    if (conversion.status !== 'paused') {
+      return {
+        success: false,
+        error: 'Conversion is not paused',
+      };
+    }
+
+    // Restart the FFmpeg process from where we left off
+    console.log(`🔄 Restarting FFmpeg process for download ${downloadId}`);
+
+    try {
+      // Import spawn dynamically
+      const { spawn } = await import('child_process');
+
+      // Check if FFmpeg is available
+      const ffmpegPath =
+        process.platform === 'darwin' ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg';
+
+      // Check if partial output exists and remove it to restart cleanly
+      if (existsSync(conversion.outputPath)) {
+        try {
+          fs.unlinkSync(conversion.outputPath);
+          console.log(
+            `🗑️ Removed partial output file: ${conversion.outputPath}`,
+          );
+        } catch (cleanupError) {
+          console.warn(
+            `Could not remove partial file: ${cleanupError.message}`,
+          );
+        }
+      }
+
+      // Prepare FFmpeg command (same as original)
+      const ffmpegArgs = [
+        '-i',
+        conversion.inputPath,
+        '-c:v',
+        'libx264', // Video codec
+        '-c:a',
+        'aac', // Audio codec
+        '-y', // Overwrite output file
+        conversion.outputPath,
+      ];
+
+      console.log(
+        `🎬 Restarting FFmpeg: ${ffmpegPath} ${ffmpegArgs.join(' ')}`,
+      );
+
+      // Start new FFmpeg process
+      const ffmpegProcess = spawn(ffmpegPath, ffmpegArgs);
+
+      // Update the conversion with new process
+      conversion.process = ffmpegProcess;
+      conversion.status = 'converting';
+
+      // Set up event handlers for the new process
+      return new Promise((resolve) => {
+        let errorOutput = '';
+
+        ffmpegProcess.stderr?.on('data', (data) => {
+          const output = data.toString();
+          errorOutput += output;
+
+          // Parse progress from FFmpeg output
+          const timeMatch = output.match(/time=(\d{2}):(\d{2}):(\d{2})/);
+          if (timeMatch) {
+            conversion.progress += 5;
+            console.log(
+              `⏳ Resumed conversion progress: ${conversion.progress}%`,
+            );
+          }
+        });
+
+        ffmpegProcess.on('close', (code) => {
+          activeConversions.delete(downloadId);
+
+          if (code === 0) {
+            console.log(
+              `✅ Resumed conversion completed successfully: ${conversion.outputPath}`,
+            );
+          } else {
+            console.error(`❌ Resumed conversion failed with code ${code}`);
+            console.error(`FFmpeg error output: ${errorOutput}`);
+
+            // Clean up partial output file
+            if (existsSync(conversion.outputPath)) {
+              try {
+                fs.unlinkSync(conversion.outputPath);
+              } catch (cleanupError) {
+                console.warn(
+                  `Could not clean up partial file: ${cleanupError.message}`,
+                );
+              }
+            }
+          }
+        });
+
+        ffmpegProcess.on('error', (error) => {
+          activeConversions.delete(downloadId);
+          console.error(`❌ Resumed FFmpeg process error: ${error.message}`);
+        });
+
+        // Return success immediately since process started
+        console.log(`▶️ Conversion resumed for download ${downloadId}`);
+        resolve({
+          success: true,
+          message: 'Conversion resumed successfully',
+        });
+      });
+    } catch (error) {
+      console.error(`❌ Error restarting FFmpeg process: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  } catch (error) {
+    console.error(`❌ Error resuming conversion: ${error.message}`);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+});
+
+// Stop conversion
+ipcMain.handle('stop-conversion', async (event, downloadId) => {
+  try {
+    const conversion = activeConversions.get(downloadId);
+
+    if (!conversion) {
+      return {
+        success: false,
+        error: 'Conversion not found or already completed',
+      };
+    }
+
+    // Kill the FFmpeg process
+    conversion.process.kill('SIGTERM');
+    conversion.status = 'stopped';
+
+    // Clean up partial output file
+    if (existsSync(conversion.outputPath)) {
+      try {
+        fs.unlinkSync(conversion.outputPath);
+        console.log(
+          `🗑️ Cleaned up partial conversion file: ${conversion.outputPath}`,
+        );
+      } catch (cleanupError) {
+        console.warn(
+          `Could not clean up partial file: ${cleanupError.message}`,
+        );
+      }
+    }
+
+    activeConversions.delete(downloadId);
+    console.log(`🛑 Conversion stopped for download ${downloadId}`);
+
+    return {
+      success: true,
+      message: 'Conversion stopped successfully',
+    };
+  } catch (error) {
+    console.error(`❌ Error stopping conversion: ${error.message}`);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
 });
 
 // function for hiding window not close it
@@ -2513,13 +2546,9 @@ ipcMain.handle('exit-app', () => {
 
 // function for running the appolication in the background
 ipcMain.handle('set-run-in-background', (_event, value) => {
-  console.log(`🔧 Setting runInBackground to: ${value}`);
   runInBackgroundSetting = value;
-
-  // Update tray visibility based on new setting
-  updateTrayVisibility(value);
-
   updateCloseHandler();
+  updateTrayVisibility();
   return true;
 });
 
@@ -2555,32 +2584,7 @@ async function getRunInBackgroundSetting() {
 
 // function for syncing settings on startup
 ipcMain.handle('sync-background-setting-on-startup', (_event, value) => {
-  console.log(`🔄 Syncing runInBackground setting on startup: ${value}`);
   runInBackgroundSetting = value;
-
-  // Update tray visibility based on setting
-  updateTrayVisibility(value);
-
-  return true;
-});
-
-// function for handling telemetry consent status
-ipcMain.handle('telemetry-consent-required', (_event) => {
-  console.log('🔔 Telemetry consent required - showing alert icon');
-
-  // Show alert icon in system tray to indicate attention needed
-  setAlertTrayIcon();
-
-  return true;
-});
-
-// function for handling telemetry consent completion
-ipcMain.handle('telemetry-consent-completed', (_event) => {
-  console.log('✅ Telemetry consent completed - resetting tray icon');
-
-  // Reset tray icon to normal when consent is completed
-  resetTrayIcon();
-
   return true;
 });
 
@@ -2588,10 +2592,19 @@ ipcMain.handle('telemetry-consent-completed', (_event) => {
 ipcMain.on('download-finished', (_event, downloadInfo) => {
   const { name } = downloadInfo;
 
-  console.log('📱 Download finished event received:', name);
-
-  // NOTE: Notification is now handled by NotificationManager component in renderer
-  // This maintains the legacy tray icon behavior only
+  // Show notification
+  showNotification(
+    'Download Complete',
+    `"${name}" has finished downloading`,
+    () => {
+      // Show the app window when notification is clicked
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+        resetTrayIcon(); // Reset icon when app is shown via notification
+      }
+    },
+  );
 
   // Change the tray icon to the alert version
   setAlertTrayIcon();
@@ -2615,244 +2628,6 @@ function showNotification(title: string, body: string, onClick?: () => void) {
   }
   notification.show();
 }
-
-// Enhanced notification system with native macOS support
-let notificationPermissionGranted = false;
-
-// Check for notification permissions
-async function checkNotificationPermissions(): Promise<boolean> {
-  if (!Notification.isSupported()) {
-    console.warn('Notifications not supported on this platform');
-    return false;
-  }
-
-  // On macOS, ensure dock icon is visible for notifications to work
-  if (process.platform === 'darwin') {
-    try {
-      // Show dock icon to enable notifications
-      if (app.dock) {
-        app.dock.show();
-        console.log('✅ Dock icon shown for notifications');
-      }
-    } catch (error) {
-      console.warn('Failed to show dock icon:', error);
-    }
-  }
-
-  // On macOS, Electron handles permissions automatically for bundled apps
-  notificationPermissionGranted = true;
-  console.log('✅ Notification permissions granted');
-  return true;
-}
-
-// Native notification handler
-ipcMain.handle(
-  'notification:show',
-  async (
-    _event,
-    config: {
-      title: string;
-      body: string;
-      icon?: string;
-      actions?: Array<{ action: string; title: string }>;
-    },
-  ) => {
-    try {
-      console.log(
-        '📱 Main process: Received notification request:',
-        config.title,
-      );
-      console.log('🔍 Notification.isSupported():', Notification.isSupported());
-      console.log(
-        '🔍 notificationPermissionGranted:',
-        notificationPermissionGranted,
-      );
-
-      if (!Notification.isSupported() || !notificationPermissionGranted) {
-        console.warn(
-          '❌ Notifications not supported or permission not granted',
-        );
-        return null;
-      }
-
-      // Resolve notification icon path
-      let iconPath: string;
-
-      if (config.icon) {
-        if (app.isPackaged) {
-          // In production, notification icon is in Contents/Resources/AppLogo/
-          const productionIconPath = path.join(
-            process.resourcesPath,
-            'AppLogo',
-            'notif.png',
-          );
-
-          // Check if notification icon exists, otherwise use tray icon path
-          if (fs.existsSync(productionIconPath)) {
-            iconPath = productionIconPath;
-            console.log(
-              '✅ Using production notification icon:',
-              productionIconPath,
-            );
-          } else {
-            console.log(
-              '⚠️ Notification icon not found at:',
-              productionIconPath,
-              'using tray icon',
-            );
-            iconPath = normalTrayIcon.toDataURL
-              ? normalTrayIcon.toDataURL()
-              : (normalTrayIcon as any);
-          }
-        } else {
-          // In development, use relative path
-          const devIconPath = path.join(
-            __dirname,
-            '..',
-            'src',
-            'Assets',
-            'AppLogo',
-            'notif.png',
-          );
-          if (fs.existsSync(devIconPath)) {
-            iconPath = devIconPath;
-            console.log('✅ Using development notification icon:', devIconPath);
-          } else {
-            console.log('⚠️ Dev notification icon not found, using tray icon');
-            iconPath = normalTrayIcon.toDataURL
-              ? normalTrayIcon.toDataURL()
-              : (normalTrayIcon as any);
-          }
-        }
-      } else {
-        // Use tray icon as fallback
-        iconPath = normalTrayIcon.toDataURL
-          ? normalTrayIcon.toDataURL()
-          : (normalTrayIcon as any);
-      }
-
-      console.log(
-        `📱 Creating notification with icon: ${
-          typeof iconPath === 'string' ? iconPath : 'NativeImage'
-        }`,
-      );
-
-      const notification = new Notification({
-        title: config.title,
-        body: config.body,
-        icon: iconPath,
-        sound: 'default', // macOS system sound
-        urgency: 'normal' as const,
-      });
-
-      // Handle notification click to show app window
-      notification.on('click', () => {
-        if (mainWindow) {
-          if (mainWindow.isMinimized()) {
-            mainWindow.restore();
-          }
-          mainWindow.show();
-          mainWindow.focus();
-
-          // Reset tray icon when app is shown via notification
-          resetTrayIcon();
-        }
-      });
-
-      // Show the notification
-      notification.show();
-
-      return {
-        title: config.title,
-        body: config.body,
-        icon: config.icon,
-      };
-    } catch (error) {
-      console.error('Failed to show notification:', error);
-      return null;
-    }
-  },
-);
-
-// Request notification permissions
-ipcMain.handle('notification:request-permissions', async () => {
-  try {
-    notificationPermissionGranted = await checkNotificationPermissions();
-    return notificationPermissionGranted;
-  } catch (error) {
-    console.error('Failed to request notification permissions:', error);
-    return false;
-  }
-});
-
-// Check if notifications are allowed
-ipcMain.handle('notification:has-permissions', async () => {
-  return notificationPermissionGranted;
-});
-
-// Dock badge counter management
-let currentBadgeCount = 0;
-
-// Set dock badge count
-ipcMain.handle('dock-badge:set-count', async (_event, count: number) => {
-  try {
-    currentBadgeCount = Math.max(0, count);
-
-    // On macOS, set the dock badge
-    if (process.platform === 'darwin') {
-      // Ensure dock icon is visible when setting badge
-      if (app.dock && currentBadgeCount > 0) {
-        app.dock.show();
-      }
-
-      const success = app.setBadgeCount(currentBadgeCount);
-      console.log(
-        `🏷️ Dock badge set to ${currentBadgeCount}, success:`,
-        success !== false,
-      );
-
-      // Verify the badge was set
-      const actualCount = app.getBadgeCount();
-      console.log(`🔍 Actual dock badge count: ${actualCount}`);
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Failed to set dock badge count:', error);
-    return false;
-  }
-});
-
-// Get current dock badge count
-ipcMain.handle('dock-badge:get-count', async () => {
-  return currentBadgeCount;
-});
-
-// Clear dock badge
-ipcMain.handle('dock-badge:clear', async () => {
-  try {
-    currentBadgeCount = 0;
-
-    if (process.platform === 'darwin') {
-      const success = app.setBadgeCount(0);
-      console.log('🏷️ Dock badge cleared, success:', success !== false);
-
-      // Verify the badge was cleared
-      const actualCount = app.getBadgeCount();
-      console.log(`🔍 Actual dock badge count after clear: ${actualCount}`);
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Failed to clear dock badge:', error);
-    return false;
-  }
-});
-
-// Initialize notification permissions on app ready
-app.whenReady().then(async () => {
-  await checkNotificationPermissions();
-});
 
 // Function to get file size
 ipcMain.handle('get-file-size', async (_event, filePath) => {
@@ -2911,43 +2686,8 @@ ipcMain.handle('plugins:menu-items', (event, context) => {
   return pluginRegistry.getMenuItems(context);
 });
 
-// Storage for current plugin context (video path)
-let currentPluginVideoPath: string | null = null;
-
 // handler to execute plugin menu items
 ipcMain.handle('plugins:execute-menu-item', (event, id, contextData) => {
-  console.log(
-    '🔍 [CC DEBUG] executeMenuItem called with contextData:',
-    JSON.stringify(contextData, null, 2),
-  );
-
-  // Store video path for CC-related plugins
-  if (
-    contextData &&
-    contextData.location &&
-    typeof contextData.location === 'string'
-  ) {
-    // Check if this is a CC-related plugin by ID or context
-    if (
-      id.includes('cc') ||
-      id.includes('markdown') ||
-      id.includes('transcript')
-    ) {
-      currentPluginVideoPath = contextData.location;
-      console.log(
-        `🔍 [CC DEBUG] Stored video path for CC plugin: ${currentPluginVideoPath}`,
-      );
-
-      // Clear the stored path after 30 seconds to prevent stale context
-      setTimeout(() => {
-        if (currentPluginVideoPath === contextData.location) {
-          currentPluginVideoPath = null;
-          console.log('🔍 [CC DEBUG] Cleared stored video path (timeout)');
-        }
-      }, 30000);
-    }
-  }
-
   pluginRegistry.executeMenuItemAction(id, contextData);
   return true;
 });
@@ -3111,147 +2851,23 @@ ipcMain.handle('get-thumbnail-data-url', async (_event, imagePath) => {
 
 // handler to save a file
 ipcMain.handle('plugins:save-file-dialog', async (event, options) => {
-  console.log(
-    '🔍 [CC DEBUG] plugins:save-file-dialog called with options:',
-    JSON.stringify(options, null, 2),
-  );
-
   const browserWindow = BrowserWindow.fromWebContents(event.sender);
-  if (!browserWindow) {
-    return { canceled: true };
-  }
-
-  // Enhanced default path logic for CC/transcript files
-  let defaultPath = app.getPath('downloads');
-  console.log(`🔍 [CC DEBUG] Initial defaultPath: ${defaultPath}`);
-
-  // If this is a CC to Markdown or transcript-related operation, try to use video directory
-  // First check explicit videoPath, then check stored plugin context
-  const videoPath = options.videoPath || currentPluginVideoPath;
-
-  if (videoPath && typeof videoPath === 'string') {
-    console.log(
-      `🔍 [CC DEBUG] Using video path: ${videoPath} (explicit: ${!!options.videoPath}, stored: ${!!currentPluginVideoPath})`,
-    );
-
-    const videoDir = path.dirname(videoPath);
-    const videoBaseName = path.basename(videoPath, path.extname(videoPath));
-
-    // Determine file extension from title or options
-    let extension = '.txt';
-    if (options.title && typeof options.title === 'string') {
-      if (options.title.toLowerCase().includes('markdown')) {
-        extension = '.md';
-      } else if (options.title.toLowerCase().includes('docx')) {
-        extension = '.docx';
-      }
-    }
-
-    // Use exact video filename with new extension (direct approach)
-    const suggestedFileName = `${videoBaseName}${extension}`;
-    defaultPath = path.join(videoDir, suggestedFileName);
-    console.log(`🔍 [CC DEBUG] Using explicit videoPath: ${defaultPath}`);
-  } else if (
-    // Auto-detect CC/transcript operations even without videoPath
-    options.title &&
-    (options.title.toLowerCase().includes('cc') ||
-      options.title.toLowerCase().includes('markdown') ||
-      options.title.toLowerCase().includes('transcript') ||
-      options.title.toLowerCase().includes('caption') ||
-      options.title.toLowerCase().includes('subtitle'))
-  ) {
-    console.log(
-      '🔍 Auto-detecting CC operation, searching for video context...',
-    );
-
-    const downloadsDir = app.getPath('downloads');
-    let videoFile = null;
-
-    try {
-      // Get all video files in Downloads directory
-      const files = fs.readdirSync(downloadsDir);
-      const videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.webm'];
-
-      const videoFiles = files
-        .filter((file) =>
-          videoExtensions.some((ext) =>
-            file.toLowerCase().endsWith(ext.toLowerCase()),
-          ),
-        )
-        .map((file) => {
-          const fullPath = path.join(downloadsDir, file);
-          const stats = fs.statSync(fullPath);
-          return { path: fullPath, mtime: stats.mtime, name: file };
-        })
-        .sort((a, b) => b.mtime.getTime() - a.mtime.getTime()); // Most recent first
-
-      if (videoFiles.length > 0) {
-        // Use most recent video file
-        videoFile = videoFiles[0].path;
-        console.log(`📽️ Using most recent video file: ${videoFiles[0].name}`);
-      }
-    } catch (error) {
-      console.warn('Error scanning for video files:', error);
-    }
-
-    if (videoFile) {
-      const videoDir = path.dirname(videoFile);
-      const videoBaseName = path.basename(videoFile, path.extname(videoFile));
-
-      // Determine extension from title
-      let extension = '.txt';
-      if (options.title.toLowerCase().includes('markdown')) {
-        extension = '.md';
-      } else if (options.title.toLowerCase().includes('docx')) {
-        extension = '.docx';
-      }
-
-      // Use exact video filename with new extension (direct approach)
-      const suggestedFileName = `${videoBaseName}${extension}`;
-      defaultPath = path.join(videoDir, suggestedFileName);
-      console.log(`🔍 [CC DEBUG] Auto-detected CC save path: ${defaultPath}`);
-    }
-  } else if (options.defaultPath && typeof options.defaultPath === 'string') {
-    defaultPath = options.defaultPath;
-    console.log(`🔍 [CC DEBUG] Using provided defaultPath: ${defaultPath}`);
-  } else {
-    console.log(
-      `🔍 [CC DEBUG] No CC detection, using Downloads folder: ${defaultPath}`,
-    );
-  }
-
-  console.log(`🔍 [CC DEBUG] Final defaultPath before dialog: ${defaultPath}`);
 
   // Security check: validate options
   const sanitizedOptions = {
     title: typeof options.title === 'string' ? options.title : 'Save File',
-    defaultPath,
+    defaultPath:
+      typeof options.defaultPath === 'string'
+        ? options.defaultPath
+        : app.getPath('downloads'),
     filters: Array.isArray(options.filters) ? options.filters : undefined,
     message: typeof options.message === 'string' ? options.message : undefined,
   };
 
   try {
-    console.log(
-      `🔍 [CC DEBUG] Showing save dialog with sanitizedOptions:`,
-      JSON.stringify(sanitizedOptions, null, 2),
-    );
     const result = await dialog.showSaveDialog(browserWindow, sanitizedOptions);
-    console.log(
-      `🔍 [CC DEBUG] Save dialog result:`,
-      JSON.stringify(result, null, 2),
-    );
-
-    // Clear stored video path after successful save dialog (user has seen the correct path)
-    if (!result.canceled && currentPluginVideoPath) {
-      console.log(
-        '🔍 [CC DEBUG] Clearing stored video path after successful save dialog',
-      );
-      currentPluginVideoPath = null;
-    }
-
     return result;
   } catch (error) {
-    console.log(`🔍 [CC DEBUG] Save dialog error:`, error);
     return { canceled: true };
   }
 });
@@ -3263,20 +2879,20 @@ ipcMain.handle('plugins:register-taskbar-item', (event, taskBarItem) => {
 });
 
 // handler to unregister taskbar items
-ipcMain.handle('plugins:unregister-taskbar-item', (event, id) => {
+ipcMain.handle('plugins:unregister-taskbar-item', (_, id) => {
   //console.log('Main process unregistering taskbar item:', id);
   pluginRegistry.unregisterTaskBarItem(id);
   return true;
 });
 
 // handler to get taskbar items
-ipcMain.handle('plugins:taskbar-items', (event) => {
+ipcMain.handle('plugins:taskbar-items', () => {
   return pluginRegistry.getTaskBarItems();
 });
 
 // handler to execute taskbar items
 ipcMain.handle('plugins:execute-taskbar-item', (event, id, contextData) => {
-  console.log('Executing taskbar item action:', id, contextData);
+  // console.log('Executing taskbar item action:', id, contextData);
   pluginRegistry.executeTaskBarItemAction(id, contextData);
   return true;
 });
@@ -3303,14 +2919,8 @@ ipcMain.handle('plugin:fs:readFile', async (event, options) => {
 // handler to read file contents
 ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
   try {
-    const { filePath, pluginId } = options;
+    const { filePath } = options;
     // Security check: Make sure we're not reading outside allowed directories
-    // Get the plugin's data directory as a safe base path
-    const pluginDataDir = path.join(
-      app.getPath('userData'),
-      'plugin-data',
-      pluginId || '',
-    );
 
     // Ensure the requested path is within the plugin's data directory or another safe location
     // Normalize the path to fix double backslashes caused by JSON.stringify/parse
@@ -3324,10 +2934,10 @@ ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
     const resolvedPath = path.resolve(normalizedPath);
 
     if (!fs.existsSync(resolvedPath)) {
-      console.log('file doesnt exist');
+      // console.log('file doesnt exist');
       return { success: false, error: 'File does not exist' };
     }
-    console.log('path given to read:', resolvedPath);
+    // console.log('path given to read:', resolvedPath);
 
     const fileContents = await fs.promises.readFile(resolvedPath, 'utf8');
     return { success: true, data: fileContents };
@@ -3341,9 +2951,7 @@ ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
 ipcMain.handle('plugins:close-panel', async () => {
   try {
     // Send an event to the renderer to close the panel
-    if (mainWindow) {
-      mainWindow.webContents.send('plugin:close-panel');
-    }
+    mainWindow.webContents.send('plugin:close-panel');
     return { success: true };
   } catch (error) {
     console.error('Error closing plugin panel:', error);
@@ -3355,705 +2963,6 @@ ipcMain.handle('plugins:close-panel', async () => {
 ipcMain.handle('get-current-version', async () => {
   // Get version from package.json or app.getVersion()
   return app.getVersion();
-});
-
-// Enhanced FFmpeg status IPC handler
-ipcMain.handle('check-ffmpeg-status', async () => {
-  try {
-    const status = await getFfmpegStatus();
-    console.log('🔧 FFmpeg status check result:', status);
-    return status;
-  } catch (error) {
-    console.error('❌ FFmpeg status check failed:', error);
-    return { available: false, error: error.message };
-  }
-});
-
-// Check if app is packaged (for dev/prod detection)
-ipcMain.handle('check-app-packaged', () => {
-  return app.isPackaged;
-});
-
-// Helper function to handle text format conversions (CC to Markdown, etc.)
-async function handleTextFormatConversion(
-  inputPath: string,
-  outputPath: string,
-  targetFormat: string,
-  downloadId: string,
-  event: Electron.IpcMainInvokeEvent,
-  saveToCustomLocation = false,
-): Promise<{ success: boolean; outputPath?: string; error?: string }> {
-  try {
-    const targetFormatLower = targetFormat.toLowerCase();
-
-    // Check if there's a caption file associated with the video
-    const inputDir = path.dirname(inputPath);
-    const inputBaseName = path.basename(inputPath, path.extname(inputPath));
-
-    // Look for various caption file formats that might exist
-    const possibleCaptionExtensions = [
-      '.vtt',
-      '.srt',
-      '.ass',
-      '.ssa',
-      '.ttml',
-      '.en.vtt',
-    ];
-    let captionFilePath = null;
-
-    for (const ext of possibleCaptionExtensions) {
-      const candidatePath = path.join(inputDir, `${inputBaseName}${ext}`);
-      if (fs.existsSync(candidatePath)) {
-        captionFilePath = candidatePath;
-        break;
-      }
-    }
-
-    if (!captionFilePath) {
-      // If no caption file found, try to extract captions from the video using FFmpeg
-      const ffmpegPath = getFfmpegBinaryPath();
-      if (fs.existsSync(ffmpegPath)) {
-        // Try to extract subtitles using FFmpeg (if embedded)
-        const tempCaptionPath = path.join(
-          inputDir,
-          `${inputBaseName}_temp.vtt`,
-        );
-
-        const { spawn } = require('child_process'); // eslint-disable-line @typescript-eslint/no-var-requires
-        const extractProcess = spawn(ffmpegPath, [
-          '-i',
-          inputPath,
-          '-map',
-          '0:s:0', // Extract first subtitle stream
-          '-c:s',
-          'webvtt',
-          '-y',
-          tempCaptionPath,
-        ]);
-
-        await new Promise((resolve) => {
-          extractProcess.on('close', (code: number) => {
-            if (code === 0 && fs.existsSync(tempCaptionPath)) {
-              captionFilePath = tempCaptionPath;
-            }
-            resolve(code);
-          });
-
-          extractProcess.on('error', () => {
-            resolve(-1);
-          });
-        });
-      }
-    }
-
-    if (!captionFilePath) {
-      return {
-        success: false,
-        error:
-          'No caption file found for conversion. Please ensure the video has captions or download captions first.',
-      };
-    }
-
-    // Read the caption content
-    let captionContent = '';
-    try {
-      captionContent = fs.readFileSync(captionFilePath, 'utf8');
-    } catch (error) {
-      return {
-        success: false,
-        error: `Failed to read caption file: ${error.message}`,
-      };
-    }
-
-    // Convert to the target format
-    let convertedContent = '';
-
-    switch (targetFormatLower) {
-      case 'txt':
-        convertedContent = convertVttToPlainText(captionContent);
-        break;
-      case 'md':
-      case 'markdown':
-        convertedContent = convertVttToMarkdown(captionContent);
-        break;
-      case 'docx':
-        // For DOCX, we'll create a simple text format and let the user know
-        convertedContent = convertVttToPlainText(captionContent);
-        break;
-      default:
-        return {
-          success: false,
-          error: `Unsupported text format: ${targetFormat}`,
-        };
-    }
-
-    let finalOutputPath = outputPath;
-
-    // Handle custom location saving vs automatic saving
-    if (saveToCustomLocation) {
-      // Show save dialog for custom location
-      const browserWindow = BrowserWindow.fromWebContents(event.sender);
-      if (browserWindow) {
-        const saveResult = await dialog.showSaveDialog(browserWindow, {
-          title: `Save ${targetFormat.toUpperCase()} File`,
-          defaultPath: outputPath,
-          filters: [
-            {
-              name: `${targetFormat.toUpperCase()} files`,
-              extensions: [targetFormatLower],
-            },
-            { name: 'All files', extensions: ['*'] },
-          ],
-        });
-
-        if (saveResult.canceled) {
-          return {
-            success: false,
-            error: 'Save operation was canceled by user',
-          };
-        }
-
-        finalOutputPath = saveResult.filePath;
-      }
-    }
-
-    // Write the converted content to the final output path
-    fs.writeFileSync(finalOutputPath, convertedContent, 'utf8');
-
-    // Clean up temporary caption file if we created one
-    if (captionFilePath.includes('_temp.vtt')) {
-      try {
-        fs.unlinkSync(captionFilePath);
-      } catch (error) {
-        console.warn(
-          'Could not clean up temporary caption file:',
-          error.message,
-        );
-      }
-    }
-
-    return {
-      success: true,
-      outputPath: finalOutputPath,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error.message || 'Unknown error during text format conversion',
-    };
-  }
-}
-
-// Helper function to convert VTT captions to plain text
-function convertVttToPlainText(vttContent: string): string {
-  const lines = vttContent.split('\n');
-  const textLines: string[] = [];
-
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-
-    // Skip VTT header, timestamps, and empty lines
-    if (
-      trimmedLine === 'WEBVTT' ||
-      trimmedLine === '' ||
-      trimmedLine.match(
-        /^\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3}/,
-      ) ||
-      trimmedLine.match(/^NOTE/)
-    ) {
-      continue;
-    }
-
-    // Remove HTML tags and style formatting
-    const cleanedLine = trimmedLine
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&amp;/g, '&')
-      .replace(/&quot;/g, '"');
-
-    if (cleanedLine.length > 0) {
-      textLines.push(cleanedLine);
-    }
-  }
-
-  return textLines.join('\n\n');
-}
-
-// Helper function to convert VTT captions to Markdown
-function convertVttToMarkdown(vttContent: string): string {
-  const plainText = convertVttToPlainText(vttContent);
-  const lines = plainText.split('\n\n');
-
-  // Create a simple markdown format
-  let markdown = '# Video Transcript\n\n';
-
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].trim().length > 0) {
-      // Add paragraph numbers for better navigation
-      markdown += `**${i + 1}.** ${lines[i]}\n\n`;
-    }
-  }
-
-  markdown += '\n---\n*Transcript generated by Downlodr CC to Markdown*\n';
-
-  return markdown;
-}
-
-// Global storage for conversion processes
-const conversionProcesses = new Map<string, {
-  process: any;
-  options: any;
-  isPaused: boolean;
-  inputPath: string;
-  outputPath: string;
-}>();
-
-// File conversion handler
-ipcMain.handle('convert-file', async (event, options) => {
-  const {
-    downloadId,
-    inputPath,
-    targetFormat,
-    keepOriginal,
-    downloadName,
-    saveToCustomLocation,
-  } = options;
-
-  try {
-    console.log(
-      `🔄 Starting conversion for ${downloadName} (${downloadId}) to ${targetFormat}`,
-    );
-    console.log(`📁 Input path: ${inputPath}`);
-
-    // Validate input file exists
-    if (!fs.existsSync(inputPath)) {
-      throw new Error('Input file does not exist');
-    }
-
-    const inputDir = path.dirname(inputPath);
-    const inputBaseName = path.basename(inputPath, path.extname(inputPath));
-    const targetFormatLower = targetFormat.toLowerCase();
-
-    // Check if this is a text-based format (CC to Markdown conversion)
-    const isTextFormat = ['txt', 'docx', 'md', 'markdown'].includes(
-      targetFormatLower,
-    );
-
-    if (isTextFormat) {
-      // Handle CC to Markdown and other text-based conversions
-      // Save directly in the same directory as the video file using exact video filename + new extension
-      const outputExtension =
-        targetFormatLower === 'txt'
-          ? '.txt'
-          : targetFormatLower === 'docx'
-          ? '.docx'
-          : targetFormatLower === 'md' || targetFormatLower === 'markdown'
-          ? '.md'
-          : '.txt';
-
-      // Use exact video filename with new extension (no timestamp, no underscore)
-      const outputFileName = `${inputBaseName}${outputExtension}`;
-      const outputPath = path.join(inputDir, outputFileName); // Save in same directory as video
-
-      // Send conversion start status
-      event.sender.send(`ytdlp:download:status:${downloadId}`, {
-        type: 'conversion',
-        data: {
-          status: 'converting',
-          format: targetFormat,
-          log: `Starting CC to ${targetFormat} conversion...`,
-        },
-      });
-
-      // For text formats, we delegate to the plugin system but provide the correct output path
-      // The plugin should use the calculated outputPath to save in the video directory
-      try {
-        // Call the CC to Markdown plugin or create the file directly
-        const conversionResult = await handleTextFormatConversion(
-          inputPath,
-          outputPath,
-          targetFormat,
-          downloadId,
-          event,
-          saveToCustomLocation || false,
-        );
-
-        if (conversionResult.success) {
-          event.sender.send(`ytdlp:download:status:${downloadId}`, {
-            type: 'conversion',
-            data: {
-              status: 'conversion_complete',
-              format: targetFormat,
-              outputPath: conversionResult.outputPath,
-              log: `CC to ${targetFormat} conversion completed successfully. File saved in video directory.`,
-            },
-          });
-
-          return conversionResult;
-        } else {
-          throw new Error(
-            conversionResult.error || 'Text format conversion failed',
-          );
-        }
-      } catch (error) {
-        event.sender.send(`ytdlp:download:status:${downloadId}`, {
-          type: 'conversion',
-          data: {
-            status: 'conversion_failed',
-            format: targetFormat,
-            error: error.message,
-            log: `CC to ${targetFormat} conversion failed: ${error.message}`,
-          },
-        });
-
-        throw error;
-      }
-    }
-
-    // For video formats, continue with FFmpeg conversion
-    // Get FFmpeg path (only needed for video conversions)
-    const ffmpegPath = getFfmpegBinaryPath();
-    if (!fs.existsSync(ffmpegPath)) {
-      throw new Error('FFmpeg binary not found');
-    }
-
-    // Generate output path - create a single FormatConverter directory for video formats
-    const outputExtension =
-      targetFormatLower === 'mp3'
-        ? '.mp3'
-        : targetFormatLower === 'mp4'
-        ? '.mp4'
-        : targetFormatLower === 'mov'
-        ? '.mov'
-        : targetFormatLower === 'avi'
-        ? '.avi'
-        : targetFormatLower === 'mkv'
-        ? '.mkv'
-        : '.mp4';
-
-    // Check if we're already in a FormatConverter directory to prevent nesting
-    const parentDirName = path.basename(inputDir);
-    const formatConverterDir =
-      parentDirName === 'FormatConverter'
-        ? inputDir // Use the current directory if it's already FormatConverter
-        : path.join(inputDir, 'FormatConverter'); // Create new FormatConverter subdirectory
-
-    // Ensure the FormatConverter directory exists
-    if (!fs.existsSync(formatConverterDir)) {
-      fs.mkdirSync(formatConverterDir, { recursive: true });
-    }
-
-    // Generate unique filename to avoid conflicts
-    const timestamp = new Date().getTime();
-    const outputFileName = `${inputBaseName}_${targetFormatLower}_${timestamp}${outputExtension}`;
-    const outputPath = path.join(formatConverterDir, outputFileName);
-
-    // Build FFmpeg command based on target format
-    const ffmpegArgs = ['-i', inputPath];
-
-    switch (targetFormatLower) {
-      case 'mp3':
-        ffmpegArgs.push('-vn', '-acodec', 'libmp3lame', '-ab', '192k');
-        break;
-      case 'mp4':
-        ffmpegArgs.push('-c:v', 'libx264', '-c:a', 'aac', '-preset', 'medium');
-        break;
-      case 'mov':
-        ffmpegArgs.push('-c:v', 'libx264', '-c:a', 'aac');
-        break;
-      case 'avi':
-        ffmpegArgs.push('-c:v', 'libx264', '-c:a', 'libmp3lame');
-        break;
-      case 'mkv':
-        ffmpegArgs.push('-c:v', 'libx264', '-c:a', 'aac');
-        break;
-      default:
-        throw new Error(`Unsupported format: ${targetFormat}`);
-    }
-
-    // Add output path and overwrite flag
-    ffmpegArgs.push('-y', outputPath);
-
-    console.log(`🎬 FFmpeg command: ${ffmpegPath} ${ffmpegArgs.join(' ')}`);
-
-    // Execute FFmpeg conversion
-    const { spawn } = require('child_process'); // eslint-disable-line @typescript-eslint/no-var-requires
-    const conversionProcess = spawn(ffmpegPath, ffmpegArgs);
-
-    // Store the conversion process for pause/resume functionality
-    conversionProcesses.set(downloadId, {
-      process: conversionProcess,
-      options,
-      isPaused: false,
-      inputPath,
-      outputPath,
-    });
-
-    return new Promise((resolve, reject) => {
-      let errorOutput = '';
-      let lastOutput = '';
-
-      // Send conversion start status
-      event.sender.send(`ytdlp:download:status:${downloadId}`, {
-        type: 'conversion',
-        data: {
-          status: 'converting',
-          format: targetFormat,
-          log: `Starting conversion to ${targetFormat}...`,
-        },
-      });
-
-      conversionProcess.stderr.on('data', (data: Buffer) => {
-        const output = data.toString();
-        errorOutput += output;
-        lastOutput = output;
-
-        // Send progress updates if available
-        event.sender.send(`ytdlp:download:status:${downloadId}`, {
-          type: 'conversion',
-          data: {
-            status: 'converting',
-            format: targetFormat,
-            log: `Converting: ${output.trim()}`,
-          },
-        });
-      });
-
-      conversionProcess.on('close', (code: number | null) => {
-        // Check if conversion was paused before cleanup
-        const conversionData = conversionProcesses.get(downloadId);
-        if (conversionData && conversionData.isPaused) {
-          console.log(`⏸️ Conversion process closed but was paused - keeping process data for resume`);
-          return; // Don't clean up, don't resolve - keep process available for resume
-        }
-
-        if (code === 0) {
-          console.log(`✅ Conversion completed successfully!`);
-          console.log(`📁 Output location: ${outputPath}`);
-
-          // Send completion status
-          event.sender.send(`ytdlp:download:status:${downloadId}`, {
-            type: 'conversion',
-            data: {
-              status: 'conversion_complete',
-              format: targetFormat,
-              outputPath: outputPath,
-              log: `Conversion to ${targetFormat} completed successfully. File saved to FormatConverter folder.`,
-            },
-          });
-
-          // Remove original file if not keeping it
-          if (!keepOriginal) {
-            try {
-              fs.unlinkSync(inputPath);
-              console.log(`🗑️ Removed original file: ${inputPath}`);
-            } catch (unlinkError) {
-              console.warn(
-                `⚠️ Could not remove original file: ${unlinkError.message}`,
-              );
-            }
-          }
-
-          // Clean up the stored process
-          conversionProcesses.delete(downloadId);
-          
-          resolve({
-            success: true,
-            outputPath: outputPath,
-          });
-        } else {
-          console.error(`❌ Conversion failed with exit code ${code}`);
-          console.error(`Error output: ${errorOutput}`);
-
-          const errorMessage =
-            errorOutput || lastOutput || `Process exited with code ${code}`;
-
-          // Send failure status
-          event.sender.send(`ytdlp:download:status:${downloadId}`, {
-            type: 'conversion',
-            data: {
-              status: 'conversion_failed',
-              format: targetFormat,
-              error: errorMessage,
-              log: `Conversion to ${targetFormat} failed: ${errorMessage}`,
-            },
-          });
-
-          // Clean up the stored process
-          conversionProcesses.delete(downloadId);
-          
-          reject(new Error(errorMessage));
-        }
-      });
-
-      conversionProcess.on('error', (error: Error) => {
-        // Check if conversion was paused before cleanup
-        const conversionData = conversionProcesses.get(downloadId);
-        if (conversionData && conversionData.isPaused) {
-          console.log(`⏸️ Conversion process error but was paused - keeping process data for resume`);
-          return; // Don't clean up, don't reject - keep process available for resume
-        }
-
-        console.error(`❌ Conversion process error: ${error.message}`);
-
-        // Send failure status
-        event.sender.send(`ytdlp:download:status:${downloadId}`, {
-          type: 'conversion',
-          data: {
-            status: 'conversion_failed',
-            format: targetFormat,
-            error: error.message,
-            log: `Conversion to ${targetFormat} failed: ${error.message}`,
-          },
-        });
-
-        // Clean up the stored process
-        conversionProcesses.delete(downloadId);
-        
-        reject(error);
-      });
-    });
-  } catch (error) {
-    console.error(`❌ Conversion setup error: ${error.message}`);
-
-    // Send failure status
-    event.sender.send(`ytdlp:download:status:${downloadId}`, {
-      type: 'conversion',
-      data: {
-        status: 'conversion_failed',
-        format: targetFormat,
-        error: error.message,
-        log: `Conversion to ${targetFormat} failed: ${error.message}`,
-      },
-    });
-
-    // Clean up the stored process on setup error
-    conversionProcesses.delete(downloadId);
-
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
-});
-
-// Handler to pause conversion
-ipcMain.handle('pause-conversion', async (event, downloadId) => {
-  try {
-    const conversionData = conversionProcesses.get(downloadId);
-    if (!conversionData) {
-      return { success: false, error: 'Conversion process not found' };
-    }
-
-    if (conversionData.isPaused) {
-      return { success: true, message: 'Conversion already paused' };
-    }
-
-    // Pause the FFmpeg process using SIGSTOP
-    if (conversionData.process && !conversionData.process.killed) {
-      conversionData.process.kill('SIGSTOP');
-      conversionData.isPaused = true;
-      
-      console.log(`⏸️ Conversion paused for download ${downloadId}`);
-      
-      // Send pause status to renderer
-      event.sender.send(`ytdlp:download:status:${downloadId}`, {
-        type: 'conversion',
-        data: {
-          status: 'paused',
-          format: conversionData.options.targetFormat,
-          log: `Conversion paused by user`,
-        },
-      });
-
-      return { success: true, message: 'Conversion paused' };
-    }
-
-    return { success: false, error: 'Process not available for pausing' };
-  } catch (error) {
-    console.error(`❌ Error pausing conversion: ${error.message}`);
-    return { success: false, error: error.message };
-  }
-});
-
-// Handler to resume conversion
-ipcMain.handle('resume-conversion', async (event, downloadId) => {
-  try {
-    const conversionData = conversionProcesses.get(downloadId);
-    if (!conversionData) {
-      // If no process found, this might be a conversion that was paused and needs to restart
-      console.log(`⚠️ No conversion process found for ${downloadId}, might need to restart conversion`);
-      return { success: false, error: 'Conversion process not found - may need to restart conversion' };
-    }
-
-    if (!conversionData.isPaused) {
-      return { success: true, message: 'Conversion is not paused' };
-    }
-
-    // Resume the FFmpeg process using SIGCONT
-    if (conversionData.process && !conversionData.process.killed) {
-      conversionData.process.kill('SIGCONT');
-      conversionData.isPaused = false;
-      
-      console.log(`▶️ Conversion resumed for download ${downloadId}`);
-      
-      // Send resume status to renderer
-      event.sender.send(`ytdlp:download:status:${downloadId}`, {
-        type: 'conversion',
-        data: {
-          status: 'converting',
-          format: conversionData.options.targetFormat,
-          log: `Conversion resumed by user`,
-        },
-      });
-
-      return { success: true, message: 'Conversion resumed' };
-    }
-
-    return { success: false, error: 'Process not available for resuming' };
-  } catch (error) {
-    console.error(`❌ Error resuming conversion: ${error.message}`);
-    return { success: false, error: error.message };
-  }
-});
-
-// Handler to stop/cancel conversion
-ipcMain.handle('stop-conversion', async (event, downloadId) => {
-  try {
-    const conversionData = conversionProcesses.get(downloadId);
-    if (!conversionData) {
-      return { success: false, error: 'Conversion process not found' };
-    }
-
-    // Kill the FFmpeg process
-    if (conversionData.process && !conversionData.process.killed) {
-      conversionData.process.kill('SIGTERM');
-      
-      console.log(`🛑 Conversion stopped for download ${downloadId}`);
-      
-      // Send stop status to renderer
-      event.sender.send(`ytdlp:download:status:${downloadId}`, {
-        type: 'conversion',
-        data: {
-          status: 'conversion_failed',
-          format: conversionData.options.targetFormat,
-          error: 'Conversion cancelled by user',
-          log: `Conversion cancelled by user`,
-        },
-      });
-
-      // Clean up the stored process
-      conversionProcesses.delete(downloadId);
-
-      return { success: true, message: 'Conversion stopped' };
-    }
-
-    return { success: false, error: 'Process not available for stopping' };
-  } catch (error) {
-    console.error(`❌ Error stopping conversion: ${error.message}`);
-    return { success: false, error: error.message };
-  }
 });
 
 // handler to get operating system type

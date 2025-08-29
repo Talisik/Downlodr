@@ -167,7 +167,8 @@ export async function testCustomPlaylistInfo() {
 
   const testUrl =
     'https://youtube.com/playlist?list=PLFt_AvWsXl0eBW2EiBtl_sxmDtSgZBxB3';
-  const ytdlpPath = './yt-dlp_macos';
+  // Use the proper path from environment or fallback
+  const ytdlpPath = process.env.YTDLP_PATH || './yt-dlp_macos';
   const ffmpegPath = '/opt/homebrew/bin/ffmpeg';
 
   const result = await getPlaylistInfo({

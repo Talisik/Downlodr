@@ -9,9 +9,9 @@
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { getExtractorIcon } from '@/DataFunctions/IconMapper';
 import useDownloadStore from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
+import { getExtractorIcon } from '@/Utils/Icons/IconMapper';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { HiChevronUpDown } from 'react-icons/hi2';
@@ -152,10 +152,20 @@ const History = () => {
         // If file doesn't exist, just remove from history
         deleteDownload(id);
       }
+      // Reset selections after deletion
+      setSelectedItems((prev) => prev.filter((itemId) => itemId !== id));
+      setHoveredVideo(null);
+      toast({
+        variant: 'success',
+        title: 'Download Log Deleted',
+        description: 'Your download log has been deleted successfully',
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Error deleting:', error);
       // If any error occurs, at least try to remove from history
       deleteDownload(id);
+      setSelectedItems((prev) => prev.filter((itemId) => itemId !== id));
     }
   };
   // handle state of checkboxes when all of them are checked
@@ -183,32 +193,44 @@ const History = () => {
   // handle delete selected download
   const handleDeleteSelected = async () => {
     const failedToDelete = [];
+    const deletedCount = selectedItems.length;
     try {
       for (const id of selectedItems) {
         const video = logs.find((product) => product.id === String(id));
         if (video) {
-          setSelectedRowIds([]);
-          setSelectedDownloads([]);
           deleteDownload(video.id);
-          toast({
-            variant: 'success',
-            title: 'Download Log Deleted',
-            description: 'Your download log has been deleted successfully',
-            duration: 3000,
-          });
         } else {
-          failedToDelete.push(video.name);
+          failedToDelete.push(`ID: ${id}`);
         }
       }
+
+      // Clear all selections after bulk deletion
+      setSelectedItems([]);
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
+      setAllChecked(false);
+
       if (failedToDelete.length > 0) {
         setErrorTitle('Deletion Error');
         setErrorMessage(`Failed to delete: ${failedToDelete.join(', ')}`);
         setErrorVisible(true);
+      } else {
+        toast({
+          variant: 'success',
+          title: 'Download Logs Deleted',
+          description: `${deletedCount} download log${
+            deletedCount !== 1 ? 's' : ''
+          } deleted successfully`,
+          duration: 3000,
+        });
       }
-      setSelectedItems([]); // Clear selected items after deletion
-      setSelectedDownloads([]);
     } catch (error) {
       console.error('Error deleting selected files:', error);
+      // Still clear selections even on error
+      setSelectedItems([]);
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
+      setAllChecked(false);
     }
   };
 
@@ -281,122 +303,132 @@ const History = () => {
   };
 
   return (
-    <div className="w-full p-1">
+    <div className="flex flex-col h-full p-1">
       {renderDeleteButton()}
-      <table className="w-full">
-        <thead>
-          <tr className="border-b text-left dark:border-gray-700">
-            <th className="w-8 p-2">
-              <input
-                type="checkbox"
-                className="rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                checked={
-                  logs.length > 0 && selectedItems.length === logs.length
-                }
-                onChange={handleAllCheckboxChange}
-              />
-            </th>
-            <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
-              Name
-            </th>
-            <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
-              <div
-                className="flex items-center gap-1 cursor-pointer"
-                onClick={handleSortClick}
-              >
-                Date Added
-                <HiChevronUpDown className="h-4 w-4" />
-              </div>
-            </th>
-            <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
-              Source
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedlogs.map((product) => (
-            <tr
-              key={product.id}
-              className={`border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-darkModeHover cursor-pointer
+      <div className="flex-grow overflow-auto relative">
+        <div className="min-w-full">
+          <table className="w-full">
+            <thead className="sticky top-0 z-20 b bg-white dark:bg-darkMode">
+              <tr className="sticky top-0 border-b text-left border-gray-200 dark:border-darkModeCompliment">
+                <th className="w-8 p-2">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                    checked={
+                      logs.length > 0 && selectedItems.length === logs.length
+                    }
+                    onChange={handleAllCheckboxChange}
+                  />
+                </th>
+                <th className="relative p-2 font-semibold dark:text-gray-200 select-none gap-2">
+                  Name
+                  {selectedItems.length > 0 && (
+                    <span className="text-xs ml-2">
+                      ({selectedItems.length} item
+                      {selectedItems.length !== 1 ? 's' : ''} selected)
+                    </span>
+                  )}
+                </th>
+                <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={handleSortClick}
+                  >
+                    Date Added
+                    <HiChevronUpDown className="h-4 w-4" />
+                  </div>
+                </th>
+                <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
+                  Source
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedlogs.map((product) => (
+                <tr
+                  key={product.id}
+                  className={`border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-darkModeHover cursor-pointer
                 ${
                   selectedItems.length === 1 &&
                   selectedItems.includes(product.id)
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'
                 }`}
-              onContextMenu={(e) => handleRowClick(e, product)}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCheckboxChange(product.id);
-              }}
-            >
-              <td className="w-8 p-2">
-                <input
-                  type="checkbox"
-                  checked={selectedItems.includes(product.id)}
-                  onChange={(e) => {
+                  onContextMenu={(e) => handleRowClick(e, product)}
+                  onClick={(e) => {
                     e.stopPropagation();
                     handleCheckboxChange(product.id);
                   }}
-                  className="rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                />
-              </td>
-              <td className="p-2 dark:text-gray-200 w-3/6">
-                <div className="line-clamp-2 break-words flex justify-start items-start">
-                  <div>
-                    <TooltipWrapper
-                      content={product.name}
-                      side="bottom"
-                      contentClassname="text-start justify-start"
-                    >
+                >
+                  <td className="w-8 p-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(product.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleCheckboxChange(product.id);
+                      }}
+                      className="rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                    />
+                  </td>
+                  <td className="p-2 dark:text-gray-200 w-3/6">
+                    <div className="line-clamp-2 break-words flex justify-start items-start">
                       <div>
-                        <span
-                          className={`${
-                            fileExistsMap[product.id]
-                              ? 'text-gray-700 dark:text-gray-200'
-                              : 'line-through text-gray-400 dark:text-gray-500'
-                          } line-clamp-1 break-words break-all font-medium`}
+                        <TooltipWrapper
+                          content={product.name}
+                          side="bottom"
+                          contentClassname="text-start justify-start"
                         >
-                          {product.name}
-                        </span>
-                      </div>
-                    </TooltipWrapper>
+                          <div>
+                            <span
+                              className={`${
+                                fileExistsMap[product.id]
+                                  ? 'text-gray-700 dark:text-gray-200'
+                                  : 'line-through text-gray-400 dark:text-gray-500'
+                              } line-clamp-1 break-words break-all font-medium`}
+                            >
+                              {product.name}
+                            </span>
+                          </div>
+                        </TooltipWrapper>
 
-                    <div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {product.channelName}
-                      </span>
+                        <div>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {product.channelName}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </td>
-              <td className="p-4 text-gray-500 dark:text-gray-400">
-                {new Date(product.DateAdded).toLocaleDateString()}
-              </td>
-              <td className="p-4">
-                <div className="line-clamp-2 break-words flex justify-start items-start text-lg">
-                  <TooltipWrapper
-                    content={product.extractorKey}
-                    side="bottom"
-                    contentClassname="text-start justify-start"
-                  >
-                    <a
-                      onClick={() =>
-                        window.downlodrFunctions.openExternalLink(
-                          product.videoUrl,
-                        )
-                      }
-                      className="hover:underline cursor-pointer"
-                    >
-                      {getExtractorIcon(product.extractorKey)}
-                    </a>
-                  </TooltipWrapper>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                  </td>
+                  <td className="p-4 text-gray-500 dark:text-gray-400">
+                    {new Date(product.DateAdded).toLocaleDateString()}
+                  </td>
+                  <td className="p-4">
+                    <div className="line-clamp-2 break-words flex justify-start items-start text-lg">
+                      <TooltipWrapper
+                        content={product.extractorKey}
+                        side="bottom"
+                        contentClassname="text-start justify-start"
+                      >
+                        <a
+                          onClick={() =>
+                            window.downlodrFunctions.openExternalLink(
+                              product.videoUrl,
+                            )
+                          }
+                          className="hover:underline cursor-pointer"
+                        >
+                          {getExtractorIcon(product.extractorKey)}
+                        </a>
+                      </TooltipWrapper>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {hoveredVideo && (
         <div
