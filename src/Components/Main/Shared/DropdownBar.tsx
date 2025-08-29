@@ -18,7 +18,7 @@ import AdvancedSettingsModal from '@/Components/Main/Modal/AdvancedSettingsModal
 import HelpModal from '@/Components/Main/Modal/HelpModal';
 import SettingsModal from '@/Components/Main/Modal/SettingsModal';
 import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { DownloadItem } from '@/schema/componentSchema';
+import { DownloadItem } from '@/Schema/componentSchema';
 import useDownloadStore, { HistoryDownloads } from '@/Store/downloadStore';
 import { useTaskbarDownloadStore } from '@/Store/taskbarDownloadStore';
 import { useEffect, useRef, useState } from 'react';

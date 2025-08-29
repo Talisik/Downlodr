@@ -105,11 +105,13 @@ const App = () => {
       if (window.updateAPI.onYtdlpAutoUpdated) {
         const removeYtdlpUpdated = window.updateAPI.onYtdlpAutoUpdated(
           (updateInfo) => {
+            /*
             toast({
               title: 'YT-DLP Updated Successfully',
               description: updateInfo.message,
               duration: 5000,
             });
+            */
           },
         );
         removeListeners.push(removeYtdlpUpdated);
@@ -119,11 +121,13 @@ const App = () => {
       if (window.updateAPI.onYtdlpAutoInstalled) {
         const removeYtdlpInstalled = window.updateAPI.onYtdlpAutoInstalled(
           (installInfo) => {
+            /*
             toast({
               title: 'YT-DLP Installed Successfully',
               description: installInfo.message,
               duration: 5000,
             });
+            */
           },
         );
         removeListeners.push(removeYtdlpInstalled);

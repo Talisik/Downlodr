@@ -152,10 +152,20 @@ const History = () => {
         // If file doesn't exist, just remove from history
         deleteDownload(id);
       }
+      // Reset selections after deletion
+      setSelectedItems((prev) => prev.filter((itemId) => itemId !== id));
+      setHoveredVideo(null);
+      toast({
+        variant: 'success',
+        title: 'Download Log Deleted',
+        description: 'Your download log has been deleted successfully',
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Error deleting:', error);
       // If any error occurs, at least try to remove from history
       deleteDownload(id);
+      setSelectedItems((prev) => prev.filter((itemId) => itemId !== id));
     }
   };
   // handle state of checkboxes when all of them are checked
@@ -183,32 +193,44 @@ const History = () => {
   // handle delete selected download
   const handleDeleteSelected = async () => {
     const failedToDelete = [];
+    const deletedCount = selectedItems.length;
     try {
       for (const id of selectedItems) {
         const video = logs.find((product) => product.id === String(id));
         if (video) {
-          setSelectedRowIds([]);
-          setSelectedDownloads([]);
           deleteDownload(video.id);
-          toast({
-            variant: 'success',
-            title: 'Download Log Deleted',
-            description: 'Your download log has been deleted successfully',
-            duration: 3000,
-          });
         } else {
-          failedToDelete.push(video.name);
+          failedToDelete.push(`ID: ${id}`);
         }
       }
+
+      // Clear all selections after bulk deletion
+      setSelectedItems([]);
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
+      setAllChecked(false);
+
       if (failedToDelete.length > 0) {
         setErrorTitle('Deletion Error');
         setErrorMessage(`Failed to delete: ${failedToDelete.join(', ')}`);
         setErrorVisible(true);
+      } else {
+        toast({
+          variant: 'success',
+          title: 'Download Logs Deleted',
+          description: `${deletedCount} download log${
+            deletedCount !== 1 ? 's' : ''
+          } deleted successfully`,
+          duration: 3000,
+        });
       }
-      setSelectedItems([]); // Clear selected items after deletion
-      setSelectedDownloads([]);
     } catch (error) {
       console.error('Error deleting selected files:', error);
+      // Still clear selections even on error
+      setSelectedItems([]);
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
+      setAllChecked(false);
     }
   };
 
@@ -298,8 +320,14 @@ const History = () => {
                     onChange={handleAllCheckboxChange}
                   />
                 </th>
-                <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
+                <th className="relative p-2 font-semibold dark:text-gray-200 select-none gap-2">
                   Name
+                  {selectedItems.length > 0 && (
+                    <span className="text-xs ml-2">
+                      ({selectedItems.length} item
+                      {selectedItems.length !== 1 ? 's' : ''} selected)
+                    </span>
+                  )}
                 </th>
                 <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
                   <div

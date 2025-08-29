@@ -62,7 +62,7 @@
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { useMainStore } from '@/Store/mainStore'; //  import
 import { downloadEnglishCaptions } from '@/Utils/Metadata/captionsHelper';
-import { VideoFormatService } from '@/Utils/Metadata/GetDownloadMetaData';
+import { VideoFormatService } from '@/Utils/Metadata/getDownloadMetaData';
 import { TelemetryService } from '@/Utils/Telemetry/telemetryService';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -70,6 +70,7 @@ import {
   createIndexedDBStorageWithMigration,
   IndexedDBStorageAdapter,
 } from '../Utils/indexedDBStorage';
+import { selectOptimalCaption } from '@/Utils/Metadata/languageHelper';
 
 // Debounced storage adapter to reduce write frequency during rapid updates
 const createDebouncedStorage = (baseStorage: any, debounceMs = 500) => {
@@ -466,6 +467,7 @@ class DownloadController {
 
     if (download.isCreateFolder) {
       if (download.automaticCaption && download.getTranscript) {
+        console.log(download.automaticCaption);
         captionsPath = await downloadEnglishCaptions(
           download.automaticCaption,
           zustandLocation,
@@ -1689,25 +1691,32 @@ const useDownloadStore = create<DownloadStore>()(
 
           // Get channel name from info
           const channelName = info.data?.channel || info.data?.uploader || '';
-
+          const subtitles = info.data?.subtitles;
+          const automaticCaptions = info.data?.automatic_captions;
           // Only set caption if transcript is requested
           let caption = '—';
           if (options.getTranscript) {
-            const subtitles = info.data?.subtitles;
-            const automaticCaptions = info.data?.automatic_captions;
+            const caption2 = selectOptimalCaption(subtitles, automaticCaptions);
 
+            if (caption2) {
+              console.log(
+                `Selected: ${caption2.languageName} (${caption2.source})`,
+              );
+              console.log(`Original language: ${caption2.isOriginal}`);
+              // Use selectedCaption.caption.url for download
+            }
             // Get first available language from subtitles (excluding live_chat)
-            if (subtitles) {
+            if (caption2.source === 'subtitle' && subtitles) {
               const availableLanguages = Object.keys(subtitles).filter(
                 (lang) => lang !== 'live_chat',
               );
               if (availableLanguages.length > 0) {
-                caption = subtitles[availableLanguages[0]];
+                caption = subtitles[caption2.languageCode];
               }
             }
 
             // If no manual subtitles, try automatic captions
-            if (caption === '—' && automaticCaptions) {
+            if (caption2.source === 'automatic' && automaticCaptions) {
               const availableLanguages = Object.keys(automaticCaptions);
 
               // First, try to find original language captions (containing "orig")

@@ -28,7 +28,7 @@ import * as YTDLP from 'yt-dlp-helper';
 import { checkForUpdates } from './Utils/Data/updateChecker';
 import { PluginManager } from './plugins/pluginManager';
 import { pluginRegistry } from './plugins/registry';
-import { DownloadOptions } from './schema/ytdlp';
+import { DownloadOptions } from './Schema/ytdlp';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {

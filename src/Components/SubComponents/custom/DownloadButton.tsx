@@ -11,7 +11,7 @@
 
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { AddDownload } from '@/schema/download';
+import { AddDownload } from '@/Schema/download';
 import useDownloadStore from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import { processFileName } from '@/Utils/Data/FilterName';
