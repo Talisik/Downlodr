@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="8b6462f3-0a6a-4dc1-b11a-554b96d29cfa" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/BUILD_SYSTEM_README.md" beforeDir="false" afterPath="$PROJECT_DIR$/BUILD_SYSTEM_README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binaries/ffmpeg-arm64" beforeDir="false" afterPath="$PROJECT_DIR$/binaries/ffmpeg-arm64" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/forge.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/forge.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/build-with-create-dmg-intel.sh" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/build-with-create-dmg-intel.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/build-with-create-dmg.sh" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/build-with-create-dmg.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Components/Main/Modal/TelemetryConsentModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/Components/Main/Modal/TelemetryConsentModal.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Components/SubComponents/custom/DownloadList.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/Components/SubComponents/custom/DownloadList.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Components/SubComponents/custom/FfmpegStatus.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/Components/SubComponents/custom/FfmpegStatus.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/DataFunctions/GetDownloadMetaData.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/DataFunctions/GetDownloadMetaData.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Store/downloadStore.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/Store/downloadStore.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Store/mainStore.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/Store/mainStore.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/global.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/global.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/plugins/components/PluginTaskBarExtension.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/plugins/components/PluginTaskBarExtension.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/preload.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/preload.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/yarn.lock" beforeDir="false" afterPath="$PROJECT_DIR$/yarn.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/yt-dlp_macos" beforeDir="false" afterPath="$PROJECT_DIR$/yt-dlp_macos" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="32KBvTF8eF1hssB7k0FziMZgbaa" />
+  <component name="ProjectViewState">
+    <option name="autoscrollFromSource" value="true" />
+    <option name="autoscrollToSource" value="true" />
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="openDirectoriesWithSingleClick" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "feature/macos-build-stable",
+    "last_opened_file_path": "/Users/erickluna/Cloud_Repo/Downlodr",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "yarn",
+    "prettierjs.PrettierConfiguration.Package": "/Users/erickluna/Cloud_Repo/Downlodr/node_modules/prettier",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "ts.external.directory.path": "/Users/erickluna/Cloud_Repo/Downlodr/node_modules/typescript/lib",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-b598e85cdad2-JavaScript-WS-252.25557.126" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="8b6462f3-0a6a-4dc1-b11a-554b96d29cfa" name="Changes" comment="" />
+      <created>1757159614479</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1757159614479</updated>
+      <workItem from="1757159615794" duration="94000" />
+      <workItem from="1757159717280" duration="7103000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

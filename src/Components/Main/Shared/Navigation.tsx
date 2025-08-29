@@ -256,7 +256,7 @@ const Navigation = ({
               className={`w-full flex items-center ${
                 collapsed
                   ? 'justify-center'
-                  : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 p-2'
+                  : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 px-2 py-1.5 mb-1.5'
               } `}
             >
               <div
@@ -522,7 +522,7 @@ const Navigation = ({
               className={`w-full flex items-center ${
                 collapsed
                   ? 'justify-center'
-                  : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 p-2'
+                  : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 px-2 py-1.5 mb-1.5'
               } `}
             >
               <div
@@ -624,7 +624,7 @@ const Navigation = ({
               className={`w-full flex items-center ${
                 collapsed
                   ? 'justify-center'
-                  : 'p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 '
+                  : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 px-2 py-1.5 mb-1.5'
               }`}
             >
               <div

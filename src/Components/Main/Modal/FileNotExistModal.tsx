@@ -2,7 +2,7 @@
  * A modal component displayed when downloaded files don't exist at their expected location.
  * Provides options to either redownload the video(s) or delete the download log(s).
  */
-import { FileNotExistModalProps } from '@/schema/componentSchema';
+import { FileNotExistModalProps } from '@/Schema/componentSchema';
 import React from 'react';
 import { IoMdClose } from 'react-icons/io';
 import { processFileName } from '../../../DataFunctions/FilterName';
