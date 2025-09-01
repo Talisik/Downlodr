@@ -139,6 +139,7 @@ export async function downloadEnglishCaptions(
   fileName: string,
 ): Promise<string | undefined> {
   try {
+    console.log(videoInfo);
     // Check if automatic captions exist
     if (!videoInfo) {
       return undefined;
@@ -156,16 +157,61 @@ export async function downloadEnglishCaptions(
     }
 
     // Find the VTT format (preferred) or fallback to others in order of preference
-    const formatPreference = ['vtt', 'ttml', 'srv3', 'srv2', 'srv1', 'json3'];
-    let selectedCaption = undefined;
+    const formatPreference = [
+      'srt',
+      'vtt',
+      'ttml',
+      'srv3',
+      'srv2',
+      'srv1',
+      'json3',
+    ];
 
+    // Normalize helpers
+    const includesWord = (text: string, words: string[]) =>
+      words.some((w) => text.toLowerCase().includes(w.toLowerCase()));
+
+    let selectedCaption: CaptionInfo | undefined;
+
+    // 1. Look for "original" variations
     for (const format of formatPreference) {
+      console.log(captionsData);
       selectedCaption = captionsData.find(
-        (caption: CaptionInfo) => caption.ext === format,
+        (caption) =>
+          caption.ext === format &&
+          includesWord(caption.name?.toLowerCase() || '', [
+            'original',
+            'orig',
+            '(original)',
+            '(orig)',
+          ]),
       );
       if (selectedCaption) break;
     }
 
+    // 2. Look for English/en variations
+    if (!selectedCaption) {
+      for (const format of formatPreference) {
+        selectedCaption = captionsData.find(
+          (caption) =>
+            caption.ext === format &&
+            includesWord(caption.name || '', ['english', 'en']),
+        );
+        if (selectedCaption) break;
+      }
+    }
+
+    // 3. Fallback: just take the first caption available by format preference
+    if (!selectedCaption) {
+      for (const format of formatPreference) {
+        selectedCaption = captionsData.find(
+          (caption) => caption.ext === format,
+        );
+        if (selectedCaption) break;
+      }
+    }
+
+    // 4. If still nothing, return undefined
     if (!selectedCaption) {
       return undefined;
     }
