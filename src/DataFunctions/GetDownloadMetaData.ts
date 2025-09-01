@@ -412,6 +412,14 @@ export class VideoFormatService {
   public static async processVideoFormats(
     info: VideoInfo,
   ): Promise<ProcessedFormats> {
+    console.log(
+      '🔍 VideoFormatService.processVideoFormats - info object:',
+      info,
+    );
+    console.log(
+      '🔍 VideoFormatService.processVideoFormats - info.data:',
+      info.data,
+    );
     const formatsArray = info.data.formats || [];
     const extractorKey = info.data.extractor_key;
     const defaultFormat = info.data.format_id;

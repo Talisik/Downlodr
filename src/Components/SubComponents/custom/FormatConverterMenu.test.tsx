@@ -7,7 +7,9 @@ import { useMainStore } from '@/Store/mainStore';
 jest.mock('@/Store/mainStore');
 jest.mock('@/Components/SubComponents/shadcn/hooks/use-toast');
 
-const mockUseMainStore = useMainStore as jest.MockedFunction<typeof useMainStore>;
+const mockUseMainStore = useMainStore as jest.MockedFunction<
+  typeof useMainStore
+>;
 
 describe('FormatConverterMenu', () => {
   const mockOnConvert = jest.fn();
@@ -20,7 +22,7 @@ describe('FormatConverterMenu', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Mock store state
     mockUseMainStore.mockImplementation((selector) => {
       const mockState = {
@@ -28,8 +30,8 @@ describe('FormatConverterMenu', () => {
           {
             id: 'test-download-1',
             name: 'Test Video.mp4',
-            location: '/path/to/Test Video.mp4'
-          }
+            location: '/path/to/Test Video.mp4',
+          },
         ],
         clearAllSelections: mockClearAllSelections,
       };
@@ -44,11 +46,11 @@ describe('FormatConverterMenu', () => {
   describe('Format Options', () => {
     it('should include text formats in the format list', () => {
       render(<FormatConverterMenu {...defaultProps} />);
-      
+
       // Check that text formats are available
       const formatSelect = screen.getByRole('combobox');
       fireEvent.click(formatSelect);
-      
+
       expect(screen.getByText('TXT')).toBeInTheDocument();
       expect(screen.getByText('DOCX')).toBeInTheDocument();
       expect(screen.getByText('MD')).toBeInTheDocument();
@@ -56,10 +58,10 @@ describe('FormatConverterMenu', () => {
 
     it('should include traditional video formats', () => {
       render(<FormatConverterMenu {...defaultProps} />);
-      
+
       const formatSelect = screen.getByRole('combobox');
       fireEvent.click(formatSelect);
-      
+
       expect(screen.getByText('MP4')).toBeInTheDocument();
       expect(screen.getByText('MP3')).toBeInTheDocument();
       expect(screen.getByText('MOV')).toBeInTheDocument();
@@ -71,63 +73,63 @@ describe('FormatConverterMenu', () => {
   describe('CC to Markdown Conversion', () => {
     it('should handle TXT format conversion', async () => {
       render(<FormatConverterMenu {...defaultProps} />);
-      
+
       // Select TXT format
       const formatSelect = screen.getByRole('combobox');
       fireEvent.click(formatSelect);
       fireEvent.click(screen.getByText('TXT'));
-      
+
       // Click convert button
       const convertButton = screen.getByText('Convert');
       fireEvent.click(convertButton);
-      
+
       await waitFor(() => {
         expect(mockOnConvert).toHaveBeenCalledWith(
           'test-download-1',
           'TXT',
-          false
+          false,
         );
       });
     });
 
     it('should handle DOCX format conversion', async () => {
       render(<FormatConverterMenu {...defaultProps} />);
-      
+
       // Select DOCX format
       const formatSelect = screen.getByRole('combobox');
       fireEvent.click(formatSelect);
       fireEvent.click(screen.getByText('DOCX'));
-      
+
       // Click convert button
       const convertButton = screen.getByText('Convert');
       fireEvent.click(convertButton);
-      
+
       await waitFor(() => {
         expect(mockOnConvert).toHaveBeenCalledWith(
           'test-download-1',
           'DOCX',
-          false
+          false,
         );
       });
     });
 
     it('should handle Markdown format conversion', async () => {
       render(<FormatConverterMenu {...defaultProps} />);
-      
+
       // Select MD format
       const formatSelect = screen.getByRole('combobox');
       fireEvent.click(formatSelect);
       fireEvent.click(screen.getByText('MD'));
-      
+
       // Click convert button
       const convertButton = screen.getByText('Convert');
       fireEvent.click(convertButton);
-      
+
       await waitFor(() => {
         expect(mockOnConvert).toHaveBeenCalledWith(
           'test-download-1',
           'MD',
-          false
+          false,
         );
       });
     });
@@ -136,25 +138,25 @@ describe('FormatConverterMenu', () => {
   describe('Keep Original File Option', () => {
     it('should respect keep original setting for text formats', async () => {
       render(<FormatConverterMenu {...defaultProps} />);
-      
+
       // Enable keep original
       const keepOriginalCheckbox = screen.getByRole('checkbox');
       fireEvent.click(keepOriginalCheckbox);
-      
+
       // Select TXT format
       const formatSelect = screen.getByRole('combobox');
       fireEvent.click(formatSelect);
       fireEvent.click(screen.getByText('TXT'));
-      
+
       // Click convert button
       const convertButton = screen.getByText('Convert');
       fireEvent.click(convertButton);
-      
+
       await waitFor(() => {
         expect(mockOnConvert).toHaveBeenCalledWith(
           'test-download-1',
           'TXT',
-          true // keepOriginal should be true
+          true, // keepOriginal should be true
         );
       });
     });
@@ -169,13 +171,13 @@ describe('FormatConverterMenu', () => {
             {
               id: 'test-download-1',
               name: 'Test Video 1.mp4',
-              location: '/path/to/Test Video 1.mp4'
+              location: '/path/to/Test Video 1.mp4',
             },
             {
               id: 'test-download-2',
               name: 'Test Video 2.mp4',
-              location: '/path/to/Test Video 2.mp4'
-            }
+              location: '/path/to/Test Video 2.mp4',
+            },
           ],
           clearAllSelections: mockClearAllSelections,
         };
@@ -189,34 +191,46 @@ describe('FormatConverterMenu', () => {
 
     it('should convert multiple files to text format', async () => {
       render(<FormatConverterMenu {...defaultProps} />);
-      
+
       // Select TXT format
       const formatSelect = screen.getByRole('combobox');
       fireEvent.click(formatSelect);
       fireEvent.click(screen.getByText('TXT'));
-      
+
       // Click convert button
       const convertButton = screen.getByText('Convert');
       fireEvent.click(convertButton);
-      
+
       await waitFor(() => {
         expect(mockOnConvert).toHaveBeenCalledTimes(2);
-        expect(mockOnConvert).toHaveBeenNthCalledWith(1, 'test-download-1', 'TXT', false);
-        expect(mockOnConvert).toHaveBeenNthCalledWith(2, 'test-download-2', 'TXT', false);
+        expect(mockOnConvert).toHaveBeenNthCalledWith(
+          1,
+          'test-download-1',
+          'TXT',
+          false,
+        );
+        expect(mockOnConvert).toHaveBeenNthCalledWith(
+          2,
+          'test-download-2',
+          'TXT',
+          false,
+        );
       });
     });
   });
 
   describe('Error Handling', () => {
     it('should show error when no format is selected', async () => {
-      const { toast } = require('@/Components/SubComponents/shadcn/hooks/use-toast');
-      
+      const {
+        toast,
+      } = require('@/Components/SubComponents/shadcn/hooks/use-toast');
+
       render(<FormatConverterMenu {...defaultProps} />);
-      
+
       // Click convert without selecting format
       const convertButton = screen.getByText('Convert');
       fireEvent.click(convertButton);
-      
+
       expect(toast).toHaveBeenCalledWith({
         variant: 'destructive',
         title: 'Format Required',
@@ -226,8 +240,10 @@ describe('FormatConverterMenu', () => {
     });
 
     it('should show error when no downloads are selected', async () => {
-      const { toast } = require('@/Components/SubComponents/shadcn/hooks/use-toast');
-      
+      const {
+        toast,
+      } = require('@/Components/SubComponents/shadcn/hooks/use-toast');
+
       // Mock empty selection
       mockUseMainStore.mockImplementation((selector) => {
         const mockState = {
@@ -242,16 +258,16 @@ describe('FormatConverterMenu', () => {
       });
 
       render(<FormatConverterMenu {...defaultProps} />);
-      
+
       // Select format
       const formatSelect = screen.getByRole('combobox');
       fireEvent.click(formatSelect);
       fireEvent.click(screen.getByText('TXT'));
-      
+
       // Click convert
       const convertButton = screen.getByText('Convert');
       fireEvent.click(convertButton);
-      
+
       expect(toast).toHaveBeenCalledWith({
         variant: 'destructive',
         title: 'No Downloads Selected',
@@ -264,16 +280,16 @@ describe('FormatConverterMenu', () => {
   describe('UI Behavior', () => {
     it('should clear selections after successful conversion', async () => {
       render(<FormatConverterMenu {...defaultProps} />);
-      
+
       // Select format
       const formatSelect = screen.getByRole('combobox');
       fireEvent.click(formatSelect);
       fireEvent.click(screen.getByText('TXT'));
-      
+
       // Convert
       const convertButton = screen.getByText('Convert');
       fireEvent.click(convertButton);
-      
+
       await waitFor(() => {
         expect(mockClearAllSelections).toHaveBeenCalled();
       });

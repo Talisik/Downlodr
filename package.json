@@ -1,7 +1,7 @@
 {
   "name": "downlodr",
   "productName": "Downlodr",
-  "version": "1.7.6-stable",
+  "version": "1.7.7-stable",
   "description": "Downlodr is a powerful, user-friendly video downloading solution that supports over 1,800 platforms, including YouTube, Vimeo, and many more. Downlodr provides a seamless experience for managing your video downloads.",
   "main": ".vite/build/main.js",
   "scripts": {
@@ -11,6 +11,7 @@
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
     "build:dmg": "./scripts/build-with-create-dmg.sh",
+    "build:intel": "./scripts/build-with-create-dmg-intel.sh",
     "test:dmg": "./scripts/test-create-dmg.sh",
     "build:quick": "./scripts/build-and-package.sh"
   },

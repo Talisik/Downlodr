@@ -5,6 +5,8 @@ import {
   FormatSelectorResult,
 } from '@/plugins/types';
 import React, { useEffect, useState } from 'react';
+import { MdOutlineClose } from 'react-icons/md';
+import TooltipWrapper from './TooltipWrapper';
 
 interface FormatSelectorExtensionProps {
   isOpen: boolean;
@@ -116,14 +118,24 @@ const FormatSelectorExtension: React.FC<FormatSelectorExtensionProps> = ({
 
       {/* Modal content */}
       <div
-        className="bg-white dark:bg-darkModeDropdown rounded-lg shadow-lg w-full max-w-md mx-4 z-10 overflow-hidden"
+        className="bg-white dark:bg-darkModeDropdown rounded-lg shadow-lg w-full max-w-md mx-4 z-10 overflow-hidden relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            {options.title || 'Select Format'}
-          </h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {options.title || 'Select Format'}
+            </h3>
+            <TooltipWrapper content="Close dialog" side="bottom">
+              <button
+                onClick={onClose}
+                className="text-gray-500 dark:text-gray-400 hover:text-red-500 p-1 flex-shrink-0 transition-colors duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <MdOutlineClose size={16} />
+              </button>
+            </TooltipWrapper>
+          </div>
         </div>
 
         {/* Body */}

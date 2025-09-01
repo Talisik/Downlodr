@@ -59,9 +59,19 @@ const RemoveModal: React.FC<RemoveModalProps> = ({
               e.stopPropagation();
               onClose();
             }}
-            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+            className="
+              h-8 w-8 p-1 rounded-full
+              text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300
+              hover:bg-gray-100 dark:hover:bg-gray-700
+              hover:shadow-lg hover:shadow-gray-400/30 dark:hover:shadow-gray-600/30
+              transition-all duration-300 ease-in-out
+              transform hover:scale-110 active:scale-95
+              focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
+              flex items-center justify-center
+              cursor-pointer
+            "
           >
-            <IoMdClose size={20} />
+            <IoMdClose size={18} />
           </button>
         </div>
 

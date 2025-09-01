@@ -24,10 +24,10 @@ describe('Format Conversion File Paths', () => {
       const downloadName = 'RAG Just Got Updated.mp4';
 
       const expectedOutputDir = '/Users/test/Downloads'; // Same directory as source
-      
+
       mockConvertFile.mockResolvedValue({
         success: true,
-        outputPath: `${expectedOutputDir}/RAG Just Got Updated_txt_${Date.now()}.txt`
+        outputPath: `${expectedOutputDir}/RAG Just Got Updated_txt_${Date.now()}.txt`,
       });
 
       // Act
@@ -36,7 +36,7 @@ describe('Format Conversion File Paths', () => {
         inputPath,
         targetFormat,
         keepOriginal,
-        downloadName
+        downloadName,
       });
 
       // Assert
@@ -45,9 +45,9 @@ describe('Format Conversion File Paths', () => {
         inputPath,
         targetFormat,
         keepOriginal,
-        downloadName
+        downloadName,
       });
-      
+
       expect(result.success).toBe(true);
       expect(result.outputPath).toContain(expectedOutputDir);
       expect(result.outputPath).toMatch(/\.txt$/);
@@ -62,10 +62,10 @@ describe('Format Conversion File Paths', () => {
       const downloadName = 'Video Title.mp4';
 
       const expectedOutputDir = '/Users/test/Downloads';
-      
+
       mockConvertFile.mockResolvedValue({
         success: true,
-        outputPath: `${expectedOutputDir}/Video Title_docx_${Date.now()}.docx`
+        outputPath: `${expectedOutputDir}/Video Title_docx_${Date.now()}.docx`,
       });
 
       // Act
@@ -74,7 +74,7 @@ describe('Format Conversion File Paths', () => {
         inputPath,
         targetFormat,
         keepOriginal,
-        downloadName
+        downloadName,
       });
 
       // Assert
@@ -92,10 +92,10 @@ describe('Format Conversion File Paths', () => {
       const downloadName = 'Episode 1.mp4';
 
       const expectedOutputDir = '/Users/test/Downloads/Series'; // Same subdirectory
-      
+
       mockConvertFile.mockResolvedValue({
         success: true,
-        outputPath: `${expectedOutputDir}/Episode 1_txt_${Date.now()}.txt`
+        outputPath: `${expectedOutputDir}/Episode 1_txt_${Date.now()}.txt`,
       });
 
       // Act
@@ -104,7 +104,7 @@ describe('Format Conversion File Paths', () => {
         inputPath,
         targetFormat,
         keepOriginal,
-        downloadName
+        downloadName,
       });
 
       // Assert
@@ -123,11 +123,12 @@ describe('Format Conversion File Paths', () => {
       const keepOriginal = true;
       const downloadName = 'Video.mp4';
 
-      const expectedOutputPath = '/Users/test/Downloads/FormatConverter/Video_mp3_123456.mp3';
-      
+      const expectedOutputPath =
+        '/Users/test/Downloads/FormatConverter/Video_mp3_123456.mp3';
+
       mockConvertFile.mockResolvedValue({
         success: true,
-        outputPath: expectedOutputPath
+        outputPath: expectedOutputPath,
       });
 
       // Act
@@ -136,7 +137,7 @@ describe('Format Conversion File Paths', () => {
         inputPath,
         targetFormat,
         keepOriginal,
-        downloadName
+        downloadName,
       });
 
       // Assert

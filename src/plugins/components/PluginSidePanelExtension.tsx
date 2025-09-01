@@ -1,5 +1,6 @@
 import { PluginSidePanelOptions, PluginSidePanelResult } from '@/plugins/types';
 import React, { useEffect, useRef, useState } from 'react';
+import { MdOutlineClose } from 'react-icons/md';
 
 interface PluginSidePanelExtensionProps {
   isOpen: boolean;
@@ -180,7 +181,7 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
       style={{ width: '300px' }}
     >
       {/* Header */}
-      <div className="bg-titleBar dark:bg-darkModeDropdown px-2 py-1 pt-[11px] border-b-2 border-gray-200 dark:border-darkModeCompliment flex items-center justify-between">
+      <div className="bg-titleBar dark:bg-darkModeDropdown px-2 py-1 pt-[11px] border-b-2 border-gray-200 dark:border-darkModeCompliment flex items-center justify-between relative">
         <div className="flex items-center flex-1">
           {options.icon && (
             <span className="inline-flex items-center justify-center w-5 h-5 mr-3 flex-shrink-0">
@@ -203,18 +204,11 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
 
         <button
           onClick={onClose}
-          className="text-black dark:text-white hover:text-red-500 ml-2 p-1 flex-shrink-0"
+          className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 p-2 flex-shrink-0 transition-colors duration-200 rounded-full hover:bg-gray-200/60 dark:hover:bg-gray-700/60"
+          aria-label="Close side panel"
+          title="Close side panel"
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="m18 6-12 12M6 6l12 12" />
-          </svg>
+          <MdOutlineClose size={16} />
         </button>
       </div>
 

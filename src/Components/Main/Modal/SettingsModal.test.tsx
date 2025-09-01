@@ -12,7 +12,9 @@ jest.mock('@/Store/mainStore');
 jest.mock('@/Store/taskbarDownloadStore');
 jest.mock('@/Components/SubComponents/shadcn/hooks/use-toast');
 
-const mockUseMainStore = useMainStore as jest.MockedFunction<typeof useMainStore>;
+const mockUseMainStore = useMainStore as jest.MockedFunction<
+  typeof useMainStore
+>;
 
 describe('SettingsModal', () => {
   const mockSettings = {
@@ -73,59 +75,79 @@ describe('SettingsModal', () => {
   describe('Collapsible Notifications Section', () => {
     it('should render notifications section collapsed by default', () => {
       render(<SettingsModal isOpen={true} onClose={jest.fn()} />);
-      
-      const notificationsHeader = screen.getByText('Notifications & Dock Badge');
+
+      const notificationsHeader = screen.getByText(
+        'Notifications & Dock Badge',
+      );
       expect(notificationsHeader).toBeInTheDocument();
-      
+
       // Check for collapse/expand button
-      const collapseButton = screen.getByRole('button', { name: /toggle notifications/i });
+      const collapseButton = screen.getByRole('button', {
+        name: /toggle notifications/i,
+      });
       expect(collapseButton).toBeInTheDocument();
-      
+
       // Should be collapsed by default
-      const notificationOptions = screen.queryByText('Show notification when downloads complete');
+      const notificationOptions = screen.queryByText(
+        'Show notification when downloads complete',
+      );
       expect(notificationOptions).not.toBeVisible();
     });
 
     it('should expand notifications section when toggle button is clicked', async () => {
       render(<SettingsModal isOpen={true} onClose={jest.fn()} />);
-      
-      const collapseButton = screen.getByRole('button', { name: /toggle notifications/i });
+
+      const collapseButton = screen.getByRole('button', {
+        name: /toggle notifications/i,
+      });
       fireEvent.click(collapseButton);
-      
+
       await waitFor(() => {
-        const notificationOptions = screen.getByText('Show notification when downloads complete');
+        const notificationOptions = screen.getByText(
+          'Show notification when downloads complete',
+        );
         expect(notificationOptions).toBeVisible();
       });
     });
 
     it('should persist section collapse state during modal session', async () => {
       render(<SettingsModal isOpen={true} onClose={jest.fn()} />);
-      
-      const collapseButton = screen.getByRole('button', { name: /toggle notifications/i });
-      
+
+      const collapseButton = screen.getByRole('button', {
+        name: /toggle notifications/i,
+      });
+
       // Expand section
       fireEvent.click(collapseButton);
-      
+
       await waitFor(() => {
-        expect(screen.getByText('Show notification when downloads complete')).toBeVisible();
+        expect(
+          screen.getByText('Show notification when downloads complete'),
+        ).toBeVisible();
       });
-      
+
       // Collapse section
       fireEvent.click(collapseButton);
-      
+
       await waitFor(() => {
-        expect(screen.queryByText('Show notification when downloads complete')).not.toBeVisible();
+        expect(
+          screen.queryByText('Show notification when downloads complete'),
+        ).not.toBeVisible();
       });
     });
 
     it('should show proper accessibility attributes for collapsible section', () => {
       render(<SettingsModal isOpen={true} onClose={jest.fn()} />);
-      
-      const collapseButton = screen.getByRole('button', { name: /toggle notifications/i });
+
+      const collapseButton = screen.getByRole('button', {
+        name: /toggle notifications/i,
+      });
       expect(collapseButton).toHaveAttribute('aria-expanded', 'false');
       expect(collapseButton).toHaveAttribute('aria-controls');
-      
-      const contentSection = screen.getByRole('region', { name: /notifications content/i });
+
+      const contentSection = screen.getByRole('region', {
+        name: /notifications content/i,
+      });
       expect(contentSection).toHaveAttribute('aria-hidden', 'true');
     });
   });
@@ -145,7 +167,7 @@ describe('SettingsModal', () => {
       });
 
       render(<SettingsModal isOpen={true} onClose={jest.fn()} />);
-      
+
       const modal = screen.getByRole('dialog');
       expect(modal).toHaveClass('max-h-[90vh]'); // Should have max height constraint
       expect(modal).toHaveClass('overflow-y-auto'); // Should allow scrolling
@@ -160,14 +182,14 @@ describe('SettingsModal', () => {
       });
 
       render(<SettingsModal isOpen={true} onClose={jest.fn()} />);
-      
+
       const modal = screen.getByRole('dialog');
       expect(modal).toHaveClass('mx-2'); // Smaller margins on mobile
     });
 
     it('should not cover the main app screen', () => {
       render(<SettingsModal isOpen={true} onClose={jest.fn()} />);
-      
+
       const overlay = screen.getByTestId('modal-overlay');
       expect(overlay).toHaveClass('fixed', 'inset-0');
       expect(overlay).toHaveStyle({ zIndex: '8999' }); // High z-index but not covering everything
@@ -177,19 +199,27 @@ describe('SettingsModal', () => {
   describe('Existing Functionality', () => {
     it('should preserve all notification preference settings', async () => {
       render(<SettingsModal isOpen={true} onClose={jest.fn()} />);
-      
+
       // Expand notifications section first
-      const collapseButton = screen.getByRole('button', { name: /toggle notifications/i });
+      const collapseButton = screen.getByRole('button', {
+        name: /toggle notifications/i,
+      });
       fireEvent.click(collapseButton);
-      
+
       await waitFor(() => {
-        const downloadCompleteCheckbox = screen.getByLabelText('Show notification when downloads complete');
+        const downloadCompleteCheckbox = screen.getByLabelText(
+          'Show notification when downloads complete',
+        );
         expect(downloadCompleteCheckbox).toBeChecked();
-        
-        const soundEnabledCheckbox = screen.getByLabelText('Play sound with notifications');
+
+        const soundEnabledCheckbox = screen.getByLabelText(
+          'Play sound with notifications',
+        );
         expect(soundEnabledCheckbox).toBeChecked();
-        
-        const badgeCheckbox = screen.getByLabelText('Show badge counter on dock icon');
+
+        const badgeCheckbox = screen.getByLabelText(
+          'Show badge counter on dock icon',
+        );
         expect(badgeCheckbox).toBeChecked();
       });
     });
@@ -197,24 +227,30 @@ describe('SettingsModal', () => {
     it('should save settings when OK button is clicked', async () => {
       const onClose = jest.fn();
       render(<SettingsModal isOpen={true} onClose={onClose} />);
-      
+
       const okButton = screen.getByText('Okay');
       fireEvent.click(okButton);
-      
-      expect(mockStoreReturn.updateNotificationPreferences).toHaveBeenCalledWith(mockSettings.notificationPreferences);
-      expect(mockStoreReturn.updateDockBadgePreferences).toHaveBeenCalledWith(mockSettings.dockBadgePreferences);
+
+      expect(
+        mockStoreReturn.updateNotificationPreferences,
+      ).toHaveBeenCalledWith(mockSettings.notificationPreferences);
+      expect(mockStoreReturn.updateDockBadgePreferences).toHaveBeenCalledWith(
+        mockSettings.dockBadgePreferences,
+      );
       expect(onClose).toHaveBeenCalled();
     });
 
     it('should close modal without saving when Cancel is clicked', () => {
       const onClose = jest.fn();
       render(<SettingsModal isOpen={true} onClose={onClose} />);
-      
+
       const cancelButton = screen.getByText('Cancel');
       fireEvent.click(cancelButton);
-      
+
       expect(onClose).toHaveBeenCalled();
-      expect(mockStoreReturn.updateNotificationPreferences).not.toHaveBeenCalled();
+      expect(
+        mockStoreReturn.updateNotificationPreferences,
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -224,7 +260,7 @@ describe('SettingsModal', () => {
         ...mockSettings,
         notificationPreferences: undefined,
       };
-      
+
       mockUseMainStore.mockReturnValue({
         ...mockStoreReturn,
         settings: settingsWithoutNotifications,

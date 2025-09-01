@@ -30,7 +30,9 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [contentHeight, setContentHeight] = useState<number>(0);
   const contentRef = useRef<HTMLDivElement>(null);
-  const contentId = `collapsible-content-${title.replace(/\s+/g, '-').toLowerCase()}`;
+  const contentId = `collapsible-content-${title
+    .replace(/\s+/g, '-')
+    .toLowerCase()}`;
 
   useEffect(() => {
     if (contentRef.current) {
@@ -63,7 +65,9 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
               <IoChevronDown size={16} />
             )}
           </span>
-          <label className={`block dark:text-gray-200 text-nowrap font-bold cursor-pointer ${titleClassName}`}>
+          <label
+            className={`block dark:text-gray-200 text-nowrap font-bold cursor-pointer ${titleClassName}`}
+          >
             {title}
           </label>
         </button>

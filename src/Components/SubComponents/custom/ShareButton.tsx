@@ -44,7 +44,10 @@ const ShareOption = ({
   return (
     <div
       className="flex flex-col items-center cursor-pointer group"
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
     >
       <div
         className={cn(
@@ -247,13 +250,16 @@ const ShareButton = ({
         </Button>
       </TooltipWrapper>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle>Share video</DialogTitle>
           </DialogHeader>
 
           {/* Video Info Section */}
-          <div className="flex mb-5 p-4 bg-gray-100 dark:bg-[#09090B] rounded-lg">
+          <div
+            className="flex mb-5 p-4 bg-gray-100 dark:bg-[#09090B] rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex-1 pr-4">
               <h3 className="text-sm font-medium mb-2 text-black dark:text-white">
                 {name || 'Video'}
@@ -274,7 +280,10 @@ const ShareButton = ({
           </div>
 
           {/* Share Options */}
-          <div className="grid grid-cols-4 gap-4 mb-5">
+          <div
+            className="grid grid-cols-4 gap-4 mb-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <ShareOption
               onClick={handleCopyLink}
               className="bg-gray-100 dark:bg-darkMode"
@@ -306,7 +315,10 @@ const ShareButton = ({
           </div>
 
           {/* Disclaimer */}
-          <div className="flex items-center text-gray-600 dark:text-gray-400">
+          <div
+            className="flex items-center text-gray-600 dark:text-gray-400"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mr-2">
               <IoIosInformationCircleOutline />
             </div>

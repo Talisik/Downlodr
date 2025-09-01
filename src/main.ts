@@ -243,6 +243,22 @@ function getFfmpegBinaryPath(): string {
   }
 }
 
+// Helper function to extract binary name from full path
+function getYtdlpBinaryName(fullPath: string): string {
+  const binaryName = path.basename(fullPath);
+  console.log(`🔧 Extracted binary name: ${binaryName} from path: ${fullPath}`);
+
+  // Validate the binary name
+  if (!binaryName || binaryName === '.' || binaryName === '..') {
+    console.warn(
+      `⚠️ Invalid binary name extracted: ${binaryName}, falling back to 'yt-dlp'`,
+    );
+    return 'yt-dlp';
+  }
+
+  return binaryName;
+}
+
 // Enhanced yt-dlp binary path configuration with comprehensive fallback
 function getYtdlpBinaryPath(): string {
   console.log('🔍 Resolving yt-dlp binary path...');
@@ -699,6 +715,20 @@ function stopActivityIndicator() {
 }
 
 const createTray = () => {
+  // Only create tray if running in background is enabled
+  if (!runInBackgroundSetting) {
+    console.log('🚫 Tray creation skipped - background running disabled');
+    return;
+  }
+
+  // If tray already exists, don't recreate it
+  if (tray) {
+    console.log('✅ Tray already exists, skipping creation');
+    return;
+  }
+
+  console.log('🎯 Creating system tray...');
+
   // Get correct path based on whether in dev or production
   let iconPath, alertIconPath;
 
@@ -848,6 +878,38 @@ const createTray = () => {
       }
     });
   }
+
+  console.log('✅ System tray created successfully');
+};
+
+// Function to destroy the tray
+const destroyTray = () => {
+  if (tray) {
+    console.log('🗑️ Destroying system tray...');
+
+    // Stop any ongoing activity indicators
+    stopActivityIndicator();
+
+    tray.destroy();
+    tray = null;
+
+    console.log('✅ System tray destroyed');
+  }
+};
+
+// Function to update tray visibility based on runInBackground setting
+const updateTrayVisibility = (runInBackground: boolean) => {
+  console.log(
+    `🔄 Updating tray visibility - runInBackground: ${runInBackground}`,
+  );
+
+  if (runInBackground) {
+    // Create tray if it doesn't exist
+    createTray();
+  } else {
+    // Destroy tray if it exists
+    destroyTray();
+  }
 };
 
 // set the alert icon
@@ -858,11 +920,17 @@ function setAlertTrayIcon() {
     // Force tray update by setting context menu
     // tray.setContextMenu(tray.getContextMenu());
   } else {
-    console.log(
-      'Cannot set alert icon - tray or icon missing',
-      !!tray,
-      !!alertTrayIcon,
-    );
+    if (!runInBackgroundSetting) {
+      console.log(
+        '🚫 Cannot set alert icon - background running disabled, tray not available',
+      );
+    } else {
+      console.log(
+        'Cannot set alert icon - tray or icon missing',
+        !!tray,
+        !!alertTrayIcon,
+      );
+    }
   }
 }
 
@@ -872,6 +940,9 @@ function resetTrayIcon() {
     tray.setImage(normalTrayIcon);
     isDownloadComplete = false;
     tray.setToolTip('Downlodr');
+  } else if (!tray && !runInBackgroundSetting) {
+    // Reset the completion state even if tray is not available
+    isDownloadComplete = false;
   }
 }
 
@@ -1274,6 +1345,7 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
 
           // Update the path for this request
           const ffmpegPath = getFfmpegBinaryPath();
+          const altBinaryName = getYtdlpBinaryName(altPath);
           const result = await YTDLP.invoke({
             args: [
               url,
@@ -1282,9 +1354,12 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
               '--ffmpeg-location',
               ffmpegPath,
             ],
-            ytdlpDownloadDestination: altPath,
+            ytdlpDownloadDestination: path.resolve(altPath), // Absolute path to the binary itself
+            ...(altBinaryName !== 'yt-dlp' && {
+              ytdlpBinaryName: altBinaryName,
+            }), // Use binary name only if different from default
             downloadBinary: { ytdlp: false, ffmpeg: false }, // Don't download ffmpeg, use bundled
-          });
+          } as any);
 
           if (!result.ok) {
             throw new Error(
@@ -1292,10 +1367,24 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
             );
           }
 
+          console.log('🔍 Raw result.data from YTDLP (alt path):', result.data);
+          console.log('🔍 Result.data type (alt path):', typeof result.data);
+
           const info = {
             ok: true,
             data: JSON.parse(result.data || '{}'),
           };
+
+          console.log('🔍 Parsed info.data (alt path):', info.data);
+          console.log(
+            '🔍 Info.data keys (alt path):',
+            Object.keys(info.data || {}),
+          );
+          console.log(
+            '🔍 Info.data.formats exists (alt path):',
+            !!info.data?.formats,
+          );
+
           return info;
         }
       }
@@ -1346,28 +1435,59 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
       }
     }
 
-    const result = await YTDLP.invoke({
-      args: [
-        url,
-        '--no-warnings',
-        '--dump-json',
-        '--ffmpeg-location',
-        ffmpegPath,
-      ],
-      ytdlpDownloadDestination: ytdlpPath,
-      downloadBinary: { ytdlp: false, ffmpeg: false }, // Don't download ffmpeg, use bundled
-    });
+    console.log('🔧 YTDLP Configuration:');
+    const binaryName = getYtdlpBinaryName(ytdlpPath);
+    console.log('  ytdlpPath:', ytdlpPath);
+    console.log('  ytdlpDownloadDestination:', path.resolve(ytdlpPath));
+    console.log('  ytdlpBinaryName:', binaryName);
+    console.log('  ffmpegPath:', ffmpegPath);
+    console.log('  url:', url);
+    console.log('  args:', [
+      url,
+      '--no-warnings',
+      '--dump-json',
+      '--ffmpeg-location',
+      ffmpegPath,
+    ]);
+
+    let result;
+    try {
+      result = await YTDLP.invoke({
+        args: [
+          url,
+          '--no-warnings',
+          '--dump-json',
+          '--ffmpeg-location',
+          ffmpegPath,
+        ],
+        ytdlpDownloadDestination: path.resolve(ytdlpPath), // Absolute path to the binary itself
+        ...(binaryName !== 'yt-dlp' && { ytdlpBinaryName: binaryName }), // Use binary name only if different from default
+        downloadBinary: { ytdlp: false, ffmpeg: false }, // Don't download ffmpeg, use bundled
+      } as any);
+      console.log('✅ YTDLP.invoke() completed:', result);
+    } catch (invokeError) {
+      console.error('❌ YTDLP.invoke() failed with exception:', invokeError);
+      throw new Error(`yt-dlp execution failed: ${invokeError.message}`);
+    }
 
     if (!result.ok) {
+      console.error('❌ YTDLP result not ok:', result);
       throw new Error(
         `yt-dlp execution failed: ${result.data || 'Unknown error'}`,
       );
     }
 
+    console.log('🔍 Raw result.data from YTDLP:', result.data);
+    console.log('🔍 Result.data type:', typeof result.data);
+
     const info = {
       ok: true,
       data: JSON.parse(result.data || '{}'),
     };
+
+    console.log('🔍 Parsed info.data:', info.data);
+    console.log('🔍 Info.data keys:', Object.keys(info.data || {}));
+    console.log('🔍 Info.data.formats exists:', !!info.data?.formats);
 
     if (!info.data || Object.keys(info.data).length === 0) {
       throw new Error('yt-dlp returned empty data');
@@ -1660,6 +1780,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     console.log('Using ffmpeg binary for download at:', ffmpegPath);
     console.log('FFmpeg binary exists:', fs.existsSync(ffmpegPath));
 
+    const downloadBinaryName = getYtdlpBinaryName(ytdlpPath);
     const controller = await YTDLP.download({
       // args needed for download
       args: {
@@ -1671,10 +1792,13 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
         audioQuality: args.audioFormatId,
         limitRate: args.limitRate,
       },
-      ytdlpDownloadDestination: ytdlpPath,
-      ffmpegDownloadDestination: ffmpegPath, // Use our bundled ffmpeg
+      ytdlpDownloadDestination: path.resolve(ytdlpPath), // Absolute path to the binary itself
+      ...(downloadBinaryName !== 'yt-dlp' && {
+        ytdlpBinaryName: downloadBinaryName,
+      }), // Use binary name only if different from default
+      ffmpegDownloadDestination: path.dirname(ffmpegPath), // Directory containing our bundled ffmpeg
       downloadBinary: { ytdlp: false, ffmpeg: false }, // Don't download ffmpeg, use bundled
-    });
+    } as any);
 
     if (!controller || typeof controller.listen !== 'function') {
       throw new Error(
@@ -1919,7 +2043,8 @@ const stopClipboardMonitoring = () => {
 // once the app opens
 app.on('ready', async () => {
   createWindow();
-  createTray();
+  // Note: Tray creation is now handled by sync-background-setting-on-startup
+  // which is called after the renderer loads and syncs settings
   updateCloseHandler();
 
   // Setup ffmpeg path for yt-dlp merging
@@ -2157,7 +2282,12 @@ ipcMain.handle('exit-app', () => {
 
 // function for running the appolication in the background
 ipcMain.handle('set-run-in-background', (_event, value) => {
+  console.log(`🔧 Setting runInBackground to: ${value}`);
   runInBackgroundSetting = value;
+
+  // Update tray visibility based on new setting
+  updateTrayVisibility(value);
+
   updateCloseHandler();
   return true;
 });
@@ -2194,7 +2324,12 @@ async function getRunInBackgroundSetting() {
 
 // function for syncing settings on startup
 ipcMain.handle('sync-background-setting-on-startup', (_event, value) => {
+  console.log(`🔄 Syncing runInBackground setting on startup: ${value}`);
   runInBackgroundSetting = value;
+
+  // Update tray visibility based on setting
+  updateTrayVisibility(value);
+
   return true;
 });
 

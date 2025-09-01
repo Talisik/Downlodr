@@ -49,7 +49,17 @@ const ExitModal = ({ isOpen, onClose, onConfirm }: ConfirmModalProps) => {
           </h1>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="
+              h-8 w-8 p-1 rounded-full
+              text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
+              hover:bg-gray-100 dark:hover:bg-gray-700
+              hover:shadow-lg hover:shadow-gray-400/30 dark:hover:shadow-gray-600/30
+              transition-all duration-300 ease-in-out
+              transform hover:scale-110 active:scale-95
+              focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
+              flex items-center justify-center
+              cursor-pointer
+            "
           >
             <IoMdClose size={16} />
           </button>

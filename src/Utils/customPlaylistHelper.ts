@@ -1,10 +1,10 @@
 /**
  * Custom playlist helper to fix the chunking issue with yt-dlp-helper
- * 
+ *
  * The issue: yt-dlp-helper's getPlaylistInfo function tries to parse each chunk
  * of output as JSON, but large playlists output JSON that spans multiple chunks,
  * causing parse failures.
- * 
+ *
  * This implementation accumulates all chunks before attempting to parse.
  */
 
@@ -26,7 +26,9 @@ interface GetPlaylistInfoOptions {
 /**
  * Custom implementation of getPlaylistInfo that properly handles chunked JSON output
  */
-export async function getPlaylistInfo(options: GetPlaylistInfoOptions): Promise<PlaylistInfo> {
+export async function getPlaylistInfo(
+  options: GetPlaylistInfoOptions,
+): Promise<PlaylistInfo> {
   const { url, ytdlpPath, ffmpegPath } = options;
 
   console.log('🔄 Custom playlist fetcher - URL:', url);
@@ -36,20 +38,20 @@ export async function getPlaylistInfo(options: GetPlaylistInfoOptions): Promise<
   if (!url || typeof url !== 'string') {
     return {
       ok: false,
-      error: 'Invalid URL provided'
+      error: 'Invalid URL provided',
     };
   }
 
   if (!fs.existsSync(ytdlpPath)) {
     return {
       ok: false,
-      error: `yt-dlp binary not found at: ${ytdlpPath}`
+      error: `yt-dlp binary not found at: ${ytdlpPath}`,
     };
   }
 
   // Build command arguments
   const args = ['--flat-playlist', '-J', url];
-  
+
   if (ffmpegPath && fs.existsSync(ffmpegPath)) {
     args.unshift('--ffmpeg-location', ffmpegPath);
   }
@@ -58,7 +60,7 @@ export async function getPlaylistInfo(options: GetPlaylistInfoOptions): Promise<
 
   return new Promise((resolve) => {
     const child = spawn(ytdlpPath, args, {
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
 
     let stdout = '';
@@ -78,8 +80,10 @@ export async function getPlaylistInfo(options: GetPlaylistInfoOptions): Promise<
 
     child.on('close', (code, signal) => {
       console.log(`🏁 Process finished - Code: ${code}, Signal: ${signal}`);
-      console.log(`📊 Total data received: ${stdout.length} chars in ${chunkCount} chunks`);
-      
+      console.log(
+        `📊 Total data received: ${stdout.length} chars in ${chunkCount} chunks`,
+      );
+
       if (stderr) {
         console.log('⚠️ stderr output:', stderr.substring(0, 500));
       }
@@ -88,7 +92,7 @@ export async function getPlaylistInfo(options: GetPlaylistInfoOptions): Promise<
         console.error(`❌ yt-dlp exited with code ${code}`);
         return resolve({
           ok: false,
-          error: `yt-dlp process failed with exit code ${code}. stderr: ${stderr}`
+          error: `yt-dlp process failed with exit code ${code}. stderr: ${stderr}`,
         });
       }
 
@@ -96,7 +100,7 @@ export async function getPlaylistInfo(options: GetPlaylistInfoOptions): Promise<
         console.error('❌ No output received from yt-dlp');
         return resolve({
           ok: false,
-          error: 'No output received from yt-dlp'
+          error: 'No output received from yt-dlp',
         });
       }
 
@@ -104,22 +108,29 @@ export async function getPlaylistInfo(options: GetPlaylistInfoOptions): Promise<
       try {
         console.log('🔍 Attempting to parse JSON...');
         const data = JSON.parse(stdout);
-        
+
         console.log('✅ Successfully parsed JSON!');
-        console.log(`📊 Playlist info: Title="${data.title || 'No title'}", Entries=${data.entries?.length || 0}`);
-        
+        console.log(
+          `📊 Playlist info: Title="${data.title || 'No title'}", Entries=${
+            data.entries?.length || 0
+          }`,
+        );
+
         resolve({
           ok: true,
-          data
+          data,
         });
       } catch (parseError) {
         console.error('❌ Failed to parse JSON:', parseError);
         console.error('First 200 chars of output:', stdout.substring(0, 200));
-        console.error('Last 200 chars of output:', stdout.substring(stdout.length - 200));
-        
+        console.error(
+          'Last 200 chars of output:',
+          stdout.substring(stdout.length - 200),
+        );
+
         resolve({
           ok: false,
-          error: `Failed to parse playlist JSON: ${parseError.message}`
+          error: `Failed to parse playlist JSON: ${parseError.message}`,
         });
       }
     });
@@ -128,7 +139,7 @@ export async function getPlaylistInfo(options: GetPlaylistInfoOptions): Promise<
       console.error('❌ Process error:', error);
       resolve({
         ok: false,
-        error: `Failed to start yt-dlp process: ${error.message}`
+        error: `Failed to start yt-dlp process: ${error.message}`,
       });
     });
 
@@ -138,7 +149,7 @@ export async function getPlaylistInfo(options: GetPlaylistInfoOptions): Promise<
       child.kill('SIGTERM');
       resolve({
         ok: false,
-        error: 'Process timeout - operation took too long'
+        error: 'Process timeout - operation took too long',
       });
     }, 60000); // 60 second timeout
 
@@ -153,15 +164,16 @@ export async function getPlaylistInfo(options: GetPlaylistInfoOptions): Promise<
  */
 export async function testCustomPlaylistInfo() {
   console.log('=== Testing Custom Playlist Info Implementation ===');
-  
-  const testUrl = 'https://youtube.com/playlist?list=PLFt_AvWsXl0eBW2EiBtl_sxmDtSgZBxB3';
+
+  const testUrl =
+    'https://youtube.com/playlist?list=PLFt_AvWsXl0eBW2EiBtl_sxmDtSgZBxB3';
   const ytdlpPath = './yt-dlp_macos';
   const ffmpegPath = '/opt/homebrew/bin/ffmpeg';
 
   const result = await getPlaylistInfo({
     url: testUrl,
     ytdlpPath,
-    ffmpegPath
+    ffmpegPath,
   });
 
   console.log('=== Test Result ===');
@@ -169,13 +181,16 @@ export async function testCustomPlaylistInfo() {
   if (result.ok && result.data) {
     console.log('Title:', result.data.title);
     console.log('Entry count:', result.data.entries?.length || 0);
-    console.log('First 3 entries:', result.data.entries?.slice(0, 3).map((e: any) => ({
-      id: e.id,
-      title: e.title
-    })));
+    console.log(
+      'First 3 entries:',
+      result.data.entries?.slice(0, 3).map((e: any) => ({
+        id: e.id,
+        title: e.title,
+      })),
+    );
   } else {
     console.log('Error:', result.error);
   }
-  
+
   return result;
 }

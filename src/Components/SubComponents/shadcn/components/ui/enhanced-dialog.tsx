@@ -32,7 +32,8 @@ const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
-interface EnhancedDialogContentProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+interface EnhancedDialogContentProps
+  extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
   showCloseButton?: boolean;
   closeButtonVariant?: 'default' | 'subtle' | 'prominent' | 'inspector';
   closeButtonSize?: 'sm' | 'md' | 'lg';
@@ -42,45 +43,57 @@ interface EnhancedDialogContentProps extends React.ComponentPropsWithoutRef<type
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   EnhancedDialogContentProps
->(({ 
-  className, 
-  children, 
-  showCloseButton = true, 
-  closeButtonVariant = 'inspector',
-  closeButtonSize = 'lg',
-  onCloseClick,
-  ...props 
-}, ref) => {
-  const handleCloseClick = () => {
-    onCloseClick?.();
-  };
+>(
+  (
+    {
+      className,
+      children,
+      showCloseButton = true,
+      closeButtonVariant = 'inspector',
+      closeButtonSize = 'lg',
+      onCloseClick,
+      ...props
+    },
+    ref,
+  ) => {
+    const closeButtonRef = React.useRef<HTMLButtonElement>(null);
 
-  return (
-    <DialogPortal>
-      <DialogOverlay />
-      <DialogPrimitive.Content
-        ref={ref}
-        className={cn(
-          'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-slate-200 bg-white p-4 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg dark:border-darkModeBorderColor dark:bg-[#18181B] dark:text-gray-200 [&>[data-radix-dialog-close]]:hidden',
-          className,
-        )}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close asChild>
-            <EnhancedCloseButton
-              onClose={handleCloseClick}
-              variant={closeButtonVariant}
-              size={closeButtonSize}
-              ariaLabel="Close dialog"
-            />
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Content>
-    </DialogPortal>
-  );
-});
+    const handleCloseClick = () => {
+      // Call the custom close handler if provided
+      onCloseClick?.();
+      // Trigger the hidden DialogClose button
+      closeButtonRef.current?.click();
+    };
+
+    return (
+      <DialogPortal>
+        <DialogOverlay />
+        <DialogPrimitive.Content
+          ref={ref}
+          className={cn(
+            'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-slate-200 bg-white shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg dark:border-darkModeBorderColor dark:bg-[#18181B] dark:text-gray-200 [&>[data-radix-dialog-close]]:hidden',
+            showCloseButton ? 'pt-8 pr-8 pb-4 pl-4' : 'p-4',
+            className,
+          )}
+          {...props}
+        >
+          {children}
+          {showCloseButton && (
+            <>
+              <EnhancedCloseButton
+                onClose={handleCloseClick}
+                variant={closeButtonVariant}
+                size={closeButtonSize}
+                ariaLabel="Close dialog"
+              />
+              <DialogClose ref={closeButtonRef} className="hidden" />
+            </>
+          )}
+        </DialogPrimitive.Content>
+      </DialogPortal>
+    );
+  },
+);
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({

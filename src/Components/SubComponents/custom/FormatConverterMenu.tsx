@@ -70,7 +70,12 @@ const FormatConverterMenu: React.FC<FormatConverterMenuProps> = ({
     const conversionPromises = selectedDownloads.map(async (download) => {
       try {
         // Call onConvert and wait for it to complete if it returns a promise
-        const result = onConvert(download.id, selectedFormat, keepOriginal, saveToCustomLocation);
+        const result = onConvert(
+          download.id,
+          selectedFormat,
+          keepOriginal,
+          saveToCustomLocation,
+        );
 
         // If onConvert returns a promise, await it
         if (result && typeof result.then === 'function') {

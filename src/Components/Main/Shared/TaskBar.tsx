@@ -489,9 +489,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           description: 'Failed download has been removed successfully',
           duration: 3000,
         });
-        // Process queue after removing a failed download
-        processQueue();
-        return;
+        continue;
       }
 
       // Check if it's a currently downloading file
@@ -574,6 +572,9 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       // Delete the file or folder
       await deleteFileSafely(download);
     }
+
+    // Process queue once after all removals are complete
+    processQueue();
   };
 
   // Update the button click handler to show confirmation

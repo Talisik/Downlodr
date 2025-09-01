@@ -7,16 +7,16 @@
  * - ThemeProvider: A custom component for managing theme settings.
  * - Various page components: AllDownloads, Downloading, History, etc.
  */
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import {
   Navigate,
   Route,
   HashRouter as Router,
   Routes,
 } from 'react-router-dom';
-import TelemetryConsentModal from './Components/Main/Modal/TelemetryConsentModal';
 import ClipboardLinkDetector from './Components/SubComponents/custom/ClipboardLinkDetector';
 import UpdateNotification from './Components/SubComponents/custom/UpdateNotifications';
+
 import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
 import { useToast } from './Components/SubComponents/shadcn/hooks/use-toast';
 import { ThemeProvider } from './Components/ThemeProvider';
@@ -39,52 +39,8 @@ import ActivityMonitor from './Components/SubComponents/custom/ActivityMonitor';
 import NotificationManager from './Components/SubComponents/custom/NotificationManager';
 
 const App = () => {
-  const { settings, updateTelemetryConsentShown } = useMainStore();
-  const [showTelemetryConsentModal, setShowTelemetryConsentModal] =
-    useState(false);
+  const { settings } = useMainStore();
   const { toast } = useToast();
-
-  // Check if we should show telemetry consent modal
-  useEffect(() => {
-    // Show consent modal if it hasn't been shown before
-    if (!settings.telemetryConsentShown) {
-      // Small delay to allow app to fully load
-      const timer = setTimeout(() => {
-        setShowTelemetryConsentModal(true);
-      }, 1000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [settings.telemetryConsentShown]);
-
-  // Handle telemetry consent modal close
-  const handleTelemetryConsentClose = () => {
-    setShowTelemetryConsentModal(false);
-    // Ensure consent shown flag is set even if user closes modal without choosing
-    if (!settings.telemetryConsentShown) {
-      updateTelemetryConsentShown(true);
-    }
-  };
-
-  // Initialize telemetry store on app startup (runs once)
-  useEffect(() => {
-    const initAppTelemetry = async () => {
-      try {
-        const telemetryId = await initializeTelemetry();
-        // console.log('✅ App telemetry initialized:', telemetryId);
-
-        // Optional: Log app startup event
-        if (telemetryId) {
-          // console.log('📊 Telemetry ready for app-wide usage');
-        }
-      } catch (error) {
-        console.error('❌ Failed to initialize app telemetry:', error);
-        // App continues to function normally even if telemetry fails
-      }
-    };
-
-    initAppTelemetry();
-  }, []); // Empty dependency array = runs once on mount
 
   // Sync setting with main process on startup
   useEffect(() => {
@@ -302,10 +258,6 @@ const App = () => {
       <SystemTrayHandler />
       <ActivityMonitor />
       <NotificationManager />
-      <TelemetryConsentModal
-        isOpen={showTelemetryConsentModal}
-        onClose={handleTelemetryConsentClose}
-      />
     </ThemeProvider>
   );
 };

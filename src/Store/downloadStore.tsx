@@ -685,7 +685,12 @@ interface DownloadStore {
   deleteDownload: (id: string) => void; // Delete a specific download
   deleteDownloading: (id: string) => void; // Delete a downloading item
   removeFromForDownloads: (id: string) => void; // Remove a download from the queue
-  convertDownload: (downloadId: string, targetFormat: string, keepOriginal?: boolean, saveToCustomLocation?: boolean) => Promise<{ success: boolean; outputPath?: string }>; // Convert a download to a different format
+  convertDownload: (
+    downloadId: string,
+    targetFormat: string,
+    keepOriginal?: boolean,
+    saveToCustomLocation?: boolean,
+  ) => Promise<{ success: boolean; outputPath?: string }>; // Convert a download to a different format
   addTag: (downloadId: string, tag: string) => void; // Add a tag to a download
   removeTag: (downloadId: string, tag: string) => void; // Remove a tag from a download
   addCategory: (downloadId: string, category: string) => void; // Add a category to a download
@@ -914,12 +919,18 @@ const useDownloadStore = create<DownloadStore>()(
       },
 
       // Add conversion function
-      convertDownload: async (downloadId: string, targetFormat: string, keepOriginal: boolean = false, saveToCustomLocation: boolean = false) => {
+      convertDownload: async (
+        downloadId: string,
+        targetFormat: string,
+        keepOriginal = false,
+        saveToCustomLocation = false,
+      ) => {
         try {
           // Find the download to convert
-          const download = get().downloading.find(d => d.id === downloadId) || 
-                         get().finishedDownloads.find(d => d.id === downloadId);
-          
+          const download =
+            get().downloading.find((d) => d.id === downloadId) ||
+            get().finishedDownloads.find((d) => d.id === downloadId);
+
           if (!download) {
             throw new Error(`Download with ID ${downloadId} not found`);
           }
@@ -934,8 +945,8 @@ const useDownloadStore = create<DownloadStore>()(
             data: {
               status: 'converting',
               format: targetFormat,
-              log: `Starting conversion to ${targetFormat}...`
-            }
+              log: `Starting conversion to ${targetFormat}...`,
+            },
           });
 
           // Call the main process to perform the conversion
@@ -945,7 +956,7 @@ const useDownloadStore = create<DownloadStore>()(
             targetFormat,
             keepOriginal,
             downloadName: download.name,
-            saveToCustomLocation
+            saveToCustomLocation,
           });
 
           if (result.success) {
@@ -956,8 +967,8 @@ const useDownloadStore = create<DownloadStore>()(
                 status: 'conversion_complete',
                 format: targetFormat,
                 outputPath: result.outputPath,
-                log: `Conversion to ${targetFormat} completed successfully`
-              }
+                log: `Conversion to ${targetFormat} completed successfully`,
+              },
             });
             return { success: true, outputPath: result.outputPath };
           } else {
@@ -968,8 +979,8 @@ const useDownloadStore = create<DownloadStore>()(
                 status: 'conversion_failed',
                 format: targetFormat,
                 error: result.error,
-                log: `Conversion to ${targetFormat} failed: ${result.error}`
-              }
+                log: `Conversion to ${targetFormat} failed: ${result.error}`,
+              },
             });
             throw new Error(result.error || 'Conversion failed');
           }
@@ -981,8 +992,8 @@ const useDownloadStore = create<DownloadStore>()(
               status: 'conversion_failed',
               format: targetFormat,
               error: error.message,
-              log: `Conversion to ${targetFormat} failed: ${error.message}`
-            }
+              log: `Conversion to ${targetFormat} failed: ${error.message}`,
+            },
           });
           throw error;
         }
@@ -1009,7 +1020,7 @@ const useDownloadStore = create<DownloadStore>()(
         // Handle conversion status updates
         if (result.type === 'conversion') {
           const { status, format, error } = result.data;
-          
+
           set((state) => ({
             downloading: state.downloading.map((downloading) => {
               if (downloading.id !== id) return downloading;
@@ -1037,7 +1048,7 @@ const useDownloadStore = create<DownloadStore>()(
 
           // Show appropriate toast notification for conversion
           if (result.data.status === 'conversion_complete') {
-            const download = get().downloading.find(d => d.id === id);
+            const download = get().downloading.find((d) => d.id === id);
             if (download) {
               toast({
                 variant: 'success',
@@ -1047,19 +1058,24 @@ const useDownloadStore = create<DownloadStore>()(
               });
             }
           } else if (result.data.status === 'conversion_failed') {
-            const download = get().downloading.find(d => d.id === id);
+            const download = get().downloading.find((d) => d.id === id);
             if (download) {
               toast({
                 variant: 'destructive',
                 title: 'Conversion Failed',
-                description: `"${download.name}" conversion failed: ${result.data.error || 'Unknown error'}`,
+                description: `"${download.name}" conversion failed: ${
+                  result.data.error || 'Unknown error'
+                }`,
                 duration: 5000,
               });
             }
           }
 
           // Trigger finished downloads check if conversion completed
-          if (result.data.status === 'conversion_complete' || result.data.status === 'conversion_failed') {
+          if (
+            result.data.status === 'conversion_complete' ||
+            result.data.status === 'conversion_failed'
+          ) {
             setTimeout(() => {
               get().checkFinishedDownloads();
             }, 100);
@@ -1588,24 +1604,27 @@ const useDownloadStore = create<DownloadStore>()(
           }
         } catch (error) {
           console.error('❌ Metadata fetch failed:', error);
-          
+
           // Enhanced error message based on the actual error
           let errorTitle = 'Could not find video metadata';
           let errorDescription = 'Please enter a valid video URL';
-          
+
           if (error.message) {
             if (error.message.includes('yt-dlp binary not found')) {
               errorTitle = 'Download tool not available';
-              errorDescription = 'The video download tool is not properly installed. Please restart the application or reinstall Downlodr.';
+              errorDescription =
+                'The video download tool is not properly installed. Please restart the application or reinstall Downlodr.';
             } else if (error.message.includes('execution failed')) {
               errorTitle = 'Video processing failed';
-              errorDescription = 'Unable to process this video URL. Please check if the URL is valid and accessible.';
+              errorDescription =
+                'Unable to process this video URL. Please check if the URL is valid and accessible.';
             } else if (error.message.includes('empty data')) {
               errorTitle = 'No video information found';
-              errorDescription = 'The URL may be invalid, private, or not supported. Please try a different video URL.';
+              errorDescription =
+                'The URL may be invalid, private, or not supported. Please try a different video URL.';
             }
           }
-          
+
           toast({
             variant: 'destructive',
             title: errorTitle,

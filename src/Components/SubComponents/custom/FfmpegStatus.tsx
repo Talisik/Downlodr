@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '@/Components/SubComponents/shadcn/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/Components/SubComponents/shadcn/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/Components/SubComponents/shadcn/components/ui/tooltip';
 
 interface FfmpegStatusInfo {
   available: boolean;
@@ -15,9 +20,9 @@ interface FfmpegStatusProps {
   showDetails?: boolean;
 }
 
-export const FfmpegStatus: React.FC<FfmpegStatusProps> = ({ 
-  className = '', 
-  showDetails = false 
+export const FfmpegStatus: React.FC<FfmpegStatusProps> = ({
+  className = '',
+  showDetails = false,
 }) => {
   const [status, setStatus] = useState<FfmpegStatusInfo>({ available: false });
   const [loading, setLoading] = useState(true);
@@ -29,7 +34,9 @@ export const FfmpegStatus: React.FC<FfmpegStatusProps> = ({
   const checkFfmpegStatus = async () => {
     try {
       setLoading(true);
-      const result = await (window as any).downlodrFunctions.checkFfmpegStatus();
+      const result = await (
+        window as any
+      ).downlodrFunctions.checkFfmpegStatus();
       setStatus(result);
     } catch (error) {
       console.error('Failed to check FFmpeg status:', error);
@@ -50,7 +57,10 @@ export const FfmpegStatus: React.FC<FfmpegStatusProps> = ({
 
     if (status.available) {
       return (
-        <Badge variant="default" className={`bg-green-500 hover:bg-green-600 ${className}`}>
+        <Badge
+          variant="default"
+          className={`bg-green-500 hover:bg-green-600 ${className}`}
+        >
           ✅ FFmpeg Ready
         </Badge>
       );
@@ -65,14 +75,18 @@ export const FfmpegStatus: React.FC<FfmpegStatusProps> = ({
 
   const getTooltipContent = () => {
     if (loading) return 'Checking FFmpeg status...';
-    
+
     if (status.available) {
       return (
         <div className="space-y-1">
           <div className="font-semibold">✅ FFmpeg Available</div>
           {status.version && <div className="text-xs">{status.version}</div>}
-          {status.architecture && <div className="text-xs">Architecture: {status.architecture}</div>}
-          {status.path && <div className="text-xs opacity-75">Path: {status.path}</div>}
+          {status.architecture && (
+            <div className="text-xs">Architecture: {status.architecture}</div>
+          )}
+          {status.path && (
+            <div className="text-xs opacity-75">Path: {status.path}</div>
+          )}
           <div className="text-xs text-green-400 mt-2">
             All video processing features are available
           </div>
@@ -90,9 +104,7 @@ export const FfmpegStatus: React.FC<FfmpegStatusProps> = ({
           💡 Install via: brew install ffmpeg
         </div>
         {status.error && (
-          <div className="text-xs text-red-400 mt-1">
-            Error: {status.error}
-          </div>
+          <div className="text-xs text-red-400 mt-1">Error: {status.error}</div>
         )}
       </div>
     );
@@ -126,9 +138,7 @@ export const FfmpegStatus: React.FC<FfmpegStatusProps> = ({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="cursor-help">
-            {badge}
-          </div>
+          <div className="cursor-help">{badge}</div>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs">
           {getTooltipContent()}

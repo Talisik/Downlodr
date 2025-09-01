@@ -1,6 +1,6 @@
-projectKey=downlodr
+projectKey=Downlodr
 serverUrl=http://localhost:9000
 serverVersion=25.7.0.110598
-dashboardUrl=http://localhost:9000/dashboard?id=downlodr
-ceTaskId=256c1a97-f859-4cee-b962-c55ac50ed274
-ceTaskUrl=http://localhost:9000/api/ce/task?id=256c1a97-f859-4cee-b962-c55ac50ed274
+dashboardUrl=http://localhost:9000/dashboard?id=Downlodr
+ceTaskId=cc7e9670-ed3f-402b-8669-56feb9b3453d
+ceTaskUrl=http://localhost:9000/api/ce/task?id=cc7e9670-ed3f-402b-8669-56feb9b3453d
