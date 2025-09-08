@@ -16,7 +16,7 @@ interface FfmpegStatusInfo {
 }
 
 interface FfmpegStatusProps {
-  className?: string;
+  className?: string; 
   showDetails?: boolean;
 }
 
@@ -26,6 +26,7 @@ export const FfmpegStatus: React.FC<FfmpegStatusProps> = ({
 }) => {
   const [status, setStatus] = useState<FfmpegStatusInfo>({ available: false });
   const [loading, setLoading] = useState(true);
+  const [isPackaged, setIsPackaged] = useState(true);
 
   useEffect(() => {
     checkFfmpegStatus();
@@ -34,6 +35,13 @@ export const FfmpegStatus: React.FC<FfmpegStatusProps> = ({
   const checkFfmpegStatus = async () => {
     try {
       setLoading(true);
+
+      // Check if app is packaged (production mode)
+      const packaged = await (
+        window as any
+      ).downlodrFunctions.checkAppPackaged();
+      setIsPackaged(packaged);
+
       const result = await (
         window as any
       ).downlodrFunctions.checkFfmpegStatus();
@@ -109,6 +117,11 @@ export const FfmpegStatus: React.FC<FfmpegStatusProps> = ({
       </div>
     );
   };
+
+  // Don't show FFmpeg badge in production (packaged app)
+  if (isPackaged) {
+    return null;
+  }
 
   const badge = getStatusBadge();
 

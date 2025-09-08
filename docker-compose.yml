@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  downlodr:
+    build: .
+    container_name: downlodr-app
+    ports:
+      - "5900:5900"  # VNC port for GUI access
+    volumes:
+      - ./downloads:/app/downloads  # Mount downloads directory
+      - ./data:/app/data           # Mount app data directory
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw  # X11 socket (optional)
+    environment:
+      - DISPLAY=${DISPLAY:-:99}
+      - NODE_ENV=production
+      - ELECTRON_DISABLE_SECURITY_WARNINGS=true
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    
+  # Optional: Web-based VNC client
+  novnc:
+    image: theasp/novnc:latest
+    container_name: downlodr-novnc
+    ports:
+      - "8080:8080"  # Web VNC access
+    environment:
+      - DISPLAY_WIDTH=1024
+      - DISPLAY_HEIGHT=768
+      - RUN_XTERM=no
+      - RUN_FLUXBOX=no
+    depends_on:
+      - downlodr
+    volumes:
+      - /dev/shm:/dev/shm
+    command: ["websockify", "--web=/usr/share/novnc/", "8080", "downlodr:5900"]

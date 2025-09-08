@@ -115,12 +115,10 @@ const config: ForgeConfig = {
     executableName: 'Downlodr',
     extraResource: [
       './src/Assets/AppLogo',
-      './yt-dlp',
       './yt-dlp_macos',
       // Enhanced FFmpeg bundling with architecture-specific binaries
       './binaries/ffmpeg-arm64', // Apple Silicon native
       './binaries/ffmpeg-x64', // Intel native
-      './ffmpeg', // Current default binary
     ],
     // Simplified macOS code signing - always applied on macOS when certificate is available
     osxSign:

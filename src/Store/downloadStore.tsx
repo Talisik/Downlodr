@@ -558,6 +558,7 @@ export interface BaseDownload {
   completionCount?: number; // Number of times reached 100%
   rawProgress?: number; // Raw progress from the download engine (0-100)
   speedHistory?: SpeedDataPoint[]; // Speed history for persistent graph data
+  convertedFormat?: string; // Format that the file was converted to
 }
 
 // Interface for downloads that are currently being processed
@@ -586,6 +587,7 @@ export interface Downloading extends Omit<BaseDownload, 'status'> {
   backupFormatId?: string; // Backup format ID
   backupAudioExt?: string; // Backup audio file extension
   backupAudioFormatId?: string; // Backup audio format ID
+  error?: string; // Error message for failed downloads/conversions
 }
 
 // Interface for finished downloads
@@ -691,6 +693,15 @@ interface DownloadStore {
     keepOriginal?: boolean,
     saveToCustomLocation?: boolean,
   ) => Promise<{ success: boolean; outputPath?: string }>; // Convert a download to a different format
+  pauseConversion: (
+    downloadId: string,
+  ) => Promise<{ success: boolean; error?: string }>; // Pause a conversion process
+  resumeConversion: (
+    downloadId: string,
+  ) => Promise<{ success: boolean; error?: string }>; // Resume a paused conversion
+  stopConversion: (
+    downloadId: string,
+  ) => Promise<{ success: boolean; error?: string }>; // Stop/cancel a conversion process
   addTag: (downloadId: string, tag: string) => void; // Add a tag to a download
   removeTag: (downloadId: string, tag: string) => void; // Remove a tag from a download
   addCategory: (downloadId: string, category: string) => void; // Add a category to a download
@@ -798,11 +809,18 @@ const useDownloadStore = create<DownloadStore>()(
         const currentDownloads = get().downloading;
 
         // Find downloads that are marked as finished and ready to be moved
-        const finishedDownloads = currentDownloads.filter(
-          (downloading) =>
+        // IMPORTANT: Do NOT move paused downloads to finished
+        const finishedDownloads = currentDownloads.filter((downloading) => {
+          // Never move paused downloads, even if they were finished before
+          if (downloading.status === 'paused') {
+            return false;
+          }
+
+          return (
             downloading.status === 'finished' &&
-            downloading.completionCount >= 2, // Both phases completed
-        );
+            downloading.completionCount >= 2 // Both phases completed
+          );
+        });
 
         if (finishedDownloads.length > 0) {
           for (const download of finishedDownloads) {
@@ -999,6 +1017,61 @@ const useDownloadStore = create<DownloadStore>()(
         }
       },
 
+      // Pause conversion function
+      pauseConversion: async (downloadId: string) => {
+        try {
+          console.log(
+            `🔍 DEBUG: About to pause conversion for downloadId: ${downloadId}`,
+          );
+          const result = await window.electronAPI.pauseConversion(downloadId);
+          console.log(`🔍 DEBUG: Pause result:`, result);
+          if (result.success) {
+            console.log(`⏸️ Conversion paused for download ${downloadId}`);
+            return { success: true };
+          } else {
+            console.error(`Failed to pause conversion: ${result.error}`);
+            return { success: false, error: result.error };
+          }
+        } catch (error) {
+          console.error(`Error pausing conversion: ${error.message}`);
+          return { success: false, error: error.message };
+        }
+      },
+
+      // Resume conversion function
+      resumeConversion: async (downloadId: string) => {
+        try {
+          const result = await window.electronAPI.resumeConversion(downloadId);
+          if (result.success) {
+            console.log(`▶️ Conversion resumed for download ${downloadId}`);
+            return { success: true };
+          } else {
+            console.error(`Failed to resume conversion: ${result.error}`);
+            return { success: false, error: result.error };
+          }
+        } catch (error) {
+          console.error(`Error resuming conversion: ${error.message}`);
+          return { success: false, error: error.message };
+        }
+      },
+
+      // Stop conversion function
+      stopConversion: async (downloadId: string) => {
+        try {
+          const result = await window.electronAPI.stopConversion(downloadId);
+          if (result.success) {
+            console.log(`🛑 Conversion stopped for download ${downloadId}`);
+            return { success: true };
+          } else {
+            console.error(`Failed to stop conversion: ${result.error}`);
+            return { success: false, error: result.error };
+          }
+        } catch (error) {
+          console.error(`Error stopping conversion: ${error.message}`);
+          return { success: false, error: error.message };
+        }
+      },
+
       updateDownload: (id: string, result: any) => {
         // Early return if no meaningful data to update
         if (!result) {
@@ -1031,8 +1104,17 @@ const useDownloadStore = create<DownloadStore>()(
 
               // Update status based on conversion result
               if (status === 'converting') {
-                updates.status = 'initializing'; // Show as processing
+                updates.status = 'converting'; // Keep status as converting
                 updates.progress = downloading.progress || 0;
+              } else if (status === 'paused') {
+                // Keep the download in the list with paused status
+                console.log(
+                  `🔍 DEBUG: Setting download ${downloading.id} to paused status`,
+                );
+                console.log(`🔍 DEBUG: Download before update:`, downloading);
+                updates.status = 'paused';
+                // Don't update progress when paused
+                console.log(`🔍 DEBUG: Updates object:`, updates);
               } else if (status === 'conversion_complete') {
                 updates.status = 'finished';
                 updates.progress = 100;

@@ -95,7 +95,7 @@ fs.writeFile = function (filePath, data, options, callback) {
     console.log('🔍 [FS DEBUG] fs.writeFile called:', filePath);
   }
   return originalWriteFile.call(this, filePath, data, options, callback);
-};
+} as typeof fs.writeFile;
 
 // Intercept dialog operations too
 let originalShowSaveDialog: any;
@@ -1780,18 +1780,84 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     console.log('Using ffmpeg binary for download at:', ffmpegPath);
     console.log('FFmpeg binary exists:', fs.existsSync(ffmpegPath));
 
-    const downloadBinaryName = getYtdlpBinaryName(ytdlpPath);
-    const controller = await YTDLP.download({
-      // args needed for download
-      args: {
-        url: args.url,
-        output: args.outputFilepath,
+    // Validate format compatibility for QuickTime Player
+    const { CodecCompatibilityService } = await import(
+      './Utils/codecCompatibility'
+    );
+    const compatibilityValidation =
+      CodecCompatibilityService.validateFormatCombination({
         videoFormat: args.videoFormat,
         remuxVideo: args.remuxVideo,
-        audioFormat: args.audioExt,
-        audioQuality: args.audioFormatId,
-        limitRate: args.limitRate,
-      },
+        audioExt: args.audioExt,
+        audioFormatId: args.audioFormatId,
+      });
+
+    // Log compatibility warnings but continue with download
+    if (!compatibilityValidation.isValid) {
+      console.warn(
+        '⚠️ QuickTime compatibility issues detected:',
+        compatibilityValidation.issues,
+      );
+      console.log('💡 Suggestions:', compatibilityValidation.suggestions);
+
+      // Optionally send warning to renderer process
+      e.sender.send(`ytdlp:download:status:${id}`, {
+        type: 'warning',
+        data: {
+          message: 'Format may have limited QuickTime Player compatibility',
+          details: compatibilityValidation.issues,
+          suggestions: compatibilityValidation.suggestions,
+        },
+      });
+    } else {
+      console.log('✅ Format is QuickTime compatible');
+    }
+
+    const downloadBinaryName = getYtdlpBinaryName(ytdlpPath);
+
+    // Enhanced download arguments for QuickTime compatibility
+    const enhancedArgs = {
+      url: args.url,
+      output: args.outputFilepath,
+      videoFormat: args.videoFormat,
+      remuxVideo: args.remuxVideo,
+      audioFormat: args.audioExt,
+      audioQuality: args.audioFormatId,
+      limitRate: args.limitRate,
+    };
+
+    // Add QuickTime compatibility arguments if downloading MP4
+    const extraArgs: string[] = [];
+    if (args.remuxVideo === 'mp4') {
+      // Aggressively force QuickTime-compatible formats and codecs
+      extraArgs.push(
+        // Format selection - prefer H.264 + AAC combinations
+        '--format', 'best[vcodec^=avc1][acodec^=mp4a]/best[ext=mp4]/best',
+        
+        // Post-processing - force re-encode with QuickTime-compatible codecs
+        '--postprocessor-args',
+        'ffmpeg:-c:v libx264 -preset medium -crf 23 -profile:v main -level 3.1 -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart',
+        
+        // Container and format options
+        '--merge-output-format', 'mp4',
+        '--recode-video', 'mp4',
+        '--embed-metadata',
+        '--no-check-certificate',
+        
+        // Prefer formats that are more likely to be H.264
+        '--prefer-free-formats',
+      );
+      
+      console.log(
+        '🎬 Adding AGGRESSIVE QuickTime compatibility arguments for MP4 download',
+      );
+      console.log('📋 Format preference: H.264+AAC in MP4 container');
+    }
+
+    const controller = await YTDLP.download({
+      // args needed for download
+      args: enhancedArgs,
+      ...(extraArgs.length > 0 && { extraArgs }), // Add extra arguments if any
       ytdlpDownloadDestination: path.resolve(ytdlpPath), // Absolute path to the binary itself
       ...(downloadBinaryName !== 'yt-dlp' && {
         ytdlpBinaryName: downloadBinaryName,
@@ -1878,6 +1944,171 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
       // Handle download completion notifications
       if (chunk != null && chunk.data && chunk.data.status === 'finished') {
         setAlertTrayIcon();
+
+        // Post-download QuickTime compatibility validation for MP4 files
+        if (args.remuxVideo === 'mp4') {
+          console.log(
+            '🔍 Validating QuickTime compatibility for completed download...',
+          );
+
+          setTimeout(async () => {
+            try {
+              const { VideoCompatibilityValidator } = await import(
+                './Utils/videoCompatibilityValidator'
+              );
+
+              // Set FFmpeg path for the validator
+              VideoCompatibilityValidator.setFFmpegPath(getFfmpegBinaryPath());
+
+              // Validate the downloaded file
+              const validation =
+                await VideoCompatibilityValidator.validateVideoCompatibility(
+                  args.outputFilepath,
+                );
+
+              console.log('🔍 Validation result:', {
+                isCompatible: validation.isCompatible,
+                videoCodec: validation.codecInfo?.videoCodec,
+                audioCodec: validation.codecInfo?.audioCodec,
+                reencodeNeeded: validation.reencodeNeeded,
+              });
+
+              // AGGRESSIVE: Check for VP9, VP8, AV1 codecs specifically
+              const hasIncompatibleCodec =
+                validation.codecInfo?.videoCodec?.toLowerCase().includes('vp9') ||
+                validation.codecInfo?.videoCodec?.toLowerCase().includes('vp8') ||
+                validation.codecInfo?.videoCodec?.toLowerCase().includes('av01');
+
+              if (
+                !validation.isCompatible ||
+                validation.reencodeNeeded ||
+                hasIncompatibleCodec
+              ) {
+                console.log(
+                  `⚠️ Downloaded file uses ${validation.codecInfo?.videoCodec} codec - NOT QuickTime compatible, attempting H.264 conversion...`,
+                );
+
+                e.sender.send(`ytdlp:download:status:${id}`, {
+                  type: 'postprocessing',
+                  data: {
+                    status: 'fixing_compatibility',
+                    message: `Converting ${validation.codecInfo?.videoCodec} to H.264 for QuickTime compatibility...`,
+                    issues: validation.issues || [
+                      `Current codec: ${validation.codecInfo?.videoCodec}`,
+                      'Converting to H.264 + AAC',
+                    ],
+                  },
+                });
+
+                const fixResult =
+                  await VideoCompatibilityValidator.autoFixCompatibility(
+                    args.outputFilepath,
+                  );
+
+                if (fixResult.success && fixResult.wasFixed) {
+                  console.log(
+                    '✅ Successfully created H.264 QuickTime-compatible version',
+                  );
+                  
+                  // Verify the conversion actually worked
+                  try {
+                    const verifyResult =
+                      await VideoCompatibilityValidator.validateVideoCompatibility(
+                        fixResult.outputPath || args.outputFilepath,
+                      );
+
+                    if (
+                      verifyResult.isCompatible &&
+                      verifyResult.codecInfo?.videoCodec?.toLowerCase().includes('h264')
+                    ) {
+                      console.log('✅ Conversion verified: H.264 codec confirmed');
+                      e.sender.send(`ytdlp:download:status:${id}`, {
+                        type: 'postprocessing',
+                        data: {
+                          status: 'compatibility_fixed',
+                          message: `Video successfully converted from ${validation.codecInfo?.videoCodec} to H.264`,
+                          compatibleFile: fixResult.outputPath,
+                        },
+                      });
+                    } else {
+                      console.warn('⚠️ Conversion completed but verification failed');
+                      e.sender.send(`ytdlp:download:status:${id}`, {
+                        type: 'postprocessing',
+                        data: {
+                          status: 'compatibility_warning',
+                          message: 'Conversion completed but verification failed',
+                          compatibleFile: fixResult.outputPath,
+                        },
+                      });
+                    }
+                  } catch (verifyError) {
+                    console.warn('⚠️ Error verifying conversion:', verifyError);
+                    e.sender.send(`ytdlp:download:status:${id}`, {
+                      type: 'postprocessing',
+                      data: {
+                        status: 'compatibility_fixed',
+                        message: 'QuickTime-compatible version created (verification skipped)',
+                        compatibleFile: fixResult.outputPath,
+                      },
+                    });
+                  }
+                } else {
+                  console.warn(
+                    '⚠️ Could not convert to H.264 for QuickTime compatibility:',
+                    fixResult.error,
+                  );
+                  e.sender.send(`ytdlp:download:status:${id}`, {
+                    type: 'postprocessing',
+                    data: {
+                      status: 'compatibility_warning',
+                      message: 'Could not convert to H.264 QuickTime format automatically',
+                      issues: validation.issues,
+                      error: fixResult.error,
+                    },
+                  });
+                }
+              } else if (
+                validation.isCompatible &&
+                validation.codecInfo?.videoCodec?.toLowerCase().includes('h264')
+              ) {
+                console.log('✅ Downloaded file is already H.264 QuickTime compatible');
+                e.sender.send(`ytdlp:download:status:${id}`, {
+                  type: 'postprocessing',
+                  data: {
+                    status: 'compatibility_verified',
+                    message: `Video uses H.264 codec and is compatible with QuickTime Player`,
+                  },
+                });
+              } else {
+                console.warn('⚠️ Video compatibility status unclear');
+                e.sender.send(`ytdlp:download:status:${id}`, {
+                  type: 'postprocessing',
+                  data: {
+                    status: 'compatibility_warning',
+                    message: 'Video compatibility could not be determined',
+                    issues: [
+                      `Codec: ${validation.codecInfo?.videoCodec}`,
+                      'Compatibility unclear',
+                    ],
+                  },
+                });
+              }
+            } catch (validationError: any) {
+              console.warn(
+                '⚠️ Could not validate QuickTime compatibility:',
+                validationError.message,
+              );
+              e.sender.send(`ytdlp:download:status:${id}`, {
+                type: 'postprocessing',
+                data: {
+                  status: 'compatibility_check_failed',
+                  message: 'Could not verify QuickTime compatibility',
+                  error: validationError.message,
+                },
+              });
+            }
+          }, 2000); // Wait 2 seconds after download completion
+        }
 
         // Notify the main process about the finished download
         const win = BrowserWindow.getAllWindows()[0];
@@ -2329,6 +2560,26 @@ ipcMain.handle('sync-background-setting-on-startup', (_event, value) => {
 
   // Update tray visibility based on setting
   updateTrayVisibility(value);
+
+  return true;
+});
+
+// function for handling telemetry consent status
+ipcMain.handle('telemetry-consent-required', (_event) => {
+  console.log('🔔 Telemetry consent required - showing alert icon');
+
+  // Show alert icon in system tray to indicate attention needed
+  setAlertTrayIcon();
+
+  return true;
+});
+
+// function for handling telemetry consent completion
+ipcMain.handle('telemetry-consent-completed', (_event) => {
+  console.log('✅ Telemetry consent completed - resetting tray icon');
+
+  // Reset tray icon to normal when consent is completed
+  resetTrayIcon();
 
   return true;
 });
@@ -3118,6 +3369,11 @@ ipcMain.handle('check-ffmpeg-status', async () => {
   }
 });
 
+// Check if app is packaged (for dev/prod detection)
+ipcMain.handle('check-app-packaged', () => {
+  return app.isPackaged;
+});
+
 // Helper function to handle text format conversions (CC to Markdown, etc.)
 async function handleTextFormatConversion(
   inputPath: string,
@@ -3344,6 +3600,15 @@ function convertVttToMarkdown(vttContent: string): string {
   return markdown;
 }
 
+// Global storage for conversion processes
+const conversionProcesses = new Map<string, {
+  process: any;
+  options: any;
+  isPaused: boolean;
+  inputPath: string;
+  outputPath: string;
+}>();
+
 // File conversion handler
 ipcMain.handle('convert-file', async (event, options) => {
   const {
@@ -3516,6 +3781,15 @@ ipcMain.handle('convert-file', async (event, options) => {
     const { spawn } = require('child_process'); // eslint-disable-line @typescript-eslint/no-var-requires
     const conversionProcess = spawn(ffmpegPath, ffmpegArgs);
 
+    // Store the conversion process for pause/resume functionality
+    conversionProcesses.set(downloadId, {
+      process: conversionProcess,
+      options,
+      isPaused: false,
+      inputPath,
+      outputPath,
+    });
+
     return new Promise((resolve, reject) => {
       let errorOutput = '';
       let lastOutput = '';
@@ -3547,6 +3821,13 @@ ipcMain.handle('convert-file', async (event, options) => {
       });
 
       conversionProcess.on('close', (code: number | null) => {
+        // Check if conversion was paused before cleanup
+        const conversionData = conversionProcesses.get(downloadId);
+        if (conversionData && conversionData.isPaused) {
+          console.log(`⏸️ Conversion process closed but was paused - keeping process data for resume`);
+          return; // Don't clean up, don't resolve - keep process available for resume
+        }
+
         if (code === 0) {
           console.log(`✅ Conversion completed successfully!`);
           console.log(`📁 Output location: ${outputPath}`);
@@ -3574,6 +3855,9 @@ ipcMain.handle('convert-file', async (event, options) => {
             }
           }
 
+          // Clean up the stored process
+          conversionProcesses.delete(downloadId);
+          
           resolve({
             success: true,
             outputPath: outputPath,
@@ -3596,11 +3880,21 @@ ipcMain.handle('convert-file', async (event, options) => {
             },
           });
 
+          // Clean up the stored process
+          conversionProcesses.delete(downloadId);
+          
           reject(new Error(errorMessage));
         }
       });
 
       conversionProcess.on('error', (error: Error) => {
+        // Check if conversion was paused before cleanup
+        const conversionData = conversionProcesses.get(downloadId);
+        if (conversionData && conversionData.isPaused) {
+          console.log(`⏸️ Conversion process error but was paused - keeping process data for resume`);
+          return; // Don't clean up, don't reject - keep process available for resume
+        }
+
         console.error(`❌ Conversion process error: ${error.message}`);
 
         // Send failure status
@@ -3614,6 +3908,9 @@ ipcMain.handle('convert-file', async (event, options) => {
           },
         });
 
+        // Clean up the stored process
+        conversionProcesses.delete(downloadId);
+        
         reject(error);
       });
     });
@@ -3631,10 +3928,131 @@ ipcMain.handle('convert-file', async (event, options) => {
       },
     });
 
+    // Clean up the stored process on setup error
+    conversionProcesses.delete(downloadId);
+
     return {
       success: false,
       error: error.message,
     };
+  }
+});
+
+// Handler to pause conversion
+ipcMain.handle('pause-conversion', async (event, downloadId) => {
+  try {
+    const conversionData = conversionProcesses.get(downloadId);
+    if (!conversionData) {
+      return { success: false, error: 'Conversion process not found' };
+    }
+
+    if (conversionData.isPaused) {
+      return { success: true, message: 'Conversion already paused' };
+    }
+
+    // Pause the FFmpeg process using SIGSTOP
+    if (conversionData.process && !conversionData.process.killed) {
+      conversionData.process.kill('SIGSTOP');
+      conversionData.isPaused = true;
+      
+      console.log(`⏸️ Conversion paused for download ${downloadId}`);
+      
+      // Send pause status to renderer
+      event.sender.send(`ytdlp:download:status:${downloadId}`, {
+        type: 'conversion',
+        data: {
+          status: 'paused',
+          format: conversionData.options.targetFormat,
+          log: `Conversion paused by user`,
+        },
+      });
+
+      return { success: true, message: 'Conversion paused' };
+    }
+
+    return { success: false, error: 'Process not available for pausing' };
+  } catch (error) {
+    console.error(`❌ Error pausing conversion: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+});
+
+// Handler to resume conversion
+ipcMain.handle('resume-conversion', async (event, downloadId) => {
+  try {
+    const conversionData = conversionProcesses.get(downloadId);
+    if (!conversionData) {
+      // If no process found, this might be a conversion that was paused and needs to restart
+      console.log(`⚠️ No conversion process found for ${downloadId}, might need to restart conversion`);
+      return { success: false, error: 'Conversion process not found - may need to restart conversion' };
+    }
+
+    if (!conversionData.isPaused) {
+      return { success: true, message: 'Conversion is not paused' };
+    }
+
+    // Resume the FFmpeg process using SIGCONT
+    if (conversionData.process && !conversionData.process.killed) {
+      conversionData.process.kill('SIGCONT');
+      conversionData.isPaused = false;
+      
+      console.log(`▶️ Conversion resumed for download ${downloadId}`);
+      
+      // Send resume status to renderer
+      event.sender.send(`ytdlp:download:status:${downloadId}`, {
+        type: 'conversion',
+        data: {
+          status: 'converting',
+          format: conversionData.options.targetFormat,
+          log: `Conversion resumed by user`,
+        },
+      });
+
+      return { success: true, message: 'Conversion resumed' };
+    }
+
+    return { success: false, error: 'Process not available for resuming' };
+  } catch (error) {
+    console.error(`❌ Error resuming conversion: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+});
+
+// Handler to stop/cancel conversion
+ipcMain.handle('stop-conversion', async (event, downloadId) => {
+  try {
+    const conversionData = conversionProcesses.get(downloadId);
+    if (!conversionData) {
+      return { success: false, error: 'Conversion process not found' };
+    }
+
+    // Kill the FFmpeg process
+    if (conversionData.process && !conversionData.process.killed) {
+      conversionData.process.kill('SIGTERM');
+      
+      console.log(`🛑 Conversion stopped for download ${downloadId}`);
+      
+      // Send stop status to renderer
+      event.sender.send(`ytdlp:download:status:${downloadId}`, {
+        type: 'conversion',
+        data: {
+          status: 'conversion_failed',
+          format: conversionData.options.targetFormat,
+          error: 'Conversion cancelled by user',
+          log: `Conversion cancelled by user`,
+        },
+      });
+
+      // Clean up the stored process
+      conversionProcesses.delete(downloadId);
+
+      return { success: true, message: 'Conversion stopped' };
+    }
+
+    return { success: false, error: 'Process not available for stopping' };
+  } catch (error) {
+    console.error(`❌ Error stopping conversion: ${error.message}`);
+    return { success: false, error: error.message };
   }
 });
 

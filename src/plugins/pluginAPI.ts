@@ -444,8 +444,65 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           return false;
         }
 
+        // Check if this is a conversion in progress and handle it appropriately
+        const isConversion =
+          (currentDownload.status as string) === 'converting' ||
+          currentDownload.convertedFormat ||
+          (currentDownload.status === 'initializing' &&
+            currentDownload.progress === 100);
+
+        if (isConversion) {
+          try {
+            const downloadStore = useDownloadStore.getState();
+            const result = await downloadStore.pauseConversion(currentDownload.id);
+            if (result.success) {
+              toast({
+                variant: 'success',
+                title: 'Conversion Paused',
+                description: 'Conversion has been paused successfully',
+                duration: 3000,
+              });
+              return true;
+            } else {
+              toast({
+                variant: 'destructive',
+                title: 'Pause Failed',
+                description: `Failed to pause conversion: ${result.error}`,
+                duration: 3000,
+              });
+              return false;
+            }
+          } catch (error) {
+            toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: 'Failed to pause conversion',
+              duration: 3000,
+            });
+            console.error('Error pausing conversion:', error);
+            return false;
+          }
+        }
+
         // If already paused, handle resume with M4A cleanup
         if (currentDownload.status === 'paused') {
+          // Check if this is a paused conversion that needs to be resumed
+          const downloadStore = useDownloadStore.getState();
+          const allDownloads = downloadStore.downloading;
+          const conversionDownload = allDownloads.find(
+            (conv) =>
+              conv.id === downloadId &&
+              conv.status === 'paused' &&
+              (conv as any).type === 'conversion',
+          );
+
+          if (conversionDownload) {
+            // This is a paused conversion, resume it
+            console.log('Plugin API: Resuming paused conversion:', downloadId);
+            downloadStore.resumeConversion(downloadId);
+            return true;
+          }
+
           // Check if this is an m4a download and handle existing partial file
           const isM4aDownload =
             currentDownload.ext === 'm4a' || currentDownload.audioExt === 'm4a';

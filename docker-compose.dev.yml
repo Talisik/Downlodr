@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  downlodr-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: downlodr-dev
+    ports:
+      - "5900:5900"
+    volumes:
+      - .:/app                    # Mount source code for development
+      - ./downloads:/app/downloads
+      - ./data:/app/data
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - DISPLAY=${DISPLAY:-:99}
+      - NODE_ENV=development
+      - ELECTRON_DISABLE_SECURITY_WARNINGS=true
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    
+  novnc-dev:
+    image: theasp/novnc:latest
+    container_name: downlodr-novnc-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - DISPLAY_WIDTH=1280
+      - DISPLAY_HEIGHT=720
+      - RUN_XTERM=no
+      - RUN_FLUXBOX=no
+    depends_on:
+      - downlodr-dev
+    volumes:
+      - /dev/shm:/dev/shm
+    command: ["websockify", "--web=/usr/share/novnc/", "8080", "downlodr-dev:5900"]

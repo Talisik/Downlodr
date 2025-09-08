@@ -24,6 +24,8 @@ interface DownloadSettings {
   runInBackground: boolean;
   enableClipboardMonitoring: boolean; // Whether to monitor clipboard for links
   exitModal: boolean; // Whether to show exit modal when closing
+  telemetryEnabled: boolean; // Whether telemetry is enabled
+  telemetryConsentShown: boolean; // Whether telemetry consent dialog has been shown
   notificationPreferences: {
     downloadComplete: boolean;
     downloadFailed: boolean;
@@ -84,6 +86,8 @@ interface MainStore {
   updateDockBadgePreferences: (
     preferences: Partial<DownloadSettings['dockBadgePreferences']>,
   ) => void;
+  updateTelemetryEnabled: (enabled: boolean) => void; // Update telemetry enabled setting
+  updateTelemetryConsentShown: (shown: boolean) => void; // Update telemetry consent shown setting
   taskBarButtonsVisibility: TaskBarButtonsVisibility; // State for task bar buttons visibility
   setTaskBarButtonsVisibility: (
     visibility: Partial<TaskBarButtonsVisibility>,
@@ -92,6 +96,8 @@ interface MainStore {
   setIsNavCollapsed: (value: boolean) => void; // Set the collapse state of the sidebar navigation
   isDownloadDetailExpanded: boolean; // State for download detail expansion
   setIsDownloadDetailExpanded: (value: boolean) => void; // Set the expansion state of the download detail
+  isTelemetryConsentModalOpen: boolean; // State for telemetry consent modal visibility
+  setIsTelemetryConsentModalOpen: (isOpen: boolean) => void; // Set the telemetry consent modal state
 }
 
 // Add version constant for migration tracking
@@ -130,6 +136,8 @@ const migrateMainStore = (persistedState: unknown, version: number) => {
         maxDownloadNum: 5,
         runInBackground: false,
         enableClipboardMonitoring: false,
+        telemetryEnabled: false,
+        telemetryConsentShown: false,
         notificationPreferences: {
           downloadComplete: true,
           downloadFailed: true,
@@ -147,6 +155,7 @@ const migrateMainStore = (persistedState: unknown, version: number) => {
       selectedDownloads: [] as SelectedDownload[],
       isDownloadModalOpen: false,
       isExitModalOpen: false,
+      isTelemetryConsentModalOpen: false,
       selectedRows: [] as string[],
       selectedRowIds: [] as string[],
       visibleColumns: [
@@ -242,6 +251,8 @@ export const useMainStore = create<MainStore>()(
         maxDownloadNum: 5,
         runInBackground: false,
         enableClipboardMonitoring: false,
+        telemetryEnabled: false,
+        telemetryConsentShown: false,
         notificationPreferences: {
           downloadComplete: true,
           downloadFailed: true,
@@ -259,6 +270,7 @@ export const useMainStore = create<MainStore>()(
       selectedDownloads: [] as SelectedDownload[],
       isDownloadModalOpen: false,
       isExitModalOpen: false,
+      isTelemetryConsentModalOpen: false,
       setIsDownloadModalOpen: (isOpen: boolean) =>
         set({ isDownloadModalOpen: isOpen }),
       setIsExitModalOpen: (isOpen: boolean) => set({ isExitModalOpen: isOpen }),
@@ -330,6 +342,25 @@ export const useMainStore = create<MainStore>()(
             },
           },
         }),
+
+      updateTelemetryEnabled: (enabled) =>
+        set({
+          settings: {
+            ...get().settings,
+            telemetryEnabled: enabled,
+          },
+        }),
+
+      updateTelemetryConsentShown: (shown) =>
+        set({
+          settings: {
+            ...get().settings,
+            telemetryConsentShown: shown,
+          },
+        }),
+
+      setIsTelemetryConsentModalOpen: (isOpen) =>
+        set({ isTelemetryConsentModalOpen: isOpen }),
 
       selectedRows: [] as string[],
       setSelectedRows: (rows) => set({ selectedRows: rows }),

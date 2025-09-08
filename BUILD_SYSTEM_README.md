@@ -31,7 +31,8 @@ yarn build:dmg
 
 ### NPM Scripts
 ```bash
-yarn build:dmg        # Full production build with notarization
+yarn build:dmg        # Full production build with notarization (ARM64)
+yarn build:intel      # Full production build with notarization (Intel x64)
 yarn test:dmg         # Test DMG creation without notarization  
 yarn build:quick      # Original build process (fallback)
 yarn package          # Package app only
@@ -40,10 +41,11 @@ yarn make             # Package + create installers
 
 ### Build Scripts
 ```bash
-./scripts/build-with-create-dmg.sh      # Enhanced build with create-dmg
-./scripts/test-create-dmg.sh            # Test DMG creation
-./scripts/fix-binary-signing.sh         # Fix binary signing issues
-./scripts/diagnose-distribution-issues.sh # Comprehensive diagnostics
+./scripts/build-with-create-dmg.sh         # Enhanced build with create-dmg (ARM64)
+./scripts/build-with-create-dmg-intel.sh   # Enhanced build with create-dmg (Intel x64)
+./scripts/test-create-dmg.sh               # Test DMG creation
+./scripts/fix-binary-signing.sh            # Fix binary signing issues
+./scripts/diagnose-distribution-issues.sh  # Comprehensive diagnostics
 ```
 
 ## 🎯 Key Improvements
@@ -54,6 +56,7 @@ yarn make             # Package + create installers
 - **Working video downloads** - Properly signed FFmpeg and yt-dlp binaries
 - **Professional installers** - Beautiful DMG with create-dmg
 - **Reliable distribution** - Comprehensive security validation
+- **Multi-architecture support** - Separate builds for ARM64 and Intel x64
 
 ### 🔧 Technical Enhancements
 - **Automated environment loading** - No manual sourcing required
@@ -62,7 +65,52 @@ yarn make             # Package + create installers
 - **Enhanced error handling** - Better error messages and recovery
 - **Built-in diagnostics** - Automated issue detection
 
+## 🏗️ Architecture Support
+
+### Multi-Architecture Builds
+The build system supports both Mac architectures:
+
+#### **ARM64 (Apple Silicon)**
+```bash
+yarn build:dmg                    # Build for ARM64 Macs (M1, M2, M3, M4)
+./scripts/build-with-create-dmg.sh
+```
+- **Output**: `Downlodr-{version}-{timestamp}.dmg`
+- **Target**: Apple Silicon Macs (M1/M2/M3/M4)
+- **Optimized**: Native ARM64 performance
+
+#### **Intel x64 (Intel Macs)**
+```bash
+yarn build:intel                  # Build for Intel x64 Macs
+./scripts/build-with-create-dmg-intel.sh
+```
+- **Output**: `Downlodr-{version}-intel-x64-{timestamp}.dmg`
+- **Target**: Intel-based Mac machines
+- **Cross-compilation**: Can build from ARM64 or Intel hosts
+
+### Architecture Detection
+Both scripts automatically:
+- ✅ Detect host architecture and warn about cross-compilation
+- ✅ Verify target architecture in final app bundle
+- ✅ Include architecture info in DMG naming
+- ✅ Validate binary compatibility
+
 ## 🎨 DMG Features
+
+### Professional Design
+Our DMG creation system produces professional-looking installers with Fellou-style layouts. See [DMG Design Guide](docs/DMG_DESIGN_GUIDE.md) for complete configuration details.
+
+**Visual Features:**
+- Custom volume names and icons
+- Drag-drop layout with Applications folder
+- Professional window sizing (660x400)
+- Background images and custom positioning
+- Large, clear app icons (128px)
+
+**Permission Handling:**
+- Automatic fallback if `create-dmg` lacks permissions
+- Functional DMGs created even without Full Disk Access
+- Optional: Grant Terminal "Full Disk Access" for full styling
 
 The enhanced build system creates professional DMGs with:
 - Custom app icon and volume name
@@ -70,6 +118,7 @@ The enhanced build system creates professional DMGs with:
 - Professional window layout (800x550)
 - Clean, minimalist design
 - Proper code signing and notarization
+- Architecture-specific volume naming
 
 ## 🔒 Security Features
 

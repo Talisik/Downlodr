@@ -122,9 +122,26 @@ const PluginTaskBarExtension: React.FC = () => {
     }
   };
 
-  const handleItemClick = (item: TaskBarItem) => {
+  const handleItemClick = async (item: TaskBarItem) => {
     if (item.actionType === 'multiple' && !selectedDownloads.length) {
-      window.PluginHandlers[item.handlerId](downloading);
+      try {
+        // For plugins that work with all downloads, don't clear selections (there are none)
+        const handler = window.PluginHandlers[item.handlerId];
+        if (handler) {
+          await Promise.resolve(handler(downloading));
+        }
+      } catch (error) {
+        console.error(
+          `Error executing plugin handler for ${item.handlerId}:`,
+          error,
+        );
+        toast({
+          variant: 'destructive',
+          title: 'Plugin Error',
+          description: 'Failed to execute plugin action',
+          duration: 3000,
+        });
+      }
       return;
     }
 
@@ -139,9 +156,17 @@ const PluginTaskBarExtension: React.FC = () => {
     }
 
     // Get selected downloads data
-    const downloadsData = selectedDownloads.map((id) => {
-      // Here you would gather any relevant data about the selected downloads
-      return { id };
+    const downloadsData = selectedDownloads.map((selectedDownload) => {
+      // Gather relevant data about the selected downloads
+      return {
+        id: selectedDownload.id,
+        controllerId: selectedDownload.controllerId,
+        location: selectedDownload.location,
+        videoUrl: selectedDownload.videoUrl,
+        downloadName: selectedDownload.downloadName,
+        status: selectedDownload.status,
+        download: selectedDownload.download,
+      };
     });
 
     // Find and call the handler using the handlerId
@@ -151,15 +176,48 @@ const PluginTaskBarExtension: React.FC = () => {
       window.PluginHandlers[item.handlerId]
     ) {
       console.log(`Executing taskbar item with handler: ${item.handlerId}`);
-      console.log(downloadsData);
-      window.PluginHandlers[item.handlerId](downloadsData);
-      clearAllSelections();
+      console.log('Downloads data:', downloadsData);
+
+      try {
+        // Execute the plugin handler and wait for completion
+        const handler = window.PluginHandlers[item.handlerId];
+        await Promise.resolve(handler(downloadsData));
+
+        // Only clear selections after successful plugin execution
+        // This prevents clearing selections while the plugin is still processing
+        clearAllSelections();
+      } catch (error) {
+        console.error(
+          `Error executing plugin handler for ${item.handlerId}:`,
+          error,
+        );
+        toast({
+          variant: 'destructive',
+          title: 'Plugin Error',
+          description:
+            'Failed to execute plugin action. Downloads remain selected.',
+          duration: 3000,
+        });
+        // Don't clear selections on error - let user retry or manually clear
+      }
     } else {
       console.error(
         `No handler found for taskbar item ${item.id} (looking for handlerId: ${item.handlerId})`,
       );
       // Fallback to the IPC method for non-renderer plugins
-      window.plugins.executeTaskBarItem(item.id || '', downloadsData);
+      try {
+        await window.plugins.executeTaskBarItem(item.id || '', downloadsData);
+        // Only clear selections after successful IPC call
+        clearAllSelections();
+      } catch (error) {
+        console.error(`Error executing taskbar item via IPC:`, error);
+        toast({
+          variant: 'destructive',
+          title: 'Plugin Error',
+          description: 'Failed to execute plugin action via IPC',
+          duration: 3000,
+        });
+      }
     }
   };
 

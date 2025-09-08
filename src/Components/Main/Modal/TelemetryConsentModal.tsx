@@ -40,6 +40,11 @@ const TelemetryConsentModal: React.FC<TelemetryConsentModalProps> = ({
     updateTelemetryEnabled(true);
     updateTelemetryConsentShown(true);
 
+    // Notify main process that telemetry consent is completed (resets tray icon)
+    if (window.telemetryAPI) {
+      window.telemetryAPI.consentCompleted().catch(console.error);
+    }
+
     toast({
       title: 'Telemetry Enabled',
       description:
@@ -53,6 +58,11 @@ const TelemetryConsentModal: React.FC<TelemetryConsentModalProps> = ({
   const handleDecline = () => {
     updateTelemetryEnabled(false);
     updateTelemetryConsentShown(true);
+
+    // Notify main process that telemetry consent is completed (resets tray icon)
+    if (window.telemetryAPI) {
+      window.telemetryAPI.consentCompleted().catch(console.error);
+    }
 
     toast({
       title: 'Telemetry Disabled',

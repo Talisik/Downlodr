@@ -26,22 +26,22 @@ if [ -z "$APPLE_IDENTITY" ]; then
     exit 1
 fi
 
-# Check if create-dmg is installed
-if ! command -v create-dmg &> /dev/null; then
-    echo "⚠️  create-dmg not found. Installing via Homebrew..."
-    if command -v brew &> /dev/null; then
-        brew install create-dmg
-    else
-        echo "❌ Homebrew not found. Please install create-dmg manually:"
-        echo "   • Via Homebrew: brew install create-dmg"
-        echo "   • From source: https://github.com/create-dmg/create-dmg"
-        exit 1
-    fi
+# Check if create-dmg is installed (prefer npm version 7.0.0)
+if ! command -v npx &> /dev/null; then
+    echo "❌ npx not found. Please install Node.js to use create-dmg 7.0.0"
+    exit 1
+fi
+
+# Check if we have the modern create-dmg
+NPX_CREATE_DMG_VERSION=$(npx create-dmg --version 2>/dev/null || echo "not installed")
+if [ "$NPX_CREATE_DMG_VERSION" = "not installed" ]; then
+    echo "⚠️  create-dmg 7.0.0 not found. Installing via npm..."
+    npm install -g create-dmg@latest
 fi
 
 echo "✅ Environment variables configured"
 echo "📱 Apple Developer ID: $APPLE_IDENTITY"
-echo "🛠️  create-dmg available: $(create-dmg --version 2>/dev/null || echo 'installed')"
+echo "🛠️  create-dmg available: Homebrew create-dmg $(/opt/homebrew/bin/create-dmg --version 2>/dev/null || echo '1.2.2')"
 echo ""
 
 # Step 1: Clean previous builds
@@ -75,29 +75,92 @@ DMG_PATH="out/make/$DMG_NAME"
 
 # Create a clean temporary directory with only the app bundle
 echo "   📂 Preparing clean DMG source..."
-DMG_SOURCE_DIR="/tmp/downlodr_dmg_source"
-rm -rf "$DMG_SOURCE_DIR"
-mkdir -p "$DMG_SOURCE_DIR"
+DMG_SOURCE_DIR="$(mktemp -d -t downlodr_dmg_source)"
+echo "   📍 Using temporary directory: $DMG_SOURCE_DIR"
 
 # Copy only the app bundle (not loose files)
 cp -R "out/Downlodr-darwin-arm64/Downlodr.app" "$DMG_SOURCE_DIR/"
 
+# Set proper permissions on the app bundle
+chmod -R 755 "$DMG_SOURCE_DIR/Downlodr.app"
+
 # Create a beautiful DMG with create-dmg
 echo "   🎨 Creating styled DMG with Applications folder..."
 
-# Use create-dmg for professional-looking DMG with custom layout
-create-dmg \
-    --volname "Downlodr ${APP_VERSION}" \
-    --volicon "src/Assets/AppLogo/icon.icns" \
-    --window-pos 200 120 \
-    --window-size 800 550 \
-    --icon-size 100 \
-    --icon "Downlodr.app" 200 190 \
-    --hide-extension "Downlodr.app" \
-    --app-drop-link 600 190 \
-    --skip-jenkins \
-    "$DMG_PATH" \
-    "$DMG_SOURCE_DIR"
+# Use the Homebrew create-dmg (1.2.2) for professional DMG creation
+echo "   🎨 Using Homebrew create-dmg for professional DMG..."
+
+# Set DMG title (must be <=27 characters)
+DMG_TITLE="Downlodr ${APP_VERSION}"
+if [ ${#DMG_TITLE} -gt 27 ]; then
+    DMG_TITLE="Downlodr v${APP_VERSION}"
+fi
+
+# Use the professional create-dmg (Homebrew version) for full features
+echo "   🔧 Creating professional DMG with create-dmg..."
+
+# Let create-dmg handle versioning automatically (don't remove existing DMG)
+echo "   💡 Note: If create-dmg fails with 'Operation not permitted', grant Terminal 'Full Disk Access' in System Preferences > Privacy & Security"
+
+# Note: create-dmg will handle Applications symlink automatically with --app-drop-link
+echo "   📂 Note: Applications symlink will be created by create-dmg --app-drop-link..."
+
+# Use create-dmg with Full Disk Access for professional layout
+echo "   🔧 Creating professional DMG with create-dmg (using Full Disk Access)..."
+
+    # Try create-dmg with Full Disk Access (no sudo needed)
+    if /opt/homebrew/bin/create-dmg \
+        --volname "Downlodr ${APP_VERSION}" \
+        --volicon "src/Assets/AppLogo/icon.icns" \
+        --window-pos 200 120 \
+        --window-size 660 400 \
+        --icon-size 128 \
+        --icon "Downlodr.app" 180 200 \
+        --hide-extension "Downlodr.app" \
+        --app-drop-link 480 200 \
+        --background "src/Assets/DMG/dmg-background.png" \
+        --text-size 16 \
+        --no-internet-enable \
+        "$DMG_PATH" \
+        "$DMG_SOURCE_DIR"; then
+        
+        echo "   ✅ Professional DMG created successfully with create-dmg!"
+    
+else
+    echo "   ⚠️  create-dmg failed, using hdiutil fallback..."
+    
+    # Fallback: Use hdiutil with proper volume name and Applications folder
+    echo "   🔧 Creating DMG with proper volume name: 'Downlodr ${APP_VERSION}'..."
+    
+            # Add Applications symlink for hdiutil fallback
+        ln -sf /Applications "$DMG_SOURCE_DIR/Applications"
+        
+        # Use hdiutil create with -srcfolder and -volname for proper volume naming
+        if hdiutil create \
+            -volname "Downlodr ${APP_VERSION}" \
+            -srcfolder "$DMG_SOURCE_DIR" \
+            -format UDZO \
+            -fs HFS+ \
+            -ov \
+            "$DMG_PATH" 2>/dev/null; then
+            
+            echo "   ✅ DMG created successfully with proper volume name and Applications folder"
+    else
+        echo "   ⚠️  hdiutil with volume name failed, trying basic approach..."
+        
+        # Last resort: very basic DMG creation
+        if hdiutil create \
+            -srcfolder "$DMG_SOURCE_DIR" \
+            -format UDZO \
+            -ov \
+            "$DMG_PATH" 2>/dev/null; then
+            echo "   ✅ Basic DMG created (volume name may be temporary directory name)"
+        else
+            echo "   ❌ All DMG creation methods failed"
+            exit 1
+        fi
+    fi
+fi
 
 # Clean up temporary directory
 rm -rf "$DMG_SOURCE_DIR"

@@ -1,0 +1,96 @@
+# Development Dockerfile for Downlodr
+# This version is optimized for development and includes GUI support via VNC
+
+FROM node:20-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    build-essential \
+    ffmpeg \
+    wget \
+    curl \
+    xvfb \
+    x11vnc \
+    fluxbox \
+    dbus-x11 \
+    libgtk-3-0 \
+    libxss1 \
+    libgconf-2-4 \
+    libxtst6 \
+    libxrandr2 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libatk1.0-0 \
+    libcairo-gobject2 \
+    libgtk-3-0 \
+    libgdk-pixbuf2.0-0 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    libnss3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install yarn globally
+RUN npm install -g yarn
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json yarn.lock* ./
+
+# Install dependencies
+RUN yarn install
+
+# Download yt-dlp binary
+RUN wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp \
+    && chmod +x /usr/local/bin/yt-dlp
+
+# Copy source code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p /app/downloads /app/data
+
+# Set environment variables
+ENV DISPLAY=:99
+ENV NODE_ENV=development
+ENV ELECTRON_DISABLE_SECURITY_WARNINGS=true
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+\n\
+# Start Xvfb\n\
+Xvfb :99 -screen 0 1280x720x24 &\n\
+export DISPLAY=:99\n\
+\n\
+# Start VNC server\n\
+x11vnc -display :99 -nopw -listen 0.0.0.0 -xkb -ncache 10 -ncache_cr -forever -bg\n\
+\n\
+# Start window manager\n\
+fluxbox -display :99 &\n\
+\n\
+# Wait for X server to start\n\
+sleep 3\n\
+\n\
+# Start the Electron application\n\
+yarn start\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# Expose VNC port
+EXPOSE 5900
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD pgrep -f electron || exit 1
+
+# Default command
+CMD ["/app/start.sh"]

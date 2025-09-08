@@ -18,6 +18,7 @@ declare global {
         targetFormat: string;
         keepOriginal: boolean;
         downloadName: string;
+        saveToCustomLocation?: boolean;
       }) => Promise<{
         success: boolean;
         outputPath?: string;
@@ -29,6 +30,22 @@ declare global {
         version?: string;
         path?: string;
         architecture?: string;
+        error?: string;
+      }>;
+      // Conversion control functions
+      pauseConversion: (downloadId: string) => Promise<{
+        success: boolean;
+        message?: string;
+        error?: string;
+      }>;
+      resumeConversion: (downloadId: string) => Promise<{
+        success: boolean;
+        message?: string;
+        error?: string;
+      }>;
+      stopConversion: (downloadId: string) => Promise<{
+        success: boolean;
+        message?: string;
         error?: string;
       }>;
     };
@@ -267,6 +284,10 @@ declare global {
       setBadgeCount: (count: number) => Promise<void>;
       getBadgeCount: () => Promise<number>;
       clearBadge: () => Promise<void>;
+    };
+    telemetryAPI?: {
+      consentRequired: () => Promise<boolean>;
+      consentCompleted: () => Promise<boolean>;
     };
     
   }

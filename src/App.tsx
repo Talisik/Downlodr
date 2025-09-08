@@ -37,6 +37,7 @@ import PluginSidePanelManager from './plugins/components/PluginSidePanelManager'
 import SystemTrayHandler from './Components/SubComponents/custom/SystemTrayHandler';
 import ActivityMonitor from './Components/SubComponents/custom/ActivityMonitor';
 import NotificationManager from './Components/SubComponents/custom/NotificationManager';
+import TelemetryConsentHandler from './Components/SubComponents/custom/TelemetryConsentHandler';
 
 const App = () => {
   const { settings } = useMainStore();
@@ -258,6 +259,7 @@ const App = () => {
       <SystemTrayHandler />
       <ActivityMonitor />
       <NotificationManager />
+      <TelemetryConsentHandler />
     </ThemeProvider>
   );
 };

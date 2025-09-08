@@ -547,11 +547,47 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
 
   const handlePause = async (downloadId: string, downloadLocation?: string) => {
     // Get fresh state each time
-    const { downloading, deleteDownloading } = useDownloadStore.getState();
+    const { downloading, deleteDownloading, resumeConversion } =
+      useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
     const { updateDownloadStatus } = useDownloadStore.getState();
 
     if (currentDownload?.status === 'paused') {
+      // Check if this was a paused conversion
+      // A paused conversion has either:
+      // 1. A convertedFormat property
+      // 2. Was at 100% progress when paused (likely a conversion)
+      const wasPausedConversion =
+        currentDownload.convertedFormat || currentDownload.progress === 100;
+
+      if (wasPausedConversion) {
+        try {
+          const result = await resumeConversion(downloadId);
+          if (result.success) {
+            toast({
+              variant: 'success',
+              title: 'Conversion Resumed',
+              description: 'Conversion has been resumed successfully',
+              duration: 3000,
+            });
+            return;
+          } else {
+            toast({
+              variant: 'destructive',
+              title: 'Resume Failed',
+              description: `Failed to resume conversion: ${result.error}`,
+              duration: 3000,
+            });
+            return;
+          }
+        } catch (error) {
+          // If conversion resume fails, fall back to regular download resume
+          console.log(
+            'Conversion resume failed, trying regular download resume:',
+            error,
+          );
+        }
+      }
       // Check if this is an m4a download and handle existing partial file
       const isM4aDownload =
         currentDownload.ext === 'm4a' || currentDownload.audioExt === 'm4a';
@@ -622,34 +658,75 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         description: 'Download has been resumed successfully',
         duration: 3000,
       });
-    } else if (currentDownload && currentDownload.controllerId != '---') {
-      try {
-        updateDownloadStatus(downloadId, 'paused');
-        window.ytdlp
-          .killController(currentDownload.controllerId)
-          .then((response: { success: boolean; error?: string }) => {
-            if (response.success) {
-              setTimeout(() => {
-                updateDownloadStatus(downloadId, 'paused');
-              }, 1200);
-            }
+    } else if (currentDownload) {
+      // Check if this is a conversion in progress
+      // A conversion is detected if:
+      // 1. Status is 'initializing' (conversion processing)
+      // 2. Has a convertedFormat property (was converted or being converted)
+      // 3. Progress is 100% and status is initializing (likely conversion)
+      const isConversion =
+        currentDownload.convertedFormat ||
+        (currentDownload.status === 'initializing' &&
+          currentDownload.progress === 100);
+
+      if (isConversion) {
+        try {
+          const { pauseConversion } = useDownloadStore.getState();
+          const result = await pauseConversion(downloadId);
+          if (result.success) {
+            toast({
+              variant: 'success',
+              title: 'Conversion Paused',
+              description: 'Conversion has been paused successfully',
+              duration: 3000,
+            });
+          } else {
+            toast({
+              variant: 'destructive',
+              title: 'Pause Failed',
+              description: `Failed to pause conversion: ${result.error}`,
+              duration: 3000,
+            });
+          }
+        } catch (error) {
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to pause conversion',
+            duration: 3000,
           });
-        // When successfully paused
-        toast({
-          variant: 'success',
-          title: 'Download Paused',
-          description: 'Download has been paused successfully',
-          duration: 3000,
-        });
-        updateDownloadStatus(downloadId, 'paused');
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Failed to pause/resume download',
-          duration: 3000,
-        });
-        console.error('Error in pause:', error);
+          console.error('Error pausing conversion:', error);
+        }
+      } else if (currentDownload.controllerId != '---') {
+        // Regular download pause logic
+        try {
+          updateDownloadStatus(downloadId, 'paused');
+          window.ytdlp
+            .killController(currentDownload.controllerId)
+            .then((response: { success: boolean; error?: string }) => {
+              if (response.success) {
+                setTimeout(() => {
+                  updateDownloadStatus(downloadId, 'paused');
+                }, 1200);
+              }
+            });
+          // When successfully paused
+          toast({
+            variant: 'success',
+            title: 'Download Paused',
+            description: 'Download has been paused successfully',
+            duration: 3000,
+          });
+          updateDownloadStatus(downloadId, 'paused');
+        } catch (error) {
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to pause/resume download',
+            duration: 3000,
+          });
+          console.error('Error in pause:', error);
+        }
       }
     }
 

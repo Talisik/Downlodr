@@ -148,6 +148,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveToCustomLocation?: boolean;
   }) => ipcRenderer.invoke('convert-file', options),
   checkFfmpegStatus: () => ipcRenderer.invoke('check-ffmpeg-status'),
+  pauseConversion: (downloadId: string) => ipcRenderer.invoke('pause-conversion', downloadId),
+  resumeConversion: (downloadId: string) => ipcRenderer.invoke('resume-conversion', downloadId),
+  stopConversion: (downloadId: string) => ipcRenderer.invoke('stop-conversion', downloadId),
 });
 
 // downlodr exlusive functions
@@ -179,6 +182,8 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
     ipcRenderer.invoke('get-directory-size', path),
   // Enhanced FFmpeg status checking
   checkFfmpegStatus: () => ipcRenderer.invoke('check-ffmpeg-status'),
+  // Check if app is packaged (dev/prod detection)
+  checkAppPackaged: () => ipcRenderer.invoke('check-app-packaged'),
   // File conversion functionality
   convertFile: (options: {
     downloadId: string;
@@ -284,7 +289,8 @@ class BalancedDownloadThrottler {
       update.data?.value?.status === 'finished' ||
       update.data?.value?.status === 'failed' ||
       update.data?.value?.status === 'cancelled' ||
-      update.data?.value?.status === 'error'
+      update.data?.value?.status === 'error' ||
+      update.data?.status === 'paused' // Ensure paused conversion updates are sent immediately
     );
   }
 
@@ -397,12 +403,13 @@ contextBridge.exposeInMainWorld('ytdlp', {
           // Use balanced throttling for all updates
           throttler.throttleUpdate(id, chunk, callback);
 
-          // Clean up on finish
+          // Clean up on finish - but NOT on pause (conversion can be resumed)
           if (chunk.data?.status === 'finished') {
             ipcRenderer.removeAllListeners(channel);
             ipcRenderer.removeAllListeners(controllerChannel);
             throttler.cleanup(id);
           }
+          // NOTE: Do NOT clean up on 'paused' status - listeners needed for resume
         });
       } catch (error) {
         console.error('Error during download:', error);
@@ -515,6 +522,12 @@ contextBridge.exposeInMainWorld('backgroundSettings', {
   getRunInBackground: () => ipcRenderer.invoke('get-run-in-background'),
   setRunInBackground: (value: boolean) =>
     ipcRenderer.invoke('set-run-in-background', value),
+});
+
+// Telemetry consent API for system tray integration
+contextBridge.exposeInMainWorld('telemetryAPI', {
+  consentRequired: () => ipcRenderer.invoke('telemetry-consent-required'),
+  consentCompleted: () => ipcRenderer.invoke('telemetry-consent-completed'),
 });
 
 contextBridge.exposeInMainWorld('notifications', {
