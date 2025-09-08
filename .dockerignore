@@ -1,0 +1,96 @@
+# Node modules
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist
+build
+.vite
+out
+.output
+
+# Cache directories
+.cache
+.parcel-cache
+.next
+.nuxt
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+
+# Testing
+coverage
+.nyc_output
+
+# Temporary files
+tmp
+temp
+.tmp
+
+# macOS specific
+.AppleDouble
+.LSOverride
+Icon
+
+# Package manager lock files (keep yarn.lock, exclude npm alternatives)
+package-lock.json
+pnpm-lock.yaml
+
+# Electron specific
+.electron
+.electron-builder
+.electron-webpack
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Scripts that aren't needed in container
+scripts/build-*.sh
+scripts/diagnose-*.sh
+scripts/test-*.sh
+
+# Test files
+test-*
+*.test.*
+*.spec.*
+
+# Archive/backup files
+*.backup
+XcodeArchive/
+
+# Temporary build directories
+temp-ffmpeg/
