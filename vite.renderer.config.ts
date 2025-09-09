@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => ({
           // UI libraries
           'ui-vendor': [
             '@radix-ui/react-alert-dialog',
-            '@radix-ui/react-avatar', 
+            '@radix-ui/react-avatar',
             '@radix-ui/react-dialog',
             '@radix-ui/react-separator',
             '@radix-ui/react-slider',
@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-switch',
             '@radix-ui/react-tabs',
             '@radix-ui/react-toast',
-            '@radix-ui/react-tooltip'
+            '@radix-ui/react-tooltip',
           ],
           // Icons and utilities
           'utils-vendor': [
@@ -43,21 +43,14 @@ export default defineConfig(({ mode }) => ({
             'lucide-react',
             'clsx',
             'tailwind-merge',
-            'class-variance-authority'
+            'class-variance-authority',
           ],
           // Data and state management
-          'data-vendor': [
-            'zustand',
-            '@tanstack/react-query',
-            'axios'
-          ],
+          'data-vendor': ['zustand', '@tanstack/react-query', 'axios'],
           // Large utilities
-          'heavy-vendor': [
-            'date-fns',
-            'docx'
-          ]
-        }
-      }
-    }
-  }
+          'heavy-vendor': ['date-fns', 'docx'],
+        },
+      },
+    },
+  },
 }));

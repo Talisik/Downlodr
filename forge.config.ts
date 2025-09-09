@@ -120,6 +120,18 @@ const config: ForgeConfig = {
       './binaries/ffmpeg-arm64', // Apple Silicon native
       './binaries/ffmpeg-x64', // Intel native
     ],
+    // Explicit macOS app bundle configuration
+    ...(process.platform === 'darwin'
+      ? {
+          osxUniversal: {
+            x64ArchFiles: '*',
+          },
+          extendInfo: {
+            CFBundleIconFile: 'icon.icns',
+            CFBundleIconName: 'icon',
+          },
+        }
+      : {}),
     // Simplified macOS code signing - always applied on macOS when certificate is available
     osxSign:
       process.env.APPLE_IDENTITY && !process.env.SKIP_CODE_SIGNING
@@ -141,7 +153,7 @@ const config: ForgeConfig = {
   makers: [
     // macOS DMG installer - preferred by most macOS users
     new MakerDMG({
-      icon: './src/Assets/AppLogo/256x256.ico',
+      icon: './src/Assets/AppLogo/icon.icns',
       name: 'Downlodr',
       title: 'Install Downlodr',
       format: 'ULFO',

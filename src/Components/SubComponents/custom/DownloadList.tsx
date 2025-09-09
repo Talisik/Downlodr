@@ -17,10 +17,10 @@ import ShareButton from '@/Components/SubComponents/custom/ShareButton';
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { Skeleton } from '@/Components/SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { DownloadItem } from '@/Schema/componentSchema';
+import { DownloadItem } from '@/schema/componentSchema';
 import useDownloadStore, { BaseDownload } from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
-import { getExtractorIcon, getStatusIcon } from '@/Utils/Icons/IconMapper';
+import { getExtractorIcon, getStatusIcon } from '@/DataFunctions/IconMapper';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FaPlay } from 'react-icons/fa';
 import { HiOutlineFolderOpen } from 'react-icons/hi';
@@ -547,9 +547,79 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
 
   const handlePause = async (downloadId: string, downloadLocation?: string) => {
     // Get fresh state each time
-    const { downloading, deleteDownloading } = useDownloadStore.getState();
+    const {
+      downloading,
+      deleteDownloading,
+      pauseConversion,
+      resumeConversion,
+      updateDownload,
+    } = useDownloadStore.getState();
     const currentDownload = downloading.find((d) => d.id === downloadId);
     const { updateDownloadStatus } = useDownloadStore.getState();
+
+    // Check if this is a conversion
+    const isConversion =
+      currentDownload && (currentDownload as any).type === 'conversion';
+
+    if (isConversion) {
+      // Handle conversion pause/resume
+      if (currentDownload?.status === 'paused') {
+        // Resume conversion
+        console.log('🔄 Resuming conversion for:', downloadId);
+        const result = await resumeConversion(downloadId);
+        if (result.success) {
+          // Use updateDownload with conversion type for proper status handling
+          updateDownload(downloadId, {
+            type: 'conversion',
+            data: {
+              status: 'converting',
+              log: 'Conversion resumed',
+            },
+          });
+          toast({
+            variant: 'success',
+            title: 'Conversion Resumed',
+            description: 'Format conversion has been resumed successfully',
+            duration: 3000,
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Resume Failed',
+            description: result.error || 'Failed to resume conversion',
+            duration: 3000,
+          });
+        }
+      } else {
+        // Pause conversion
+        console.log('⏸️ Pausing conversion for:', downloadId);
+        const result = await pauseConversion(downloadId);
+        if (result.success) {
+          // Use updateDownload with conversion type for proper status handling
+          updateDownload(downloadId, {
+            type: 'conversion',
+            data: {
+              status: 'paused',
+              log: 'Conversion paused',
+            },
+          });
+          toast({
+            variant: 'default',
+            title: 'Conversion Paused',
+            description: 'Format conversion has been paused',
+            duration: 3000,
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Pause Failed',
+            description: result.error || 'Failed to pause conversion',
+            duration: 3000,
+          });
+        }
+      }
+      return; // Exit early for conversions
+    }
 
     if (currentDownload?.status === 'paused') {
       // Check if this is an m4a download and handle existing partial file

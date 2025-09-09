@@ -8,10 +8,10 @@ import { useMainStore } from '@/Store/mainStore';
 import TelemetryConsentModal from '@/Components/Main/Modal/TelemetryConsentModal';
 
 const TelemetryConsentHandler: React.FC = () => {
-  const { 
-    settings, 
-    isTelemetryConsentModalOpen, 
-    setIsTelemetryConsentModalOpen 
+  const {
+    settings,
+    isTelemetryConsentModalOpen,
+    setIsTelemetryConsentModalOpen,
   } = useMainStore();
 
   // Check if we should show the telemetry consent modal
@@ -30,7 +30,11 @@ const TelemetryConsentHandler: React.FC = () => {
 
       return () => clearTimeout(timer);
     }
-  }, [settings.telemetryConsentShown, isTelemetryConsentModalOpen, setIsTelemetryConsentModalOpen]);
+  }, [
+    settings.telemetryConsentShown,
+    isTelemetryConsentModalOpen,
+    setIsTelemetryConsentModalOpen,
+  ]);
 
   const handleClose = () => {
     setIsTelemetryConsentModalOpen(false);

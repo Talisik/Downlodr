@@ -54,7 +54,38 @@ const App = () => {
         );
     }
 
-    // Initialize test utilities for development
+    // Listen for background setting sync requests from main process
+    const handleBackgroundSettingSync = () => {
+      if (window.backgroundSettings) {
+        window.backgroundSettings
+          .setRunInBackground(settings.runInBackground)
+          .then(() =>
+            console.log('Background setting re-synced from main process'),
+          )
+          .catch((err) =>
+            console.error('Failed to re-sync background setting:', err),
+          );
+      }
+    };
+
+    // Add IPC listener for background setting sync requests
+    if (window.backgroundSettings) {
+      window.backgroundSettings.onBackgroundSettingSync?.(
+        handleBackgroundSettingSync,
+      );
+    }
+
+    // Cleanup function
+    return () => {
+      // Remove listener if cleanup function exists
+      window.backgroundSettings?.removeBackgroundSettingSync?.(
+        handleBackgroundSettingSync,
+      );
+    };
+  }, [settings.runInBackground]);
+
+  // Initialize test utilities for development
+  useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       console.log('📱 Notification system loaded! Test with:');
       console.log('• window.testNotifications.testAll() - Test all features');
@@ -180,13 +211,26 @@ const App = () => {
         }
       },
     };
-  }, [settings.runInBackground]);
+  }, []); // Empty dependency array since this only needs to run once
 
-  // Handle YT-DLP auto-update events
+  // Handle YT-DLP auto-update events and settings modal
   useEffect(() => {
     const removeListeners: Array<() => void> = [];
 
     if (window.updateAPI) {
+      // Handle settings modal open request from system tray
+      if (window.updateAPI.onOpenSettingsModal) {
+        const removeSettingsModalListener =
+          window.updateAPI.onOpenSettingsModal(() => {
+            // Since we can't directly access DropdownBar state from here,
+            // we'll emit a custom event that the DropdownBar can listen to
+            const event = new CustomEvent('open-settings-from-tray');
+            window.dispatchEvent(event);
+          });
+        removeListeners.push(removeSettingsModalListener);
+      }
+
+      // Handle other update API events
       // Handle YT-DLP auto-updated event
       if (window.updateAPI.onYtdlpAutoUpdated) {
         const removeYtdlpUpdated = window.updateAPI.onYtdlpAutoUpdated(

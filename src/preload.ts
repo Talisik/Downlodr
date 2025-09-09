@@ -148,9 +148,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveToCustomLocation?: boolean;
   }) => ipcRenderer.invoke('convert-file', options),
   checkFfmpegStatus: () => ipcRenderer.invoke('check-ffmpeg-status'),
-  pauseConversion: (downloadId: string) => ipcRenderer.invoke('pause-conversion', downloadId),
-  resumeConversion: (downloadId: string) => ipcRenderer.invoke('resume-conversion', downloadId),
-  stopConversion: (downloadId: string) => ipcRenderer.invoke('stop-conversion', downloadId),
+  pauseConversion: (downloadId: string) =>
+    ipcRenderer.invoke('pause-conversion', downloadId),
+  resumeConversion: (downloadId: string) =>
+    ipcRenderer.invoke('resume-conversion', downloadId),
+  stopConversion: (downloadId: string) =>
+    ipcRenderer.invoke('stop-conversion', downloadId),
+});
+
+// Listen for conversion status updates from main process
+ipcRenderer.on('conversion-status-update', (_event, data) => {
+  // Dispatch a custom event that the renderer can listen to
+  window.dispatchEvent(new CustomEvent('conversion-status-update', { detail: data }));
 });
 
 // downlodr exlusive functions
@@ -522,6 +531,13 @@ contextBridge.exposeInMainWorld('backgroundSettings', {
   getRunInBackground: () => ipcRenderer.invoke('get-run-in-background'),
   setRunInBackground: (value: boolean) =>
     ipcRenderer.invoke('set-run-in-background', value),
+  onBackgroundSettingSync: (callback: () => void) => {
+    ipcRenderer.on('request-background-setting-sync', callback);
+    return () =>
+      ipcRenderer.removeListener('request-background-setting-sync', callback);
+  },
+  removeBackgroundSettingSync: (callback: () => void) =>
+    ipcRenderer.removeListener('request-background-setting-sync', callback),
 });
 
 // Telemetry consent API for system tray integration

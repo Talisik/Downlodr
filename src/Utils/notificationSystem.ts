@@ -145,11 +145,25 @@ export class NotificationManager {
       // Use the IPC notification API
       if (window.notificationAPI) {
         console.log(`📡 Using IPC notification API`);
+
+        // Create a clean, serializable version of the notification config
+        // Remove functions that cannot be serialized through IPC
+        const cleanConfig = {
+          title: notificationConfig.title,
+          body: notificationConfig.body,
+          icon: notificationConfig.icon,
+          // Convert actions to serializable format (just the action and title)
+          actions: notificationConfig.actions?.map((action) => ({
+            action: action.action,
+            title: action.title,
+          })),
+        };
+
         const result = await window.notificationAPI.showNotification(
-          notificationConfig,
+          cleanConfig,
         );
         console.log(`✅ Notification shown via IPC:`, result);
-        return result;
+        return notificationConfig; // Return the original config with handlers intact
       } else {
         console.warn('❌ notificationAPI not available in window object');
         console.log(

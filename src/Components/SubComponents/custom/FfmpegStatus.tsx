@@ -16,7 +16,7 @@ interface FfmpegStatusInfo {
 }
 
 interface FfmpegStatusProps {
-  className?: string; 
+  className?: string;
   showDetails?: boolean;
 }
 

@@ -77,26 +77,44 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
     <>
       <div className={className}>
         {isMacOS ? (
-          // macOS native title bar - fully draggable with controls on right
-          <div className="flex items-center justify-between h-full px-6 drag-area">
-            {/* Left spacer for traffic lights */}
-            <div className="w-20" />
-
-            {/* Right controls */}
-            <div className="flex items-center space-x-3 no-drag">
-              <ModeToggle />
+          // macOS native title bar with hiddenInset style - respect traffic lights
+          <div
+            className="flex items-center justify-between h-full px-6 py-2"
+            style={
+              {
+                WebkitAppRegion: 'drag',
+                paddingLeft: '80px', // Leave space for traffic lights
+              } as React.CSSProperties
+            }
+          >
+            {/* Main content area - draggable */}
+            <div className="flex-1 flex items-center justify-center">
               <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
+            </div>
+
+            {/* Right controls - not draggable */}
+            <div
+              className="flex items-center space-x-3"
+              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+            >
+              <ModeToggle />
             </div>
           </div>
         ) : (
-          // Windows/Linux custom title bar
+          // Windows/Linux custom title bar with full window controls
           <div className="flex justify-between items-center h-full px-4 py-2">
             {/* Title */}
-            <div className="text-sm flex-1 drag-area">
+            <div
+              className="text-sm flex-1"
+              style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+            >
               <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
             </div>
             {/* Buttons */}
-            <div className="flex space-x-4 no-drag">
+            <div
+              className="flex space-x-4"
+              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+            >
               <ModeToggle />
               {/* Minimize Button */}
               <button

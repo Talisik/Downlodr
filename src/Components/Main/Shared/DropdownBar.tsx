@@ -18,7 +18,7 @@ import AdvancedSettingsModal from '@/Components/Main/Modal/AdvancedSettingsModal
 import HelpModal from '@/Components/Main/Modal/HelpModal';
 import SettingsModal from '@/Components/Main/Modal/SettingsModal';
 import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { DownloadItem } from '@/Schema/componentSchema';
+import { DownloadItem } from '@/schema/componentSchema';
 import useDownloadStore, { HistoryDownloads } from '@/Store/downloadStore';
 import { useTaskbarDownloadStore } from '@/Store/taskbarDownloadStore';
 import { useEffect, useRef, useState } from 'react';
@@ -87,6 +87,26 @@ const DropdownBar = ({ className }: { className?: string }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Listen for settings modal open request from system tray
+  useEffect(() => {
+    const handleOpenSettingsFromTray = () => {
+      setSettingsModalOpen(true);
+      setActiveMenu(null);
+    };
+
+    window.addEventListener(
+      'open-settings-from-tray',
+      handleOpenSettingsFromTray,
+    );
+
+    return () => {
+      window.removeEventListener(
+        'open-settings-from-tray',
+        handleOpenSettingsFromTray,
+      );
     };
   }, []);
 

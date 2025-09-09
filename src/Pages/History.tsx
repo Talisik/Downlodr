@@ -11,7 +11,7 @@ import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import useDownloadStore from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
-import { getExtractorIcon } from '@/Utils/Icons/IconMapper';
+import { getExtractorIcon } from '@/DataFunctions/IconMapper';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { HiChevronUpDown } from 'react-icons/hi2';

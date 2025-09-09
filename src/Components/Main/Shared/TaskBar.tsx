@@ -23,7 +23,7 @@ import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
 import useDownloadStore from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import PluginTaskBarExtension from '@/plugins/components/PluginTaskBarExtension';
-import { DownloadItem } from '@/Schema/componentSchema';
+import { DownloadItem } from '@/schema/componentSchema';
 import React, { useState } from 'react';
 import { LuTrash } from 'react-icons/lu';
 import { useLocation } from 'react-router-dom';

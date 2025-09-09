@@ -185,6 +185,8 @@ declare global {
     backgroundSettings: {
       getRunInBackground: () => Promise<boolean>;
       setRunInBackground: (value: boolean) => Promise<boolean>;
+      onBackgroundSettingSync: (callback: () => void) => () => void;
+      removeBackgroundSettingSync: (callback: () => void) => void;
     };
     notifications: {
       notifyDownloadFinished: (downloadInfo: {

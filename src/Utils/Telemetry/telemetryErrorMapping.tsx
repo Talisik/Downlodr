@@ -1,4 +1,7 @@
-import { getErrorCodeInfo, parseErrorCodeFromLog } from '../ErrorCodeHelper';
+import {
+  getErrorCodeInfo,
+  parseErrorCodeFromLog,
+} from '../../DataFunctions/ErrorCodeHelper';
 
 /**
  * Simple telemetry error mapper - ONE function, ONE clean return

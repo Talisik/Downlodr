@@ -7,15 +7,30 @@ import { useMainStore } from '@/Store/mainStore';
 import { usePluginState } from '@/plugins/Hooks/usePluginState';
 import { TaskBarItem } from '@/plugins/types';
 import React, { useEffect, useState } from 'react';
+import { FaPause, FaPlay, FaStop } from 'react-icons/fa';
 
 const PluginTaskBarExtension: React.FC = () => {
   const [taskBarItems, setTaskBarItems] = useState<TaskBarItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const enabledPlugins = usePluginState();
   const { selectedDownloads, taskBarButtonsVisibility } = useMainStore();
-  const { downloading } = useDownloadStore();
+  const { downloading, pauseConversion, resumeConversion, stopConversion, updateDownload } = useDownloadStore();
   const { toast } = useToast();
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
+  
+  // Filter for active conversions
+  const activeConversions = downloading.filter(
+    (download) => (download as any).type === 'conversion'
+  );
+  
+  // Debug logging to see what's in downloading
+  useEffect(() => {
+    console.log('🔍 [PluginTaskBarExtension] All downloading items:', downloading);
+    console.log('🔍 [PluginTaskBarExtension] Active conversions found:', activeConversions);
+    downloading.forEach(item => {
+      console.log(`🔍 [PluginTaskBarExtension] Item ${item.id}: type=${(item as any).type}, status=${item.status}`);
+    });
+  }, [downloading, activeConversions]);
 
   // Helper function to check if a string is an SVG
   const isSvgString = (str: string): boolean => {
@@ -89,7 +104,16 @@ const PluginTaskBarExtension: React.FC = () => {
     };
   }, []);
 
-  if (isLoading || taskBarItems.length === 0) {
+  // Show conversion status bar even if no plugin items are loaded
+  const hasConversions = activeConversions.length > 0;
+  const hasTaskBarItems = taskBarItems.length > 0;
+  
+  if (isLoading) {
+    return null;
+  }
+  
+  // If no conversions and no taskbar items, return null
+  if (!hasConversions && !hasTaskBarItems) {
     return null;
   }
 
@@ -119,6 +143,108 @@ const PluginTaskBarExtension: React.FC = () => {
           </span>
         </div>
       );
+    }
+  };
+
+  // Handle conversion pause/resume
+  const handleConversionPauseResume = async (downloadId: string, isPaused: boolean) => {
+    try {
+      if (isPaused) {
+        // Resume conversion
+        console.log('🔄 Resuming conversion from navbar:', downloadId);
+        const result = await resumeConversion(downloadId);
+        if (result.success) {
+          updateDownload(downloadId, {
+            type: 'conversion',
+            data: {
+              status: 'converting',
+              log: 'Conversion resumed from navbar',
+            },
+          });
+          toast({
+            variant: 'success',
+            title: 'Conversion Resumed',
+            description: 'Format conversion has been resumed',
+            duration: 3000,
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Resume Failed',
+            description: result.error || 'Failed to resume conversion',
+            duration: 3000,
+          });
+        }
+      } else {
+        // Pause conversion
+        console.log('⏸️ Pausing conversion from navbar:', downloadId);
+        const result = await pauseConversion(downloadId);
+        if (result.success) {
+          updateDownload(downloadId, {
+            type: 'conversion',
+            data: {
+              status: 'paused',
+              log: 'Conversion paused from navbar',
+            },
+          });
+          toast({
+            variant: 'default',
+            title: 'Conversion Paused',
+            description: 'Format conversion has been paused',
+            duration: 3000,
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Pause Failed',
+            description: result.error || 'Failed to pause conversion',
+            duration: 3000,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling conversion pause state from navbar:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to change conversion state',
+        duration: 3000,
+      });
+    }
+  };
+
+  // Handle conversion stop
+  const handleConversionStop = async (downloadId: string) => {
+    try {
+      console.log('🛑 Stopping conversion from navbar:', downloadId);
+      const result = await stopConversion(downloadId);
+      if (result.success) {
+        // Remove from downloading list
+        const { deleteDownloading } = useDownloadStore.getState();
+        deleteDownloading(downloadId);
+        
+        toast({
+          variant: 'default',
+          title: 'Conversion Stopped',
+          description: 'Format conversion has been stopped',
+          duration: 3000,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Stop Failed',
+          description: result.error || 'Failed to stop conversion',
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Error stopping conversion from navbar:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to stop conversion',
+        duration: 3000,
+      });
     }
   };
 
@@ -222,77 +348,124 @@ const PluginTaskBarExtension: React.FC = () => {
   };
 
   return (
-    <div
-      className={cn(
-        'flex flex-wrap gap-2 max-w-xs max-h-16 overflow-hidden',
-        !taskBarButtonsVisibility.start &&
-          !taskBarButtonsVisibility.stop &&
-          !taskBarButtonsVisibility.stopAll &&
-          'max-w-none',
-      )}
-    >
-      {taskBarItems.map((item) => (
-        <TooltipWrapper key={item.id} content={item.label} side="bottom">
-          <Button
-            variant="transparent"
-            disabled={selectedDownloads.length === 0}
-            style={
-              typeof item.buttonStyle === 'string'
-                ? {
-                    ...(item.buttonStyle as React.CSSProperties),
-                  }
-                : item.buttonStyle
-            }
-            className={`bg-transparent hover:bg-lightGray dark:hover:bg-darkModeHover transition-colors duration-200 px-2 py-1 rounded flex gap-1 font-semibold text-gray-700 dark:text-gray-200 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
-              ${
-                selectedDownloads.length === 0
-                  ? 'cursor-not-allowed disabled:pointer-events-auto'
-                  : ''
-              }`}
-            onClick={() => handleItemClick(item)}
-            icon={
-              item.icon && (
-                <span
-                  style={
-                    typeof item.iconStyle === 'string'
-                      ? {
-                          ...(item.iconStyle as React.CSSProperties),
-                        }
-                      : item.iconStyle
-                  }
-                  className="inline-flex items-center justify-center w-4 h-4 flex-shrink-0"
+    <>
+      {/* Conversion Status Bar */}
+      {activeConversions.length > 0 && (
+        <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-md mr-3">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+            Converting {activeConversions.length} file{activeConversions.length !== 1 ? 's' : ''}
+          </span>
+          
+          {activeConversions.map((conversion) => {
+            const isPaused = conversion.status === 'paused';
+            
+            return (
+              <div key={conversion.id} className="flex items-center gap-1 ml-2">
+                <TooltipWrapper 
+                  content={isPaused ? 'Resume conversion' : 'Pause conversion'} 
+                  side="bottom"
                 >
-                  {typeof item.icon === 'string' && isSvgString(item.icon) ? (
-                    <span
-                      dangerouslySetInnerHTML={{ __html: item.icon }}
-                      className="text-black dark:text-white [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-none [&>svg]:stroke-current"
-                    />
-                  ) : (
-                    <span className="text-black dark:text-white">
-                      {renderIcon(item.icon, 'sm')}
-                    </span>
-                  )}
+                  <button
+                    onClick={() => handleConversionPauseResume(conversion.id, isPaused)}
+                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  >
+                    {isPaused ? (
+                      <FaPlay size={10} className="text-green-600 dark:text-green-400" />
+                    ) : (
+                      <FaPause size={10} className="text-yellow-600 dark:text-yellow-400" />
+                    )}
+                  </button>
+                </TooltipWrapper>
+                
+                <TooltipWrapper content="Stop conversion" side="bottom">
+                  <button
+                    onClick={() => handleConversionStop(conversion.id)}
+                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                  >
+                    <FaStop size={10} className="text-red-600 dark:text-red-400" />
+                  </button>
+                </TooltipWrapper>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Plugin Task Bar Items */}
+      {hasTaskBarItems && (
+        <div
+          className={cn(
+            'flex flex-wrap gap-2 max-w-xs max-h-16 overflow-hidden',
+            !taskBarButtonsVisibility.start &&
+              !taskBarButtonsVisibility.stop &&
+              !taskBarButtonsVisibility.stopAll &&
+              'max-w-none',
+          )}
+        >
+        {taskBarItems.map((item) => (
+          <TooltipWrapper key={item.id} content={item.label} side="bottom">
+            <Button
+              variant="transparent"
+              disabled={selectedDownloads.length === 0}
+              style={
+                typeof item.buttonStyle === 'string'
+                  ? {
+                      ...(item.buttonStyle as React.CSSProperties),
+                    }
+                  : item.buttonStyle
+              }
+              className={`bg-transparent hover:bg-lightGray dark:hover:bg-darkModeHover transition-colors duration-200 px-2 py-1 rounded flex gap-1 font-semibold text-gray-700 dark:text-gray-200 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+                ${
+                  selectedDownloads.length === 0
+                    ? 'cursor-not-allowed disabled:pointer-events-auto'
+                    : ''
+                }`}
+              onClick={() => handleItemClick(item)}
+              icon={
+                item.icon && (
+                  <span
+                    style={
+                      typeof item.iconStyle === 'string'
+                        ? {
+                            ...(item.iconStyle as React.CSSProperties),
+                          }
+                        : item.iconStyle
+                    }
+                    className="inline-flex items-center justify-center w-4 h-4 flex-shrink-0"
+                  >
+                    {typeof item.icon === 'string' && isSvgString(item.icon) ? (
+                      <span
+                        dangerouslySetInnerHTML={{ __html: item.icon }}
+                        className="text-black dark:text-white [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-none [&>svg]:stroke-current"
+                      />
+                    ) : (
+                      <span className="text-black dark:text-white">
+                        {renderIcon(item.icon, 'sm')}
+                      </span>
+                    )}
+                  </span>
+                )
+              }
+              aria-label={item.label}
+            >
+              {item.label && !item.icon && (
+                <span
+                  className="text-xs"
+                  style={
+                    typeof item.labelStyle === 'string'
+                      ? { ...(item.labelStyle as React.CSSProperties) }
+                      : item.labelStyle
+                  }
+                >
+                  {item.label}
                 </span>
-              )
-            }
-            aria-label={item.label}
-          >
-            {item.label && !item.icon && (
-              <span
-                className="text-xs"
-                style={
-                  typeof item.labelStyle === 'string'
-                    ? { ...(item.labelStyle as React.CSSProperties) }
-                    : item.labelStyle
-                }
-              >
-                {item.label}
-              </span>
-            )}
-          </Button>
-        </TooltipWrapper>
-      ))}
-    </div>
+              )}
+            </Button>
+          </TooltipWrapper>
+        ))}
+        </div>
+      )}
+    </>
   );
 };
 

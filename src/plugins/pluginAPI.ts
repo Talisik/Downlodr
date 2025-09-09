@@ -445,17 +445,24 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         }
 
         // Check if this is a conversion in progress and handle it appropriately
-        const isConversion =
-          (currentDownload.status as string) === 'converting' ||
-          currentDownload.convertedFormat ||
-          (currentDownload.status === 'initializing' &&
-            currentDownload.progress === 100);
+        const isConversion = (currentDownload as any).type === 'conversion';
 
         if (isConversion) {
           try {
             const downloadStore = useDownloadStore.getState();
-            const result = await downloadStore.pauseConversion(currentDownload.id);
+            const result = await downloadStore.pauseConversion(
+              currentDownload.id,
+            );
             if (result.success) {
+              // Update status using conversion update mechanism
+              downloadStore.updateDownload(currentDownload.id, {
+                type: 'conversion',
+                data: {
+                  status: 'paused',
+                  log: 'Conversion paused from plugin',
+                },
+              });
+
               toast({
                 variant: 'success',
                 title: 'Conversion Paused',
@@ -499,8 +506,44 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           if (conversionDownload) {
             // This is a paused conversion, resume it
             console.log('Plugin API: Resuming paused conversion:', downloadId);
-            downloadStore.resumeConversion(downloadId);
-            return true;
+            try {
+              const result = await downloadStore.resumeConversion(downloadId);
+              if (result.success) {
+                // Update status using conversion update mechanism
+                downloadStore.updateDownload(downloadId, {
+                  type: 'conversion',
+                  data: {
+                    status: 'converting',
+                    log: 'Conversion resumed from plugin',
+                  },
+                });
+
+                toast({
+                  variant: 'success',
+                  title: 'Conversion Resumed',
+                  description: 'Conversion has been resumed successfully',
+                  duration: 3000,
+                });
+                return true;
+              } else {
+                toast({
+                  variant: 'destructive',
+                  title: 'Resume Failed',
+                  description: `Failed to resume conversion: ${result.error}`,
+                  duration: 3000,
+                });
+                return false;
+              }
+            } catch (error) {
+              toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to resume conversion',
+                duration: 3000,
+              });
+              console.error('Error resuming conversion:', error);
+              return false;
+            }
           }
 
           // Check if this is an m4a download and handle existing partial file
@@ -700,34 +743,76 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
 
         // If the download is already paused, resume it
         if (currentDownload.status === 'paused') {
-          addDownload(
-            currentDownload.videoUrl,
-            currentDownload.name,
-            currentDownload.downloadName,
-            currentDownload.size,
-            currentDownload.speed,
-            currentDownload.channelName,
-            currentDownload.timeLeft,
-            new Date().toISOString(),
-            currentDownload.progress,
-            currentDownload.location,
-            'downloading',
-            currentDownload.backupExt,
-            currentDownload.backupFormatId,
-            currentDownload.backupAudioExt,
-            currentDownload.backupAudioFormatId,
-            currentDownload.extractorKey,
-            '',
-            currentDownload.automaticCaption,
-            currentDownload.thumbnails,
-            currentDownload.getTranscript || false,
-            currentDownload.getThumbnail || false,
-            currentDownload.duration || 60,
-            false,
-          );
+          // Check if this is a paused conversion
+          const isConversion = (currentDownload as any).type === 'conversion';
 
-          deleteDownloading(currentDownload.id);
-          return true;
+          if (isConversion) {
+            // Resume conversion using the conversion API
+            console.log(
+              'Plugin API: Resuming paused conversion:',
+              currentDownload.id,
+            );
+            const downloadStore = useDownloadStore.getState();
+            const result = await downloadStore.resumeConversion(
+              currentDownload.id,
+            );
+            if (result.success) {
+              // Update status using conversion update mechanism
+              downloadStore.updateDownload(currentDownload.id, {
+                type: 'conversion',
+                data: {
+                  status: 'converting',
+                  log: 'Conversion resumed from plugin (resumeDownload)',
+                },
+              });
+
+              toast({
+                variant: 'success',
+                title: 'Conversion Resumed',
+                description: 'Format conversion has been resumed successfully',
+                duration: 3000,
+              });
+              return true;
+            } else {
+              toast({
+                variant: 'destructive',
+                title: 'Resume Failed',
+                description: result.error || 'Failed to resume conversion',
+                duration: 3000,
+              });
+              return false;
+            }
+          } else {
+            // Regular download resume
+            addDownload(
+              currentDownload.videoUrl,
+              currentDownload.name,
+              currentDownload.downloadName,
+              currentDownload.size,
+              currentDownload.speed,
+              currentDownload.channelName,
+              currentDownload.timeLeft,
+              new Date().toISOString(),
+              currentDownload.progress,
+              currentDownload.location,
+              'downloading',
+              currentDownload.backupExt,
+              currentDownload.backupFormatId,
+              currentDownload.backupAudioExt,
+              currentDownload.backupAudioFormatId,
+              currentDownload.extractorKey,
+              '',
+              currentDownload.automaticCaption,
+              currentDownload.thumbnails,
+              currentDownload.getTranscript || false,
+              currentDownload.getThumbnail || false,
+              currentDownload.duration || 60,
+              false,
+            );
+
+            deleteDownloading(currentDownload.id);
+            return true;
+          }
         } else {
           console.warn('Download found but not paused:', currentDownload);
           return false;
@@ -883,42 +968,84 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             }
           }
 
-          // Resume the download
-          addDownload(
-            currentDownload.videoUrl,
-            currentDownload.name,
-            currentDownload.downloadName,
-            currentDownload.size,
-            currentDownload.speed,
-            currentDownload.channelName,
-            currentDownload.timeLeft,
-            new Date().toISOString(),
-            currentDownload.progress,
-            currentDownload.location,
-            'downloading',
-            currentDownload.backupExt,
-            currentDownload.backupFormatId,
-            currentDownload.backupAudioExt,
-            currentDownload.backupAudioFormatId,
-            currentDownload.extractorKey,
-            '',
-            currentDownload.automaticCaption,
-            currentDownload.thumbnails,
-            currentDownload.getTranscript || false,
-            currentDownload.getThumbnail || false,
-            currentDownload.duration || 60,
-            false,
-          );
+          // Check if this is a paused conversion
+          const isConversion = (currentDownload as any).type === 'conversion';
 
-          deleteDownloading(currentDownload.id);
+          if (isConversion) {
+            // Resume conversion using the conversion API
+            console.log(
+              'Plugin API: Resuming paused conversion with cleanup:',
+              currentDownload.id,
+            );
+            const downloadStore = useDownloadStore.getState();
+            const result = await downloadStore.resumeConversion(
+              currentDownload.id,
+            );
+            if (result.success) {
+              // Update status using conversion update mechanism
+              downloadStore.updateDownload(currentDownload.id, {
+                type: 'conversion',
+                data: {
+                  status: 'converting',
+                  log: 'Conversion resumed from plugin (resumeDownloadWithCleanup)',
+                },
+              });
 
-          return {
-            success: true,
-            cleanedUp,
-            format: downloadFormat,
-            downloadId: currentDownload.id,
-            downloadName: currentDownload.name,
-          };
+              return {
+                success: true,
+                cleanedUp,
+                format: downloadFormat,
+                downloadId: currentDownload.id,
+                downloadName: currentDownload.name,
+              };
+            } else {
+              return {
+                success: false,
+                error: result.error || 'Failed to resume conversion',
+                cleanedUp,
+                format: downloadFormat,
+                downloadId: currentDownload.id,
+                downloadName: currentDownload.name,
+              };
+            }
+          } else {
+            // Resume regular download
+            addDownload(
+              currentDownload.videoUrl,
+              currentDownload.name,
+              currentDownload.downloadName,
+              currentDownload.size,
+              currentDownload.speed,
+              currentDownload.channelName,
+              currentDownload.timeLeft,
+              new Date().toISOString(),
+              currentDownload.progress,
+              currentDownload.location,
+              'downloading',
+              currentDownload.backupExt,
+              currentDownload.backupFormatId,
+              currentDownload.backupAudioExt,
+              currentDownload.backupAudioFormatId,
+              currentDownload.extractorKey,
+              '',
+              currentDownload.automaticCaption,
+              currentDownload.thumbnails,
+              currentDownload.getTranscript || false,
+              currentDownload.getThumbnail || false,
+              currentDownload.duration || 60,
+              false,
+            );
+
+            deleteDownloading(currentDownload.id);
+
+            return {
+              success: true,
+              cleanedUp,
+              format: downloadFormat,
+              downloadId: currentDownload.id,
+              downloadName: currentDownload.name,
+            };
+          }
         } else {
           console.warn(
             'Plugin API: Download found but not paused:',
