@@ -1187,19 +1187,74 @@ const useDownloadStore = create<DownloadStore>()(
         if (result.type === 'conversion') {
           const { status, format, error } = result.data;
 
-          set((state) => ({
-            downloading: state.downloading.map((downloading) => {
+          set((state) => {
+            // Ensure a downloading entry exists for this id (important when converting a finished item)
+            const existingIndex = state.downloading.findIndex((d) => d.id === id);
+            let downloadingList = state.downloading;
+
+            if (existingIndex === -1) {
+              const source =
+                state.downloading.find((d) => d.id === id) ||
+                (state.finishedDownloads as any).find((d: any) => d.id === id) ||
+                (state.historyDownloads as any).find((d: any) => d.id === id) ||
+                (state.forDownloads as any).find((d: any) => d.id === id);
+
+              const fallbackNow = new Date().toISOString();
+
+              const newEntry: any = {
+                // Required identifiers
+                id,
+                name: source?.name || source?.downloadName || '',
+                downloadName: source?.downloadName || source?.name || '',
+                videoUrl: source?.videoUrl || '',
+                channelName: source?.channelName || '',
+                // Paths and meta
+                location: source?.location || '',
+                DateAdded: source?.DateAdded || fallbackNow,
+                // Progress/status
+                status: status === 'paused' ? 'paused' : 'initializing',
+                progress: typeof source?.progress === 'number' ? source.progress : 0,
+                // Sizing
+                size: typeof source?.size === 'number' ? source.size : 0,
+                speed: source?.speed || '',
+                timeLeft: source?.timeLeft || '',
+                // Format fields (best-effort defaults)
+                ext: source?.ext || '',
+                formatId: source?.formatId || '',
+                audioExt: source?.audioExt || '',
+                audioFormatId: source?.audioFormatId || '',
+                extractorKey: source?.extractorKey || '',
+                limitRate: source?.limitRate || '',
+                automaticCaption: source?.automaticCaption,
+                thumbnails: source?.thumbnails,
+                getTranscript: source?.getTranscript ?? false,
+                getThumbnail: source?.getThumbnail ?? false,
+                duration: typeof source?.duration === 'number' ? source.duration : 0,
+                isCreateFolder: source?.isCreateFolder ?? false,
+                // Conversion marker
+                type: 'conversion',
+                log: result.data?.log || 'Starting conversion',
+                // Conversion helpers
+                rawProgress: 0,
+                completionCount: 0,
+                downloadPhase: undefined,
+              };
+
+              downloadingList = [...state.downloading, newEntry];
+            }
+
+            const nextDownloading = downloadingList.map((downloading) => {
               if (downloading.id !== id) return downloading;
 
               const updates: Partial<typeof downloading> = {
-                log: result.data.log || downloading.log,
+                log: result.data.log || (downloading as any).log,
                 type: 'conversion', // Mark as conversion type
               };
 
               // Update status based on conversion result
               if (status === 'converting') {
                 updates.status = 'initializing'; // Keep status as initializing for conversion
-                updates.progress = downloading.progress || 0;
+                updates.progress = (downloading as any).progress || 0;
               } else if (status === 'paused') {
                 // Keep the download in the list with paused status
                 console.log(
@@ -1212,7 +1267,7 @@ const useDownloadStore = create<DownloadStore>()(
               } else if (status === 'conversion_complete') {
                 updates.status = 'finished';
                 updates.progress = 100;
-                updates.convertedFormat = format;
+                (updates as any).convertedFormat = format;
               } else if (status === 'conversion_failed') {
                 updates.status = 'failed';
                 updates.error = error;
