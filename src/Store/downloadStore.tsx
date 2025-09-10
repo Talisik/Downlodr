@@ -1274,8 +1274,10 @@ const useDownloadStore = create<DownloadStore>()(
               }
 
               return { ...downloading, ...updates };
-            }),
-          }));
+            });
+
+            return { downloading: nextDownloading };
+          });
 
           // Show appropriate toast notification for conversion
           if (result.data.status === 'conversion_complete') {
