@@ -25,6 +25,7 @@ import https from 'https';
 import os from 'os';
 import path from 'path';
 import { checkForUpdates } from './DataFunctions/updateChecker';
+import { initializeYTDLP, ensureYTDLPBinary } from './Utils/ytdlpWrapper';
 
 // Lazy-load YTDLP to prevent file system errors
 let YTDLP: any = null;
@@ -112,10 +113,6 @@ function setupYTDLPBinary() {
   }
 }
 
-// Lazy import functions to prevent early module initialization
-let initializeYTDLP: any = null;
-let ensureYTDLPBinary: any = null;
-
 import { PluginManager } from './plugins/pluginManager';
 import { pluginRegistry } from './plugins/registry';
 import { DownloadOptions } from './schema/ytdlp';
@@ -144,17 +141,12 @@ app.on('will-finish-launching', () => {
 // Configure YTDLP after app is ready
 app.whenReady().then(async () => {
   try {
-    // Import the YTDLP utilities only after app is ready
-    const ytdlpWrapper = await import('./Utils/ytdlpWrapper');
-    initializeYTDLP = ytdlpWrapper.initializeYTDLP;
-    ensureYTDLPBinary = ytdlpWrapper.ensureYTDLPBinary;
-    
     // Setup additional binary configuration first
     setupYTDLPBinary();
-    
+
     // Ensure binary is in place
     await ensureYTDLPBinary();
-    
+
     // Initialize YTDLP with proper configuration
     YTDLP = await initializeYTDLP();
     console.log('YTDLP initialized successfully');
@@ -1325,7 +1317,7 @@ async function killControllerById(id: any) {
 }
 
 // get the terminal or controller of the download to stop, then call killControllerById
-ipcMain.handle('ytdlp:stop', (e, id: string) => {
+ipcMain.handle('ytdlp:stop', async (e, id: string) => {
   try {
     // Ensure YTDLP is initialized
     if (!YTDLP) {
