@@ -271,7 +271,7 @@ export const trackAction = (action: string, data?: any) => {
 
 /**
  * Utility function to track errors with telemetry
- * Use this for error reporting
+ * Use this for error reporting and managing errors
  */
 export const trackError = (error: Error | string, context?: any) => {
   const errorMessage = typeof error === 'string' ? error : error.message;

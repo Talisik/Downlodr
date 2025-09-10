@@ -60,9 +60,9 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { useMainStore } from '@/Store/mainStore'; //  import
+import { useMainStore } from '@/Store/mainStore';
 import { downloadEnglishCaptions } from '@/Utils/Metadata/captionsHelper';
-import { VideoFormatService } from '@/Utils/Metadata/getDownloadMetaData';
+import { VideoFormatService } from '@/Utils/Metadata/GetDownloadMetaData';
 import { TelemetryService } from '@/Utils/Telemetry/telemetryService';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -116,7 +116,6 @@ function uuidv4() {
     ).toString(16),
   );
 }
-
 // Simplified migration with essential validation (appropriate for Electron)
 const migrateDownloadStore = (persistedState: any, version: number) => {
   console.log(
@@ -2398,7 +2397,7 @@ const useDownloadStore = create<DownloadStore>()(
             version: DOWNLOAD_STORE_VERSION,
             localStorageKey: 'downlodr-storage',
           }),
-          250, // Debounce IndexedDB writes by 250ms (faster than default 500ms for better responsiveness)
+          250, // Debounce IndexedDB writes by 250ms
         ),
       ),
       partialize: (state) => ({
@@ -2433,6 +2432,7 @@ const useDownloadStore = create<DownloadStore>()(
 export default useDownloadStore;
 
 // performance monitoring utilities
+
 // Memoized selectors to prevent unnecessary re-renders
 export const useDownloadingSelectors = {
   // Get only downloading items
@@ -2441,11 +2441,11 @@ export const useDownloadingSelectors = {
   // Get downloading count without full array
   downloadingCount: () => useDownloadStore((state) => state.downloading.length),
 
-  // Get specific download by ID (most efficient)
+  // Get specific download by ID
   downloadById: (id: string) =>
     useDownloadStore((state) => state.downloading.find((d) => d.id === id)),
 
-  // Get only progress data for UI updates (minimal re-renders) - updated with phase info
+  // Get only progress data for UI updates (minimal re-renders)
   downloadProgress: (id: string) =>
     useDownloadStore((state) => {
       const download = state.downloading.find((d) => d.id === id);

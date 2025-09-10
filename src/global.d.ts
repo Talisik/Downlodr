@@ -93,7 +93,7 @@ declare global {
     electronDevTools: {
       toggle: () => void; // Toggles the visibility of the developer tools
     };
-    updateAPI: {
+    updateAPI: { // update checker functions
       onUpdateAvailable: (
         callback: (updateInfo: UpdateInfo) => void,
       ) => () => void;
