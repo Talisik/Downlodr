@@ -66,7 +66,7 @@ export const DebugTelemetryButton: React.FC = () => {
   const generateSampleTelemetryData = async () => {
     // Create a temporary telemetry service for demonstration
     const tempTelemetry = new TelemetryService({
-      apiEndpoint: 'https://logging-api-staging.salina.app/api/v1/logs/',
+      apiEndpoint: 'https://endpoint',
     });
 
     // Initialize the telemetry service to load real device info
