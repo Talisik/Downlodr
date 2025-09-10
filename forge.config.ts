@@ -20,13 +20,7 @@ const config: ForgeConfig = {
   makers: [
     // macOS PKG installer
     new MakerPKG({
-      identity: null, // Set to null for development, add your Apple Developer ID for production
-      /*signing: {
-        identity: null, // Same as above
-        "entitlements": null,
-        "entitlements-inherit": null,
-        "gatekeeper-assess": false,
-      },*/
+      identity: null,
     }),
 
     // Windows NSIS installer
@@ -46,8 +40,8 @@ const config: ForgeConfig = {
             uninstallDisplayName: 'Downlodr',
             deleteAppDataOnUninstall: false,
             warningsAsErrors: false,
-            perMachine: false, // Changed to false - install per-user, not machine-wide
-            include: './installer.nsh', // Keep this for admin privileges at runtime
+            perMachine: false,
+            include: './installer.nsh',
           },
         };
       },
