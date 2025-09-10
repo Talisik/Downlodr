@@ -69,12 +69,6 @@ const App = () => {
     const initAppTelemetry = async () => {
       try {
         const telemetryId = await initializeTelemetry();
-        // console.log('✅ App telemetry initialized:', telemetryId);
-
-        // Optional: Log app startup event
-        if (telemetryId) {
-          // console.log('📊 Telemetry ready for app-wide usage');
-        }
       } catch (error) {
         console.error('❌ Failed to initialize app telemetry:', error);
         // App continues to function normally even if telemetry fails
@@ -105,13 +99,7 @@ const App = () => {
       if (window.updateAPI.onYtdlpAutoUpdated) {
         const removeYtdlpUpdated = window.updateAPI.onYtdlpAutoUpdated(
           (updateInfo) => {
-            /*
-            toast({
-              title: 'YT-DLP Updated Successfully',
-              description: updateInfo.message,
-              duration: 5000,
-            });
-            */
+            // test
           },
         );
         removeListeners.push(removeYtdlpUpdated);
@@ -121,13 +109,7 @@ const App = () => {
       if (window.updateAPI.onYtdlpAutoInstalled) {
         const removeYtdlpInstalled = window.updateAPI.onYtdlpAutoInstalled(
           (installInfo) => {
-            /*
-            toast({
-              title: 'YT-DLP Installed Successfully',
-              description: installInfo.message,
-              duration: 5000,
-            });
-            */
+            // test
           },
         );
         removeListeners.push(removeYtdlpInstalled);
