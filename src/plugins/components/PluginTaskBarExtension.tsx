@@ -18,10 +18,14 @@ const PluginTaskBarExtension: React.FC = () => {
   const { toast } = useToast();
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
   
-  // Filter for active conversions
-  const activeConversions = downloading.filter(
-    (download) => (download as any).type === 'conversion'
-  );
+  // Filter for active conversions (exclude finished/failed)
+  const activeConversions = downloading.filter((download) => {
+    const d: any = download as any;
+    const isConversion = d.type === 'conversion';
+    const status = String(download.status);
+    const isActive = ['paused', 'initializing', 'downloading', 'converting'].includes(status);
+    return isConversion && isActive;
+  });
   
   // Debug logging to see what's in downloading
   useEffect(() => {
