@@ -461,7 +461,7 @@ ${
     try {
       // Create telemetry service
       const tempTelemetry = new TelemetryService({
-        apiEndpoint: 'https://logging-api-staging.salina.app/api/v1/logs/',
+        apiEndpoint: 'https://endpoint',
       });
       await tempTelemetry.init();
 

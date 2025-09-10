@@ -1075,8 +1075,7 @@ const useDownloadStore = create<DownloadStore>()(
                 setTimeout(async () => {
                   try {
                     const telemetryService = new TelemetryService({
-                      apiEndpoint:
-                        'https://logging-api-staging.salina.app/api/v1/logs/',
+                      apiEndpoint: 'https://endpoint',
                     });
                     await telemetryService.init();
 
