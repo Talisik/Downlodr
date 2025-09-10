@@ -156,7 +156,7 @@ app.whenReady().then(async () => {
     await ensureYTDLPBinary();
     
     // Initialize YTDLP with proper configuration
-    YTDLP = initializeYTDLP();
+    YTDLP = await initializeYTDLP();
     console.log('YTDLP initialized successfully');
   } catch (error) {
     console.error('Failed to initialize YTDLP:', error);
@@ -975,7 +975,7 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
   try {
     // Ensure YTDLP is initialized
     if (!YTDLP) {
-      YTDLP = initializeYTDLP();
+      YTDLP = await initializeYTDLP();
     }
     
     // Ensure YTDLP binary is set up before getting playlist info
@@ -1003,7 +1003,7 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
   try {
     // Ensure YTDLP is initialized
     if (!YTDLP) {
-      YTDLP = initializeYTDLP();
+      YTDLP = await initializeYTDLP();
     }
     
     YTDLP.Config.log = true;
@@ -1032,7 +1032,7 @@ ipcMain.handle('ytdlp:getCurrentVersion', async () => {
   try {
     // Ensure YTDLP is initialized
     if (!YTDLP) {
-      YTDLP = initializeYTDLP();
+      YTDLP = await initializeYTDLP();
     }
     
     // Ensure YTDLP binary is set up before checking version
@@ -1122,7 +1122,7 @@ ipcMain.handle('ytdlp:checkAndUpdate', async () => {
   try {
     // Ensure YTDLP is initialized
     if (!YTDLP) {
-      YTDLP = initializeYTDLP();
+      YTDLP = await initializeYTDLP();
     }
     
     // Ensure YTDLP binary is set up before checking version
@@ -1290,7 +1290,7 @@ ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
 
     // Ensure YTDLP is initialized
     if (!YTDLP) {
-      YTDLP = initializeYTDLP();
+      YTDLP = await initializeYTDLP();
     }
     
     await YTDLP.downloadYTDLP(downloadOptions);
@@ -1303,11 +1303,11 @@ ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
 
 // after identifying ID kill/stop the id
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function killControllerById(id: any) {
+async function killControllerById(id: any) {
   try {
     // Ensure YTDLP is initialized
     if (!YTDLP) {
-      YTDLP = initializeYTDLP();
+      YTDLP = await initializeYTDLP();
     }
     
     const controller = YTDLP.getTerminalFromID(id);
@@ -1329,7 +1329,7 @@ ipcMain.handle('ytdlp:stop', (e, id: string) => {
   try {
     // Ensure YTDLP is initialized
     if (!YTDLP) {
-      YTDLP = initializeYTDLP();
+      YTDLP = await initializeYTDLP();
     }
     
     const terminal = YTDLP.getTerminalFromID(id);
@@ -1353,7 +1353,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
   try {
     // Ensure YTDLP is initialized
     if (!YTDLP) {
-      YTDLP = initializeYTDLP();
+      YTDLP = await initializeYTDLP();
     }
     
     // Ensure YTDLP binary is set up before downloading
@@ -1707,8 +1707,18 @@ app.on('ready', async () => {
     try {
       console.log('Checking for YT-DLP updates on startup...');
 
+      // Ensure YTDLP is initialized
+      if (!YTDLP) {
+        YTDLP = await initializeYTDLP();
+      }
+
       // Ensure YTDLP binary is set up before checking version
       setupYTDLPBinary();
+
+      // Configure YTDLP to use the correct binary path
+      if (process.env.YTDLP_PATH) {
+        YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
+      }
 
       // Get current version first
       const currentVersion = await YTDLP.getYTDLPVersion();
