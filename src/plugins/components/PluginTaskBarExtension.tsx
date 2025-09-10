@@ -111,11 +111,15 @@ const PluginTaskBarExtension: React.FC = () => {
   // Show conversion status bar even if no plugin items are loaded
   const hasConversions = activeConversions.length > 0;
   const hasTaskBarItems = taskBarItems.length > 0;
-  
+
+  // Global state helpers
+  const anyPaused = activeConversions.some((c) => c.status === 'paused');
+  const anyRunning = activeConversions.some((c) => c.status !== 'paused');
+
   if (isLoading) {
     return null;
   }
-  
+
   // If no conversions and no taskbar items, return null
   if (!hasConversions && !hasTaskBarItems) {
     return null;
@@ -217,7 +221,7 @@ const PluginTaskBarExtension: React.FC = () => {
     }
   };
 
-  // Handle conversion stop
+  // Handle conversion stop (single)
   const handleConversionStop = async (downloadId: string) => {
     try {
       console.log('🛑 Stopping conversion from navbar:', downloadId);
@@ -226,7 +230,7 @@ const PluginTaskBarExtension: React.FC = () => {
         // Remove from downloading list
         const { deleteDownloading } = useDownloadStore.getState();
         deleteDownloading(downloadId);
-        
+
         toast({
           variant: 'default',
           title: 'Conversion Stopped',
@@ -249,6 +253,87 @@ const PluginTaskBarExtension: React.FC = () => {
         description: 'Failed to stop conversion',
         duration: 3000,
       });
+    }
+  };
+
+  // Global controls
+  const pauseAll = async () => {
+    try {
+      const ids = activeConversions
+        .filter((c) => c.status !== 'paused')
+        .map((c) => c.id);
+      for (const id of ids) {
+        const res = await pauseConversion(id);
+        if (res.success) {
+          updateDownload(id, {
+            type: 'conversion',
+            data: { status: 'paused', log: 'Conversion paused from navbar (all)' },
+          });
+        }
+      }
+      if (ids.length) {
+        toast({
+          variant: 'default',
+          title: 'Conversions Paused',
+          description: `Paused ${ids.length} conversion(s)`,
+          duration: 3000,
+        });
+      }
+    } catch (err) {
+      console.error('Pause all error:', err);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to pause all', duration: 3000 });
+    }
+  };
+
+  const resumeAll = async () => {
+    try {
+      const ids = activeConversions
+        .filter((c) => c.status === 'paused')
+        .map((c) => c.id);
+      for (const id of ids) {
+        const res = await resumeConversion(id);
+        if (res.success) {
+          updateDownload(id, {
+            type: 'conversion',
+            data: { status: 'converting', log: 'Conversion resumed from navbar (all)' },
+          });
+        }
+      }
+      if (ids.length) {
+        toast({
+          variant: 'success',
+          title: 'Conversions Resumed',
+          description: `Resumed ${ids.length} conversion(s)`,
+          duration: 3000,
+        });
+      }
+    } catch (err) {
+      console.error('Resume all error:', err);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to resume all', duration: 3000 });
+    }
+  };
+
+  const stopAll = async () => {
+    try {
+      const ids = activeConversions.map((c) => c.id);
+      const { deleteDownloading } = useDownloadStore.getState();
+      for (const id of ids) {
+        const res = await stopConversion(id);
+        if (res.success) {
+          deleteDownloading(id);
+        }
+      }
+      if (ids.length) {
+        toast({
+          variant: 'default',
+          title: 'Conversions Stopped',
+          description: `Stopped ${ids.length} conversion(s)`,
+          duration: 3000,
+        });
+      }
+    } catch (err) {
+      console.error('Stop all error:', err);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to stop all', duration: 3000 });
     }
   };
 
@@ -359,16 +444,35 @@ const PluginTaskBarExtension: React.FC = () => {
           <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
             Converting {activeConversions.length} file{activeConversions.length !== 1 ? 's' : ''}
           </span>
-          
+
+          {/* Global controls to mirror context menu behaviour */}
+          {anyRunning && (
+            <TooltipWrapper content="Pause all conversions" side="bottom">
+              <button onClick={pauseAll} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors">
+                <FaPause size={12} className="text-yellow-600 dark:text-yellow-400" />
+              </button>
+            </TooltipWrapper>
+          )}
+          {anyPaused && (
+            <TooltipWrapper content="Resume all conversions" side="bottom">
+              <button onClick={resumeAll} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors">
+                <FaPlay size={12} className="text-green-600 dark:text-green-400" />
+              </button>
+            </TooltipWrapper>
+          )}
+          <TooltipWrapper content="Stop all conversions" side="bottom">
+            <button onClick={stopAll} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors">
+              <FaStop size={12} className="text-red-600 dark:text-red-400" />
+            </button>
+          </TooltipWrapper>
+
+          {/* Per-conversion controls */}
           {activeConversions.map((conversion) => {
             const isPaused = conversion.status === 'paused';
-            
+
             return (
               <div key={conversion.id} className="flex items-center gap-1 ml-2">
-                <TooltipWrapper 
-                  content={isPaused ? 'Resume conversion' : 'Pause conversion'} 
-                  side="bottom"
-                >
+                <TooltipWrapper content={isPaused ? 'Resume conversion' : 'Pause conversion'} side="bottom">
                   <button
                     onClick={() => handleConversionPauseResume(conversion.id, isPaused)}
                     className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
@@ -380,7 +484,7 @@ const PluginTaskBarExtension: React.FC = () => {
                     )}
                   </button>
                 </TooltipWrapper>
-                
+
                 <TooltipWrapper content="Stop conversion" side="bottom">
                   <button
                     onClick={() => handleConversionStop(conversion.id)}
