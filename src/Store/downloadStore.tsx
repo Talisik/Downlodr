@@ -60,9 +60,10 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { useMainStore } from '@/Store/mainStore'; //  import
+import { config } from '@/config';
+import { useMainStore } from '@/Store/mainStore';
 import { downloadEnglishCaptions } from '@/Utils/Metadata/captionsHelper';
-import { VideoFormatService } from '@/Utils/Metadata/GetDownloadMetaData';
+import { VideoFormatService } from '@/Utils/Metadata/getDownloadMetaData';
 import { TelemetryService } from '@/Utils/Telemetry/telemetryService';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -1044,8 +1045,7 @@ const useDownloadStore = create<DownloadStore>()(
                 setTimeout(async () => {
                   try {
                     const telemetryService = new TelemetryService({
-                      apiEndpoint:
-                        'https://logging-api-staging.salina.app/api/v1/logs/',
+                      apiEndpoint: config.telemetry.endpoint,
                     });
                     await telemetryService.init();
 

@@ -5,6 +5,7 @@ import {
   type ActivityItem,
   type ActivityLog,
 } from '@/Utils/ActivityHelper';
+import { config } from '@/config';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaCheckCircle } from 'react-icons/fa';
 
@@ -461,7 +462,7 @@ ${
     try {
       // Create telemetry service
       const tempTelemetry = new TelemetryService({
-        apiEndpoint: 'https://logging-api-staging.salina.app/api/v1/logs/',
+        apiEndpoint: config.telemetry.endpoint,
       });
       await tempTelemetry.init();
 
