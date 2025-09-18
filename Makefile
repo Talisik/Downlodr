@@ -112,7 +112,7 @@ setup-dev: build-dev start-dev ## Build and start development environment
 vnc-info: ## Show VNC connection information
 	@echo "=== VNC Connection Information ==="
 	@echo "VNC Server: localhost:5900"
-	@echo "Web VNC: http://localhost:8080"
+	@echo "Web VNC: http://localhost:8000"
 	@echo ""
 	@echo "macOS: vnc://localhost:5900"
 	@echo "Windows/Linux: Use VNC viewer with localhost:5900"

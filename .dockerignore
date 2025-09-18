@@ -1,96 +1,67 @@
 # Node modules
-node_modules
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
 # Build outputs
-dist
-build
-.vite
-out
-.output
+out/
+dist/
+.vite/
+*.dmg
+*.pkg
+*.deb
+*.rpm
+*.exe
+*.msi
 
-# Cache directories
-.cache
-.parcel-cache
-.next
-.nuxt
-
-# Environment files
-.env
+# Development files
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# Logs
-*.log
-
-# OS files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# IDE files
-.vscode
-.idea
+# IDE
+.vscode/
+.idea/
 *.swp
 *.swo
 
+# OS
+.DS_Store
+Thumbs.db
+
 # Git
-.git
+.git/
 .gitignore
 
-# Docker
-Dockerfile*
-docker-compose*
-
-# Testing
-coverage
-.nyc_output
-
-# Temporary files
-tmp
-temp
-.tmp
-
-# macOS specific
-.AppleDouble
-.LSOverride
-Icon
-
-# Package manager lock files (keep yarn.lock, exclude npm alternatives)
-package-lock.json
-pnpm-lock.yaml
-
-# Electron specific
-.electron
-.electron-builder
-.electron-webpack
-
 # Documentation
-README.md
-*.md
 docs/
+*.md
+!README.md
+!DOCKER_SETUP.md
 
-# Scripts that aren't needed in container
-scripts/build-*.sh
-scripts/diagnose-*.sh
-scripts/test-*.sh
+# Logs
+logs/
+*.log
+
+# Downloads (will be mounted)
+downloads/
+data/
+
+# Scripts (except docker-related)
+scripts/build-*
+scripts/test-*
+scripts/diagnose-*
+!scripts/docker-*
+!scripts/verify-binaries.sh
 
 # Test files
 test-*
-*.test.*
-*.spec.*
+debug-*
+fix-*
+validate-*
 
-# Archive/backup files
-*.backup
-XcodeArchive/
-
-# Temporary build directories
-temp-ffmpeg/
+# Temporary files
+tmp/
+temp/

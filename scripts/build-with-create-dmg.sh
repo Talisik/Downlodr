@@ -44,6 +44,19 @@ echo "📱 Apple Developer ID: $APPLE_IDENTITY"
 echo "🛠️  create-dmg available: Homebrew create-dmg $(/opt/homebrew/bin/create-dmg --version 2>/dev/null || echo '1.2.2')"
 echo ""
 
+# Step 0: Verify binaries are ready
+echo "🔍 Step 0: Verifying binaries..."
+if [ -f "./scripts/verify-binaries.sh" ]; then
+    chmod +x ./scripts/verify-binaries.sh
+    if ! ./scripts/verify-binaries.sh; then
+        echo "❌ Binary verification failed. Please fix the issues above before building."
+        exit 1
+    fi
+else
+    echo "⚠️  verify-binaries.sh not found, skipping verification"
+fi
+echo ""
+
 # Step 1: Clean previous builds
 echo "🧹 Step 1: Cleaning previous builds..."
 rm -rf out/

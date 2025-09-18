@@ -87,10 +87,8 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
               } as React.CSSProperties
             }
           >
-            {/* Main content area - draggable */}
-            <div className="flex-1 flex items-center justify-center">
-              <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
-            </div>
+            {/* Main content area - draggable (left empty to keep drag region) */}
+            <div className="flex-1" />
 
             {/* Right controls - not draggable */}
             <div
@@ -98,24 +96,24 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
               style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
               <ModeToggle />
+              <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
             </div>
           </div>
         ) : (
           // Windows/Linux custom title bar with full window controls
           <div className="flex justify-between items-center h-full px-4 py-2">
-            {/* Title */}
+            {/* Title/Drag Region */}
             <div
               className="text-sm flex-1"
               style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
-            >
-              <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
-            </div>
+            />
             {/* Buttons */}
             <div
-              className="flex space-x-4"
+              className="flex items-center space-x-3"
               style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
               <ModeToggle />
+              <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
               {/* Minimize Button */}
               <button
                 className="rounded-md bg-transparent hover:bg-lightGray dark:hover:bg-darkModeHover transition-colors duration-200 p-1 m-2 text-gray-700 dark:text-darkModeLight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"

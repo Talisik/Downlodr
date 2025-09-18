@@ -1,0 +1,325 @@
+name: Build and Publish Docker Images
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag'
+        required: true
+        default: 'latest'
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: downlodr
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Generate deployment files
+      run: |
+        mkdir -p release-artifacts
+
+        # Create user-friendly run script
+        cat > release-artifacts/run-downlodr.sh << 'EOF'
+        #!/bin/bash
+
+        # Downlodr Docker Launcher
+        set -e
+
+        IMAGE="${1:-${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest}"
+
+        echo "🚀 Starting Downlodr Docker..."
+        echo "Image: $IMAGE"
+
+        # Create directories
+        mkdir -p downloads data
+
+        # Stop existing container
+        docker stop downlodr 2>/dev/null || true
+        docker rm downlodr 2>/dev/null || true
+
+        # Run container
+        docker run -d \
+          --name downlodr \
+          -p 8000:8080 \
+          -p 5900:5900 \
+          -v $(pwd)/downloads:/app/downloads \
+          -v $(pwd)/data:/app/data \
+          --restart unless-stopped \
+          "$IMAGE"
+
+        echo "✅ Downlodr started successfully!"
+        echo ""
+        echo "Access methods:"
+        echo "  🌐 Web Browser: http://localhost:8000"
+        echo "  🖥️  VNC Client: vnc://localhost:5900"
+        echo ""
+        echo "Management commands:"
+        echo "  docker logs -f downlodr      # View logs"
+        echo "  docker stop downlodr         # Stop application"
+        echo "  docker start downlodr        # Start application"
+        echo "  docker restart downlodr      # Restart application"
+        EOF
+
+        chmod +x release-artifacts/run-downlodr.sh
+
+        # Create docker-compose.yml for users
+        cat > release-artifacts/docker-compose.yml << EOF
+        version: '3.8'
+
+        services:
+          downlodr:
+            image: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+            container_name: downlodr
+            ports:
+              - "5900:5900"    # VNC
+            volumes:
+              - ./downloads:/app/downloads
+              - ./data:/app/data
+            environment:
+              - DISPLAY=:99
+              - NODE_ENV=production
+            restart: unless-stopped
+            healthcheck:
+              test: ["CMD", "pgrep", "-f", "electron"]
+              interval: 30s
+              timeout: 10s
+              retries: 3
+
+          # Web access via noVNC
+          novnc:
+            image: theasp/novnc:latest
+            container_name: downlodr-web
+            ports:
+              - "8000:8080"    # Web access
+            environment:
+              - DISPLAY_WIDTH=1280
+              - DISPLAY_HEIGHT=720
+              - RUN_XTERM=no
+            depends_on:
+              - downlodr
+            command: ["websockify", "--web=/usr/share/novnc/", "8080", "downlodr:5900"]
+            restart: unless-stopped
+        EOF
+
+        # Create comprehensive instructions
+        cat > release-artifacts/DOCKER_INSTRUCTIONS.md << 'EOF'
+        # Downlodr Docker Distribution
+
+        ## Quick Start Options
+
+        ### Option 1: One-Command Run (Simplest)
+        ```bash
+        ./run-downlodr.sh
+        ```
+
+        **Access**: http://localhost:8000
+
+        ### Option 2: Docker Compose (Recommended)
+        ```bash
+        docker-compose up -d
+        ```
+
+        **Access**: http://localhost:8000
+
+        ### Option 3: Manual Docker Run
+        ```bash
+        docker run -d \
+          --name downlodr \
+          -p 8000:8080 \
+          -p 5900:5900 \
+          -v $(pwd)/downloads:/app/downloads \
+          -v $(pwd)/data:/app/data \
+          --restart unless-stopped \
+          ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+        ```
+
+        ## What You Get
+
+        ✅ **Full Downlodr Application** - Same features as desktop version
+        ✅ **Web Browser Access** - No VNC client needed
+        ✅ **Cross-Platform** - Works on Windows, Mac, Linux
+        ✅ **No Installation** - Runs entirely in container
+        ✅ **Persistent Downloads** - Files saved to local folder
+
+        ## Access Methods
+
+        | Method | URL | Best For |
+        |--------|-----|----------|
+        | Web Browser | http://localhost:8000 | General use, mobile devices |
+        | VNC Client | vnc://localhost:5900 | Power users, better performance |
+
+        ## Supported Platforms
+
+        - ✅ **Linux AMD64** (Intel/AMD processors)
+        - ✅ **Linux ARM64** (Apple Silicon, Raspberry Pi 4+)
+        - ✅ **macOS** (via Docker Desktop)
+        - ✅ **Windows** (via Docker Desktop)
+
+        ## Management Commands
+
+        ```bash
+        # View application logs
+        docker logs -f downlodr
+
+        # Stop application
+        docker stop downlodr
+
+        # Start application
+        docker start downlodr
+
+        # Remove application
+        docker stop downlodr && docker rm downlodr
+
+        # Update to latest version
+        docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+        docker stop downlodr && docker rm downlodr
+        ./run-downlodr.sh
+        ```
+
+        ## Troubleshooting
+
+        **Port 8000 in use**: Change `-p 8000:8080` to `-p 8001:8080`
+        **Permission errors**: Run `chmod 755 downloads data`
+        **Can't see GUI**: Try VNC client at `vnc://localhost:5900`
+        **Container won't start**: Check logs with `docker logs downlodr`
+
+        ## File Structure
+
+        After running, you'll have:
+        ```
+        your-folder/
+        ├── downloads/          # Downloaded videos appear here
+        ├── data/              # Application settings
+        ├── run-downlodr.sh    # Simple launcher script
+        └── docker-compose.yml # Docker Compose configuration
+        ```
+
+        ## Requirements
+
+        - **Docker** installed ([Get Docker](https://docs.docker.com/get-docker/))
+        - **2GB RAM** minimum
+        - **5GB disk space** for image and downloads
+        - **Internet connection** for downloads
+
+        ---
+
+        **Need help?** Check the logs: `docker logs -f downlodr`
+        EOF
+
+    - name: Create release archive
+      run: |
+        cd release-artifacts
+        tar -czf ../downlodr-docker-release.tar.gz .
+        zip -r ../downlodr-docker-release.zip .
+
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: docker-release-files
+        path: |
+          downlodr-docker-release.tar.gz
+          downlodr-docker-release.zip
+        retention-days: 90
+
+  create-github-release:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: docker-release-files
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          downlodr-docker-release.tar.gz
+          downlodr-docker-release.zip
+        body: |
+          ## Downlodr Docker Release
+
+          This release includes Docker images for cross-platform deployment.
+
+          ### Quick Start
+
+          **Download and run:**
+          1. Download `downlodr-docker-release.zip`
+          2. Extract and run: `./run-downlodr.sh`
+          3. Access: http://localhost:8000
+
+          **Or use Docker directly:**
+          ```bash
+          docker run -d -p 8000:8080 -p 5900:5900 \
+            -v $(pwd)/downloads:/app/downloads \
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          ```
+
+          ### Docker Images
+
+          - `${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}`
+          - `${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest`
+
+          ### Supported Platforms
+          - Linux AMD64 (Intel/AMD)
+          - Linux ARM64 (Apple Silicon, Raspberry Pi)
+          - macOS (via Docker Desktop)
+          - Windows (via Docker Desktop)
+
+          ### What's Included
+          - Multi-architecture Docker images
+          - User-friendly run scripts
+          - Docker Compose configuration
+          - Complete documentation
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

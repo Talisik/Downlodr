@@ -87,6 +87,42 @@ export async function initializeYTDLP() {
       YTDLP.Config.ytdlpPath = ytdlpPath;
       YTDLP.Config.ytdlpDownloadDestination = userDataPath;
       YTDLP.Config.ffmpegDownloadDestination = userDataPath;
+      
+      // Configure FFmpeg path for merging
+      // Use environment variable if set (from main.ts setup), otherwise fallback
+      let ffmpegPath = process.env.FFMPEG_PATH;
+      
+      if (!ffmpegPath) {
+        // Check common locations
+        const possiblePaths = [
+          path.join(userDataPath, process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'),
+          '/opt/homebrew/bin/ffmpeg',
+          '/usr/local/bin/ffmpeg',
+          '/usr/bin/ffmpeg',
+          'ffmpeg'
+        ];
+        
+        for (const testPath of possiblePaths) {
+          if (fs.existsSync(testPath)) {
+            ffmpegPath = testPath;
+            break;
+          }
+        }
+        
+        if (!ffmpegPath) {
+          ffmpegPath = process.platform === 'darwin' ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg';
+        }
+      }
+      
+      YTDLP.Config.ffmpegPath = ffmpegPath;
+      YTDLP.Config.ffmpegLocation = ffmpegPath; // Some versions use this property
+      
+      // Also set environment variable for child processes
+      process.env.FFMPEG_PATH = ffmpegPath;
+      process.env.PATH = `${path.dirname(ffmpegPath)}:${process.env.PATH}`;
+      
+      console.log('FFmpeg configured at:', ffmpegPath);
+      console.log('FFmpeg exists:', fs.existsSync(ffmpegPath));
     }
     
     console.log('YTDLP initialized with config:', {

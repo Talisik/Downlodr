@@ -1075,6 +1075,13 @@ const useDownloadStore = create<DownloadStore>()(
             });
             return { success: true, outputPath: result.outputPath };
           } else {
+            // Check if the conversion was paused - if so, don't treat as failure
+            const currentDownload = get().downloading.find((d) => d.id === downloadId);
+            if (currentDownload && currentDownload.status === 'paused') {
+              console.log(`⏸️ Conversion was paused, not treating as failure: ${downloadId}`);
+              return { success: false, paused: true, error: 'Conversion was paused' };
+            }
+            
             // Update status to show conversion failed
             get().updateDownload(downloadId, {
               type: 'conversion',
@@ -1088,6 +1095,13 @@ const useDownloadStore = create<DownloadStore>()(
             throw new Error(result.error || 'Conversion failed');
           }
         } catch (error) {
+          // Check if the conversion was paused - if so, don't treat as failure
+          const currentDownload = get().downloading.find((d) => d.id === downloadId);
+          if (currentDownload && currentDownload.status === 'paused') {
+            console.log(`⏸️ Conversion was paused (in catch), not treating as failure: ${downloadId}`);
+            return { success: false, paused: true, error: 'Conversion was paused' };
+          }
+          
           // Update status to show conversion failed
           get().updateDownload(downloadId, {
             type: 'conversion',
@@ -1517,16 +1531,32 @@ const useDownloadStore = create<DownloadStore>()(
 
               // Detect merger and remuxer phases from complete log
               if (updates.log && (downloading.status as any) !== 'paused') {
+                // Enhanced logging for merge detection
                 if (
                   updates.log.includes('[Merger]') ||
-                  updates.log.includes('Merging formats')
+                  updates.log.includes('Merging formats') ||
+                  updates.log.includes('[MoveFilesPP]') ||
+                  updates.log.includes('Destination:') ||
+                  updates.log.includes('ffmpeg')
                 ) {
+                  console.log(`🔄 Merge/Remux detected for ${downloading.id}:`, {
+                    phase: downloading.downloadPhase,
+                    completionCount: downloading.completionCount,
+                    logSnippet: updates.log.substring(updates.log.length - 200)
+                  });
                   updates.status = 'initializing';
                   updates.progress = 100;
                 }
 
                 if (updates.log.includes('[VideoRemuxer]')) {
+                  console.log(`📦 Video remuxing for ${downloading.id}`);
                   updates.status = 'initializing';
+                }
+                
+                // Check for FFmpeg errors
+                if (updates.log.includes('ffmpeg: error') || 
+                    updates.log.includes('No such file or directory')) {
+                  console.error(`⚠️ FFmpeg error detected for ${downloading.id}:`, updates.log);
                 }
               }
 
