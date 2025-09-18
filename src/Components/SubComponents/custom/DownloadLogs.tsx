@@ -1,10 +1,11 @@
+import useDownloadStore from '@/Store/downloadStore';
 import {
   getAllDownloadActivityLogs,
   getDownloadActivityLog,
   type ActivityItem,
   type ActivityLog,
-} from '@/DataFunctions/ActivityHelper';
-import useDownloadStore from '@/Store/downloadStore';
+} from '@/Utils/ActivityHelper';
+import { config } from '@/config';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaCheckCircle } from 'react-icons/fa';
 
@@ -461,7 +462,7 @@ ${
     try {
       // Create telemetry service
       const tempTelemetry = new TelemetryService({
-        apiEndpoint: 'https://logging-api-staging.salina.app/api/v1/logs/',
+        apiEndpoint: config.telemetry.endpoint,
       });
       await tempTelemetry.init();
 
@@ -644,6 +645,11 @@ ${
             </p>
             <p>Status: {specificDownload?.status}</p>
             <p>Progress: {specificDownload?.progress}%</p>
+            {specificDownload?.status === 'failed' && false && (
+              <p className="text-red-500 dark:text-red-400">
+                Error Report Sent: {errorSendResult?.success ? 'Yes' : 'No'}
+              </p>
+            )}
           </div>
           <hr className="solid mb-3 -mx-6 w-[calc(100%+48px)] border-t-2 border-divider dark:border-gray-700" />
 
