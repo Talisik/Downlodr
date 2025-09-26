@@ -12,7 +12,7 @@ import {
   ProcessedFormats,
   VideoFormat,
   VideoInfo,
-} from '@/schema/metadata';
+} from '@/Schema/metadata';
 
 // TypeScript interfaces for video format data
 
