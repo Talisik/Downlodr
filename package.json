@@ -9,7 +9,13 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "build:linux": "./scripts/build-linux.sh",
+    "build:linux:force": "./scripts/build-linux.sh --force",
+    "make:linux": "electron-forge make --platform=linux",
+    "make:linux:deb": "electron-forge make --platform=linux --targets=@electron-forge/maker-deb",
+    "make:linux:rpm": "electron-forge make --platform=linux --targets=@electron-forge/maker-rpm",
+    "make:linux:zip": "electron-forge make --platform=linux --targets=@electron-forge/maker-zip"
   },
   "devDependencies": {
     "@electron-forge/cli": "7.6.0",

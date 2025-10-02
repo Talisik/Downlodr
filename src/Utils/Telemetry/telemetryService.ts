@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import useSendErrorLog from '../../DataServices/sendErrorLog';
+import useSendErrorLog from '../../dataServices/sendErrorLog';
 import { getTelemetryId } from '../../Store/telemetryStore';
 import { TelemetryErrorMapper } from './telemetryErrorMapping';
 import {

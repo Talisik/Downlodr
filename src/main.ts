@@ -35,6 +35,39 @@ if (started) {
   app.quit();
 }
 
+// Disable Chrome sandbox for development to avoid permission issues
+// Remove this in production builds
+if (process.env.NODE_ENV === 'development' || process.env.ELECTRON_DISABLE_SANDBOX === '1') {
+  app.commandLine.appendSwitch('no-sandbox');
+  app.commandLine.appendSwitch('disable-setuid-sandbox');
+  console.log('🛡️  Chrome sandbox disabled for development');
+}
+
+// Fix /dev/shm shared memory issues (common on Linux)
+app.commandLine.appendSwitch('disable-dev-shm-usage');
+console.log('🔧 Disabled /dev/shm usage to prevent shared memory errors');
+
+// Add FFmpeg binaries to PATH so yt-dlp can find them
+// This must be done BEFORE any yt-dlp operations
+(() => {
+  let ffmpegDir: string;
+  
+  if (app.isPackaged) {
+    // Production: Use bundled binaries from resources/bin
+    ffmpegDir = path.join(process.resourcesPath, 'bin');
+  } else {
+    // Development: Use binaries from project directory
+    ffmpegDir = path.join(process.cwd(), 'binaries', 'linux');
+  }
+
+  // Add to beginning of PATH so our binaries are found first
+  const currentPath = process.env.PATH || '';
+  process.env.PATH = `${ffmpegDir}${path.delimiter}${currentPath}`;
+  
+  console.log('🔧 Added FFmpeg directory to PATH:', ffmpegDir);
+  console.log('🔧 FFmpeg should now be available for yt-dlp merging');
+})();
+
 // Prevent multiple instances of the app
 const isSingleInstance = app.requestSingleInstanceLock();
 
@@ -102,6 +135,8 @@ const createWindow = () => {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       webSecurity: true,
+      // Disable sandbox for development to avoid chrome-sandbox permission issues
+      sandbox: false,
       nodeIntegration: true,
       // devTools: false,
     },
@@ -352,6 +387,58 @@ ipcMain.handle('getDownloadFolder', async () => {
     return downloadsPath;
   } catch (error) {
     // console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+// Find actual file path when extension might have changed after remux
+ipcMain.handle('findActualFilePath', async (_event, expectedPath) => {
+  try {
+    // First check if the expected path exists
+    if (fs.existsSync(expectedPath)) {
+      return expectedPath;
+    }
+
+    // Get directory and filename without extension
+    const dir = path.dirname(expectedPath);
+    const ext = path.extname(expectedPath);
+    const baseName = path.basename(expectedPath, ext);
+
+    // Common video extensions that yt-dlp might use after remux
+    const possibleExtensions = ['.mp4', '.mkv', '.webm', '.mov', '.avi', '.flv', '.m4a', '.mp3', '.opus', '.ogg', '.wav'];
+
+    // Try each possible extension
+    for (const possibleExt of possibleExtensions) {
+      if (possibleExt === ext) continue; // Skip the original extension (already checked)
+      
+      const alternatePath = path.join(dir, baseName + possibleExt);
+      if (fs.existsSync(alternatePath)) {
+        console.log(`Found file with different extension: ${alternatePath} (expected: ${expectedPath})`);
+        return alternatePath;
+      }
+    }
+
+    // If still not found, try searching the directory for files with matching basename
+    try {
+      const files = fs.readdirSync(dir);
+      const matchingFile = files.find(file => {
+        const fileBaseName = path.basename(file, path.extname(file));
+        return fileBaseName === baseName;
+      });
+
+      if (matchingFile) {
+        const foundPath = path.join(dir, matchingFile);
+        console.log(`Found file with pattern match: ${foundPath} (expected: ${expectedPath})`);
+        return foundPath;
+      }
+    } catch (readDirError) {
+      console.error('Error reading directory for file search:', readDirError);
+    }
+
+    // File not found
+    return null;
+  } catch (error) {
+    console.error('Error finding actual file path:', error);
     return null;
   }
 });
@@ -916,6 +1003,10 @@ ipcMain.handle('kill-controller', async (_, id) => {
 // download video from link
 ipcMain.handle('ytdlp:download', async (e, id, args) => {
   try {
+    // PATH is already set at app startup, so yt-dlp will find ffmpeg
+    console.log(`🎬 Starting download with yt-dlp`);
+    console.log(`📁 Output: ${args.outputFilepath}`);
+    
     const controller = await YTDLP.download({
       // args needed for download
       args: {
@@ -1010,7 +1101,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
 
         // Notify the main process about the finished download
         const win = BrowserWindow.getAllWindows()[0];
-        if (win) {
+        if (win && !win.isDestroyed() && win.webContents && !win.webContents.isDestroyed()) {
           win.webContents.send('download-finished', {
             name: args.name,
             id: id,
@@ -1183,9 +1274,11 @@ app.on('ready', async () => {
   setTimeout(async () => {
     const updateInfo = await checkForUpdates();
     if (updateInfo.hasUpdate) {
-      BrowserWindow.getAllWindows().forEach((win) =>
-        win.webContents.send('update-available', updateInfo),
-      );
+      BrowserWindow.getAllWindows().forEach((win) => {
+        if (win && !win.isDestroyed() && win.webContents && !win.webContents.isDestroyed()) {
+          win.webContents.send('update-available', updateInfo);
+        }
+      });
     }
   }, 5000); // Check after 5 seconds to not slow startup
 
@@ -1228,11 +1321,13 @@ app.on('ready', async () => {
 
         // Notify renderer about the update
         BrowserWindow.getAllWindows().forEach((win) => {
-          win.webContents.send('ytdlp-auto-updated', {
-            fromVersion: currentVersion,
-            toVersion: latestVersion,
-            message: `YT-DLP automatically updated from ${currentVersion} to ${latestVersion}`,
-          });
+          if (win && !win.isDestroyed() && win.webContents && !win.webContents.isDestroyed()) {
+            win.webContents.send('ytdlp-auto-updated', {
+              fromVersion: currentVersion,
+              toVersion: latestVersion,
+              message: `YT-DLP automatically updated from ${currentVersion} to ${latestVersion}`,
+            });
+          }
         });
       } else if (!currentVersion) {
         console.log('YT-DLP not found, downloading latest version...');
@@ -1241,10 +1336,12 @@ app.on('ready', async () => {
 
         // Notify renderer about the installation
         BrowserWindow.getAllWindows().forEach((win) => {
-          win.webContents.send('ytdlp-auto-installed', {
-            version: latestVersion || 'latest',
-            message: 'YT-DLP was automatically downloaded and installed',
-          });
+          if (win && !win.isDestroyed() && win.webContents && !win.webContents.isDestroyed()) {
+            win.webContents.send('ytdlp-auto-installed', {
+              version: latestVersion || 'latest',
+              message: 'YT-DLP was automatically downloaded and installed',
+            });
+          }
         });
       } else {
         console.log(
@@ -1262,9 +1359,11 @@ app.on('ready', async () => {
   setInterval(async () => {
     const updateInfo = await checkForUpdates();
     if (updateInfo.hasUpdate) {
-      BrowserWindow.getAllWindows().forEach((win) =>
-        win.webContents.send('update-available', updateInfo),
-      );
+      BrowserWindow.getAllWindows().forEach((win) => {
+        if (win && !win.isDestroyed() && win.webContents && !win.webContents.isDestroyed()) {
+          win.webContents.send('update-available', updateInfo);
+        }
+      });
     }
   }, UPDATE_CHECK_INTERVAL);
   /*
@@ -1293,11 +1392,13 @@ app.on('ready', async () => {
         
         // Don't auto-update during periodic checks, just notify
         BrowserWindow.getAllWindows().forEach((win) => {
-          win.webContents.send('ytdlp-update-available', {
-            currentVersion,
-            latestVersion: latestResponse.version,
-            message: `YT-DLP update available: ${currentVersion} → ${latestResponse.version}`,
-          });
+          if (win && !win.isDestroyed() && win.webContents && !win.webContents.isDestroyed()) {
+            win.webContents.send('ytdlp-update-available', {
+              currentVersion,
+              latestVersion: latestResponse.version,
+              message: `YT-DLP update available: ${currentVersion} → ${latestResponse.version}`,
+            });
+          }
         });
       }
     } catch (error) {

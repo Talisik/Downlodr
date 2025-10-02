@@ -342,10 +342,11 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     // Check each selected download to see if it exists
     for (const download of selectedDownloads) {
       if (download.status === 'finished' && download.location) {
-        const exists = await window.downlodrFunctions.fileExists(
+        // Find actual file path (handles extension changes from remux)
+        const actualFilePath = await window.downlodrFunctions.findActualFilePath(
           download.location,
         );
-        if (!exists) {
+        if (!actualFilePath) {
           missing.push(download);
         }
       }

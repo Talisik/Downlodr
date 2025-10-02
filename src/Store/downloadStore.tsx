@@ -911,30 +911,43 @@ const useDownloadStore = create<DownloadStore>()(
         if (finishedDownloads.length > 0) {
           for (const download of finishedDownloads) {
             try {
-              // Get the final file path
-              const filePath = await window.downlodrFunctions.joinDownloadPath(
+              // Get the expected file path
+              const expectedPath = await window.downlodrFunctions.joinDownloadPath(
                 download.location,
                 download.downloadName,
               );
 
-              // Get actual file size if file exists
-              let actualSize = download.size;
-              const fileExists = await window.downlodrFunctions.fileExists(
-                filePath,
+              // Find actual file path (handles extension changes from remux)
+              const actualFilePath = await window.downlodrFunctions.findActualFilePath(
+                expectedPath,
               );
 
-              if (fileExists) {
+              // Get actual file size and update download name if path changed
+              let actualSize = download.size;
+              let finalDownloadName = download.downloadName;
+              
+              if (actualFilePath) {
                 const fileSize = await window.downlodrFunctions.getFileSize(
-                  filePath,
+                  actualFilePath,
                 );
                 if (fileSize) {
                   actualSize = fileSize;
                 }
+                
+                // If the actual file has a different name/extension, update it
+                if (actualFilePath !== expectedPath) {
+                  const path = require('path');
+                  finalDownloadName = path.basename(actualFilePath);
+                  console.log(`File extension changed during remux: ${download.downloadName} → ${finalDownloadName}`);
+                }
+              } else {
+                console.warn(`Downloaded file not found: ${expectedPath}`);
               }
 
               // Create finished download entry
               const finishedDownload = {
                 ...download,
+                downloadName: finalDownloadName,
                 status: 'finished',
                 size: actualSize,
                 transcriptLocation: download.autoCaptionLocation || '',

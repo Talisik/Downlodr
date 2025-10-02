@@ -38,6 +38,7 @@ declare global {
       fileExists: (path: string) => Promise<boolean>; // Checks if a file exists at the specified path
       getFileSize: (path: string) => Promise<number | null>; // Gets the size of a file in bytes
       getDirectorySize: (path: string) => Promise<number>; // Gets the total size of all files in a directory in bytes
+      findActualFilePath: (expectedPath: string) => Promise<string | null>; // Finds actual file path when extension might have changed after remux
       showInputContextMenu: () => void; // Shows the input field context menu (right-click menu)
       invokeMainProcess: (channel: string, ...args: any[]) => Promise<any>;
       downloadFile: (

@@ -445,15 +445,16 @@ const StatusSpecificDownloads = () => {
       // Check each download to see if it exists
       for (const download of downloadsToCheck) {
         if (download.status === 'finished' && download.location) {
-          const fullDownloadLocation =
+          const expectedPath =
             await window.downlodrFunctions.joinDownloadPath(
               download.location,
               download.downloadName,
             );
-          const exists = await window.downlodrFunctions.fileExists(
-            fullDownloadLocation,
+          // Find actual file path (handles extension changes from remux)
+          const actualFilePath = await window.downlodrFunctions.findActualFilePath(
+            expectedPath,
           );
-          if (!exists) {
+          if (!actualFilePath) {
             missing.push(download);
           }
         }

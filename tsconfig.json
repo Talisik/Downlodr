@@ -12,8 +12,21 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "jsx": "react-jsx",
+    "types": ["node"],
+    "lib": ["ESNext", "DOM"],
+    "allowSyntheticDefaultImports": true,
     "paths": {
       "@/*": ["./src/*"]
-    },
-  }
+    }
+  },
+  "include": [
+    "src/**/*",
+    "forge.config.ts",
+    "vite.*.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "out",
+    "dist"
+  ]
 }

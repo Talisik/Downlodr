@@ -72,12 +72,13 @@ const History = () => {
     const checkAllFiles = async () => {
       const newFileExistsMap: FileExistsMap = {};
       for (const download of logs) {
-        const filePath = await window.downlodrFunctions.joinDownloadPath(
+        const expectedPath = await window.downlodrFunctions.joinDownloadPath(
           download.location,
           download.downloadName,
         );
-        const exists = await window.downlodrFunctions.fileExists(filePath);
-        newFileExistsMap[download.id] = exists;
+        // Find actual file path (handles extension changes from remux)
+        const actualFilePath = await window.downlodrFunctions.findActualFilePath(expectedPath);
+        newFileExistsMap[download.id] = !!actualFilePath;
       }
       setFileExistsMap(newFileExistsMap);
     };

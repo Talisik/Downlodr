@@ -836,11 +836,12 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   ) => {
     if (downloadLocation) {
       try {
-        const exists = await window.downlodrFunctions.fileExists(
+        // Find actual file path (handles extension changes from remux)
+        const actualFilePath = await window.downlodrFunctions.findActualFilePath(
           downloadLocation,
         );
-        if (exists) {
-          window.downlodrFunctions.openVideo(downloadLocation);
+        if (actualFilePath) {
+          window.downlodrFunctions.openVideo(actualFilePath);
         } else {
           // If the file doesn't exist, find the download and show the modal
           if (downloadId) {

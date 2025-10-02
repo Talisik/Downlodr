@@ -122,3 +122,9 @@ typings/
 
 # Electron-Forge
 out/
+
+# Binaries (downloaded during build)
+binaries/
+ffmpeg
+ffprobe
+yt-dlp_linux

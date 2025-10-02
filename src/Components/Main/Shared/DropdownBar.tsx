@@ -93,22 +93,22 @@ const DropdownBar = ({ className }: { className?: string }) => {
   // Update the handleOpenVideo function to check if the file exists first
   const handleOpenVideo = async (download: HistoryDownloads) => {
     try {
-      const filePath = await window.downlodrFunctions.joinDownloadPath(
+      const expectedPath = await window.downlodrFunctions.joinDownloadPath(
         download.location,
         download.downloadName,
       );
 
-      // Check if the file exists before trying to open it
-      const exists = await window.downlodrFunctions.fileExists(filePath);
+      // Find actual file path (handles extension changes from remux)
+      const actualFilePath = await window.downlodrFunctions.findActualFilePath(expectedPath);
 
-      if (exists) {
-        window.downlodrFunctions.openVideo(filePath);
+      if (actualFilePath) {
+        window.downlodrFunctions.openVideo(actualFilePath);
       } else {
         // If the file doesn't exist, prepare the download item for the modal
         const downloadItem: DownloadItem = {
           id: download.id,
           videoUrl: download.videoUrl,
-          location: filePath,
+          location: expectedPath,
           name: download.name,
           ext: download.ext,
           downloadName: download.downloadName,

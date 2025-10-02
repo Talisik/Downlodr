@@ -40,6 +40,8 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
   getFileSize: (path: string) => ipcRenderer.invoke('get-file-size', path),
   getDirectorySize: (path: string) =>
     ipcRenderer.invoke('get-directory-size', path),
+  findActualFilePath: (expectedPath: string) =>
+    ipcRenderer.invoke('findActualFilePath', expectedPath),
   showInputContextMenu: () => ipcRenderer.send('show-input-context-menu'),
   invokeMainProcess: (channel: any, ...args: any) => {
     return ipcRenderer.invoke(channel, ...args);
