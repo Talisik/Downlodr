@@ -11,6 +11,7 @@ import {
 import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
 import { UpdateInfo } from '@/plugins/types';
 import { useMainStore } from '@/Store/mainStore';
+import { useUpdateListener } from '@/Utils/eventManager';
 import React, { useEffect, useState } from 'react';
 import { FaArrowCircleUp } from 'react-icons/fa';
 
@@ -52,29 +53,18 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
 
   useEffect(() => {
-    // console.log('UpdateNotification mounting/re-mounting');
-
     // Only add the listener for app updates when no external control is provided
     if (!externalUpdateInfo && updateType === 'app') {
-      let removeListener: (() => void) | undefined;
-
-      if (window.updateAPI?.onUpdateAvailable) {
-        // Listen for update notifications from the main process
-        removeListener = window.updateAPI.onUpdateAvailable((info) => {
-          if (info.hasUpdate && !settings.dontShowAppUpdates) {
-            setInternalUpdateInfo(info);
-            setInternalIsOpen(true);
-          }
-        });
-      }
+      // Use the centralized event manager to prevent memory leaks
+      const removeListener = useUpdateListener((info) => {
+        if (info.hasUpdate && !settings.dontShowAppUpdates) {
+          setInternalUpdateInfo(info);
+          setInternalIsOpen(true);
+        }
+      }, 'UpdateNotification');
 
       // Clean up the listener when the component unmounts
-      return () => {
-        // console.log('UpdateNotification unmounting');
-        if (removeListener) {
-          removeListener();
-        }
-      };
+      return removeListener;
     }
   }, [externalUpdateInfo, updateType, settings.dontShowAppUpdates]);
 

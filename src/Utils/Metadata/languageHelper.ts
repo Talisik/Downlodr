@@ -201,17 +201,60 @@ export function selectOptimalCaption(
     }
   }
 
-  // Step 4: No original language found or available, try to find any good caption
-  console.log(
-    'No original language found, looking for any available caption...',
-  );
+  // Step 4: No original language found or available, try English as fallback
+  console.log('No original language found, looking for English captions...');
+
+  // Try English subtitles first (higher quality)
+  if (subtitles) {
+    const englishLanguageCodes = ['en', 'eng', 'english'];
+    for (const langCode of englishLanguageCodes) {
+      const caption = findLanguageInSubtitles(subtitles, langCode);
+      if (caption) {
+        console.log(`Using English subtitle (${langCode}) as fallback`);
+        const subtitleCaptions = subtitles[langCode];
+        return {
+          caption,
+          source: 'subtitle',
+          languageCode: langCode,
+          languageName: getLanguageName(subtitleCaptions),
+          isOriginal: false,
+        };
+      }
+    }
+  }
+
+  // Try English automatic captions
+  if (automaticCaptions) {
+    const englishLanguageCodes = ['en', 'eng', 'english'];
+    for (const langCode of englishLanguageCodes) {
+      if (automaticCaptions[langCode]) {
+        const caption = selectBestCaption(automaticCaptions[langCode]);
+        if (caption) {
+          console.log(
+            `Using English automatic caption (${langCode}) as fallback`,
+          );
+          const autoCaptions = automaticCaptions[langCode];
+          return {
+            caption,
+            source: 'automatic',
+            languageCode: langCode,
+            languageName: getLanguageName(autoCaptions),
+            isOriginal: false,
+          };
+        }
+      }
+    }
+  }
+
+  // Step 5: If no English found, try any available caption
+  console.log('No English captions found, using any available caption...');
 
   // Try subtitles first (higher quality)
   if (subtitles) {
     for (const [languageCode, captions] of Object.entries(subtitles)) {
       const caption = selectBestCaption(captions);
       if (caption) {
-        console.log(`Using subtitle for ${languageCode} as fallback`);
+        console.log(`Using subtitle for ${languageCode} as final fallback`);
         return {
           caption,
           source: 'subtitle',

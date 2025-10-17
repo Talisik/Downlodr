@@ -10,6 +10,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { MenuItemRegistration, TaskBarItemRegistration } from './plugins/types';
 
+// Increase the max listeners to prevent memory leak warnings
+// This should be done before setting up any listeners
+ipcRenderer.setMaxListeners(20);
+
 // downlodr exlusive functions
 contextBridge.exposeInMainWorld('downlodrFunctions', {
   invoke: (channel: any, ...args: any) => ipcRenderer.invoke(channel, ...args),
