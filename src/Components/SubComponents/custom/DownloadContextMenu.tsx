@@ -984,9 +984,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                 }}
                 className="w-full outline-none dark:bg-darkMode dark:text-gray-200"
               />
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Max 10 characters
-              </div>
             </div>
           </div>
           <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider dark:border-gray-700" />

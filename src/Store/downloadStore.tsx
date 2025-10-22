@@ -60,12 +60,31 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import { config } from '@/config';
 import { useMainStore } from '@/Store/mainStore';
 import { downloadEnglishCaptions } from '@/Utils/Metadata/captionsHelper';
-import { VideoFormatService } from '@/Utils/Metadata/GetDownloadMetaData';
+import { VideoFormatService } from '@/Utils/Metadata/getDownloadMetaData';
 import { TelemetryService } from '@/Utils/Telemetry/telemetryService';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+
+// Utility function to truncate title to 30 characters at word boundary
+const truncateTitle = (title: string): string => {
+  if (title.length <= 30) return title;
+
+  // Find the last space within the 30-character limit
+  const truncated = title.slice(0, 30);
+  const lastSpaceIndex = truncated.lastIndexOf(' ');
+
+  // If there's a space, truncate at the last complete word
+  // If no space found (single long word), truncate at character limit
+  if (lastSpaceIndex > 0) {
+    return truncated.slice(0, lastSpaceIndex);
+  } else {
+    return truncated.trim();
+  }
+};
+
 import {
   createIndexedDBStorageWithMigration,
   IndexedDBStorageAdapter,
@@ -116,6 +135,7 @@ function uuidv4() {
     ).toString(16),
   );
 }
+
 // Simplified migration with essential validation (appropriate for Electron)
 const migrateDownloadStore = (persistedState: any, version: number) => {
   console.log(
@@ -1087,7 +1107,7 @@ const useDownloadStore = create<DownloadStore>()(
                 setTimeout(async () => {
                   try {
                     const telemetryService = new TelemetryService({
-                      apiEndpoint: 'https://endpoint',
+                      apiEndpoint: config.telemetry.endpoint,
                     });
                     await telemetryService.init();
 
@@ -1716,30 +1736,14 @@ const useDownloadStore = create<DownloadStore>()(
               console.log(`Original language: ${caption2.isOriginal}`);
               // Use selectedCaption.caption.url for download
             }
-            // Get first available language from subtitles (excluding live_chat)
+            // Get caption from the optimal selection result
             if (caption2.source === 'subtitle' && subtitles) {
-              const availableLanguages = Object.keys(subtitles).filter(
-                (lang) => lang !== 'live_chat',
-              );
-              if (availableLanguages.length > 0) {
-                caption = subtitles[caption2.languageCode];
-              }
+              caption = subtitles[caption2.languageCode];
             }
 
             // If no manual subtitles, try automatic captions
             if (caption2.source === 'automatic' && automaticCaptions) {
-              const availableLanguages = Object.keys(automaticCaptions);
-
-              // First, try to find original language captions (containing "orig")
-              const originalLanguage = availableLanguages.find((lang) =>
-                lang.includes('orig'),
-              );
-              if (originalLanguage) {
-                caption = automaticCaptions[originalLanguage];
-              } else if (availableLanguages.length > 0) {
-                // Fall back to first available language if no original found
-                caption = automaticCaptions[availableLanguages[0]];
-              }
+              caption = automaticCaptions[caption2.languageCode];
             }
           }
 
@@ -1769,8 +1773,8 @@ const useDownloadStore = create<DownloadStore>()(
               download.id === downloadId
                 ? {
                     ...download,
-                    name: `${info.data?.title || 'Untitled'}`,
-                    downloadName: `${info.data?.title || 'Untitled'}`,
+                    name: truncateTitle(info.data?.title || 'Untitled'),
+                    downloadName: truncateTitle(info.data?.title || 'Untitled'),
                     status: 'to download',
                     ext: defaultExt,
                     formatId: defaultFormatId,

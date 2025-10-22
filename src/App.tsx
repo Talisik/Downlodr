@@ -35,6 +35,7 @@ import { PluginLoader } from './plugins/PluginLoader';
 import FormatSelectorManager from './plugins/components/FormatSelectorManager';
 import PluginModalManager from './plugins/components/PluginModalManager';
 import PluginSidePanelManager from './plugins/components/PluginSidePanelManager';
+import { eventManager } from './Utils/eventManager';
 
 const App = () => {
   const { settings, updateTelemetryConsentShown } = useMainStore();
@@ -69,6 +70,9 @@ const App = () => {
     const initAppTelemetry = async () => {
       try {
         const telemetryId = await initializeTelemetry();
+        if (telemetryId) {
+          // console.log('📊 Telemetry ready for app-wide usage');
+        }
       } catch (error) {
         console.error('❌ Failed to initialize app telemetry:', error);
         // App continues to function normally even if telemetry fails
@@ -92,7 +96,7 @@ const App = () => {
 
   // Handle YT-DLP auto-update events
   useEffect(() => {
-    const removeListeners: Array<() => void> = [];
+    const removeListeners: Array<(() => void) | undefined> = [];
 
     if (window.updateAPI) {
       // Handle YT-DLP auto-updated event
@@ -123,6 +127,8 @@ const App = () => {
           removeListener();
         }
       });
+      // Clean up the centralized event manager on app unmount
+      eventManager.cleanup();
     };
   }, []); // Empty dependency array = runs once on mount
 

@@ -9,6 +9,11 @@ import { FormatSelectorResult, MenuItem, PluginInfo, PluginManifest, PluginModal
 import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult } from './Schema/downlodrFunction';
 
 declare global {
+  // Environment variables injected at build time
+  const __TELEMETRY_ENDPOINT__: string;
+  const __TELEMETRY_TIMEOUT__: string;
+  const __TELEMETRY_RETRY_ATTEMPTS__: string;
+
   interface Window {
     downlodrFunctions: {
       //Title bar functions
@@ -94,7 +99,7 @@ declare global {
     electronDevTools: {
       toggle: () => void; // Toggles the visibility of the developer tools
     };
-    updateAPI: { // update checker functions
+    updateAPI: {
       onUpdateAvailable: (
         callback: (updateInfo: UpdateInfo) => void,
       ) => () => void;

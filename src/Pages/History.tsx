@@ -386,7 +386,7 @@ const History = () => {
                                 fileExistsMap[product.id]
                                   ? 'text-gray-700 dark:text-gray-200'
                                   : 'line-through text-gray-400 dark:text-gray-500'
-                              } line-clamp-1 break-words break-all font-medium`}
+                              } line-clamp-1 break-words break-all font-bold`}
                             >
                               {product.name}
                             </span>

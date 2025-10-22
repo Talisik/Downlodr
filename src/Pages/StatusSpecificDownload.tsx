@@ -1970,7 +1970,7 @@ const StatusSpecificDownloads = () => {
                               ) : download.status === 'finished' ? (
                                 <div className="flex items-center space-x-2 justify-center">
                                   <button
-                                    className="ml-2 relative flex items-center text-sm underline"
+                                    className="flex items-center text-sm underline"
                                     style={{
                                       color: getStatusColor(download.status),
                                     }}
@@ -1982,7 +1982,7 @@ const StatusSpecificDownloads = () => {
                                       <span>
                                         <VscPlayCircle
                                           size={20}
-                                          className="ml-2 text-green-600 hover:text-green-400 transition-colors duration-200"
+                                          className="text-green-600 hover:text-green-400 transition-colors duration-200"
                                           onClick={async (e) => {
                                             e.stopPropagation();
                                             handleViewDownload(
