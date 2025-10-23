@@ -98,6 +98,12 @@ const TaskbarInputField = () => {
         entries: info.data?.entries?.length || 0,
       });
 
+      // Check if this is a YouTube Radio/Mix playlist for user notification
+      const isRadioPlaylistDetected = url.includes('list=RD');
+      if (isRadioPlaylistDetected && info.ok && info.data?.entries) {
+        console.log('📻 YouTube Radio/Mix playlist detected - limited to prevent infinite loading');
+      }
+
       // Check if the playlist fetch was successful
       if (!info.ok) {
         console.warn('⚠️ Playlist fetch was not successful:', info);
@@ -165,9 +171,14 @@ const TaskbarInputField = () => {
       );
 
       // Show success message for better UX
+      const isRadioPlaylistForMsg = url.includes('list=RD');
+      const description = isRadioPlaylistForMsg 
+        ? `Successfully loaded ${videos.length} videos from YouTube Radio/Mix playlist (limited for performance)`
+        : `Successfully loaded ${videos.length} videos from the playlist`;
+      
       toast({
         title: 'Playlist Loaded',
-        description: `Successfully loaded ${videos.length} videos from the playlist`,
+        description,
         duration: 3000,
       });
     } catch (error) {

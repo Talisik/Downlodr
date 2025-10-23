@@ -89,40 +89,85 @@ export async function initializeYTDLP() {
       YTDLP.Config.ffmpegDownloadDestination = userDataPath;
       
       // Configure FFmpeg path for merging
-      // Use environment variable if set (from main.ts setup), otherwise fallback
+      // PRIORITY: Always prefer bundled FFmpeg over system FFmpeg
       let ffmpegPath = process.env.FFMPEG_PATH;
+      let ffmpegSource = 'environment variable';
       
       if (!ffmpegPath) {
-        // Check common locations
-        const possiblePaths = [
-          path.join(userDataPath, process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'),
-          '/opt/homebrew/bin/ffmpeg',
-          '/usr/local/bin/ffmpeg',
-          '/usr/bin/ffmpeg',
-          'ffmpeg'
-        ];
+        // Check bundled FFmpeg first (should always be present in packaged app)
+        const bundledFFmpegPath = path.join(userDataPath, process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
         
-        for (const testPath of possiblePaths) {
-          if (fs.existsSync(testPath)) {
-            ffmpegPath = testPath;
-            break;
+        if (fs.existsSync(bundledFFmpegPath)) {
+          ffmpegPath = bundledFFmpegPath;
+          ffmpegSource = 'bundled binary';
+          console.log(`✅ Using bundled FFmpeg at: ${bundledFFmpegPath}`);
+        } else {
+          console.warn(`⚠️  Bundled FFmpeg not found at: ${bundledFFmpegPath}`);
+          console.warn(`⚠️  This may indicate a build or installation issue`);
+          
+          // Fallback to system FFmpeg locations (NOT recommended for packaged app)
+          const systemPaths = [
+            '/opt/homebrew/bin/ffmpeg', // Homebrew on Apple Silicon
+            '/usr/local/bin/ffmpeg',    // Homebrew on Intel Mac
+            '/usr/bin/ffmpeg',           // System FFmpeg (Linux/Mac)
+            'ffmpeg'                     // PATH fallback
+          ];
+          
+          for (const testPath of systemPaths) {
+            if (fs.existsSync(testPath)) {
+              ffmpegPath = testPath;
+              ffmpegSource = `system FFmpeg (fallback)`;
+              console.warn(`⚠️  Using system FFmpeg as fallback: ${testPath}`);
+              console.warn(`⚠️  This should NOT happen in packaged app!`);
+              break;
+            }
+          }
+          
+          if (!ffmpegPath) {
+            // Last resort: use a default path (will likely fail)
+            ffmpegPath = process.platform === 'darwin' ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg';
+            ffmpegSource = 'fallback (may not exist)';
+            console.error(`❌ FFmpeg not found anywhere, using fallback: ${ffmpegPath}`);
+            console.error(`❌ Video+audio merging WILL fail without FFmpeg`);
+            console.error(`❌ Please reinstall the app or report this as a build issue`);
           }
         }
-        
-        if (!ffmpegPath) {
-          ffmpegPath = process.platform === 'darwin' ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg';
-        }
+      } else {
+        console.log(`✅ FFmpeg path from environment: ${ffmpegPath}`);
       }
       
-      YTDLP.Config.ffmpegPath = ffmpegPath;
-      YTDLP.Config.ffmpegLocation = ffmpegPath; // Some versions use this property
-      
-      // Also set environment variable for child processes
-      process.env.FFMPEG_PATH = ffmpegPath;
-      process.env.PATH = `${path.dirname(ffmpegPath)}:${process.env.PATH}`;
-      
-      console.log('FFmpeg configured at:', ffmpegPath);
-      console.log('FFmpeg exists:', fs.existsSync(ffmpegPath));
+      // Only set config if we have a valid path
+      if (ffmpegPath && ffmpegPath !== '') {
+        const ffmpegExists = fs.existsSync(ffmpegPath);
+        
+        YTDLP.Config.ffmpegPath = ffmpegPath;
+        YTDLP.Config.ffmpegLocation = ffmpegPath; // Some versions use this property
+        
+        // Also set environment variable for child processes
+        process.env.FFMPEG_PATH = ffmpegPath;
+        
+        // Only add to PATH if the directory exists
+        const ffmpegDir = path.dirname(ffmpegPath);
+        if (fs.existsSync(ffmpegDir)) {
+          process.env.PATH = `${ffmpegDir}:${process.env.PATH}`;
+        }
+        
+        console.log(`📦 FFmpeg configured from: ${ffmpegSource}`);
+        console.log(`📍 FFmpeg path: ${ffmpegPath}`);
+        console.log(`✅ FFmpeg exists: ${ffmpegExists}`);
+        
+        if (!ffmpegExists) {
+          console.error(`❌ FFmpeg not found at configured path: ${ffmpegPath}`);
+          console.error(`❌ Downloads requiring merge (video+audio) will fail!`);
+          if (app.isPackaged) {
+            console.error(`❌ Build issue: Bundled FFmpeg missing from packaged app`);
+            console.error(`❌ Expected at: ${path.join(app.getPath('userData'), 'ffmpeg')}`);
+          }
+        }
+      } else {
+        console.error(`❌ FFmpeg path is null or empty - merging will not work!`);
+        console.error(`❌ This is a critical configuration error`);
+      }
     }
     
     console.log('YTDLP initialized with config:', {

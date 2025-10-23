@@ -105,6 +105,10 @@ cp -R "$INTEL_APP_PATH" "$DMG_SOURCE_DIR/"
 # Set proper permissions on the app bundle
 chmod -R 755 "$DMG_SOURCE_DIR/Downlodr.app"
 
+# Create Applications symlink manually for better compatibility
+echo "   🔗 Creating Applications symlink manually..."
+ln -sf /Applications "$DMG_SOURCE_DIR/Applications"
+
 # Verify the app bundle architecture
 echo "   🔍 Verifying app bundle architecture..."
 BUNDLE_ARCH=$(lipo -archs "$DMG_SOURCE_DIR/Downlodr.app/Contents/MacOS/Downlodr" 2>/dev/null || echo "unknown")
@@ -150,11 +154,13 @@ echo "   🔧 Creating professional DMG with create-dmg (using Full Disk Access)
         --window-size 660 400 \
         --icon-size 128 \
         --icon "Downlodr.app" 180 200 \
+        --icon "Applications" 480 200 \
         --hide-extension "Downlodr.app" \
-        --app-drop-link 480 200 \
+        --eula "LICENSE" \
         --background "src/Assets/DMG/dmg-background.png" \
         --text-size 16 \
         --no-internet-enable \
+        --hdiutil-verbose \
         "$DMG_PATH" \
         "$DMG_SOURCE_DIR"; then
 

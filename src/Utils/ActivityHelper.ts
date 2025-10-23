@@ -17,7 +17,7 @@ import {
   isRetryableError,
   parseErrorCodeFromLog,
   type ErrorCodeInfo,
-} from './ErrorCodeHelper';
+} from '@/DataFunctions/ErrorCodeHelper';
 
 // Activity stage definitions
 export type ActivityStage =

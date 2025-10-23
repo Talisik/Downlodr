@@ -1085,12 +1085,48 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
       YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
     }
 
-    const info = await YTDLP.getPlaylistInfo({
+    // Check if this is a YouTube Radio/Mix playlist (infinite playlists)
+    const isRadioPlaylist = videoUrl.url.includes('list=RD');
+    
+    console.log(`🔄 Fetching playlist info - URL: ${videoUrl.url}`);
+    console.log(`📻 Is Radio/Mix playlist: ${isRadioPlaylist}`);
+
+    const playlistOptions = {
       url: videoUrl.url,
       //ytdlpDownloadDestination: os.tmpdir(),
       // ffmpegDownloadDestination: os.tmpdir(),
-    });
-    return info;
+    };
+
+    // For YouTube Radio/Mix playlists, we need to use a custom approach with limits
+    // because they can be infinite and cause yt-dlp to hang
+    if (isRadioPlaylist) {
+      console.log('🎵 Using custom handler for YouTube Radio/Mix playlist...');
+      
+      // Use our custom playlist helper with appropriate limits
+      const { getPlaylistInfo } = await import('./Utils/customPlaylistHelper');
+      
+      const ytdlpPath = process.env.YTDLP_PATH || getYtdlpBinaryPath();
+      const ffmpegPath = process.env.FFMPEG_PATH;
+      
+      const result = await getPlaylistInfo({
+        url: videoUrl.url,
+        ytdlpPath,
+        ffmpegPath,
+        playlistEnd: 50, // Limit Radio playlists to 50 entries
+      });
+      
+      console.log('📊 Custom playlist result:', { 
+        ok: result.ok, 
+        entries: result.data?.entries?.length || 0 
+      });
+      
+      return result;
+    } else {
+      // Use standard YTDLP for regular playlists
+      console.log('📼 Using standard YTDLP for regular playlist...');
+      const info = await YTDLP.getPlaylistInfo(playlistOptions);
+      return info;
+    }
   } catch (error) {
     console.error('Error fetching playlist info:', error);
     throw error; // Propagate the error to the renderer process
@@ -1463,13 +1499,63 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
       YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
     }
 
+    // Validate format and provide fallback if needed
+    console.log('Download request:', {
+      videoFormat: args.videoFormat,
+      audioFormatId: args.audioFormatId,
+      url: args.url,
+      remuxVideo: args.remuxVideo
+    });
+    
+    // Ensure FFmpeg is configured before download (critical for merging)
+    if (process.env.FFMPEG_PATH) {
+      YTDLP.Config.ffmpegPath = process.env.FFMPEG_PATH;
+      YTDLP.Config.ffmpegLocation = process.env.FFMPEG_PATH;
+      console.log('FFmpeg path verified:', process.env.FFMPEG_PATH);
+    } else {
+      console.warn('⚠️  FFMPEG_PATH not set - merge may fail');
+      // Try to find FFmpeg and set it
+      const { getFFmpegPath } = await import('./Utils/ytdlpMergeHelper');
+      const ffmpegPath = getFFmpegPath();
+      if (ffmpegPath) {
+        YTDLP.Config.ffmpegPath = ffmpegPath;
+        YTDLP.Config.ffmpegLocation = ffmpegPath;
+        process.env.FFMPEG_PATH = ffmpegPath;
+        console.log('FFmpeg path found and set:', ffmpegPath);
+      }
+    }
+    
+    // Use safe format selection with fallback
+    // If specific formats are requested, use them with fallback
+    // Otherwise use 'best' as default
+    let formatString = 'best';
+    
+    if (args.videoFormat && args.audioFormatId) {
+      // Request specific video+audio combination with fallbacks
+      formatString = `${args.videoFormat}+${args.audioFormatId}/bestvideo+bestaudio/best`;
+      console.log('Using format string:', formatString);
+    } else if (args.videoFormat) {
+      // Video only with fallback
+      formatString = `${args.videoFormat}/bestvideo/best`;
+      console.log('Using video format string:', formatString);
+    } else if (args.audioFormatId) {
+      // Audio only with fallback
+      formatString = `${args.audioFormatId}/bestaudio/best`;
+      console.log('Using audio format string:', formatString);
+    }
+
     const controller = await YTDLP.download({
       // args needed for download
       args: {
         url: args.url,
         output: args.outputFilepath,
-        videoFormat: args.videoFormat,
+        // Use format string with fallbacks instead of separate videoFormat
+        format: formatString,
         remuxVideo: args.remuxVideo,
+        // Explicitly pass FFmpeg path to ensure it's available for merging
+        ffmpegLocation: process.env.FFMPEG_PATH || YTDLP.Config.ffmpegPath,
+        // Keep these for compatibility but format string takes precedence
+        videoFormat: args.videoFormat,
         audioFormat: args.audioExt,
         audioQuality: args.audioFormatId,
         limitRate: args.limitRate,

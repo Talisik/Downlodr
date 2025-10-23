@@ -787,8 +787,8 @@ const StatusSpecificDownloads = () => {
   const handleRetry = (downloadId: string) => {
     // Get fresh state each time
     const currentDownload = allDownloads.find((d) => d.id === downloadId);
-    const { addDownload, retryDownload } = useDownloadStore.getState();
-    retryDownload(
+    const { addDownload } = useDownloadStore.getState();
+    addDownload(
       currentDownload.videoUrl,
       currentDownload.name,
       currentDownload.downloadName,
@@ -811,9 +811,9 @@ const StatusSpecificDownloads = () => {
       currentDownload.getTranscript || false,
       currentDownload.getThumbnail || false,
       currentDownload.duration || 60,
-      currentDownload.thumnailsLocation,
+      currentDownload.isCreateFolder || false,
       currentDownload.autoCaptionLocation,
-      false,
+      currentDownload.thumnailsLocation,
     );
     deleteDownload(downloadId);
     console.log(currentDownload.automaticCaption);
@@ -2078,6 +2078,7 @@ const StatusSpecificDownloads = () => {
                                     downloadId={download.id}
                                     showHeader={false}
                                     height={25}
+                                    debug={false}
                                   />
                                 </div>
                               ) : download.status === 'fetching metadata' ? (

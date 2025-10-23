@@ -18,17 +18,36 @@ interface MergeOptions {
 
 /**
  * Get the correct FFmpeg binary path based on the platform
+ * PRIORITY: Bundled FFmpeg > System FFmpeg
  */
 export function getFFmpegPath(): string {
+  const ffmpegName = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
+  
   if (!app.isPackaged) {
-    // Development mode
+    // Development mode: prefer system FFmpeg
     return process.platform === 'darwin' ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg';
   }
 
-  // Production mode
+  // Production mode: MUST use bundled FFmpeg
   const userDataPath = app.getPath('userData');
-  const ffmpegName = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
-  return path.join(userDataPath, ffmpegName);
+  const bundledPath = path.join(userDataPath, ffmpegName);
+  
+  // Check if bundled FFmpeg exists
+  if (fs.existsSync(bundledPath)) {
+    console.log(`📦 Using bundled FFmpeg: ${bundledPath}`);
+    return bundledPath;
+  }
+  
+  // WARNING: Bundled FFmpeg missing - this is a build issue!
+  console.error(`❌ CRITICAL: Bundled FFmpeg not found at: ${bundledPath}`);
+  console.error(`❌ This indicates a build or installation problem`);
+  console.error(`❌ The app should include FFmpeg binary - users should NOT need to install it`);
+  
+  // Last resort fallback (should not happen)
+  const fallbackPath = process.platform === 'darwin' ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg';
+  console.warn(`⚠️  Falling back to system FFmpeg (NOT recommended): ${fallbackPath}`);
+  
+  return bundledPath; // Return expected path even if missing, to make error obvious
 }
 
 /**

@@ -127,3 +127,11 @@ out/
 ffmpeg
 yt-dlp
 *.exe
+ffmpeg-linux.tar.xz
+binaries/ffmpeg-arm64
+binaries/ffmpeg-arm64
+binaries/ffmpeg-linux
+yt-dlp_linux
+yt-dlp_macos
+yt-dlp_macos
+binaries/ffmpeg-arm64

@@ -119,17 +119,36 @@ function parseSpeedString(speedStr: string): number {
     speedStr === '--' ||
     speedStr === '---' ||
     speedStr === '0 B/s' ||
-    speedStr === 'Unknown B/s'
+    speedStr === 'Unknown B/s' ||
+    speedStr === '0B/s' ||
+    speedStr === 'N/A'
   )
     return 0;
 
   // Trim whitespace and normalize the string
   const cleanStr = speedStr.trim();
 
-  // Updated regex to handle both binary (MiB/s) and decimal (MB/s) units, plus spaces
-  const match = cleanStr.match(/(\d+\.?\d*)\s*([KMGT]?i?B\/s)/i);
+  // Enhanced regex to handle various speed formats including:
+  // - "1.5 MiB/s", "2.3MB/s", "456 KiB/s", "789KB/s"
+  // - "1.5MiB/s", "2.3MB/s" (no spaces)
+  // - "1.5 MB/s", "2.3 MiB/s" (with spaces)
+  // - Handle decimal numbers properly
+  const match = cleanStr.match(/(\d+(?:\.\d+)?)\s*([KMGT]?i?B)(?:\/s)?/i);
 
   if (!match) {
+    // Fallback: try to extract just the number if no unit is found
+    const numberMatch = cleanStr.match(/(\d+(?:\.\d+)?)/);
+    if (numberMatch) {
+      const value = parseFloat(numberMatch[1]);
+      // Assume MiB/s if no unit (common default)
+      console.warn(
+        'No unit found in speed string, assuming MiB/s:',
+        speedStr,
+        '-> parsed as:',
+        value,
+      );
+      return value;
+    }
     console.warn('Failed to parse speed string:', speedStr);
     return 0;
   }
@@ -139,26 +158,33 @@ function parseSpeedString(speedStr: string): number {
 
   // Handle both binary (MiB, KiB, GiB) and decimal (MB, KB, GB) units
   switch (unit) {
-    case 'B/S':
-      return value / (1024 * 1024); // Convert to MB/s
-    case 'KIB/S': // Binary kilobytes
-      return value / 1024; // Convert to MB/s
-    case 'KB/S': // Decimal kilobytes
-      return value / 1000; // Convert to MB/s (decimal)
-    case 'MIB/S': // Binary megabytes
-      return value; // MiB ≈ MB for display purposes
-    case 'MB/S': // Decimal megabytes
-      return value;
-    case 'GIB/S': // Binary gigabytes
-      return value * 1024; // Convert to MB/s
-    case 'GB/S': // Decimal gigabytes
-      return value * 1000; // Convert to MB/s (decimal)
-    case 'TIB/S': // Binary terabytes (just in case!)
+    case 'B':
+      return value / (1024 * 1024); // Convert to MiB/s
+    case 'KIB': // Binary kilobytes
+      return value / 1024; // Convert to MiB/s
+    case 'KB': // Decimal kilobytes
+      return value / 1000; // Convert to MB/s (decimal), then treat as MiB for display
+    case 'MIB': // Binary megabytes
+      return value; // MiB - this is our base unit
+    case 'MB': // Decimal megabytes
+      return value; // MB ≈ MiB for display purposes
+    case 'GIB': // Binary gigabytes
+      return value * 1024; // Convert to MiB/s
+    case 'GB': // Decimal gigabytes
+      return value * 1000; // Convert to MB/s, then treat as MiB
+    case 'TIB': // Binary terabytes (just in case!)
       return value * 1024 * 1024;
-    case 'TB/S': // Decimal terabytes
+    case 'TB': // Decimal terabytes
       return value * 1000 * 1000;
     default:
-      console.warn('Unknown speed unit:', unit, 'in string:', speedStr);
+      console.warn(
+        'Unknown speed unit:',
+        unit,
+        'in string:',
+        speedStr,
+        '-> using raw value:',
+        value,
+      );
       return value; // Fallback to raw value
   }
 }
@@ -265,10 +291,9 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
   }, [downloadId, debug]);
 
   // Memoized speed parsing to avoid unnecessary recalculations
-  const currentSpeedValue = useCallback(
-    () => parseSpeedString(currentSpeed),
-    [currentSpeed],
-  );
+  const currentSpeedValue = useCallback(() => {
+    return parseSpeedString(currentSpeed);
+  }, [currentSpeed]);
 
   // Enhanced update function that responds immediately to changes
   const updateSpeedHistory = useCallback(() => {
@@ -278,17 +303,26 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
     const speedValue = currentSpeedValue();
     const isDownloading = downloadStatus === 'downloading';
 
+    // For very fast downloads, also accept 'initializing' status if we have valid speed data
+    const shouldCollectData =
+      isDownloading ||
+      (downloadStatus === 'initializing' &&
+        speedValue > 0 &&
+        currentSpeed &&
+        currentSpeed !== '');
+
     if (debug) {
-      console.log('SpeedGraph Update:', {
+      console.log('🔄 SpeedGraph Update:', {
         currentSpeed,
         speedValue,
         downloadStatus,
         isDownloading,
+        shouldCollectData,
         historyLength: speedHistory.length,
         lastSpeed: lastSpeedRef.current,
         lastSpeedValue: lastSpeedValueRef.current,
         shouldUpdate:
-          isDownloading &&
+          shouldCollectData &&
           (currentSpeed !== lastSpeedRef.current ||
             speedValue !== lastSpeedValueRef.current),
         speedChanged: currentSpeed !== lastSpeedRef.current,
@@ -296,10 +330,11 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
       });
     }
 
-    // Add data points when actively downloading AND (speed has changed OR we have no data yet)
+    // Add data points when actively downloading OR have valid speed data (for fast downloads)
     // This ensures we capture at least some data during download
     if (
-      isDownloading &&
+      shouldCollectData &&
+      speedValue > 0 && // Only add meaningful speed data
       (currentSpeed !== lastSpeedRef.current ||
         speedValue !== lastSpeedValueRef.current ||
         speedHistory.length === 0) // Always add first data point
@@ -324,8 +359,14 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
 
         if (debug) {
           console.log(
-            'SpeedGraph: Added data point. New history length:',
+            '✅ SpeedGraph: Added data point!',
+            'History length:',
             newHistory.length,
+            'Speed:',
+            speedValue.toFixed(2),
+            'MiB/s',
+            'Status:',
+            downloadStatus,
           );
         }
 
@@ -345,8 +386,8 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
     currentSpeedValue,
     maxDataPoints,
     debug,
-    speedHistory.length,
     speedHistoryService,
+    speedHistory.length, // Add this dependency to fix stale closure
   ]);
 
   // Effect to handle prop changes immediately - this makes it super responsive
@@ -367,7 +408,20 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
     speedHistory.length > 0
       ? Math.max(...speedHistory.map((point) => point.speed), 0.1) * 1.1 // Reduced headroom for better scaling
       : 1;
-  const speedScale = graphHeight / maxSpeed;
+  const speedScale = maxSpeed > 0 ? graphHeight / maxSpeed : 1;
+
+  if (debug && speedHistory.length > 0) {
+    console.log('📊 SpeedGraph Scale Info:', {
+      speedHistory: speedHistory.map((p) => ({
+        speed: p.speed,
+        raw: p.rawSpeed,
+      })),
+      maxSpeed,
+      speedScale,
+      graphHeight,
+      graphWidth,
+    });
+  }
 
   // Generate SVG path for the speed line
   const generateSpeedPath = (): string => {
@@ -376,14 +430,20 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
     if (speedHistory.length === 1) {
       // Single point - draw a line across the full width at that speed
       const point = speedHistory[0];
-      const y = graphHeight - point.speed * speedScale;
+      const y = Math.max(
+        0,
+        Math.min(graphHeight, graphHeight - point.speed * speedScale),
+      );
       return `M 0,${y} L ${graphWidth},${y}`;
     }
 
     const points = speedHistory.map((point, index) => {
       // Always spread points across the full width
       const x = (index / Math.max(speedHistory.length - 1, 1)) * graphWidth;
-      const y = graphHeight - point.speed * speedScale;
+      const y = Math.max(
+        0,
+        Math.min(graphHeight, graphHeight - point.speed * speedScale),
+      );
       return `${x},${y}`;
     });
 
@@ -397,7 +457,10 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
     if (speedHistory.length === 1) {
       // Single point - fill the entire area at that speed level
       const point = speedHistory[0];
-      const y = graphHeight - point.speed * speedScale;
+      const y = Math.max(
+        0,
+        Math.min(graphHeight, graphHeight - point.speed * speedScale),
+      );
       const bottomY = graphHeight;
       return `M 0,${y} L ${graphWidth},${y} L ${graphWidth},${bottomY} L 0,${bottomY} Z`;
     }

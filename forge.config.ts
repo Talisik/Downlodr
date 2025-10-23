@@ -1,6 +1,8 @@
 import { MakerPKG } from '@electron-forge/maker-pkg';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDMG } from '@electron-forge/maker-dmg';
+import { MakerDeb } from '@electron-forge/maker-deb';
+import { MakerRpm } from '@electron-forge/maker-rpm';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import type { ForgeConfig } from '@electron-forge/shared-types';
@@ -107,6 +109,105 @@ async function signBinaryWithEntitlements(
   }
 }
 
+// Helper function to get platform-specific output directory
+const getOutputPath = (platform: string) => {
+  switch (platform) {
+    case 'linux':
+      return 'out/make-linux';
+    case 'darwin':
+      return 'out/make';
+    case 'win32':
+      return 'out/make-windows';
+    default:
+      return 'out/make';
+  }
+};
+
+// Helper function to get platform-compatible makers
+const getPlatformMakers = () => {
+  const makers = [];
+
+  // Always include these cross-platform makers
+  makers.push(
+    // macOS makers (only when on macOS or building for macOS)
+    ...(process.platform === 'darwin'
+      ? [
+          new MakerDMG({
+            icon: './src/Assets/AppLogo/icon.icns',
+            name: 'Downlodr',
+            title: 'Install Downlodr',
+            format: 'ULFO',
+          }),
+          new MakerPKG({
+            identity:
+              process.env.APPLE_INSTALLER_IDENTITY ||
+              process.env.APPLE_IDENTITY ||
+              null,
+          }),
+        ]
+      : []),
+
+    // Windows makers
+    new MakerNSIS({
+      async getAppBuilderConfig() {
+        return {
+          nsis: {
+            artifactName: '${productName}-${version}-${arch}.${ext}',
+            oneClick: false,
+            allowElevation: true,
+            installerIcon: './src/Assets/AppLogo/256x256.ico',
+            uninstallerIcon: './src/Assets/AppLogo/256x256.ico',
+            allowToChangeInstallationDirectory: true,
+            createDesktopShortcut: true,
+            createStartMenuShortcut: true,
+            shortcutName: 'Downlodr',
+            uninstallDisplayName: 'Downlodr',
+            deleteAppDataOnUninstall: false,
+            warningsAsErrors: false,
+            perMachine: false,
+            include: './installer.nsh',
+          },
+        };
+      },
+    }),
+
+    // Cross-platform ZIP packages
+    new MakerZIP({}, ['darwin', 'win32', 'linux']),
+  );
+
+  // Linux-specific makers (only when on Linux for native builds)
+  if (process.platform === 'linux') {
+    makers.push(
+      new MakerDeb({
+        options: {
+          maintainer: 'Downlodr Team',
+          homepage: 'https://github.com/erickluna-dev/Downlodr',
+          description:
+            'A powerful desktop application for downloading videos and audio from various platforms',
+          genericName: 'Video Downloader',
+          categories: ['AudioVideo', 'Network'],
+          icon: './src/Assets/AppLogo/icon.png',
+          mimeType: ['x-scheme-handler/http', 'x-scheme-handler/https'],
+        },
+      }),
+      new MakerRpm({
+        options: {
+          name: 'downlodr',
+          productName: 'Downlodr',
+          description:
+            'A desktop application for downloading videos and audio from various platforms including YouTube, with format conversion capabilities.',
+          homepage: 'https://github.com/erickluna-dev/Downlodr',
+          license: 'MIT',
+          categories: ['AudioVideo', 'Network'],
+          icon: './src/Assets/AppLogo/icon.png',
+        },
+      }),
+    );
+  }
+
+  return makers;
+};
+
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
@@ -115,10 +216,14 @@ const config: ForgeConfig = {
     executableName: 'Downlodr',
     extraResource: [
       './src/Assets/AppLogo',
-      './yt-dlp_macos',
+      // Platform-specific binaries
+      ...(process.platform === 'darwin' ? ['./yt-dlp_macos'] : []),
+      ...(process.platform === 'linux' ? ['./yt-dlp_linux'] : []),
+      ...(process.platform === 'win32' ? ['./yt-dlp.exe'] : []),
       // Enhanced FFmpeg bundling with architecture-specific binaries
       './binaries/ffmpeg-arm64', // Apple Silicon native
       './binaries/ffmpeg-x64', // Intel native
+      ...(process.platform === 'linux' ? ['./binaries/ffmpeg-linux'] : []), // Linux x64
     ],
     // Explicit macOS app bundle configuration
     ...(process.platform === 'darwin'
@@ -150,58 +255,178 @@ const config: ForgeConfig = {
     osxNotarize: undefined,
   },
   rebuildConfig: {},
-  makers: [
-    // macOS DMG installer - preferred by most macOS users
-    new MakerDMG({
-      icon: './src/Assets/AppLogo/icon.icns',
-      name: 'Downlodr',
-      title: 'Install Downlodr',
-      format: 'ULFO',
-    }),
-
-    // macOS PKG installer - requires "Developer ID Installer" certificate (different from Application cert)
-    // If you get signing errors, you need both certificates from Apple Developer Portal
-    new MakerPKG({
-      identity:
-        process.env.APPLE_INSTALLER_IDENTITY ||
-        process.env.APPLE_IDENTITY ||
-        null,
-    }),
-
-    // macOS ZIP for distribution
-    new MakerZIP({}, ['darwin']),
-
-    // Windows NSIS installer
-    new MakerNSIS({
-      async getAppBuilderConfig() {
-        return {
-          nsis: {
-            artifactName: '${productName}-${version}-${arch}.${ext}',
-            oneClick: false,
-            allowElevation: true,
-            installerIcon: './src/Assets/AppLogo/256x256.ico',
-            uninstallerIcon: './src/Assets/AppLogo/256x256.ico',
-            allowToChangeInstallationDirectory: true,
-            createDesktopShortcut: true,
-            createStartMenuShortcut: true,
-            shortcutName: 'Downlodr',
-            uninstallDisplayName: 'Downlodr',
-            deleteAppDataOnUninstall: false,
-            warningsAsErrors: false,
-            perMachine: false, // Changed to false - install per-user, not machine-wide
-            include: './installer.nsh', // Keep this for admin privileges at runtime
-          },
-        };
-      },
-    }),
-
-    // Cross-platform ZIP packages
-    new MakerZIP({}, ['win32', 'linux']),
-  ],
+  makers: getPlatformMakers(),
   hooks: {
+    postMake: async (forgeConfig, makeResults) => {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+
+      // Process each make result
+      for (const makeResult of makeResults) {
+        for (let i = 0; i < makeResult.artifacts.length; i++) {
+          const artifact = makeResult.artifacts[i];
+
+          if (artifact.endsWith('.zip')) {
+            // Fix ZIP file naming to use correct platform suffix
+            if (
+              artifact.includes('-exp-macos.zip') &&
+              !artifact.includes('-darwin-')
+            ) {
+              const artifactDir = path.dirname(artifact);
+              const platform = makeResult.platform;
+
+              // Create new filename with correct platform
+              const newFilename = path
+                .basename(artifact)
+                .replace('-exp-macos.zip', `-exp-${platform}.zip`);
+              const newPath = path.join(artifactDir, newFilename);
+
+              try {
+                await fs.rename(artifact, newPath);
+                console.log(
+                  `✅ Renamed ${path.basename(artifact)} to ${newFilename}`,
+                );
+
+                // Update the artifact path in the result
+                makeResult.artifacts[i] = newPath;
+              } catch (error) {
+                console.warn(
+                  `⚠️  Failed to rename ${artifact}:`,
+                  error.message,
+                );
+              }
+            }
+          }
+        }
+      }
+
+      return makeResults;
+    },
     postPackage: async (forgeConfig, packageResult) => {
       for (const outputPath of packageResult.outputPaths) {
         try {
+          // Generate README content for Linux installation
+          const generateLinuxReadme = (platform: string) => {
+            return `Downlodr - Video and Audio Downloader
+========================================
+
+Thank you for downloading Downlodr for ${platform}!
+
+SYSTEM REQUIREMENTS
+==================
+- ${
+              platform === 'linux'
+                ? 'Ubuntu 18.04+ or equivalent Linux distribution'
+                : 'Compatible operating system'
+            }
+- 64-bit architecture (x86_64)
+- At least 2GB RAM
+- 500MB free disk space
+
+INSTALLATION INSTRUCTIONS
+========================
+
+Quick Installation (Recommended):
+1. Extract this ZIP file to a folder of your choice (e.g., ~/Downloads/Downlodr)
+   Example: unzip Downlodr-${platform}-x64-*.zip -d ~/Downloads/
+
+2. Navigate to the extracted folder:
+   cd ~/Downloads/Downlodr-${platform}-x64
+
+3. Make the application executable:
+   chmod +x Downlodr
+
+4. Run Downlodr:
+   ./Downlodr
+
+Optional: System-wide Installation:
+1. Move the extracted folder to /opt/:
+   sudo mv ~/Downloads/Downlodr-${platform}-x64 /opt/downlodr
+
+2. Create a symbolic link for global access:
+   sudo ln -s /opt/downlodr/Downlodr /usr/local/bin/downlodr
+
+3. Create a desktop entry (optional):
+   Create file: ~/.local/share/applications/downlodr.desktop
+   Content:
+   [Desktop Entry]
+   Name=Downlodr
+   Exec=/opt/downlodr/Downlodr
+   Icon=/opt/downlodr/resources/app.asar.unpacked/src/Assets/AppLogo/256x256.png
+   Type=Application
+   Categories=AudioVideo;Network;
+
+TROUBLESHOOTING
+==============
+
+If you encounter permission errors:
+- Ensure the executable has proper permissions: chmod +x Downlodr
+- Run with sudo if installation requires administrator privileges
+
+If the app doesn't start:
+- Check that you have all required system libraries
+- Try running from terminal to see error messages: ./Downlodr
+
+If downloads fail:
+- Ensure you have internet connectivity
+- Check that the destination folder has write permissions
+- Some video sites may require specific configurations
+
+DEPENDENCIES
+============
+Downlodr includes all necessary dependencies:
+- yt-dlp (YouTube downloader)
+- FFmpeg (video/audio processing)
+- All Node.js libraries
+
+No additional software installation is required.
+
+FEATURES
+========
+- Download videos and audio from 1800+ websites
+- Multiple format support (MP4, MP3, WebM, etc.)
+- Batch downloads and playlists
+- Format conversion capabilities
+- Plugin system for extended functionality
+
+SUPPORT
+=======
+- Documentation: https://github.com/erickluna-dev/Downlodr
+- Issues: https://github.com/erickluna-dev/Downlodr/issues
+- License: MIT
+
+Enjoy using Downlodr!
+`;
+          };
+
+          // Create README.txt for Linux and Windows builds
+          if (
+            process.platform !== 'darwin' ||
+            outputPath.includes('linux') ||
+            outputPath.includes('win32')
+          ) {
+            const platform = outputPath.includes('linux')
+              ? 'linux'
+              : outputPath.includes('win32')
+              ? 'win32'
+              : 'linux';
+
+            const readmeContent = generateLinuxReadme(platform);
+            const readmePath = path.join(outputPath, 'README.txt');
+
+            try {
+              await fs.writeFile(readmePath, readmeContent, 'utf8');
+              console.log(
+                `📄 Created README.txt for ${platform} in ${outputPath}`,
+              );
+            } catch (readmeError) {
+              console.warn(
+                `⚠️  Failed to create README.txt:`,
+                readmeError.message,
+              );
+            }
+          }
+
           // Skip signing for non-macOS platforms
           if (process.platform !== 'darwin') {
             console.log(

@@ -13,28 +13,29 @@
  *    - Respects maxDownloadNum setting for concurrent downloads
  *    - Uses Token Bucket algorithm for rate limiting
  *
- * 2. PHASE 1 - VIDEO DOWNLOAD (0-50%):
+ * 2. PHASE 1 - VIDEO DOWNLOAD (0-40%):
  *    - downloadPhase: 'video'
  *    - rawProgress: 0-100% (actual engine progress)
- *    - progress: 0-50% (display progress)
+ *    - progress: 0-40% (display progress)
  *    - When rawProgress reaches 100%, completionCount increases to 1
  *    - Switches to audio phase
  *
- * 3. PHASE 2 - AUDIO DOWNLOAD (51-100%):
+ * 3. PHASE 2 - AUDIO DOWNLOAD (41-80%):
  *    - downloadPhase: 'audio'
  *    - rawProgress: 0-100% (actual engine progress for audio)
- *    - progress: 51-100% (display progress)
+ *    - progress: 41-80% (display progress)
  *    - When rawProgress reaches 100%, completionCount increases to 2
  *    - Status changes to 'initializing' (waiting for merger)
  *
- * 4. PHASE 3 - MERGING & PROCESSING:
+ * 4. PHASE 3 - MERGING & PROCESSING (81-95%):
  *    - status: 'initializing'
- *    - progress: 100%
+ *    - progress: 81-95%
  *    - Detected via log messages: "[Merger]" or "Merging formats"
  *    - Followed by "[VideoRemuxer]" messages
- *    - No progress updates during this phase
+ *    - Progress increments gradually during this phase
  *
- * 5. COMPLETION:
+ * 5. COMPLETION (100%):
+ *    - progress: 100%
  *    - Detected via log message: "Process 'id' exited with code: X"
  *    - Exit code 0 = success (status: 'finished')
  *    - Exit code != 0 = failure (status: 'failed')
@@ -1482,22 +1483,22 @@ const useDownloadStore = create<DownloadStore>()(
                     // Phase 1 complete (Video) - Switch to audio phase
                     if (newCompletionCount === 1) {
                       updates.downloadPhase = 'audio';
-                      updates.progress = 50; // Video phase complete, now at 50%
+                      updates.progress = 40; // Video phase complete, now at 40%
                     }
                     // Phase 2 complete (Audio) - Both phases done
                     else if (newCompletionCount === 2) {
-                      updates.progress = 100;
+                      updates.progress = 80; // Both phases complete, now at 80% (merging next)
                       updates.status = 'initializing'; // Waiting for merger
                     }
                   } else {
                     // Calculate display progress based on current phase
                     if (downloading.downloadPhase === 'video') {
-                      // Video phase: 0-50%
-                      updates.progress = Math.min(50, (rawProgress / 100) * 50);
+                      // Video phase: 0-40%
+                      updates.progress = Math.min(40, (rawProgress / 100) * 40);
                     } else if (downloading.downloadPhase === 'audio') {
-                      // Audio phase: 51-100%
+                      // Audio phase: 41-80%
                       updates.progress =
-                        50 + Math.min(50, (rawProgress / 100) * 50);
+                        40 + Math.min(40, (rawProgress / 100) * 40);
                     }
                   }
                 }
@@ -1545,7 +1546,10 @@ const useDownloadStore = create<DownloadStore>()(
                     logSnippet: updates.log.substring(updates.log.length - 200)
                   });
                   updates.status = 'initializing';
-                  updates.progress = 100;
+                  // Progress during merging phase: 80-95%
+                  if (downloading.progress < 95) {
+                    updates.progress = Math.max(downloading.progress, 85);
+                  }
                 }
 
                 if (updates.log.includes('[VideoRemuxer]')) {
@@ -2874,9 +2878,10 @@ export function getProgressPhaseInfo(download: {
   // Handle special states
   if (status === 'initializing') {
     phaseLabel = 'Merging & Processing';
-    phaseProgress = 100;
-    overallProgress = 100;
-    isComplete = completionCount >= 2;
+    // Progress during merging: show as percentage of 80-95% range
+    phaseProgress = Math.min(100, ((progress - 80) / 15) * 100);
+    overallProgress = progress;
+    isComplete = false; // Still processing
   } else if (status === 'finished') {
     phaseLabel = 'Complete';
     phaseProgress = 100;
@@ -2891,10 +2896,10 @@ export function getProgressPhaseInfo(download: {
     // Normal download phases
     if (downloadPhase === 'video') {
       phaseLabel = 'Downloading Video';
-      phaseProgress = progress <= 50 ? (progress / 50) * 100 : 100;
+      phaseProgress = progress <= 40 ? (progress / 40) * 100 : 100;
     } else {
       phaseLabel = 'Downloading Audio';
-      phaseProgress = progress > 50 ? ((progress - 50) / 50) * 100 : 0;
+      phaseProgress = progress > 40 ? ((progress - 40) / 40) * 100 : 0;
     }
 
     overallProgress = progress;

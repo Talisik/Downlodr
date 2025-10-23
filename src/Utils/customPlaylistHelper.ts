@@ -21,6 +21,7 @@ interface GetPlaylistInfoOptions {
   url: string;
   ytdlpPath: string;
   ffmpegPath?: string;
+  playlistEnd?: number; // Limit the number of entries to fetch
 }
 
 /**
@@ -29,10 +30,13 @@ interface GetPlaylistInfoOptions {
 export async function getPlaylistInfo(
   options: GetPlaylistInfoOptions,
 ): Promise<PlaylistInfo> {
-  const { url, ytdlpPath, ffmpegPath } = options;
+  const { url, ytdlpPath, ffmpegPath, playlistEnd } = options;
 
   console.log('🔄 Custom playlist fetcher - URL:', url);
   console.log('🔄 Using yt-dlp binary:', ytdlpPath);
+  if (playlistEnd) {
+    console.log('🔄 Playlist limit:', playlistEnd);
+  }
 
   // Validate inputs
   if (!url || typeof url !== 'string') {
@@ -50,7 +54,14 @@ export async function getPlaylistInfo(
   }
 
   // Build command arguments
-  const args = ['--flat-playlist', '-J', url];
+  const args = ['--flat-playlist', '-J'];
+  
+  // Add playlist limit if specified (crucial for infinite playlists like YouTube Radio)
+  if (playlistEnd && playlistEnd > 0) {
+    args.push('--playlist-end', playlistEnd.toString());
+  }
+  
+  args.push(url);
 
   if (ffmpegPath && fs.existsSync(ffmpegPath)) {
     args.unshift('--ffmpeg-location', ffmpegPath);
