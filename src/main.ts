@@ -1151,14 +1151,72 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
       YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
     }
 
-    const info = await YTDLP.getInfo(url);
+    // Add SSL bypass option to handle certificate errors
+    // This is necessary for some systems with outdated certificates
+    // or when yt-dlp has SSL issues with certain sites
+    const originalOptions = YTDLP.Config.options || [];
+    YTDLP.Config.options = [
+      ...originalOptions,
+      '--no-check-certificate', // Bypass SSL certificate validation
+      '--prefer-insecure',       // Prefer HTTP over HTTPS when possible
+    ];
+
+    console.log('Fetching video info with SSL bypass for URL:', url);
+
+    let info;
+    try {
+      info = await YTDLP.getInfo(url);
+    } catch (getInfoError) {
+      console.error('getInfo failed, attempting with retry...', getInfoError);
+      
+      // If getInfo fails, it might be returning a string error instead of throwing
+      // Check if the error is a string (SSL error output)
+      if (typeof getInfoError === 'string' && getInfoError.includes('ERROR')) {
+        throw new Error(`yt-dlp execution failed: ${getInfoError}`);
+      }
+      
+      throw getInfoError;
+    } finally {
+      // Restore original options
+      YTDLP.Config.options = originalOptions;
+    }
+
+    // Validate the response
     if (!info) {
       throw new Error('No info returned from YTDLP.getInfo');
     }
+
+    // Check if info is actually an error response
+    if (typeof info === 'string') {
+      throw new Error(`yt-dlp returned non-JSON response: ${info.substring(0, 200)}`);
+    }
+
+    if (info.error) {
+      throw new Error(`yt-dlp error: ${info.error}`);
+    }
+
     return info;
   } catch (error) {
     console.error('Error fetching video info:', error);
-    return { error: error.message };
+    
+    // Provide user-friendly error messages
+    let errorMessage = error.message || 'Unknown error occurred';
+    
+    if (errorMessage.includes('SSL') || errorMessage.includes('CERTIFICATE')) {
+      errorMessage = 'SSL certificate error. Please check your internet connection or try again later.';
+    } else if (errorMessage.includes('HTTP Error 429')) {
+      errorMessage = 'Too many requests. Please wait a moment and try again.';
+    } else if (errorMessage.includes('Video unavailable')) {
+      errorMessage = 'This video is unavailable or has been removed.';
+    } else if (errorMessage.includes('Private video')) {
+      errorMessage = 'This video is private and cannot be accessed.';
+    }
+    
+    return { 
+      ok: false,
+      error: errorMessage,
+      originalError: error.message 
+    };
   }
 });
 
@@ -1525,6 +1583,14 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
       }
     }
     
+    // Add SSL bypass option to handle certificate errors
+    // This ensures downloads work even with SSL certificate issues
+    const originalOptions = YTDLP.Config.options || [];
+    YTDLP.Config.options = [
+      ...originalOptions,
+      '--no-check-certificate', // Bypass SSL certificate validation
+    ];
+    
     // Use safe format selection with fallback
     // If specific formats are requested, use them with fallback
     // Otherwise use 'best' as default
@@ -1544,7 +1610,9 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
       console.log('Using audio format string:', formatString);
     }
 
-    const controller = await YTDLP.download({
+    let controller;
+    try {
+      controller = await YTDLP.download({
       // args needed for download
       args: {
         url: args.url,
@@ -1667,6 +1735,10 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
 
     // Return the download ID and controller ID
     return { downloadId: id, controllerId: controller.id };
+    } finally {
+      // Restore original options
+      YTDLP.Config.options = originalOptions;
+    }
   } catch (error) {
     e.sender.send(`ytdlp:download:error:${id}`, error.message);
     throw error; // Ensure the error is propagated
