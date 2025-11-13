@@ -31,6 +31,34 @@ To download current version and learn more about Downlodr, visit site: <a href="
 - **TypeScript**: Typed superset of JavaScript.
 - **TailwindCSS**: Utility-first CSS framework for rapid UI development.
 
+## 🚀 Automated Builds
+
+Downlodr now features **fully automated macOS builds** with GitHub Actions!
+
+### Features
+- ✅ **Multi-Architecture**: Both Apple Silicon (M1/M2/M3) and Intel builds
+- ✅ **Code Signing**: Automatic signing with Apple Developer certificates
+- ✅ **Notarization**: Full Apple notarization for Gatekeeper compliance
+- ✅ **Auto-Release**: Automatic GitHub releases with all artifacts
+- ✅ **Zero Manual Steps**: Just push a tag and get production-ready builds
+
+### Quick Start
+```bash
+# One-time setup (~30 minutes)
+./scripts/setup-github-secrets.sh
+
+# Create releases (anytime)
+git tag -a v1.8.0 -m "Release 1.8.0"
+git push origin v1.8.0
+```
+
+### Documentation
+- 📖 **[Quick Start Guide](QUICK_START_GITHUB_ACTIONS.md)** - Get started in 30 minutes
+- 📚 **[Complete Setup Guide](docs/GITHUB_ACTIONS_SETUP.md)** - Detailed documentation
+- ⚡ **[Release Guide](docs/QUICK_RELEASE_GUIDE.md)** - Daily usage instructions
+
+**Build time:** ~30 minutes (hands-off) | **Time saved:** ~1.5 hours per release
+
 ## Getting Started
 
 ### Prerequisites

@@ -1,0 +1,304 @@
+name: Build and Release macOS
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create GitHub Release'
+        required: true
+        default: true
+        type: boolean
+      architecture:
+        description: 'Build Architecture'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - arm64
+          - x64
+
+jobs:
+  build-macos:
+    name: Build macOS (${{ matrix.arch }})
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: 
+          - ${{ github.event.inputs.architecture == 'both' && 'arm64' || github.event.inputs.architecture }}
+          - ${{ github.event.inputs.architecture == 'both' && 'x64' || '' }}
+        exclude:
+          - arch: ''
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🔐 Import Code Signing Certificate
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          # Create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          # Import certificate from secrets
+          echo -n "$MACOS_CERTIFICATE" | base64 --decode -o $CERTIFICATE_PATH
+
+          # Create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # Import certificate to keychain
+          security import $CERTIFICATE_PATH -P "$MACOS_CERTIFICATE_PWD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          # Set partition list to allow codesign to access the certificate
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+      - name: 🔍 Verify Signing Identity
+        run: |
+          echo "Available signing identities:"
+          security find-identity -v -p codesigning
+
+      - name: 🏗️ Build and Package for ${{ matrix.arch }}
+        env:
+          APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+          APPLE_INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            echo "🍎 Building for Apple Silicon (arm64)"
+            yarn make --arch=arm64 --platform=darwin
+          else
+            echo "💻 Building for Intel (x64)"
+            yarn make --arch=x64 --platform=darwin
+          fi
+
+      - name: 🔐 Notarize Application
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          echo "🔔 Starting notarization process for ${{ matrix.arch }}"
+          
+          # Find the PKG file
+          PKG_FILE=$(find out/make -name "*.pkg" -type f | head -n 1)
+          
+          if [ -z "$PKG_FILE" ]; then
+            echo "❌ No PKG file found"
+            exit 1
+          fi
+          
+          echo "📦 Found PKG file: $PKG_FILE"
+          
+          # Submit for notarization
+          echo "📤 Submitting for notarization..."
+          xcrun notarytool submit "$PKG_FILE" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          
+          # Staple the notarization ticket
+          echo "📎 Stapling notarization ticket..."
+          xcrun stapler staple "$PKG_FILE"
+          
+          echo "✅ Notarization complete for ${{ matrix.arch }}"
+
+      - name: 📋 Verify Notarization
+        run: |
+          PKG_FILE=$(find out/make -name "*.pkg" -type f | head -n 1)
+          
+          if [ -n "$PKG_FILE" ]; then
+            echo "🔍 Verifying notarization status..."
+            xcrun stapler validate "$PKG_FILE"
+            
+            echo "🔍 Verifying Gatekeeper assessment..."
+            spctl -a -v --type install "$PKG_FILE"
+          fi
+
+      - name: 📝 Generate Build Artifacts List
+        id: artifacts
+        run: |
+          echo "## Build Artifacts for ${{ matrix.arch }}" > artifacts.md
+          echo "" >> artifacts.md
+          echo "### PKG Files" >> artifacts.md
+          find out/make -name "*.pkg" -type f | while read file; do
+            size=$(ls -lh "$file" | awk '{print $5}')
+            echo "- $(basename "$file") ($size)" >> artifacts.md
+          done
+          echo "" >> artifacts.md
+          echo "### DMG Files" >> artifacts.md
+          find out/make -name "*.dmg" -type f | while read file; do
+            size=$(ls -lh "$file" | awk '{print $5}')
+            echo "- $(basename "$file") ($size)" >> artifacts.md
+          done
+          echo "" >> artifacts.md
+          echo "### ZIP Files" >> artifacts.md
+          find out/make -name "*.zip" -type f | while read file; do
+            size=$(ls -lh "$file" | awk '{print $5}')
+            echo "- $(basename "$file") ($size)" >> artifacts.md
+          done
+          
+          cat artifacts.md
+
+      - name: 📤 Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: downlodr-macos-${{ matrix.arch }}
+          path: |
+            out/make/**/*.pkg
+            out/make/**/*.dmg
+            out/make/**/*.zip
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: 🧹 Clean up keychain
+        if: always()
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-macos
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📥 Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: 📝 Generate Release Notes
+        id: release_notes
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          
+          cat << EOF > release_notes.md
+          # Downlodr $VERSION
+          
+          ## 🎉 Release Highlights
+          
+          macOS builds with full code signing and notarization:
+          - ✅ Apple Silicon (M1/M2/M3) native support
+          - ✅ Intel x86_64 support
+          - ✅ Code signed and notarized
+          - ✅ Ready for macOS Gatekeeper
+          
+          ## 📦 Installation
+          
+          ### macOS Users
+          
+          #### Apple Silicon (M1/M2/M3)
+          Download: \`Downlodr-darwin-arm64-*.pkg\`
+          
+          #### Intel
+          Download: \`Downlodr-darwin-x64-*.pkg\`
+          
+          #### Installation Steps
+          1. Download the appropriate PKG file for your Mac
+          2. Double-click to open the installer
+          3. Follow the installation wizard
+          4. The app will be installed in your Applications folder
+          
+          ### Alternative Installation (DMG)
+          1. Download the DMG file
+          2. Open it and drag Downlodr to Applications
+          3. Launch from Applications
+          
+          ## 🔐 Security
+          
+          All builds are:
+          - Code signed with Apple Developer Certificate
+          - Notarized by Apple
+          - Verified by macOS Gatekeeper
+          
+          ## 📋 System Requirements
+          
+          - macOS 11.0 (Big Sur) or later
+          - 2GB RAM minimum (4GB recommended)
+          - 500MB free disk space
+          
+          ## 🐛 Known Issues
+          
+          If you see "App is damaged" or Gatekeeper warnings:
+          1. Make sure you downloaded from official GitHub releases
+          2. Try: \`xattr -cr /Applications/Downlodr.app\`
+          3. Report issues at: https://github.com/${{ github.repository }}/issues
+          
+          ## 📚 Documentation
+          
+          - [User Guide](https://github.com/${{ github.repository }}/blob/main/README.md)
+          - [Plugin Development](https://github.com/${{ github.repository }}/blob/main/docs/PLUGIN_DEVELOPMENT.MD)
+          
+          ---
+          
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/v1.7.9...${VERSION}
+          EOF
+          
+          cat release_notes.md
+
+      - name: 🏷️ Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ./artifacts/**/*.pkg
+            ./artifacts/**/*.dmg
+            ./artifacts/**/*.zip
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📊 Release Summary
+        run: |
+          echo "## 🎉 Release Created Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Artifacts Published:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          find ./artifacts -type f | while read file; do
+            size=$(ls -lh "$file" | awk '{print $5}')
+            echo "- $(basename "$file") ($size)" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Release URL:" >> $GITHUB_STEP_SUMMARY
+          echo "https://github.com/${{ github.repository }}/releases/tag/${GITHUB_REF#refs/tags/}" >> $GITHUB_STEP_SUMMARY
+
+  notify:
+    name: Post-Release Notifications
+    needs: create-release
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+      - name: 📢 Success Notification
+        run: |
+          echo "✅ Release workflow completed successfully!"
+          echo "🎉 Downlodr has been built, signed, notarized, and released!"
+          echo "📦 Release URL: https://github.com/${{ github.repository }}/releases/latest"
+
