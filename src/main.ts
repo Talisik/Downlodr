@@ -33,6 +33,12 @@ let YTDLP: any = null;
 
 // Configure FFmpeg binary for production
 async function setupFFmpegBinary() {
+  // IMPORTANT: This function should only be called after app is ready
+  if (!app.isReady()) {
+    console.warn('setupFFmpegBinary called before app is ready - skipping');
+    return;
+  }
+  
   const ffmpegName = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
   
   // In production, use app's user data directory which is writable
@@ -136,6 +142,12 @@ async function setupFFmpegBinary() {
 
 // Configure YTDLP binary for production by copying it to a writable location
 function setupYTDLPBinary() {
+  // IMPORTANT: This function should only be called after app is ready
+  if (!app.isReady()) {
+    console.warn('setupYTDLPBinary called before app is ready - skipping');
+    return;
+  }
+  
   const binaryName =
     process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp_macos';
   
