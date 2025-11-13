@@ -1,0 +1,275 @@
+name: Build Linux Packages
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*.*.*-*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.7.7-stable)'
+        required: true
+        type: string
+      create_release:
+        description: 'Create GitHub Release'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        include:
+          - os: ubuntu-20.04
+            os_label: Ubuntu-20.04
+            build_deb: true
+            build_rpm: true
+            build_zip: true
+          - os: ubuntu-22.04
+            os_label: Ubuntu-22.04
+            build_deb: true
+            build_rpm: true
+            build_zip: true
+          - os: ubuntu-24.04
+            os_label: Ubuntu-24.04
+            build_deb: true
+            build_rpm: true
+            build_zip: true
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.17.0'
+          cache: 'yarn'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            curl \
+            tar \
+            xz-utils \
+            rpm \
+            dpkg \
+            fakeroot \
+            libarchive-tools
+
+      - name: Get version from package.json
+        id: package-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Download binaries and build packages
+        run: |
+          chmod +x ./scripts/build-linux.sh
+          ./scripts/build-linux.sh
+
+      - name: List build artifacts
+        run: |
+          echo "📦 Build artifacts created:"
+          find ./out -name "*.deb" -o -name "*.rpm" -o -name "*.zip" | while read file; do
+            echo "  - $(basename $file) ($(du -h "$file" | cut -f1))"
+          done
+
+      - name: Rename artifacts with OS label
+        run: |
+          cd ./out
+          for file in $(find . -name "*.deb" -o -name "*.rpm" -o -name "*.zip"); do
+            dir=$(dirname "$file")
+            base=$(basename "$file")
+            name="${base%.*}"
+            ext="${base##*.}"
+            new_name="${name}-${{ matrix.os_label }}.${ext}"
+            mv "$file" "${dir}/${new_name}"
+            echo "Renamed: $base -> $new_name"
+          done
+
+      - name: Upload DEB artifact
+        if: matrix.build_deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: downlodr-deb-${{ matrix.os_label }}
+          path: |
+            out/**/make/*.deb
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Upload RPM artifact
+        if: matrix.build_rpm
+        uses: actions/upload-artifact@v4
+        with:
+          name: downlodr-rpm-${{ matrix.os_label }}
+          path: |
+            out/**/make/*.rpm
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Upload ZIP artifact
+        if: matrix.build_zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: downlodr-zip-${{ matrix.os_label }}
+          path: |
+            out/**/make/*.zip
+          retention-days: 7
+          if-no-files-found: warn
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-linux
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.create_release)
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version info
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          
+          echo "tag=$VERSION" >> $GITHUB_OUTPUT
+          echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "Release Version: $VERSION"
+          echo "Package Version: $PACKAGE_VERSION"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./release-artifacts
+
+      - name: Organize artifacts
+        run: |
+          mkdir -p ./release-packages
+          find ./release-artifacts -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.zip" \) -exec cp {} ./release-packages/ \;
+          echo "📦 Release packages:"
+          ls -lh ./release-packages/
+
+      - name: Generate release notes
+        id: release-notes
+        run: |
+          cat > release-notes.md << 'EOF'
+          ## 🚀 Downlodr v${{ steps.version.outputs.package_version }}
+          
+          ### 📥 Download Instructions
+          
+          **Debian/Ubuntu (.deb)**
+          ```bash
+          sudo dpkg -i downlodr_*_amd64.deb
+          sudo apt-get install -f  # Install dependencies if needed
+          ```
+          
+          **Fedora/RHEL/CentOS (.rpm)**
+          ```bash
+          sudo rpm -i downlodr-*.x86_64.rpm
+          # Or with dnf
+          sudo dnf install downlodr-*.x86_64.rpm
+          ```
+          
+          **Universal Linux (.zip)**
+          ```bash
+          unzip downlodr-linux-x64-*.zip
+          cd Downlodr-linux-x64
+          ./downlodr
+          ```
+          
+          ### 📦 Available Packages
+          
+          This release includes packages for:
+          - Ubuntu 20.04 LTS (Focal Fossa)
+          - Ubuntu 22.04 LTS (Jammy Jellyfish)
+          - Ubuntu 24.04 LTS (Noble Numbat)
+          
+          Each platform provides:
+          - `.deb` package for Debian-based distributions
+          - `.rpm` package for Red Hat-based distributions
+          - `.zip` archive for any Linux distribution
+          
+          ### 🎯 Features
+          
+          - Download videos from 1,800+ platforms
+          - Bundled yt-dlp and FFmpeg (no additional installation required)
+          - Modern Electron-based UI
+          - Plugin system support
+          - Concurrent download management
+          
+          ### 🐛 Bug Fixes & Improvements
+          
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for detailed changes.
+          
+          ### 📋 System Requirements
+          
+          - Linux kernel 3.10+
+          - 64-bit architecture
+          - GTK 3.0+
+          - 200MB disk space
+          
+          ### 🔗 Links
+          
+          - [Documentation](https://github.com/${{ github.repository }}/blob/main/README.md)
+          - [Installation Guide](https://github.com/${{ github.repository }}/blob/main/INSTALL_LINUX.md)
+          - [Report Issues](https://github.com/${{ github.repository }}/issues)
+          
+          ---
+          
+          **Built with:**
+          - Electron v33.3.1
+          - React v18.2.0
+          - TypeScript v4.5.4
+          - yt-dlp (latest)
+          - FFmpeg (latest)
+          EOF
+          
+          echo "Release notes generated successfully"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Downlodr ${{ steps.version.outputs.package_version }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.tag, '-alpha') || contains(steps.version.outputs.tag, '-beta') || contains(steps.version.outputs.tag, '-rc') || contains(steps.version.outputs.tag, '-exp') }}
+          files: |
+            ./release-packages/*.deb
+            ./release-packages/*.rpm
+            ./release-packages/*.zip
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release Summary
+        run: |
+          echo "✅ Release created successfully!"
+          echo "📦 Version: ${{ steps.version.outputs.package_version }}"
+          echo "🏷️  Tag: ${{ steps.version.outputs.tag }}"
+          echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}"
+

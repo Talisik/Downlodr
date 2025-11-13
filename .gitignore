@@ -128,3 +128,5 @@ binaries/
 ffmpeg
 ffprobe
 yt-dlp_linux
+ffmpeg-linux.tar.xz
+yt-dlp

@@ -6,7 +6,13 @@ Downlodr is a powerful, user-friendly video downloading solution that supports m
 
 Built with Electron Forge and Vite, Downlodr offers a modern desktop experience with robust functionality and an intuitive interface.
 
-Current application has only been packaged for Windows.
+## Platform Support
+
+- **Windows**: Available as installer (NSIS) and portable ZIP
+- **Linux**: Automated builds for Ubuntu 20.04, 22.04, 24.04 (DEB, RPM, ZIP formats)
+- **macOS**: Coming soon
+
+Linux packages are automatically built via GitHub Actions and published to the [Releases page](../../releases).
 
 To download current version and learn more about Downlodr, visit site: <a href="https://downlodr.com/">Downlodr Official Site</a>
 
@@ -69,12 +75,32 @@ yarn start
 
 ### Building and Packaging
 
-To build and package the application:
+#### Local Build
+
+To build and package the application for your current platform:
    ```
 yarn make
    ```
 
-This will create distributable packages for your platform in the `out` directory.
+This will create distributable packages in the `out` directory.
+
+#### Linux Build
+
+To build Linux packages (DEB, RPM, ZIP):
+   ```
+yarn build:linux
+   ```
+
+See [INSTALL_LINUX.md](INSTALL_LINUX.md) for Linux installation instructions.
+
+#### Automated Builds
+
+Linux packages are automatically built and released via GitHub Actions:
+- Pushes to version tags trigger automated builds
+- Pull requests run test builds
+- Releases are published to GitHub Releases page
+
+See [.github/RELEASE_GUIDE.md](.github/RELEASE_GUIDE.md) for release process documentation.
 
 ## Usage Guide
 
