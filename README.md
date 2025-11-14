@@ -41,7 +41,7 @@ To download current version and learn more about Downlodr, visit site: <a href="
 
 ### Prerequisites
 
-- Node.js (version ^20.17.0)
+- Node.js (version ^20.19.0 || >=22.12.0)
 - yarn (version ^v1.22.19)
 
 ### Installation

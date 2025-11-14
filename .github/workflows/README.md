@@ -138,7 +138,7 @@ Required permissions (already configured):
 ### Environment Variables
 
 No custom environment variables required. The workflow uses:
-- Node.js version: `20.17.0` (matches your project requirement)
+- Node.js version: `22.12.0` (compatible with Vite 7.x requirements)
 - Yarn version: Automatically cached and used
 - Build tools: Installed via apt-get
 
