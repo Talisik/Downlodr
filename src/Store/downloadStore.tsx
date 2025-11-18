@@ -63,7 +63,7 @@ import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { config } from '@/config';
 import { useMainStore } from '@/Store/mainStore';
 import { downloadEnglishCaptions } from '@/Utils/Metadata/captionsHelper';
-import { VideoFormatService } from '@/Utils/Metadata/getDownloadMetaData';
+import { VideoFormatService } from '@/Utils/Metadata/GetDownloadMetaData';
 import { TelemetryService } from '@/Utils/Telemetry/telemetryService';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';

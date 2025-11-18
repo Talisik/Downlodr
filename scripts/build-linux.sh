@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# 🎯 Downlodr Linux Build Script
-# This script downloads required binaries and builds Linux packages for Downlodr
-# Supports DEB, RPM, and ZIP distributions with bundled yt-dlp and ffmpeg
+# 🎯 Downlodr Debian Build Script
+# This script downloads required binaries and builds a Debian package for Downlodr
+# Creates .deb package for Debian/Ubuntu systems with bundled yt-dlp and ffmpeg
 
 set -euo pipefail
 
@@ -73,20 +73,15 @@ check_requirements() {
         missing_deps+=("yarn")
     fi
     
-    # Check for Linux package building tools
+    # Check for Debian package building tools
     if ! command_exists dpkg-deb; then
-        print_warning "dpkg-deb not found. DEB package creation will be skipped."
-    fi
-    
-    if ! command_exists rpmbuild; then
-        print_warning "rpmbuild not found. RPM package creation will be skipped."
+        missing_deps+=("dpkg-deb")
     fi
     
     if [ ${#missing_deps[@]} -ne 0 ]; then
         print_error "Missing required dependencies: ${missing_deps[*]}"
         print_status "Please install missing dependencies and try again."
-        print_status "Ubuntu/Debian: sudo apt-get install ${missing_deps[*]}"
-        print_status "CentOS/RHEL/Fedora: sudo yum install ${missing_deps[*]} (or dnf)"
+        print_status "Install command: sudo apt-get install ${missing_deps[*]}"
         exit 1
     fi
     
@@ -207,13 +202,13 @@ build_application() {
         print_status "Cleaned previous build artifacts"
     fi
     
-    # Build for Linux
-    print_status "Creating Linux packages..."
+    # Build for Debian/Ubuntu
+    print_status "Creating Debian package..."
     
-    # Build all Linux formats
-    yarn make --platform=linux
+    # Build DEB package only
+    yarn make --platform=linux --targets=@electron-forge/maker-deb
     
-    print_success "Linux packages built successfully!"
+    print_success "Debian package built successfully!"
 }
 
 # Function to create AppImage (optional)
@@ -227,8 +222,8 @@ create_appimage() {
     print_status "Creating AppImage..."
     
     # This would require additional AppImage-specific setup
-    # For now, we'll skip this and focus on DEB/RPM/ZIP packages
-    print_warning "AppImage creation not implemented yet. Focus on DEB/RPM/ZIP packages."
+    # For now, we'll skip this and focus on DEB packages
+    print_warning "AppImage creation not implemented yet. Focus on DEB packages."
 }
 
 # Function to verify build outputs
@@ -240,8 +235,8 @@ verify_build() {
     if [ -d "$BUILD_DIR" ]; then
         print_status "Build artifacts in $BUILD_DIR:"
         
-        # Find all created packages
-        find "$BUILD_DIR" -name "*.deb" -o -name "*.rpm" -o -name "*.zip" | while read -r package; do
+        # Find created DEB package
+        find "$BUILD_DIR" -name "*.deb" | while read -r package; do
             local size=$(du -h "$package" | cut -f1)
             print_success "  📦 $(basename "$package") ($size)"
             build_found=true
@@ -261,7 +256,7 @@ show_usage() {
     cat << EOF
 Usage: $0 [OPTIONS]
 
-Downlodr Linux Build Script
+Downlodr Debian Build Script
 
 OPTIONS:
     --help, -h          Show this help message
@@ -277,16 +272,12 @@ EXAMPLES:
     $0 --skip-binaries  Build with existing binaries
 
 BUILD OUTPUTS:
-    The script creates the following Linux packages:
-    - .deb package (Debian/Ubuntu)
-    - .rpm package (Red Hat/Fedora/CentOS)
-    - .zip package (Universal Linux)
+    The script creates a .deb package for Debian/Ubuntu systems
 
 REQUIREMENTS:
     - Node.js and Yarn
     - curl, tar, xz-utils
-    - dpkg-deb (for DEB packages)
-    - rpmbuild (for RPM packages)
+    - dpkg-deb (Debian package building tools)
 
 EOF
 }
@@ -330,7 +321,7 @@ main() {
         esac
     done
     
-    print_status "🚀 Starting Downlodr Linux build process..."
+    print_status "🚀 Starting Downlodr Debian build process..."
     print_status "Project root: $PROJECT_ROOT"
     
     # Force redownload if requested
@@ -359,13 +350,15 @@ main() {
     build_application
     verify_build
     
-    print_success "🎉 Linux build completed successfully!"
+    print_success "🎉 Debian build completed successfully!"
     print_status "Build artifacts are available in: $BUILD_DIR"
     print_status ""
     print_status "📋 Installation instructions:"
-    print_status "  DEB (Debian/Ubuntu): sudo dpkg -i downlodr_*.deb"
-    print_status "  RPM (Red Hat/Fedora): sudo rpm -i downlodr-*.rpm"
-    print_status "  ZIP (Universal): Extract and run ./downlodr"
+    print_status "  Debian/Ubuntu: sudo dpkg -i $BUILD_DIR/make/deb/x64/*.deb"
+    print_status "  Or: sudo apt install $BUILD_DIR/make/deb/x64/*.deb"
+    print_status ""
+    print_status "💡 After installation, you can launch Downlodr from your application menu"
+    print_status "   or run 'downlodr' from the command line"
     print_status ""
     print_status "✨ Happy downloading!"
 }
