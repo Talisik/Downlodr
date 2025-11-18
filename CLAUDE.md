@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Downlodr is an Electron-based desktop application for downloading videos from 1,800+ platforms using yt-dlp and FFmpeg. Built with React, TypeScript, Vite, and Zustand for state management.
 
-**Prerequisites:** Node.js v20.17.0+, yarn v1.22.19+
+**Prerequisites:** Node.js v22.12.0+ (or Node.js v20.19.0+), yarn v1.22.19+
 
 ## Common Commands
 

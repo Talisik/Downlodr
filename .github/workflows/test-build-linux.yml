@@ -1,0 +1,183 @@
+name: Test Linux Build
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'forge.config.js'
+      - 'vite.*.config.ts'
+      - '.github/workflows/test-build-linux.yml'
+  push:
+    branches:
+      - develop
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'forge.config.js'
+      - 'vite.*.config.ts'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test-build:
+    name: Test Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04]
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: 'yarn'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            curl \
+            tar \
+            xz-utils \
+            rpm \
+            dpkg \
+            fakeroot
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Lint code
+        run: yarn lint
+        continue-on-error: true
+
+      - name: Test binary download
+        run: |
+          chmod +x ./scripts/build-linux.sh
+          # Test only binary downloads, not full build
+          mkdir -p binaries/linux
+          
+          echo "Testing yt-dlp download..."
+          curl -L --progress-bar \
+            "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp" \
+            -o binaries/linux/yt-dlp
+          chmod +x binaries/linux/yt-dlp
+          ./binaries/linux/yt-dlp --version
+          
+          echo "✅ Binary downloads working"
+
+      - name: Test build process
+        run: |
+          # Run the full build process
+          ./scripts/build-linux.sh
+
+      - name: Verify build outputs
+        run: |
+          echo "📦 Checking build artifacts..."
+          
+          DEB_COUNT=$(find ./out -name "*.deb" | wc -l)
+          RPM_COUNT=$(find ./out -name "*.rpm" | wc -l)
+          ZIP_COUNT=$(find ./out -name "*.zip" | wc -l)
+          
+          echo "Found $DEB_COUNT DEB packages"
+          echo "Found $RPM_COUNT RPM packages"
+          echo "Found $ZIP_COUNT ZIP packages"
+          
+          if [ $DEB_COUNT -eq 0 ] && [ $RPM_COUNT -eq 0 ] && [ $ZIP_COUNT -eq 0 ]; then
+            echo "❌ No build artifacts found!"
+            exit 1
+          fi
+          
+          echo "✅ Build artifacts verified"
+          
+          # List all artifacts with sizes
+          find ./out -name "*.deb" -o -name "*.rpm" -o -name "*.zip" | while read file; do
+            echo "  - $(basename $file) ($(du -h "$file" | cut -f1))"
+          done
+
+      - name: Test package installation (DEB)
+        run: |
+          DEB_FILE=$(find ./out -name "*.deb" | head -n 1)
+          if [ -n "$DEB_FILE" ]; then
+            echo "Testing DEB package structure..."
+            dpkg-deb --info "$DEB_FILE"
+            dpkg-deb --contents "$DEB_FILE" | head -20
+            echo "✅ DEB package structure looks good"
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Find artifacts
+            const { execSync } = require('child_process');
+            const debCount = execSync('find ./out -name "*.deb" | wc -l').toString().trim();
+            const rpmCount = execSync('find ./out -name "*.rpm" | wc -l').toString().trim();
+            const zipCount = execSync('find ./out -name "*.zip" | wc -l').toString().trim();
+            
+            const artifacts = execSync('find ./out -name "*.deb" -o -name "*.rpm" -o -name "*.zip"').toString().trim().split('\n');
+            const artifactList = artifacts.map(f => {
+              const basename = path.basename(f);
+              const size = execSync(`du -h "${f}" | cut -f1`).toString().trim();
+              return `- \`${basename}\` (${size})`;
+            }).join('\n');
+            
+            const comment = `## 🔨 Linux Build Test Results
+            
+            ✅ Build completed successfully on Ubuntu 22.04!
+            
+            ### 📦 Generated Packages
+            
+            - **DEB packages:** ${debCount}
+            - **RPM packages:** ${rpmCount}
+            - **ZIP archives:** ${zipCount}
+            
+            ${artifactList}
+            
+            ### ✅ Verification Steps Completed
+            
+            - [x] System dependencies installed
+            - [x] Node.js dependencies installed
+            - [x] Binary downloads (yt-dlp, FFmpeg)
+            - [x] Linux build process
+            - [x] Package structure validation
+            
+            The build is ready for release when this PR is merged!`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-build-artifacts-${{ matrix.os }}
+          path: |
+            out/**/make/*.deb
+            out/**/make/*.rpm
+            out/**/make/*.zip
+          retention-days: 3
+          if-no-files-found: warn
+
