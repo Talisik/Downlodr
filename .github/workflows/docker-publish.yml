@@ -1,9 +1,10 @@
 name: Build and Publish Docker Images
 
 on:
-  push:
-    tags:
-      - 'v*'
+  # Disabled automatic tag triggers - run manually only
+  # push:
+  #   tags:
+  #     - 'v*'
   workflow_dispatch:
     inputs:
       version:
