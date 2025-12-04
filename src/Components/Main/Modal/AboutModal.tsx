@@ -12,6 +12,8 @@ import DownlodrLogo from '@/Assets/Logo/DownlodrLogo-NoName.svg';
 import React, { useEffect, useRef, useState } from 'react';
 import { FiExternalLink } from 'react-icons/fi';
 import { IoMdClose } from 'react-icons/io';
+import { RxUpdate } from 'react-icons/rx';
+import { useToast } from '@/Components/SubComponents/shadcn/components/ui/use-toast';
 
 interface AboutModalProps {
   isOpen: boolean;
@@ -20,7 +22,9 @@ interface AboutModalProps {
 
 const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
   const [appVersion, setAppVersion] = useState('1.0.0');
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   // Get current app version on mount
   useEffect(() => {
@@ -57,6 +61,54 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
   const handleLink = async () => {
     await window.downlodrFunctions.openExternalLink('https://downlodr.com/');
     onClose();
+  };
+
+  // Check for Updates
+  const handleCheckUpdates = async () => {
+    setIsCheckingUpdates(true);
+    toast({
+      title: 'Checking for updates...',
+      description: 'Please wait while we check for the latest version.',
+      duration: 3000,
+    });
+
+    try {
+      // First try the manual update check API
+      if (window.updateAPI?.checkForUpdates) {
+        const result = await window.updateAPI.checkForUpdates();
+        console.log('Update check result:', result);
+
+        if (result.hasUpdate) {
+          toast({
+            title: '🎉 Update Available!',
+            description: `Version ${result.latestVersion} is available. You have ${result.currentVersion}.`,
+            duration: 5000,
+          });
+        } else {
+          toast({
+            title: "✅ You're up to date!",
+            description: `You're using the latest version (v${result.currentVersion}).`,
+            duration: 3000,
+          });
+        }
+      }
+
+      // Also trigger the auto-updater check if available
+      if (window.appAutoUpdater?.checkForUpdates) {
+        const autoUpdateResult = await window.appAutoUpdater.checkForUpdates();
+        console.log('Auto-updater check result:', autoUpdateResult);
+      }
+    } catch (error) {
+      console.error('Error checking for updates:', error);
+      toast({
+        title: 'Update Check Failed',
+        description: 'Unable to check for updates. Please try again later.',
+        variant: 'destructive',
+        duration: 3000,
+      });
+    } finally {
+      setIsCheckingUpdates(false);
+    }
   };
 
   // Handles event when user clicks outside modal
@@ -114,6 +166,17 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                 <h1 className="font-bold text-[15px] text-[#BCBCBC]">
                   Version {appVersion}
                 </h1>
+                <button
+                  onClick={handleCheckUpdates}
+                  disabled={isCheckingUpdates}
+                  className="mt-2 px-3 py-1.5 text-xs font-medium text-white bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed rounded-md flex items-center gap-1.5 transition-colors"
+                >
+                  <RxUpdate
+                    size={14}
+                    className={isCheckingUpdates ? 'animate-spin' : ''}
+                  />
+                  {isCheckingUpdates ? 'Checking...' : 'Check Updates'}
+                </button>
               </div>
             </div>
             {/* End of Upload Button */}
