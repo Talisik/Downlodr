@@ -13,6 +13,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FiExternalLink } from 'react-icons/fi';
 import { IoMdClose } from 'react-icons/io';
 import { RxUpdate } from 'react-icons/rx';
+import { FaCheckCircle } from 'react-icons/fa';
 import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 
 interface AboutModalProps {
@@ -20,37 +21,87 @@ interface AboutModalProps {
   onClose: () => void;
 }
 
+type UpdateStatus = 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
+
 const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
   const [appVersion, setAppVersion] = useState('1.0.0');
-  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('idle');
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // Get current app version on mount
   useEffect(() => {
     const getVersion = async () => {
-      if (window.updateAPI) {
-        try {
-          // Register a listener for update info (for future updates)
-          window.updateAPI.onUpdateAvailable((info) => {
-            if (info.currentVersion) {
-              setAppVersion(info.currentVersion);
-            }
-          });
-
-          // Get current version WITHOUT calling GitHub API
+      try {
+        // Get current version from the API
+        if (window.updateAPI?.getCurrentVersion) {
           const currentVersion = await window.updateAPI.getCurrentVersion();
           if (currentVersion) {
             setAppVersion(currentVersion);
           }
-        } catch (error) {
-          console.error('Error getting version:', error);
         }
+      } catch (error) {
+        console.error('Error getting version:', error);
       }
     };
 
     getVersion();
   }, []);
+
+  // Listen for auto-update status changes
+  useEffect(() => {
+    if (!window.appAutoUpdater?.onUpdateStatus) return;
+
+    const removeListener = window.appAutoUpdater.onUpdateStatus((info: {
+      status: UpdateStatus;
+      version?: string;
+      currentVersion?: string;
+      error?: string;
+    }) => {
+      console.log('[AboutModal] Update status:', info);
+      setUpdateStatus(info.status);
+
+      if (info.version) {
+        setUpdateVersion(info.version);
+      }
+      if (info.currentVersion) {
+        setAppVersion(info.currentVersion);
+      }
+
+      // Show toast notifications based on status
+      if (info.status === 'available') {
+        toast({
+          title: 'Update Available!',
+          description: `Version ${info.version} is available and downloading...`,
+          duration: 3000,
+        });
+      } else if (info.status === 'downloaded') {
+        toast({
+          title: 'Update Ready!',
+          description: `Version ${info.version} is ready to install.`,
+          duration: 5000,
+        });
+      } else if (info.status === 'not-available') {
+        toast({
+          title: "You're up to date!",
+          description: `You're using the latest version (v${info.currentVersion || appVersion}).`,
+          duration: 3000,
+        });
+      } else if (info.status === 'error') {
+        toast({
+          title: 'Update Check Failed',
+          description: info.error || 'Unable to check for updates.',
+          variant: 'destructive',
+          duration: 3000,
+        });
+      }
+    });
+
+    return () => {
+      removeListener();
+    };
+  }, [toast, appVersion]);
 
   // Close Modal
   const handleClose = () => {
@@ -63,53 +114,110 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
     onClose();
   };
 
-  // Check for Updates
+  // Check for Updates - triggers auto-updater
   const handleCheckUpdates = async () => {
-    setIsCheckingUpdates(true);
+    setUpdateStatus('checking');
+
     toast({
       title: 'Checking for updates...',
       description: 'Please wait while we check for the latest version.',
-      duration: 3000,
+      duration: 2000,
     });
 
     try {
-      // First try the manual update check API
-      if (window.updateAPI?.checkForUpdates) {
-        const result = await window.updateAPI.checkForUpdates();
-        console.log('Update check result:', result);
+      // Use the auto-updater to check for updates
+      if (window.appAutoUpdater?.checkForUpdates) {
+        const result = await window.appAutoUpdater.checkForUpdates();
+        console.log('[AboutModal] Check updates result:', result);
 
-        if (result.hasUpdate) {
+        // Status updates will come through the onUpdateStatus listener
+        if (result.status === 'error') {
+          setUpdateStatus('error');
           toast({
-            title: '🎉 Update Available!',
-            description: `Version ${result.latestVersion} is available. You have ${result.currentVersion}.`,
-            duration: 5000,
-          });
-        } else {
-          toast({
-            title: "✅ You're up to date!",
-            description: `You're using the latest version (v${result.currentVersion}).`,
+            title: 'Update Check Failed',
+            description: result.error || 'Unable to check for updates.',
+            variant: 'destructive',
             duration: 3000,
           });
         }
-      }
-
-      // Also trigger the auto-updater check if available
-      if (window.appAutoUpdater?.checkForUpdates) {
-        const autoUpdateResult = await window.appAutoUpdater.checkForUpdates();
-        console.log('Auto-updater check result:', autoUpdateResult);
+      } else {
+        // Fallback: auto-updater not available
+        setUpdateStatus('error');
+        toast({
+          title: 'Auto-updates unavailable',
+          description: 'Auto-updates are only available in the packaged app.',
+          variant: 'destructive',
+          duration: 3000,
+        });
       }
     } catch (error) {
       console.error('Error checking for updates:', error);
+      setUpdateStatus('error');
       toast({
         title: 'Update Check Failed',
         description: 'Unable to check for updates. Please try again later.',
         variant: 'destructive',
         duration: 3000,
       });
-    } finally {
-      setIsCheckingUpdates(false);
     }
   };
+
+  // Install downloaded update
+  const handleInstallUpdate = () => {
+    if (window.appAutoUpdater?.installUpdate) {
+      toast({
+        title: 'Installing update...',
+        description: 'The app will restart momentarily.',
+        duration: 2000,
+      });
+      window.appAutoUpdater.installUpdate();
+    }
+  };
+
+  // Get button text based on update status
+  const getUpdateButtonContent = () => {
+    switch (updateStatus) {
+      case 'checking':
+        return (
+          <>
+            <RxUpdate size={14} className="animate-spin" />
+            Checking...
+          </>
+        );
+      case 'downloading':
+        return (
+          <>
+            <RxUpdate size={14} className="animate-spin" />
+            Downloading...
+          </>
+        );
+      case 'downloaded':
+        return (
+          <>
+            <FaCheckCircle size={14} />
+            Install Update
+          </>
+        );
+      default:
+        return (
+          <>
+            <RxUpdate size={14} />
+            Check Updates
+          </>
+        );
+    }
+  };
+
+  // Handle button click based on status
+  const handleUpdateButtonClick = () => {
+    if (updateStatus === 'downloaded') {
+      handleInstallUpdate();
+    } else if (updateStatus !== 'checking' && updateStatus !== 'downloading') {
+      handleCheckUpdates();
+    }
+  };
+
+  const isUpdateButtonDisabled = updateStatus === 'checking' || updateStatus === 'downloading';
 
   // Handles event when user clicks outside modal
   useEffect(() => {
@@ -167,16 +275,21 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                   Version {appVersion}
                 </h1>
                 <button
-                  onClick={handleCheckUpdates}
-                  disabled={isCheckingUpdates}
-                  className="mt-2 px-3 py-1.5 text-xs font-medium text-white bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed rounded-md flex items-center gap-1.5 transition-colors"
+                  onClick={handleUpdateButtonClick}
+                  disabled={isUpdateButtonDisabled}
+                  className={`mt-2 px-3 py-1.5 text-xs font-medium text-white rounded-md flex items-center gap-1.5 transition-colors ${
+                    updateStatus === 'downloaded'
+                      ? 'bg-green-600 hover:bg-green-700'
+                      : 'bg-primary hover:bg-primary/90'
+                  } disabled:bg-primary/50 disabled:cursor-not-allowed`}
                 >
-                  <RxUpdate
-                    size={14}
-                    className={isCheckingUpdates ? 'animate-spin' : ''}
-                  />
-                  {isCheckingUpdates ? 'Checking...' : 'Check Updates'}
+                  {getUpdateButtonContent()}
                 </button>
+                {updateStatus === 'downloaded' && updateVersion && (
+                  <span className="text-xs text-green-600 dark:text-green-400 mt-1">
+                    v{updateVersion} ready to install
+                  </span>
+                )}
               </div>
             </div>
             {/* End of Upload Button */}

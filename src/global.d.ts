@@ -10,6 +10,7 @@ import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult 
 
 // Auto-updater types
 type AppUpdateStatusType =
+  | 'idle'
   | 'checking'
   | 'available'
   | 'not-available'
@@ -20,6 +21,7 @@ type AppUpdateStatusType =
 interface AppUpdateStatus {
   status: AppUpdateStatusType;
   version?: string;
+  currentVersion?: string;
   releaseNotes?: string;
   releaseDate?: string;
   downloadUrl?: string;
