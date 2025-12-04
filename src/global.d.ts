@@ -8,6 +8,31 @@
 import { FormatSelectorResult, MenuItem, PluginInfo, PluginManifest, PluginModalOptions, PluginSidePanelOptions, PluginSidePanelResult, TaskBarItem } from './plugins/types';
 import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult } from './Schema/downlodrFunction';
 
+// Auto-updater types
+type AppUpdateStatusType =
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error';
+
+interface AppUpdateStatus {
+  status: AppUpdateStatusType;
+  version?: string;
+  releaseNotes?: string;
+  releaseDate?: string;
+  downloadUrl?: string;
+  error?: string;
+}
+
+interface AppUpdateDownloadProgress {
+  percent: number;
+  transferred: number;
+  total: number;
+  bytesPerSecond: number;
+}
+
 declare global {
   interface Window {
     electronAPI: {
@@ -181,6 +206,16 @@ declare global {
       onOpenSettingsModal: (callback: () => void) => () => void;
       checkForUpdates: () => Promise<UpdateInfo>;
       getCurrentVersion: () => Promise<string>; // Gets current app version without GitHub API call
+    };
+    appAutoUpdater: {
+      getStatus: () => Promise<AppUpdateStatus>;
+      checkForUpdates: () => Promise<AppUpdateStatus>;
+      downloadUpdate: () => Promise<{ success: boolean; error?: string }>;
+      installUpdate: () => Promise<{ success: boolean; error?: string }>;
+      onUpdateStatus: (callback: (status: AppUpdateStatus) => void) => () => void;
+      onDownloadProgress: (
+        callback: (progress: AppUpdateDownloadProgress) => void,
+      ) => () => void;
     };
     backgroundSettings: {
       getRunInBackground: () => Promise<boolean>;

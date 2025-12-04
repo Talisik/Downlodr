@@ -489,6 +489,45 @@ contextBridge.exposeInMainWorld('updateAPI', {
   getCurrentVersion: () => ipcRenderer.invoke('get-current-version'),
 });
 
+// Auto-updater API for automatic app updates (macOS/Windows)
+// This handles the actual download and installation of app updates
+contextBridge.exposeInMainWorld('appAutoUpdater', {
+  // Get current auto-update status
+  getStatus: () => ipcRenderer.invoke('app-update:get-status'),
+
+  // Manually trigger update check
+  checkForUpdates: () => ipcRenderer.invoke('app-update:check'),
+
+  // Download the available update
+  downloadUpdate: () => ipcRenderer.invoke('app-update:download'),
+
+  // Install the downloaded update and restart
+  installUpdate: () => ipcRenderer.invoke('app-update:install'),
+
+  // Listen for update status changes
+  onUpdateStatus: (callback: (status: any) => void) => {
+    const wrappedCallback = (_: any, status: any) => callback(status);
+    ipcRenderer.on('app-update-status', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('app-update-status', wrappedCallback);
+  },
+
+  // Listen for download progress
+  onDownloadProgress: (
+    callback: (progress: {
+      percent: number;
+      transferred: number;
+      total: number;
+      bytesPerSecond: number;
+    }) => void,
+  ) => {
+    const wrappedCallback = (_: any, progress: any) => callback(progress);
+    ipcRenderer.on('app-update-download-progress', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('app-update-download-progress', wrappedCallback);
+  },
+});
+
 // Add these to your existing preload API exposures
 contextBridge.exposeInMainWorld('appControl', {
   showWindow: () => ipcRenderer.invoke('show-window'),

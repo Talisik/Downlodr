@@ -25,6 +25,7 @@ import https from 'https';
 import os from 'os';
 import path from 'path';
 import { checkForUpdates } from './DataFunctions/updateChecker';
+import { setupAutoUpdater, setupAutoUpdaterIPC } from './DataFunctions/autoUpdater';
 import { initializeYTDLP, ensureYTDLPBinary } from './Utils/ytdlpWrapper';
 import { checkSystemFFmpeg, copySystemFFmpegToApp } from './Utils/ffmpegDownloader';
 
@@ -2008,11 +2009,16 @@ app.on('ready', async () => {
   updateTrayVisibility();
   updateCloseHandler();
 
+  // Setup auto-updater for automatic app updates (macOS/Windows)
+  // This uses update.electronjs.org for seamless updates via GitHub Releases
+  setupAutoUpdater(mainWindow);
+  setupAutoUpdaterIPC();
+
   // Start clipboard monitoring
   // Don't start automatically - let the renderer control it
   // startClipboardMonitoring();
 
-  // Check for updates when app starts
+  // Check for updates when app starts (manual update notification system)
   setTimeout(async () => {
     const updateInfo = await checkForUpdates();
     if (updateInfo.hasUpdate) {

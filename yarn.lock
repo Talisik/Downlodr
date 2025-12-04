@@ -3445,6 +3445,11 @@ electron-installer-redhat@^3.2.0:
     word-wrap "^1.2.3"
     yargs "^16.0.2"
 
+electron-log@^5.4.3:
+  version "5.4.3"
+  resolved "https://registry.yarnpkg.com/electron-log/-/electron-log-5.4.3.tgz#02a90baf4256950ca416095db6e5745268584d20"
+  integrity sha512-sOUsM3LjZdugatazSQ/XTyNcw8dfvH1SYhXWiJyfYodAAKOZdHs0txPiLDXFzOZbhXgAgshQkshH2ccq0feyLQ==
+
 electron-publish@24.13.1:
   version "24.13.1"
   resolved "https://registry.yarnpkg.com/electron-publish/-/electron-publish-24.13.1.tgz#57289b2f7af18737dc2ad134668cdd4a1b574a0c"
@@ -4481,6 +4486,13 @@ getpass@^0.1.1:
   dependencies:
     assert-plus "^1.0.0"
 
+github-url-to-object@^4.0.4:
+  version "4.0.6"
+  resolved "https://registry.yarnpkg.com/github-url-to-object/-/github-url-to-object-4.0.6.tgz#5ea8701dc8c336b8d582dc3fa5bf964165c3b365"
+  integrity sha512-NaqbYHMUAlPcmWFdrAB7bcxrNIiiJWJe8s/2+iOc9vlcHlwHqSGrPk+Yi3nu6ebTwgsZEa7igz+NH2vEq3gYwQ==
+  dependencies:
+    is-url "^1.1.0"
+
 glob-parent@^5.1.2, glob-parent@~5.1.2:
   version "5.1.2"
   resolved "https://registry.yarnpkg.com/glob-parent/-/glob-parent-5.1.2.tgz#869832c58034fe68a4093c17dc15e8340d8401c4"
@@ -5157,6 +5169,11 @@ is-unicode-supported@^0.1.0:
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/is-unicode-supported/-/is-unicode-supported-0.1.0.tgz#3f26c76a809593b52bfa2ecb5710ed2779b522a7"
   integrity sha512-knxG2q4UC3u8stRGyAVJCOdxFmv5DZiRcdlIaAQXAbSfJya+OhopNotLQrstBhququ4ZpuKbDc/8S6mgXgPFPw==
+
+is-url@^1.1.0:
+  version "1.2.4"
+  resolved "https://registry.yarnpkg.com/is-url/-/is-url-1.2.4.tgz#04a4df46d28c4cff3d73d01ff06abeb318a1aa52"
+  integrity sha512-ITvGim8FhRiYe4IQ5uHSkj7pVaPDrCTkNd3yq3cV7iZAcJdHTUMPMEHcqSOy9xZ9qFenQCvi+2wjH9a1nXqHww==
 
 is-weakmap@^2.0.2:
   version "2.0.2"
@@ -7832,6 +7849,14 @@ update-browserslist-db@^1.1.3:
   dependencies:
     escalade "^3.2.0"
     picocolors "^1.1.1"
+
+update-electron-app@^3.1.1:
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/update-electron-app/-/update-electron-app-3.1.1.tgz#d860a4e7a716ff4be675b5379d0f30c286e4595f"
+  integrity sha512-7duRr6sYn014tifhKgT/5i8N+6xLzmJVJ8hVtNrHXlIDNP6QbRe6VxZ1hSi2UH5oJPzhor/PH7yKU9em5xjRzQ==
+  dependencies:
+    github-url-to-object "^4.0.4"
+    ms "^2.1.1"
 
 uri-js@^4.2.2:
   version "4.4.1"
