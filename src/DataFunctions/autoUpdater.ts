@@ -120,6 +120,17 @@ export function setupAutoUpdater(mainWindow: BrowserWindow | null): void {
   autoUpdater.autoRunAppAfterInstall = true; // Restart app after install
   autoUpdater.allowDowngrade = false; // Don't allow downgrading
 
+  // Configure GitHub as the update provider
+  // This tells electron-updater where to look for latest-mac.yml
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'Talisik',
+    repo: 'Downlodr',
+    releaseType: 'release',
+  });
+
+  log.info('[AutoUpdater] Configured GitHub provider: Talisik/Downlodr');
+
   // Set update channel based on current version
   const channel = getCurrentChannel();
   if (channel) {
@@ -239,11 +250,20 @@ export function setupAutoUpdater(mainWindow: BrowserWindow | null): void {
   // Event: Error
   autoUpdater.on('error', (error: Error) => {
     log.error('[AutoUpdater] Error:', error.message);
+    log.error('[AutoUpdater] Full error:', error);
+
+    // Check for specific error types
+    let friendlyError = getUserFriendlyErrorMessage(error.message);
+
+    // If it's a 404 error for latest-mac.yml, provide more context
+    if (error.message.includes('404') || error.message.includes('latest')) {
+      friendlyError = 'No update manifest found. This may be the latest version, or the release is still being prepared.';
+    }
 
     sendUpdateStatus({
       status: 'error',
       currentVersion: app.getVersion(),
-      error: getUserFriendlyErrorMessage(error.message),
+      error: friendlyError,
     });
   });
 
