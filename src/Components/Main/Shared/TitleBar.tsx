@@ -23,6 +23,24 @@ interface TitleBarProps {
 const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   const { theme } = useTheme();
   const [isMaximized, setIsMaximized] = React.useState<boolean>(false);
+  const [appVersion, setAppVersion] = React.useState<string>('');
+
+  // Fetch app version on mount
+  React.useEffect(() => {
+    const getVersion = async () => {
+      try {
+        if (window.updateAPI?.getCurrentVersion) {
+          const version = await window.updateAPI.getCurrentVersion();
+          if (version) {
+            setAppVersion(version);
+          }
+        }
+      } catch (error) {
+        console.error('Error getting app version:', error);
+      }
+    };
+    getVersion();
+  }, []);
 
   // Detect macOS platform in renderer
   const isMacOS = React.useMemo(() => {
@@ -97,6 +115,11 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
             >
               <ModeToggle />
               <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
+              {appVersion && (
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                  v{appVersion}
+                </span>
+              )}
             </div>
           </div>
         ) : (
@@ -114,6 +137,11 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
             >
               <ModeToggle />
               <img src={getLogoSrc()} alt="Downlodr" className="h-5" />
+              {appVersion && (
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                  v{appVersion}
+                </span>
+              )}
               {/* Minimize Button */}
               <button
                 className="rounded-md bg-transparent hover:bg-lightGray dark:hover:bg-darkModeHover transition-colors duration-200 p-1 m-2 text-gray-700 dark:text-darkModeLight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
