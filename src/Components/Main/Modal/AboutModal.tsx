@@ -49,7 +49,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
     getVersion();
   }, []);
 
-  // Listen for auto-update status changes
+  // Listen for auto-update status changes (only update UI state, no toasts here)
   useEffect(() => {
     if (!window.appAutoUpdater?.onUpdateStatus) return;
 
@@ -69,31 +69,14 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
         setAppVersion(info.currentVersion);
       }
 
-      // Show toast notifications based on status
-      if (info.status === 'available') {
-        toast({
-          title: 'Update Available!',
-          description: `Version ${info.version} is available and downloading...`,
-          duration: 3000,
-        });
-      } else if (info.status === 'downloaded') {
+      // Note: Toasts are NOT shown here to avoid duplicate notifications.
+      // The UpdateNotification component handles showing the update dialog.
+      // Only show toast for 'downloaded' state as a reminder when modal is open.
+      if (info.status === 'downloaded' && isOpen) {
         toast({
           title: 'Update Ready!',
           description: `Version ${info.version} is ready to install.`,
           duration: 5000,
-        });
-      } else if (info.status === 'not-available') {
-        toast({
-          title: "You're up to date!",
-          description: `You're using the latest version (v${info.currentVersion || appVersion}).`,
-          duration: 3000,
-        });
-      } else if (info.status === 'error') {
-        toast({
-          title: 'Update Check Failed',
-          description: info.error || 'Unable to check for updates.',
-          variant: 'destructive',
-          duration: 3000,
         });
       }
     });
@@ -101,7 +84,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
     return () => {
       removeListener();
     };
-  }, [toast, appVersion]);
+  }, [toast, appVersion, isOpen]);
 
   // Close Modal
   const handleClose = () => {
@@ -118,30 +101,35 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
   const handleCheckUpdates = async () => {
     setUpdateStatus('checking');
 
-    toast({
-      title: 'Checking for updates...',
-      description: 'Please wait while we check for the latest version.',
-      duration: 2000,
-    });
-
     try {
       // Use the auto-updater to check for updates
       if (window.appAutoUpdater?.checkForUpdates) {
         const result = await window.appAutoUpdater.checkForUpdates();
         console.log('[AboutModal] Check updates result:', result);
 
-        // Status updates will come through the onUpdateStatus listener
-        if (result.status === 'error') {
-          setUpdateStatus('error');
+        // Show feedback based on result
+        if (result.status === 'available') {
           toast({
-            title: 'Update Check Failed',
-            description: result.error || 'Unable to check for updates.',
-            variant: 'destructive',
+            title: 'Update Available!',
+            description: `Version ${result.version} is downloading...`,
+            duration: 3000,
+          });
+        } else if (result.status === 'not-available') {
+          toast({
+            title: "You're up to date!",
+            description: `You're using the latest version.`,
+            duration: 3000,
+          });
+        } else if (result.status === 'downloaded') {
+          toast({
+            title: 'Update Ready!',
+            description: `Version ${result.version} is ready to install.`,
             duration: 3000,
           });
         }
+        // Note: errors are handled by the listener, no need to show toast here
       } else {
-        // Fallback: auto-updater not available
+        // Fallback: auto-updater not available (dev mode)
         setUpdateStatus('error');
         toast({
           title: 'Auto-updates unavailable',
@@ -153,12 +141,6 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
     } catch (error) {
       console.error('Error checking for updates:', error);
       setUpdateStatus('error');
-      toast({
-        title: 'Update Check Failed',
-        description: 'Unable to check for updates. Please try again later.',
-        variant: 'destructive',
-        duration: 3000,
-      });
     }
   };
 

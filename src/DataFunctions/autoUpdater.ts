@@ -13,7 +13,7 @@
  * - Version channel support (exp-macos, stable, etc.)
  */
 
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { autoUpdater, UpdateInfo as ElectronUpdateInfo } from 'electron-updater';
 import log from 'electron-log';
 
@@ -164,17 +164,8 @@ export function setupAutoUpdater(mainWindow: BrowserWindow | null): void {
           : undefined,
     });
 
-    // Show notification dialog (non-blocking since autoDownload is true)
-    if (mainWindowRef && !mainWindowRef.isDestroyed()) {
-      dialog.showMessageBox(mainWindowRef, {
-        type: 'info',
-        title: 'Update Available',
-        message: `A new version (${info.version}) is available!`,
-        detail: 'The update is being downloaded in the background. You will be notified when it\'s ready to install.',
-        buttons: ['OK'],
-        defaultId: 0,
-      });
-    }
+    // Note: No native dialog here - the renderer's UpdateNotification component
+    // will show a non-intrusive notification based on the status update above
   });
 
   // Event: Update not available
@@ -224,27 +215,8 @@ export function setupAutoUpdater(mainWindow: BrowserWindow | null): void {
           : undefined,
     });
 
-    // Show dialog to restart app
-    if (mainWindowRef && !mainWindowRef.isDestroyed()) {
-      dialog
-        .showMessageBox(mainWindowRef, {
-          type: 'info',
-          title: 'Update Ready',
-          message: `Version ${info.version} has been downloaded!`,
-          detail: 'The update will be installed when you restart the application. Would you like to restart now?',
-          buttons: ['Restart Now', 'Later'],
-          defaultId: 0,
-          cancelId: 1,
-        })
-        .then((result) => {
-          if (result.response === 0) {
-            log.info('[AutoUpdater] User chose to restart now');
-            autoUpdater.quitAndInstall(false, true);
-          } else {
-            log.info('[AutoUpdater] User chose to install later');
-          }
-        });
-    }
+    // Note: No native dialog here - the renderer's UpdateNotification component
+    // will show a dialog with "Install & Restart" / "Later" buttons
   });
 
   // Event: Error
