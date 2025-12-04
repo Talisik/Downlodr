@@ -191,6 +191,48 @@ jobs:
           
           cat artifacts.md
 
+      - name: 📝 Generate latest-mac.yml for Auto-Updates
+        run: |
+          # Get version from package.json
+          VERSION=$(node -p "require('./package.json').version")
+          echo "📌 Generating latest-mac.yml for version: $VERSION"
+
+          # Find the ZIP file for this architecture (used by electron-updater)
+          ZIP_FILE=$(find out/make -name "*.zip" -type f | head -n 1)
+
+          if [ -z "$ZIP_FILE" ]; then
+            echo "⚠️ No ZIP file found, skipping latest-mac.yml generation"
+            exit 0
+          fi
+
+          ZIP_NAME=$(basename "$ZIP_FILE")
+          ZIP_SIZE=$(stat -f%z "$ZIP_FILE" 2>/dev/null || stat -c%s "$ZIP_FILE")
+
+          # Generate SHA512 hash
+          if command -v shasum &> /dev/null; then
+            ZIP_SHA512=$(shasum -a 512 "$ZIP_FILE" | cut -d ' ' -f 1)
+          else
+            ZIP_SHA512=$(sha512sum "$ZIP_FILE" | cut -d ' ' -f 1)
+          fi
+
+          # Create the architecture-specific yml file
+          ARCH="${{ matrix.arch }}"
+          YML_FILE="out/make/latest-mac-${ARCH}.yml"
+
+          cat > "$YML_FILE" << EOF
+          version: ${VERSION}
+          files:
+            - url: ${ZIP_NAME}
+              sha512: ${ZIP_SHA512}
+              size: ${ZIP_SIZE}
+          path: ${ZIP_NAME}
+          sha512: ${ZIP_SHA512}
+          releaseDate: '$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")'
+          EOF
+
+          echo "✅ Generated $YML_FILE"
+          cat "$YML_FILE"
+
       - name: 📤 Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -199,6 +241,7 @@ jobs:
             out/make/**/*.pkg
             out/make/**/*.dmg
             out/make/**/*.zip
+            out/make/latest-mac-*.yml
           retention-days: 30
           if-no-files-found: error
 
@@ -221,6 +264,63 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ./artifacts
+
+      - name: 🔧 Setup Node.js for YML generation
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📝 Generate Combined latest-mac.yml for Auto-Updates
+        run: |
+          # Get version from tag
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "📌 Generating combined latest-mac.yml for version: $VERSION"
+
+          # Find all ZIP files from both architectures
+          ARM64_ZIP=$(find ./artifacts -name "*darwin-arm64*.zip" -type f | head -n 1)
+          X64_ZIP=$(find ./artifacts -name "*darwin-x64*.zip" -type f | head -n 1)
+
+          echo "ARM64 ZIP: $ARM64_ZIP"
+          echo "X64 ZIP: $X64_ZIP"
+
+          # Initialize files array
+          FILES_YAML=""
+
+          # Process ARM64 ZIP
+          if [ -n "$ARM64_ZIP" ] && [ -f "$ARM64_ZIP" ]; then
+            ARM64_NAME=$(basename "$ARM64_ZIP")
+            ARM64_SIZE=$(stat -c%s "$ARM64_ZIP" 2>/dev/null || stat -f%z "$ARM64_ZIP")
+            ARM64_SHA512=$(sha512sum "$ARM64_ZIP" 2>/dev/null | cut -d ' ' -f 1 || shasum -a 512 "$ARM64_ZIP" | cut -d ' ' -f 1)
+            FILES_YAML="${FILES_YAML}  - url: ${ARM64_NAME}
+              sha512: ${ARM64_SHA512}
+              size: ${ARM64_SIZE}
+              arch: arm64
+          "
+            echo "✅ Added ARM64: $ARM64_NAME"
+          fi
+
+          # Process X64 ZIP
+          if [ -n "$X64_ZIP" ] && [ -f "$X64_ZIP" ]; then
+            X64_NAME=$(basename "$X64_ZIP")
+            X64_SIZE=$(stat -c%s "$X64_ZIP" 2>/dev/null || stat -f%z "$X64_ZIP")
+            X64_SHA512=$(sha512sum "$X64_ZIP" 2>/dev/null | cut -d ' ' -f 1 || shasum -a 512 "$X64_ZIP" | cut -d ' ' -f 1)
+            FILES_YAML="${FILES_YAML}  - url: ${X64_NAME}
+              sha512: ${X64_SHA512}
+              size: ${X64_SIZE}
+              arch: x64
+          "
+            echo "✅ Added X64: $X64_NAME"
+          fi
+
+          # Create the combined latest-mac.yml
+          cat > ./artifacts/latest-mac.yml << EOF
+          version: ${VERSION}
+          files:
+          ${FILES_YAML}releaseDate: '$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")'
+          EOF
+
+          echo "✅ Generated combined latest-mac.yml:"
+          cat ./artifacts/latest-mac.yml
 
       - name: 📝 Generate Release Notes
         id: release_notes
@@ -298,6 +398,7 @@ jobs:
             ./artifacts/**/*.pkg
             ./artifacts/**/*.dmg
             ./artifacts/**/*.zip
+            ./artifacts/latest-mac.yml
           body_path: release_notes.md
           draft: false
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
