@@ -43,6 +43,36 @@ jobs:
           node-version: '20'
           cache: 'yarn'
 
+      - name: 🏷️ Sync Version from Tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          # Extract version from tag (remove 'v' prefix)
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          echo "📌 Tag version: $TAG_VERSION"
+          
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "📦 Current package.json version: $CURRENT_VERSION"
+          
+          # Update package.json if versions differ
+          if [ "$TAG_VERSION" != "$CURRENT_VERSION" ]; then
+            echo "🔄 Updating package.json version to $TAG_VERSION"
+            # Use node to update package.json properly
+            node -e "
+              const fs = require('fs');
+              const pkg = require('./package.json');
+              pkg.version = '$TAG_VERSION';
+              fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+            "
+            echo "✅ Version updated successfully!"
+          else
+            echo "✅ Versions already match, no update needed"
+          fi
+          
+          # Verify the update
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "📦 Final package.json version: $NEW_VERSION"
+
       - name: 📦 Install dependencies
         run: yarn install --frozen-lockfile
 
