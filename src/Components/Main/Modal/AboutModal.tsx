@@ -13,7 +13,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FiExternalLink } from 'react-icons/fi';
 import { IoMdClose } from 'react-icons/io';
 import { RxUpdate } from 'react-icons/rx';
-import { useToast } from '@/Components/SubComponents/shadcn/components/ui/use-toast';
+import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 
 interface AboutModalProps {
   isOpen: boolean;
