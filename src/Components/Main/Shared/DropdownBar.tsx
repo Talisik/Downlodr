@@ -348,7 +348,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
                   }}
                 >
                   <RxUpdate size={16} />
-                  <span className="text-xs">Check for Updates</span>
+                  <span className="text-xs whitespace-nowrap">Check for Updates</span>
                 </button>
               </div>
               <div className="mx-1">
