@@ -73,8 +73,11 @@ jobs:
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "📦 Final package.json version: $NEW_VERSION"
 
+      - name: 🧹 Clean Yarn cache (prevent corruption)
+        run: yarn cache clean
+
       - name: 📦 Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile --network-timeout 100000
 
       - name: 🔐 Import Code Signing Certificate
         env:
