@@ -68,10 +68,16 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
           console.log('[UpdateNotification] Auto-update status:', info);
           setAutoUpdateInfo(info);
 
-          // Show notification when update is available or downloaded
-          if (info.status === 'available' || info.status === 'downloaded') {
+          // Show notification when update is available, downloading, or downloaded
+          // For auto-download mode: 'available' transitions quickly to 'downloading'
+          // so we need to open on 'downloading' as well to ensure visibility
+          if (info.status === 'available' || info.status === 'downloading' || info.status === 'downloaded') {
             setInternalIsOpen(true);
-            setIsDismissed(false);
+            // Only reset dismissed state for 'downloaded' to ensure user sees install prompt
+            // Don't reset for 'downloading' to respect user's dismissal during download
+            if (info.status === 'downloaded') {
+              setIsDismissed(false);
+            }
           }
         });
       }
@@ -170,13 +176,15 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
     if (autoUpdateInfo?.status === 'downloading') {
       return `${Math.round(downloadProgress)}%`;
     }
-    return 'Install Now';
+    // 'available' state: auto-download is enabled, so download starts automatically
+    return 'Downloading...';
   };
 
-  const isActionDisabled = autoUpdateInfo?.status === 'downloading';
+  // Disable button during downloading and when auto-download is starting
+  const isActionDisabled = autoUpdateInfo?.status === 'downloading' || autoUpdateInfo?.status === 'available';
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] animate-in slide-in-from-bottom-4 fade-in duration-300">
+    <div className="fixed bottom-4 left-4 z-[9999] animate-in slide-in-from-bottom-4 fade-in duration-300">
       <div className="flex items-center gap-3 bg-[#1a1a2e] dark:bg-[#1a1a2e] text-white px-4 py-2.5 rounded-lg shadow-lg border border-gray-700/50">
         {/* Icon */}
         <div className="flex-shrink-0">
