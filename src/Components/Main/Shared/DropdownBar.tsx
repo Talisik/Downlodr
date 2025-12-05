@@ -176,35 +176,56 @@ const DropdownBar = ({ className }: { className?: string }) => {
   }, []);
 
   const handleCheckForUpdates = async () => {
-    toast({
-      title: 'Checking for updates',
-      description: `Currently checking for new updates, please wait`,
-      duration: 3000,
-    });
-    if (window.updateAPI?.checkForUpdates) {
+    setActiveMenu(null);
+
+    // Use the auto-updater API for checking and downloading updates
+    if (window.appAutoUpdater?.checkForUpdates) {
       try {
-        const result = await window.updateAPI.checkForUpdates();
-        console.log('Update check result:', result);
-        if (!result.hasUpdate) {
+        toast({
+          title: 'Checking for updates...',
+          description: 'Looking for new versions',
+          duration: 2000,
+        });
+
+        const result = await window.appAutoUpdater.checkForUpdates();
+        console.log('[DropdownBar] Update check result:', result);
+
+        // Only show toast for "no update" case - the UpdateNotification component
+        // will handle showing the persistent notification for available/downloading/downloaded states
+        if (result.status === 'not-available') {
           toast({
             title: "You're up to date!",
             description: `You're using the latest version (v${result.currentVersion}).`,
             duration: 3000,
           });
+        } else if (result.status === 'error') {
+          toast({
+            variant: 'destructive',
+            title: 'Update check failed',
+            description: result.error || 'Please try again later',
+            duration: 3000,
+          });
         }
-        setActiveMenu(null);
+        // For 'available', 'downloading', 'downloaded' states,
+        // the UpdateNotification component will show the persistent bottom-left bar
       } catch (error) {
         toast({
           variant: 'destructive',
-          title: 'Server Unavailable',
-          description: `Please check again later`,
+          title: 'Update check failed',
+          description: 'Please check again later',
           duration: 3000,
         });
-        console.error('Error checking for updates:', error);
+        console.error('[DropdownBar] Error checking for updates:', error);
       }
     } else {
-      console.error('updateAPI is not available');
-      setActiveMenu(null);
+      // Fallback for dev mode or if auto-updater isn't available
+      toast({
+        variant: 'destructive',
+        title: 'Auto-updates unavailable',
+        description: 'Auto-updates are only available in the packaged app.',
+        duration: 3000,
+      });
+      console.error('[DropdownBar] appAutoUpdater is not available');
     }
   };
 

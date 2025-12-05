@@ -73,9 +73,11 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
           // so we need to open on 'downloading' as well to ensure visibility
           if (info.status === 'available' || info.status === 'downloading' || info.status === 'downloaded') {
             setInternalIsOpen(true);
-            // Only reset dismissed state for 'downloaded' to ensure user sees install prompt
+            // Reset dismissed state for 'available' and 'downloaded' to ensure user sees the notification
+            // - 'available': New update found, user should see it
+            // - 'downloaded': Update ready to install, user must see install prompt
             // Don't reset for 'downloading' to respect user's dismissal during download
-            if (info.status === 'downloaded') {
+            if (info.status === 'available' || info.status === 'downloaded') {
               setIsDismissed(false);
             }
           }

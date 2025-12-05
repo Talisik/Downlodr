@@ -49,7 +49,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
     getVersion();
   }, []);
 
-  // Listen for auto-update status changes (only update UI state, no toasts here)
+  // Listen for auto-update status changes (only update UI state, no toasts)
   useEffect(() => {
     if (!window.appAutoUpdater?.onUpdateStatus) return;
 
@@ -69,22 +69,14 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
         setAppVersion(info.currentVersion);
       }
 
-      // Note: Toasts are NOT shown here to avoid duplicate notifications.
-      // The UpdateNotification component handles showing the update dialog.
-      // Only show toast for 'downloaded' state as a reminder when modal is open.
-      if (info.status === 'downloaded' && isOpen) {
-        toast({
-          title: 'Update Ready!',
-          description: `Version ${info.version} is ready to install.`,
-          duration: 5000,
-        });
-      }
+      // Note: No toasts here - the UpdateNotification component handles
+      // showing the persistent notification bar at bottom-left
     });
 
     return () => {
       removeListener();
     };
-  }, [toast, appVersion, isOpen]);
+  }, [appVersion]);
 
   // Close Modal
   const handleClose = () => {
@@ -107,27 +99,25 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
         const result = await window.appAutoUpdater.checkForUpdates();
         console.log('[AboutModal] Check updates result:', result);
 
-        // Show feedback based on result
-        if (result.status === 'available') {
-          toast({
-            title: 'Update Available!',
-            description: `Version ${result.version} is downloading...`,
-            duration: 3000,
-          });
-        } else if (result.status === 'not-available') {
+        // Only show toast for "no update" or "error" cases
+        // The UpdateNotification component will show the persistent bottom-left bar
+        // for 'available', 'downloading', and 'downloaded' states
+        if (result.status === 'not-available') {
           toast({
             title: "You're up to date!",
             description: `You're using the latest version.`,
             duration: 3000,
           });
-        } else if (result.status === 'downloaded') {
+        } else if (result.status === 'error') {
           toast({
-            title: 'Update Ready!',
-            description: `Version ${result.version} is ready to install.`,
+            title: 'Update check failed',
+            description: result.error || 'Please try again later.',
+            variant: 'destructive',
             duration: 3000,
           });
         }
-        // Note: errors are handled by the listener, no need to show toast here
+        // For 'available', 'downloading', 'downloaded' states,
+        // the UpdateNotification component shows the persistent notification
       } else {
         // Fallback: auto-updater not available (dev mode)
         setUpdateStatus('error');
