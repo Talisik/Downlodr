@@ -327,7 +327,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
                   }}
                 >
                   <RxUpdate size={16} />
-                  <span className="text-xs">App Updates</span>
+                  <span className="text-xs">Check for Updates</span>
                 </button>
               </div>
               <div className="mx-1">
