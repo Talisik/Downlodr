@@ -39,43 +39,43 @@ async function setupFFmpegBinary() {
     console.warn('setupFFmpegBinary called before app is ready - skipping');
     return;
   }
-  
+
   const ffmpegName = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
-  
+
   // In production, use app's user data directory which is writable
   // In development, use system FFmpeg
   if (app.isPackaged) {
     const targetDir = app.getPath('userData');
     const expectedPath = path.join(targetDir, ffmpegName);
-    
+
     // Determine architecture-specific FFmpeg binary
     const arch = process.arch;
     const ffmpegResourceName = arch === 'arm64' ? 'ffmpeg-arm64' : 'ffmpeg-x64';
     const sourcePath = path.join(process.resourcesPath, ffmpegResourceName);
-    
+
     console.log('Setting up FFmpeg binary for production...');
     console.log(`Architecture: ${arch}`);
     console.log('Source path:', sourcePath);
     console.log('Target path:', expectedPath);
-    
+
     // First, check if we have a local copy
     if (existsSync(expectedPath)) {
       console.log('FFmpeg binary already exists at:', expectedPath);
       process.env.FFMPEG_PATH = expectedPath;
       return;
     }
-    
+
     // Check if FFmpeg exists in resources (bundled with app)
     if (existsSync(sourcePath)) {
       try {
         // Copy the binary to the user data location
         fs.copyFileSync(sourcePath, expectedPath);
-        
+
         // Make it executable on Unix systems
         if (process.platform !== 'win32') {
           fs.chmodSync(expectedPath, 0o755);
         }
-        
+
         console.log('✅ FFmpeg binary copied from bundled resources to:', expectedPath);
         process.env.FFMPEG_PATH = expectedPath;
         return;
@@ -96,14 +96,14 @@ async function setupFFmpegBinary() {
     } else {
       console.warn(`⚠️ Bundled FFmpeg not found at: ${sourcePath}`);
     }
-    
+
     // Fallback: Try to find system FFmpeg (should not be needed with bundled binaries)
     console.log('Checking for system FFmpeg as fallback...');
     const systemFFmpeg = await checkSystemFFmpeg();
-    
+
     if (systemFFmpeg) {
       console.log('✅ Found system FFmpeg at:', systemFFmpeg);
-      
+
       // Try to copy system FFmpeg to app directory for faster access
       const copied = await copySystemFFmpegToApp();
       if (copied && existsSync(expectedPath)) {
@@ -126,7 +126,7 @@ async function setupFFmpegBinary() {
     const arch = process.arch;
     const devBinaryName = arch === 'arm64' ? 'ffmpeg-arm64' : 'ffmpeg-x64';
     const devBinaryPath = path.join(__dirname, 'binaries', devBinaryName);
-    
+
     if (existsSync(devBinaryPath)) {
       process.env.FFMPEG_PATH = devBinaryPath;
       console.log('✅ Development mode: using bundled FFmpeg at:', devBinaryPath);
@@ -137,7 +137,7 @@ async function setupFFmpegBinary() {
       console.log('Development mode: using system FFmpeg at:', process.env.FFMPEG_PATH);
     }
   }
-  
+
   console.log('FFmpeg configured at:', process.env.FFMPEG_PATH);
 }
 
@@ -148,16 +148,16 @@ function setupYTDLPBinary() {
     console.warn('setupYTDLPBinary called before app is ready - skipping');
     return;
   }
-  
+
   const binaryName =
     process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp_macos';
-  
+
   // In production, use app's user data directory which is writable
   // In development, use current working directory
   const targetDir = app.isPackaged
     ? app.getPath('userData')
     : process.cwd();
-    
+
   const expectedPath = path.join(targetDir, binaryName);
 
   if (app.isPackaged) {
@@ -177,7 +177,7 @@ function setupYTDLPBinary() {
         if (!existsSync(userDataDir)) {
           fs.mkdirSync(userDataDir, { recursive: true });
         }
-        
+
         // Copy the binary to the user data location if it doesn't exist or is outdated
         if (!existsSync(expectedPath)) {
           fs.copyFileSync(sourcePath, expectedPath);
@@ -192,7 +192,7 @@ function setupYTDLPBinary() {
           // Check if source is newer than target (for updates)
           const sourceStats = fs.statSync(sourcePath);
           const targetStats = fs.statSync(expectedPath);
-          
+
           if (sourceStats.mtime > targetStats.mtime) {
             fs.copyFileSync(sourcePath, expectedPath);
             if (process.platform !== 'win32') {
@@ -203,13 +203,13 @@ function setupYTDLPBinary() {
             console.log('YTDLP binary already up-to-date at:', expectedPath);
           }
         }
-        
+
         // Update YTDLP configuration to use the correct path
         process.env.YTDLP_PATH = expectedPath;
-        
+
       } catch (error) {
         console.error('Failed to copy YTDLP binary:', error);
-        
+
         // Fallback: try to use the binary directly from resources
         if (existsSync(sourcePath)) {
           process.env.YTDLP_PATH = sourcePath;
@@ -260,7 +260,7 @@ app.whenReady().then(async () => {
   try {
     // Setup FFmpeg binary first (needed for merging)
     await setupFFmpegBinary();
-    
+
     // Setup additional binary configuration
     setupYTDLPBinary();
 
@@ -298,6 +298,7 @@ declare const MAIN_WINDOW_VITE_NAME: string;
 let tray: Tray | null = null;
 let mainWindow: BrowserWindow | null = null;
 let forceQuit = false;
+let activeNotification: Notification | null = null;
 let runInBackgroundSetting = true;
 let pluginManager: PluginManager;
 
@@ -340,10 +341,10 @@ const createWindow = () => {
       process.platform === 'darwin'
         ? false
         : {
-            color: '#2f3241',
-            symbolColor: '#74b1be',
-            height: 40,
-          },
+          color: '#2f3241',
+          symbolColor: '#74b1be',
+          height: 40,
+        },
     autoHideMenuBar: process.platform !== 'darwin', // Keep menu on macOS
     minWidth: 1000,
     minHeight: 600,
@@ -449,15 +450,15 @@ const createWindow = () => {
               },
               ...(process.env.NODE_ENV === 'development'
                 ? [
-                    {
-                      label: 'Toggle Developer Tools',
-                      accelerator:
-                        process.platform === 'darwin'
-                          ? 'Alt+Command+I'
-                          : 'Ctrl+Shift+I',
-                      role: 'toggleDevTools',
-                    },
-                  ]
+                  {
+                    label: 'Toggle Developer Tools',
+                    accelerator:
+                      process.platform === 'darwin'
+                        ? 'Alt+Command+I'
+                        : 'Ctrl+Shift+I',
+                    role: 'toggleDevTools',
+                  },
+                ]
                 : []),
               { type: 'separator' },
               {
@@ -662,6 +663,18 @@ const createTray = () => {
     {
       label: 'Check for Updates',
       click: async () => {
+        const showUpdateNotification = (title: string, body: string) => {
+          if (activeNotification) {
+            activeNotification.close();
+          }
+          activeNotification = new Notification({
+            title,
+            body,
+            icon: path.join(__dirname, '../Assets/AppLogo/256x256.png'),
+          });
+          activeNotification.show();
+        };
+
         try {
           const updateInfo = await checkForUpdates();
           if (updateInfo.hasUpdate) {
@@ -670,33 +683,22 @@ const createTray = () => {
               mainWindow.focus();
               mainWindow.webContents.send('update-available', updateInfo);
             }
-            // Show native notification
-            const notification = new Notification({
-              title: 'Update Available',
-              body: `Version ${
-                updateInfo.latestVersion || 'Unknown'
-              } is available for download`,
-              icon: path.join(__dirname, '../Assets/AppLogo/256x256.png'),
-            });
-            notification.show();
+            showUpdateNotification(
+              'Update Available',
+              `Version ${updateInfo.latestVersion || 'Unknown'} is available for download`
+            );
           } else {
-            // Show "no updates" notification
-            const notification = new Notification({
-              title: 'Downlodr is up to date',
-              body: 'You have the latest version installed',
-              icon: path.join(__dirname, '../Assets/AppLogo/256x256.png'),
-            });
-            notification.show();
+            showUpdateNotification(
+              'Downlodr is up to date',
+              'You have the latest version installed'
+            );
           }
         } catch (error) {
           console.error('Failed to check for updates:', error);
-          // Show error notification
-          const notification = new Notification({
-            title: 'Update Check Failed',
-            body: 'Unable to check for updates. Please try again later.',
-            icon: path.join(__dirname, '../Assets/AppLogo/256x256.png'),
-          });
-          notification.show();
+          showUpdateNotification(
+            'Update Check Failed',
+            'Unable to check for updates. Please try again later.'
+          );
         }
       },
     },
@@ -1089,10 +1091,10 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     // Ensure YTDLP binary is set up before getting playlist info
     setupYTDLPBinary();
-    
+
     // Configure YTDLP to use the correct binary path
     if (process.env.YTDLP_PATH) {
       YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
@@ -1100,7 +1102,7 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
 
     // Check if this is a YouTube Radio/Mix playlist (infinite playlists)
     const isRadioPlaylist = videoUrl.url.includes('list=RD');
-    
+
     console.log(`🔄 Fetching playlist info - URL: ${videoUrl.url}`);
     console.log(`📻 Is Radio/Mix playlist: ${isRadioPlaylist}`);
 
@@ -1114,25 +1116,25 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
     // because they can be infinite and cause yt-dlp to hang
     if (isRadioPlaylist) {
       console.log('🎵 Using custom handler for YouTube Radio/Mix playlist...');
-      
+
       // Use our custom playlist helper with appropriate limits
       const { getPlaylistInfo } = await import('./Utils/customPlaylistHelper');
-      
+
       const ytdlpPath = process.env.YTDLP_PATH || getYtdlpBinaryPath();
       const ffmpegPath = process.env.FFMPEG_PATH;
-      
+
       const result = await getPlaylistInfo({
         url: videoUrl.url,
         ytdlpPath,
         ffmpegPath,
         playlistEnd: 50, // Limit Radio playlists to 50 entries
       });
-      
-      console.log('📊 Custom playlist result:', { 
-        ok: result.ok, 
-        entries: result.data?.entries?.length || 0 
+
+      console.log('📊 Custom playlist result:', {
+        ok: result.ok,
+        entries: result.data?.entries?.length || 0
       });
-      
+
       return result;
     } else {
       // Use standard YTDLP for regular playlists
@@ -1153,12 +1155,12 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     YTDLP.Config.log = true;
-    
+
     // Ensure YTDLP binary is set up before getting info
     setupYTDLPBinary();
-    
+
     // Configure YTDLP to use the correct binary path
     if (process.env.YTDLP_PATH) {
       YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
@@ -1181,13 +1183,13 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
       info = await YTDLP.getInfo(url);
     } catch (getInfoError) {
       console.error('getInfo failed, attempting with retry...', getInfoError);
-      
+
       // If getInfo fails, it might be returning a string error instead of throwing
       // Check if the error is a string (SSL error output)
       if (typeof getInfoError === 'string' && getInfoError.includes('ERROR')) {
         throw new Error(`yt-dlp execution failed: ${getInfoError}`);
       }
-      
+
       throw getInfoError;
     } finally {
       // Restore original options
@@ -1211,10 +1213,10 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
     return info;
   } catch (error) {
     console.error('Error fetching video info:', error);
-    
+
     // Provide user-friendly error messages
     let errorMessage = error.message || 'Unknown error occurred';
-    
+
     if (errorMessage.includes('SSL') || errorMessage.includes('CERTIFICATE')) {
       errorMessage = 'SSL certificate error. Please check your internet connection or try again later.';
     } else if (errorMessage.includes('HTTP Error 429')) {
@@ -1224,11 +1226,11 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
     } else if (errorMessage.includes('Private video')) {
       errorMessage = 'This video is private and cannot be accessed.';
     }
-    
-    return { 
+
+    return {
       ok: false,
       error: errorMessage,
-      originalError: error.message 
+      originalError: error.message
     };
   }
 });
@@ -1240,10 +1242,10 @@ ipcMain.handle('ytdlp:getCurrentVersion', async () => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     // Ensure YTDLP binary is set up before checking version
     setupYTDLPBinary();
-    
+
     // Configure YTDLP to use the correct binary path
     if (process.env.YTDLP_PATH) {
       YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
@@ -1285,12 +1287,12 @@ ipcMain.handle('ytdlp:getLatestVersion', async () => {
 
     // Make the API call
     lastGitHubApiCall = Date.now();
-    
+
     // Ensure YTDLP is initialized
     if (!YTDLP) {
       YTDLP = initializeYTDLP();
     }
-    
+
     const response = await YTDLP.getLatestYTDLPVersionFromGitHub();
 
     // Cache the result if successful
@@ -1330,7 +1332,7 @@ ipcMain.handle('ytdlp:checkAndUpdate', async () => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     // Ensure YTDLP binary is set up before checking version
     setupYTDLPBinary();
 
@@ -1380,12 +1382,12 @@ ipcMain.handle('ytdlp:checkAndUpdate', async () => {
 
     if (!currentVersion) {
       console.log('YT-DLP not found. Downloading latest version...');
-      
+
       // Ensure YTDLP is initialized
       if (!YTDLP) {
         YTDLP = initializeYTDLP();
       }
-      
+
       await YTDLP.downloadYTDLP();
       return {
         success: true,
@@ -1401,12 +1403,12 @@ ipcMain.handle('ytdlp:checkAndUpdate', async () => {
 
     if (latestVersion && currentVersion !== latestVersion) {
       console.log('Updating YT-DLP to latest version...');
-      
+
       // Ensure YTDLP is initialized
       if (!YTDLP) {
         YTDLP = initializeYTDLP();
       }
-      
+
       await YTDLP.downloadYTDLP({
         version: latestVersion,
         forceDownload: true,
@@ -1445,7 +1447,7 @@ ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
   try {
     // Ensure YTDLP binary is set up first
     setupYTDLPBinary();
-    
+
     // Configure YTDLP to use the correct binary path
     if (process.env.YTDLP_PATH) {
       YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
@@ -1498,7 +1500,7 @@ ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     await YTDLP.downloadYTDLP(downloadOptions);
     return { success: true };
   } catch (error) {
@@ -1515,7 +1517,7 @@ async function killControllerById(id: any) {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     const controller = YTDLP.getTerminalFromID(id);
 
     if (controller) {
@@ -1537,7 +1539,7 @@ ipcMain.handle('ytdlp:stop', async (e, id: string) => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     const terminal = YTDLP.getTerminalFromID(id);
     if (!terminal) {
       return false;
@@ -1561,10 +1563,10 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     // Ensure YTDLP binary is set up before downloading
     setupYTDLPBinary();
-    
+
     // Configure YTDLP to use the correct binary path
     if (process.env.YTDLP_PATH) {
       YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
@@ -1577,7 +1579,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
       url: args.url,
       remuxVideo: args.remuxVideo
     });
-    
+
     // Ensure FFmpeg is configured before download (critical for merging)
     if (process.env.FFMPEG_PATH) {
       YTDLP.Config.ffmpegPath = process.env.FFMPEG_PATH;
@@ -1595,7 +1597,7 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
         console.log('FFmpeg path found and set:', ffmpegPath);
       }
     }
-    
+
     // Add SSL bypass option to handle certificate errors
     // This ensures downloads work even with SSL certificate issues
     const originalOptions = YTDLP.Config.options || [];
@@ -1603,12 +1605,12 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
       ...originalOptions,
       '--no-check-certificate', // Bypass SSL certificate validation
     ];
-    
+
     // Use safe format selection with fallback
     // If specific formats are requested, use them with fallback
     // Otherwise use 'best' as default
     let formatString = 'best';
-    
+
     if (args.videoFormat && args.audioFormatId) {
       // Request specific video+audio combination with fallbacks
       formatString = `${args.videoFormat}+${args.audioFormatId}/bestvideo+bestaudio/best`;
@@ -1626,128 +1628,128 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     let controller;
     try {
       controller = await YTDLP.download({
-      // args needed for download
-      args: {
-        url: args.url,
-        output: args.outputFilepath,
-        // Use format string with fallbacks instead of separate videoFormat
-        format: formatString,
-        remuxVideo: args.remuxVideo,
-        // Explicitly pass FFmpeg path to ensure it's available for merging
-        ffmpegLocation: process.env.FFMPEG_PATH || YTDLP.Config.ffmpegPath,
-        // Keep these for compatibility but format string takes precedence
-        videoFormat: args.videoFormat,
-        audioFormat: args.audioExt,
-        audioQuality: args.audioFormatId,
-        limitRate: args.limitRate,
-      },
-    });
+        // args needed for download
+        args: {
+          url: args.url,
+          output: args.outputFilepath,
+          // Use format string with fallbacks instead of separate videoFormat
+          format: formatString,
+          remuxVideo: args.remuxVideo,
+          // Explicitly pass FFmpeg path to ensure it's available for merging
+          ffmpegLocation: process.env.FFMPEG_PATH || YTDLP.Config.ffmpegPath,
+          // Keep these for compatibility but format string takes precedence
+          videoFormat: args.videoFormat,
+          audioFormat: args.audioExt,
+          audioQuality: args.audioFormatId,
+          limitRate: args.limitRate,
+        },
+      });
 
-    if (!controller || typeof controller.listen !== 'function') {
-      throw new Error(
-        'Controller is not defined or does not have a listen method',
-      );
-    }
+      if (!controller || typeof controller.listen !== 'function') {
+        throw new Error(
+          'Controller is not defined or does not have a listen method',
+        );
+      }
 
-    // Send the controller ID back to the renderer process
-    e.sender.send(`ytdlp:controller:${id}`, {
-      downloadId: id,
-      controllerId: controller.id,
-    });
+      // Send the controller ID back to the renderer process
+      e.sender.send(`ytdlp:controller:${id}`, {
+        downloadId: id,
+        controllerId: controller.id,
+      });
 
-    // Set up process completion detection WITHOUT interfering with the main stream
-    let processCompletionHandled = false;
-    let completeLog = ''; // Collect all logs here
+      // Set up process completion detection WITHOUT interfering with the main stream
+      let processCompletionHandled = false;
+      let completeLog = ''; // Collect all logs here
 
-    if (controller.process) {
-      const handleProcessCompletion = (
-        code: number,
-        signal: string,
-        eventType: string,
-      ) => {
-        if (processCompletionHandled) return; // Prevent duplicate handling
-        processCompletionHandled = true;
+      if (controller.process) {
+        const handleProcessCompletion = (
+          code: number,
+          signal: string,
+          eventType: string,
+        ) => {
+          if (processCompletionHandled) return; // Prevent duplicate handling
+          processCompletionHandled = true;
 
-        const completionMessage = `Process '${controller.id}' ${eventType} with code: ${code}, signal: ${signal}`;
+          const completionMessage = `Process '${controller.id}' ${eventType} with code: ${code}, signal: ${signal}`;
 
-        // completion message to complete log
-        completeLog += `\n${completionMessage}`;
+          // completion message to complete log
+          completeLog += `\n${completionMessage}`;
 
-        // Send completion with complete log after a small delay to ensure all other logs are processed first
-        setTimeout(() => {
+          // Send completion with complete log after a small delay to ensure all other logs are processed first
+          setTimeout(() => {
+            e.sender.send(`ytdlp:download:status:${id}`, {
+              type: 'completion',
+              data: {
+                log: completionMessage,
+                completeLog: completeLog,
+                exitCode: code,
+                signal: signal,
+                controllerId: controller.id,
+              },
+            });
+          }, 100); // Small delay to ensure stream logs are processed first
+        };
+
+        controller.process.on('exit', (code: number, signal: string) => {
+          handleProcessCompletion(code, signal, 'exited');
+        });
+
+        controller.process.on('close', (code: number, signal: string) => {
+          // Only handle close if exit wasn't already handled
+          if (!processCompletionHandled) {
+            handleProcessCompletion(code, signal, 'closed');
+          }
+        });
+      } else {
+        console.log(
+          `⚠️ Controller ${controller.id} does not expose process - will rely on stream completion`,
+        );
+      }
+
+      // Process the main download stream normally
+      for await (const chunk of controller.listen()) {
+        // Collect ALL logs in the main process
+        if (chunk?.data?.log) {
+          completeLog += chunk.data.log; // Add to complete log
+        }
+
+        // Send chunks normally for progress updates, but also include complete log so far
+        const enhancedChunk = {
+          ...chunk,
+          completeLog: completeLog, // Add complete log to every chunk
+        };
+        e.sender.send(`ytdlp:download:status:${id}`, enhancedChunk);
+
+        // Handle download completion notifications
+        if (chunk != null && chunk.data && chunk.data.status === 'finished') {
+          setAlertTrayIcon();
+
+          // Notify the main process about the finished download
+          const win = BrowserWindow.getAllWindows()[0];
+          if (win) {
+            win.webContents.send('download-finished', {
+              name: args.name,
+              id: id,
+              location: args.outputFilepath,
+            });
+          }
+        }
+      }
+      // If process completion wasn't handled through events, send a fallback after delay
+      setTimeout(() => {
+        if (!processCompletionHandled) {
           e.sender.send(`ytdlp:download:status:${id}`, {
-            type: 'completion',
+            type: 'stream_ended',
             data: {
-              log: completionMessage,
-              completeLog: completeLog,
-              exitCode: code,
-              signal: signal,
+              log: `Process '${controller.id}' stream completed`,
               controllerId: controller.id,
             },
           });
-        }, 100); // Small delay to ensure stream logs are processed first
-      };
-
-      controller.process.on('exit', (code: number, signal: string) => {
-        handleProcessCompletion(code, signal, 'exited');
-      });
-
-      controller.process.on('close', (code: number, signal: string) => {
-        // Only handle close if exit wasn't already handled
-        if (!processCompletionHandled) {
-          handleProcessCompletion(code, signal, 'closed');
         }
-      });
-    } else {
-      console.log(
-        `⚠️ Controller ${controller.id} does not expose process - will rely on stream completion`,
-      );
-    }
+      }, 2000);
 
-    // Process the main download stream normally
-    for await (const chunk of controller.listen()) {
-      // Collect ALL logs in the main process
-      if (chunk?.data?.log) {
-        completeLog += chunk.data.log; // Add to complete log
-      }
-
-      // Send chunks normally for progress updates, but also include complete log so far
-      const enhancedChunk = {
-        ...chunk,
-        completeLog: completeLog, // Add complete log to every chunk
-      };
-      e.sender.send(`ytdlp:download:status:${id}`, enhancedChunk);
-
-      // Handle download completion notifications
-      if (chunk != null && chunk.data && chunk.data.status === 'finished') {
-        setAlertTrayIcon();
-
-        // Notify the main process about the finished download
-        const win = BrowserWindow.getAllWindows()[0];
-        if (win) {
-          win.webContents.send('download-finished', {
-            name: args.name,
-            id: id,
-            location: args.outputFilepath,
-          });
-        }
-      }
-    }
-    // If process completion wasn't handled through events, send a fallback after delay
-    setTimeout(() => {
-      if (!processCompletionHandled) {
-        e.sender.send(`ytdlp:download:status:${id}`, {
-          type: 'stream_ended',
-          data: {
-            log: `Process '${controller.id}' stream completed`,
-            controllerId: controller.id,
-          },
-        });
-      }
-    }, 2000);
-
-    // Return the download ID and controller ID
-    return { downloadId: id, controllerId: controller.id };
+      // Return the download ID and controller ID
+      return { downloadId: id, controllerId: controller.id };
     } finally {
       // Restore original options
       YTDLP.Config.options = originalOptions;
@@ -1783,14 +1785,14 @@ ipcMain.handle('check-clipboard-monitoring', () => {
 // Manual merge handler for troubleshooting
 ipcMain.handle('merge-video-audio', async (event, options) => {
   const { videoPath, audioPath, outputPath } = options;
-  
+
   try {
     const { spawn } = await import('child_process');
-    const ffmpegPath = process.env.FFMPEG_PATH || 
+    const ffmpegPath = process.env.FFMPEG_PATH ||
       (process.platform === 'darwin' ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg');
-    
+
     console.log(`🎬 Manual merge requested: ${path.basename(outputPath)}`);
-    
+
     return new Promise((resolve) => {
       const ffmpeg = spawn(ffmpegPath, [
         '-i', videoPath,
@@ -1803,13 +1805,13 @@ ipcMain.handle('merge-video-audio', async (event, options) => {
         '-y',
         outputPath
       ]);
-      
+
       let errorOutput = '';
-      
+
       ffmpeg.stderr.on('data', (data) => {
         errorOutput += data.toString();
       });
-      
+
       ffmpeg.on('close', (code) => {
         if (code === 0) {
           console.log(`✅ Manual merge successful: ${path.basename(outputPath)}`);
@@ -1819,7 +1821,7 @@ ipcMain.handle('merge-video-audio', async (event, options) => {
           resolve({ success: false, error: errorOutput });
         }
       });
-      
+
       ffmpeg.on('error', (error) => {
         console.error('❌ FFmpeg error:', error.message);
         resolve({ success: false, error: error.message });
@@ -2450,7 +2452,7 @@ ipcMain.handle('convert-file', async (event, options) => {
     );
 
     // Check if FFmpeg is available - use configured path
-    const ffmpegPath = process.env.FFMPEG_PATH || 
+    const ffmpegPath = process.env.FFMPEG_PATH ||
       (process.platform === 'darwin' ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg');
 
     // Generate output path
@@ -2639,7 +2641,7 @@ ipcMain.handle('pause-conversion', async (event, downloadId) => {
 
     // Mark as paused BEFORE killing the process to prevent race conditions
     conversion.status = 'paused';
-    
+
     // Kill the FFmpeg process but keep the conversion state
     try {
       if (conversion.process) {
@@ -2833,7 +2835,7 @@ ipcMain.handle('stop-conversion', async (event, downloadId) => {
 
     // Mark as stopped BEFORE killing the process to prevent race conditions
     conversion.status = 'stopped';
-    
+
     // Kill the FFmpeg process
     if (conversion.process) {
       try {
