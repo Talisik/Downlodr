@@ -33,11 +33,11 @@
  */
 
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { processFileName } from '@/DataFunctions/FilterName';
 import { usePluginState } from '@/plugins/Hooks/usePluginState';
 import { MenuItem } from '@/plugins/types';
 import useDownloadStore, { BaseDownload } from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
+import { processFileName } from '@/Utils/Data/FilterName';
 import React, { useEffect, useState } from 'react';
 import { BsArrowCounterclockwise } from 'react-icons/bs';
 import { FaTerminal } from 'react-icons/fa';
@@ -396,6 +396,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       download.videoUrl || '',
       `${processedName}.${download.ext || ''}`,
       `${processedName}.${download.ext || ''}`,
+      download.displayName || '',
       download.size || 0,
       download.speed || '0 KB/s',
       download.channelName || '',
@@ -746,7 +747,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             <button
               key={item.id || item.label}
               className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-              onClick={() => {
+              onClick={async () => {
                 const contextData = {
                   name: download.name || '',
                   downloadId: download.id || '',
@@ -766,6 +767,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                   )?.thumnailsLocation,
                   extractorKey: allDownloads.find((d) => d.id === download.id)
                     ?.extractorKey,
+                  osType: await window.downlodrFunctions.getOSType(),
+                  seperatorType: window.downlodrFunctions.getPathSeparator(),
                 };
 
                 if (
@@ -982,9 +985,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                 }}
                 className="w-full outline-none dark:bg-darkMode dark:text-gray-200"
               />
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Max 10 characters
-              </div>
             </div>
           </div>
           <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider dark:border-gray-700" />

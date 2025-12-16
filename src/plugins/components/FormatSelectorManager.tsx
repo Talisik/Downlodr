@@ -68,14 +68,3 @@ const FormatSelectorManager: React.FC = () => {
 };
 
 export default FormatSelectorManager;
-
-// Add typings for the window object
-declare global {
-  interface Window {
-    formatSelectorManager?: {
-      showFormatSelector: (
-        options: FormatSelectorOptions,
-      ) => Promise<FormatSelectorResult | null>;
-    };
-  }
-}

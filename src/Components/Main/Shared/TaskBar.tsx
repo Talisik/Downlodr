@@ -22,7 +22,7 @@ import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
 import useDownloadStore from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import PluginTaskBarExtension from '@/plugins/components/PluginTaskBarExtension';
-import { DownloadItem } from '@/schema/componentSchema';
+import { DownloadItem } from '@/Schema/componentSchema';
 import React, { useState } from 'react';
 import { LuTrash } from 'react-icons/lu';
 import { useLocation } from 'react-router-dom';
@@ -157,9 +157,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             );
             if (success) {
               deleteDownloading(download.id);
-              console.log(
-                `Controller with ID ${currentDownload.controllerId} has been terminated.`,
-              );
               toast({
                 variant: 'success',
                 title: 'Download Stopped',
@@ -222,9 +219,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
               );
               if (success) {
                 deleteDownloading(download.id);
-                console.log(
-                  `Controller with ID ${download.controllerId} has been terminated.`,
-                );
                 toast({
                   variant: 'success',
                   title: 'Download Stopped',
@@ -308,6 +302,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         downloadInfo.videoUrl,
         `${processedName}.${downloadInfo.ext}`,
         `${processedName}.${downloadInfo.ext}`,
+        downloadInfo.displayName,
         downloadInfo.size,
         downloadInfo.speed,
         downloadInfo.channelName,
@@ -393,7 +388,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     const deleteFileSafely = async (download: any) => {
       try {
         let success = false;
-        console.log('deleteFolder', download.location);
         if (deleteFolder && download.location) {
           const folderExists = await window.downlodrFunctions.fileExists(
             download.location,
@@ -490,7 +484,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         });
         // Process queue after removing a failed download
         processQueue();
-        return;
+        continue;
       }
 
       // Check if it's a currently downloading file

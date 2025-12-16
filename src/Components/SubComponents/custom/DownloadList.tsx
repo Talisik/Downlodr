@@ -17,10 +17,10 @@ import ShareButton from '@/Components/SubComponents/custom/ShareButton';
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { Skeleton } from '@/Components/SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { getExtractorIcon, getStatusIcon } from '@/DataFunctions/IconMapper';
-import { DownloadItem } from '@/schema/componentSchema';
+import { DownloadItem } from '@/Schema/componentSchema';
 import useDownloadStore, { BaseDownload } from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
+import { getExtractorIcon, getStatusIcon } from '@/Utils/Icons/IconMapper';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FaPlay } from 'react-icons/fa';
 import { HiOutlineFolderOpen } from 'react-icons/hi';
@@ -124,9 +124,15 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   });
 
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const globalSelectedRowIds = useMainStore((state) => state.selectedRowIds);
   const setSelectedDownloads = useMainStore(
     (state) => state.setSelectedDownloads,
   );
+
+  // Sync local state with global state when global state changes (e.g., from TaskBar operations)
+  useEffect(() => {
+    setSelectedRowIds(globalSelectedRowIds);
+  }, [globalSelectedRowIds]);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [columnHeaderContextMenu, setColumnHeaderContextMenu] = useState<{
     visible: boolean;
@@ -301,11 +307,13 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   };
 
   const handleCheckboxChange = (downloadId: string) => {
-    const newSelected = selectedRowIds.includes(downloadId)
-      ? selectedRowIds.filter((id) => id !== downloadId)
-      : [...selectedRowIds, downloadId];
+    const newSelected = globalSelectedRowIds.includes(downloadId)
+      ? globalSelectedRowIds.filter((id) => id !== downloadId)
+      : [...globalSelectedRowIds, downloadId];
 
     setSelectedRowIds(newSelected);
+    // Also update the global state
+    useMainStore.getState().setSelectedRowIds(newSelected);
 
     // Create promises for each download
     const promises = newSelected.map(async (id) => {
@@ -334,11 +342,13 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
 
   const handleSelectAll = () => {
     const newSelected =
-      selectedRowIds.length === allDownloads.length
+      globalSelectedRowIds.length === allDownloads.length
         ? []
         : allDownloads.map((download) => download.id);
 
     setSelectedRowIds(newSelected);
+    // Also update the global state
+    useMainStore.getState().setSelectedRowIds(newSelected);
 
     // Create promises for each download
     const promises = newSelected.map(async (id) => {
@@ -580,6 +590,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         currentDownload.videoUrl,
         currentDownload.name,
         currentDownload.downloadName,
+        currentDownload.displayName || '',
         currentDownload.size,
         currentDownload.speed,
         currentDownload.channelName,
@@ -605,6 +616,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       // Clear selected downloads after starting/resuming download
       setSelectedRowIds([]);
       setSelectedDownloads([]);
+      useMainStore.getState().clearAllSelections();
       toast({
         variant: 'success',
         title: 'Download Resumed',
@@ -781,6 +793,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
             extractorKey: download.extractorKey,
             status: download.status,
             download: {
+              displayName: download.displayName || '',
               ...download,
             },
           };
@@ -799,6 +812,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         extractorKey: download.extractorKey,
         status: download.status,
         download: {
+          displayName: download.displayName || '',
           ...download,
         },
       };
@@ -823,14 +837,20 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     downloadLocation?: string,
     downloadId?: string,
   ) => {
-    console.log(downloadLocation, downloadId);
     if (downloadLocation) {
       try {
+        const download = allDownloads.find((d) => d.id === downloadId);
+        if (!download) return;
+        const fullDownloadLocation =
+          await window.downlodrFunctions.joinDownloadPath(
+            download.location,
+            download.downloadName,
+          );
         const exists = await window.downlodrFunctions.fileExists(
-          downloadLocation,
+          fullDownloadLocation,
         );
         if (exists) {
-          window.downlodrFunctions.openVideo(downloadLocation);
+          window.downlodrFunctions.openVideo(fullDownloadLocation);
         } else {
           // If the file doesn't exist, find the download and show the modal
           if (downloadId) {
@@ -847,6 +867,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                 extractorKey: download.extractorKey,
                 status: download.status,
                 download: {
+                  displayName: download.displayName || '',
                   ...download,
                 },
               };
@@ -868,6 +889,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                   extractorKey: download.extractorKey,
                   status: download.status,
                   download: {
+                    displayName: download.displayName || '',
                     ...download,
                   },
                 };
@@ -1062,7 +1084,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   return (
     <div className="w-full">
       <table className="w-full">
-        <thead>
+        <thead className="sticky top-0 z-20 bg-titleBar dark:bg-alternateBlack">
           <tr
             className="border-b text-left border-gray-200 dark:border-darkModeCompliment"
             onContextMenu={handleColumnHeaderContextMenu}
@@ -1073,7 +1095,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                 className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                 checked={
                   allDownloads.length > 0 &&
-                  selectedRowIds.length === allDownloads.length
+                  globalSelectedRowIds.length === allDownloads.length
                 }
                 onChange={handleSelectAll}
               />
@@ -1102,8 +1124,19 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                   className="flex items-center cursor-pointer"
                   onClick={() => handleSortClick(column.id)}
                 >
-                  {getColumnDisplayName(column.id)}
-                  {renderSortIndicator(column.id)}
+                  <span className="flex items-center gap-[0.5px]">
+                    {getColumnDisplayName(column.id)}
+                    {renderSortIndicator(column.id)}
+
+                    {column.id === 'title' &&
+                      globalSelectedRowIds.length > 0 && (
+                        <span className="text-xs">
+                          ({globalSelectedRowIds.length}{' '}
+                          {globalSelectedRowIds.length === 1 ? 'item' : 'items'}{' '}
+                          selected)
+                        </span>
+                      )}
+                  </span>
                 </div>
               </ResizableHeader>
             ))}
@@ -1139,7 +1172,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                   <input
                     type="checkbox"
                     className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
-                    checked={selectedRowIds.includes(download.id)}
+                    checked={globalSelectedRowIds.includes(download.id)}
                     onChange={(e) => {
                       e.stopPropagation();
                       handleCheckboxChange(download.id);
@@ -1163,11 +1196,11 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                             </div>
                           ) : (
                             <TooltipWrapper
-                              content={download.name}
+                              content={download.displayName || download.name}
                               side="bottom"
                             >
                               <div className="line-clamp-2 break-words">
-                                {download.name}
+                                {download.displayName || download.name}
                               </div>
                             </TooltipWrapper>
                           )}
@@ -1312,7 +1345,12 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                                       color: getStatusColor(download.status),
                                     }}
                                   >
-                                    <DownloadButton download={download} />
+                                    <DownloadButton
+                                      download={{
+                                        ...download,
+                                        displayName: download.displayName || '',
+                                      }}
+                                    />
                                   </div>
                                 </div>
                               ) : download.status === 'paused' ||

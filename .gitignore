@@ -36,6 +36,7 @@ TEST*.xml
 *.flv
 *.mov
 *.wmv
+*.bin
 
 # Package files
 *.jar
@@ -97,6 +98,10 @@ typings/
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
+
+# sonar
+*.properties
+.scannerwork/
 
 # next.js build output
 .next

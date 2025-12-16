@@ -37,10 +37,6 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
 
   // Handle close button click
   const handleCloseClick = () => {
-    console.log('Settings object:', settings);
-    console.log('runInBackgroundEnabled:', runInBackgroundEnabled);
-    console.log('showExitModal:', showExitModal);
-    console.log('settings.exitModal:', settings.exitModal);
     // If run in background is enabled and user hasn't disabled the exit modal, show the modal
     if (runInBackgroundEnabled && showExitModal) {
       setIsExitModalOpen(true);

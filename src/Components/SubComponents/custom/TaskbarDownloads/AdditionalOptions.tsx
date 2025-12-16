@@ -1,11 +1,13 @@
 import PlaylistSkeleton from '@/Components/SubComponents/custom/Skeletons/PlaylistSkeleton';
 import Input from '@/Components/SubComponents/shadcn/components/ui/input';
 import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
-import { isValidUrl } from '@/DataFunctions/urlValidation';
 import { useTaskbarDownloadStore, Video } from '@/Store/taskbarDownloadStore';
+import { isValidUrl } from '@/Utils/Data/urlValidation';
+import { useState } from 'react';
 import { MdOutlineInfo } from 'react-icons/md';
 
 interface AdditionalOptionsProps {
+  // isOpenOptions: boolean;
   isPlaylist: boolean;
   isLoading: boolean;
   selectAll: boolean;
@@ -17,6 +19,7 @@ interface AdditionalOptionsProps {
 }
 
 const AdditionalOptions = ({
+  // isOpenOptions,
   isPlaylist,
   isLoading,
   selectAll,
@@ -28,6 +31,7 @@ const AdditionalOptions = ({
 }: AdditionalOptionsProps) => {
   const { getTranscript, setGetTranscript, getThumbnail, setGetThumbnail } =
     useTaskbarDownloadStore();
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div
@@ -113,36 +117,43 @@ const AdditionalOptions = ({
       </div>
 
       {isPlaylist && isValidUrl && (
-        <div className="w-2/4 border-l border-divider dark:border-gray-700 pl-4">
+        <div className="w-3/5 border-l border-divider dark:border-gray-700 pl-4">
           {isLoading ? (
             <PlaylistSkeleton />
           ) : (
             <div className="video-section">
-              <div className="sticky top-0 bg-white dark:bg-darkModeDropdown pb-4 z-10">
-                <div className="select-all flex items-center">
-                  <Input
-                    type="checkbox"
-                    id={`select-all`}
-                    checked={selectAll}
-                    onChange={handleSelectAll}
-                    style={{
-                      width: 15,
-                      height: 15,
-                      marginBottom: 0.5,
-                      ...(document.documentElement.classList.contains(
-                        'dark',
-                      ) && {
-                        backgroundColor: selectAll ? '#D4D4D8' : '#09090B',
-                        borderColor: selectAll ? '#D4D4D8' : '#27272ACC',
-                      }),
-                    }}
-                    className="mr-2"
-                  />
-                  <label htmlFor={`select-all`}>
-                    <p className="w-6/7 dark:text-darkModeLight font-medium px-2">
-                      {videoTitle}
-                    </p>
-                  </label>
+              <div className="sticky top-0 bg-white dark:bg-darkModeDropdown pb-4 z-10 mt-1">
+                <div className="select-all flex items-center justify-between">
+                  <div className="select-all flex items-center">
+                    <Input
+                      type="checkbox"
+                      id={`select-all`}
+                      checked={selectAll}
+                      onChange={handleSelectAll}
+                      style={{
+                        width: 15,
+                        height: 15,
+                        marginBottom: 0.5,
+                        ...(document.documentElement.classList.contains(
+                          'dark',
+                        ) && {
+                          backgroundColor: selectAll ? '#D4D4D8' : '#09090B',
+                          borderColor: selectAll ? '#D4D4D8' : '#27272ACC',
+                        }),
+                      }}
+                      className="mr-2"
+                    />
+                    <label htmlFor={`select-all`}>
+                      <p className="dark:text-darkModeLight font-medium px-2">
+                        {videoTitle.length > 60
+                          ? `${videoTitle.slice(0, 60)}...`
+                          : videoTitle}
+                      </p>
+                    </label>
+                  </div>
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {selectedVideos.size} selected
+                  </span>
                 </div>
               </div>
               <div className="space-y-3 max-h-[180px] overflow-y-auto">

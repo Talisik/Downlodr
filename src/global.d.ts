@@ -6,9 +6,15 @@
  * that are accessible in the renderer process.
  */
 import { FormatSelectorResult, MenuItem, PluginInfo, PluginManifest, PluginModalOptions, PluginSidePanelOptions, PluginSidePanelResult, TaskBarItem } from './plugins/types';
-import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult } from './schema/downlodrFunction';
+import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult } from './Schema/downlodrFunction';
 
 declare global {
+  // Environment variables injected at build time
+  const __TELEMETRY_ENDPOINT__: string;
+  const __TELEMETRY_TIMEOUT__: string;
+  const __TELEMETRY_RETRY_ATTEMPTS__: string;
+  const __TELEMETRY_SCHEMA_URL__: string;
+
   interface Window {
     downlodrFunctions: {
       //Title bar functions
@@ -22,6 +28,9 @@ declare global {
       deleteFile: (videoPath: string) => Promise<boolean>; // Deletes a specified file from storage/drive
       deleteFolder: (folderPath: string) => Promise<boolean>; // Deletes a specified folder from storage/drive
       getDownloadFolder: () => Promise<string>; // Retrieves the default download folder path
+      getAppInfo: () => Promise<AppInfo>; // Retrieves the app information
+      getBrowserInfo: () => Promise<BrowserInfo>; // Retrieves the browser information
+      getHostInfo: () => Promise<DeviceInfo>; // Retrieves the device information
       isValidPath: (videoPath: string) => Promise<boolean>; // Validates a given file path if it exists
       joinDownloadPath: (
         downloadPath: string,
@@ -47,6 +56,9 @@ declare global {
       }>;
       ensureDirectoryExists: (dirPath: string) => Promise<boolean>; // Creates directory if it doesn't exist
       getThumbnailDataUrl: (path: string) => Promise<string | null>;
+      getOSType: () => Promise<'windows' | 'macos' | 'linux' | string>; // Gets the current operating system type
+      getPathSeparator: () => Promise<string>; // Gets the path separator for the current OS
+      checkInternetConnection: () => Promise<boolean>; // Checks if internet connection is available
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist
@@ -91,6 +103,26 @@ declare global {
     updateAPI: {
       onUpdateAvailable: (
         callback: (updateInfo: UpdateInfo) => void,
+      ) => () => void;
+      onYtdlpAutoUpdated: (
+        callback: (updateInfo: {
+          fromVersion: string;
+          toVersion: string;
+          message: string;
+        }) => void,
+      ) => () => void;
+      onYtdlpAutoInstalled: (
+        callback: (installInfo: {
+          version: string;
+          message: string;
+        }) => void,
+      ) => () => void;
+      onYtdlpUpdateAvailable: (
+        callback: (updateInfo: {
+          currentVersion: string;
+          latestVersion: string;
+          message: string;
+        }) => void,
       ) => () => void;
       checkForUpdates: () => Promise<UpdateInfo>;
       getCurrentVersion: () => Promise<string>; // Gets current app version without GitHub API call
@@ -173,6 +205,24 @@ declare global {
       clearLastClipboardText: () => Promise<void>;
       clearClipboard: () => Promise<boolean>;
       isWindowFocused: () => Promise<boolean>;
+    };
+
+    formatSelectorManager?: {
+      showFormatSelector: (
+        options: FormatSelectorOptions,
+      ) => Promise<FormatSelectorResult | null>;
+    };
+
+    pluginModalManager?: {
+      showPluginModal: (
+        options: PluginModalOptions,
+      ) => Promise<PluginModalResult | null>;
+    };
+
+    pluginSidePanelManager?: {
+      showPluginSidePanel: (
+        options: PluginSidePanelOptions,
+      ) => Promise<PluginSidePanelResult>;
     };
     
   }

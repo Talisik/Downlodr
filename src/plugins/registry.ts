@@ -77,13 +77,14 @@ export class PluginRegistry {
   }
 
   executeTaskBarItemAction(id: string, contextData?: ContextData): void {
+    /*
     console.log('Executing with contextData:', contextData);
     console.log('ContextData type:', typeof contextData);
     console.log(
       'ContextData keys:',
       contextData ? Object.keys(contextData) : 'none',
     );
-
+    */
     const handler = this.taskBarActionHandlers.get(id);
     if (handler) {
       handler(contextData);
@@ -108,7 +109,7 @@ export class PluginRegistry {
       // Clear handlers from this plugin
       const handlersToRemove: string[] = [];
       this.menuItemHandlers.forEach((_, key) => {
-        console.log(this.menuItemHandlers);
+        // console.log(this.menuItemHandlers);
         if (key.startsWith(pluginId)) {
           handlersToRemove.push(key);
         }

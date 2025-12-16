@@ -2,7 +2,6 @@ import { Copy, Download, Folder as FolderIcon, Settings } from '@/Assets/Icons';
 import Input from '@/Components/SubComponents/shadcn/components/ui/input';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
-import { cleanRawLink } from '@/DataFunctions/urlValidation';
 import useDownloadStore from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import {
@@ -10,7 +9,9 @@ import {
   useTaskbarDownloadStore,
   Video,
 } from '@/Store/taskbarDownloadStore';
-import { useEffect, useRef, useState } from 'react';
+import { cleanRawLink } from '@/Utils/Data/urlValidation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { waitForStoreRehydration } from '@/Hooks/useStoreRehydration';
 import AdditionalOptions from './AdditionalOptions';
 import FolderDirectory from './FolderDirectory';
 
@@ -49,6 +50,8 @@ const TaskbarInputField = () => {
   const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
   const [playlistVideos, setPlaylistVideos] = useState<Video[]>([]);
   const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
+  const [isAdditionalOptionsOpen, setIsAdditionalOptionsOpen] =
+    useState<boolean>(false);
 
   //  constant near the top of the component after other constants
   const RAW_YOUTUBE_PATTERN = /^https:\/\/youtu\.be\/[\w-]+(?:\?.*)?$/;
@@ -324,6 +327,12 @@ const TaskbarInputField = () => {
     }
   };
 
+  // Centralized function to close additional options
+  const closeAdditionalOptions = useCallback(() => {
+    setActiveButton(null);
+    setIsAdditionalOptionsOpen(false);
+  }, []);
+
   // Cleans up states of download modal variable
   const resetModal = () => {
     setVideoUrl('');
@@ -333,10 +342,15 @@ const TaskbarInputField = () => {
     setPlaylistVideos([]);
     setSelectedVideos(new Set());
     setDownloadFolder(settings.defaultLocation);
+    closeAdditionalOptions();
   };
 
   const handleDownload = async () => {
     try {
+      // Wait for store rehydration before processing downloads
+      // This prevents the first URL registration issue during app startup
+      await waitForStoreRehydration();
+
       if (isPlaylist) {
         const selectedVideosList = playlistVideos.filter((video) =>
           selectedVideos.has(video.id),
@@ -352,15 +366,20 @@ const TaskbarInputField = () => {
           return;
         }
 
-        // Download each selected video with user preferences
+        // Generate a unique batch ID for this playlist download
+        const playlistBatchId = `playlist_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+
+        // Download each selected video with user preferences and playlist tracking
         for (const video of selectedVideosList) {
           setDownload(video.url, downloadFolder, maxDownload, {
             getTranscript,
             getThumbnail,
+            isFromPlaylist: true,
+            playlistBatchId,
           });
         }
-
-        setActiveButton(null);
       } else {
         // Single video download with user preferences
         setDownload(videoUrl, downloadFolder, maxDownload, {
@@ -408,6 +427,16 @@ const TaskbarInputField = () => {
     });
   };
 
+  // Sync taskbar downloadFolder with main store defaultLocation
+  useEffect(() => {
+    if (
+      settings.defaultLocation &&
+      settings.defaultLocation !== downloadFolder
+    ) {
+      setDownloadFolder(settings.defaultLocation);
+    }
+  }, [settings.defaultLocation, downloadFolder, setDownloadFolder]);
+
   // Close additional options and folder directory modal when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -417,7 +446,7 @@ const TaskbarInputField = () => {
         !target.closest('#folder-directory-modal') &&
         !target.closest('#taskbar-input-field')
       ) {
-        setActiveButton(null);
+        closeAdditionalOptions();
       }
     };
 
@@ -426,12 +455,13 @@ const TaskbarInputField = () => {
     return () => {
       document.removeEventListener('click', handleClickOutside);
     };
-  }, []);
+  }, [closeAdditionalOptions]);
 
   // Opens additional options when playlist is valid
   useEffect(() => {
     if (isPlaylist && isValidUrl) {
       setActiveButton('settings');
+      setIsAdditionalOptionsOpen(true);
     }
   }, [isPlaylist, isValidUrl]);
 
@@ -507,6 +537,9 @@ const TaskbarInputField = () => {
             ),
             onClick: () => {
               setActiveButton(activeButton === 'settings' ? null : 'settings');
+              setIsAdditionalOptionsOpen(
+                activeButton === 'settings' ? false : true,
+              );
             },
             tooltip:
               'Get the transcript and Thumbnail along with your download.',
@@ -558,8 +591,9 @@ const TaskbarInputField = () => {
         }}
       />
 
-      {activeButton === 'settings' && (
+      {activeButton === 'settings' && isAdditionalOptionsOpen && (
         <AdditionalOptions
+          // isOpenOptions={isAdditionalOptionsOpen}
           isPlaylist={isPlaylist}
           isLoading={isLoading}
           selectAll={selectAll}

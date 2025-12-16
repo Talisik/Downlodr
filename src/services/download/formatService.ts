@@ -1,9 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
- * A custom React function
- * This function provides methods to process video formats from various platforms and create audio options
- * (YouTube, Dailymotion, Vimeo, etc.)
- * for audio-only formats. It includes methods to handle different format processing and return structured format options.
+ * Format service
+ * Handles video format processing and selection
  */
 
 import {
@@ -12,11 +9,12 @@ import {
   ProcessedFormats,
   VideoFormat,
   VideoInfo,
-} from '@/schema/metadata';
+} from '@/Schema/metadata';
 
-// TypeScript interfaces for video format data
-
-export class VideoFormatService {
+/**
+ * Service for processing video formats from various platforms
+ */
+export class FormatService {
   private static createAudioOptions(
     audioOnlyFormat: VideoFormat | null,
   ): FormatOption[] {
@@ -409,6 +407,9 @@ export class VideoFormatService {
     };
   }
 
+  /**
+   * Processes video formats based on the extractor key
+   */
   public static async processVideoFormats(
     info: VideoInfo,
   ): Promise<ProcessedFormats> {

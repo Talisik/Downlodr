@@ -115,7 +115,7 @@ export const useResizableColumns = (
     return () => window.removeEventListener('resize', handleResize);
   }, [windowWidth]);
 
-  // Add window focus handler to reset cursor and drag states when window regains focus
+  // window focus handler to reset cursor and drag states when window regains focus
   useEffect(() => {
     const handleWindowFocus = () => {
       // Reset cursor when window regains focus to prevent stuck cursor
@@ -132,7 +132,6 @@ export const useResizableColumns = (
     return () => window.removeEventListener('focus', handleWindowFocus);
   }, [resizing, dragging, dragOverIndex]);
 
-  // Add drag cleanup handlers
   useEffect(() => {
     const handleEscapeKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -155,7 +154,6 @@ export const useResizableColumns = (
       resetDragStates(setDragging, setDragOverIndex);
     };
 
-    // Add global event listeners for drag cleanup
     document.addEventListener('keydown', handleEscapeKey);
     document.addEventListener('mouseleave', handleMouseLeave);
     document.addEventListener('dragend', handleDragEnd);
@@ -220,7 +218,7 @@ export const useResizableColumns = (
       }
     };
 
-    // Add event listeners for mouse movement and mouse release if resizing
+    // event listeners for mouse movement and mouse release if resizing
     if (resizing) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);

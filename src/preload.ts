@@ -10,6 +10,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { MenuItemRegistration, TaskBarItemRegistration } from './plugins/types';
 
+// Increase the max listeners to prevent memory leak warnings
+// This should be done before setting up any listeners
+ipcRenderer.setMaxListeners(20);
+
 // downlodr exlusive functions
 contextBridge.exposeInMainWorld('downlodrFunctions', {
   invoke: (channel: any, ...args: any) => ipcRenderer.invoke(channel, ...args),
@@ -25,6 +29,9 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
   normalizePath: (filepath: string) =>
     ipcRenderer.invoke('normalizePath', filepath),
   getDownloadFolder: () => ipcRenderer.invoke('getDownloadFolder'),
+  getHostInfo: () => ipcRenderer.invoke('getHostInfo'),
+  getBrowserInfo: () => ipcRenderer.invoke('getBrowserInfo'),
+  getAppInfo: () => ipcRenderer.invoke('getAppInfo'),
   isValidPath: (filepath: string) =>
     ipcRenderer.invoke('isValidPath', filepath),
   joinDownloadPath: (downloadPath: string, fileName: string) =>
@@ -47,6 +54,10 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
     ipcRenderer.invoke('ensureDirectoryExists', dirPath),
   getThumbnailDataUrl: (path: string) =>
     ipcRenderer.invoke('get-thumbnail-data-url', path),
+  getOSType: () => ipcRenderer.invoke('get-os-type'),
+  getPathSeparator: () => ipcRenderer.invoke('get-path-separator'),
+  checkInternetConnection: () =>
+    ipcRenderer.invoke('check-internet-connection'),
 });
 
 // give download a unique id
@@ -195,7 +206,6 @@ contextBridge.exposeInMainWorld('ytdlp', {
 
   selectDownloadDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
 
-  /*
   downloadYTDLP: async (options?: {
     filePath?: string;
     version?: string;
@@ -216,7 +226,6 @@ contextBridge.exposeInMainWorld('ytdlp', {
   checkAndUpdate: async () => {
     return await ipcRenderer.invoke('ytdlp:checkAndUpdate');
   },
-  */
 
   download(args: object, callback: (result: object) => void) {
     const id = uuidv4();
@@ -274,11 +283,30 @@ contextBridge.exposeInMainWorld('updateAPI', {
     return () =>
       ipcRenderer.removeListener('update-available', wrappedCallback);
   },
+  onYtdlpAutoUpdated: (callback: any) => {
+    const wrappedCallback = (_: any, updateInfo: any) => callback(updateInfo);
+    ipcRenderer.on('ytdlp-auto-updated', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('ytdlp-auto-updated', wrappedCallback);
+  },
+  onYtdlpAutoInstalled: (callback: any) => {
+    const wrappedCallback = (_: any, installInfo: any) => callback(installInfo);
+    ipcRenderer.on('ytdlp-auto-installed', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('ytdlp-auto-installed', wrappedCallback);
+  },
+  /*
+  onYtdlpUpdateAvailable: (callback: any) => {
+    const wrappedCallback = (_: any, updateInfo: any) => callback(updateInfo);
+    ipcRenderer.on('ytdlp-update-available', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('ytdlp-update-available', wrappedCallback);
+  },
+  */
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   getCurrentVersion: () => ipcRenderer.invoke('get-current-version'),
 });
 
-// Add these to your existing preload API exposures
 contextBridge.exposeInMainWorld('appControl', {
   showWindow: () => ipcRenderer.invoke('show-window'),
   hideWindow: () => ipcRenderer.invoke('hide-window'),

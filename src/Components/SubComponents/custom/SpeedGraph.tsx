@@ -84,7 +84,6 @@ class SpeedHistoryService {
     const allHistory = this.getStoredHistory();
     const downloadHistory = allHistory[downloadId] || [];
 
-    // Add new point
     downloadHistory.push(speedPoint);
 
     // Keep only the most recent points

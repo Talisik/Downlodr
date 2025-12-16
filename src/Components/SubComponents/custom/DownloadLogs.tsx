@@ -1,10 +1,11 @@
+import useDownloadStore from '@/Store/downloadStore';
 import {
   getAllDownloadActivityLogs,
   getDownloadActivityLog,
   type ActivityItem,
   type ActivityLog,
-} from '@/DataFunctions/ActivityHelper';
-import useDownloadStore from '@/Store/downloadStore';
+} from '@/Utils/ActivityHelper';
+import { config } from '@/config';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaCheckCircle } from 'react-icons/fa';
 
@@ -16,11 +17,16 @@ import { HiArrowPath } from 'react-icons/hi2';
 import { LuFileSearch2 } from 'react-icons/lu';
 import {
   MdAccessTime,
+  MdBugReport,
   MdOutlineClose,
   MdOutlineContentCopy,
   MdOutlineFileDownload,
 } from 'react-icons/md';
 import { TbFileCheck } from 'react-icons/tb';
+
+// Telemetry imports
+import { TelemetryService } from '@/services/telemetry/telemetryService';
+import TooltipWrapper from './TooltipWrapper';
 
 interface DownloadLogsProps {
   isOpen: boolean;
@@ -41,6 +47,13 @@ const DownloadLogs: React.FC<DownloadLogsProps> = ({
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const logContainerRef = useRef<HTMLDivElement>(null);
 
+  // Error telemetry state
+  const [isSendingError, setIsSendingError] = useState(false);
+  const [errorSendResult, setErrorSendResult] = useState<{
+    success: boolean;
+    error?: string;
+  } | null>(null);
+
   // Get store state for real-time updates
   const history = useDownloadStore((state) => state.historyDownloads);
   const downloading = useDownloadStore((state) => state.downloading);
@@ -58,6 +71,15 @@ const DownloadLogs: React.FC<DownloadLogsProps> = ({
     ...history,
     ...queuedDownloads,
   ].find((download) => download.id === downloadId);
+
+  // Check if buttons should be disabled during active downloads
+  const isActiveDownload =
+    specificDownload &&
+    ['downloading', 'initializing', 'fetching metadata', 'queued'].includes(
+      specificDownload.status.toLowerCase(),
+    );
+
+  // Removed automatic error telemetry trigger - now handled app-wide by useErrorTelemetryMonitor
 
   // Handle click outside to close
   useEffect(() => {
@@ -97,6 +119,10 @@ const DownloadLogs: React.FC<DownloadLogsProps> = ({
         setSelectedLog(logs[0]);
       }
     }
+
+    // Reset error report state when switching downloads
+    setErrorSendResult(null);
+    setIsSendingError(false);
   }, [downloadId, downloading, forDownloads, queuedDownloads]);
 
   // Helper function to get activity status icon based on stage and status
@@ -379,6 +405,145 @@ ${
     }
   };
 
+  // Helper function to extract error messages from logs
+  const extractErrorMessages = (logContent: string): string => {
+    if (!logContent) return 'No logs available';
+    const lines = logContent.split('\n');
+    const errorLines: string[] = [];
+    const errorKeywords = [
+      'ERROR:',
+      'Error:',
+      'error:',
+      'FAILED:',
+      'Failed:',
+      'failed:',
+      'EXCEPTION:',
+      'Exception:',
+      'exception:',
+    ];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (errorKeywords.some((keyword) => line.includes(keyword))) {
+        errorLines.push(line);
+      }
+    }
+    // If no specific errors found, look for other failure indicators
+    if (errorLines.length === 0) {
+      const warningKeywords = [
+        'WARNING:',
+        'Warning:',
+        'warning:',
+        'WARN:',
+        'Warn:',
+        'warn:',
+      ];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (warningKeywords.some((keyword) => line.includes(keyword))) {
+          errorLines.push(line);
+        }
+      }
+    }
+
+    // If still no errors found, return last few lines that might contain relevant info
+    if (errorLines.length === 0) {
+      const lastLines = lines.slice(-5).filter((line) => line.trim());
+      return lastLines.length > 0
+        ? lastLines.join('\n')
+        : 'No specific error messages found in logs';
+    }
+
+    return errorLines.join('\n');
+  };
+
+  // Error telemetry function - sends comprehensive error information
+  // NOTE: This is for MANUAL error reporting only. Automatic error telemetry
+  // is now handled app-wide by useErrorTelemetryMonitor hook in App.tsx
+  const handleSendErrorTelemetry = async () => {
+    if (isSendingError || !specificDownload) return;
+
+    setIsSendingError(true);
+    setErrorSendResult(null);
+
+    try {
+      // Create telemetry service
+      const tempTelemetry = new TelemetryService({
+        apiEndpoint: config.telemetry.endpoint,
+      });
+      await tempTelemetry.init();
+
+      const logContent = specificDownload.log || '';
+
+      // Use the simplified sendDownloadError method
+      const success = await tempTelemetry.sendDownloadError({
+        error: new Error(`Download failed: ${specificDownload.status}`),
+        logMessage: logContent,
+        downloadContext: {
+          url: specificDownload.videoUrl,
+          format:
+            specificDownload.formatId ||
+            specificDownload.audioFormatId ||
+            'unknown',
+          quality:
+            specificDownload.formatId ||
+            specificDownload.audioFormatId ||
+            'unknown',
+          downloadName: specificDownload.name,
+          downloadId: specificDownload.id,
+          progress: specificDownload.progress,
+          location: specificDownload.location,
+          fileExtension: specificDownload.ext || specificDownload.audioExt,
+          sessionDurationSeconds: specificDownload.elapsed || 0,
+        },
+      });
+
+      setErrorSendResult({ success });
+
+      toast({
+        variant: 'success',
+        title: 'Error Report Sent',
+        description:
+          'Error information has been sent to help improve the application',
+        duration: 3000,
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        (
+          error as {
+            response?: { data?: { message?: string } };
+            message?: string;
+          }
+        )?.response?.data?.message ||
+        (error as { message?: string })?.message ||
+        'Failed to send error report';
+      console.error('💥 Error telemetry failed:', errorMessage);
+      setErrorSendResult({ success: false, error: errorMessage });
+
+      toast({
+        variant: 'destructive',
+        title: 'Error Report Failed',
+        description: errorMessage,
+        duration: 3000,
+      });
+    } finally {
+      setIsSendingError(false);
+    }
+  };
+
+  // Helper function to determine if error report button should be shown
+  const shouldShowErrorReport = () => {
+    return (
+      specificDownload?.status === 'failed' ||
+      specificDownload?.status === 'error' ||
+      (specificDownload?.log &&
+        (specificDownload.log.toLowerCase().includes('error') ||
+          specificDownload.log.toLowerCase().includes('failed') ||
+          specificDownload.log.toLowerCase().includes('exception')))
+    );
+  };
+
   // Auto-scroll to bottom when new logs are added
   useEffect(() => {
     if (autoScroll && logContainerRef.current) {
@@ -418,29 +583,101 @@ ${
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleCopyLogs}
-            className="text-black dark:text-white hover:text-blue-500 p-1 flex-shrink-0"
-            title="Copy logs to clipboard"
+          <TooltipWrapper
+            content={
+              isActiveDownload
+                ? 'Cannot copy during active download'
+                : 'Copy log'
+            }
+            side="bottom"
           >
-            {copySuccess ? (
-              <FaCheckCircle size={14} className="text-green-500" />
-            ) : (
-              <MdOutlineContentCopy size={14} />
-            )}
-          </button>
-          <button
-            onClick={handleDownloadLogs}
-            className="text-black dark:text-white hover:text-green-500 ml-2 p-1 flex-shrink-0"
+            <button
+              onClick={handleCopyLogs}
+              disabled={isActiveDownload}
+              className={`p-1 flex-shrink-0 transition-all duration-200 ${
+                isActiveDownload
+                  ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
+                  : 'text-black dark:text-white hover:text-blue-500 dark:hover:text-blue-500'
+              }`}
+            >
+              {copySuccess ? (
+                <FaCheckCircle size={14} className="text-green-500" />
+              ) : (
+                <MdOutlineContentCopy size={14} />
+              )}
+            </button>
+          </TooltipWrapper>
+          <TooltipWrapper
+            content={
+              isActiveDownload
+                ? 'Cannot save during active download'
+                : 'Download log'
+            }
+            side="bottom"
           >
-            <MdOutlineFileDownload size={18} />
-          </button>
-          <button
-            onClick={onClose}
-            className="text-black dark:text-white hover:text-red-500 ml-2 p-1 flex-shrink-0"
-          >
-            <MdOutlineClose size={16} />
-          </button>
+            <button
+              onClick={handleDownloadLogs}
+              disabled={isActiveDownload}
+              className={`ml-2 p-1 flex-shrink-0 transition-all duration-200 ${
+                isActiveDownload
+                  ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
+                  : 'text-black dark:text-white hover:text-green-500 dark:hover:text-green-500'
+              }`}
+            >
+              {downloadSuccess ? (
+                <FaCheckCircle size={18} className="text-green-500" />
+              ) : (
+                <MdOutlineFileDownload size={18} />
+              )}
+            </button>
+          </TooltipWrapper>
+          {/* Error Report Button - Only show for failed downloads */}
+          {shouldShowErrorReport() && (
+            <TooltipWrapper
+              content={
+                isActiveDownload
+                  ? 'Cannot send error report during active download'
+                  : isSendingError
+                  ? 'Sending error report...'
+                  : errorSendResult?.success
+                  ? 'Error report sent successfully'
+                  : errorSendResult?.error
+                  ? `Failed to send: ${errorSendResult.error}`
+                  : 'Send error report to help improve the application'
+              }
+              side="bottom"
+            >
+              <button
+                onClick={handleSendErrorTelemetry}
+                disabled={isSendingError || isActiveDownload}
+                className={`ml-2 p-1 flex-shrink-0 transition-all duration-200 ${
+                  isActiveDownload || isSendingError
+                    ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
+                    : errorSendResult?.success
+                    ? 'text-green-500 hover:text-green-600'
+                    : errorSendResult?.error
+                    ? 'text-red-500 hover:text-red-600'
+                    : 'text-black dark:text-white hover:text-orange-500'
+                }`}
+              >
+                {isSendingError ? (
+                  <HiArrowPath size={16} className="animate-spin" />
+                ) : errorSendResult?.success ? (
+                  <FaCheckCircle size={14} />
+                ) : (
+                  <MdBugReport size={16} />
+                )}
+              </button>
+            </TooltipWrapper>
+          )}
+          <TooltipWrapper content="Close log" side="bottom">
+            <button
+              onClick={onClose}
+              className="text-black dark:text-white hover:text-red-500 dark:hover:text-red-500 ml-2 p-1 flex-shrink-0"
+            >
+              <MdOutlineClose size={16} />
+            </button>
+          </TooltipWrapper>
         </div>
       </div>
 
@@ -460,6 +697,11 @@ ${
             </p>
             <p>Status: {specificDownload?.status}</p>
             <p>Progress: {specificDownload?.progress}%</p>
+            {specificDownload?.status === 'failed' && false && (
+              <p className="text-red-500 dark:text-red-400">
+                Error Report Sent: {errorSendResult?.success ? 'Yes' : 'No'}
+              </p>
+            )}
           </div>
           <hr className="solid mb-3 -mx-6 w-[calc(100%+48px)] border-t-2 border-divider dark:border-gray-700" />
 

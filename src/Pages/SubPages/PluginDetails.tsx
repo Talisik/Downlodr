@@ -41,7 +41,6 @@ const PluginDetails = () => {
         try {
           const enabledState = await window.plugins.getEnabledPlugins();
           setEnabledPlugins(enabledState || {});
-          console.log(plugin.location);
           // Load plugin location
           if (plugin.location) {
             setPluginLocation(plugin.location);

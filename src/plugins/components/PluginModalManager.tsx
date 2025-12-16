@@ -96,14 +96,3 @@ const PluginModalManager: React.FC = () => {
 };
 
 export default PluginModalManager;
-
-// Add typings for the window object
-declare global {
-  interface Window {
-    pluginModalManager?: {
-      showPluginModal: (
-        options: PluginModalOptions,
-      ) => Promise<PluginModalResult | null>;
-    };
-  }
-}
