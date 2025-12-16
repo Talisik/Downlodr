@@ -396,6 +396,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       download.videoUrl || '',
       `${processedName}.${download.ext || ''}`,
       `${processedName}.${download.ext || ''}`,
+      download.displayName || '',
       download.size || 0,
       download.speed || '0 KB/s',
       download.channelName || '',

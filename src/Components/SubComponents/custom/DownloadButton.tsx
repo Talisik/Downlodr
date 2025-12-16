@@ -52,6 +52,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
       download.videoUrl,
       `${processedName}.${download.ext}`,
       `${processedName}.${download.ext}`,
+      download.displayName,
       download.size,
       download.speed,
       download.channelName,

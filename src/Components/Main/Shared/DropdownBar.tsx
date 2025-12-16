@@ -115,6 +115,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
           extractorKey: download.extractorKey,
           status: download.status,
           download: {
+            displayName: download.displayName || '',
             ...download,
           },
         };
@@ -156,15 +157,46 @@ const DropdownBar = ({ className }: { className?: string }) => {
   }, []);
 
   const handleCheckForUpdates = async () => {
+    // Show connection checking toast
+    toast({
+      title: 'Checking connection',
+      description: 'Verifying internet connectivity...',
+      duration: 5500, // Slightly longer than the 5s timeout
+    });
+
+    const hasInternet =
+      await window.downlodrFunctions.checkInternetConnection();
+
+    if (!hasInternet) {
+      toast({
+        variant: 'destructive',
+        title: 'No internet connection',
+        description: `Please check your internet connection and try again`,
+        duration: 3000,
+      });
+      setActiveMenu(null);
+      return;
+    }
+
+    console.log(hasInternet);
     toast({
       title: 'Checking for updates',
       description: `Currently checking for new updates, please wait`,
       duration: 3000,
     });
-    if (window.updateAPI?.checkForUpdates) {
+
+    if (window.updateAPI?.checkForUpdates && hasInternet) {
       try {
         const result = await window.updateAPI.checkForUpdates();
-        if (!result.hasUpdate) {
+        if (result.error) {
+          // Handle error from update checker
+          toast({
+            variant: 'destructive',
+            title: 'Update Check Failed',
+            description: result.error,
+            duration: 4000,
+          });
+        } else if (!result.hasUpdate) {
           toast({
             title: "You're up to date!",
             description: `You're using the latest version (v${result.currentVersion}).`,
@@ -175,8 +207,8 @@ const DropdownBar = ({ className }: { className?: string }) => {
       } catch (error) {
         toast({
           variant: 'destructive',
-          title: 'Server Unavailable',
-          description: `Please check again later`,
+          title: 'Update Check Failed',
+          description: 'Unable to check for updates. Please try again later.',
           duration: 3000,
         });
         console.error('Error checking for updates:', error);

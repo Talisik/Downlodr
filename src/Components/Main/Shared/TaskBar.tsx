@@ -302,6 +302,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         downloadInfo.videoUrl,
         `${processedName}.${downloadInfo.ext}`,
         `${processedName}.${downloadInfo.ext}`,
+        downloadInfo.displayName,
         downloadInfo.size,
         downloadInfo.speed,
         downloadInfo.channelName,

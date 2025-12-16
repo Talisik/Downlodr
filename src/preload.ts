@@ -56,6 +56,8 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
     ipcRenderer.invoke('get-thumbnail-data-url', path),
   getOSType: () => ipcRenderer.invoke('get-os-type'),
   getPathSeparator: () => ipcRenderer.invoke('get-path-separator'),
+  checkInternetConnection: () =>
+    ipcRenderer.invoke('check-internet-connection'),
 });
 
 // give download a unique id

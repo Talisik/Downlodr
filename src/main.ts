@@ -19,13 +19,14 @@ import {
   Tray,
 } from 'electron';
 import started from 'electron-squirrel-startup';
+import dns from 'dns';
 import fs, { existsSync } from 'fs';
 import http from 'http';
 import https from 'https';
 import os from 'os';
 import path from 'path';
 import * as YTDLP from 'yt-dlp-helper';
-import { checkForUpdates } from './Utils/Data/updateChecker';
+import { checkForUpdates } from './services/update/updateService';
 import { PluginManager } from './plugins/pluginManager';
 import { pluginRegistry } from './plugins/registry';
 import { DownloadOptions } from './Schema/ytdlp';
@@ -86,6 +87,31 @@ function getCachedVersion(): string | null {
     now - cachedLatestVersion.timestamp > VERSION_CACHE_DURATION;
 
   return isExpired ? null : cachedLatestVersion.version;
+}
+
+/**
+ * Checks if internet connectivity is available
+ * Uses DNS resolution to check connectivity without making HTTP requests
+ * @param timeout - Maximum time to wait for check in milliseconds (default: 5000)
+ * @returns Promise<boolean> - true if online, false if offline
+ */
+async function isOnline(timeout = 5000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const timeoutHandle = setTimeout(() => {
+      resolve(false);
+    }, timeout);
+
+    // Try to resolve a reliable domain (Google's DNS)
+    dns.resolve('www.google.com', (err: NodeJS.ErrnoException | null) => {
+      clearTimeout(timeoutHandle);
+      if (err) {
+        console.log('Internet connectivity check failed:', err.code);
+        resolve(false);
+      } else {
+        resolve(true);
+      }
+    });
+  });
 }
 
 // Function to create the main application window
@@ -275,6 +301,14 @@ const createTray = () => {
   tray.setToolTip('Downlodr');
   tray.setContextMenu(contextMenu);
 
+  // Single click on tray icon shows the app and resets the icon
+  tray.on('click', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      resetTrayIcon();
+    }
+  });
+
   // Double click on tray icon shows the app and resets the icon
   tray.on('double-click', () => {
     if (mainWindow) {
@@ -418,6 +452,11 @@ ipcMain.handle('getAppInfo', async () => {
     console.error('Error determining Downloads folder:', error);
     return null;
   }
+});
+
+// Handler to check internet connectivity
+ipcMain.handle('check-internet-connection', async () => {
+  return await isOnline();
 });
 
 function getCpuUsagePercent() {
@@ -1181,6 +1220,12 @@ app.on('ready', async () => {
 
   // Check for updates when app starts
   setTimeout(async () => {
+    const online = await isOnline();
+    if (!online) {
+      console.log('Skipping app update check: No internet connection');
+      return;
+    }
+
     const updateInfo = await checkForUpdates();
     if (updateInfo.hasUpdate) {
       BrowserWindow.getAllWindows().forEach((win) =>
@@ -1192,6 +1237,12 @@ app.on('ready', async () => {
   // Check for YT-DLP updates when app starts
   setTimeout(async () => {
     try {
+      const online = await isOnline();
+      if (!online) {
+        console.log('Skipping YT-DLP update check: No internet connection');
+        return;
+      }
+
       console.log('Checking for YT-DLP updates on startup...');
 
       // Get current version first
@@ -1260,6 +1311,12 @@ app.on('ready', async () => {
   // Set up periodic update checking
   const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 4; // Check every 4 hours
   setInterval(async () => {
+    const online = await isOnline();
+    if (!online) {
+      console.log('Skipping periodic update check: No internet connection');
+      return;
+    }
+
     const updateInfo = await checkForUpdates();
     if (updateInfo.hasUpdate) {
       BrowserWindow.getAllWindows().forEach((win) =>

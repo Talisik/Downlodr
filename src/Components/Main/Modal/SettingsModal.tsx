@@ -173,11 +173,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setEnableClipboardMonitoring(settings.enableClipboardMonitoring ?? false);
     setDontShowAppUpdates(settings.dontShowAppUpdates ?? false);
     setDontShowPluginUpdates(settings.dontShowPluginUpdates ?? false);
+    // Sync downloadLocation when it gets populated by store rehydration
+    setDownloadLocation(settings.defaultLocation);
   }, [
     settings.runInBackground,
     settings.enableClipboardMonitoring,
     settings.dontShowAppUpdates,
     settings.dontShowPluginUpdates,
+    settings.defaultLocation,
   ]);
 
   // Column options with required flag

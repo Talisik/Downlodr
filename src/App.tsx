@@ -16,6 +16,7 @@ import {
 } from 'react-router-dom';
 import TelemetryConsentModal from './Components/Main/Modal/TelemetryConsentModal';
 import ClipboardLinkDetector from './Components/SubComponents/custom/ClipboardLinkDetector';
+import StoreRehydrationLoader from './Components/SubComponents/custom/StoreRehydrationLoader';
 import UpdateNotification from './Components/SubComponents/custom/UpdateNotifications';
 import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
 import { useToast } from './Components/SubComponents/shadcn/hooks/use-toast';
@@ -134,38 +135,40 @@ const App = () => {
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <Router>
-        <Routes>
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Navigate to="/status/all" replace />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/category/:categoryId" element={<CategoryPage />} />
-            <Route path="/tags/:tagId" element={<TagPage />} />
-            <Route
-              path="/status/:status"
-              element={<StatusSpecificDownloads />}
-            />
-            <Route path="*" element={<NotFound />} />
-          </Route>
+      <StoreRehydrationLoader>
+        <Router>
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Navigate to="/status/all" replace />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/category/:categoryId" element={<CategoryPage />} />
+              <Route path="/tags/:tagId" element={<TagPage />} />
+              <Route
+                path="/status/:status"
+                element={<StatusSpecificDownloads />}
+              />
+              <Route path="*" element={<NotFound />} />
+            </Route>
 
-          <Route path="/plugins" element={<PluginLayout />}>
-            <Route index element={<PluginManager />} />
-            <Route path="details" element={<PluginDetails />} />
-          </Route>
-        </Routes>
-      </Router>
-      <Toaster />
+            <Route path="/plugins" element={<PluginLayout />}>
+              <Route index element={<PluginManager />} />
+              <Route path="details" element={<PluginDetails />} />
+            </Route>
+          </Routes>
+        </Router>
+        <Toaster />
 
-      <UpdateNotification />
-      <ClipboardLinkDetector />
-      <PluginLoader />
-      <FormatSelectorManager />
-      <PluginSidePanelManager />
-      <PluginModalManager />
-      <TelemetryConsentModal
-        isOpen={showTelemetryConsentModal}
-        onClose={handleTelemetryConsentClose}
-      />
+        <UpdateNotification />
+        <ClipboardLinkDetector />
+        <PluginLoader />
+        <FormatSelectorManager />
+        <PluginSidePanelManager />
+        <PluginModalManager />
+        <TelemetryConsentModal
+          isOpen={showTelemetryConsentModal}
+          onClose={handleTelemetryConsentClose}
+        />
+      </StoreRehydrationLoader>
     </ThemeProvider>
   );
 };

@@ -792,6 +792,7 @@ const StatusSpecificDownloads = () => {
       currentDownload.videoUrl,
       currentDownload.name,
       currentDownload.downloadName,
+      currentDownload.displayName || '',
       currentDownload.size,
       currentDownload.speed,
       currentDownload.channelName,
@@ -873,6 +874,7 @@ const StatusSpecificDownloads = () => {
         currentDownload.videoUrl,
         currentDownload.name,
         currentDownload.downloadName,
+        currentDownload.displayName || '',
         currentDownload.size,
         currentDownload.speed,
         currentDownload.channelName,
@@ -1013,6 +1015,7 @@ const StatusSpecificDownloads = () => {
                 extractorKey: download.extractorKey,
                 status: download.status,
                 download: {
+                  displayName: download.displayName || '',
                   ...download,
                 },
               };
@@ -1034,6 +1037,7 @@ const StatusSpecificDownloads = () => {
                   extractorKey: download.extractorKey,
                   status: download.status,
                   download: {
+                    displayName: download.displayName || '',
                     ...download,
                   },
                 };
@@ -1310,6 +1314,7 @@ const StatusSpecificDownloads = () => {
             extractorKey: download.extractorKey,
             status: download.status,
             download: {
+              displayName: download.displayName || '',
               ...download,
             },
           };
@@ -1328,6 +1333,7 @@ const StatusSpecificDownloads = () => {
         extractorKey: download.extractorKey,
         status: download.status,
         download: {
+          displayName: download.displayName || '',
           ...download,
         },
       };
@@ -1594,6 +1600,56 @@ const StatusSpecificDownloads = () => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [contextMenu.downloadId]);
 
+  // Auto-select playlist downloads when they appear in forDownloads
+  useEffect(() => {
+    // Find downloads that are from playlists and have status "to download"
+    const playlistDownloads = forDownloads.filter(
+      (download) =>
+        download.isFromPlaylist &&
+        download.status === 'to download' &&
+        !selectedRowIds.includes(download.id),
+    );
+
+    if (playlistDownloads.length > 0) {
+      // Get the IDs of playlist downloads to auto-select
+      const playlistDownloadIds = playlistDownloads.map((d) => d.id);
+
+      // Add them to selected downloads
+      const newSelectedIds = [...selectedRowIds, ...playlistDownloadIds];
+      setSelectedRowIds(newSelectedIds);
+
+      // Create promises for each download to get their full data
+      const promises = newSelectedIds.map(async (id) => {
+        const download = allDownloads.find((d) => d.id === id);
+        return {
+          id,
+          controllerId: download?.controllerId,
+          videoUrl: download?.videoUrl,
+          downloadName: download?.downloadName,
+          status: download?.status,
+          download: download,
+          location: download?.location
+            ? await window.downlodrFunctions.joinDownloadPath(
+                download.location,
+                download.downloadName,
+              )
+            : undefined,
+        };
+      });
+
+      // Resolve all promises and update selected downloads
+      Promise.all(promises).then((resolvedData) => {
+        setSelectedDownloads(resolvedData);
+      });
+    }
+  }, [
+    forDownloads,
+    selectedRowIds,
+    allDownloads,
+    setSelectedRowIds,
+    setSelectedDownloads,
+  ]);
+
   // rename modal state
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [renameDownloadId, setRenameDownloadId] = useState<string>('');
@@ -1841,7 +1897,9 @@ const StatusSpecificDownloads = () => {
                                 <div className="line-clamp-2 break-words flex justify-start items-start">
                                   <div>
                                     <TooltipWrapper
-                                      content={download.name}
+                                      content={
+                                        download.displayName || download.name
+                                      }
                                       side="bottom"
                                       contentClassname="text-start justify-start"
                                     >
@@ -1849,7 +1907,8 @@ const StatusSpecificDownloads = () => {
                                         <span
                                           className={` line-clamp-1 break-words break-all font-semibold`}
                                         >
-                                          {download.name}
+                                          {download.displayName ||
+                                            download.name}
                                         </span>
                                       </div>
                                     </TooltipWrapper>
@@ -2021,7 +2080,12 @@ const StatusSpecificDownloads = () => {
                                       color: getStatusColor(download.status),
                                     }}
                                   >
-                                    <DownloadButton download={download} />
+                                    <DownloadButton
+                                      download={{
+                                        ...download,
+                                        displayName: download.displayName || '',
+                                      }}
+                                    />
                                   </div>
                                 </div>
                               ) : download.status === 'paused' ||

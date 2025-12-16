@@ -38,6 +38,7 @@ const FileNotExistModal: React.FC<FileNotExistModalProps> = ({
           item.videoUrl,
           `${processedName}.${item.download.ext}`,
           `${processedName}.${item.download.ext}`,
+          item.download.displayName,
           item.download.size,
           item.download.speed,
           item.download.channelName,

@@ -13,6 +13,7 @@
 import { TaskBarButtonsVisibility } from '@/plugins/types';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { createIndexedDBStorageWithMigration } from '@/Utils/indexedDBStorage';
 
 interface DownloadSettings {
   defaultLocation: string; // Default location for downloads
@@ -367,7 +368,14 @@ export const useMainStore = create<MainStore>()(
     {
       name: 'download-settings-storage', // Name of the storage
       version: MAIN_STORE_VERSION, // version tracking
-      storage: createJSONStorage(() => localStorage), // Use local storage for persistence
+      storage: createJSONStorage(() =>
+        createIndexedDBStorageWithMigration({
+          dbName: 'downlodr-main-database',
+          storeName: 'main-storage',
+          version: MAIN_STORE_VERSION,
+          localStorageKey: 'download-settings-storage', // Migrate existing localStorage data
+        }),
+      ), // Use IndexedDB with automatic localStorage migration
       migrate: migrateMainStore, // migration function
       // Exclude temporary session state from persistence
       partialize: (state) => ({

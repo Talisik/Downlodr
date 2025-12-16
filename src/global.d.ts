@@ -13,6 +13,7 @@ declare global {
   const __TELEMETRY_ENDPOINT__: string;
   const __TELEMETRY_TIMEOUT__: string;
   const __TELEMETRY_RETRY_ATTEMPTS__: string;
+  const __TELEMETRY_SCHEMA_URL__: string;
 
   interface Window {
     downlodrFunctions: {
@@ -57,6 +58,7 @@ declare global {
       getThumbnailDataUrl: (path: string) => Promise<string | null>;
       getOSType: () => Promise<'windows' | 'macos' | 'linux' | string>; // Gets the current operating system type
       getPathSeparator: () => Promise<string>; // Gets the path separator for the current OS
+      checkInternetConnection: () => Promise<boolean>; // Checks if internet connection is available
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist

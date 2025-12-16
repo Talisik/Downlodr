@@ -590,6 +590,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         currentDownload.videoUrl,
         currentDownload.name,
         currentDownload.downloadName,
+        currentDownload.displayName || '',
         currentDownload.size,
         currentDownload.speed,
         currentDownload.channelName,
@@ -792,6 +793,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
             extractorKey: download.extractorKey,
             status: download.status,
             download: {
+              displayName: download.displayName || '',
               ...download,
             },
           };
@@ -810,6 +812,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         extractorKey: download.extractorKey,
         status: download.status,
         download: {
+          displayName: download.displayName || '',
           ...download,
         },
       };
@@ -836,11 +839,18 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   ) => {
     if (downloadLocation) {
       try {
+        const download = allDownloads.find((d) => d.id === downloadId);
+        if (!download) return;
+        const fullDownloadLocation =
+          await window.downlodrFunctions.joinDownloadPath(
+            download.location,
+            download.downloadName,
+          );
         const exists = await window.downlodrFunctions.fileExists(
-          downloadLocation,
+          fullDownloadLocation,
         );
         if (exists) {
-          window.downlodrFunctions.openVideo(downloadLocation);
+          window.downlodrFunctions.openVideo(fullDownloadLocation);
         } else {
           // If the file doesn't exist, find the download and show the modal
           if (downloadId) {
@@ -857,6 +867,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                 extractorKey: download.extractorKey,
                 status: download.status,
                 download: {
+                  displayName: download.displayName || '',
                   ...download,
                 },
               };
@@ -878,6 +889,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                   extractorKey: download.extractorKey,
                   status: download.status,
                   download: {
+                    displayName: download.displayName || '',
                     ...download,
                   },
                 };
@@ -1184,11 +1196,11 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                             </div>
                           ) : (
                             <TooltipWrapper
-                              content={download.name}
+                              content={download.displayName || download.name}
                               side="bottom"
                             >
                               <div className="line-clamp-2 break-words">
-                                {download.name}
+                                {download.displayName || download.name}
                               </div>
                             </TooltipWrapper>
                           )}
@@ -1333,7 +1345,12 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                                       color: getStatusColor(download.status),
                                     }}
                                   >
-                                    <DownloadButton download={download} />
+                                    <DownloadButton
+                                      download={{
+                                        ...download,
+                                        displayName: download.displayName || '',
+                                      }}
+                                    />
                                   </div>
                                 </div>
                               ) : download.status === 'paused' ||

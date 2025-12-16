@@ -7,5 +7,6 @@ export const config = {
     endpoint: __TELEMETRY_ENDPOINT__,
     timeout: parseInt(__TELEMETRY_TIMEOUT__, 10),
     retryAttempts: parseInt(__TELEMETRY_RETRY_ATTEMPTS__, 10),
+    schemaUrl: __TELEMETRY_SCHEMA_URL__,
   },
 } as const;

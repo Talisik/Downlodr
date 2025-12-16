@@ -7,6 +7,7 @@ export interface DownloadItem {
   downloadName?: string;
   extractorKey?: string;
   download: {
+    displayName: string;
     location: string;
     name: string;
     ext: string;

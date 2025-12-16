@@ -122,7 +122,7 @@ const AdditionalOptions = ({
             <PlaylistSkeleton />
           ) : (
             <div className="video-section">
-              <div className="sticky top-0 bg-white dark:bg-darkModeDropdown pb-4 z-10">
+              <div className="sticky top-0 bg-white dark:bg-darkModeDropdown pb-4 z-10 mt-1">
                 <div className="select-all flex items-center justify-between">
                   <div className="select-all flex items-center">
                     <Input
@@ -144,8 +144,10 @@ const AdditionalOptions = ({
                       className="mr-2"
                     />
                     <label htmlFor={`select-all`}>
-                      <p className="w-6/7 dark:text-darkModeLight font-medium px-2">
-                        {videoTitle}
+                      <p className="dark:text-darkModeLight font-medium px-2">
+                        {videoTitle.length > 60
+                          ? `${videoTitle.slice(0, 60)}...`
+                          : videoTitle}
                       </p>
                     </label>
                   </div>

@@ -11,6 +11,7 @@ import {
 } from '@/Store/taskbarDownloadStore';
 import { cleanRawLink } from '@/Utils/Data/urlValidation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { waitForStoreRehydration } from '@/Hooks/useStoreRehydration';
 import AdditionalOptions from './AdditionalOptions';
 import FolderDirectory from './FolderDirectory';
 
@@ -346,6 +347,10 @@ const TaskbarInputField = () => {
 
   const handleDownload = async () => {
     try {
+      // Wait for store rehydration before processing downloads
+      // This prevents the first URL registration issue during app startup
+      await waitForStoreRehydration();
+
       if (isPlaylist) {
         const selectedVideosList = playlistVideos.filter((video) =>
           selectedVideos.has(video.id),
@@ -361,11 +366,18 @@ const TaskbarInputField = () => {
           return;
         }
 
-        // Download each selected video with user preferences
+        // Generate a unique batch ID for this playlist download
+        const playlistBatchId = `playlist_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+
+        // Download each selected video with user preferences and playlist tracking
         for (const video of selectedVideosList) {
           setDownload(video.url, downloadFolder, maxDownload, {
             getTranscript,
             getThumbnail,
+            isFromPlaylist: true,
+            playlistBatchId,
           });
         }
       } else {
@@ -414,6 +426,16 @@ const TaskbarInputField = () => {
       return newSelected;
     });
   };
+
+  // Sync taskbar downloadFolder with main store defaultLocation
+  useEffect(() => {
+    if (
+      settings.defaultLocation &&
+      settings.defaultLocation !== downloadFolder
+    ) {
+      setDownloadFolder(settings.defaultLocation);
+    }
+  }, [settings.defaultLocation, downloadFolder, setDownloadFolder]);
 
   // Close additional options and folder directory modal when clicking outside
   useEffect(() => {
