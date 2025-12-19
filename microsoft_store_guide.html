@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publish to Microsoft Store | Step-by-Step Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* shadcn/ui Slate Theme */
+        :root {
+            --background: #020617;
+            --foreground: #f8fafc;
+            --card: #0f172a;
+            --card-foreground: #f8fafc;
+            --popover: #0f172a;
+            --popover-foreground: #f8fafc;
+            --primary: #f8fafc;
+            --primary-foreground: #0f172a;
+            --secondary: #1e293b;
+            --secondary-foreground: #f8fafc;
+            --muted: #1e293b;
+            --muted-foreground: #94a3b8;
+            --accent: #1e293b;
+            --accent-foreground: #f8fafc;
+            --destructive: #7f1d1d;
+            --destructive-foreground: #f8fafc;
+            --border: #1e293b;
+            --input: #1e293b;
+            --ring: #cbd5e1;
+            --radius: 0.5rem;
+
+            /* Custom accent */
+            --blue: #3b82f6;
+            --green: #22c55e;
+            --yellow: #eab308;
+            --red: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--blue), #60a5fa);
+            border-radius: 6px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px;
+            padding: 4px;
+        }
+
+        .logo-tile {
+            background: white;
+            border-radius: 1px;
+        }
+
+        .logo-text {
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            color: var(--muted-foreground);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .step-item:hover {
+            background: var(--accent);
+            color: var(--foreground);
+        }
+
+        .step-item.active {
+            background: var(--secondary);
+            color: var(--foreground);
+        }
+
+        .step-item.completed .step-number {
+            background: var(--green);
+            color: white;
+        }
+
+        .step-number {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--muted);
+            border-radius: 50%;
+            font-size: 0.75rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .step-item.active .step-number {
+            background: var(--blue);
+            color: white;
+        }
+
+        /* Main Content */
+        .content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 3rem 4rem;
+            max-width: 900px;
+        }
+
+        .step-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        p.subtitle {
+            font-size: 1rem;
+            color: var(--muted-foreground);
+            margin-bottom: 2rem;
+            line-height: 1.7;
+        }
+
+        h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 2rem 0 1rem;
+            color: var(--foreground);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .card-desc {
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+        }
+
+        /* Checklist */
+        .checklist {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .checklist li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 1rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .checklist li:hover {
+            border-color: var(--ring);
+        }
+
+        .checklist li.checked {
+            opacity: 0.5;
+        }
+
+        .checklist li.checked .checkbox {
+            background: var(--green);
+            border-color: var(--green);
+        }
+
+        .checklist li.checked .checkbox::after {
+            content: '✓';
+            color: white;
+            font-size: 12px;
+        }
+
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            margin-top: 2px;
+        }
+
+        .item-content {
+            flex: 1;
+        }
+
+        .item-title {
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+        }
+
+        .item-desc {
+            font-size: 0.8rem;
+            color: var(--muted-foreground);
+            line-height: 1.5;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            color: var(--muted-foreground);
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin: 1.5rem 0;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            font-size: 0.875rem;
+            border: 1px solid;
+        }
+
+        .alert-icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .alert-warning {
+            background: rgba(234, 179, 8, 0.1);
+            border-color: rgba(234, 179, 8, 0.3);
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        /* Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.875rem;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison-table th {
+            background: var(--secondary);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted-foreground);
+        }
+
+        .comparison-table td {
+            color: var(--muted-foreground);
+        }
+
+        .comparison-table .highlight {
+            color: var(--foreground);
+            font-weight: 500;
+        }
+
+        .comparison-table .recommended {
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        /* Asset Grid */
+        .asset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin: 1rem 0;
+        }
+
+        .asset-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .asset-card .icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .asset-card .name {
+            font-weight: 500;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+        }
+
+        .asset-card .size {
+            font-size: 0.7rem;
+            color: var(--muted-foreground);
+        }
+
+        /* Timeline */
+        .timeline {
+            margin: 1.5rem 0;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 16px;
+            padding-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .timeline-item:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 28px;
+            bottom: 0;
+            width: 2px;
+            background: var(--border);
+        }
+
+        .timeline-dot {
+            width: 24px;
+            height: 24px;
+            background: var(--secondary);
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        .timeline-title {
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        .timeline-desc {
+            font-size: 0.8rem;
+            color: var(--muted-foreground);
+        }
+
+        /* Buttons */
+        .controls {
+            margin-top: 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--foreground);
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn:hover {
+            background: var(--accent);
+        }
+
+        .btn-primary {
+            background: var(--foreground);
+            color: var(--background);
+            border-color: var(--foreground);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            background: var(--foreground);
+        }
+
+        .hidden {
+            visibility: hidden;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            border-radius: 9999px;
+            background: var(--green);
+            color: white;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <div class="logo-tile"></div>
+                    <div class="logo-tile"></div>
+                    <div class="logo-tile"></div>
+                    <div class="logo-tile"></div>
+                </div>
+                <div class="logo-text">MS Store Guide</div>
+            </div>
+
+            <div class="nav-steps">
+                <div class="step-item active" data-step="1" onclick="goToStep(1)">
+                    <div class="step-number">1</div>
+                    <span>Prerequisites</span>
+                </div>
+                <div class="step-item" data-step="2" onclick="goToStep(2)">
+                    <div class="step-number">2</div>
+                    <span>Partner Center</span>
+                </div>
+                <div class="step-item" data-step="3" onclick="goToStep(3)">
+                    <div class="step-number">3</div>
+                    <span>Visual Assets</span>
+                </div>
+                <div class="step-item" data-step="4" onclick="goToStep(4)">
+                    <div class="step-number">4</div>
+                    <span>MSIX Packaging</span>
+                </div>
+                <div class="step-item" data-step="5" onclick="goToStep(5)">
+                    <div class="step-number">5</div>
+                    <span>Build & Sign</span>
+                </div>
+                <div class="step-item" data-step="6" onclick="goToStep(6)">
+                    <div class="step-number">6</div>
+                    <span>Submission</span>
+                </div>
+                <div class="step-item" data-step="7" onclick="goToStep(7)">
+                    <div class="step-number">7</div>
+                    <span>Certification</span>
+                </div>
+            </div>
+        </aside>
+
+        <main class="content">
+            <!-- Step 1: Prerequisites -->
+            <div class="step-content active" id="step-1">
+                <h1>Prerequisites</h1>
+                <p class="subtitle">Before publishing your Electron app to the Microsoft Store, ensure you have all the
+                    necessary accounts, tools, and permissions in place.</p>
+
+                <h3>Why Publish to Microsoft Store?</h3>
+                <div class="benefits-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 2rem;">
+                    <div class="card" style="border-left: 3px solid var(--green);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 1.25rem;">🔄</span>
+                            <div class="card-title">Automatic Updates</div>
+                        </div>
+                        <div class="card-desc">Microsoft handles all updates automatically. Users get new versions
+                            without manual downloads or prompts.</div>
+                    </div>
+                    <div class="card" style="border-left: 3px solid var(--green);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 1.25rem;">🔐</span>
+                            <div class="card-title">Free Code Signing</div>
+                        </div>
+                        <div class="card-desc">Microsoft signs your app for free. No need to purchase expensive code
+                            signing certificates ($200-500/year).</div>
+                    </div>
+                    <div class="card" style="border-left: 3px solid var(--green);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 1.25rem;">🛡️</span>
+                            <div class="card-title">SmartScreen Trust</div>
+                        </div>
+                        <div class="card-desc">Store apps bypass Windows Defender SmartScreen warnings. No more "Unknown
+                            Publisher" scary dialogs.</div>
+                    </div>
+                    <div class="card" style="border-left: 3px solid var(--blue);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 1.25rem;">🌍</span>
+                            <div class="card-title">Global Discoverability</div>
+                        </div>
+                        <div class="card-desc">Reach 1.4+ billion Windows devices. Users can find and install your app
+                            directly from the Store.</div>
+                    </div>
+                    <div class="card" style="border-left: 3px solid var(--blue);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 1.25rem;">📦</span>
+                            <div class="card-title">Clean Install/Uninstall</div>
+                        </div>
+                        <div class="card-desc">MSIX provides sandboxed installation. Apps uninstall cleanly with no
+                            leftover files or registry entries.</div>
+                    </div>
+                    <div class="card" style="border-left: 3px solid var(--blue);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 1.25rem;">🏢</span>
+                            <div class="card-title">Enterprise Ready</div>
+                        </div>
+                        <div class="card-desc">IT admins can deploy Store apps via Intune/SCCM. Easier enterprise
+                            adoption for B2B SaaS.</div>
+                    </div>
+                </div>
+
+                <h3>What is Intune/SCCM?</h3>
+                <div class="card">
+                    <div class="card-desc" style="line-height: 1.8;">
+                        <strong>Microsoft Intune</strong> and <strong>SCCM (System Center Configuration
+                            Manager)</strong> are enterprise tools that IT administrators use to manage thousands of
+                        employee computers from a central dashboard.
+                        <br><br>
+                        <strong>Without Store (Traditional .exe):</strong> IT must download your installer, create
+                        custom deployment scripts, test compatibility, and manually push updates to employees.
+                        <em>Result: Many companies skip your app.</em>
+                        <br><br>
+                        <strong>With Store (MSIX):</strong> IT searches "Downlodr" in Intune, clicks "Assign" to deploy
+                        to 10,000 employees. Done. Updates happen automatically. <em>Result: One-click enterprise
+                            deployment.</em>
+                    </div>
+                </div>
+
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Factor</th>
+                            <th>Without Store (.exe)</th>
+                            <th>With Store (MSIX)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="highlight">Deployment time</td>
+                            <td>Days/weeks</td>
+                            <td class="highlight">5 minutes</td>
+                        </tr>
+                        <tr class="recommended">
+                            <td class="highlight">Update management</td>
+                            <td>Manual scripts</td>
+                            <td class="highlight">Automatic</td>
+                        </tr>
+                        <tr>
+                            <td class="highlight">Security approval</td>
+                            <td>Requires IT review</td>
+                            <td class="highlight">Already signed by Microsoft</td>
+                        </tr>
+                        <tr class="recommended">
+                            <td class="highlight">IT willingness</td>
+                            <td>Hesitant</td>
+                            <td class="highlight">Easy approval</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">💼</span>
+                    <div><strong>B2B Opportunity:</strong> If you ever sell team/enterprise licenses for Downlodr, being
+                        on the Store makes adoption dramatically easier. IT departments trust Store apps because they're
+                        Microsoft-signed and integrate with management tools.</div>
+                </div>
+
+                <h3>Account Type Comparison</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Individual</th>
+                            <th>Company <span class="badge">Recommended</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="recommended">
+                            <td class="highlight">Publisher Name</td>
+                            <td>Your personal name</td>
+                            <td class="highlight">Your company name</td>
+                        </tr>
+                        <tr>
+                            <td class="highlight">Cost</td>
+                            <td>Free</td>
+                            <td>$99 one-time</td>
+                        </tr>
+                        <tr class="recommended">
+                            <td class="highlight">Team Access</td>
+                            <td>Single user only</td>
+                            <td class="highlight">Multiple users with roles</td>
+                        </tr>
+                        <tr class="recommended">
+                            <td class="highlight">Trust Level</td>
+                            <td>Standard</td>
+                            <td class="highlight">Verified Business</td>
+                        </tr>
+                        <tr>
+                            <td class="highlight">Verification</td>
+                            <td>Email only</td>
+                            <td>D-U-N-S / Business docs (1-5 days)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-success">
+                    <span class="alert-icon">💼</span>
+                    <div><strong>For SaaS companies:</strong> Choose Company account. Your app will display "by [Your
+                        Company]" instead of a personal name, building trust with users.</div>
+                </div>
+
+                <h3>What is D-U-N-S?</h3>
+                <div class="card">
+                    <div class="card-title">D-U-N-S Number Explained</div>
+                    <div class="card-desc" style="margin-top: 8px;">
+                        <strong>D-U-N-S (Data Universal Numbering System)</strong> is a unique 9-digit identifier for
+                        businesses, created by Dun & Bradstreet (D&B). Think of it like a Social Security Number, but
+                        for companies.
+                        <br><br>
+                        Microsoft uses D-U-N-S to verify your business is legitimate when you register a Company
+                        account. This prevents fraud and builds trust in the Store ecosystem.
+                    </div>
+                </div>
+
+                <h3>How to Get a D-U-N-S Number</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Cost</th>
+                            <th>Time</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="highlight">D&B Direct (Free)</td>
+                            <td>$0</td>
+                            <td>30+ days</td>
+                            <td>dnb.com - slowest option</td>
+                        </tr>
+                        <tr>
+                            <td class="highlight">D&B Expedited</td>
+                            <td>~$229</td>
+                            <td>1-5 days</td>
+                            <td>Pay for faster processing</td>
+                        </tr>
+                        <tr class="recommended">
+                            <td class="highlight">Apple's Portal <span class="badge">Recommended</span></td>
+                            <td>$0</td>
+                            <td>1-14 days</td>
+                            <td>developer.apple.com/enroll/duns-lookup</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">💡</span>
+                    <div><strong>Already have one?</strong> Check at <a
+                            href="https://www.dnb.com/duns-number/lookup.html" style="color: var(--blue);">dnb.com</a>
+                        before applying. Many registered businesses already have a D-U-N-S number assigned.</div>
+                </div>
+
+                <h3>Requirements Checklist</h3>
+                <ul class="checklist">
+                    <li onclick="this.classList.toggle('checked')">
+                        <div class="checkbox"></div>
+                        <div class="item-content">
+                            <div class="item-title">Microsoft Partner Center Account</div>
+                            <div class="item-desc">Register at partner.microsoft.com. Company accounts require business
+                                verification.</div>
+                        </div>
+                    </li>
+                    <li onclick="this.classList.toggle('checked')">
+                        <div class="checkbox"></div>
+                        <div class="item-content">
+                            <div class="item-title">Windows 10/11 Development Machine</div>
+                            <div class="item-desc">MSIX packaging requires Windows. Use a VM if on macOS/Linux.</div>
+                        </div>
+                    </li>
+                    <li onclick="this.classList.toggle('checked')">
+                        <div class="checkbox"></div>
+                        <div class="item-content">
+                            <div class="item-title">Windows SDK</div>
+                            <div class="item-desc">Provides makeappx and signtool. Install via Visual Studio Installer.
+                            </div>
+                        </div>
+                    </li>
+                    <li onclick="this.classList.toggle('checked')">
+                        <div class="checkbox"></div>
+                        <div class="item-content">
+                            <div class="item-title">Electron Forge v7.10+</div>
+                            <div class="item-desc">Required for native MSIX support with @electron-forge/maker-appx.
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">💡</span>
+                    <div>Microsoft provides <strong>free code signing</strong> for apps distributed via the Store.</div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn hidden">Previous</button>
+                    <button class="btn btn-primary" onclick="nextStep()">Next: Partner Center →</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Partner Center -->
+            <div class="step-content" id="step-2">
+                <h1>Partner Center Setup</h1>
+                <p class="subtitle">The Partner Center is Microsoft's portal for managing your apps, submissions, and
+                    analytics.</p>
+
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-dot">1</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Sign in to Partner Center</div>
+                            <div class="timeline-desc">Go to partner.microsoft.com and sign in with your Microsoft
+                                account.</div>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot">2</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Create a New App</div>
+                            <div class="timeline-desc">Navigate to Apps and games → New product → App.</div>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot">3</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Reserve Your App Name</div>
+                            <div class="timeline-desc">Choose a unique name (e.g., "Downlodr"). Reserved for 1 year.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot">4</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Get Your Identity Details</div>
+                            <div class="timeline-desc">Find Publisher ID and Package Name in Product Identity section.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning">
+                    <span class="alert-icon">⚠️</span>
+                    <div>Copy these values for your forge.config.ts:
+                        <div class="code-block" style="margin-top:8px; margin-bottom:0;">Package/Identity/Name
+                            Package/Identity/Publisher
+                            PublisherDisplayName</div>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn" onclick="prevStep()">← Back</button>
+                    <button class="btn btn-primary" onclick="nextStep()">Next: Visual Assets →</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Visual Assets -->
+            <div class="step-content" id="step-3">
+                <h1>Visual Assets</h1>
+                <p class="subtitle">Prepare high-quality icons and screenshots for your Store listing.</p>
+
+                <div class="asset-grid">
+                    <div class="asset-card">
+                        <div class="icon">🖼️</div>
+                        <div class="name">StoreLogo</div>
+                        <div class="size">50×50 px</div>
+                    </div>
+                    <div class="asset-card">
+                        <div class="icon">🔳</div>
+                        <div class="name">Square44</div>
+                        <div class="size">44×44 px</div>
+                    </div>
+                    <div class="asset-card">
+                        <div class="icon">🟦</div>
+                        <div class="name">Square150</div>
+                        <div class="size">150×150 px</div>
+                    </div>
+                    <div class="asset-card">
+                        <div class="icon">📐</div>
+                        <div class="name">Wide310</div>
+                        <div class="size">310×150 px</div>
+                    </div>
+                </div>
+
+                <ul class="checklist">
+                    <li onclick="this.classList.toggle('checked')">
+                        <div class="checkbox"></div>
+                        <div class="item-content">
+                            <div class="item-title">App Icon (256×256 PNG)</div>
+                            <div class="item-desc">Main app icon. Convert to .ico for Windows builds.</div>
+                        </div>
+                    </li>
+                    <li onclick="this.classList.toggle('checked')">
+                        <div class="checkbox"></div>
+                        <div class="item-content">
+                            <div class="item-title">Screenshots (1366×768+)</div>
+                            <div class="item-desc">1 required, up to 10. 4K recommended.</div>
+                        </div>
+                    </li>
+                    <li onclick="this.classList.toggle('checked')">
+                        <div class="checkbox"></div>
+                        <div class="item-content">
+                            <div class="item-title">Place in build/appx/</div>
+                            <div class="item-desc">Electron Forge looks here for Store assets.</div>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="controls">
+                    <button class="btn" onclick="prevStep()">← Back</button>
+                    <button class="btn btn-primary" onclick="nextStep()">Next: MSIX Packaging →</button>
+                </div>
+            </div>
+
+            <!-- Step 4: MSIX Packaging -->
+            <div class="step-content" id="step-4">
+                <h1>MSIX Packaging</h1>
+                <p class="subtitle">MSIX is Microsoft's modern Windows app packaging format, introduced in 2018 as the
+                    successor to MSI/EXE installers.</p>
+
+                <h3>What is MSIX?</h3>
+                <div class="card">
+                    <div class="card-desc" style="line-height: 1.7;">
+                        <strong>MSIX</strong> is a containerized app format that combines the best features of MSI,
+                        AppX, and App-V. Apps are packaged into a single file that Windows understands natively,
+                        enabling:
+                        <ul style="margin-top: 12px; margin-left: 20px; color: var(--muted-foreground);">
+                            <li>Sandboxed installation (apps don't scatter files across your system)</li>
+                            <li>100% clean uninstalls (no leftover registry entries or files)</li>
+                            <li>Differential updates (only download what changed)</li>
+                            <li>Built-in digital signatures for security</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>MSIX vs Traditional Installers</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th>EXE / MSI / NSIS</th>
+                            <th>MSIX <span class="badge">Modern</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="highlight">Installation</td>
+                            <td>Scatters files across C:\Program Files, AppData, Registry</td>
+                            <td class="highlight">Contained in isolated app folder</td>
+                        </tr>
+                        <tr class="recommended">
+                            <td class="highlight">Uninstall</td>
+                            <td>Often leaves leftover files and registry keys</td>
+                            <td class="highlight">100% clean removal guaranteed</td>
+                        </tr>
+                        <tr>
+                            <td class="highlight">Updates</td>
+                            <td>Full package re-download every time</td>
+                            <td class="highlight">Differential (only changed blocks)</td>
+                        </tr>
+                        <tr class="recommended">
+                            <td class="highlight">Security</td>
+                            <td>Full system access during install</td>
+                            <td class="highlight">Sandboxed with declared capabilities</td>
+                        </tr>
+                        <tr>
+                            <td class="highlight">Store Compatible</td>
+                            <td>❌ No</td>
+                            <td class="highlight">✅ Yes</td>
+                        </tr>
+                        <tr>
+                            <td class="highlight">Enterprise Deployment</td>
+                            <td>Requires custom scripts</td>
+                            <td class="highlight">Native Intune/SCCM support</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">💡</span>
+                    <div><strong>File extensions:</strong> MSIX packages use <code>.msix</code> or <code>.appx</code>
+                        extensions. Both are functionally the same for the Microsoft Store.</div>
+                </div>
+
+                <h3>Setup Electron Forge for MSIX</h3>
+                <div class="card">
+                    <div class="card-title">Install the MSIX maker</div>
+                    <div class="code-block">npm install --save-dev @electron-forge/maker-appx</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Add to forge.config.ts</div>
+                    <div class="code-block">import { MakerAppX } from '@electron-forge/maker-appx';
+
+                        // In your makers array:
+                        new MakerAppX({
+                        publisher: 'CN=YOUR_PUBLISHER_ID',
+                        publisherDisplayName: 'Your Company Name',
+                        identityName: 'YourCompany.YourApp',
+                        assets: './build/appx',
+                        }),</div>
+                </div>
+
+                <div class="alert alert-warning">
+                    <span class="alert-icon">⚠️</span>
+                    <div>The publisher value must exactly match your Partner Center identity, including CN= prefix.
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn" onclick="prevStep()">← Back</button>
+                    <button class="btn btn-primary" onclick="nextStep()">Next: Build & Sign →</button>
+                </div>
+            </div>
+
+            <!-- Step 5: Build & Sign -->
+            <div class="step-content" id="step-5">
+                <h1>Build & Sign</h1>
+                <p class="subtitle">Generate your MSIX package. Microsoft signs it when you upload.</p>
+
+                <div class="card">
+                    <div class="card-title">Build command</div>
+                    <div class="code-block">npm run make -- --platform=win32</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Output location</div>
+                    <div class="code-block">out/make/appx/x64/YourApp-1.0.0.appx</div>
+                </div>
+
+                <ul class="checklist">
+                    <li onclick="this.classList.toggle('checked')">
+                        <div class="checkbox"></div>
+                        <div class="item-content">
+                            <div class="item-title">Verify MSIX file created</div>
+                            <div class="item-desc">Check out/make/appx/ for .appx or .msix file.</div>
+                        </div>
+                    </li>
+                    <li onclick="this.classList.toggle('checked')">
+                        <div class="checkbox"></div>
+                        <div class="item-content">
+                            <div class="item-title">Test install locally (optional)</div>
+                            <div class="item-desc">Requires developer mode for unsigned packages.</div>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="alert alert-success">
+                    <span class="alert-icon">✅</span>
+                    <div>You don't need to sign the package yourself. Microsoft handles signing during submission.</div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn" onclick="prevStep()">← Back</button>
+                    <button class="btn btn-primary" onclick="nextStep()">Next: Submission →</button>
+                </div>
+            </div>
+
+            <!-- Step 6: Submission -->
+            <div class="step-content" id="step-6">
+                <h1>App Submission</h1>
+                <p class="subtitle">Upload your package and complete the Store listing.</p>
+
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-dot">1</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Start a New Submission</div>
+                            <div class="timeline-desc">Click "Start your submission" in Partner Center.</div>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot">2</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Upload Your Package</div>
+                            <div class="timeline-desc">Drag and drop your .msix file.</div>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot">3</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Set Pricing</div>
+                            <div class="timeline-desc">Free, paid, or freemium. Select markets.</div>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot">4</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Complete Store Listing</div>
+                            <div class="timeline-desc">Description, screenshots, privacy policy.</div>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot">5</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Age Ratings (IARC)</div>
+                            <div class="timeline-desc">Complete questionnaire for rating.</div>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot">6</div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Submit for Review</div>
+                            <div class="timeline-desc">Click "Submit to the Store".</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn" onclick="prevStep()">← Back</button>
+                    <button class="btn btn-primary" onclick="nextStep()">Next: Certification →</button>
+                </div>
+            </div>
+
+            <!-- Step 7: Certification -->
+            <div class="step-content" id="step-7">
+                <h1>Certification & Launch</h1>
+                <p class="subtitle">Microsoft reviews your app for policy compliance. Typically takes 2-3 business days.
+                </p>
+
+                <div class="alert alert-info">
+                    <span class="alert-icon">⏱️</span>
+                    <div>Average review time: <strong>24-72 hours</strong>. Complex apps may take longer.</div>
+                </div>
+
+                <h3>⚠️ Video Downloader Apps & Store Policy</h3>
+                <div class="card" style="border-left: 3px solid var(--yellow); background: rgba(234, 179, 8, 0.05);">
+                    <div class="card-title" style="margin-bottom: 12px;">Can Downlodr be published to Microsoft Store?
+                    </div>
+                    <div class="card-desc" style="line-height: 1.8;">
+                        <strong style="color: var(--green);">✅ YES - Video downloaders ARE on the Microsoft
+                            Store.</strong><br><br>
+                        Multiple apps like "Video Downloader Standard", "UTube Downloader", and others are currently
+                        live and regularly updated. However, there are important considerations:
+                    </div>
+                </div>
+
+                <h3>Key Risks & Considerations</h3>
+                <div style="display: grid; gap: 12px; margin-bottom: 1.5rem;">
+                    <div class="card" style="border-left: 3px solid var(--yellow);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 1.25rem;">⚖️</span>
+                            <div class="card-title">Copyright & ToS Concerns</div>
+                        </div>
+                        <div class="card-desc">YouTube's Terms of Service prohibit downloading. Your app could face DMCA
+                            requests from content platforms. Position your app for legitimate use cases (personal
+                            backups, offline viewing of owned content).</div>
+                    </div>
+                    <div class="card" style="border-left: 3px solid var(--yellow);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 1.25rem;">📝</span>
+                            <div class="card-title">Required Disclaimer</div>
+                        </div>
+                        <div class="card-desc">Include a clear disclaimer stating users are responsible for complying
+                            with copyright laws and third-party terms of service. This is how existing apps pass
+                            certification.</div>
+                    </div>
+                    <div class="card" style="border-left: 3px solid var(--yellow);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 1.25rem;">🔄</span>
+                            <div class="card-title">Ongoing Maintenance</div>
+                        </div>
+                        <div class="card-desc">YouTube frequently changes its API/structure to break downloaders. Your
+                            app needs constant updates to remain functional. This is expected behavior for this
+                            category.</div>
+                    </div>
+                </div>
+
+                <h3>Best Practices for Positioning Downlodr</h3>
+                <ul class="checklist">
+                    <li onclick="this.classList.toggle('checked')">
+                        <div class="checkbox"></div>
+                        <div class="item-content">
+                            <div class="item-title">Focus on "Media Library" features</div>
+                            <div class="item-desc">Emphasize organization, playback, and format conversion over
+                                downloading.</div>
+                        </div>
+                    </li>
+                    <li onclick="this.classList.toggle('checked')">
+                        <div class="checkbox"></div>
+                        <div class="item-content">
+                            <div class="item-title">Add prominent disclaimer in-app</div>
+                            <div class="item-desc">"Users are responsible for ensuring downloaded content complies with
+                                applicable laws and third-party terms of service."</div>
+                        </div>
+                    </li>
+                    <li onclick="this.classList.toggle('checked')">
+                        <div class="checkbox"></div>
+                        <div class="item-content">
+                            <div class="item-title">Include Privacy Policy URL</div>
+                            <div class="item-desc">Required for Store submission. Host on your website.</div>
+                        </div>
+                    </li>
+                    <li onclick="this.classList.toggle('checked')">
+                        <div class="checkbox"></div>
+                        <div class="item-content">
+                            <div class="item-title">Avoid mentioning specific platforms in Store listing</div>
+                            <div class="item-desc">Don't say "Download from YouTube" - say "Download videos from
+                                supported websites".</div>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="alert alert-success">
+                    <span class="alert-icon">💡</span>
+                    <div><strong>Pro tip:</strong> Position Downlodr as a "Media Manager with download capabilities"
+                        rather than a "YouTube Downloader". This framing is safer for Store approval and more accurate
+                        to your vision.</div>
+                </div>
+
+                <h3>Common Rejection Reasons</h3>
+                <div class="card" style="border-left: 3px solid var(--red);">
+                    <div class="item-title">Missing Privacy Policy</div>
+                    <div class="item-desc">Required if app collects user data or uses analytics.</div>
+                </div>
+                <div class="card" style="border-left: 3px solid var(--red);">
+                    <div class="item-title">Crashes or Errors</div>
+                    <div class="item-desc">App must work without crashes. Test thoroughly.</div>
+                </div>
+                <div class="card" style="border-left: 3px solid var(--red);">
+                    <div class="item-title">Inaccurate Description</div>
+                    <div class="item-desc">Listing must accurately describe functionality.</div>
+                </div>
+                <div class="card" style="border-left: 3px solid var(--red);">
+                    <div class="item-title">Publisher Identity Mismatch</div>
+                    <div class="item-desc">Package publisher must match Partner Center.</div>
+                </div>
+
+                <div class="alert alert-success">
+                    <span class="alert-icon">🎉</span>
+                    <div>Once approved, your app goes live on the Microsoft Store!</div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn" onclick="prevStep()">← Back</button>
+                    <button class="btn btn-primary" onclick="goToStep(1)">↻ Restart Guide</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 7;
+
+        function updateUI() {
+            document.querySelectorAll('.step-item').forEach(item => {
+                const step = parseInt(item.dataset.step);
+                item.classList.remove('active', 'completed');
+                if (step === currentStep) item.classList.add('active');
+                if (step < currentStep) item.classList.add('completed');
+            });
+
+            document.querySelectorAll('.step-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`step-${currentStep}`)?.classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function goToStep(step) { currentStep = step; updateUI(); }
+        function nextStep() { if (currentStep < totalSteps) { currentStep++; updateUI(); } }
+        function prevStep() { if (currentStep > 1) { currentStep--; updateUI(); } }
+    </script>
+</body>
+
+</html>
