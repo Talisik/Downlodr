@@ -69,12 +69,58 @@ jobs:
         run: yarn make
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
+      - name: Get version from package.json
+        id: pkg_version
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Generate latest.yml for electron-updater
+        run: |
+          # Find the built exe file
+          $exeFile = Get-ChildItem -Path "out/make" -Recurse -Filter "*.exe" | Select-Object -First 1
+          if (-not $exeFile) {
+            Write-Error "No exe file found in out/make"
+            exit 1
+          }
+
+          Write-Host "Found exe: $($exeFile.FullName)"
+
+          # Calculate SHA512 hash
+          $hash = (Get-FileHash $exeFile.FullName -Algorithm SHA512).Hash.ToLower()
+          $size = (Get-Item $exeFile.FullName).Length
+          $version = "${{ steps.pkg_version.outputs.version }}"
+          $fileName = $exeFile.Name
+          $releaseDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+
+          # Create latest.yml content
+          $yamlContent = @"
+          version: $version
+          files:
+            - url: $fileName
+              sha512: $hash
+              size: $size
+          path: $fileName
+          sha512: $hash
+          releaseDate: $releaseDate
+          "@
+
+          # Write to file in the out/make directory
+          $yamlContent | Out-File -FilePath "out/make/latest.yml" -Encoding utf8 -NoNewline
+
+          Write-Host "Generated latest.yml:"
+          Get-Content "out/make/latest.yml"
+        shell: pwsh
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: downlodr-windows-${{ github.run_number }}
-          path: out/make/**/*
+          path: |
+            out/make/**/*.exe
+            out/make/latest.yml
           retention-days: 30
   
   create-release:
@@ -134,7 +180,9 @@ jobs:
             ## Changes in this release
             ${{ steps.changelog.outputs.changelog }}
           
-          files: ./artifacts/**/*.exe
+          files: |
+            ./artifacts/**/*.exe
+            ./artifacts/**/latest.yml
           draft: false
           prerelease: false
         env:

@@ -8,6 +8,30 @@
 import { FormatSelectorResult, MenuItem, PluginInfo, PluginManifest, PluginModalOptions, PluginSidePanelOptions, PluginSidePanelResult, TaskBarItem } from './plugins/types';
 import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult } from './Schema/downlodrFunction';
 
+// Auto-update types
+interface AutoUpdateState {
+  checking: boolean;
+  available: boolean;
+  downloading: boolean;
+  downloaded: boolean;
+  progress: AutoUpdateProgress | null;
+  updateInfo: AutoUpdateInfo | null;
+  error: string | null;
+}
+
+interface AutoUpdateInfo {
+  version: string;
+  releaseNotes?: string;
+  releaseDate?: string;
+}
+
+interface AutoUpdateProgress {
+  percent: number;
+  bytesPerSecond: number;
+  transferred: number;
+  total: number;
+}
+
 declare global {
   // Environment variables injected at build time
   const __TELEMETRY_ENDPOINT__: string;
@@ -126,6 +150,23 @@ declare global {
       ) => () => void;
       checkForUpdates: () => Promise<UpdateInfo>;
       getCurrentVersion: () => Promise<string>; // Gets current app version without GitHub API call
+    };
+    autoUpdateAPI: {
+      // Manually trigger update check
+      checkForUpdates: () => Promise<AutoUpdateState>;
+      // Quit and install downloaded update
+      quitAndInstall: () => Promise<{ success: boolean; error?: string }>;
+      // Get current update state
+      getState: () => Promise<AutoUpdateState>;
+      // Check if update is ready to install
+      isReady: () => Promise<boolean>;
+      // Event listeners (return cleanup functions)
+      onChecking: (callback: () => void) => () => void;
+      onUpdateAvailable: (callback: (info: AutoUpdateInfo) => void) => () => void;
+      onUpdateNotAvailable: (callback: (info: AutoUpdateInfo) => void) => () => void;
+      onDownloadProgress: (callback: (progress: AutoUpdateProgress) => void) => () => void;
+      onUpdateDownloaded: (callback: (info: AutoUpdateInfo) => void) => () => void;
+      onError: (callback: (error: { message: string }) => void) => () => void;
     };
     backgroundSettings: {
       getRunInBackground: () => Promise<boolean>;

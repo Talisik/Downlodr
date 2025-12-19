@@ -307,6 +307,66 @@ contextBridge.exposeInMainWorld('updateAPI', {
   getCurrentVersion: () => ipcRenderer.invoke('get-current-version'),
 });
 
+// Auto-update API (electron-updater) for background downloads
+contextBridge.exposeInMainWorld('autoUpdateAPI', {
+  // Manually trigger update check
+  checkForUpdates: () => ipcRenderer.invoke('auto-update:check'),
+
+  // Quit and install downloaded update
+  quitAndInstall: () => ipcRenderer.invoke('auto-update:quit-and-install'),
+
+  // Get current update state
+  getState: () => ipcRenderer.invoke('auto-update:get-state'),
+
+  // Check if update is ready to install
+  isReady: () => ipcRenderer.invoke('auto-update:is-ready'),
+
+  // Event: Update check started
+  onChecking: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('auto-update-checking', handler);
+    return () => ipcRenderer.removeListener('auto-update-checking', handler);
+  },
+
+  // Event: Update available (download starting)
+  onUpdateAvailable: (callback: (info: any) => void) => {
+    const handler = (_: any, info: any) => callback(info);
+    ipcRenderer.on('auto-update-available', handler);
+    return () => ipcRenderer.removeListener('auto-update-available', handler);
+  },
+
+  // Event: No update available
+  onUpdateNotAvailable: (callback: (info: any) => void) => {
+    const handler = (_: any, info: any) => callback(info);
+    ipcRenderer.on('auto-update-not-available', handler);
+    return () =>
+      ipcRenderer.removeListener('auto-update-not-available', handler);
+  },
+
+  // Event: Download progress
+  onDownloadProgress: (callback: (progress: any) => void) => {
+    const handler = (_: any, progress: any) => callback(progress);
+    ipcRenderer.on('auto-update-download-progress', handler);
+    return () =>
+      ipcRenderer.removeListener('auto-update-download-progress', handler);
+  },
+
+  // Event: Update downloaded and ready to install
+  onUpdateDownloaded: (callback: (info: any) => void) => {
+    const handler = (_: any, info: any) => callback(info);
+    ipcRenderer.on('auto-update-downloaded', handler);
+    return () =>
+      ipcRenderer.removeListener('auto-update-downloaded', handler);
+  },
+
+  // Event: Error occurred
+  onError: (callback: (error: any) => void) => {
+    const handler = (_: any, error: any) => callback(error);
+    ipcRenderer.on('auto-update-error', handler);
+    return () => ipcRenderer.removeListener('auto-update-error', handler);
+  },
+});
+
 contextBridge.exposeInMainWorld('appControl', {
   showWindow: () => ipcRenderer.invoke('show-window'),
   hideWindow: () => ipcRenderer.invoke('hide-window'),

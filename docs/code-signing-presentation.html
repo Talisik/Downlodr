@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Update Architecture & Code Signing | Downlodr</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e4e4e7;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            background: linear-gradient(90deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #94a3b8;
+        }
+
+        /* Navigation */
+        .nav-dots {
+            position: fixed;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #475569;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-dot:hover, .nav-dot.active {
+            background: #60a5fa;
+            transform: scale(1.3);
+        }
+
+        .nav-dot:hover::after {
+            content: attr(title);
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 80px;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            color: #f1f5f9;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title .icon {
+            font-size: 2rem;
+        }
+
+        /* Cards */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 28px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #60a5fa;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        .card h3 {
+            font-size: 1.3rem;
+            color: #f1f5f9;
+            margin-bottom: 12px;
+        }
+
+        .card p {
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+
+        /* Architecture Diagram */
+        .arch-diagram {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px 0;
+            overflow-x: auto;
+        }
+
+        .arch-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .arch-box {
+            background: linear-gradient(135deg, #1e3a5f, #1e3a8a);
+            border: 2px solid #3b82f6;
+            border-radius: 16px;
+            padding: 24px 32px;
+            text-align: center;
+            min-width: 160px;
+            transition: all 0.3s ease;
+        }
+
+        .arch-box:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.3);
+        }
+
+        .arch-box.highlight {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            border-color: #a78bfa;
+        }
+
+        .arch-box.security {
+            background: linear-gradient(135deg, #065f46, #047857);
+            border-color: #34d399;
+        }
+
+        .arch-box.storage {
+            background: linear-gradient(135deg, #92400e, #b45309);
+            border-color: #fbbf24;
+        }
+
+        .arch-box-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+        }
+
+        .arch-box-label {
+            font-weight: 600;
+            color: #f1f5f9;
+            font-size: 1rem;
+        }
+
+        .arch-box-sub {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        .arch-arrow {
+            font-size: 2rem;
+            color: #60a5fa;
+        }
+
+        .arch-arrow-down {
+            font-size: 2rem;
+            color: #60a5fa;
+            display: block;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .arch-section-label {
+            background: rgba(96, 165, 250, 0.2);
+            color: #60a5fa;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        /* Flow Diagram */
+        .flow-container {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 40px;
+            overflow-x: auto;
+        }
+
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            min-width: 800px;
+            flex-wrap: wrap;
+        }
+
+        .flow-step {
+            background: linear-gradient(135deg, #1e3a5f, #1e3a8a);
+            border-radius: 12px;
+            padding: 20px 24px;
+            text-align: center;
+            min-width: 140px;
+            transition: all 0.3s ease;
+        }
+
+        .flow-step:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(96, 165, 250, 0.3);
+        }
+
+        .flow-step.danger {
+            background: linear-gradient(135deg, #7f1d1d, #991b1b);
+        }
+
+        .flow-step.success {
+            background: linear-gradient(135deg, #14532d, #166534);
+        }
+
+        .flow-arrow {
+            font-size: 1.5rem;
+            color: #60a5fa;
+        }
+
+        .flow-step-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .flow-step-label {
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comparison-table th {
+            background: rgba(96, 165, 250, 0.2);
+            color: #60a5fa;
+            font-weight: 600;
+        }
+
+        .comparison-table tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .badge-success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+
+        .badge-warning {
+            background: rgba(234, 179, 8, 0.2);
+            color: #facc15;
+        }
+
+        .badge-info {
+            background: rgba(96, 165, 250, 0.2);
+            color: #60a5fa;
+        }
+
+        /* Interactive Demo */
+        .demo-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 20px;
+        }
+
+        .demo-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .demo-tab {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #94a3b8;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .demo-tab:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .demo-tab.active {
+            background: #60a5fa;
+            color: #0f172a;
+        }
+
+        .demo-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .demo-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .warning-box {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .warning-box-icon {
+            font-size: 2rem;
+        }
+
+        .success-box {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .info-box {
+            background: rgba(96, 165, 250, 0.1);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        /* Company Cards */
+        .company-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+            margin-top: 30px;
+        }
+
+        .company-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 28px;
+            transition: all 0.3s ease;
+        }
+
+        .company-card:hover {
+            transform: translateY(-5px);
+            border-color: #60a5fa;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .company-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .company-logo {
+            font-size: 3rem;
+        }
+
+        .company-name {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .company-type {
+            font-size: 0.85rem;
+            color: #60a5fa;
+        }
+
+        .company-features {
+            list-style: none;
+            margin-top: 16px;
+        }
+
+        .company-features li {
+            padding: 10px 0;
+            color: #94a3b8;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .company-features li:last-child {
+            border-bottom: none;
+        }
+
+        .company-features li::before {
+            content: "→";
+            color: #60a5fa;
+        }
+
+        /* Cost Section */
+        .cost-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        .cost-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 28px;
+            text-align: center;
+        }
+
+        .cost-card h4 {
+            color: #60a5fa;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .cost-price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin: 12px 0;
+        }
+
+        .cost-price span {
+            font-size: 1rem;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .cost-features {
+            list-style: none;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .cost-features li {
+            padding: 8px 0;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cost-features li::before {
+            content: "✓";
+            color: #4ade80;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+            margin-top: 30px;
+        }
+
+        .timeline::before {
+            content: "";
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, #60a5fa, #a78bfa);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+        }
+
+        .timeline-item::before {
+            content: "";
+            position: absolute;
+            left: -33px;
+            top: 24px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #60a5fa;
+            border: 3px solid #1a1a2e;
+        }
+
+        .timeline-item h4 {
+            color: #60a5fa;
+            margin-bottom: 8px;
+        }
+
+        /* Summary */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+        }
+
+        .summary-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .summary-item h3 {
+            color: #f1f5f9;
+            margin-bottom: 8px;
+        }
+
+        .summary-item p {
+            color: #94a3b8;
+        }
+
+        /* Workflow Steps */
+        .workflow-steps {
+            display: grid;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .workflow-step {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 4px solid #60a5fa;
+            border-radius: 0 12px 12px 0;
+            padding: 24px;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .workflow-step-number {
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            color: #0f172a;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .workflow-step-content h4 {
+            color: #f1f5f9;
+            margin-bottom: 8px;
+        }
+
+        .workflow-step-content p {
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+
+        /* CTA */
+        .cta-section {
+            text-align: center;
+            padding: 60px 40px;
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.1), rgba(167, 139, 250, 0.1));
+            border-radius: 24px;
+            margin-top: 60px;
+        }
+
+        .cta-section h2 {
+            font-size: 2rem;
+            color: #f1f5f9;
+            margin-bottom: 16px;
+        }
+
+        .cta-section p {
+            color: #94a3b8;
+            max-width: 600px;
+            margin: 0 auto 30px;
+            line-height: 1.7;
+        }
+
+        /* Release Channels */
+        .channels-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .channel {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            min-width: 180px;
+            transition: all 0.3s ease;
+        }
+
+        .channel:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .channel-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .channel-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 8px;
+        }
+
+        .channel-desc {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+
+        .channel-users {
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: #60a5fa;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        /* Animated Pipeline */
+        .pipeline {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            margin: 30px 0;
+            overflow-x: auto;
+            padding: 20px 0;
+        }
+
+        .pipeline-stage {
+            flex: 1;
+            min-width: 200px;
+            padding: 24px;
+            text-align: center;
+            position: relative;
+            background: rgba(255, 255, 255, 0.03);
+            border-top: 3px solid #3b82f6;
+        }
+
+        .pipeline-stage:nth-child(2) {
+            border-top-color: #8b5cf6;
+        }
+
+        .pipeline-stage:nth-child(3) {
+            border-top-color: #10b981;
+        }
+
+        .pipeline-stage:nth-child(4) {
+            border-top-color: #f59e0b;
+        }
+
+        .pipeline-stage:nth-child(5) {
+            border-top-color: #ef4444;
+        }
+
+        .pipeline-stage::after {
+            content: "→";
+            position: absolute;
+            right: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+            color: #60a5fa;
+            z-index: 10;
+        }
+
+        .pipeline-stage:last-child::after {
+            display: none;
+        }
+
+        .pipeline-stage-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+
+        .pipeline-stage-title {
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 8px;
+        }
+
+        .pipeline-stage-desc {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        /* Downlodr Implementation */
+        .impl-section {
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.05), rgba(167, 139, 250, 0.05));
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 40px;
+        }
+
+        .impl-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .impl-header h3 {
+            font-size: 1.5rem;
+            color: #f1f5f9;
+        }
+
+        .impl-logo {
+            font-size: 2.5rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav-dots">
+        <div class="nav-dot active" data-section="0" title="Introduction"></div>
+        <div class="nav-dot" data-section="1" title="Industry Architecture"></div>
+        <div class="nav-dot" data-section="2" title="How Companies Do It"></div>
+        <div class="nav-dot" data-section="3" title="Complete Workflow"></div>
+        <div class="nav-dot" data-section="4" title="Release Channels"></div>
+        <div class="nav-dot" data-section="5" title="Code Signing"></div>
+        <div class="nav-dot" data-section="6" title="OS Requirements"></div>
+        <div class="nav-dot" data-section="7" title="Security Risks"></div>
+        <div class="nav-dot" data-section="8" title="Costs"></div>
+        <div class="nav-dot" data-section="9" title="Downlodr Plan"></div>
+        <div class="nav-dot" data-section="10" title="Summary"></div>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>Auto-Update Architecture & Code Signing</h1>
+            <p class="subtitle">Complete workflow and architecture used by Microsoft, Cursor, VS Code, and industry leaders</p>
+        </header>
+
+        <!-- Section 0: Introduction -->
+        <section class="section" id="section-0">
+            <h2 class="section-title"><span class="icon">🚀</span> What is Auto-Update?</h2>
+            <div class="cards">
+                <div class="card">
+                    <div class="card-icon">🔄</div>
+                    <h3>Seamless Updates</h3>
+                    <p>Users receive new versions automatically without manual downloads. The app checks for updates, downloads in background, and installs on restart.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🛡️</div>
+                    <h3>Security Critical</h3>
+                    <p>Auto-updates require code signing to verify authenticity. Without it, attackers could push malicious updates to all users.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">📊</div>
+                    <h3>Industry Standard</h3>
+                    <p>Every major desktop application (Chrome, VS Code, Slack, Spotify, Cursor) uses signed auto-updates. It's expected by users.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 1: Industry Architecture -->
+        <section class="section" id="section-1">
+            <h2 class="section-title"><span class="icon">🏗️</span> Industry-Standard Auto-Update Architecture</h2>
+
+            <div class="arch-diagram">
+                <!-- CI/CD Layer -->
+                <div class="arch-section-label">CI/CD Pipeline</div>
+                <div class="arch-row">
+                    <div class="arch-box">
+                        <div class="arch-box-icon">💻</div>
+                        <div class="arch-box-label">Developer</div>
+                        <div class="arch-box-sub">Commits Code</div>
+                    </div>
+                    <span class="arch-arrow">→</span>
+                    <div class="arch-box">
+                        <div class="arch-box-icon">🔀</div>
+                        <div class="arch-box-label">GitHub / GitLab</div>
+                        <div class="arch-box-sub">Version Control</div>
+                    </div>
+                    <span class="arch-arrow">→</span>
+                    <div class="arch-box highlight">
+                        <div class="arch-box-icon">⚙️</div>
+                        <div class="arch-box-label">CI/CD</div>
+                        <div class="arch-box-sub">GitHub Actions / Azure</div>
+                    </div>
+                    <span class="arch-arrow">→</span>
+                    <div class="arch-box security">
+                        <div class="arch-box-icon">🔏</div>
+                        <div class="arch-box-label">Code Signing</div>
+                        <div class="arch-box-sub">HSM / Azure Key Vault</div>
+                    </div>
+                </div>
+
+                <div class="arch-arrow-down">↓</div>
+
+                <!-- Distribution Layer -->
+                <div class="arch-section-label">Distribution Infrastructure</div>
+                <div class="arch-row">
+                    <div class="arch-box storage">
+                        <div class="arch-box-icon">📦</div>
+                        <div class="arch-box-label">Release Server</div>
+                        <div class="arch-box-sub">S3 / Azure Blob / GCS</div>
+                    </div>
+                    <span class="arch-arrow">→</span>
+                    <div class="arch-box storage">
+                        <div class="arch-box-icon">🌐</div>
+                        <div class="arch-box-label">CDN</div>
+                        <div class="arch-box-sub">CloudFront / Cloudflare</div>
+                    </div>
+                    <span class="arch-arrow">→</span>
+                    <div class="arch-box">
+                        <div class="arch-box-icon">📋</div>
+                        <div class="arch-box-label">Update Manifest</div>
+                        <div class="arch-box-sub">latest.yml / RELEASES</div>
+                    </div>
+                </div>
+
+                <div class="arch-arrow-down">↓</div>
+
+                <!-- Client Layer -->
+                <div class="arch-section-label">Client Application</div>
+                <div class="arch-row">
+                    <div class="arch-box">
+                        <div class="arch-box-icon">🔍</div>
+                        <div class="arch-box-label">Check Updates</div>
+                        <div class="arch-box-sub">Periodic / On Launch</div>
+                    </div>
+                    <span class="arch-arrow">→</span>
+                    <div class="arch-box">
+                        <div class="arch-box-icon">📥</div>
+                        <div class="arch-box-label">Download</div>
+                        <div class="arch-box-sub">Delta / Full Package</div>
+                    </div>
+                    <span class="arch-arrow">→</span>
+                    <div class="arch-box security">
+                        <div class="arch-box-icon">✅</div>
+                        <div class="arch-box-label">Verify Signature</div>
+                        <div class="arch-box-sub">OS + App Level</div>
+                    </div>
+                    <span class="arch-arrow">→</span>
+                    <div class="arch-box highlight">
+                        <div class="arch-box-icon">🚀</div>
+                        <div class="arch-box-label">Install & Restart</div>
+                        <div class="arch-box-sub">Silent / Prompt</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <div class="warning-box-icon">💡</div>
+                <div>
+                    <strong style="color: #60a5fa;">Key Insight</strong>
+                    <p style="color: #94a3b8; margin-top: 8px;">Code signing happens in the CI/CD pipeline, typically using Hardware Security Modules (HSM) or cloud key management services. The private key never leaves the secure environment.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: How Companies Do It -->
+        <section class="section" id="section-2">
+            <h2 class="section-title"><span class="icon">🏢</span> How Major Companies Implement Auto-Updates</h2>
+
+            <div class="company-grid">
+                <div class="company-card">
+                    <div class="company-header">
+                        <div class="company-logo">📘</div>
+                        <div>
+                            <div class="company-name">Microsoft (VS Code)</div>
+                            <div class="company-type">Electron App</div>
+                        </div>
+                    </div>
+                    <ul class="company-features">
+                        <li>Uses <strong>electron-updater</strong> with custom update server</li>
+                        <li>EV code signing certificate for instant SmartScreen trust</li>
+                        <li>Multiple release channels: Stable, Insiders, Exploration</li>
+                        <li>Delta updates to minimize download size</li>
+                        <li>Signed with Azure Code Signing (HSM-backed)</li>
+                        <li>Self-hosted update server with Azure CDN</li>
+                    </ul>
+                </div>
+
+                <div class="company-card">
+                    <div class="company-header">
+                        <div class="company-logo">⚡</div>
+                        <div>
+                            <div class="company-name">Cursor</div>
+                            <div class="company-type">VS Code Fork (Electron)</div>
+                        </div>
+                    </div>
+                    <ul class="company-features">
+                        <li>Fork of VS Code, inherits update architecture</li>
+                        <li>Uses <strong>electron-updater</strong> with GitHub Releases</li>
+                        <li>EV certificate for Windows, Apple notarization for macOS</li>
+                        <li>Automatic background download and install on quit</li>
+                        <li>Release channels: Stable and Nightly builds</li>
+                        <li>Signed builds via GitHub Actions CI/CD</li>
+                    </ul>
+                </div>
+
+                <div class="company-card">
+                    <div class="company-header">
+                        <div class="company-logo">💬</div>
+                        <div>
+                            <div class="company-name">Slack</div>
+                            <div class="company-type">Electron App</div>
+                        </div>
+                    </div>
+                    <ul class="company-features">
+                        <li>Custom update framework built on Squirrel</li>
+                        <li>Background downloads with user notification</li>
+                        <li>Mandatory updates for security patches</li>
+                        <li>Rollback capability for failed updates</li>
+                        <li>Staged rollouts (1% → 10% → 100%)</li>
+                        <li>Telemetry for update success monitoring</li>
+                    </ul>
+                </div>
+
+                <div class="company-card">
+                    <div class="company-header">
+                        <div class="company-logo">🎵</div>
+                        <div>
+                            <div class="company-name">Spotify</div>
+                            <div class="company-type">CEF (Chromium Embedded)</div>
+                        </div>
+                    </div>
+                    <ul class="company-features">
+                        <li>Custom native updater per platform</li>
+                        <li>Differential updates (binary diff patching)</li>
+                        <li>A/B testing for update rollout</li>
+                        <li>Feature flags for gradual feature release</li>
+                        <li>Automatic rollback on crash detection</li>
+                        <li>P2P update distribution for bandwidth</li>
+                    </ul>
+                </div>
+
+                <div class="company-card">
+                    <div class="company-header">
+                        <div class="company-logo">🎮</div>
+                        <div>
+                            <div class="company-name">Discord</div>
+                            <div class="company-type">Electron App</div>
+                        </div>
+                    </div>
+                    <ul class="company-features">
+                        <li>Squirrel for Windows, custom for macOS</li>
+                        <li>Updates on every app launch</li>
+                        <li>Module-based updates (only changed modules)</li>
+                        <li>PTB (Public Test Build) and Canary channels</li>
+                        <li>Host updates separate from app updates</li>
+                        <li>Aggressive update prompts for security</li>
+                    </ul>
+                </div>
+
+                <div class="company-card">
+                    <div class="company-header">
+                        <div class="company-logo">🌐</div>
+                        <div>
+                            <div class="company-name">Google Chrome</div>
+                            <div class="company-type">Native C++</div>
+                        </div>
+                    </div>
+                    <ul class="company-features">
+                        <li>Google Update (Omaha) service on Windows</li>
+                        <li>Keystone framework on macOS</li>
+                        <li>Silent background updates (no user action)</li>
+                        <li>A/B/C/D release channels</li>
+                        <li>Differential updates (courgette algorithm)</li>
+                        <li>Enterprise controls for managed updates</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Complete Workflow -->
+        <section class="section" id="section-3">
+            <h2 class="section-title"><span class="icon">📋</span> Complete Auto-Update Workflow</h2>
+
+            <div class="pipeline">
+                <div class="pipeline-stage">
+                    <div class="pipeline-stage-icon">👨‍💻</div>
+                    <div class="pipeline-stage-title">Development</div>
+                    <div class="pipeline-stage-desc">Code committed to version control with semantic versioning</div>
+                </div>
+                <div class="pipeline-stage">
+                    <div class="pipeline-stage-icon">🔨</div>
+                    <div class="pipeline-stage-title">Build</div>
+                    <div class="pipeline-stage-desc">CI compiles for all platforms (Win, Mac, Linux)</div>
+                </div>
+                <div class="pipeline-stage">
+                    <div class="pipeline-stage-icon">🔏</div>
+                    <div class="pipeline-stage-title">Sign</div>
+                    <div class="pipeline-stage-desc">Code signing with secure HSM or Key Vault</div>
+                </div>
+                <div class="pipeline-stage">
+                    <div class="pipeline-stage-icon">📦</div>
+                    <div class="pipeline-stage-title">Publish</div>
+                    <div class="pipeline-stage-desc">Upload to release server with manifest</div>
+                </div>
+                <div class="pipeline-stage">
+                    <div class="pipeline-stage-icon">👥</div>
+                    <div class="pipeline-stage-title">Rollout</div>
+                    <div class="pipeline-stage-desc">Staged release to users with monitoring</div>
+                </div>
+            </div>
+
+            <div class="workflow-steps">
+                <div class="workflow-step">
+                    <div class="workflow-step-number">1</div>
+                    <div class="workflow-step-content">
+                        <h4>Version Bump & Changelog</h4>
+                        <p>Developer updates version in package.json, writes changelog, and creates a Git tag. This triggers the release pipeline.</p>
+                    </div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-step-number">2</div>
+                    <div class="workflow-step-content">
+                        <h4>Multi-Platform Build</h4>
+                        <p>CI/CD (GitHub Actions, Azure Pipelines) builds the app for Windows (NSIS/MSI), macOS (DMG), and Linux (AppImage/deb). Electron Forge or electron-builder handles packaging.</p>
+                    </div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-step-number">3</div>
+                    <div class="workflow-step-content">
+                        <h4>Code Signing (Critical Step)</h4>
+                        <p><strong>Windows:</strong> Sign with EV certificate via SignTool + HSM/Azure Key Vault. <strong>macOS:</strong> Sign with Apple Developer ID + notarize with Apple's service. This step is REQUIRED for auto-updates to work.</p>
+                    </div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-step-number">4</div>
+                    <div class="workflow-step-content">
+                        <h4>Generate Update Manifest</h4>
+                        <p>Create <code>latest.yml</code> (Windows), <code>latest-mac.yml</code> (macOS) with version, file hashes, and download URLs. These manifests tell clients about new versions.</p>
+                    </div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-step-number">5</div>
+                    <div class="workflow-step-content">
+                        <h4>Upload to Release Server</h4>
+                        <p>Publish signed packages and manifests to GitHub Releases, S3, Azure Blob, or custom server. CDN caches files globally for fast downloads.</p>
+                    </div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-step-number">6</div>
+                    <div class="workflow-step-content">
+                        <h4>Client Checks for Updates</h4>
+                        <p>App periodically fetches manifest from update server (every hour, on launch, etc.). Compares server version with local version using semver.</p>
+                    </div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-step-number">7</div>
+                    <div class="workflow-step-content">
+                        <h4>Background Download</h4>
+                        <p>If update available, download in background. Support for resume on network failure. Verify file hash matches manifest.</p>
+                    </div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-step-number">8</div>
+                    <div class="workflow-step-content">
+                        <h4>Signature Verification</h4>
+                        <p>Before installing, OS verifies code signature. <strong>Windows:</strong> Authenticode verification. <strong>macOS:</strong> Gatekeeper + notarization check. Invalid signature = update rejected.</p>
+                    </div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-step-number">9</div>
+                    <div class="workflow-step-content">
+                        <h4>Install & Restart</h4>
+                        <p>User prompted to restart, or update installs silently on app quit. Old version replaced with new version. Rollback data kept for emergency recovery.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Release Channels -->
+        <section class="section" id="section-4">
+            <h2 class="section-title"><span class="icon">📡</span> Release Channels Strategy</h2>
+
+            <p style="color: #94a3b8; margin-bottom: 20px;">Major companies use multiple release channels to test updates before wide release. This catches bugs early and reduces risk.</p>
+
+            <div class="channels-container">
+                <div class="channel" style="border: 2px solid #ef4444;">
+                    <div class="channel-icon">🧪</div>
+                    <div class="channel-name">Canary / Nightly</div>
+                    <div class="channel-desc">Bleeding edge, may break</div>
+                    <div class="channel-users">Internal team + brave users</div>
+                </div>
+                <div class="channel" style="border: 2px solid #f59e0b;">
+                    <div class="channel-icon">🔬</div>
+                    <div class="channel-name">Beta / Insider</div>
+                    <div class="channel-desc">Pre-release features</div>
+                    <div class="channel-users">~5% of users</div>
+                </div>
+                <div class="channel" style="border: 2px solid #10b981;">
+                    <div class="channel-icon">✅</div>
+                    <div class="channel-name">Stable</div>
+                    <div class="channel-desc">Production ready</div>
+                    <div class="channel-users">~95% of users</div>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Channel 1</th>
+                            <th>Channel 2</th>
+                            <th>Channel 3</th>
+                            <th>Channel 4</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>VS Code</strong></td>
+                            <td><span class="badge badge-danger">Exploration</span></td>
+                            <td><span class="badge badge-warning">Insiders</span></td>
+                            <td><span class="badge badge-success">Stable</span></td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Chrome</strong></td>
+                            <td><span class="badge badge-danger">Canary</span></td>
+                            <td><span class="badge badge-warning">Dev</span></td>
+                            <td><span class="badge badge-info">Beta</span></td>
+                            <td><span class="badge badge-success">Stable</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Discord</strong></td>
+                            <td><span class="badge badge-danger">Canary</span></td>
+                            <td><span class="badge badge-warning">PTB</span></td>
+                            <td><span class="badge badge-success">Stable</span></td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cursor</strong></td>
+                            <td><span class="badge badge-warning">Nightly</span></td>
+                            <td><span class="badge badge-success">Stable</span></td>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-box" style="margin-top: 30px;">
+                <div class="warning-box-icon">📊</div>
+                <div>
+                    <strong style="color: #60a5fa;">Staged Rollouts</strong>
+                    <p style="color: #94a3b8; margin-top: 8px;">Even within stable channel, companies roll out updates gradually: 1% → 5% → 25% → 50% → 100%. This allows monitoring crash rates and reverting if issues are detected before affecting all users.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Code Signing Deep Dive -->
+        <section class="section" id="section-5">
+            <h2 class="section-title"><span class="icon">🔏</span> Why Code Signing is Required</h2>
+
+            <div class="cards">
+                <div class="card">
+                    <div class="card-icon">🛡️</div>
+                    <h3>Prevent Man-in-the-Middle</h3>
+                    <p>Without signing, attackers on the network could intercept update downloads and replace them with malware. Signing proves the update is from you.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🖥️</div>
+                    <h3>OS Security Policies</h3>
+                    <p>Windows SmartScreen and macOS Gatekeeper block unsigned executables. Updates would fail or show scary "Unknown Publisher" warnings.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🔄</div>
+                    <h3>Updater Requirements</h3>
+                    <p>electron-updater verifies signatures before installing. Unsigned packages are rejected. This is a security feature, not a bug.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">👥</div>
+                    <h3>User Trust</h3>
+                    <p>Professional software is signed. Unsigned apps appear suspicious and generate support tickets. Users expect seamless, silent updates.</p>
+                </div>
+            </div>
+
+            <div class="demo-container">
+                <div class="demo-tabs">
+                    <button class="demo-tab active" data-tab="signed">With Code Signing ✅</button>
+                    <button class="demo-tab" data-tab="unsigned">Without Code Signing ❌</button>
+                </div>
+
+                <div class="demo-content active" id="tab-signed">
+                    <div class="flow-container">
+                        <div class="flow">
+                            <div class="flow-step">
+                                <div class="flow-step-icon">📦</div>
+                                <div class="flow-step-label">Build App</div>
+                            </div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-step">
+                                <div class="flow-step-icon">🔏</div>
+                                <div class="flow-step-label">Sign Package</div>
+                            </div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-step">
+                                <div class="flow-step-icon">☁️</div>
+                                <div class="flow-step-label">Upload</div>
+                            </div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-step">
+                                <div class="flow-step-icon">📥</div>
+                                <div class="flow-step-label">Download</div>
+                            </div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-step success">
+                                <div class="flow-step-icon">✅</div>
+                                <div class="flow-step-label">Verified</div>
+                            </div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-step success">
+                                <div class="flow-step-icon">🚀</div>
+                                <div class="flow-step-label">Silent Install</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="success-box" style="margin-top: 20px;">
+                        <div class="warning-box-icon">✅</div>
+                        <div>
+                            <strong style="color: #4ade80;">Seamless Experience</strong>
+                            <p style="color: #94a3b8; margin-top: 8px;">Updates download and install silently in background. Users see no warnings. App restarts with new version automatically.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="demo-content" id="tab-unsigned">
+                    <div class="flow-container">
+                        <div class="flow">
+                            <div class="flow-step">
+                                <div class="flow-step-icon">📦</div>
+                                <div class="flow-step-label">Build App</div>
+                            </div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-step">
+                                <div class="flow-step-icon">☁️</div>
+                                <div class="flow-step-label">Upload</div>
+                            </div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-step">
+                                <div class="flow-step-icon">📥</div>
+                                <div class="flow-step-label">Download</div>
+                            </div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-step danger">
+                                <div class="flow-step-icon">⚠️</div>
+                                <div class="flow-step-label">OS Blocks</div>
+                            </div>
+                            <span class="flow-arrow">→</span>
+                            <div class="flow-step danger">
+                                <div class="flow-step-icon">❌</div>
+                                <div class="flow-step-label">Update Fails</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="warning-box" style="margin-top: 20px;">
+                        <div class="warning-box-icon">⚠️</div>
+                        <div>
+                            <strong style="color: #f87171;">Update Blocked</strong>
+                            <p style="color: #94a3b8; margin-top: 8px;">Windows shows "Windows protected your PC". macOS shows "cannot be opened because developer cannot be verified". Most users abandon the update.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: OS Requirements -->
+        <section class="section" id="section-6">
+            <h2 class="section-title"><span class="icon">💻</span> Operating System Requirements</h2>
+
+            <div style="overflow-x: auto;">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Platform</th>
+                            <th>Security System</th>
+                            <th>Without Signing</th>
+                            <th>With Signing</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Windows</strong></td>
+                            <td>SmartScreen + Defender</td>
+                            <td><span class="badge badge-danger">"Unknown Publisher" / Blocked</span></td>
+                            <td><span class="badge badge-success">Trusted & Silent Install</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>macOS</strong></td>
+                            <td>Gatekeeper + Notarization</td>
+                            <td><span class="badge badge-danger">"Cannot be opened" Error</span></td>
+                            <td><span class="badge badge-success">Opens Without Warning</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Linux</strong></td>
+                            <td>No built-in enforcement</td>
+                            <td><span class="badge badge-warning">Works but unverified</span></td>
+                            <td><span class="badge badge-success">GPG signature optional</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="cards" style="margin-top: 30px;">
+                <div class="card">
+                    <div class="card-icon">🪟</div>
+                    <h3>Windows Requirements</h3>
+                    <p><strong>SmartScreen:</strong> Blocks with "Windows protected your PC". Users must click "More info" → "Run anyway".</p>
+                    <p style="margin-top: 12px;"><strong>EV Certificate:</strong> Bypasses SmartScreen immediately. No reputation building needed. Required for professional deployment.</p>
+                    <p style="margin-top: 12px;"><strong>Authenticode:</strong> Windows verifies signature before allowing execution.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🍎</div>
+                    <h3>macOS Requirements</h3>
+                    <p><strong>Gatekeeper:</strong> Completely blocks unsigned apps. No easy bypass for regular users.</p>
+                    <p style="margin-top: 12px;"><strong>Notarization:</strong> Even signed apps must be notarized (Apple scans for malware). Without it, Gatekeeper blocks.</p>
+                    <p style="margin-top: 12px;"><strong>Hardened Runtime:</strong> Required for notarization. Restricts debugging and code injection.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 7: Security Risks -->
+        <section class="section" id="section-7">
+            <h2 class="section-title"><span class="icon">🚨</span> Security Risks Without Code Signing</h2>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <h4>1. Man-in-the-Middle Attack</h4>
+                    <p>Attacker on compromised network (coffee shop WiFi, ISP level, corporate proxy) intercepts update request and serves malware instead of legitimate update. All users on that network get infected.</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>2. Update Server Compromise</h4>
+                    <p>If your update server is hacked, attackers replace update files with malware. Without signing, users have no way to detect this. Entire user base potentially compromised.</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>3. DNS Hijacking</h4>
+                    <p>Attackers redirect your update domain to malicious server hosting fake updates. Even HTTPS doesn't fully protect against this. Only code signing proves authenticity.</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>4. Supply Chain Attack</h4>
+                    <p>Build pipeline or CI/CD compromise injects malicious code into legitimate builds. Code signing with HSM-protected keys helps detect unauthorized modifications.</p>
+                </div>
+            </div>
+
+            <div class="warning-box" style="margin-top: 30px;">
+                <div class="warning-box-icon">💀</div>
+                <div>
+                    <strong style="color: #f87171;">Real-World Examples</strong>
+                    <p style="color: #94a3b8; margin-top: 8px;"><strong>CCleaner (2017):</strong> Attackers compromised build server, distributed malware to 2.27 million users through official update channel.</p>
+                    <p style="color: #94a3b8; margin-top: 8px;"><strong>SolarWinds (2020):</strong> Supply chain attack affected 18,000+ organizations including US government agencies.</p>
+                    <p style="color: #94a3b8; margin-top: 8px;"><strong>ASUS Live Update (2019):</strong> Backdoored updates pushed to 1 million+ users through hijacked update mechanism.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 8: Costs -->
+        <section class="section" id="section-8">
+            <h2 class="section-title"><span class="icon">💰</span> Code Signing Investment</h2>
+
+            <div class="cost-cards">
+                <div class="cost-card">
+                    <h4>Standard OV Certificate</h4>
+                    <div class="cost-price">$200-400<span>/year</span></div>
+                    <ul class="cost-features">
+                        <li>Organization Validation</li>
+                        <li>Removes "Unknown Publisher"</li>
+                        <li>Works with auto-updater</li>
+                        <li>Builds SmartScreen reputation over time</li>
+                    </ul>
+                </div>
+                <div class="cost-card" style="border: 2px solid #60a5fa;">
+                    <h4>Extended Validation (EV)</h4>
+                    <div class="cost-price">$400-700<span>/year</span></div>
+                    <ul class="cost-features">
+                        <li>Highest trust level</li>
+                        <li>Instant SmartScreen trust</li>
+                        <li>Hardware token required</li>
+                        <li>Recommended for production</li>
+                        <li>Used by Microsoft, Cursor, etc.</li>
+                    </ul>
+                </div>
+                <div class="cost-card">
+                    <h4>Apple Developer Program</h4>
+                    <div class="cost-price">$99<span>/year</span></div>
+                    <ul class="cost-features">
+                        <li>Required for macOS signing</li>
+                        <li>Includes notarization service</li>
+                        <li>Gatekeeper compatibility</li>
+                        <li>App Store option (optional)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px; padding: 24px; background: rgba(96, 165, 250, 0.1); border-radius: 12px;">
+                <h4 style="color: #60a5fa; margin-bottom: 12px;">💡 Total Annual Investment</h4>
+                <p style="color: #94a3b8;">Cross-platform auto-updates (Windows + macOS): <strong style="color: #f1f5f9;">~$500-800/year</strong></p>
+                <p style="color: #94a3b8; margin-top: 8px;">This is standard industry cost for professional software. Every major Electron app pays this.</p>
+            </div>
+
+            <div style="overflow-x: auto; margin-top: 30px;">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Provider</th>
+                            <th>OV Certificate</th>
+                            <th>EV Certificate</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>DigiCert</strong></td>
+                            <td>$474/year</td>
+                            <td>$699/year</td>
+                            <td>Industry leader, best support</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Sectigo</strong></td>
+                            <td>$319/year</td>
+                            <td>$449/year</td>
+                            <td>Good value option</td>
+                        </tr>
+                        <tr>
+                            <td><strong>SSL.com</strong></td>
+                            <td>$249/year</td>
+                            <td>$399/year</td>
+                            <td>Budget-friendly</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Azure Trusted Signing</strong></td>
+                            <td colspan="2">$9.99/month (~$120/year)</td>
+                            <td>New option, HSM-backed, great for CI/CD</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 9: Downlodr Implementation -->
+        <section class="section" id="section-9">
+            <h2 class="section-title"><span class="icon">⬇️</span> Downlodr Auto-Update Implementation Plan</h2>
+
+            <div class="impl-section">
+                <div class="impl-header">
+                    <div class="impl-logo">⬇️</div>
+                    <h3>Proposed Architecture for Downlodr</h3>
+                </div>
+
+                <div class="arch-diagram" style="background: transparent; padding: 20px 0;">
+                    <div class="arch-row">
+                        <div class="arch-box">
+                            <div class="arch-box-icon">📝</div>
+                            <div class="arch-box-label">GitHub Tag</div>
+                            <div class="arch-box-sub">v1.7.11</div>
+                        </div>
+                        <span class="arch-arrow">→</span>
+                        <div class="arch-box highlight">
+                            <div class="arch-box-icon">⚙️</div>
+                            <div class="arch-box-label">GitHub Actions</div>
+                            <div class="arch-box-sub">Build Matrix</div>
+                        </div>
+                        <span class="arch-arrow">→</span>
+                        <div class="arch-box security">
+                            <div class="arch-box-icon">🔏</div>
+                            <div class="arch-box-label">Code Signing</div>
+                            <div class="arch-box-sub">Windows EV + Apple</div>
+                        </div>
+                        <span class="arch-arrow">→</span>
+                        <div class="arch-box storage">
+                            <div class="arch-box-icon">📦</div>
+                            <div class="arch-box-label">GitHub Releases</div>
+                            <div class="arch-box-sub">+ latest.yml</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="workflow-steps" style="margin-top: 20px;">
+                    <div class="workflow-step">
+                        <div class="workflow-step-number">1</div>
+                        <div class="workflow-step-content">
+                            <h4>Obtain Certificates</h4>
+                            <p><strong>Windows:</strong> Purchase EV code signing certificate (DigiCert/Sectigo) or use Azure Trusted Signing. <strong>macOS:</strong> Enroll in Apple Developer Program ($99/year).</p>
+                        </div>
+                    </div>
+                    <div class="workflow-step">
+                        <div class="workflow-step-number">2</div>
+                        <div class="workflow-step-content">
+                            <h4>Configure electron-builder</h4>
+                            <p>Already using Electron Forge. Configure signing in forge.config.ts. Set up Windows signing with certificate and macOS signing with Apple ID credentials.</p>
+                        </div>
+                    </div>
+                    <div class="workflow-step">
+                        <div class="workflow-step-number">3</div>
+                        <div class="workflow-step-content">
+                            <h4>Integrate electron-updater</h4>
+                            <p>Add electron-updater package. Configure to check GitHub Releases for latest.yml manifest. Implement update UI (notification toast, progress bar).</p>
+                        </div>
+                    </div>
+                    <div class="workflow-step">
+                        <div class="workflow-step-number">4</div>
+                        <div class="workflow-step-content">
+                            <h4>Setup GitHub Actions Workflow</h4>
+                            <p>Create release workflow triggered on version tags. Build for Windows (NSIS) and macOS (DMG). Sign using GitHub Secrets for certificate credentials. Upload to GitHub Releases.</p>
+                        </div>
+                    </div>
+                    <div class="workflow-step">
+                        <div class="workflow-step-number">5</div>
+                        <div class="workflow-step-content">
+                            <h4>Implement Update UI</h4>
+                            <p>Show notification when update available. Download progress indicator. "Restart to Update" button. Optional: background download and install on quit.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto; margin-top: 30px;">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Technology Choice</th>
+                            <th>Rationale</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Update Framework</strong></td>
+                            <td>electron-updater</td>
+                            <td>Industry standard for Electron, used by VS Code, Cursor</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Release Host</strong></td>
+                            <td>GitHub Releases</td>
+                            <td>Free, reliable, built-in CDN, familiar workflow</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Windows Signing</strong></td>
+                            <td>EV Certificate or Azure Trusted Signing</td>
+                            <td>Instant SmartScreen trust, professional appearance</td>
+                        </tr>
+                        <tr>
+                            <td><strong>macOS Signing</strong></td>
+                            <td>Apple Developer ID + Notarization</td>
+                            <td>Required for Gatekeeper, no user warnings</td>
+                        </tr>
+                        <tr>
+                            <td><strong>CI/CD</strong></td>
+                            <td>GitHub Actions</td>
+                            <td>Already in use, secrets management, matrix builds</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 10: Summary -->
+        <section class="section" id="section-10">
+            <h2 class="section-title"><span class="icon">📋</span> Summary</h2>
+
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-icon">🔒</div>
+                    <h3>Security</h3>
+                    <p>Code signing protects users from malicious updates and verifies software authenticity</p>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon">✅</div>
+                    <h3>Compatibility</h3>
+                    <p>Required by Windows & macOS to allow silent updates without security warnings</p>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon">🏢</div>
+                    <h3>Industry Standard</h3>
+                    <p>Microsoft, Cursor, Slack, Discord all use this exact architecture</p>
+                </div>
+            </div>
+
+            <div class="cta-section">
+                <h2>Code Signing is Essential for Auto-Updates</h2>
+                <p>Without code signing, auto-updates won't work reliably on modern operating systems. Users will see scary warnings, updates may be blocked entirely, and there's no cryptographic verification of software authenticity.</p>
+
+                <div style="margin-top: 30px; display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 2.5rem; font-weight: 700; color: #60a5fa;">$500-800</div>
+                        <div style="color: #94a3b8; font-size: 0.9rem;">Annual Investment</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2.5rem; font-weight: 700; color: #4ade80;">100%</div>
+                        <div style="color: #94a3b8; font-size: 0.9rem;">User Trust</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2.5rem; font-weight: 700; color: #a78bfa;">0</div>
+                        <div style="color: #94a3b8; font-size: 0.9rem;">Security Warnings</div>
+                    </div>
+                </div>
+
+                <p style="margin-top: 30px;"><strong style="color: #60a5fa;">For Downlodr:</strong> Implementing auto-updates requires obtaining a Windows EV code signing certificate and an Apple Developer account. This is a one-time setup with annual renewal.</p>
+            </div>
+        </section>
+
+        <footer>
+            <p>Downlodr Auto-Update Implementation | Prepared for Stakeholder Review</p>
+            <p style="margin-top: 8px; font-size: 0.8rem;">Architecture based on industry best practices from Microsoft, Cursor, Slack, and other leading companies</p>
+        </footer>
+    </div>
+
+    <script>
+        // Intersection Observer for section animations
+        const sections = document.querySelectorAll('.section');
+        const navDots = document.querySelectorAll('.nav-dot');
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+
+                    // Update nav dots
+                    const sectionIndex = Array.from(sections).indexOf(entry.target);
+                    navDots.forEach((dot, index) => {
+                        dot.classList.toggle('active', index === sectionIndex);
+                    });
+                }
+            });
+        }, { threshold: 0.15 });
+
+        sections.forEach(section => observer.observe(section));
+
+        // Nav dot click handling
+        navDots.forEach(dot => {
+            dot.addEventListener('click', () => {
+                const sectionIndex = dot.dataset.section;
+                sections[sectionIndex].scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+
+        // Tab switching
+        const tabs = document.querySelectorAll('.demo-tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.dataset.tab;
+
+                // Update active tab
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Update active content
+                document.querySelectorAll('.demo-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(`tab-${tabId}`).classList.add('active');
+            });
+        });
+
+        // Card hover effect
+        const cards = document.querySelectorAll('.card');
+        cards.forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+
+                const rotateX = (y - centerY) / 25;
+                const rotateY = (centerX - x) / 25;
+
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-5px)`;
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+
+        // Initialize first section as visible
+        setTimeout(() => {
+            sections[0].classList.add('visible');
+        }, 100);
+    </script>
+</body>
+</html>

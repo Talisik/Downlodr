@@ -15,6 +15,7 @@ import {
   Routes,
 } from 'react-router-dom';
 import TelemetryConsentModal from './Components/Main/Modal/TelemetryConsentModal';
+import AutoUpdateToast from './Components/SubComponents/custom/AutoUpdateToast';
 import ClipboardLinkDetector from './Components/SubComponents/custom/ClipboardLinkDetector';
 import StoreRehydrationLoader from './Components/SubComponents/custom/StoreRehydrationLoader';
 import UpdateNotification from './Components/SubComponents/custom/UpdateNotifications';
@@ -157,6 +158,7 @@ const App = () => {
           </Routes>
         </Router>
         <Toaster />
+        <AutoUpdateToast />
 
         <UpdateNotification />
         <ClipboardLinkDetector />

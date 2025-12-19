@@ -27,6 +27,13 @@ import os from 'os';
 import path from 'path';
 import * as YTDLP from 'yt-dlp-helper';
 import { checkForUpdates } from './services/update/updateService';
+import {
+  initAutoUpdater,
+  checkForAutoUpdate,
+  quitAndInstall,
+  getUpdateState,
+  isUpdateReadyToInstall,
+} from './services/update/autoUpdaterService';
 import { PluginManager } from './plugins/pluginManager';
 import { pluginRegistry } from './plugins/registry';
 import { DownloadOptions } from './Schema/ytdlp';
@@ -1308,6 +1315,32 @@ app.on('ready', async () => {
     }
   }, 7000); // Check after 7 seconds, after app updates
 
+  // Initialize auto-updater for background downloads (production only)
+  if (process.env.NODE_ENV !== 'development') {
+    initAutoUpdater();
+
+    // Check for auto-updates after startup (10 seconds, after other checks)
+    setTimeout(async () => {
+      const online = await isOnline();
+      if (!online) {
+        console.log('Skipping auto-update check: No internet connection');
+        return;
+      }
+      console.log('Checking for auto-updates (background download)...');
+      await checkForAutoUpdate();
+    }, 10000);
+
+    // Periodic auto-update checks (every 4 hours, aligns with existing interval)
+    setInterval(async () => {
+      const online = await isOnline();
+      if (!online) {
+        console.log('Skipping periodic auto-update check: No internet connection');
+        return;
+      }
+      await checkForAutoUpdate();
+    }, 1000 * 60 * 60 * 4);
+  }
+
   // Set up periodic update checking
   const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 4; // Check every 4 hours
   setInterval(async () => {
@@ -1998,4 +2031,44 @@ ipcMain.handle('get-path-separator', async () => {
     console.error('Error getting path separator:', error);
     return '/'; // Default to Unix-style separator
   }
+});
+
+// ============================================
+// Auto-Update IPC Handlers (electron-updater)
+// ============================================
+
+// Handler to manually trigger update check
+ipcMain.handle('auto-update:check', async () => {
+  const online = await isOnline();
+  if (!online) {
+    return {
+      checking: false,
+      available: false,
+      downloading: false,
+      downloaded: false,
+      progress: null,
+      updateInfo: null,
+      error: 'No internet connection',
+    };
+  }
+  return await checkForAutoUpdate();
+});
+
+// Handler to get current update state
+ipcMain.handle('auto-update:get-state', () => {
+  return getUpdateState();
+});
+
+// Handler to quit and install downloaded update
+ipcMain.handle('auto-update:quit-and-install', () => {
+  if (isUpdateReadyToInstall()) {
+    quitAndInstall();
+    return { success: true };
+  }
+  return { success: false, error: 'No update ready to install' };
+});
+
+// Handler to check if update is ready to install
+ipcMain.handle('auto-update:is-ready', () => {
+  return isUpdateReadyToInstall();
 });
