@@ -58,7 +58,24 @@ declare global {
       getThumbnailDataUrl: (path: string) => Promise<string | null>;
       getOSType: () => Promise<'windows' | 'macos' | 'linux' | string>; // Gets the current operating system type
       getPathSeparator: () => Promise<string>; // Gets the path separator for the current OS
+      getBundledBinaryPath: (binaryName: string) => Promise<string | null>; // Gets the path to a bundled binary from process.resourcesPath
       checkInternetConnection: () => Promise<boolean>; // Checks if internet connection is available
+      ffmpegWhisperTranscribe: (options: {
+        inputFile: string;
+        outputFile: string;
+        modelPath: string;
+        language?: string;
+        format?: string;
+      }) => Promise<{
+        success: boolean;
+        outputFile: string;
+        stdout: string;
+        stderr: string;
+      }>; // Transcribes audio using FFmpeg with Whisper filter
+      onFFmpegProgress: (
+        callback: (progress: string) => void,
+      ) => () => void; // Listen to FFmpeg transcription progress updates
+      selectVideoFile: () => Promise<string | null>; // Open file dialog to select video/audio file for transcription
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist

@@ -56,8 +56,24 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
     ipcRenderer.invoke('get-thumbnail-data-url', path),
   getOSType: () => ipcRenderer.invoke('get-os-type'),
   getPathSeparator: () => ipcRenderer.invoke('get-path-separator'),
+  getBundledBinaryPath: (binaryName: string) =>
+    ipcRenderer.invoke('get-bundled-binary-path', binaryName),
   checkInternetConnection: () =>
     ipcRenderer.invoke('check-internet-connection'),
+  ffmpegWhisperTranscribe: (options: {
+    inputFile: string;
+    outputFile: string;
+    modelPath: string;
+    language?: string;
+    format?: string;
+  }) => ipcRenderer.invoke('ffmpeg:whisper-transcribe', options),
+  onFFmpegProgress: (callback: (progress: string) => void) => {
+    const wrappedCallback = (_: any, progress: string) => callback(progress);
+    ipcRenderer.on('ffmpeg:progress', wrappedCallback);
+    return () =>
+      ipcRenderer.removeListener('ffmpeg:progress', wrappedCallback);
+  },
+  selectVideoFile: () => ipcRenderer.invoke('dialog:selectVideoFile'),
 });
 
 // give download a unique id
