@@ -4,7 +4,9 @@
  */
 
 import type { UseBoundStore, StoreApi } from 'zustand';
-import type { DownloadStoreState } from './types';
+import type {
+  DownloadStoreState,
+} from './types';
 
 /**
  * Type for the store hook
@@ -21,8 +23,7 @@ export function createDownloadSelectors(useDownloadStore: DownloadStoreHook) {
     downloading: () => useDownloadStore((state) => state.downloading),
 
     // Get downloading count without full array
-    downloadingCount: () =>
-      useDownloadStore((state) => state.downloading.length),
+    downloadingCount: () => useDownloadStore((state) => state.downloading.length),
 
     // Get specific download by ID (most efficient)
     downloadById: (id: string) =>
@@ -67,9 +68,7 @@ export function createDownloadSelectors(useDownloadStore: DownloadStoreHook) {
     failedDownloadsCount: () =>
       useDownloadStore((state) => state.failedDownloads.length),
     failedDownloadById: (id: string) =>
-      useDownloadStore((state) =>
-        state.failedDownloads.find((d) => d.id === id),
-      ),
+      useDownloadStore((state) => state.failedDownloads.find((d) => d.id === id)),
 
     // Get essential failed downloads data
     failedDownloadsEssentials: () =>
@@ -112,3 +111,4 @@ export const PerformanceMonitor = {
     this.lastUpdateTime = Date.now();
   },
 };
+
