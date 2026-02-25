@@ -11,7 +11,7 @@
  */
 import CategoryContextMenu from '@/Components/SubComponents/custom/CategoryContextMenu';
 import TagContextMenu from '@/Components/SubComponents/custom/TagContextMenu';
-import useDownloadStore from '@/Store/downloadStore';
+import { useDownloadStore } from '@/Store/downloadStore';
 import React, { useEffect, useRef, useState } from 'react';
 import { BiLayer, BiSolidPlusSquare } from 'react-icons/bi';
 import { BsHourglassSplit, BsTag } from 'react-icons/bs';
