@@ -437,20 +437,6 @@ export class FFmpegWhisperTranscriber {
   }
 
   /**
-   * Transcribe the migrane.mp3 file with Tagalog language
-   */
-  static async transcribeMigrane(
-    options: Omit<WhisperTranscriptionOptions, 'inputFile' | 'language'> = {},
-  ): Promise<WhisperTranscriptionResult> {
-    return this.transcribe({
-      ...options,
-      inputFile: 'migrane.mp3',
-      language: 'tl', // Tagalog
-      outputFile: options.outputFile || 'migrane.srt',
-    });
-  }
-
-  /**
    * Get the proper model path for the current environment
    * In packaged app: uses bundled model from process.resourcesPath
    * In development: uses model from project root
@@ -664,6 +650,5 @@ export const redownloadTranscript =
 export const transcribeAudio = FFmpegWhisperTranscriber.transcribe;
 export const transcribeAudioAuto = FFmpegWhisperTranscriber.transcribeAuto;
 export const selectAndTranscribe = FFmpegWhisperTranscriber.selectAndTranscribe;
-export const transcribeMigrane = FFmpegWhisperTranscriber.transcribeMigrane;
 export const checkFFmpegAvailability =
   FFmpegWhisperTranscriber.checkFFmpegAvailability;
