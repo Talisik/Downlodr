@@ -1,6 +1,6 @@
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import useDownloadStore from '@/Store/downloadStore';
+import { useDownloadStore } from '@/Store/downloadStore';
 import {
   getAllDownloadActivityLogs,
   getDownloadActivityLog,
