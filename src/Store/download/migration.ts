@@ -208,3 +208,4 @@ export function migrateDownloadStore(
 
   return persistedState;
 }
+

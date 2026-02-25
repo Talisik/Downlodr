@@ -98,10 +98,7 @@ export async function checkIndexedDBUsage(): Promise<{
 /**
  * Legacy function for backward compatibility
  */
-export function checkLocalStorageUsage(): {
-  total: number;
-  downlodrSize: number;
-} {
+export function checkLocalStorageUsage(): { total: number; downlodrSize: number } {
   try {
     const total = JSON.stringify(localStorage).length;
     const downlodrStorage = localStorage.getItem('downlodr-storage');
@@ -119,3 +116,4 @@ export function checkLocalStorageUsage(): {
     return { total: 0, downlodrSize: 0 };
   }
 }
+

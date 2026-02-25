@@ -9,7 +9,7 @@
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import useDownloadStore, { HistoryDownloads } from '@/Store/downloadStore';
+import { HistoryDownloads, useDownloadStore } from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import { getExtractorIcon } from '@/Utils/Icons/IconMapper';
 import React, { useEffect, useRef, useState } from 'react';

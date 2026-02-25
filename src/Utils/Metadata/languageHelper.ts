@@ -249,7 +249,7 @@ export function selectOptimalCaption(
   // Step 5: If no English found, try any available caption
   console.log('No English captions found, using any available caption...');
 
-  // Try subtitles first (higher quality)
+  // Try any subtitles first (higher quality)
   if (subtitles) {
     for (const [languageCode, captions] of Object.entries(subtitles)) {
       const caption = selectBestCaption(captions);
@@ -266,7 +266,7 @@ export function selectOptimalCaption(
     }
   }
 
-  // Finally, try automatic captions
+  // Finally, try any automatic captions
   if (automaticCaptions) {
     for (const [languageCode, captions] of Object.entries(automaticCaptions)) {
       const caption = selectBestCaption(captions);

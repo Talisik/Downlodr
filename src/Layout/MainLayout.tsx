@@ -68,10 +68,12 @@ const MainLayout = () => {
   useEffect(() => {
     const currentMainPath = getMainPath(location.pathname);
 
+    // Check if we're switching between different main paths
     if (
       previousMainPathRef.current !== null &&
       previousMainPathRef.current !== currentMainPath
     ) {
+      // Clear all selections when switching between different main paths
       clearAllSelections();
     }
 

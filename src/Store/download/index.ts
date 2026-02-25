@@ -1,6 +1,6 @@
 /**
  * Download store module - centralized exports
- *
+ * 
  * This module provides a refactored, modular download store implementation.
  * The store has been split into smaller, focused modules for better maintainability.
  */
@@ -49,8 +49,6 @@ export type { DownloadStoreInterface } from './controller';
 export { createDownloadSelectors, PerformanceMonitor } from './selectors';
 
 // Export the main store
-export {
-  default as useDownloadStore,
-  useDownloadingSelectors,
-} from './downloadStore';
+export { default as useDownloadStore, useDownloadingSelectors } from './downloadStore';
 export type { default as DownloadStore } from './downloadStore';
+
