@@ -1,6 +1,6 @@
 /**
  * Store Rehydration Loader Component
- *
+ * 
  * Displays a loading overlay while Zustand stores are rehydrating from
  * IndexedDB. This prevents users from interacting with the app before
  * the stores are ready, solving the first URL registration issue.
@@ -29,48 +29,30 @@ const StoreRehydrationLoader: React.FC<StoreRehydrationLoaderProps> = ({
           <div className="flex items-center justify-center mb-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-
+          
           <div className="text-center">
             <h2 className="text-lg font-semibold mb-2">Loading Downlodr</h2>
             <p className="text-sm text-muted-foreground mb-4">
               Initializing application data...
             </p>
-
+            
             {showDetailedStatus && (
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between">
                   <span>Download Store</span>
-                  <span
-                    className={
-                      rehydrationStatus.downloadStore
-                        ? 'text-green-500'
-                        : 'text-yellow-500'
-                    }
-                  >
+                  <span className={rehydrationStatus.downloadStore ? 'text-green-500' : 'text-yellow-500'}>
                     {rehydrationStatus.downloadStore ? '✓' : '⏳'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Settings Store</span>
-                  <span
-                    className={
-                      rehydrationStatus.mainStore
-                        ? 'text-green-500'
-                        : 'text-yellow-500'
-                    }
-                  >
+                  <span className={rehydrationStatus.mainStore ? 'text-green-500' : 'text-yellow-500'}>
                     {rehydrationStatus.mainStore ? '✓' : '⏳'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Telemetry Store</span>
-                  <span
-                    className={
-                      rehydrationStatus.telemetryStore
-                        ? 'text-green-500'
-                        : 'text-yellow-500'
-                    }
-                  >
+                  <span className={rehydrationStatus.telemetryStore ? 'text-green-500' : 'text-yellow-500'}>
                     {rehydrationStatus.telemetryStore ? '✓' : '⏳'}
                   </span>
                 </div>
