@@ -11,9 +11,9 @@
 
 // Interface for download settings
 import { TaskBarButtonsVisibility } from '@/plugins/types';
+import { createIndexedDBStorageWithMigration } from '@/Utils/indexedDBStorage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { createIndexedDBStorageWithMigration } from '@/Utils/indexedDBStorage';
 
 interface DownloadSettings {
   defaultLocation: string; // Default location for downloads
@@ -45,6 +45,7 @@ interface SelectedDownload {
 
 // Main interface for the main store
 interface MainStore {
+  getSelectedWithStatusCount: () => number;
   settings: DownloadSettings; // Current download settings
   selectedDownloads: SelectedDownload[]; // List of currently selected downloads
   isDownloadModalOpen: boolean; // Add new state for download modal
@@ -301,7 +302,10 @@ export const useMainStore = create<MainStore>()(
       selectedRows: [] as string[],
       setSelectedRows: (rows) => set({ selectedRows: rows }),
       clearSelectedRows: () => set({ selectedRows: [] }),
-
+      getSelectedWithStatusCount: () =>
+        get().selectedRowIds.filter((id) =>
+          get().selectedDownloads.some((d) => d.id === id && d.status),
+        ).length,
       selectedRowIds: [] as string[],
       setSelectedRowIds: (rows) =>
         // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -49,45 +49,48 @@
  *    - Queue processing continues
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+  ToastAction,
+  type ToastActionElement,
+} from '@/Components/SubComponents/shadcn/components/ui/toast';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { config } from '@/config';
-import { useMainStore } from '@/Store/mainStore';
-import { MetadataService } from '@/services/download/metadataService';
 import { FormatService } from '@/services/download/formatService';
+import { MetadataService } from '@/services/download/metadataService';
 import { TelemetryService } from '@/services/telemetry/telemetryService';
-import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
 import { createIndexedDBStorageWithMigration } from '@/Utils/indexedDBStorage';
 import { selectOptimalCaption } from '@/Utils/Metadata/languageHelper';
+import { RefreshCw } from 'lucide-react';
+import React from 'react';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 // Import from extracted modules
+import { DownloadController } from './controller';
+import { migrateDownloadStore } from './migration';
 import {
-  type DownloadStoreState,
-  type Downloading,
-  type FinishedDownloads,
-  type FailedDownloads,
-  type HistoryDownloads,
-  type ForDownload,
-  type QueuedDownload,
+  checkIndexedDBUsage,
+  checkLocalStorageUsage,
+  createDebouncedStorage,
+  DOWNLOAD_STORE_VERSION,
+} from './storage';
+import {
   type BaseDownload,
+  type Downloading,
+  type DownloadStoreState,
+  type FailedDownloads,
+  type FinishedDownloads,
+  type ForDownload,
+  type HistoryDownloads,
+  type QueuedDownload,
   type SpeedDataPoint,
 } from './types';
 import {
   truncateTitle,
-  uuidv4,
-  updateDownloadTags,
   updateDownloadCategories,
-  updateDownloadsInAllArrays,
+  updateDownloadTags,
+  uuidv4,
 } from './utils';
-import {
-  createDebouncedStorage,
-  checkIndexedDBUsage,
-  checkLocalStorageUsage,
-  DOWNLOAD_STORE_VERSION,
-} from './storage';
-import { migrateDownloadStore } from './migration';
-import { DownloadController } from './controller';
-import { createDownloadSelectors, PerformanceMonitor } from './selectors';
 
 // Get the singleton controller instance
 const downloadController = DownloadController.getInstance();
@@ -95,6 +98,7 @@ const downloadController = DownloadController.getInstance();
 // Main interface for the download store (extends state with methods)
 interface DownloadStore extends DownloadStoreState {
   // Methods for managing downloads
+  updateDownloadTranscript: (id: string, transcriptLocation: string) => void;
   checkFinishedDownloads: () => void;
   updateDownload: (id: string, result: any) => void;
   addDownload: (
@@ -226,6 +230,46 @@ interface DownloadStore extends DownloadStoreState {
   testLocalStorage: () => void;
 }
 
+// Function to handle checking for updates/connection
+const handleCheckForUpdates = async () => {
+  try {
+    const hasInternet =
+      await window.downlodrFunctions.checkInternetConnection();
+    if (hasInternet) {
+      toast({
+        title: 'Connection Restored',
+        description: 'Internet connection is working properly.',
+        variant: 'success',
+        duration: 3000,
+      });
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'No Internet Connection',
+        description: 'Please check your internet connection and try again.',
+        expandable: true,
+        duration: 3000,
+        action: React.createElement(
+          ToastAction,
+          {
+            altText: 'Retry connection check',
+            onClick: handleCheckForUpdates,
+          },
+          React.createElement(RefreshCw, { size: 12 }),
+        ) as unknown as ToastActionElement,
+      });
+    }
+  } catch (error) {
+    console.error('Error checking internet connection:', error);
+    toast({
+      variant: 'destructive',
+      title: 'Connection Check Failed',
+      description: 'Unable to verify internet connection.',
+      duration: 3000,
+    });
+  }
+};
+
 const useDownloadStore = create<DownloadStore>()(
   persist(
     (set, get) => {
@@ -239,6 +283,31 @@ const useDownloadStore = create<DownloadStore>()(
         queuedDownloads: [] as QueuedDownload[],
         availableTags: [] as string[],
         availableCategories: [] as string[],
+
+        updateDownloadTranscript: (id: string, transcriptLocation: string) => {
+          console.log(
+            'Updating transcript location for download:',
+            id,
+            transcriptLocation,
+          );
+          set((state) => ({
+            downloading: state.downloading.map((download) =>
+              download.id === id
+                ? { ...download, transcriptLocation, getTranscript: true }
+                : download,
+            ),
+            finishedDownloads: state.finishedDownloads.map((download) =>
+              download.id === id
+                ? { ...download, transcriptLocation, getTranscript: true }
+                : download,
+            ),
+            historyDownloads: state.historyDownloads.map((download) =>
+              download.id === id
+                ? { ...download, transcriptLocation, getTranscript: true }
+                : download,
+            ),
+          }));
+        },
 
         checkFinishedDownloads: async () => {
           const currentDownloads = get().downloading;
@@ -275,12 +344,41 @@ const useDownloadStore = create<DownloadStore>()(
                   }
                 }
 
+                // Calculate expected transcript location ONLY if transcript was requested
+                let transcriptLocation = '';
+                if (download.getTranscript) {
+                  if (
+                    download.autoCaptionLocation &&
+                    download.autoCaptionLocation.trim() !== ''
+                  ) {
+                    // Use existing location if available
+                    transcriptLocation = download.autoCaptionLocation;
+                  } else if (download.isCreateFolder && download.downloadName) {
+                    // Calculate expected transcript location path
+                    // This matches the logic used in metadataService and controller
+                    const fileNameWithoutExt = download.downloadName.replace(
+                      /\.[^/.]+$/,
+                      '',
+                    );
+                    const sanitizedTitle = fileNameWithoutExt.replace(
+                      /[\\ñ'/:*?"<>|]/g,
+                      '_',
+                    );
+                    const captionFileName = `${sanitizedTitle}.srt`;
+                    transcriptLocation =
+                      await window.downlodrFunctions.joinDownloadPath(
+                        download.location,
+                        captionFileName,
+                      );
+                  }
+                }
+
                 // Create finished download entry
                 const finishedDownload: FinishedDownloads = {
                   ...download,
                   status: 'finished',
                   size: actualSize,
-                  transcriptLocation: download.autoCaptionLocation || '',
+                  transcriptLocation,
                 };
 
                 // Update state: move to finished and history, remove from downloading
@@ -327,7 +425,11 @@ const useDownloadStore = create<DownloadStore>()(
               const failedDownload: FailedDownloads = {
                 ...download,
                 status: 'failed',
-                transcriptLocation: download.autoCaptionLocation || '',
+                transcriptLocation:
+                  download.autoCaptionLocation &&
+                  download.autoCaptionLocation.trim() !== ''
+                    ? download.autoCaptionLocation
+                    : '',
                 failureReason: 'Download process failed',
                 canRetry: true,
               };
@@ -712,15 +814,34 @@ const useDownloadStore = create<DownloadStore>()(
               useDownloadStore.getState().updateDownload(downloadId, result);
             },
           );
-          let captionsPath = autoCaptionLocation || '';
+          let captionsPath = autoCaptionLocation || 'hhh';
           let thumbnailPath = thumnailsLocation || '';
           if (isCreateFolder) {
             if (automatic_caption && getTranscript) {
-              captionsPath = await MetadataService.downloadEnglishCaptions(
+              // Generate transcript path early so it's available immediately
+              const fileNameWithoutExt = downloadName
+                ? downloadName.replace(/\.[^/.]+$/, '')
+                : 'video';
+              const sanitizedTitle = fileNameWithoutExt.replace(
+                /[\\ñ'/:*?"<>|]/g,
+                '_',
+              );
+              const captionFileName = `${sanitizedTitle}.srt`;
+              captionsPath = await window.downlodrFunctions.joinDownloadPath(
+                zustandLocation,
+                captionFileName,
+              );
+
+              // Start transcription asynchronously so it doesn't block download progress
+              MetadataService.downloadEnglishCaptions(
                 automatic_caption,
                 zustandLocation,
                 downloadName,
+                finalLocation, // Pass video file path for Whisper fallback
+                downloadId, // Pass download ID to track progress
+                true, // Run asynchronously
               );
+              // Transcript location is already set above, transcription will update progress
             } else {
               captionsPath = '';
               console.log('No transcript requested or available');
@@ -904,11 +1025,17 @@ const useDownloadStore = create<DownloadStore>()(
           let thumbnailPath = thumnailsLocation;
           if (isCreateFolder) {
             if (automatic_caption && getTranscript) {
-              captionsPath = await MetadataService.downloadEnglishCaptions(
+              // Start transcription asynchronously so it doesn't block download progress
+              MetadataService.downloadEnglishCaptions(
                 automatic_caption,
                 zustandLocation,
                 downloadName,
+                finalLocation, // Pass video file path for Whisper fallback
+                downloadId, // Pass download ID to track progress
+                true, // Run asynchronously
               );
+              // Don't await - let it run in background
+              captionsPath = ''; // Will be updated in store when transcription completes
             } else {
               captionsPath = '';
               console.log('No transcript requested or available');
@@ -1156,13 +1283,34 @@ const useDownloadStore = create<DownloadStore>()(
               return;
             }
           } catch (error) {
-            toast({
-              variant: 'destructive',
-              title: `Could not find video metadata`,
-              description: 'Please enter a valid video URL',
-              duration: 3000,
-            });
-
+            const hasInternetConnection =
+              await window.downlodrFunctions.checkInternetConnection();
+            console.log(hasInternetConnection);
+            if (!hasInternetConnection) {
+              toast({
+                variant: 'destructive',
+                title: 'No Internet Connection',
+                description:
+                  'Please check your internet connection and try again',
+                expandable: true, // Add this to make it expandable
+                duration: 3000,
+                action: React.createElement(
+                  ToastAction,
+                  {
+                    altText: 'Retry connection check',
+                    onClick: handleCheckForUpdates,
+                  },
+                  React.createElement(RefreshCw, { size: 12 }),
+                ) as unknown as ToastActionElement,
+              });
+            } else {
+              toast({
+                variant: 'destructive',
+                title: `Could not find video metadata`,
+                description: 'Please enter a valid video URL',
+                duration: 3000,
+              });
+            }
             // Access the method correctly
             const { removeFromForDownloads } = get(); // Get the current state methods
             removeFromForDownloads(downloadId); // Call the method
@@ -1445,7 +1593,7 @@ const useDownloadStore = create<DownloadStore>()(
             const updateDownloadsArray = (downloads: ForDownload[]) =>
               downloads.map((download) =>
                 download.id === downloadId
-                  ? { ...download, name: newName }
+                  ? { ...download, displayName: newName, name: newName }
                   : download,
               );
 
@@ -1517,7 +1665,7 @@ const useDownloadStore = create<DownloadStore>()(
                 category: [],
                 isLive: false,
                 elapsed: 0,
-                autoCaptionLocation: '',
+                autoCaptionLocation: 'eee',
                 thumnailsLocation: '',
                 controllerId: undefined,
                 log: '',
@@ -1880,16 +2028,17 @@ export default useDownloadStore;
 
 // Re-export types and utilities for convenience
 export type {
-  Downloading,
-  FinishedDownloads,
-  FailedDownloads,
-  HistoryDownloads,
-  ForDownload,
-  QueuedDownload,
   BaseDownload,
-  SpeedDataPoint,
+  Downloading,
+  FailedDownloads,
+  FinishedDownloads,
+  ForDownload,
+  HistoryDownloads,
+  QueuedDownload,
+  SpeedDataPoint
 } from './types';
 
 export { PerformanceMonitor } from './selectors';
-export { getProgressPhaseInfo } from './utils';
 export { checkIndexedDBUsage, checkLocalStorageUsage } from './storage';
+export { getProgressPhaseInfo } from './utils';
+

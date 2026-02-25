@@ -5,8 +5,8 @@
 
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { useMainStore } from '@/Store/mainStore';
-import { downloadEnglishCaptions } from '@/Utils/Metadata/captionsHelper';
-import { QueuedDownload, Downloading, SpeedDataPoint } from './types';
+import { MetadataService } from '@/services/download/metadataService';
+import { Downloading, QueuedDownload, SpeedDataPoint } from './types';
 
 /**
  * Store interface for DownloadController to avoid circular dependencies
@@ -241,19 +241,44 @@ export class DownloadController {
         }
       },
     );
-
+    const fileNameWithoutExt = download.downloadName
+      ? download.downloadName.replace(/\.[^/.]+$/, '')
+      : 'video';
+    const sanitizedTitle = fileNameWithoutExt.replace(/[\\ñ'/:*?"<>|]/g, '_');
+    const captionFileName = `${sanitizedTitle}.srt`;
+    let captionsPath = await window.downlodrFunctions.joinDownloadPath(
+      zustandLocation,
+      captionFileName,
+    );
     // Handle captions and thumbnails (same as original)
-    let captionsPath = '';
     let thumbnailPath = ' ';
 
     if (download.isCreateFolder) {
       if (download.automaticCaption && download.getTranscript) {
         console.log(download.automaticCaption);
-        captionsPath = await downloadEnglishCaptions(
+        // Start transcription asynchronously so it doesn't block download progress
+        MetadataService.downloadEnglishCaptions(
           download.automaticCaption,
           zustandLocation,
           download.downloadName,
+          finalLocation, // Pass video file path for Whisper fallback
+          downloadId, // Pass download ID to track progress
+          true, // Run asynchronously
         );
+        const fileNameWithoutExt = download.downloadName
+          ? download.downloadName.replace(/\.[^/.]+$/, '')
+          : 'video';
+        const sanitizedTitle = fileNameWithoutExt.replace(
+          /[\\ñ'/:*?"<>|]/g,
+          '_',
+        );
+        const captionFileName = `${sanitizedTitle}.srt`;
+        captionsPath = await window.downlodrFunctions.joinDownloadPath(
+          zustandLocation,
+          captionFileName,
+        );
+        // Don't await - let it run in background
+        captionsPath = ''; // Will be updated in store when transcription completes
       }
 
       if (download.thumbnails && download.getThumbnail) {
