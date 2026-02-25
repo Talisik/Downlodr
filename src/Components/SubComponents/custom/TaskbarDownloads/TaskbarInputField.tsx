@@ -2,6 +2,7 @@ import { Copy, Download, Folder as FolderIcon, Settings } from '@/Assets/Icons';
 import Input from '@/Components/SubComponents/shadcn/components/ui/input';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
+import { waitForStoreRehydration } from '@/Hooks/useStoreRehydration';
 import useDownloadStore from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import {
@@ -11,7 +12,6 @@ import {
 } from '@/Store/taskbarDownloadStore';
 import { cleanRawLink } from '@/Utils/Data/urlValidation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { waitForStoreRehydration } from '@/Hooks/useStoreRehydration';
 import AdditionalOptions from './AdditionalOptions';
 import FolderDirectory from './FolderDirectory';
 
@@ -220,6 +220,12 @@ const TaskbarInputField = () => {
         const linkType = isYouTubeLink(url);
 
         if (linkType === 'playlist') {
+          toast({
+            title: 'Playlist link detected',
+            description:
+              'Getting playlist information for download... This may take a while.',
+            duration: 4000,
+          });
           setIsPlaylist(true);
           setIsValidUrl(true);
           fetchPlaylistInfo(url);
@@ -392,16 +398,28 @@ const TaskbarInputField = () => {
 
       toast({
         title: 'Download Queued',
-        description: 'Getting video metadata...',
+        description: 'Fetching video metadata for download...',
         duration: 3000,
       });
     } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to Add to Download Queue',
-        duration: 3000,
-      });
+      const hasInternetConnection =
+        await window.downlodrFunctions.checkInternetConnection();
+      if (!hasInternetConnection) {
+        toast({
+          variant: 'destructive',
+          title: 'No Internet Connection',
+          description: 'Please check your internet connection and try again',
+          duration: 3000,
+        });
+        return;
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to Add to Download Queue',
+          duration: 3000,
+        });
+      }
     }
   };
 
@@ -501,7 +519,9 @@ const TaskbarInputField = () => {
         className="text-xs py-4 pr-10"
         leftIcons={[
           {
-            icon: <Copy className="text-darkModeHover" />,
+            icon: (
+              <Copy className="text-darkModeHover dark:text-darkModeLight" />
+            ),
             onClick: () => {
               navigator.clipboard
                 .writeText(videoUrl)
@@ -530,7 +550,7 @@ const TaskbarInputField = () => {
             icon: (
               <Settings
                 className={cn(
-                  'text-darkModeHover',
+                  'text-darkModeHover dark:text-darkModeLight',
                   activeButton === 'settings' && 'text-primary',
                 )}
               />
@@ -548,7 +568,7 @@ const TaskbarInputField = () => {
             icon: (
               <FolderIcon
                 className={cn(
-                  'text-darkModeHover',
+                  'text-darkModeHover dark:text-darkModeLight',
                   activeButton === 'folder' && 'text-primary',
                 )}
               />

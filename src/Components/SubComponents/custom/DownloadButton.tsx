@@ -12,10 +12,10 @@
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { AddDownload } from '@/Schema/download';
-import useDownloadStore from '@/Store/downloadStore';
+import { useDownloadStore } from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import { processFileName } from '@/Utils/Data/FilterName';
-import React from 'react';
+import React, { useState } from 'react';
 import { IoMdDownload } from 'react-icons/io';
 
 // Interface representing the props for the DownloadButton component
@@ -24,12 +24,14 @@ interface DownloadButtonProps {
 }
 
 const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
+  const [isDisabled, setIsDisabled] = useState(false);
   const { settings } = useMainStore();
   const { removeFromForDownloads, addQueue } = useDownloadStore();
   const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
   const setSelectedDownloads = useMainStore(
     (state) => state.setSelectedDownloads,
   );
+
   /**
    * Handles the click event for the download button.
    * Initiates the download process and updates the download store.
@@ -37,9 +39,13 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
    * @param e - The mouse event triggered by the button click.
    */
   const handleDownloadClick = async (e: React.MouseEvent) => {
+    // 👇 Prevent double click
+    if (isDisabled) return;
+    setIsDisabled(true);
     e.stopPropagation(); // Prevent row expansion
     setSelectedRowIds([]);
     setSelectedDownloads([]);
+
     // Process the filename first
     const processedName = await processFileName(
       download.location,
@@ -90,6 +96,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({ download }) => {
   return (
     <TooltipWrapper content="Download video" side="bottom">
       <button
+        disabled={isDisabled}
         onClick={handleDownloadClick}
         className="text-center items-center relative"
       >

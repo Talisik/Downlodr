@@ -28,8 +28,13 @@ import { DownloadItem } from '@/Schema/componentSchema';
 import useDownloadStore from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import { usePluginStore } from '@/Store/pluginStore';
-import { useTaskbarDownloadStore } from '@/Store/taskbarDownloadStore';
+import {
+  SearchableDownload,
+  useTaskbarDownloadStore,
+} from '@/Store/taskbarDownloadStore';
 import { getExtractorIcon, getStatusIcon } from '@/Utils/Icons/IconMapper';
+import { generateErrorExplanation } from '@/Utils/ToastErrorHelper';
+import { redownloadTranscript } from '@/Utils/Transcription/FFmpegWhisperTranscriber';
 import React, {
   useCallback,
   useEffect,
@@ -39,6 +44,8 @@ import React, {
 } from 'react';
 import { AiOutlineStop } from 'react-icons/ai';
 import { FaRegClosedCaptioning } from 'react-icons/fa';
+import { FaArrowRotateRight } from 'react-icons/fa6';
+import { FiPlayCircle } from 'react-icons/fi';
 import { HiOutlineFolderOpen } from 'react-icons/hi';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import { VscPlayCircle } from 'react-icons/vsc';
@@ -178,6 +185,7 @@ const StatusSpecificDownloads = () => {
   }, [currentStatus]);
 
   // All downloads from different states
+  const { updateDownloadTranscript } = useDownloadStore.getState();
   const history = useDownloadStore((state) => state.historyDownloads);
   const downloading = useDownloadStore((state) => state.downloading);
   const forDownloads = useDownloadStore((state) => state.forDownloads);
@@ -203,6 +211,9 @@ const StatusSpecificDownloads = () => {
 
   // Selected state management
   const selectedRowIds = useMainStore((state) => state.selectedRowIds);
+  const getSelectedWithStatusCount = useMainStore(
+    (state) => state.getSelectedWithStatusCount,
+  );
   const setSelectedRowIds = useMainStore((state) => state.setSelectedRowIds);
   const setSelectedDownloads = useMainStore(
     (state) => state.setSelectedDownloads,
@@ -250,7 +261,6 @@ const StatusSpecificDownloads = () => {
       { id: 'speed', width: 60, minWidth: 60 },
       { id: 'dateAdded', width: 70, minWidth: 70 },
       { id: 'transcript', width: 20, minWidth: 20 },
-      { id: 'thumbnail', width: 20, minWidth: 20 },
       { id: 'source', width: 20, minWidth: 20 },
       { id: 'action', width: 10, minWidth: 10 },
     ],
@@ -339,13 +349,6 @@ const StatusSpecificDownloads = () => {
                     new Date(a.DateAdded).getTime();
             }
             case 'source': {
-              const sourceA = a.extractorKey || '';
-              const sourceB = b.extractorKey || '';
-              return sortDirection === 'asc'
-                ? sourceA.localeCompare(sourceB)
-                : sourceB.localeCompare(sourceA);
-            }
-            case 'thumbnail': {
               const sourceA = a.extractorKey || '';
               const sourceB = b.extractorKey || '';
               return sortDirection === 'asc'
@@ -488,6 +491,40 @@ const StatusSpecificDownloads = () => {
     [sortColumn, sortDirection],
   );
 
+  const detectError = useCallback((download: SearchableDownload) => {
+    const previousStatus = previousStatusesRef.current.get(download.id);
+
+    // Update the previous status
+    previousStatusesRef.current.set(download.id, download.status);
+
+    // Detect if status changed from 'downloading' to 'failed'
+    if (previousStatus === 'downloading' && download.status === 'failed') {
+      return true;
+    }
+
+    return false;
+  }, []);
+
+  // Monitor downloads for error transitions
+  useEffect(() => {
+    allDownloads.forEach((download) => {
+      if (detectError(download)) {
+        // Show error notification with detailed explanation
+        const errorExplanation = generateErrorExplanation(download);
+        toast({
+          title: 'Something went wrong!',
+          description: `${errorExplanation}`,
+          variant: 'destructive',
+          expandable: true, // Add this to make it expandable
+          duration: 5500,
+        });
+
+        // Could also trigger error recovery logic here
+        console.log(`Download error detected: ${download.id}`);
+      }
+    });
+  }, [allDownloads, detectError, toast]);
+
   // Function to render sort indicator
   const renderSortIndicator = useCallback(
     (column: string) => {
@@ -561,6 +598,8 @@ const StatusSpecificDownloads = () => {
 
   // ref to track timeout for cleanup
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previousStatusesRef = useRef<Map<string, string>>(new Map());
+  const forDownloadIdsRef = useRef<Set<string>>(new Set());
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -622,7 +661,6 @@ const StatusSpecificDownloads = () => {
       status: 'Status',
       speed: 'Speed',
       dateAdded: 'Date Added',
-      thumbnail: 'Thumbnail',
       transcript: 'Caption',
       source: 'Source',
       action: 'Action',
@@ -642,7 +680,6 @@ const StatusSpecificDownloads = () => {
       { id: 'dateAdded', label: 'Date Added', required: false },
       { id: 'source', label: 'Source', required: false },
       { id: 'transcript', label: 'Closed Captions', required: false },
-      { id: 'thumbnail', label: 'Thumbnail', required: false },
       { id: 'size', label: 'Size', required: false },
     ],
     [],
@@ -672,6 +709,34 @@ const StatusSpecificDownloads = () => {
     },
     [],
   );
+
+  const handleRedownloadTranscript = async (downloadId: string) => {
+    const download = allDownloads.find((d) => d.id === downloadId);
+    if (!download) return;
+    console.log(download);
+    const inputLocation = await window.downlodrFunctions.joinDownloadPath(
+      download.location,
+      download.downloadName,
+    );
+    const outputLocation = await window.downlodrFunctions.joinDownloadPath(
+      download.location,
+      download.downloadName.replace(/\.[^/.]+$/, '.srt'),
+    );
+    redownloadTranscript({
+      inputFile: inputLocation,
+      outputFile: outputLocation,
+      modelPath: 'ggml-base.bin',
+      language: 'en',
+      format: 'srt',
+    });
+    toast({
+      variant: 'success',
+      title: 'Transcript Redownloaded',
+      description: 'Transcript has been redownloaded successfully',
+      duration: 3000,
+    });
+    updateDownloadTranscript(downloadId, outputLocation);
+  };
 
   const handleContextMenu = async (
     event: React.MouseEvent,
@@ -1602,6 +1667,8 @@ const StatusSpecificDownloads = () => {
 
   // Auto-select playlist downloads when they appear in forDownloads
   useEffect(() => {
+    forDownloadIdsRef.current = new Set(forDownloads.map((d) => d.id));
+
     // Find downloads that are from playlists and have status "to download"
     const playlistDownloads = forDownloads.filter(
       (download) =>
@@ -1637,9 +1704,13 @@ const StatusSpecificDownloads = () => {
         };
       });
 
-      // Resolve all promises and update selected downloads
+      // Only set selected downloads that are still in forDownloads when the
+      // promise resolves (avoids race where a started download is re-selected)
       Promise.all(promises).then((resolvedData) => {
-        setSelectedDownloads(resolvedData);
+        const stillInForDownloads = resolvedData.filter((d) =>
+          forDownloadIdsRef.current.has(d.id),
+        );
+        setSelectedDownloads(stillInForDownloads);
       });
     }
   }, [
@@ -1822,10 +1893,12 @@ const StatusSpecificDownloads = () => {
                           {renderSortIndicator(column.id)}
 
                           {column.id === 'name' &&
-                            selectedRowIds.length > 0 && (
+                            getSelectedWithStatusCount() > 0 && (
                               <span className="text-xs">
-                                ({selectedRowIds.length}{' '}
-                                {selectedRowIds.length === 1 ? 'item' : 'items'}{' '}
+                                ({getSelectedWithStatusCount()}{' '}
+                                {getSelectedWithStatusCount() === 1
+                                  ? 'item'
+                                  : 'items'}{' '}
                                 selected)
                               </span>
                             )}
@@ -1880,7 +1953,7 @@ const StatusSpecificDownloads = () => {
                             <td
                               key={column.id}
                               style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200"
+                              className="p-2 dark:text-gray-200 flex justify-start items-center"
                             >
                               {download.status === 'fetching metadata' ? (
                                 <div className="space-y-1">
@@ -1893,32 +1966,143 @@ const StatusSpecificDownloads = () => {
                                     style={{ width: `${column.width - 60}px` }}
                                   />
                                 </div>
-                              ) : (
-                                <div className="line-clamp-2 break-words flex justify-start items-start">
-                                  <div>
-                                    <TooltipWrapper
-                                      content={
-                                        download.displayName || download.name
-                                      }
-                                      side="bottom"
-                                      contentClassname="text-start justify-start"
-                                    >
-                                      <div>
-                                        <span
-                                          className={` line-clamp-1 break-words break-all font-semibold`}
+                              ) : [
+                                  'finished',
+                                  'paused',
+                                  'downloading',
+                                  'failed',
+                                  'initializing',
+                                ].includes(download.status) ? (
+                                <div className="flex items-start gap-3 w-full">
+                                  {/* Thumbnail Section */}
+                                  <div className="flex-shrink-0">
+                                    {download.thumnailsLocation &&
+                                    download.thumnailsLocation !== '—' ? (
+                                      thumbnailDataUrls[download.id] ? (
+                                        <TooltipWrapper
+                                          content="View full thumbnail"
+                                          side="bottom"
                                         >
-                                          {download.displayName ||
-                                            download.name}
+                                          <div
+                                            className="h-9 w-16 bg-black flex rounded cursor-pointer overflow-hidden justify-center items-center flex-shrink-0"
+                                            onClick={() =>
+                                              handleViewFile(
+                                                download.thumnailsLocation,
+                                                download.id,
+                                              )
+                                            }
+                                          >
+                                            <img
+                                              src={
+                                                thumbnailDataUrls[download.id]
+                                              }
+                                              alt="Thumbnail"
+                                              className="max-h-full max-w-full object-contain hover:opacity-70 transition-opacity"
+                                              onError={(e) => {
+                                                e.currentTarget.style.display =
+                                                  'none';
+                                                e.currentTarget.parentElement!.innerHTML =
+                                                  'Unable to load';
+                                              }}
+                                            />
+                                          </div>
+                                        </TooltipWrapper>
+                                      ) : (
+                                        <TooltipWrapper
+                                          content="Thumbnail not downloaded"
+                                          side="bottom"
+                                        >
+                                          <div
+                                            className="
+    h-10 w-16
+    rounded cursor-pointer overflow-hidden
+    flex justify-center items-center flex-shrink-0
+bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.6)_0%,transparent_40%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.5)_0%,transparent_45%),radial-gradient(circle_at_45%_80%,rgba(255,255,255,0.4)_0%,transparent_35%),linear-gradient(135deg,#ffa42e,#fec77d,#ffa42e,#fec170)]
+  "
+                                          >
+                                            <FiPlayCircle
+                                              size={20}
+                                              color="#F45513"
+                                            />
+                                          </div>
+                                        </TooltipWrapper>
+                                      )
+                                    ) : (
+                                      <TooltipWrapper
+                                        content="Thumbnail not available"
+                                        side="bottom"
+                                      >
+                                        <div className="h-9 w-16 bg-black flex rounded cursor-pointer overflow-hidden flex-shrink-0">
+                                          <FiPlayCircle size={20} />
+                                        </div>
+                                      </TooltipWrapper>
+                                    )}
+                                  </div>
+
+                                  {/* Text Content Section */}
+                                  <div className="line-clamp-2 break-words flex justify-start items-start min-w-0 flex-1">
+                                    <div className="w-full justify-start items-start">
+                                      <TooltipWrapper
+                                        content={
+                                          download.displayName || download.name
+                                        }
+                                        side="bottom"
+                                        contentClassname="text-start justify-start"
+                                      >
+                                        <div>
+                                          <span
+                                            className={`line-clamp-1 break-words break-all font-semibold`}
+                                          >
+                                            {download.displayName ||
+                                              download.name}
+                                          </span>
+                                        </div>
+                                      </TooltipWrapper>
+
+                                      <div>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                          {download.channelName}
                                         </span>
                                       </div>
-                                    </TooltipWrapper>
-
-                                    <div>
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                                        {download.channelName}
-                                      </span>
                                     </div>
                                   </div>
+                                </div>
+                              ) : download.status === 'fetching metadata' ? (
+                                <div className="space-y-1">
+                                  <Skeleton
+                                    className="h-4 rounded-[3px]"
+                                    style={{ width: `${column.width - 20}px` }}
+                                  />
+                                  <Skeleton
+                                    className="h-4 rounded-[3px]"
+                                    style={{ width: `${column.width - 60}px` }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="flex-shrink-0">
+                                    <TooltipWrapper
+                                      content="Thumbnail not available"
+                                      side="bottom"
+                                    >
+                                      <div
+                                        className="
+    h-9 w-16
+    rounded cursor-pointer overflow-hidden
+    flex justify-center items-center
+bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.6)_0%,transparent_40%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.5)_0%,transparent_45%),radial-gradient(circle_at_45%_80%,rgba(255,255,255,0.4)_0%,transparent_35%),linear-gradient(135deg,#ffa42e,#fec77d,#ffa42e,#fec170)]
+  "
+                                      >
+                                        <FiPlayCircle
+                                          size={20}
+                                          color="#F45513"
+                                        />
+                                      </div>
+                                    </TooltipWrapper>
+                                  </div>
+                                  <span className="line-clamp-1 break-words break-all font-semibold min-w-0 flex-1">
+                                    {download.displayName || download.name}
+                                  </span>
                                 </div>
                               )}
                             </td>
@@ -2010,8 +2194,7 @@ const StatusSpecificDownloads = () => {
                               {download.status === 'cancelled' ||
                               download.status === 'initializing' ||
                               download.status === 'queued' ||
-                              download.status === 'fetching metadata' ||
-                              download.status === 'failed' ? (
+                              download.status === 'fetching metadata' ? (
                                 <div className="flex justify-center">
                                   <TooltipWrapper
                                     content={
@@ -2023,6 +2206,20 @@ const StatusSpecificDownloads = () => {
                                     <div className="ml-[2.5px] flex items-center justify-center space-x-2">
                                       {getStatusIcon(download.status, 20)}
                                     </div>
+                                  </TooltipWrapper>
+                                </div>
+                              ) : download.status === 'failed' ? (
+                                <div className="flex justify-center">
+                                  <TooltipWrapper
+                                    content="Click to retry download"
+                                    side="bottom"
+                                  >
+                                    <button
+                                      className="ml-[2.5px] flex items-center justify-center space-x-2 hover:opacity-75 transition-opacity cursor-pointer"
+                                      onClick={() => handleRetry(download.id)}
+                                    >
+                                      {getStatusIcon(download.status, 20)}
+                                    </button>
                                   </TooltipWrapper>
                                 </div>
                               ) : download.status === 'finished' ? (
@@ -2174,73 +2371,7 @@ const StatusSpecificDownloads = () => {
                               </TooltipWrapper>
                             </td>
                           );
-                        case 'thumbnail':
-                          return (
-                            <td
-                              key={column.id}
-                              style={{ width: column.width }}
-                              className="p-2 dark:text-gray-200"
-                            >
-                              {download.status === 'fetching metadata' ? (
-                                <div className=" w-full flex justify-center items-center">
-                                  <Skeleton className="h-8 w-[50px] rounded-[3px]" />
-                                </div>
-                              ) : [
-                                  'finished',
-                                  'paused',
-                                  'downloading',
-                                  'failed',
-                                  'initializing',
-                                ].includes(download.status) &&
-                                download.thumnailsLocation &&
-                                download.thumnailsLocation !== '—' ? (
-                                <div className="flex justify-center items-center w-full">
-                                  {thumbnailDataUrls[download.id] ? (
-                                    <TooltipWrapper
-                                      content="View full thumbnail"
-                                      side="bottom"
-                                    >
-                                      <img
-                                        src={thumbnailDataUrls[download.id]}
-                                        alt="Thumbnail"
-                                        className="h-10 object-cover rounded cursor-pointer hover:opacity-70 transition-opacity"
-                                        onClick={() =>
-                                          handleViewFile(
-                                            download.thumnailsLocation,
-                                            download.id,
-                                          )
-                                        }
-                                        onError={(e) => {
-                                          e.currentTarget.style.display =
-                                            'none';
-                                          e.currentTarget.parentElement.innerHTML =
-                                            'Unable to load';
-                                        }}
-                                      />
-                                    </TooltipWrapper>
-                                  ) : (
-                                    <TooltipWrapper
-                                      content="Thumbnail not downloaded"
-                                      side="bottom"
-                                    >
-                                      <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center w-full">
-                                        —
-                                      </span>
-                                    </TooltipWrapper>
-                                  )}
-                                </div>
-                              ) : (
-                                <TooltipWrapper
-                                  content="Thumbnail not downloaded"
-                                  side="bottom"
-                                >
-                                  <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center w-full">
-                                    —
-                                  </span>
-                                </TooltipWrapper>
-                              )}
-                            </td>
-                          );
+
                         case 'transcript':
                           return (
                             <td
@@ -2252,48 +2383,113 @@ const StatusSpecificDownloads = () => {
                                 <div className="space-y-1 flex justify-center items-center">
                                   <Skeleton className="h-8 w-[50px] rounded-[3px]" />
                                 </div>
-                              ) : download.autoCaptionLocation === '' ||
-                                download.autoCaptionLocation === null ? (
+                              ) : download.status === 'downloading' ||
+                                download.status === 'queued' ||
+                                download.status === 'initializing' ||
+                                download.status === 'paused' ||
+                                download.status === 'failed' ||
+                                download.status === 'cancelled' ||
+                                download.status === 'to download' ||
+                                download.status === 'fetching metadata' ? (
                                 <TooltipWrapper
-                                  content="Transcript not downloaded"
+                                  content={`${
+                                    download.status.charAt(0).toUpperCase() +
+                                    download.status.slice(1)
+                                  } video`}
                                   side="bottom"
                                 >
                                   <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center w-full">
                                     —
                                   </span>
                                 </TooltipWrapper>
-                              ) : download.autoCaptionLocation === undefined ? (
-                                <TooltipWrapper
-                                  content="Transcript not available"
-                                  side="bottom"
-                                >
-                                  <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center w-full">
-                                    <AiOutlineStop
-                                      size={20}
-                                      className="text-red-500 hover:text-red-400 transition-colors duration-200"
-                                    />
-                                  </span>
-                                </TooltipWrapper>
                               ) : (
-                                <TooltipWrapper
-                                  content="View transcript"
-                                  side="bottom"
-                                >
-                                  <button
-                                    onClick={() =>
-                                      handleViewFile(
-                                        download.autoCaptionLocation,
-                                        download.id,
-                                      )
+                                (() => {
+                                  // Get transcript location from either autoCaptionLocation (for downloading) or transcriptLocation (for finished/history)
+                                  const transcriptLocation =
+                                    'transcriptLocation' in download &&
+                                    typeof download.transcriptLocation ===
+                                      'string'
+                                      ? download.transcriptLocation
+                                      : download.autoCaptionLocation;
+
+                                  // Treat placeholder values ('iu', 'fu') as empty/invalid
+                                  const isValidLocation =
+                                    transcriptLocation &&
+                                    transcriptLocation.trim() !== '' &&
+                                    transcriptLocation !== 'iu' &&
+                                    transcriptLocation !== 'fu';
+
+                                  if (!isValidLocation) {
+                                    // Show "not downloaded" for empty/null/placeholder values
+                                    // Show "not available" for undefined (transcript was never requested)
+                                    if (transcriptLocation === undefined) {
+                                      return (
+                                        <TooltipWrapper
+                                          content="Transcript not available"
+                                          side="bottom"
+                                        >
+                                          <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center w-full">
+                                            <AiOutlineStop
+                                              size={20}
+                                              className="text-red-500 hover:text-red-400 transition-colors duration-200"
+                                            />
+                                          </span>
+                                        </TooltipWrapper>
+                                      );
                                     }
-                                    className="text-availableStatus hover:underline flex justify-center items-center hover:text-green-400 transition-colors duration-200 w-full text-center"
-                                  >
-                                    <FaRegClosedCaptioning
-                                      size={20}
-                                      className="text-green-600 hover:text-green-400 transition-colors duration-200 text-center align-middle justify-center"
-                                    />
-                                  </button>
-                                </TooltipWrapper>
+                                    return (
+                                      <TooltipWrapper
+                                        content="Redownload transcript"
+                                        side="bottom"
+                                      >
+                                        <button
+                                          onClick={() => {
+                                            handleRedownloadTranscript(
+                                              download.id,
+                                            );
+                                          }}
+                                        >
+                                          <span className="text-notAvailableStatus dark:text-darkModeNotAvailableStatus flex justify-center items-center text-center w-full">
+                                            <FaArrowRotateRight
+                                              size={16}
+                                              className="text-green-600 hover:text-green-400 transition-colors duration-200 text-center align-middle justify-center"
+                                            />
+                                          </span>
+                                        </button>
+                                      </TooltipWrapper>
+                                    );
+                                  } else {
+                                    return (
+                                      <TooltipWrapper
+                                        content="View transcript"
+                                        side="bottom"
+                                      >
+                                        <button
+                                          onClick={() => {
+                                            handleViewFile(
+                                              transcriptLocation,
+                                              download.id,
+                                            );
+                                            console.log(
+                                              'Transcript location:',
+                                              transcriptLocation,
+                                            );
+                                          }}
+                                          className="text-availableStatus hover:underline flex justify-center items-center hover:text-green-400 transition-colors duration-200 w-full text-center"
+                                        >
+                                          {download.getTranscript ? (
+                                            <FaRegClosedCaptioning
+                                              size={20}
+                                              className="text-green-600 hover:text-green-400 transition-colors duration-200 text-center align-middle justify-center"
+                                            />
+                                          ) : (
+                                            '—'
+                                          )}
+                                        </button>
+                                      </TooltipWrapper>
+                                    );
+                                  }
+                                })()
                               )}
                             </td>
                           );
