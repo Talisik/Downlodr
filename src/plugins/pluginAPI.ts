@@ -292,6 +292,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         url,
         options.name,
         options.downloadName,
+        options.displayName || '',
         options.size || 0,
         options.speed || '',
         options.channelName || '',
@@ -492,6 +493,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             currentDownload.videoUrl,
             currentDownload.name,
             currentDownload.downloadName,
+            currentDownload.displayName || '',
             currentDownload.size,
             currentDownload.speed,
             currentDownload.channelName,
@@ -642,6 +644,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             currentDownload.videoUrl,
             currentDownload.name,
             currentDownload.downloadName,
+            currentDownload.displayName || '',
             currentDownload.size,
             currentDownload.speed,
             currentDownload.channelName,
@@ -838,6 +841,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             currentDownload.videoUrl,
             currentDownload.name,
             currentDownload.downloadName,
+            currentDownload.displayName || '',
             currentDownload.size,
             currentDownload.speed,
             currentDownload.channelName,
@@ -1277,6 +1281,26 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
           success: false,
           error: error instanceof Error ? error.message : String(error),
         };
+      }
+    },
+
+    getOperatingSystem: async (): Promise<
+      'windows' | 'macos' | 'linux' | string
+    > => {
+      try {
+        return await window.downlodrFunctions.getOSType();
+      } catch (error) {
+        console.error('Error getting operating system:', error);
+        return 'unknown';
+      }
+    },
+
+    getPathSeparator: async (): Promise<string> => {
+      try {
+        return await window.downlodrFunctions.getPathSeparator();
+      } catch (error) {
+        console.error('Error getting path separator:', error);
+        return '/'; // Default to Unix-style separator
       }
     },
   };

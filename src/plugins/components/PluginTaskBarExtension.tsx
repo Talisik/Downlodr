@@ -177,6 +177,7 @@ const PluginTaskBarExtension: React.FC = () => {
         <TooltipWrapper key={item.id} content={item.label} side="bottom">
           <Button
             variant="transparent"
+            disabled={selectedDownloads.length === 0}
             style={
               typeof item.buttonStyle === 'string'
                 ? {
@@ -184,7 +185,12 @@ const PluginTaskBarExtension: React.FC = () => {
                   }
                 : item.buttonStyle
             }
-            className="hover:bg-gray-100 dark:hover:bg-darkModeHover px-2 py-1 rounded flex gap-1 font-semibold dark:text-gray-200 flex-shrink-0"
+            className={`hover:bg-gray-100 dark:hover:bg-darkModeHover px-2 py-1 rounded flex gap-1 font-semibold dark:text-gray-200 flex-shrink-0
+              ${
+                selectedDownloads.length === 0
+                  ? 'cursor-not-allowed disabled:pointer-events-auto'
+                  : ''
+              }`}
             onClick={() => handleItemClick(item)}
             icon={
               item.icon && (

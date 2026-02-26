@@ -9,7 +9,7 @@
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import useDownloadStore from '@/Store/downloadStore';
+import { HistoryDownloads, useDownloadStore } from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import { getExtractorIcon } from '@/Utils/Icons/IconMapper';
 import React, { useEffect, useRef, useState } from 'react';
@@ -22,6 +22,7 @@ import { VscPlayCircle } from 'react-icons/vsc';
 interface HistoryDownload {
   id: string;
   name: string;
+  displayName: string;
   location: string;
   videoUrl: string;
   DateAdded: string;
@@ -39,7 +40,7 @@ const History = () => {
   // get settings from MainStore
   const { settings } = useMainStore();
   // values of longs are based on historical logs
-  const [logs, setLogs] = useState<HistoryDownload[]>(historyDownloads);
+  const [logs, setLogs] = useState<HistoryDownloads[]>(historyDownloads);
   // handle selected states
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const setSelectedDownloads = useMainStore(
@@ -152,10 +153,20 @@ const History = () => {
         // If file doesn't exist, just remove from history
         deleteDownload(id);
       }
+      // Reset selections after deletion
+      setSelectedItems((prev) => prev.filter((itemId) => itemId !== id));
+      setHoveredVideo(null);
+      toast({
+        variant: 'success',
+        title: 'Download Log Deleted',
+        description: 'Your download log has been deleted successfully',
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Error deleting:', error);
       // If any error occurs, at least try to remove from history
       deleteDownload(id);
+      setSelectedItems((prev) => prev.filter((itemId) => itemId !== id));
     }
   };
   // handle state of checkboxes when all of them are checked
@@ -183,6 +194,7 @@ const History = () => {
   // handle delete selected download
   const handleDeleteSelected = async () => {
     const failedToDelete = [];
+    const deletedCount = selectedItems.length;
     try {
       for (const id of selectedItems) {
         const video = logs.find((product) => product.id === String(id));
@@ -190,25 +202,38 @@ const History = () => {
           setSelectedRowIds([]);
           setSelectedDownloads([]);
           deleteDownload(video.id);
-          toast({
-            variant: 'success',
-            title: 'Download Log Deleted',
-            description: 'Your download log has been deleted successfully',
-            duration: 3000,
-          });
         } else {
-          failedToDelete.push(video.name);
+          failedToDelete.push(`ID: ${id}`);
         }
       }
+
+      // Clear all selections after bulk deletion
+      setSelectedItems([]);
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
+      setAllChecked(false);
+
       if (failedToDelete.length > 0) {
         setErrorTitle('Deletion Error');
         setErrorMessage(`Failed to delete: ${failedToDelete.join(', ')}`);
         setErrorVisible(true);
+      } else {
+        toast({
+          variant: 'success',
+          title: 'Download Logs Deleted',
+          description: `${deletedCount} download log${
+            deletedCount !== 1 ? 's' : ''
+          } deleted successfully`,
+          duration: 3000,
+        });
       }
-      setSelectedItems([]); // Clear selected items after deletion
-      setSelectedDownloads([]);
     } catch (error) {
       console.error('Error deleting selected files:', error);
+      // Still clear selections even on error
+      setSelectedItems([]);
+      setSelectedRowIds([]);
+      setSelectedDownloads([]);
+      setAllChecked(false);
     }
   };
 
@@ -298,8 +323,14 @@ const History = () => {
                     onChange={handleAllCheckboxChange}
                   />
                 </th>
-                <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
+                <th className="relative p-2 font-semibold dark:text-gray-200 select-none gap-2">
                   Name
+                  {selectedItems.length > 0 && (
+                    <span className="text-xs ml-2">
+                      ({selectedItems.length} item
+                      {selectedItems.length !== 1 ? 's' : ''} selected)
+                    </span>
+                  )}
                 </th>
                 <th className="relative p-2 font-semibold dark:text-gray-200 select-none">
                   <div
@@ -326,7 +357,9 @@ const History = () => {
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'
                 }`}
-                  onContextMenu={(e) => handleRowClick(e, product)}
+                  onContextMenu={(e) =>
+                    handleRowClick(e, product as HistoryDownload)
+                  }
                   onClick={(e) => {
                     e.stopPropagation();
                     handleCheckboxChange(product.id);
@@ -347,7 +380,7 @@ const History = () => {
                     <div className="line-clamp-2 break-words flex justify-start items-start">
                       <div>
                         <TooltipWrapper
-                          content={product.name}
+                          content={product.displayName || product.name}
                           side="bottom"
                           contentClassname="text-start justify-start"
                         >
@@ -357,9 +390,9 @@ const History = () => {
                                 fileExistsMap[product.id]
                                   ? 'text-gray-700 dark:text-gray-200'
                                   : 'line-through text-gray-400 dark:text-gray-500'
-                              } line-clamp-1 break-words break-all font-medium`}
+                              } line-clamp-1 break-words break-all font-bold`}
                             >
-                              {product.name}
+                              {product.displayName || product.name}
                             </span>
                           </div>
                         </TooltipWrapper>

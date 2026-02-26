@@ -169,3 +169,36 @@ input[type='checkbox']:not(.sr-only):focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(244, 85, 19, 0.2);
 }
+
+/* Red placeholder text */
+.red-placeholder::placeholder {
+  color: #f45513;
+}
+
+/* Small checkbox variant */
+input[type='checkbox'].checkbox-small:not(.sr-only) {
+  width: 12px;
+  height: 12px;
+}
+
+html.dark input[type='checkbox'].checkbox-small:not(.sr-only) {
+  width: 12px;
+  height: 12px;
+}
+
+input[type='checkbox'].checkbox-small:not(.sr-only):checked::after {
+  left: 3px;
+  top: 1px;
+  width: 4px;
+  height: 7px;
+  border-width: 0 2px 2px 0;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}

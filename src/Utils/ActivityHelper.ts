@@ -6,10 +6,11 @@
  * fetching metadata to completion.
  */
 
-import useDownloadStore, {
+import {
   Downloading,
   FinishedDownloads,
   QueuedDownload,
+  useDownloadStore,
 } from '@/Store/downloadStore';
 import {
   generateErrorMessage,

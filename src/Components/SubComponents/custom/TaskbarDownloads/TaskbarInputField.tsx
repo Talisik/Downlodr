@@ -2,6 +2,7 @@ import { Copy, Download, Folder as FolderIcon, Settings } from '@/Assets/Icons';
 import Input from '@/Components/SubComponents/shadcn/components/ui/input';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
+import { waitForStoreRehydration } from '@/Hooks/useStoreRehydration';
 import useDownloadStore from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import {
@@ -219,6 +220,12 @@ const TaskbarInputField = () => {
         const linkType = isYouTubeLink(url);
 
         if (linkType === 'playlist') {
+          toast({
+            title: 'Playlist link detected',
+            description:
+              'Getting playlist information for download... This may take a while.',
+            duration: 4000,
+          });
           setIsPlaylist(true);
           setIsValidUrl(true);
           fetchPlaylistInfo(url);
@@ -346,6 +353,10 @@ const TaskbarInputField = () => {
 
   const handleDownload = async () => {
     try {
+      // Wait for store rehydration before processing downloads
+      // This prevents the first URL registration issue during app startup
+      await waitForStoreRehydration();
+
       if (isPlaylist) {
         const selectedVideosList = playlistVideos.filter((video) =>
           selectedVideos.has(video.id),
@@ -361,11 +372,18 @@ const TaskbarInputField = () => {
           return;
         }
 
-        // Download each selected video with user preferences
+        // Generate a unique batch ID for this playlist download
+        const playlistBatchId = `playlist_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+
+        // Download each selected video with user preferences and playlist tracking
         for (const video of selectedVideosList) {
           setDownload(video.url, downloadFolder, maxDownload, {
             getTranscript,
             getThumbnail,
+            isFromPlaylist: true,
+            playlistBatchId,
           });
         }
       } else {
@@ -380,16 +398,28 @@ const TaskbarInputField = () => {
 
       toast({
         title: 'Download Queued',
-        description: 'Getting video metadata...',
+        description: 'Fetching video metadata for download...',
         duration: 3000,
       });
     } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to Add to Download Queue',
-        duration: 3000,
-      });
+      const hasInternetConnection =
+        await window.downlodrFunctions.checkInternetConnection();
+      if (!hasInternetConnection) {
+        toast({
+          variant: 'destructive',
+          title: 'No Internet Connection',
+          description: 'Please check your internet connection and try again',
+          duration: 3000,
+        });
+        return;
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to Add to Download Queue',
+          duration: 3000,
+        });
+      }
     }
   };
 
@@ -414,6 +444,16 @@ const TaskbarInputField = () => {
       return newSelected;
     });
   };
+
+  // Sync taskbar downloadFolder with main store defaultLocation
+  useEffect(() => {
+    if (
+      settings.defaultLocation &&
+      settings.defaultLocation !== downloadFolder
+    ) {
+      setDownloadFolder(settings.defaultLocation);
+    }
+  }, [settings.defaultLocation, downloadFolder, setDownloadFolder]);
 
   // Close additional options and folder directory modal when clicking outside
   useEffect(() => {
@@ -479,7 +519,9 @@ const TaskbarInputField = () => {
         className="text-xs py-4 pr-10"
         leftIcons={[
           {
-            icon: <Copy className="text-darkModeHover" />,
+            icon: (
+              <Copy className="text-darkModeHover dark:text-darkModeLight" />
+            ),
             onClick: () => {
               navigator.clipboard
                 .writeText(videoUrl)
@@ -508,7 +550,7 @@ const TaskbarInputField = () => {
             icon: (
               <Settings
                 className={cn(
-                  'text-darkModeHover',
+                  'text-darkModeHover dark:text-darkModeLight',
                   activeButton === 'settings' && 'text-primary',
                 )}
               />
@@ -526,7 +568,7 @@ const TaskbarInputField = () => {
             icon: (
               <FolderIcon
                 className={cn(
-                  'text-darkModeHover',
+                  'text-darkModeHover dark:text-darkModeLight',
                   activeButton === 'folder' && 'text-primary',
                 )}
               />

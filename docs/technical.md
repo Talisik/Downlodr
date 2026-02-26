@@ -253,6 +253,70 @@ The `checkForUpdates()` function now returns:
 - `message`: Informative message when no releases found for channel
 - Improved error handling with channel context
 
+#### Network Error Handling
+
+**Robust Error Detection and User-Friendly Messages**
+
+The update system includes comprehensive network error handling to prevent crashes and provide clear feedback when internet connectivity issues occur.
+
+##### Key Features
+
+- **Request Timeout**: 10-second timeout on GitHub API requests prevents indefinite hanging
+- **Network Error Detection**: Automatically detects and handles network-related errors
+- **User-Friendly Messages**: Clear, actionable error messages for different failure scenarios
+- **Graceful Degradation**: System continues functioning even when updates can't be checked
+
+##### Error Types Handled
+
+**Network Errors**:
+- `ENOTFOUND`: DNS resolution failure (e.g., no internet connection)
+- `ECONNREFUSED`: Connection refused by server
+- `ETIMEDOUT`: Request timeout
+- `ECONNRESET`: Connection reset by peer
+- Timeout messages from axios
+- Generic "Network Error" messages
+
+**API Errors**:
+- 403 status: GitHub API rate limit exceeded
+- Other HTTP errors: Generic update check failure
+
+##### Implementation
+
+```typescript
+// Axios request with timeout
+const response = await axios.get<GitHubRelease[]>(
+  'https://api.github.com/repos/Talisik/Downlodr/releases',
+  {
+    timeout: 10000, // 10 second timeout
+  },
+);
+
+// Network error handling
+if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || 
+    error.code === 'ETIMEDOUT' || error.code === 'ECONNRESET' ||
+    error.message?.includes('timeout') || error.message?.includes('Network Error')) {
+  return {
+    hasUpdate: false,
+    currentVersion: app.getVersion(),
+    currentChannel: getVersionChannel(app.getVersion()),
+    error: 'Unable to connect to update server. Please check your internet connection.',
+  };
+}
+```
+
+##### User-Facing Error Messages
+
+- **Network Unavailable**: "Unable to connect to update server. Please check your internet connection."
+- **Rate Limited**: "GitHub API rate limit exceeded. Please wait an hour before trying again."
+- **Generic Failure**: "Failed to check for updates. Please try again later."
+
+##### Benefits
+
+- **Prevents Crashes**: No unhandled promise rejections or uncaught exceptions
+- **Clear Communication**: Users understand what went wrong and how to fix it
+- **Better UX**: No confusing technical error codes shown to users
+- **Reliability**: Handles all common network failure scenarios
+
 ### SpeedGraph Component
 
 **Real-time Download Speed Visualization**
@@ -532,6 +596,64 @@ The system supports real-time monitoring:
 - Custom event types and schemas
 - Integration with external monitoring services
 - Enhanced privacy controls and data retention policies
+
+### Store Rehydration Management
+
+**Preventing Race Conditions During App Initialization**
+
+The Store Rehydration Management system prevents race conditions that occur when users interact with the app before Zustand stores have finished rehydrating from IndexedDB. This solves the critical issue where the first URL entered during app installation is not registered.
+
+#### Problem Solved
+
+During first app install, there's a timing issue where:
+- **Store Initialization**: The `downloadStore` uses IndexedDB with async rehydration (100-500ms)
+- **User Input**: Users can immediately start entering URLs in the `TaskbarInputField`
+- **Race Condition**: If a user enters a URL before store rehydration completes, the `setDownload` function fails silently
+
+#### Technical Implementation
+
+**Store Rehydration Hook** (`src/Hooks/useStoreRehydration.tsx`):
+- Tracks rehydration status of critical stores (downloadStore, mainStore, telemetryStore)
+- Provides `waitForStoreRehydration()` utility for components
+- Uses store subscriptions to detect when rehydration is complete
+- Maintains global state to prevent multiple initialization attempts
+
+**Store Rehydration Loader** (`src/Components/SubComponents/custom/StoreRehydrationLoader.tsx`):
+- Displays loading overlay during store rehydration
+- Prevents user interaction until stores are ready
+- Shows detailed status of each store (optional)
+- Provides smooth user experience during app startup
+
+**Enhanced TaskbarInputField**:
+- Waits for store rehydration before processing downloads
+- Prevents first URL registration failures
+- Maintains responsive UI during initialization
+
+#### Usage Examples
+
+```typescript
+// Wait for stores before processing downloads
+const handleDownload = async () => {
+  await waitForStoreRehydration();
+  setDownload(videoUrl, downloadFolder, maxDownload, options);
+};
+
+// Check rehydration status
+const { isRehydrated, isRehydrating } = useStoreRehydration();
+
+// App-level protection
+<StoreRehydrationLoader>
+  <App />
+</StoreRehydrationLoader>
+```
+
+#### Benefits
+
+- **Reliability**: Eliminates first URL registration failures
+- **User Experience**: Clear loading feedback during initialization
+- **Performance**: Non-blocking rehydration detection
+- **Maintainability**: Centralized rehydration management
+- **Scalability**: Easy to add new stores to monitoring
 
 ### Telemetry Store
 

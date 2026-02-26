@@ -6,13 +6,14 @@
  * that are accessible in the renderer process.
  */
 import { FormatSelectorResult, MenuItem, PluginInfo, PluginManifest, PluginModalOptions, PluginSidePanelOptions, PluginSidePanelResult, TaskBarItem } from './plugins/types';
-import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult } from './schema/downlodrFunction';
+import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult } from './Schema/downlodrFunction';
 
 declare global {
   // Environment variables injected at build time
   const __TELEMETRY_ENDPOINT__: string;
   const __TELEMETRY_TIMEOUT__: string;
   const __TELEMETRY_RETRY_ATTEMPTS__: string;
+  const __TELEMETRY_SCHEMA_URL__: string;
 
   interface Window {
     downlodrFunctions: {
@@ -55,6 +56,26 @@ declare global {
       }>;
       ensureDirectoryExists: (dirPath: string) => Promise<boolean>; // Creates directory if it doesn't exist
       getThumbnailDataUrl: (path: string) => Promise<string | null>;
+      getOSType: () => Promise<'windows' | 'macos' | 'linux' | string>; // Gets the current operating system type
+      getPathSeparator: () => Promise<string>; // Gets the path separator for the current OS
+      getBundledBinaryPath: (binaryName: string) => Promise<string | null>; // Gets the path to a bundled binary from process.resourcesPath
+      checkInternetConnection: () => Promise<boolean>; // Checks if internet connection is available
+      ffmpegWhisperTranscribe: (options: {
+        inputFile: string;
+        outputFile: string;
+        modelPath: string;
+        language?: string;
+        format?: string;
+      }) => Promise<{
+        success: boolean;
+        outputFile: string;
+        stdout: string;
+        stderr: string;
+      }>; // Transcribes audio using FFmpeg with Whisper filter
+      onFFmpegProgress: (
+        callback: (progress: string) => void,
+      ) => () => void; // Listen to FFmpeg transcription progress updates
+      selectVideoFile: () => Promise<string | null>; // Open file dialog to select video/audio file for transcription
     };
     ytdlp: {
       getPlaylistInfo: (options: { url: string }) => any; // Retrieves information about a playlist
@@ -99,6 +120,26 @@ declare global {
     updateAPI: {
       onUpdateAvailable: (
         callback: (updateInfo: UpdateInfo) => void,
+      ) => () => void;
+      onYtdlpAutoUpdated: (
+        callback: (updateInfo: {
+          fromVersion: string;
+          toVersion: string;
+          message: string;
+        }) => void,
+      ) => () => void;
+      onYtdlpAutoInstalled: (
+        callback: (installInfo: {
+          version: string;
+          message: string;
+        }) => void,
+      ) => () => void;
+      onYtdlpUpdateAvailable: (
+        callback: (updateInfo: {
+          currentVersion: string;
+          latestVersion: string;
+          message: string;
+        }) => void,
       ) => () => void;
       checkForUpdates: () => Promise<UpdateInfo>;
       getCurrentVersion: () => Promise<string>; // Gets current app version without GitHub API call

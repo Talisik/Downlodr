@@ -409,6 +409,9 @@ export class VideoFormatService {
     };
   }
 
+  /**
+   * Processes video formats based on the extractor key
+   */
   public static async processVideoFormats(
     info: VideoInfo,
   ): Promise<ProcessedFormats> {

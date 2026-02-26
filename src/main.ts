@@ -5,6 +5,8 @@
  * handling IPC (Inter-Process Communication) events, and managing
  * application lifecycle events.
  */
+import { execSync } from 'child_process';
+import 'dotenv/config';
 import {
   app,
   BrowserWindow,
@@ -25,9 +27,10 @@ import https from 'https';
 import os from 'os';
 import path from 'path';
 import * as YTDLP from 'yt-dlp-helper';
-import { checkForUpdates } from './Utils/Data/updateChecker';
 import { PluginManager } from './plugins/pluginManager';
 import { pluginRegistry } from './plugins/registry';
+import { DownloadOptions } from './Schema/ytdlp';
+import { checkForUpdates } from './services/update/updateService';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -38,7 +41,6 @@ if (started) {
 const isSingleInstance = app.requestSingleInstanceLock();
 
 if (!isSingleInstance) {
-  console.log('Another instance is already running. Quitting this instance.');
   app.quit();
 }
 
@@ -51,7 +53,7 @@ app.on('second-instance', () => {
   }
 });
 
-declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
+declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
 let tray: Tray | null = null;
@@ -64,7 +66,6 @@ let normalTrayIcon: Electron.NativeImage;
 let alertTrayIcon: Electron.NativeImage;
 let isDownloadComplete = false;
 
-/*
 // Rate limiting for GitHub API calls
 const GITHUB_API_COOLDOWN = 5 * 60 * 1000; // 5 minutes between API calls
 let lastGitHubApiCall = 0;
@@ -87,7 +88,61 @@ function getCachedVersion(): string | null {
 
   return isExpired ? null : cachedLatestVersion.version;
 }
-*/
+
+/**
+ * Checks if internet connectivity is available
+ * Makes an actual HTTPS request to verify real connectivity (more reliable than DNS-only check)
+ * @param timeout - Maximum time to wait for check in milliseconds (default: 5000)
+ * @returns Promise<boolean> - true if online, false if offline
+ */
+async function isOnline(timeout = 5000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const timeoutHandle = setTimeout(() => {
+      console.log('Internet connectivity check timed out');
+      resolve(false);
+    }, timeout);
+
+    // Try to make an actual HTTPS request to a reliable endpoint
+    // This is more reliable than just DNS resolution
+    const req = https.request(
+      {
+        hostname: 'www.google.com',
+        port: 443,
+        path: '/favicon.ico',
+        method: 'HEAD', // HEAD request is lighter than GET
+        timeout: timeout,
+      },
+      (res) => {
+        clearTimeout(timeoutHandle);
+        console.log(
+          'Internet connectivity check succeeded with status:',
+          res.statusCode,
+        );
+        resolve(true);
+      },
+    );
+
+    req.on('error', (err) => {
+      clearTimeout(timeoutHandle);
+      const errorMessage =
+        err && typeof err === 'object' && 'code' in err
+          ? (err as { code?: string; message?: string }).code || err.message
+          : err.message || String(err);
+      console.log('Internet connectivity check failed:', errorMessage);
+      resolve(false);
+    });
+
+    req.on('timeout', () => {
+      clearTimeout(timeoutHandle);
+      console.log('Internet connectivity check timed out');
+      req.destroy();
+      resolve(false);
+    });
+
+    req.end();
+  });
+}
+
 // Function to create the main application window
 const createWindow = () => {
   // Create the browser window.
@@ -106,84 +161,112 @@ const createWindow = () => {
       // devTools: false,
     },
   });
+  if (mainWindow) {
+    if (
+      process.env.NODE_ENV === 'development' &&
+      MAIN_WINDOW_VITE_DEV_SERVER_URL
+    ) {
+      mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+      mainWindow.webContents.openDevTools();
+    } else {
+      mainWindow.loadFile(
+        path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+      );
 
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
-    // Only open DevTools in development
-    mainWindow.webContents.openDevTools();
-  } else {
-    mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-    );
-  }
+      // 🚫 Remove all default menus so "View → Toggle Developer Tools" disappears
+      Menu.setApplicationMenu(null);
 
-  // Handle window close events - hide instead of close
-  mainWindow.on('close', async (event) => {
-    if (!forceQuit) {
-      // Get the real-time setting
-      const shouldRunInBackground = await getRunInBackgroundSetting();
-      console.log('Window closing, checking setting:', shouldRunInBackground);
+      // 🚫 Block keyboard shortcuts
+      mainWindow.webContents.on('before-input-event', (event, input) => {
+        if (
+          (input.control && input.shift && input.key.toLowerCase() === 'i') || // Ctrl+Shift+I
+          input.key === 'F12' || // F12
+          (process.platform === 'darwin' &&
+            input.meta &&
+            input.alt &&
+            input.key.toLowerCase() === 'i') // Cmd+Opt+I
+        ) {
+          event.preventDefault();
+        }
+      });
 
-      if (shouldRunInBackground) {
-        event.preventDefault();
-        mainWindow?.hide();
-        return false;
+      // 🚫 If DevTools somehow open, force-close them
+      mainWindow.webContents.on('devtools-opened', () => {
+        mainWindow?.webContents.closeDevTools();
+      });
+
+      // 🚫 Disable right-click → Inspect Element
+      mainWindow.webContents.on('context-menu', (e) => {
+        e.preventDefault();
+      });
+    }
+
+    // Handle window close events - hide instead of close
+    mainWindow.on('close', async (event) => {
+      if (!forceQuit) {
+        // Get the real-time setting
+        const shouldRunInBackground = await getRunInBackgroundSetting();
+
+        if (shouldRunInBackground) {
+          event.preventDefault();
+          mainWindow?.hide();
+          return false;
+        }
       }
-    }
-  });
+    });
 
-  // focus tracking for clipboard monitoring
-  mainWindow.on('focus', () => {
-    isWindowFocused = true;
-    // console.log('Window focused - clipboard monitoring paused');
-  });
+    // Focus tracking for clipboard monitoring
+    mainWindow.on('focus', () => {
+      isWindowFocused = true;
+      // console.log('Window focused - clipboard monitoring paused');
+    });
 
-  mainWindow.on('blur', () => {
-    isWindowFocused = false;
-    // console.log('Window unfocused - clipboard monitoring resumed');
-  });
+    mainWindow.on('blur', () => {
+      isWindowFocused = false;
+      // console.log('Window unfocused - clipboard monitoring resumed');
+    });
 
-  // MAIN FUNCTIONS FOR TITLE BAR
-  ipcMain.on('close-btn', () => {
-    if (!mainWindow) return;
-
-    if (runInBackgroundSetting) {
-      // If running in background is enabled, hide the window
-      // console.log('Close button clicked, hiding window (background enabled)');
-      mainWindow.hide();
-    } else {
-      // If running in background is disabled, actually quit the app
-      // console.log('Close button clicked, quitting app (background disabled)');
-      forceQuit = true;
-      app.quit();
-    }
-  });
-
-  ipcMain.on('minimize-btn', () => {
-    if (mainWindow) mainWindow.minimize();
-  });
-
-  ipcMain.on('maximize-btn', () => {
-    if (!mainWindow) return;
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize();
-    } else {
-      mainWindow.maximize();
-    }
-  });
-
-  // Prevent navigation to external URLs
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  mainWindow.webContents.on('will-navigate', (event, url) => {
-    event.preventDefault();
-  });
+    // Prevent navigation to external URLs
+    mainWindow.webContents.on('will-navigate', (event) => {
+      event.preventDefault();
+    });
+  }
 };
+
+// MAIN FUNCTIONS FOR TITLE BAR
+ipcMain.on('close-btn', () => {
+  if (!mainWindow) return;
+
+  if (runInBackgroundSetting) {
+    // If running in background is enabled, hide the window
+    // console.log('Close button clicked, hiding window (background enabled)');
+    mainWindow.hide();
+  } else {
+    // If running in background is disabled, actually quit the app
+    // console.log('Close button clicked, quitting app (background disabled)');
+    forceQuit = true;
+    app.quit();
+  }
+});
+
+ipcMain.on('minimize-btn', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.on('maximize-btn', () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow.maximize();
+  }
+});
 
 const createTray = () => {
   // Get correct path based on whether in dev or production
   let iconPath, alertIconPath;
 
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+  if (process.env.NODE_ENV === 'development') {
     // Development mode paths
     iconPath = path.join(
       process.cwd(),
@@ -197,7 +280,7 @@ const createTray = () => {
     // Production mode paths
     iconPath = path.join(
       process.resourcesPath,
-      'AppLogo/systemTray/systemTray.png', // "C:\Users\Mikaela\Desktop\Development\codebase\Electron\v2\Electron\ui_downlodr_v2\src\Assets\AppLogo\systemTray\systemIcon.svg"
+      'AppLogo/systemTray/systemTray.png',
     );
     alertIconPath = path.join(
       process.resourcesPath,
@@ -245,6 +328,14 @@ const createTray = () => {
 
   tray.setToolTip('Downlodr');
   tray.setContextMenu(contextMenu);
+
+  // Single click on tray icon shows the app and resets the icon
+  tray.on('click', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      resetTrayIcon();
+    }
+  });
 
   // Double click on tray icon shows the app and resets the icon
   tray.on('double-click', () => {
@@ -372,7 +463,6 @@ ipcMain.handle('getHostInfo', async () => {
       };
     }
   } catch (error) {
-    console.error('Error determining Downloads folder:', error);
     return null;
   }
 });
@@ -386,9 +476,13 @@ ipcMain.handle('getAppInfo', async () => {
       app_arch: os.arch(),
     };
   } catch (error) {
-    console.error('Error determining Downloads folder:', error);
     return null;
   }
+});
+
+// Handler to check internet connectivity
+ipcMain.handle('check-internet-connection', async () => {
+  return await isOnline();
 });
 
 function getCpuUsagePercent() {
@@ -411,6 +505,65 @@ function getCpuUsagePercent() {
   const cpuPercent = Math.round((100 * (elapUserMS + elapSystMS)) / elapTimeMS);
   return cpuPercent;
 }
+
+ipcMain.handle('getPerformanceMetrics', async () => {
+  try {
+    const cpuUsage = getCpuUsagePercent();
+    return {
+      cpu_usage: cpuUsage,
+    };
+  } catch (error) {
+    return null;
+  }
+});
+
+// Function for getting default download folder from each OS
+ipcMain.handle('getBrowserInfo', async () => {
+  try {
+    if (os) {
+      return {
+        browser_name: 'Chromium',
+        browser_version: process.versions.chrome,
+        browser_arch: os.arch(),
+      };
+    } else {
+      // Renderer process fallbacks using available web APIs
+      const navigatorInfo = typeof navigator !== 'undefined' ? navigator : null;
+
+      return {
+        host_name: 'renderer-host',
+        host_id: 'host_id',
+        host_type: 'desktop',
+        host_arch: navigatorInfo?.platform || 'unknown',
+        os_type: 'unknown',
+        os_description: navigatorInfo?.userAgent || 'Unknown OS',
+        os_name: 'unknown',
+        os_version: 'unknown',
+        cpu_model: 'unknown',
+        cpu_cores: navigatorInfo?.hardwareConcurrency || 4,
+        cpu_threads: navigatorInfo?.hardwareConcurrency || 4,
+        memory_total_gb: 0,
+        memory_available_gb: 0,
+      };
+    }
+  } catch (error) {
+    return null;
+  }
+});
+
+ipcMain.handle('getAppInfo', async () => {
+  try {
+    return {
+      app_name: 'Downlodr',
+      app_platform: process.platform,
+      electron_version: process.versions.electron,
+      app_arch: os.arch(),
+    };
+  } catch (error) {
+    console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
 
 ipcMain.handle('getPerformanceMetrics', async () => {
   try {
@@ -454,7 +607,119 @@ ipcMain.handle('getBrowserInfo', async () => {
       };
     }
   } catch (error) {
-    console.error('Error determining Downloads folder:', error);
+    // console.error('Error determining Downloads folder:', error);
+    return null;
+  }
+});
+
+// Function for getting default download folder from each OS
+ipcMain.handle('getHostInfo', async () => {
+  try {
+    if (os) {
+      const cpus = os.cpus();
+      const totalMemory = os.totalmem();
+      const freeMemory = os.freemem();
+      return {
+        host_name: os.hostname(),
+        host_id: os.hostname(),
+        host_type: 'desktop',
+        host_arch: os.arch(),
+        os_type: os.platform(),
+        os_description: `${os.type()} ${os.release()}`,
+        os_name: os.type(),
+        os_version: os.release(),
+        cpu_model: cpus[0]?.model || 'unknown',
+        cpu_cores: cpus.length,
+        cpu_threads: cpus.length,
+        memory_total_gb:
+          Math.round((totalMemory / 1024 / 1024 / 1024) * 10) / 10,
+        memory_available_gb:
+          Math.round((freeMemory / 1024 / 1024 / 1024) * 10) / 10,
+      };
+    } else {
+      // Renderer process fallbacks using available web APIs
+      const navigatorInfo = typeof navigator !== 'undefined' ? navigator : null;
+
+      return {
+        host_name: 'renderer-host',
+        host_id: 'www',
+        host_type: 'desktop',
+        host_arch: navigatorInfo?.platform || 'unknown',
+        os_type: 'unknown',
+        os_description: navigatorInfo?.userAgent || 'Unknown OS',
+        os_name: 'unknown',
+        os_version: 'unknown',
+        cpu_model: 'unknown',
+        cpu_cores: navigatorInfo?.hardwareConcurrency || 4,
+        cpu_threads: navigatorInfo?.hardwareConcurrency || 4,
+        memory_total_gb: 0,
+        memory_available_gb: 0,
+      };
+    }
+  } catch (error) {
+    return null;
+  }
+});
+
+ipcMain.handle('getAppInfo', async () => {
+  try {
+    return {
+      app_name: 'Downlodr',
+      app_platform: process.platform,
+      electron_version: process.versions.electron,
+      app_arch: os.arch(),
+    };
+  } catch (error) {
+    return null;
+  }
+});
+
+// Handler to check internet connectivity
+ipcMain.handle('check-internet-connection', async () => {
+  return await isOnline();
+});
+
+ipcMain.handle('getPerformanceMetrics', async () => {
+  try {
+    const cpuUsage = getCpuUsagePercent();
+    return {
+      cpu_usage: cpuUsage,
+    };
+  } catch (error) {
+    return null;
+  }
+});
+
+// Function for getting default download folder from each OS
+ipcMain.handle('getBrowserInfo', async () => {
+  try {
+    if (os) {
+      return {
+        browser_name: 'Chromium',
+        browser_version: process.versions.chrome,
+        browser_arch: os.arch(),
+      };
+    } else {
+      // Renderer process fallbacks using available web APIs
+      const navigatorInfo = typeof navigator !== 'undefined' ? navigator : null;
+
+      return {
+        host_name: 'renderer-host',
+        host_id: 'host_id',
+        host_type: 'desktop',
+        host_arch: navigatorInfo?.platform || 'unknown',
+        os_type: 'unknown',
+        os_description: navigatorInfo?.userAgent || 'Unknown OS',
+        os_name: 'unknown',
+        os_version: 'unknown',
+        cpu_model: 'unknown',
+        cpu_cores: navigatorInfo?.hardwareConcurrency || 4,
+        cpu_threads: navigatorInfo?.hardwareConcurrency || 4,
+        memory_total_gb: 0,
+        memory_available_gb: 0,
+      };
+    }
+  } catch (error) {
     return null;
   }
 });
@@ -467,7 +732,6 @@ ipcMain.handle('validatePath', async (event, folderPath) => {
     // Check if the resolved path exists and is a directory
     const stats = await fs.promises.stat(resolvedPath);
     if (!stats.isDirectory()) {
-      console.error('Path is not a directory:', resolvedPath);
       return false;
     }
     await fs.promises.access(
@@ -477,7 +741,6 @@ ipcMain.handle('validatePath', async (event, folderPath) => {
 
     return true;
   } catch (err) {
-    console.error('Path is not accessible or invalid:');
     return false;
   }
 });
@@ -502,6 +765,52 @@ ipcMain.handle('dialog:openDirectory', async (event) => {
     ? result.filePaths[0]
     : result.filePaths[0] + path.sep;
 });
+
+// Open file dialog to select video/audio file for transcription
+ipcMain.handle('dialog:selectVideoFile', async (event) => {
+  const browserWindow = BrowserWindow.fromWebContents(event.sender);
+
+  const result = await dialog.showOpenDialog(browserWindow, {
+    properties: ['openFile'],
+    title: 'Select Video or Audio File to Transcribe',
+    filters: [
+      {
+        name: 'Video & Audio Files',
+        extensions: [
+          'mp4',
+          'mkv',
+          'avi',
+          'mov',
+          'wmv',
+          'flv',
+          'webm',
+          'mp3',
+          'wav',
+          'm4a',
+          'aac',
+          'ogg',
+          'flac',
+          'wma',
+        ],
+      },
+      {
+        name: 'Video Files',
+        extensions: ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm'],
+      },
+      {
+        name: 'Audio Files',
+        extensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'wma'],
+      },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+
+  if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+    return null;
+  }
+
+  return result.filePaths[0];
+});
 // open folder with optional file highlighting
 ipcMain.handle('open-folder', async (_, folderPath, filePath = null) => {
   try {
@@ -513,7 +822,6 @@ ipcMain.handle('open-folder', async (_, folderPath, filePath = null) => {
       // Otherwise just open the folder without highlighting anything
       const result = await shell.openPath(folderPath);
       if (result) {
-        console.error(`Error opening folder: ${result}`);
         return { success: false, error: result };
       }
       return { success: true };
@@ -551,7 +859,6 @@ ipcMain.handle('deleteFile', async (event, filepath) => {
     //console.log('File moved to trash successfully');
     return true;
   } catch (error) {
-    console.error('Failed to move file to trash:', error);
     return false;
   }
 });
@@ -563,14 +870,12 @@ ipcMain.handle('deleteFolder', async (event, filepath) => {
 
     // Check if the folder exists
     if (!fs.existsSync(normalizedPath)) {
-      console.error('Folder does not exist:', normalizedPath);
       return false;
     }
 
     // Check if it's actually a directory
     const stats = await fs.promises.stat(normalizedPath);
     if (!stats.isDirectory()) {
-      console.error('Path is not a directory:', normalizedPath);
       return false;
     }
 
@@ -578,7 +883,6 @@ ipcMain.handle('deleteFolder', async (event, filepath) => {
     await shell.trashItem(normalizedPath);
     return true;
   } catch (error) {
-    console.error('Failed to move folder to trash:', error);
     return false;
   }
 });
@@ -590,7 +894,6 @@ ipcMain.handle('normalizePath', async (event, filepath) => {
     const normalizedPath = path.normalize(filepath);
     return normalizedPath;
   } catch (error) {
-    console.error('Failed to normalize:', error);
     return '';
   }
 });
@@ -603,6 +906,7 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
       //ytdlpDownloadDestination: os.tmpdir(),
       // ffmpegDownloadDestination: os.tmpdir(),
     });
+    console.log(info);
     return info;
   } catch (error) {
     console.error('Error fetching playlist info:', error);
@@ -620,12 +924,10 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
     }
     return info;
   } catch (error) {
-    console.error('Error fetching video info:', error);
     return { error: error.message };
   }
 });
 
-/*
 // Get current YT-DLP version
 ipcMain.handle('ytdlp:getCurrentVersion', async () => {
   try {
@@ -756,11 +1058,7 @@ ipcMain.handle('ytdlp:checkAndUpdate', async () => {
       };
     }
 
-    console.log(`Current version: ${currentVersion}`);
-    console.log(`Latest version: ${latestVersion}`);
-
     if (latestVersion && currentVersion !== latestVersion) {
-      console.log('Updating YT-DLP to latest version...');
       await YTDLP.downloadYTDLP({
         version: latestVersion,
         forceDownload: true,
@@ -797,8 +1095,6 @@ ipcMain.handle('ytdlp:checkAndUpdate', async () => {
 // Download YTDLP binary with custom options
 ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
   try {
-    console.log('YTDLP download options:', options);
-
     const downloadOptions: DownloadOptions = {
       forceDownload: options.forceDownload || false,
     };
@@ -847,7 +1143,7 @@ ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
     return { success: false, error: error.message };
   }
 });
-*/
+
 // after identifying ID kill/stop the id
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function killControllerById(id: any) {
@@ -1153,6 +1449,12 @@ app.on('ready', async () => {
 
   // Check for updates when app starts
   setTimeout(async () => {
+    const online = await isOnline();
+    if (!online) {
+      console.log('Skipping app update check: No internet connection');
+      return;
+    }
+
     const updateInfo = await checkForUpdates();
     if (updateInfo.hasUpdate) {
       BrowserWindow.getAllWindows().forEach((win) =>
@@ -1161,9 +1463,89 @@ app.on('ready', async () => {
     }
   }, 5000); // Check after 5 seconds to not slow startup
 
+  // Check for YT-DLP updates when app starts
+  setTimeout(async () => {
+    try {
+      const online = await isOnline();
+      if (!online) {
+        console.log('Skipping YT-DLP update check: No internet connection');
+        return;
+      }
+
+      console.log('Checking for YT-DLP updates on startup...');
+
+      // Get current version first
+      const currentVersion = await YTDLP.getYTDLPVersion();
+
+      // Check if we have a cached version first
+      let latestVersion = getCachedVersion();
+
+      if (!latestVersion && canMakeGitHubApiCall()) {
+        // Make the API call if we can
+        lastGitHubApiCall = Date.now();
+        const latestResponse = await YTDLP.getLatestYTDLPVersionFromGitHub();
+
+        if (latestResponse.ok && latestResponse.version) {
+          latestVersion = latestResponse.version;
+          // Cache the result
+          cachedLatestVersion = {
+            version: latestVersion,
+            timestamp: Date.now(),
+          };
+        }
+      }
+
+      // Only auto-update if we have both versions and they differ
+      if (currentVersion && latestVersion && currentVersion !== latestVersion) {
+        console.log(
+          `Auto-updating YT-DLP from ${currentVersion} to ${latestVersion}...`,
+        );
+        await YTDLP.downloadYTDLP({
+          version: latestVersion,
+          forceDownload: true,
+        });
+        console.log('YT-DLP auto-update completed!');
+
+        // Notify renderer about the update
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send('ytdlp-auto-updated', {
+            fromVersion: currentVersion,
+            toVersion: latestVersion,
+            message: `YT-DLP automatically updated from ${currentVersion} to ${latestVersion}`,
+          });
+        });
+      } else if (!currentVersion) {
+        console.log('YT-DLP not found, downloading latest version...');
+        await YTDLP.downloadYTDLP();
+        console.log('YT-DLP downloaded successfully!');
+
+        // Notify renderer about the installation
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send('ytdlp-auto-installed', {
+            version: latestVersion || 'latest',
+            message: 'YT-DLP was automatically downloaded and installed',
+          });
+        });
+      } else {
+        console.log(
+          'YT-DLP is up to date or update check skipped due to rate limiting',
+        );
+      }
+    } catch (error) {
+      console.error('Error during automatic YT-DLP update check:', error);
+      // Don't notify user about auto-update failures to avoid spam
+    }
+  }, 7000); // Check after 7 seconds, after app updates
+
   // Set up periodic update checking
   const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 4; // Check every 4 hours
   setInterval(async () => {
+    const online = await isOnline();
+    if (!online) {
+      console.log('Skipping periodic update check: No internet connection');
+      return;
+    }
+
     const updateInfo = await checkForUpdates();
     if (updateInfo.hasUpdate) {
       BrowserWindow.getAllWindows().forEach((win) =>
@@ -1171,7 +1553,44 @@ app.on('ready', async () => {
       );
     }
   }, UPDATE_CHECK_INTERVAL);
-
+  /*
+  // Set up periodic YT-DLP update checking (less frequent to respect rate limits)
+  const YTDLP_UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 12; // Check every 12 hours
+  setInterval(async () => {
+    try {
+      if (!canMakeGitHubApiCall()) {
+        console.log('Skipping periodic YT-DLP check due to rate limiting');
+        return;
+      }
+      
+      const currentVersion = await YTDLP.getYTDLPVersion();
+      if (!currentVersion) return; // Skip if YT-DLP not installed
+      
+      lastGitHubApiCall = Date.now();
+      const latestResponse = await YTDLP.getLatestYTDLPVersionFromGitHub();
+      
+      if (latestResponse.ok && latestResponse.version && 
+          currentVersion !== latestResponse.version) {
+        // Cache the result
+        cachedLatestVersion = {
+          version: latestResponse.version,
+          timestamp: Date.now(),
+        };
+        
+        // Don't auto-update during periodic checks, just notify
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send('ytdlp-update-available', {
+            currentVersion,
+            latestVersion: latestResponse.version,
+            message: `YT-DLP update available: ${currentVersion} → ${latestResponse.version}`,
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error during periodic YT-DLP update check:', error);
+    }
+  }, YTDLP_UPDATE_CHECK_INTERVAL);
+*/
   // Create plugin manager instance
   pluginManager = new PluginManager();
 
@@ -1692,14 +2111,14 @@ ipcMain.handle('plugins:register-taskbar-item', (event, taskBarItem) => {
 });
 
 // handler to unregister taskbar items
-ipcMain.handle('plugins:unregister-taskbar-item', (event, id) => {
+ipcMain.handle('plugins:unregister-taskbar-item', (_, id) => {
   //console.log('Main process unregistering taskbar item:', id);
   pluginRegistry.unregisterTaskBarItem(id);
   return true;
 });
 
 // handler to get taskbar items
-ipcMain.handle('plugins:taskbar-items', (event) => {
+ipcMain.handle('plugins:taskbar-items', () => {
   return pluginRegistry.getTaskBarItems();
 });
 
@@ -1732,14 +2151,8 @@ ipcMain.handle('plugin:fs:readFile', async (event, options) => {
 // handler to read file contents
 ipcMain.handle('plugin:readFileContents', async (event, { options }) => {
   try {
-    const { filePath, pluginId } = options;
+    const { filePath } = options;
     // Security check: Make sure we're not reading outside allowed directories
-    // Get the plugin's data directory as a safe base path
-    const pluginDataDir = path.join(
-      app.getPath('userData'),
-      'plugin-data',
-      pluginId || '',
-    );
 
     // Ensure the requested path is within the plugin's data directory or another safe location
     // Normalize the path to fix double backslashes caused by JSON.stringify/parse
@@ -1783,3 +2196,863 @@ ipcMain.handle('get-current-version', async () => {
   // Get version from package.json or app.getVersion()
   return app.getVersion();
 });
+
+// handler to get operating system type
+ipcMain.handle('get-os-type', async () => {
+  try {
+    const platform = os.platform();
+
+    // Normalize platform names to user-friendly values
+    switch (platform) {
+      case 'win32':
+        return 'windows';
+      case 'darwin':
+        return 'macos';
+      case 'linux':
+        return 'linux';
+      default:
+        return platform; // Return raw platform for other systems
+    }
+  } catch (error) {
+    console.error('Error getting OS type:', error);
+    return 'unknown';
+  }
+});
+
+// handler to get path separator for current OS
+ipcMain.handle('get-path-separator', async () => {
+  try {
+    return path.sep;
+  } catch (error) {
+    console.error('Error getting path separator:', error);
+    return '/'; // Default to Unix-style separator
+  }
+});
+
+// handler to get bundled binary path
+ipcMain.handle('get-bundled-binary-path', async (_, binaryName: string) => {
+  try {
+    const bundledPath = getBundledBinaryPath(binaryName);
+    return bundledPath;
+  } catch (error) {
+    console.error('Error getting bundled binary path:', error);
+    return null;
+  }
+});
+
+/**
+ * Helper function to get bundled binary path from process.resourcesPath
+ * @param binaryName - Name of the binary file (e.g., 'ffmpeg.exe', 'ggml-base.bin')
+ * @returns Full path to the bundled binary or null if not found
+ */
+function getBundledBinaryPath(binaryName: string): string | null {
+  const isPackaged = app.isPackaged;
+
+  if (isPackaged && process.resourcesPath) {
+    const bundledPath = path.join(process.resourcesPath, binaryName);
+    if (existsSync(bundledPath)) {
+      return bundledPath;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Dynamically finds FFmpeg executable path (synchronous version).
+ * In production: uses bundled FFmpeg from resources.
+ * In development: returns first found FFmpeg (may not have Whisper support).
+ * Use getFFmpegPathWithWhisper() for validated FFmpeg 8.0+.
+ * @deprecated Use getFFmpegPathWithWhisper() instead for Whisper support validation
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function getFFmpegPath(): string {
+  const isDev = process.env.NODE_ENV === 'development';
+
+  // Production mode: use bundled FFmpeg from resources
+  const bundledFFmpeg = getBundledBinaryPath('ffmpeg.exe');
+  if (bundledFFmpeg) {
+    return bundledFFmpeg;
+  }
+
+  // Development mode: search for user's FFmpeg installation
+  if (isDev) {
+    const platform = process.platform;
+    const searchPaths: string[] = [];
+
+    if (platform === 'win32') {
+      // Windows common installation locations
+      const homeDir = os.homedir();
+      const localAppData =
+        process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local');
+      const programFiles = process.env['ProgramFiles'] || 'C:\\Program Files';
+      const programFilesX86 =
+        process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+
+      // WinGet installation paths (common patterns) - this already prioritizes 8.0+
+      const wingetBase = path.join(
+        localAppData,
+        'Microsoft',
+        'WinGet',
+        'Packages',
+      );
+      searchPaths.push(
+        // Try to find any FFmpeg installation in WinGet packages (8.0+ first)
+        ...findFFmpegInDirectory(wingetBase),
+        // Chocolatey
+        path.join(
+          process.env['ChocolateyInstall'] || 'C:\\ProgramData\\chocolatey',
+          'bin',
+          'ffmpeg.exe',
+        ),
+        // Scoop
+        path.join(
+          homeDir,
+          'scoop',
+          'apps',
+          'ffmpeg',
+          'current',
+          'bin',
+          'ffmpeg.exe',
+        ),
+        // Direct Program Files installations
+        path.join(programFiles, 'ffmpeg', 'bin', 'ffmpeg.exe'),
+        path.join(programFilesX86, 'ffmpeg', 'bin', 'ffmpeg.exe'),
+        // Common user installations
+        path.join(homeDir, 'ffmpeg', 'bin', 'ffmpeg.exe'),
+        path.join(localAppData, 'ffmpeg', 'bin', 'ffmpeg.exe'),
+      );
+    } else if (platform === 'darwin') {
+      // macOS common locations
+      const homeDir = os.homedir();
+      searchPaths.push(
+        // Homebrew
+        '/opt/homebrew/bin/ffmpeg',
+        '/usr/local/bin/ffmpeg',
+        path.join(homeDir, 'homebrew', 'bin', 'ffmpeg'),
+        // MacPorts
+        '/opt/local/bin/ffmpeg',
+      );
+    } else {
+      // Linux common locations
+      searchPaths.push(
+        '/usr/bin/ffmpeg',
+        '/usr/local/bin/ffmpeg',
+        path.join(os.homedir(), '.local', 'bin', 'ffmpeg'),
+      );
+    }
+
+    // Check project directory (likely to be 8.0+ if bundled)
+    const projectPath = path.join(process.cwd(), 'ffmpeg.exe');
+    if (existsSync(projectPath)) {
+      return projectPath;
+    }
+
+    // Check all search paths
+    for (const searchPath of searchPaths) {
+      if (searchPath && existsSync(searchPath)) {
+        return searchPath;
+      }
+    }
+  }
+
+  // Final fallback: system PATH
+  return 'ffmpeg';
+}
+
+/**
+ * Finds FFmpeg executable with Whisper support (8.0+).
+ * Validates each found FFmpeg and returns the first one that has Whisper support.
+ * @returns Promise resolving to FFmpeg path with Whisper support, or throws error
+ */
+async function getFFmpegPathWithWhisper(): Promise<string> {
+  const isDev = process.env.NODE_ENV === 'development';
+  const isPackaged = app.isPackaged;
+
+  // Production mode: use bundled FFmpeg from resources or app directory
+  if (isPackaged) {
+    // First try the bundled FFmpeg from process.resourcesPath
+    const bundledFFmpeg = getBundledBinaryPath('ffmpeg.exe');
+    if (bundledFFmpeg) {
+      console.log(`Found bundled FFmpeg at: ${bundledFFmpeg}`);
+      // Validate it has Whisper support
+      const check = await checkFFmpegWhisperSupport(bundledFFmpeg);
+      if (check.hasWhisper) {
+        return bundledFFmpeg;
+      } else {
+        console.warn(
+          `Bundled FFmpeg at ${bundledFFmpeg} does not have Whisper support: ${check.error}`,
+        );
+      }
+    }
+
+    // If bundled FFmpeg not found or doesn't have Whisper, check other locations
+    const possiblePaths = [];
+
+    // 2. Check app directory (where postPackage hook copies files)
+    const appPath = app.getAppPath();
+    possiblePaths.push(path.join(path.dirname(appPath), 'ffmpeg.exe'));
+
+    // 3. Check process.resourcesPath parent (sometimes resources are one level up)
+    if (process.resourcesPath) {
+      const resourcesParent = path.dirname(process.resourcesPath);
+      possiblePaths.push(path.join(resourcesParent, 'ffmpeg.exe'));
+    }
+
+    // 4. Check executable directory
+    const exeDir = path.dirname(process.execPath);
+    possiblePaths.push(path.join(exeDir, 'ffmpeg.exe'));
+
+    // Try each path and validate if found
+    for (const bundledPath of possiblePaths) {
+      if (existsSync(bundledPath)) {
+        console.log(`Found bundled FFmpeg at: ${bundledPath}`);
+        // Validate it has Whisper support
+        const check = await checkFFmpegWhisperSupport(bundledPath);
+        if (check.hasWhisper) {
+          return bundledPath;
+        } else {
+          console.warn(
+            `Bundled FFmpeg at ${bundledPath} does not have Whisper support: ${check.error}`,
+          );
+        }
+      }
+    }
+
+    // If bundled FFmpeg not found or doesn't have Whisper, throw error
+    throw new Error(
+      'Bundled FFmpeg not found or does not have Whisper support. Please ensure ffmpeg.exe (8.0+) is included in the app bundle.',
+    );
+  }
+
+  // Development mode: search and validate FFmpeg installations
+  if (isDev) {
+    const platform = process.platform;
+    const searchPaths: string[] = [];
+
+    if (platform === 'win32') {
+      // Windows common installation locations
+      const homeDir = os.homedir();
+      const localAppData =
+        process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local');
+      const programFiles = process.env['ProgramFiles'] || 'C:\\Program Files';
+      const programFilesX86 =
+        process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+
+      // WinGet installation paths (common patterns) - this already prioritizes 8.0+
+      const wingetBase = path.join(
+        localAppData,
+        'Microsoft',
+        'WinGet',
+        'Packages',
+      );
+      searchPaths.push(
+        // Try to find any FFmpeg installation in WinGet packages (8.0+ first)
+        ...findFFmpegInDirectory(wingetBase),
+        // Chocolatey
+        path.join(
+          process.env['ChocolateyInstall'] || 'C:\\ProgramData\\chocolatey',
+          'bin',
+          'ffmpeg.exe',
+        ),
+        // Scoop
+        path.join(
+          homeDir,
+          'scoop',
+          'apps',
+          'ffmpeg',
+          'current',
+          'bin',
+          'ffmpeg.exe',
+        ),
+        // Direct Program Files installations
+        path.join(programFiles, 'ffmpeg', 'bin', 'ffmpeg.exe'),
+        path.join(programFilesX86, 'ffmpeg', 'bin', 'ffmpeg.exe'),
+        // Common user installations
+        path.join(homeDir, 'ffmpeg', 'bin', 'ffmpeg.exe'),
+        path.join(localAppData, 'ffmpeg', 'bin', 'ffmpeg.exe'),
+      );
+    } else if (platform === 'darwin') {
+      // macOS common locations
+      const homeDir = os.homedir();
+      searchPaths.push(
+        // Homebrew
+        '/opt/homebrew/bin/ffmpeg',
+        '/usr/local/bin/ffmpeg',
+        path.join(homeDir, 'homebrew', 'bin', 'ffmpeg'),
+        // MacPorts
+        '/opt/local/bin/ffmpeg',
+      );
+    } else {
+      // Linux common locations
+      searchPaths.push(
+        '/usr/bin/ffmpeg',
+        '/usr/local/bin/ffmpeg',
+        path.join(os.homedir(), '.local', 'bin', 'ffmpeg'),
+      );
+    }
+
+    // Check project directory first (likely to be 8.0+ if bundled)
+    const projectPath = path.join(process.cwd(), 'ffmpeg.exe');
+    if (existsSync(projectPath)) {
+      const check = await checkFFmpegWhisperSupport(projectPath);
+      if (check.hasWhisper) {
+        return projectPath;
+      }
+    }
+
+    // Check all search paths and validate each one
+    for (const searchPath of searchPaths) {
+      if (searchPath && existsSync(searchPath)) {
+        const check = await checkFFmpegWhisperSupport(searchPath);
+        if (check.hasWhisper) {
+          return searchPath;
+        }
+      }
+    }
+
+    // If we get here, no valid FFmpeg was found
+    throw new Error(
+      'No FFmpeg 8.0+ with Whisper support found. Please install FFmpeg 8.0 or higher with Whisper filter support.',
+    );
+  }
+
+  // Final fallback: try system PATH (but validate it)
+  const systemFFmpeg = 'ffmpeg';
+  try {
+    const check = await checkFFmpegWhisperSupport(systemFFmpeg);
+    if (check.hasWhisper) {
+      return systemFFmpeg;
+    }
+    throw new Error(
+      check.error ||
+        'FFmpeg found in system PATH but does not have Whisper support. Please install FFmpeg 8.0+ with Whisper filter support.',
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `FFmpeg not found or does not have Whisper support: ${errorMessage}`,
+    );
+  }
+}
+
+/**
+ * Helper function to recursively search for FFmpeg in a directory (useful for WinGet packages)
+ * Prioritizes FFmpeg 8.0+ installations
+ */
+function findFFmpegInDirectory(dir: string): string[] {
+  const paths: string[] = [];
+  const paths80Plus: string[] = [];
+  try {
+    if (!existsSync(dir)) {
+      return paths;
+    }
+
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        // Check common FFmpeg directory patterns - prioritize 8.0+
+        const possiblePaths = [
+          path.join(
+            dir,
+            entry.name,
+            'ffmpeg-8.0-full_build',
+            'bin',
+            'ffmpeg.exe',
+          ),
+          path.join(dir, entry.name, 'bin', 'ffmpeg.exe'),
+          path.join(dir, entry.name, 'ffmpeg.exe'),
+        ];
+
+        for (const possiblePath of possiblePaths) {
+          if (existsSync(possiblePath)) {
+            // Check if it's FFmpeg 8.0+ by checking directory name or validating
+            if (
+              possiblePath.includes('ffmpeg-8.0') ||
+              possiblePath.includes('ffmpeg-8.') ||
+              entry.name.includes('8.0')
+            ) {
+              paths80Plus.push(possiblePath);
+            } else {
+              paths.push(possiblePath);
+            }
+          }
+        }
+
+        // Recursively search subdirectories (limit depth to avoid performance issues)
+        const subPaths = findFFmpegInDirectory(path.join(dir, entry.name));
+        // Separate 8.0+ from others
+        for (const subPath of subPaths) {
+          if (subPath.includes('ffmpeg-8.0') || subPath.includes('ffmpeg-8.')) {
+            paths80Plus.push(subPath);
+          } else {
+            paths.push(subPath);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    // Silently fail if directory access is denied or other errors occur
+    console.debug(`Could not search directory ${dir}:`, error);
+  }
+  // Return 8.0+ paths first, then others
+  return [...paths80Plus, ...paths];
+}
+
+/**
+ * Checks if FFmpeg has Whisper filter support
+ * @param ffmpegPath Path to FFmpeg executable
+ * @returns Promise resolving to object with hasWhisper and version info
+ */
+async function checkFFmpegWhisperSupport(ffmpegPath: string): Promise<{
+  hasWhisper: boolean;
+  version?: string;
+  error?: string;
+}> {
+  const { spawn } = await import('child_process');
+
+  return new Promise((resolve) => {
+    // First check version
+    const versionProcess = spawn(ffmpegPath, ['-version'], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    let versionOutput = '';
+    let versionError = '';
+
+    versionProcess.stdout.on('data', (data: Buffer) => {
+      versionOutput += data.toString();
+    });
+
+    versionProcess.stderr.on('data', (data: Buffer) => {
+      versionError += data.toString();
+    });
+
+    versionProcess.on('close', () => {
+      // Extract version number
+      const versionMatch =
+        versionOutput.match(/ffmpeg version (\d+)\.(\d+)/) ||
+        versionError.match(/ffmpeg version (\d+)\.(\d+)/);
+      const majorVersion = versionMatch ? parseInt(versionMatch[1], 10) : 0;
+      const version = versionMatch
+        ? `${versionMatch[1]}.${versionMatch[2]}`
+        : undefined;
+
+      // FFmpeg 8.0+ is required for Whisper filter
+      if (majorVersion < 8) {
+        resolve({
+          hasWhisper: false,
+          version,
+          error: `FFmpeg version ${version} detected. FFmpeg 8.0 or higher is required for Whisper filter support.`,
+        });
+        return;
+      }
+
+      // Check if whisper filter exists
+      const filterProcess = spawn(ffmpegPath, ['-filters'], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+
+      let filterOutput = '';
+      let filterError = '';
+
+      filterProcess.stdout.on('data', (data: Buffer) => {
+        filterOutput += data.toString();
+      });
+
+      filterProcess.stderr.on('data', (data: Buffer) => {
+        filterError += data.toString();
+      });
+
+      filterProcess.on('close', () => {
+        const allOutput = filterOutput + filterError;
+        const hasWhisper = /whisper/i.test(allOutput);
+
+        if (!hasWhisper) {
+          resolve({
+            hasWhisper: false,
+            version,
+            error: `FFmpeg ${version} found, but Whisper filter is not available. Please install FFmpeg 8.0+ with Whisper support.`,
+          });
+        } else {
+          resolve({
+            hasWhisper: true,
+            version,
+          });
+        }
+      });
+
+      filterProcess.on('error', () => {
+        resolve({
+          hasWhisper: false,
+          version,
+          error:
+            'Failed to check FFmpeg filters. Whisper support cannot be verified.',
+        });
+      });
+    });
+
+    versionProcess.on('error', () => {
+      resolve({
+        hasWhisper: false,
+        error: 'Failed to check FFmpeg version.',
+      });
+    });
+  });
+}
+
+function getDurationMs(filePath: string): number {
+  // Note: ffprobe.exe is not bundled, using system PATH
+  // If you need bundled ffprobe, add './ffprobe.exe' to extraResource in forge.config.ts
+  const output = execSync(
+    `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
+  );
+  return Math.floor(parseFloat(output.toString().trim()) * 1000);
+}
+
+// handler to execute FFmpeg with Whisper transcription
+ipcMain.handle(
+  'ffmpeg:whisper-transcribe',
+  async (
+    event,
+    options: {
+      inputFile: string;
+      outputFile: string;
+      modelPath: string;
+      language?: string;
+      format?: string;
+    },
+  ) => {
+    return (async () => {
+      const { spawn } = await import('child_process');
+
+      // Get FFmpeg path with Whisper support (validates and finds best match)
+      const ffmpegPath = await getFFmpegPathWithWhisper();
+
+      return new Promise((resolve, reject) => {
+        // Get actual duration of the input file
+        let totalDurationMs: number;
+        try {
+          totalDurationMs = getDurationMs(options.inputFile);
+          console.log(
+            `File duration: ${totalDurationMs}ms (${(
+              totalDurationMs / 1000
+            ).toFixed(2)}s)`,
+          );
+        } catch (error) {
+          console.warn('Failed to get file duration, using fallback:', error);
+          // Fallback to a reasonable default if duration cannot be determined
+          totalDurationMs = 0;
+        }
+
+        // Send total duration to renderer once at the start
+        if (totalDurationMs > 0) {
+          event.sender.send(
+            'ffmpeg:progress',
+            JSON.stringify({
+              type: 'duration',
+              totalDurationMs,
+            }),
+          );
+        }
+
+        // Function to parse progress from FFmpeg output
+        function parseLine(line: string): void {
+          const match = line.match(/run transcription at (\d+) ms/);
+          if (match && totalDurationMs > 0) {
+            const currentMs = parseInt(match[1], 10);
+            let percent = (currentMs / totalDurationMs) * 100;
+            if (percent > 100) percent = 100;
+            process.stdout.write(`\rProgress: ${percent.toFixed(2)}%`);
+
+            // Send structured progress data to renderer
+            event.sender.send(
+              'ffmpeg:progress',
+              JSON.stringify({
+                type: 'progress',
+                currentMs,
+                totalDurationMs,
+                percent: percent.toFixed(2),
+                raw: line.trim(),
+              }),
+            );
+          } else if (match) {
+            // If we don't have total duration, just send the raw line
+            event.sender.send('ffmpeg:progress', line);
+          }
+        }
+
+        try {
+          if (!existsSync(options.inputFile)) {
+            reject(new Error(`Input file not found: ${options.inputFile}`));
+            return;
+          }
+
+          if (!existsSync(options.modelPath)) {
+            reject(new Error(`Whisper model not found: ${options.modelPath}`));
+            return;
+          }
+
+          // Ensure output file path is absolute and in a user-accessible location
+          let outputFilePath = options.outputFile;
+          const isPackaged = app.isPackaged;
+
+          // If output path is relative or not absolute, determine proper location
+          if (!path.isAbsolute(outputFilePath)) {
+            if (isPackaged) {
+              // In packaged app: save to user's Documents folder or next to input file
+              // Try to save next to input file first (if input is in user-accessible location)
+              const inputDir = path.dirname(options.inputFile);
+              const inputFileName = path.basename(
+                options.inputFile,
+                path.extname(options.inputFile),
+              );
+              const outputFileName =
+                path.basename(outputFilePath, path.extname(outputFilePath)) ||
+                inputFileName;
+
+              // Check if input directory is writable (user-accessible)
+              try {
+                const testPath = path.join(inputDir, '.test-write');
+                fs.writeFileSync(testPath, 'test');
+                fs.unlinkSync(testPath);
+                // Directory is writable, save next to input file
+                outputFilePath = path.join(
+                  inputDir,
+                  `${outputFileName}.${options.format || 'srt'}`,
+                );
+              } catch {
+                // Directory not writable, use Documents folder
+                const documentsPath = app.getPath('documents');
+                outputFilePath = path.join(
+                  documentsPath,
+                  'Downlodr',
+                  'Transcriptions',
+                  `${outputFileName}.${options.format || 'srt'}`,
+                );
+                // Ensure directory exists
+                const outputDir = path.dirname(outputFilePath);
+                if (!existsSync(outputDir)) {
+                  fs.mkdirSync(outputDir, { recursive: true });
+                }
+              }
+            } else {
+              // In dev mode: save next to input file
+              const inputDir = path.dirname(options.inputFile);
+              const outputFileName =
+                path.basename(outputFilePath, path.extname(outputFilePath)) ||
+                path.basename(
+                  options.inputFile,
+                  path.extname(options.inputFile),
+                );
+              outputFilePath = path.join(
+                inputDir,
+                `${outputFileName}.${options.format || 'srt'}`,
+              );
+            }
+          }
+
+          // Ensure model path is absolute
+          let modelPath = options.modelPath;
+          if (!path.isAbsolute(modelPath)) {
+            // Try project root first (dev mode)
+            const projectModelPath = path.join(process.cwd(), modelPath);
+            if (existsSync(projectModelPath)) {
+              modelPath = projectModelPath;
+            } else if (isPackaged) {
+              // In packaged app, first try bundled model from process.resourcesPath
+              const bundledModel = getBundledBinaryPath(modelPath);
+              if (bundledModel) {
+                modelPath = bundledModel;
+                console.log(`Found bundled model at: ${modelPath}`);
+              } else {
+                // If not found in bundle, check other possible locations
+                const possibleModelPaths = [];
+
+                // 2. Check app directory (where postPackage hook copies files)
+                const appPath = app.getAppPath();
+                possibleModelPaths.push(
+                  path.join(path.dirname(appPath), modelPath),
+                );
+
+                // 3. Check process.resourcesPath parent
+                if (process.resourcesPath) {
+                  const resourcesParent = path.dirname(process.resourcesPath);
+                  possibleModelPaths.push(
+                    path.join(resourcesParent, modelPath),
+                  );
+                }
+
+                // 4. Check executable directory
+                const exeDir = path.dirname(process.execPath);
+                possibleModelPaths.push(path.join(exeDir, modelPath));
+
+                // Try each path
+                let found = false;
+                for (const possiblePath of possibleModelPaths) {
+                  if (existsSync(possiblePath)) {
+                    modelPath = possiblePath;
+                    found = true;
+                    console.log(`Found model at: ${modelPath}`);
+                    break;
+                  }
+                }
+
+                // If not found in app bundle, try next to input file
+                if (!found) {
+                  const inputDir = path.dirname(options.inputFile);
+                  const inputDirModelPath = path.join(inputDir, modelPath);
+                  if (existsSync(inputDirModelPath)) {
+                    modelPath = inputDirModelPath;
+                  }
+                }
+              }
+            } else {
+              // Try next to input file (dev mode)
+              const inputDir = path.dirname(options.inputFile);
+              const inputDirModelPath = path.join(inputDir, modelPath);
+              if (existsSync(inputDirModelPath)) {
+                modelPath = inputDirModelPath;
+              }
+            }
+          }
+
+          // Verify model exists with absolute path
+          if (!existsSync(modelPath)) {
+            reject(
+              new Error(
+                `Whisper model not found: ${modelPath}. Please ensure the model file exists.`,
+              ),
+            );
+            return;
+          }
+
+          console.log(`Using model path: ${modelPath}`);
+          console.log(`Output file path: ${outputFilePath}`);
+
+          // Build the filter - use absolute paths
+          const language = options.language || 'en';
+          const format = options.format || 'srt';
+
+          // Normalize paths for FFmpeg filter syntax on Windows
+          // Convert backslashes to forward slashes
+          let normalizedModelPath = modelPath.replace(/\\/g, '/');
+          let normalizedOutputPath = outputFilePath.replace(/\\/g, '/');
+
+          // Escape the colon in drive letters (C: becomes C\:)
+          // Then wrap in single quotes for FFmpeg filter syntax
+          normalizedModelPath = normalizedModelPath.replace(
+            /^([A-Za-z]):/,
+            '$1\\:',
+          );
+          normalizedOutputPath = normalizedOutputPath.replace(
+            /^([A-Za-z]):/,
+            '$1\\:',
+          );
+
+          // Build filter complex - use single quotes with escaped colon, forward slashes
+          const filterComplex = `[0:a]whisper=model='${normalizedModelPath}':language=${language}:destination='${normalizedOutputPath}':format=${format}`;
+
+          console.log(`Filter complex: ${filterComplex}`);
+
+          // Build FFmpeg arguments
+          const args = [
+            '-i',
+            options.inputFile,
+            '-filter_complex',
+            filterComplex,
+            '-f',
+            'null',
+            '-',
+          ];
+
+          // Spawn the FFmpeg process
+          const ffmpegProcess = spawn(ffmpegPath, args, {
+            stdio: ['pipe', 'pipe', 'pipe'],
+          });
+
+          let stdout = '';
+          let stderr = '';
+
+          // Collect stdout
+          ffmpegProcess.stdout.on('data', (data) => {
+            stdout += data.toString();
+            // Parse each line for progress information
+            const lines = data.toString().split('\n');
+            lines.forEach((line: string) => {
+              if (line.trim()) {
+                parseLine(line);
+              }
+            });
+          });
+
+          ffmpegProcess.stderr.on('data', (data) => {
+            const chunk = data.toString();
+            stderr += chunk;
+            // Parse each line for progress information
+            const lines = chunk.split('\n');
+            lines.forEach((line: string) => {
+              if (line.trim()) {
+                parseLine(line);
+              }
+            });
+          });
+
+          // Handle process completion
+          ffmpegProcess.on('close', (code) => {
+            if (code === 0) {
+              resolve({
+                success: true,
+                outputFile: outputFilePath,
+                stdout,
+                stderr,
+              });
+            } else {
+              // Extract more detailed error information from stderr
+              let errorDetails = stderr;
+
+              // Look for specific error patterns
+              if (stderr.includes('No such filter')) {
+                errorDetails =
+                  'Whisper filter not found in FFmpeg build. Please install FFmpeg 8.0+ with Whisper support.';
+              } else if (
+                stderr.includes('No such file') ||
+                stderr.includes('not found')
+              ) {
+                errorDetails = `File not found. Check model path: ${modelPath}`;
+              } else if (stderr.includes('Invalid argument')) {
+                errorDetails = `Invalid argument. Check paths:\nModel: ${modelPath}\nOutput: ${outputFilePath}\n\nFFmpeg error: ${stderr.substring(
+                  0,
+                  500,
+                )}`;
+              } else if (stderr.includes('Permission denied')) {
+                errorDetails = `Permission denied. Check write permissions for output: ${outputFilePath}`;
+              }
+
+              console.error('FFmpeg error details:', stderr);
+              console.error('Exit code:', code);
+              console.error('Model path used:', modelPath);
+              console.error('Output path used:', outputFilePath);
+              reject(
+                new Error(
+                  `FFmpeg process exited with code ${code}.\n${errorDetails}`,
+                ),
+              );
+            }
+          });
+
+          // Handle process errors
+          ffmpegProcess.on('error', (error) => {
+            reject(
+              new Error(`Failed to start FFmpeg process: ${error.message}`),
+            );
+          });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          reject(new Error(`FFmpeg execution failed: ${errorMessage}`));
+        }
+      });
+    })();
+  },
+);

@@ -1,7 +1,8 @@
 import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import {
+  ExpandableToastDescription,
   Toast,
-  ToastClose,
+  ToastActions,
   ToastDescription,
   ToastProvider,
   ToastTitle,
@@ -13,23 +14,38 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+      {toasts.map(function ({
+        id,
+        title,
+        description,
+        action,
+        expandable,
+        variant,
+        ...props
+      }) {
         return (
-          <Toast key={id} {...props}>
-            <div className="flex-1 min-w-0">
-              {title && (
-                <ToastTitle className="text-sm sm:text-base break-words">
+          <Toast key={id} expandable={expandable} variant={variant} {...props}>
+            <div className="flex flex-col gap-1 w-full">
+              <div className="flex items-start justify-between gap-2">
+                <ToastTitle variant={variant} className="min-w-0">
                   {title}
                 </ToastTitle>
+
+                <ToastActions hasTitle variant={variant}>
+                  {action}
+                </ToastActions>
+              </div>
+
+              {!expandable && description && (
+                <ToastDescription>{description}</ToastDescription>
               )}
-              {description && (
-                <ToastDescription className="text-xs sm:text-sm">
+
+              {expandable && description && (
+                <ExpandableToastDescription>
                   {description}
-                </ToastDescription>
+                </ExpandableToastDescription>
               )}
             </div>
-            {action}
-            <ToastClose />
           </Toast>
         );
       })}

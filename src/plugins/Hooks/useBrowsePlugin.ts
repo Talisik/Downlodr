@@ -1,4 +1,7 @@
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
+import {
+  fetchLatestRelease as fetchLatestReleaseFromAPI
+} from '@/services/api/githubService';
 import { useCallback, useState } from 'react';
 import { PluginInfo } from '../types';
 
@@ -43,20 +46,25 @@ export const useBrowsePlugin = () => {
       const { owner, repo } = parseGitHubUrl(repoUrl);
 
       try {
-        const response = await fetch(
-          `https://api.github.com/repos/${owner}/${repo}/releases/latest`,
-        );
+        const release = await fetchLatestReleaseFromAPI(owner, repo);
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('No releases found for this repository');
-          }
-          throw new Error(`GitHub API error: ${response.status}`);
-        }
-
-        return await response.json();
-      } catch (error) {
+        // Convert GitHubReleaseType to GitHubRelease format
+        return {
+          tag_name: release.tag_name,
+          assets: release.assets.map((asset) => ({
+            name: asset.name,
+            browser_download_url: asset.browser_download_url,
+            content_type: 'application/zip', // Default content type
+            size: 0, // Size not available in GitHubReleaseType
+          })),
+          published_at: release.published_at,
+          body: release.body,
+        };
+      } catch (error: any) {
         console.error('Failed to fetch release:', error);
+        if (error.response?.status === 404) {
+          throw new Error('No releases found for this repository');
+        }
         throw error;
       }
     },

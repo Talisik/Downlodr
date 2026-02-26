@@ -1,7 +1,7 @@
 {
   "name": "downlodr",
   "productName": "Downlodr",
-  "version": "1.7.8-exp",
+  "version": "1.7.13-stable",
   "description": "Downlodr is a powerful, user-friendly video downloading solution that supports over 1,800 platforms",
   "main": ".vite/build/main.js",
   "scripts": {
@@ -44,7 +44,7 @@
     "prettier": "3.0.0",
     "tailwindcss": "^3.4.17",
     "ts-node": "^10.0.0",
-    "typescript": "~4.5.4",
+    "typescript": "^5.9.3",
     "vite": "^5.0.12"
   },
   "keywords": [],
@@ -53,6 +53,9 @@
     "email": "downlodr@email.com"
   },
   "license": "MIT",
+  "engines": {
+    "node": ">=24.3.0"
+  },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-avatar": "^1.0.4",

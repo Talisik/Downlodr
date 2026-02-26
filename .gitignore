@@ -24,7 +24,7 @@ TEST*.xml
 *.exe
 *.war
 
-# Exception for specific exe file
+# Exception for specific exe files
 !yt-dlp.exe
 
 # Large media files
@@ -34,6 +34,19 @@ TEST*.xml
 *.flv
 *.mov
 *.wmv
+*.bin
+*.webm
+*.mkv
+*.m4v
+*.m4a
+*.m4b
+*.m4p
+*.m4v
+*.m4a
+*.m4b
+*.m4p
+*.srt
+*.bin
 
 # Package files
 *.jar
@@ -95,6 +108,10 @@ typings/
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
+
+# sonar
+*.properties
+.scannerwork/
 
 # next.js build output
 .next

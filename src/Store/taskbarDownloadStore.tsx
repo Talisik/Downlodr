@@ -46,9 +46,9 @@ interface TaskbarDownloadStore {
 }
 
 export const useTaskbarDownloadStore = create<TaskbarDownloadStore>((set) => ({
-  getTranscript: false,
+  getTranscript: true,
   setGetTranscript: (value) => set({ getTranscript: value }),
-  getThumbnail: false,
+  getThumbnail: true,
   setGetThumbnail: (value) => set({ getThumbnail: value }),
   downloadFolder: useMainStore.getState().settings.defaultLocation,
   setDownloadFolder: (value) => set({ downloadFolder: value }),

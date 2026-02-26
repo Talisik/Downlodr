@@ -17,8 +17,10 @@ import {
 } from 'react-router-dom';
 import TelemetryConsentModal from './Components/Main/Modal/TelemetryConsentModal';
 import ClipboardLinkDetector from './Components/SubComponents/custom/ClipboardLinkDetector';
+import StoreRehydrationLoader from './Components/SubComponents/custom/StoreRehydrationLoader';
 import UpdateNotification from './Components/SubComponents/custom/UpdateNotifications';
 import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
+import { useToast } from './Components/SubComponents/shadcn/hooks/use-toast';
 import { ThemeProvider } from './Components/ThemeProvider';
 import MainLayout from './Layout/MainLayout';
 import PluginLayout from './Layout/PluginLayout';
@@ -31,6 +33,7 @@ import PluginDetails from './Pages/SubPages/PluginDetails';
 import TagPage from './Pages/SubPages/TagsPage';
 import { useMainStore } from './Store/mainStore';
 import { initializeTelemetry } from './Store/telemetryStore';
+import { eventManager } from './Utils/eventManager';
 import { PluginLoader } from './plugins/PluginLoader';
 import FormatSelectorManager from './plugins/components/FormatSelectorManager';
 import PluginModalManager from './plugins/components/PluginModalManager';
@@ -40,6 +43,7 @@ const App = () => {
   const { settings, updateTelemetryConsentShown } = useMainStore();
   const [showTelemetryConsentModal, setShowTelemetryConsentModal] =
     useState(false);
+  const { toast } = useToast();
 
   // Check if we should show telemetry consent modal
   useEffect(() => {
@@ -83,6 +87,39 @@ const App = () => {
     initAppTelemetry();
   }, []); // Empty dependency array = runs once on mount
 
+  // Check if we should show telemetry consent modal
+  useEffect(() => {
+    // Show consent modal if it hasn't been shown before
+    if (!settings.telemetryConsentShown) {
+      // Small delay to allow app to fully load
+      const timer = setTimeout(() => {
+        setShowTelemetryConsentModal(true);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [settings.telemetryConsentShown]);
+
+  // Initialize telemetry store on app startup (runs once)
+  useEffect(() => {
+    const initAppTelemetry = async () => {
+      try {
+        const telemetryId = await initializeTelemetry();
+        // console.log('✅ App telemetry initialized:', telemetryId);
+
+        // Optional: Log app startup event
+        if (telemetryId) {
+          // console.log('📊 Telemetry ready for app-wide usage');
+        }
+      } catch (error) {
+        console.error('❌ Failed to initialize app telemetry:', error);
+        // App continues to function normally even if telemetry fails
+      }
+    };
+
+    initAppTelemetry();
+  }, []); // Empty dependency array = runs once on mount
+
   // Sync setting with main process on startup
   useEffect(() => {
     if (window.backgroundSettings) {
@@ -95,36 +132,92 @@ const App = () => {
     }
   }, [settings.runInBackground]);
 
+  // Handle YT-DLP auto-update events
+  useEffect(() => {
+    const removeListeners: Array<(() => void) | undefined> = [];
+
+    if (window.updateAPI) {
+      // Handle YT-DLP auto-updated event
+      if (window.updateAPI.onYtdlpAutoUpdated) {
+        const removeYtdlpUpdated = window.updateAPI.onYtdlpAutoUpdated(
+          (updateInfo) => {
+            /*
+            toast({
+              title: 'YT-DLP Updated Successfully',
+              description: updateInfo.message,
+              duration: 5000,
+            });
+            */
+          },
+        );
+        removeListeners.push(removeYtdlpUpdated);
+      }
+
+      // Handle YT-DLP auto-installed event
+      if (window.updateAPI.onYtdlpAutoInstalled) {
+        const removeYtdlpInstalled = window.updateAPI.onYtdlpAutoInstalled(
+          (installInfo) => {
+            /*
+            toast({
+              title: 'YT-DLP Installed Successfully',
+              description: installInfo.message,
+              duration: 5000,
+            });
+            */
+          },
+        );
+        removeListeners.push(removeYtdlpInstalled);
+      }
+    }
+
+    // Cleanup function to remove all event listeners
+    return () => {
+      removeListeners.forEach((removeListener) => {
+        if (removeListener) {
+          removeListener();
+        }
+      });
+      // Clean up the centralized event manager on app unmount
+      eventManager.cleanup();
+    };
+  }, []); // Empty dependency array = runs once on mount
+
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <Router>
-        <Routes>
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Navigate to="/status/all" replace />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/category/:categoryId" element={<CategoryPage />} />
-            <Route path="/tags/:tagId" element={<TagPage />} />
-            <Route
-              path="/status/:status"
-              element={<StatusSpecificDownloads />}
-            />
-            <Route path="*" element={<NotFound />} />
-          </Route>
+      <StoreRehydrationLoader>
+        <Router>
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Navigate to="/status/all" replace />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/category/:categoryId" element={<CategoryPage />} />
+              <Route path="/tags/:tagId" element={<TagPage />} />
+              <Route
+                path="/status/:status"
+                element={<StatusSpecificDownloads />}
+              />
+              <Route path="*" element={<NotFound />} />
+            </Route>
 
-          <Route path="/plugins" element={<PluginLayout />}>
-            <Route index element={<PluginManager />} />
-            <Route path="details" element={<PluginDetails />} />
-          </Route>
-        </Routes>
-      </Router>
-      <Toaster />
+            <Route path="/plugins" element={<PluginLayout />}>
+              <Route index element={<PluginManager />} />
+              <Route path="details" element={<PluginDetails />} />
+            </Route>
+          </Routes>
+        </Router>
+        <Toaster />
 
-      <UpdateNotification />
-      <ClipboardLinkDetector />
-      <PluginLoader />
-      <FormatSelectorManager />
-      <PluginSidePanelManager />
-      <PluginModalManager />
+        <UpdateNotification />
+        <ClipboardLinkDetector />
+        <PluginLoader />
+        <FormatSelectorManager />
+        <PluginSidePanelManager />
+        <PluginModalManager />
+        <TelemetryConsentModal
+          isOpen={showTelemetryConsentModal}
+          onClose={handleTelemetryConsentClose}
+        />
+      </StoreRehydrationLoader>
       <TelemetryConsentModal
         isOpen={showTelemetryConsentModal}
         onClose={handleTelemetryConsentClose}

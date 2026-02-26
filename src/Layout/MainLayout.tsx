@@ -4,8 +4,8 @@ import TaskBar from '@/Components/Main/Shared/TaskBar';
 import TitleBar from '@/Components/Main/Shared/TitleBar';
 import SelectingDirectory from '@/Components/SubComponents/custom/Overlays/SelectingDirectory';
 import { useMainStore } from '@/Store/mainStore';
-import { Component, ErrorInfo, ReactNode } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Component, ErrorInfo, ReactNode, useEffect, useRef } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 
 // Error Boundary component
 class ErrorBoundary extends Component<
@@ -48,11 +48,38 @@ class ErrorBoundary extends Component<
 // End of Error Detection
 
 const MainLayout = () => {
-  const { isNavCollapsed, setIsNavCollapsed } = useMainStore();
+  const { isNavCollapsed, setIsNavCollapsed, clearAllSelections } =
+    useMainStore();
+  const location = useLocation();
+  const previousMainPathRef = useRef<string | null>(null);
 
   const toggleNavCollapse = () => {
     setIsNavCollapsed(!isNavCollapsed);
   };
+
+  // Function to extract the main path from the current location
+  const getMainPath = (pathname: string): string => {
+    const pathSegments = pathname.split('/').filter(Boolean);
+    if (pathSegments.length === 0) return 'status'; // Default to status for root
+    return pathSegments[0]; // Returns 'status', 'category', 'tags', or 'history'
+  };
+
+  // Effect to handle route changes and reset selections when switching main paths
+  useEffect(() => {
+    const currentMainPath = getMainPath(location.pathname);
+
+    // Check if we're switching between different main paths
+    if (
+      previousMainPathRef.current !== null &&
+      previousMainPathRef.current !== currentMainPath
+    ) {
+      // Clear all selections when switching between different main paths
+      clearAllSelections();
+    }
+
+    // Update the previous main path reference
+    previousMainPathRef.current = currentMainPath;
+  }, [location.pathname, clearAllSelections]);
 
   return (
     <ErrorBoundary>

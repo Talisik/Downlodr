@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * A custom React component
  * A React component that displays a list of downloads in a table format.
@@ -17,11 +16,11 @@ import ShareButton from '@/Components/SubComponents/custom/ShareButton';
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { Skeleton } from '@/Components/SubComponents/shadcn/components/ui/skeleton';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { DownloadItem } from '@/schema/componentSchema';
-import useDownloadStore, { BaseDownload } from '@/Store/downloadStore';
+import { DownloadItem, FormatData } from '@/Schema/componentSchema';
+import { BaseDownload, useDownloadStore } from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import { getExtractorIcon, getStatusIcon } from '@/Utils/Icons/IconMapper';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaPlay } from 'react-icons/fa';
 import { HiOutlineFolderOpen } from 'react-icons/hi';
 import { HiChevronUpDown } from 'react-icons/hi2';
@@ -61,7 +60,7 @@ interface DownloadListProps {
 }
 
 const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [windowWidth] = useState(window.innerWidth);
   const [contextMenu, setContextMenu] = useState<{
     downloadId: string; // Unique identifier for the download
     x: number; // X coordinate for context menu position
@@ -71,17 +70,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   } | null>(null);
   const [selectedDownloadId, setSelectedDownloadId] = useState<string | null>(
     null,
-  );
-  const listRef = useRef<HTMLDivElement>(null);
-  // Access download store functions
-  const addTag = useDownloadStore((state) => state.addTag);
-  const removeTag = useDownloadStore((state) => state.removeTag);
-  const addCategory = useDownloadStore((state) => state.addCategory);
-  const removeCategory = useDownloadStore((state) => state.removeCategory);
-  const deleteDownload = useDownloadStore((state) => state.deleteDownload);
-  const availableTags = useDownloadStore((state) => state.availableTags);
-  const availableCategories = useDownloadStore(
-    (state) => state.availableCategories,
   );
   const [thumbnailDataUrls, setThumbnailDataUrls] = useState<
     Record<string, string>
@@ -111,9 +99,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   const uniqueDownloads = [
     ...new Map(downloads.map((item) => [item.id, item])).values(),
   ];
-  // debug state to track dragging status more visibly
-  const [debugDrag, setDebugDrag] = useState<string>('');
-
   // sort state
   const [sortConfig, setSortConfig] = useState<{
     key: string | null;
@@ -124,9 +109,15 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   });
 
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const globalSelectedRowIds = useMainStore((state) => state.selectedRowIds);
   const setSelectedDownloads = useMainStore(
     (state) => state.setSelectedDownloads,
   );
+
+  // Sync local state with global state when global state changes (e.g., from TaskBar operations)
+  useEffect(() => {
+    setSelectedRowIds(globalSelectedRowIds);
+  }, [globalSelectedRowIds]);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [columnHeaderContextMenu, setColumnHeaderContextMenu] = useState<{
     visible: boolean;
@@ -137,40 +128,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     x: 0,
     y: 0,
   });
-
-  const loadThumbnails = useCallback(
-    async (downloads: typeof allDownloads) => {
-      const loadPromises = downloads.map(async (download) => {
-        if (download.thumnailsLocation && !thumbnailDataUrls[download.id]) {
-          try {
-            const dataUrl = await window.downlodrFunctions.getThumbnailDataUrl(
-              download.thumnailsLocation,
-            );
-            if (dataUrl) {
-              setThumbnailDataUrls((prev) => ({
-                ...prev,
-                [download.id]: dataUrl,
-              }));
-            }
-          } catch (error) {
-            console.warn(`Failed to load thumbnail for ${download.id}:`, error);
-          }
-        }
-      });
-
-      // Process in batches to avoid overwhelming the system
-      const batchSize = 5;
-      for (let i = 0; i < loadPromises.length; i += batchSize) {
-        const batch = loadPromises.slice(i, i + batchSize);
-        await Promise.allSettled(batch);
-        // Small delay between batches to prevent UI blocking
-        if (i + batchSize < loadPromises.length) {
-          await new Promise((resolve) => setTimeout(resolve, 50));
-        }
-      }
-    },
-    [thumbnailDataUrls],
-  );
 
   // Get visible columns from the store
   const visibleColumns = useMainStore((state) => state.visibleColumns);
@@ -301,11 +258,13 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   };
 
   const handleCheckboxChange = (downloadId: string) => {
-    const newSelected = selectedRowIds.includes(downloadId)
-      ? selectedRowIds.filter((id) => id !== downloadId)
-      : [...selectedRowIds, downloadId];
+    const newSelected = globalSelectedRowIds.includes(downloadId)
+      ? globalSelectedRowIds.filter((id) => id !== downloadId)
+      : [...globalSelectedRowIds, downloadId];
 
     setSelectedRowIds(newSelected);
+    // Also update the global state
+    useMainStore.getState().setSelectedRowIds(newSelected);
 
     // Create promises for each download
     const promises = newSelected.map(async (id) => {
@@ -334,11 +293,13 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
 
   const handleSelectAll = () => {
     const newSelected =
-      selectedRowIds.length === allDownloads.length
+      globalSelectedRowIds.length === allDownloads.length
         ? []
         : allDownloads.map((download) => download.id);
 
     setSelectedRowIds(newSelected);
+    // Also update the global state
+    useMainStore.getState().setSelectedRowIds(newSelected);
 
     // Create promises for each download
     const promises = newSelected.map(async (id) => {
@@ -433,62 +394,12 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   // Format selector component
   const FormatSelector = ({
     download,
-    onFormatSelect,
   }: {
     download: BaseDownload;
-    onFormatSelect: (formatData: any) => void;
+    onFormatSelect: (formatData: FormatData) => void;
   }) => {
     // Simple format display for now
     return <div className="text-sm py-1 px-2">{download.ext || 'mp4'}</div>;
-  };
-
-  // Expanded row component
-  const ExpandedDownloadDetails = ({
-    download,
-  }: {
-    download: BaseDownload;
-  }) => {
-    return (
-      <tr className="bg-gray-50 dark:bg-gray-800">
-        <td colSpan={visibleColumns.length + 1} className="p-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h3 className="font-semibold mb-2">Download Details</h3>
-              <p>
-                <span className="font-medium">URL:</span> {download.videoUrl}
-              </p>
-              <p>
-                <span className="font-medium">Location:</span>{' '}
-                {download.location}
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-2">Tags & Categories</h3>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {download.tags?.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2 py-1 bg-blue-100 dark:bg-blue-800 rounded-full text-xs"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {download.category?.map((category) => (
-                  <span
-                    key={category}
-                    className="px-2 py-1 bg-green-100 dark:bg-green-800 rounded-full text-xs"
-                  >
-                    {category}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </td>
-      </tr>
-    );
   };
 
   // Transform column options to match the expected interface
@@ -580,6 +491,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
         currentDownload.videoUrl,
         currentDownload.name,
         currentDownload.downloadName,
+        currentDownload.displayName || '',
         currentDownload.size,
         currentDownload.speed,
         currentDownload.channelName,
@@ -605,6 +517,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
       // Clear selected downloads after starting/resuming download
       setSelectedRowIds([]);
       setSelectedDownloads([]);
+      useMainStore.getState().clearAllSelections();
       toast({
         variant: 'success',
         title: 'Download Resumed',
@@ -668,146 +581,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     setSelectedDownloadId(download.id);
   };
 
-  // handles the removal of a download.
-  const handleRemove = async (
-    downloadLocation?: string,
-    downloadId?: string,
-    controllerId?: string,
-    deleteFolder?: boolean,
-  ) => {
-    if (!downloadLocation || !downloadId) return;
-
-    // Get the download status
-    const download = downloads.find((d) => d.id === downloadId);
-    if (!download) return;
-
-    // Handle pending downloads
-    if (download.status === 'to download') {
-      deleteDownload(downloadId);
-      toast({
-        variant: 'success',
-        title: 'Download Deleted',
-        description: 'Download has been deleted successfully',
-        duration: 3000,
-      });
-      return;
-    }
-
-    // Handle cancelled or paused downloads
-    if (download.status === 'cancelled' || download.status === 'paused') {
-      deleteDownload(downloadId);
-      toast({
-        variant: 'success',
-        title: 'Download Removed',
-        description: `${
-          download.status === 'cancelled' ? 'Cancelled' : 'Paused'
-        } download has been removed successfully`,
-        duration: 3000,
-      });
-      return;
-    }
-
-    // Handle active downloads
-    if (download.status === 'downloading' && controllerId) {
-      try {
-        const success = await window.ytdlp.killController(controllerId);
-        if (!success) {
-          toast({
-            variant: 'destructive',
-            title: 'Stop Download Error',
-            description: `Could not stop download with controller ${controllerId}`,
-            duration: 3000,
-          });
-          return;
-        }
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Stop Download Error',
-          description: `Error stopping download with controller ${controllerId}`,
-          duration: 3000,
-        });
-        return;
-      }
-    }
-
-    try {
-      let success = false;
-
-      if (deleteFolder) {
-        // Get the parent folder path
-        const folderPath = downloadLocation.replace(/(\/|\\)[^/\\]+$/, '');
-        success = await window.downlodrFunctions.deleteFolder(folderPath);
-
-        if (success) {
-          deleteDownload(downloadId);
-          toast({
-            variant: 'success',
-            title: 'Folder Deleted',
-            description:
-              'Folder and its contents have been deleted successfully',
-            duration: 3000,
-          });
-        } else {
-          toast({
-            variant: 'destructive',
-            title: 'Error',
-            description:
-              'Failed to delete folder. It may not exist or be in use.',
-            duration: 3000,
-          });
-        }
-      } else {
-        // Original file deletion logic
-        success = await window.downlodrFunctions.deleteFile(downloadLocation);
-
-        if (success) {
-          deleteDownload(downloadId);
-          toast({
-            variant: 'success',
-            title: 'File Deleted',
-            description: 'File has been deleted successfully',
-            duration: 3000,
-          });
-        } else {
-          // Handle file not found case
-          const downloadItem: DownloadItem = {
-            id: download.id,
-            videoUrl: download.videoUrl,
-            location: downloadLocation,
-            name: download.name,
-            ext: download.ext,
-            downloadName: download.downloadName,
-            extractorKey: download.extractorKey,
-            status: download.status,
-            download: {
-              ...download,
-            },
-          };
-          handleFileNotExistModal(downloadItem);
-        }
-      }
-    } catch (error) {
-      // Handle error case
-      const downloadItem: DownloadItem = {
-        id: download.id,
-        videoUrl: download.videoUrl,
-        location: downloadLocation,
-        name: download.name,
-        ext: download.ext,
-        downloadName: download.downloadName,
-        extractorKey: download.extractorKey,
-        status: download.status,
-        download: {
-          ...download,
-        },
-      };
-      handleFileNotExistModal(downloadItem);
-      console.error('Error deleting:', error);
-    }
-    setContextMenu({ downloadId: null, x: 0, y: 0 });
-  };
-
   // state for file not exist modal
   const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
   const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
@@ -825,11 +598,18 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   ) => {
     if (downloadLocation) {
       try {
+        const download = allDownloads.find((d) => d.id === downloadId);
+        if (!download) return;
+        const fullDownloadLocation =
+          await window.downlodrFunctions.joinDownloadPath(
+            download.location,
+            download.downloadName,
+          );
         const exists = await window.downlodrFunctions.fileExists(
-          downloadLocation,
+          fullDownloadLocation,
         );
         if (exists) {
-          window.downlodrFunctions.openVideo(downloadLocation);
+          window.downlodrFunctions.openVideo(fullDownloadLocation);
         } else {
           // If the file doesn't exist, find the download and show the modal
           if (downloadId) {
@@ -846,6 +626,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                 extractorKey: download.extractorKey,
                 status: download.status,
                 download: {
+                  displayName: download.displayName || '',
                   ...download,
                 },
               };
@@ -867,6 +648,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                   extractorKey: download.extractorKey,
                   status: download.status,
                   download: {
+                    displayName: download.displayName || '',
                     ...download,
                   },
                 };
@@ -993,26 +775,22 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
   // Enhance drag handlers with better visual cues
   const enhancedStartDragging = (columnId: string, index: number) => {
     startDragging(columnId, index);
-    setDebugDrag(`Dragging: ${columnId}`);
     // class to the body  for global drag state
     document.body.classList.add('column-dragging');
   };
 
   const enhancedHandleDrop = () => {
     handleDrop();
-    setDebugDrag('');
     document.body.classList.remove('column-dragging');
   };
 
   const enhancedHandleDragOver = (index: number) => {
     handleDragOver(index);
-    setDebugDrag(`Dragging over: ${index}`);
   };
 
   // effect to cleanup drag state if dragging is interrupted
   useEffect(() => {
     const handleDragEnd = () => {
-      setDebugDrag('');
       document.body.classList.remove('column-dragging');
     };
 
@@ -1035,29 +813,6 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
     setSortConfig({ key, direction });
   };
 
-  // rename modal state
-  const [showRenameModal, setShowRenameModal] = useState(false);
-  const [renameDownloadId, setRenameDownloadId] = useState<string>('');
-  const [renameCurrentName, setRenameCurrentName] = useState<string>('');
-
-  // renameDownload function from store
-  const renameDownload = useDownloadStore((state) => state.renameDownload);
-
-  // rename handler
-  const handleRename = (downloadId: string, currentName: string) => {
-    setRenameDownloadId(downloadId);
-    setRenameCurrentName(currentName);
-    setShowRenameModal(true);
-  };
-
-  // function to perform the rename
-  const performRename = (newName: string) => {
-    renameDownload(renameDownloadId, newName);
-    setShowRenameModal(false);
-    setRenameDownloadId('');
-    setRenameCurrentName('');
-  };
-
   return (
     <div className="w-full">
       <table className="w-full">
@@ -1072,7 +827,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                 className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
                 checked={
                   allDownloads.length > 0 &&
-                  selectedRowIds.length === allDownloads.length
+                  globalSelectedRowIds.length === allDownloads.length
                 }
                 onChange={handleSelectAll}
               />
@@ -1105,13 +860,14 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                     {getColumnDisplayName(column.id)}
                     {renderSortIndicator(column.id)}
 
-                    {column.id === 'title' && selectedRowIds.length > 0 && (
-                      <span className="text-xs">
-                        ({selectedRowIds.length}{' '}
-                        {selectedRowIds.length === 1 ? 'item' : 'items'}{' '}
-                        selected)
-                      </span>
-                    )}
+                    {column.id === 'title' &&
+                      globalSelectedRowIds.length > 0 && (
+                        <span className="text-xs">
+                          ({globalSelectedRowIds.length}{' '}
+                          {globalSelectedRowIds.length === 1 ? 'item' : 'items'}{' '}
+                          selected)
+                        </span>
+                      )}
                   </span>
                 </div>
               </ResizableHeader>
@@ -1148,7 +904,7 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                   <input
                     type="checkbox"
                     className="ml-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
-                    checked={selectedRowIds.includes(download.id)}
+                    checked={globalSelectedRowIds.includes(download.id)}
                     onChange={(e) => {
                       e.stopPropagation();
                       handleCheckboxChange(download.id);
@@ -1172,11 +928,11 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                             </div>
                           ) : (
                             <TooltipWrapper
-                              content={download.name}
+                              content={download.displayName || download.name}
                               side="bottom"
                             >
                               <div className="line-clamp-2 break-words">
-                                {download.name}
+                                {download.displayName || download.name}
                               </div>
                             </TooltipWrapper>
                           )}
@@ -1321,7 +1077,12 @@ const DownloadList: React.FC<DownloadListProps> = ({ downloads }) => {
                                       color: getStatusColor(download.status),
                                     }}
                                   >
-                                    <DownloadButton download={download} />
+                                    <DownloadButton
+                                      download={{
+                                        ...download,
+                                        displayName: download.displayName || '',
+                                      }}
+                                    />
                                   </div>
                                 </div>
                               ) : download.status === 'paused' ||

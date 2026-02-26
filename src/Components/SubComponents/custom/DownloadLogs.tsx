@@ -25,7 +25,8 @@ import {
 import { TbFileCheck } from 'react-icons/tb';
 
 // Telemetry imports
-import { TelemetryService } from '@/Utils/Telemetry/telemetryService';
+import { TelemetryService } from '@/services/telemetry/telemetryService';
+import TooltipWrapper from './TooltipWrapper';
 
 interface DownloadLogsProps {
   isOpen: boolean;
@@ -70,6 +71,13 @@ const DownloadLogs: React.FC<DownloadLogsProps> = ({
     ...history,
     ...queuedDownloads,
   ].find((download) => download.id === downloadId);
+
+  // Check if buttons should be disabled during active downloads
+  const isActiveDownload =
+    specificDownload &&
+    ['downloading', 'initializing', 'fetching metadata', 'queued'].includes(
+      specificDownload.status.toLowerCase(),
+    );
 
   // Removed automatic error telemetry trigger - now handled app-wide by useErrorTelemetryMonitor
 
@@ -500,10 +508,15 @@ ${
           'Error information has been sent to help improve the application',
         duration: 3000,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
+        (
+          error as {
+            response?: { data?: { message?: string } };
+            message?: string;
+          }
+        )?.response?.data?.message ||
+        (error as { message?: string })?.message ||
         'Failed to send error report';
       console.error('💥 Error telemetry failed:', errorMessage);
       setErrorSendResult({ success: false, error: errorMessage });
@@ -570,39 +583,61 @@ ${
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleCopyLogs}
-            className="text-black dark:text-white hover:text-blue-500 p-1 flex-shrink-0"
-            title="Copy logs to clipboard"
+          <TooltipWrapper
+            content={
+              isActiveDownload
+                ? 'Cannot copy during active download'
+                : 'Copy log'
+            }
+            side="bottom"
           >
-            {copySuccess ? (
-              <FaCheckCircle size={14} className="text-green-500" />
-            ) : (
-              <MdOutlineContentCopy size={14} />
-            )}
-          </button>
-          <button
-            onClick={handleDownloadLogs}
-            className="text-black dark:text-white hover:text-green-500 ml-2 p-1 flex-shrink-0"
+            <button
+              onClick={handleCopyLogs}
+              disabled={isActiveDownload}
+              className={`p-1 flex-shrink-0 transition-all duration-200 ${
+                isActiveDownload
+                  ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
+                  : 'text-black dark:text-white hover:text-blue-500 dark:hover:text-blue-500'
+              }`}
+            >
+              {copySuccess ? (
+                <FaCheckCircle size={14} className="text-green-500" />
+              ) : (
+                <MdOutlineContentCopy size={14} />
+              )}
+            </button>
+          </TooltipWrapper>
+          <TooltipWrapper
+            content={
+              isActiveDownload
+                ? 'Cannot save during active download'
+                : 'Download log'
+            }
+            side="bottom"
           >
-            <MdOutlineFileDownload size={18} />
-          </button>
+            <button
+              onClick={handleDownloadLogs}
+              disabled={isActiveDownload}
+              className={`ml-2 p-1 flex-shrink-0 transition-all duration-200 ${
+                isActiveDownload
+                  ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
+                  : 'text-black dark:text-white hover:text-green-500 dark:hover:text-green-500'
+              }`}
+            >
+              {downloadSuccess ? (
+                <FaCheckCircle size={18} className="text-green-500" />
+              ) : (
+                <MdOutlineFileDownload size={18} />
+              )}
+            </button>
+          </TooltipWrapper>
           {/* Error Report Button - Only show for failed downloads */}
           {shouldShowErrorReport() && (
-            <button
-              onClick={handleSendErrorTelemetry}
-              disabled={isSendingError}
-              className={`ml-2 p-1 flex-shrink-0 transition-colors ${
-                isSendingError
-                  ? 'text-yellow-500 cursor-not-allowed'
-                  : errorSendResult?.success
-                  ? 'text-green-500 hover:text-green-600'
-                  : errorSendResult?.error
-                  ? 'text-red-500 hover:text-red-600'
-                  : 'text-black dark:text-white hover:text-orange-500'
-              }`}
-              title={
-                isSendingError
+            <TooltipWrapper
+              content={
+                isActiveDownload
+                  ? 'Cannot send error report during active download'
+                  : isSendingError
                   ? 'Sending error report...'
                   : errorSendResult?.success
                   ? 'Error report sent successfully'
@@ -610,22 +645,39 @@ ${
                   ? `Failed to send: ${errorSendResult.error}`
                   : 'Send error report to help improve the application'
               }
+              side="bottom"
             >
-              {isSendingError ? (
-                <HiArrowPath size={16} className="animate-spin" />
-              ) : errorSendResult?.success ? (
-                <FaCheckCircle size={14} />
-              ) : (
-                <MdBugReport size={16} />
-              )}
-            </button>
+              <button
+                onClick={handleSendErrorTelemetry}
+                disabled={isSendingError || isActiveDownload}
+                className={`ml-2 p-1 flex-shrink-0 transition-all duration-200 ${
+                  isActiveDownload || isSendingError
+                    ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
+                    : errorSendResult?.success
+                    ? 'text-green-500 hover:text-green-600'
+                    : errorSendResult?.error
+                    ? 'text-red-500 hover:text-red-600'
+                    : 'text-black dark:text-white hover:text-orange-500'
+                }`}
+              >
+                {isSendingError ? (
+                  <HiArrowPath size={16} className="animate-spin" />
+                ) : errorSendResult?.success ? (
+                  <FaCheckCircle size={14} />
+                ) : (
+                  <MdBugReport size={16} />
+                )}
+              </button>
+            </TooltipWrapper>
           )}
-          <button
-            onClick={onClose}
-            className="text-black dark:text-white hover:text-red-500 ml-2 p-1 flex-shrink-0"
-          >
-            <MdOutlineClose size={16} />
-          </button>
+          <TooltipWrapper content="Close log" side="bottom">
+            <button
+              onClick={onClose}
+              className="text-black dark:text-white hover:text-red-500 dark:hover:text-red-500 ml-2 p-1 flex-shrink-0"
+            >
+              <MdOutlineClose size={16} />
+            </button>
+          </TooltipWrapper>
         </div>
       </div>
 
