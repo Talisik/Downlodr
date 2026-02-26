@@ -6,7 +6,6 @@
  * application lifecycle events.
  */
 import { execSync } from 'child_process';
-import 'dotenv/config';
 import {
   app,
   BrowserWindow,
@@ -280,7 +279,7 @@ const createTray = () => {
     // Production mode paths
     iconPath = path.join(
       process.resourcesPath,
-      'AppLogo/systemTray/systemTray.png',
+      'AppLogo/systemTray/systemTray.png', // "C:\Users\Mikaela\Desktop\Development\codebase\Electron\v2\Electron\ui_downlodr_v2\src\Assets\AppLogo\systemTray\systemIcon.svg"
     );
     alertIconPath = path.join(
       process.resourcesPath,
@@ -551,179 +550,6 @@ ipcMain.handle('getBrowserInfo', async () => {
   }
 });
 
-ipcMain.handle('getAppInfo', async () => {
-  try {
-    return {
-      app_name: 'Downlodr',
-      app_platform: process.platform,
-      electron_version: process.versions.electron,
-      app_arch: os.arch(),
-    };
-  } catch (error) {
-    console.error('Error determining Downloads folder:', error);
-    return null;
-  }
-});
-
-ipcMain.handle('getPerformanceMetrics', async () => {
-  try {
-    const cpuUsage = getCpuUsagePercent();
-    return {
-      cpu_usage: cpuUsage,
-    };
-  } catch (error) {
-    console.error('Error determining Downloads folder:', error);
-    return null;
-  }
-});
-
-// Function for getting default download folder from each OS
-ipcMain.handle('getBrowserInfo', async () => {
-  try {
-    if (os) {
-      return {
-        browser_name: 'Chromium',
-        browser_version: process.versions.chrome,
-        browser_arch: os.arch(),
-      };
-    } else {
-      // Renderer process fallbacks using available web APIs
-      const navigatorInfo = typeof navigator !== 'undefined' ? navigator : null;
-
-      return {
-        host_name: 'renderer-host',
-        host_id: 'host_id',
-        host_type: 'desktop',
-        host_arch: navigatorInfo?.platform || 'unknown',
-        os_type: 'unknown',
-        os_description: navigatorInfo?.userAgent || 'Unknown OS',
-        os_name: 'unknown',
-        os_version: 'unknown',
-        cpu_model: 'unknown',
-        cpu_cores: navigatorInfo?.hardwareConcurrency || 4,
-        cpu_threads: navigatorInfo?.hardwareConcurrency || 4,
-        memory_total_gb: 0,
-        memory_available_gb: 0,
-      };
-    }
-  } catch (error) {
-    // console.error('Error determining Downloads folder:', error);
-    return null;
-  }
-});
-
-// Function for getting default download folder from each OS
-ipcMain.handle('getHostInfo', async () => {
-  try {
-    if (os) {
-      const cpus = os.cpus();
-      const totalMemory = os.totalmem();
-      const freeMemory = os.freemem();
-      return {
-        host_name: os.hostname(),
-        host_id: os.hostname(),
-        host_type: 'desktop',
-        host_arch: os.arch(),
-        os_type: os.platform(),
-        os_description: `${os.type()} ${os.release()}`,
-        os_name: os.type(),
-        os_version: os.release(),
-        cpu_model: cpus[0]?.model || 'unknown',
-        cpu_cores: cpus.length,
-        cpu_threads: cpus.length,
-        memory_total_gb:
-          Math.round((totalMemory / 1024 / 1024 / 1024) * 10) / 10,
-        memory_available_gb:
-          Math.round((freeMemory / 1024 / 1024 / 1024) * 10) / 10,
-      };
-    } else {
-      // Renderer process fallbacks using available web APIs
-      const navigatorInfo = typeof navigator !== 'undefined' ? navigator : null;
-
-      return {
-        host_name: 'renderer-host',
-        host_id: 'www',
-        host_type: 'desktop',
-        host_arch: navigatorInfo?.platform || 'unknown',
-        os_type: 'unknown',
-        os_description: navigatorInfo?.userAgent || 'Unknown OS',
-        os_name: 'unknown',
-        os_version: 'unknown',
-        cpu_model: 'unknown',
-        cpu_cores: navigatorInfo?.hardwareConcurrency || 4,
-        cpu_threads: navigatorInfo?.hardwareConcurrency || 4,
-        memory_total_gb: 0,
-        memory_available_gb: 0,
-      };
-    }
-  } catch (error) {
-    return null;
-  }
-});
-
-ipcMain.handle('getAppInfo', async () => {
-  try {
-    return {
-      app_name: 'Downlodr',
-      app_platform: process.platform,
-      electron_version: process.versions.electron,
-      app_arch: os.arch(),
-    };
-  } catch (error) {
-    return null;
-  }
-});
-
-// Handler to check internet connectivity
-ipcMain.handle('check-internet-connection', async () => {
-  return await isOnline();
-});
-
-ipcMain.handle('getPerformanceMetrics', async () => {
-  try {
-    const cpuUsage = getCpuUsagePercent();
-    return {
-      cpu_usage: cpuUsage,
-    };
-  } catch (error) {
-    return null;
-  }
-});
-
-// Function for getting default download folder from each OS
-ipcMain.handle('getBrowserInfo', async () => {
-  try {
-    if (os) {
-      return {
-        browser_name: 'Chromium',
-        browser_version: process.versions.chrome,
-        browser_arch: os.arch(),
-      };
-    } else {
-      // Renderer process fallbacks using available web APIs
-      const navigatorInfo = typeof navigator !== 'undefined' ? navigator : null;
-
-      return {
-        host_name: 'renderer-host',
-        host_id: 'host_id',
-        host_type: 'desktop',
-        host_arch: navigatorInfo?.platform || 'unknown',
-        os_type: 'unknown',
-        os_description: navigatorInfo?.userAgent || 'Unknown OS',
-        os_name: 'unknown',
-        os_version: 'unknown',
-        cpu_model: 'unknown',
-        cpu_cores: navigatorInfo?.hardwareConcurrency || 4,
-        cpu_threads: navigatorInfo?.hardwareConcurrency || 4,
-        memory_total_gb: 0,
-        memory_available_gb: 0,
-      };
-    }
-  } catch (error) {
-    return null;
-  }
-});
-
 // Function for validating path of download location
 ipcMain.handle('validatePath', async (event, folderPath) => {
   try {
@@ -906,7 +732,6 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
       //ytdlpDownloadDestination: os.tmpdir(),
       // ffmpegDownloadDestination: os.tmpdir(),
     });
-    console.log(info);
     return info;
   } catch (error) {
     console.error('Error fetching playlist info:', error);
