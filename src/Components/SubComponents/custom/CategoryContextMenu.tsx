@@ -45,7 +45,15 @@ const RenameModal: React.FC<RenameModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newName.trim() && newName.trim().length <= 10) {
+    console.log(
+      'Form submitted with:',
+      newName,
+      'length:',
+      newName.length,
+      'trimmed length:',
+      newName.trim().length,
+    );
+    if (newName.trim() && newName.trim().length <= 15) {
       onRename(newName.trim());
       onClose();
     }
@@ -69,18 +77,18 @@ const RenameModal: React.FC<RenameModalProps> = ({
         <h3 className="text-[15px] font-medium mb-3 dark:text-gray-200">
           Rename Category
         </h3>
-        <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
+        <form onSubmit={handleSubmit}>
           <input
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            maxLength={10}
+            maxLength={15}
             className="w-full p-2 border rounded mb-1 dark:bg-darkMode dark:border-inputDarkModeBorder outline-none dark:text-gray-200"
             autoFocus
             onClick={(e) => e.stopPropagation()}
           />
           <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-            {newName.length}/10 characters
+            {newName.length}/15 characters
           </div>
           <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
             <button
@@ -95,9 +103,12 @@ const RenameModal: React.FC<RenameModalProps> = ({
             </button>
             <button
               type="submit"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                console.log('Save button clicked');
+                e.stopPropagation();
+              }}
               className="px-4 py-1 bg-primary text-white rounded disabled:opacity-50"
-              disabled={!newName.trim() || newName.trim().length > 10}
+              disabled={!newName.trim() || newName.trim().length > 15}
             >
               Save
             </button>
@@ -127,7 +138,7 @@ export default function CategoryContextMenu({
   return (
     <>
       <div
-        className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 z-50 dark:border-gray-700"
+        className="fixed bg-white dark:bg-darkMode border rounded-md shadow-lg py-1 pl-1 pr-2 z-50 dark:border-gray-700"
         style={{ left: `${position.x}px`, top: `${position.y}px` }}
         onClick={(e) => e.stopPropagation()}
         data-category-context-menu
@@ -136,7 +147,7 @@ export default function CategoryContextMenu({
           onClick={() => {
             setIsRenameModalOpen(true);
           }}
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
+          className="text-xs w-full text-left px-1.5 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
         >
           <MdEdit className="text-gray-600 dark:text-gray-400" />
           <span>Rename</span>
@@ -146,7 +157,7 @@ export default function CategoryContextMenu({
             onDelete(categoryName);
             onClose();
           }}
-          className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 text-red-600 dark:text-red-400"
+          className="text-xs w-full text-left px-1.5 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 text-red-600 dark:text-red-400"
         >
           <MdDelete />
           <span>Delete</span>

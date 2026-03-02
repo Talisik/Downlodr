@@ -8,9 +8,6 @@ export async function extractPlugin(
   extractTo: string,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    console.log(`Starting extraction of: ${zipPath}`);
-    console.log(`Extracting to: ${extractTo}`);
-
     // Extract zip file using yauzl
     yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {
       if (err || !zipfile) {
@@ -21,7 +18,7 @@ export async function extractPlugin(
 
       // Create temporary directory for extraction
       const tempDir = path.join(extractTo, 'temp-plugin-' + Date.now());
-      console.log(`Creating temp directory: ${tempDir}`);
+      // console.log(`Creating temp directory: ${tempDir}`);
       fs.mkdirSync(tempDir, { recursive: true });
 
       let pendingEntries = 0;
@@ -34,16 +31,16 @@ export async function extractPlugin(
         // Only finish when zip reading is complete AND all files are processed
         if (!completed && pendingEntries === 0 && zipReadingComplete) {
           completed = true;
-
+          /*
           console.log(
             `Extraction complete. Processed ${processedEntries}/${totalEntries} entries`,
           );
           console.log(`Looking for plugin root in: ${tempDir}`);
-
+          */
           // List contents of temp directory for debugging
           try {
             const tempContents = fs.readdirSync(tempDir);
-            console.log('Temp directory contents:', tempContents);
+            // console.log('Temp directory contents:', tempContents);
             tempContents.forEach((item) => {
               const itemPath = path.join(tempDir, item);
               const stat = fs.statSync(itemPath);

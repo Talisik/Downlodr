@@ -21,6 +21,61 @@ function isM3UPlaylist(content: string): boolean {
   return content.trim().startsWith('#EXTM3U');
 }
 
+// Find the VTT format (preferred) or fallback to others in order of preference
+const formatPreference = [
+  'srt',
+  'vtt',
+  'ttml',
+  'srv3',
+  'srv2',
+  'srv1',
+  'json3',
+];
+
+function selectCaption(captionsData: CaptionInfo[]): CaptionInfo | undefined {
+  if (!captionsData || captionsData.length === 0) return undefined;
+
+  // Normalize helpers
+  const includesWord = (text: string, words: string[]) =>
+    words.some((w) => text.toLowerCase().includes(w.toLowerCase()));
+
+  let selectedCaption: CaptionInfo | undefined;
+
+  // 1. Look for "original" variations
+  for (const format of formatPreference) {
+    console.log(captionsData);
+    selectedCaption = captionsData.find(
+      (caption) =>
+        caption.ext === format &&
+        includesWord(caption.name.toLowerCase(), [
+          'original',
+          'orig',
+          '(original)',
+          '(orig)',
+        ]),
+    );
+    if (selectedCaption) return selectedCaption;
+  }
+
+  // 2. Look for English/en variations
+  for (const format of formatPreference) {
+    selectedCaption = captionsData.find(
+      (caption) =>
+        caption.ext === format && includesWord(caption.name, ['english', 'en']),
+    );
+    if (selectedCaption) return selectedCaption;
+  }
+
+  // 3. Fallback: just take the first caption available by format preference
+  for (const format of formatPreference) {
+    selectedCaption = captionsData.find((caption) => caption.ext === format);
+    if (selectedCaption) return selectedCaption;
+  }
+
+  // 4. If still nothing, return undefined
+  return undefined;
+}
+
 /**
  * Extracts YouTube timedtext URLs from M3U playlist content
  * @param m3uContent The M3U playlist content
@@ -139,6 +194,7 @@ export async function downloadEnglishCaptions(
   fileName: string,
 ): Promise<string | undefined> {
   try {
+    console.log(videoInfo);
     // Check if automatic captions exist
     if (!videoInfo) {
       return undefined;
@@ -155,20 +211,7 @@ export async function downloadEnglishCaptions(
       return undefined;
     }
 
-    // Find the VTT format (preferred) or fallback to others in order of preference
-    const formatPreference = ['vtt', 'ttml', 'srv3', 'srv2', 'srv1', 'json3'];
-    let selectedCaption = undefined;
-
-    for (const format of formatPreference) {
-      selectedCaption = captionsData.find(
-        (caption: CaptionInfo) => caption.ext === format,
-      );
-      if (selectedCaption) break;
-    }
-
-    if (!selectedCaption) {
-      return undefined;
-    }
+    const selectedCaption = selectCaption(captionsData);
 
     // Remove file extension from fileName if it exists
     const fileNameWithoutExt = fileName
@@ -227,8 +270,7 @@ export async function downloadEnglishCaptions(
 
     // Additional content validation for VTT files
     if (selectedCaption.ext === 'vtt') {
-      // Could add more sophisticated validation here if needed
-      // For now, size check should catch most empty files
+      // -_-
     }
     return outputPath;
   } catch (error) {

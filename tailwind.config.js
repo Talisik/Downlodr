@@ -18,6 +18,11 @@ module.exports = {
       'md': '950px',
       'lg': '980px',
       '2xl': '1400px',
+      // Height-based breakpoints
+      'h-sm1': { 'raw': '(max-height: 630px)' },
+      'h-md1': { 'raw': '(max-height: 800px)' },
+      'h-lg1': { 'raw': '(max-height: 850px)' },
+      'h-xl1': { 'raw': '(max-height: 900px)' },
     },
     container: {
       center: true,
@@ -83,6 +88,9 @@ module.exports = {
         darkModeNotAvailableStatus: '#C6C6C6',
         darkModeButtonDefault: '#71717A',
         darkModeButtonActive: '#E4E4E7',
+
+        // Toast
+        destructiveToast: '#FF3B30',
       },
     },
   },

@@ -156,6 +156,7 @@ export interface GetInfoResponse {
 }
 
 export interface AddDownload {
+  displayName: string; // Display name for the download
   id: string; // Unique identifier for the download
   location: string; // Location of the file to download
   name: string; // Name of the file

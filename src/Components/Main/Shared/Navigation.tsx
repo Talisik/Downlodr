@@ -11,7 +11,7 @@
  */
 import CategoryContextMenu from '@/Components/SubComponents/custom/CategoryContextMenu';
 import TagContextMenu from '@/Components/SubComponents/custom/TagContextMenu';
-import useDownloadStore from '@/Store/downloadStore';
+import { useDownloadStore } from '@/Store/downloadStore';
 import React, { useEffect, useRef, useState } from 'react';
 import { BiLayer, BiSolidPlusSquare } from 'react-icons/bi';
 import { BsHourglassSplit, BsTag } from 'react-icons/bs';
@@ -256,7 +256,7 @@ const Navigation = ({
               className={`w-full flex items-center ${
                 collapsed
                   ? 'justify-center'
-                  : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 p-2'
+                  : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 px-2 py-1.5 mb-1.5'
               } `}
             >
               <div
@@ -522,7 +522,7 @@ const Navigation = ({
               className={`w-full flex items-center ${
                 collapsed
                   ? 'justify-center'
-                  : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 p-2'
+                  : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 px-2 py-1.5 mb-1.5'
               } `}
             >
               <div
@@ -624,7 +624,7 @@ const Navigation = ({
               className={`w-full flex items-center ${
                 collapsed
                   ? 'justify-center'
-                  : 'p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 '
+                  : 'hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 px-2 py-1.5 mb-1.5'
               }`}
             >
               <div
@@ -712,7 +712,7 @@ const Navigation = ({
 
       {/* close and open toggle */}
       <div
-        className="fixed bottom-4 z-10 ml-2"
+        className="fixed bottom-4 z-10 ml-2 pointer-events-none"
         style={{
           width: collapsed ? '70px' : '205px',
           transform: 'translateX(-50%)',
@@ -725,7 +725,7 @@ const Navigation = ({
         >
           <button
             onClick={toggleCollapse}
-            className={`flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-darkModeCompliment shadow-md hover:bg-titleBar dark:hover:bg-secondary dark:text-white dark:hover:text-white border border-gray-200 dark:border-inputDarkMode`}
+            className={`flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-darkModeCompliment shadow-md hover:bg-titleBar dark:hover:bg-secondary dark:text-white dark:hover:text-white border border-gray-200 dark:border-inputDarkMode pointer-events-auto`}
           >
             {collapsed ? (
               <FiChevronRight size={22} />

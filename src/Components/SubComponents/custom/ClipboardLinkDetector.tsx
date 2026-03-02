@@ -1,10 +1,7 @@
 import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import {
-  cleanRawLink,
-  extractUrlFromText,
-} from '@/DataFunctions/urlValidation';
-import useDownloadStore from '@/Store/downloadStore';
+import { useDownloadStore } from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
+import { cleanRawLink, extractUrlFromText } from '@/Utils/Data/urlValidation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
@@ -17,9 +14,7 @@ const ClipboardLinkDetector: React.FC = () => {
   const { toast } = useToast();
   const { setDownload } = useDownloadStore();
   const { settings, isDownloadModalOpen } = useMainStore();
-  const [downloadFolder, setDownloadFolder] = useState<string>(
-    settings.defaultLocation,
-  );
+  const [downloadFolder] = useState<string>(settings.defaultLocation);
   const maxDownload =
     settings.defaultDownloadSpeed === 0
       ? ''
@@ -50,7 +45,6 @@ const ClipboardLinkDetector: React.FC = () => {
   // Unified clipboard processing function
   const processClipboard = useCallback(
     async (clipboardText: string, source: string) => {
-      console.log('processClipboard', clipboardText, source);
       // Basic validation
       if (
         !settings.enableClipboardMonitoring ||
@@ -78,7 +72,6 @@ const ClipboardLinkDetector: React.FC = () => {
       lastProcessedTime.current = now;
 
       try {
-        console.log('extractUrlFromText', extractUrlFromText(clipboardText));
         let url = extractUrlFromText(clipboardText);
         if (url) {
           // Ignore URLs that start with https://go.downlodr.com/
@@ -167,7 +160,6 @@ const ClipboardLinkDetector: React.FC = () => {
     try {
       const success = await window.appControl.clearClipboard();
       if (!success) {
-        console.log(`Clipboard clear failed (${context}), using fallback`);
         await window.appControl.clearLastClipboardText?.();
       }
     } catch (error) {
@@ -186,7 +178,6 @@ const ClipboardLinkDetector: React.FC = () => {
       document.addEventListener('copy', handleCopyEvent);
       document.addEventListener('keydown', handleKeyDown);
 
-      // Add focus/blur event listeners to track window focus state
       const handleFocus = () => {
         setIsWindowFocused(true);
       };

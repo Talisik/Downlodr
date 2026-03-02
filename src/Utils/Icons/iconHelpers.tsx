@@ -1,7 +1,7 @@
 import CCToMarkdown from '@/Assets/Images/CCToMarkdown.jpg';
 import FormatConverter from '@/Assets/Images/FormatConverter.jpg';
 import MetadataScraper from '@/Assets/Images/MetadataScraper.jpg';
-import { isSvgString } from './stringHelpers';
+import { isSvgString } from '../Data/stringHelpers';
 
 // Render icon helper function
 export const renderIcon = (

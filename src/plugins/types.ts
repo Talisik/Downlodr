@@ -159,6 +159,8 @@ export interface UtilityAPI {
   readFileContents: (
     filePath: string,
   ) => Promise<{ success: boolean; data?: string; error?: string }>;
+  getOperatingSystem: () => Promise<'windows' | 'macos' | 'linux' | string>;
+  getPathSeparator: () => Promise<string>;
 }
 
 export interface FormatProvider {
@@ -209,6 +211,7 @@ export interface Download {
 export interface DownloadOptions {
   name: string;
   downloadName?: string;
+  displayName?: string;
   size?: number;
   format?: string;
   location?: string;
@@ -605,7 +608,6 @@ export interface PluginData {
   tags?: string[];
   featured?: boolean;
   lastUpdated?: string;
-  // Add these to match PluginInfo interface
   enabled?: boolean;
   location?: string;
 }

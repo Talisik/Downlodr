@@ -286,13 +286,13 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
     },
 
     addDownload: async (url: string, options: DownloadOptions) => {
-      const { addDownload } = useDownloadStore.getState();
+      const { addQueue } = useDownloadStore.getState();
 
-      // Add download with plugin-provided options
-      addDownload(
+      addQueue(
         url,
         options.name,
         options.downloadName,
+        options.displayName || '',
         options.size || 0,
         options.speed || '',
         options.channelName || '',
@@ -417,12 +417,8 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
     },
 
     pauseDownload: async (downloadId?: string) => {
-      const {
-        downloading,
-        updateDownloadStatus,
-        addDownload,
-        deleteDownloading,
-      } = useDownloadStore.getState();
+      const { downloading, updateDownloadStatus, addQueue, deleteDownloading } =
+        useDownloadStore.getState();
 
       try {
         // If no downloadId is provided, find the first item with status 'downloading'
@@ -493,10 +489,11 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           }
 
           // Resume the download
-          addDownload(
+          addQueue(
             currentDownload.videoUrl,
             currentDownload.name,
             currentDownload.downloadName,
+            currentDownload.displayName || '',
             currentDownload.size,
             currentDownload.speed,
             currentDownload.channelName,
@@ -599,7 +596,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             error: null as unknown as string,
           });
 
-          // Add small delay to prevent race conditions
+          // small delay to prevent race conditions
           await new Promise((resolve) => setTimeout(resolve, 100));
         } catch (error) {
           results.push({
@@ -624,7 +621,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
     },
 
     resumeDownload: async (downloadId?: string) => {
-      const { downloading, deleteDownloading, addDownload } =
+      const { downloading, deleteDownloading, addDownload, addQueue } =
         useDownloadStore.getState();
 
       try {
@@ -643,10 +640,11 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
 
         // If the download is already paused, resume it
         if (currentDownload.status === 'paused') {
-          addDownload(
+          addQueue(
             currentDownload.videoUrl,
             currentDownload.name,
             currentDownload.downloadName,
+            currentDownload.displayName || '',
             currentDownload.size,
             currentDownload.speed,
             currentDownload.channelName,
@@ -747,11 +745,23 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
       };
     },
 
+    isFolderExist: async (dirPath: string) => {
+      const exists = await window.downlodrFunctions.fileExists(dirPath);
+      return exists;
+    },
+
+    createFolder: async (dirPath: string) => {
+      const dirCreated = await window.downlodrFunctions.ensureDirectoryExists(
+        dirPath,
+      );
+      return dirCreated;
+    },
+
     resumeDownloadWithCleanup: async (
       downloadId?: string,
       cleanupFormats: string[] = ['m4a'],
     ) => {
-      const { downloading, deleteDownloading, addDownload } =
+      const { downloading, deleteDownloading, addDownload, addQueue } =
         useDownloadStore.getState();
 
       try {
@@ -827,10 +837,11 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           }
 
           // Resume the download
-          addDownload(
+          addQueue(
             currentDownload.videoUrl,
             currentDownload.name,
             currentDownload.downloadName,
+            currentDownload.displayName || '',
             currentDownload.size,
             currentDownload.speed,
             currentDownload.channelName,
@@ -1030,9 +1041,6 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           );
 
           if (deleteSuccess) {
-            console.log(
-              `Plugin API: Cleaned up ${downloadFormat} file: ${fullFilePath}`,
-            );
             return {
               success: true,
               cleanedUp: true,
@@ -1224,7 +1232,6 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
       return await window.ytdlp.selectDownloadDirectory();
     },
 
-    // Add file reading API
     readFileContents: async (
       filePath: string,
     ): Promise<{ success: boolean; data?: string; error?: string }> => {
@@ -1274,6 +1281,26 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
           success: false,
           error: error instanceof Error ? error.message : String(error),
         };
+      }
+    },
+
+    getOperatingSystem: async (): Promise<
+      'windows' | 'macos' | 'linux' | string
+    > => {
+      try {
+        return await window.downlodrFunctions.getOSType();
+      } catch (error) {
+        console.error('Error getting operating system:', error);
+        return 'unknown';
+      }
+    },
+
+    getPathSeparator: async (): Promise<string> => {
+      try {
+        return await window.downlodrFunctions.getPathSeparator();
+      } catch (error) {
+        console.error('Error getting path separator:', error);
+        return '/'; // Default to Unix-style separator
       }
     },
   };

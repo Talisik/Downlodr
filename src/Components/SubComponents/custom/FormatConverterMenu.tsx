@@ -1,6 +1,6 @@
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { useMainStore } from '@/Store/mainStore';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 interface FormatConverterMenuProps {
   downloadId: string;
@@ -21,14 +21,6 @@ const FormatConverterMenu: React.FC<FormatConverterMenuProps> = ({
   const [keepOriginal, setKeepOriginal] = useState(false);
   const selectedDownloads = useMainStore((state) => state.selectedDownloads);
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
-
-  // Debug logging
-  useEffect(() => {
-    console.log(
-      'Selected Downloads in FormatConverterMenu:',
-      selectedDownloads,
-    );
-  }, [selectedDownloads]);
 
   // Array of available formats
   const formats = ['MP4', 'MP3', 'MOV', 'AVI', 'MKV'];

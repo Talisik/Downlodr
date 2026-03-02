@@ -8,8 +8,8 @@
  *
  * @returns JSX.Element - The rendered expanded download details component.
  */
-import { formatElapsedTime } from '@/DataFunctions/FormatElapsedTime';
 import { useMainStore } from '@/Store/mainStore';
+import { formatElapsedTime } from '@/Utils/Data/FormatElapsedTime';
 import React from 'react';
 
 // Interface representing the details of a download
@@ -34,7 +34,7 @@ interface ExpandedDownloadDetailsProps {
 const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
   download,
 }) => {
-  // Add state to track expanded/collapsed state
+  // state to track expanded/collapsed state
   const { isDownloadDetailExpanded, setIsDownloadDetailExpanded } =
     useMainStore();
 
