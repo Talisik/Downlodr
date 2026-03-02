@@ -1,0 +1,168 @@
+name: macOS Production Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_arch:
+        description: "Architecture to build"
+        required: true
+        type: choice
+        default: arm64
+        options:
+          - arm64
+          - intel
+          - both
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-arm64:
+    if: ${{ github.event.inputs.target_arch == 'arm64' || github.event.inputs.target_arch == 'both' }}
+    runs-on: macos-14
+    timeout-minutes: 90
+    env:
+      APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+      APPLE_INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CSC_NAME: ${{ secrets.APPLE_IDENTITY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for var in APPLE_IDENTITY APPLE_INSTALLER_IDENTITY APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID KEYCHAIN_PASSWORD MACOS_CERTIFICATE MACOS_CERTIFICATE_PWD; do
+            if [ -z "${!var}" ]; then
+              echo "Missing required secret/env: $var"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --network-timeout 100000 --network-concurrency 1
+
+      - name: Import Apple certificate
+        run: |
+          CERT_PATH="$RUNNER_TEMP/macos-cert.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$MACOS_CERTIFICATE_PWD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Ensure scripts are executable
+        run: chmod +x ./scripts/*.sh
+
+      - name: Build ARM64 production DMG
+        run: yarn build:dmg
+
+      - name: Upload ARM64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: downlodr-macos-arm64-${{ github.run_number }}
+          path: |
+            out/make/**/*.dmg
+            out/make/**/*.pkg
+            out/Downlodr-darwin-arm64/**/*
+          if-no-files-found: warn
+          retention-days: 30
+
+  build-intel:
+    if: ${{ github.event.inputs.target_arch == 'intel' || github.event.inputs.target_arch == 'both' }}
+    runs-on: macos-14
+    timeout-minutes: 90
+    env:
+      APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+      APPLE_INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CSC_NAME: ${{ secrets.APPLE_IDENTITY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for var in APPLE_IDENTITY APPLE_INSTALLER_IDENTITY APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID KEYCHAIN_PASSWORD MACOS_CERTIFICATE MACOS_CERTIFICATE_PWD; do
+            if [ -z "${!var}" ]; then
+              echo "Missing required secret/env: $var"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --network-timeout 100000 --network-concurrency 1
+
+      - name: Import Apple certificate
+        run: |
+          CERT_PATH="$RUNNER_TEMP/macos-cert.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$MACOS_CERTIFICATE_PWD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Ensure scripts are executable
+        run: chmod +x ./scripts/*.sh
+
+      - name: Build Intel production DMG
+        run: yarn build:intel
+
+      - name: Upload Intel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: downlodr-macos-intel-${{ github.run_number }}
+          path: |
+            out/make/**/*.dmg
+            out/make/**/*.pkg
+            out/Downlodr-darwin-x64/**/*
+          if-no-files-found: warn
+          retention-days: 30
