@@ -26,6 +26,7 @@ yarn build:dmg
 | [`docs/MACOS_BUILD_DISTRIBUTION.md`](docs/MACOS_BUILD_DISTRIBUTION.md) | Complete build system documentation |
 | [`docs/TROUBLESHOOTING_MACOS.md`](docs/TROUBLESHOOTING_MACOS.md) | Solutions to common build/distribution issues |
 | [`docs/USER_INSTALLATION_GUIDE.md`](docs/USER_INSTALLATION_GUIDE.md) | User-friendly installation guide |
+| [`docs/GITHUB_ACTIONS_WORKFLOW_REFERENCE.md`](docs/GITHUB_ACTIONS_WORKFLOW_REFERENCE.md) | Workflow triggers, secrets, dispatch commands, and troubleshooting |
 
 ## 🛠️ Available Scripts
 
