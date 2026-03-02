@@ -3,7 +3,7 @@ name: Build and Publish Docker Images
 on:
   push:
     tags:
-      - 'v*'
+      - 'docker-v*'
   workflow_dispatch:
     inputs:
       version:
