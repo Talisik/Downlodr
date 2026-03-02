@@ -60,7 +60,7 @@ jobs:
           cache: "yarn"
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile --network-timeout 100000 --network-concurrency 1
+        run: yarn install --network-timeout 100000 --network-concurrency 1
 
       - name: Import Apple certificate
         run: |
@@ -133,7 +133,7 @@ jobs:
           cache: "yarn"
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile --network-timeout 100000 --network-concurrency 1
+        run: yarn install --network-timeout 100000 --network-concurrency 1
 
       - name: Import Apple certificate
         run: |
