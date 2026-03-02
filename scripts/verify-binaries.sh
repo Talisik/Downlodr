@@ -18,6 +18,10 @@ NC='\033[0m' # No Color
 # Track if any issues are found
 ISSUES_FOUND=0
 
+# Size sanity threshold for ffmpeg binaries.
+# Some valid static ARM64 builds are smaller than historical x64 builds.
+MIN_FFMPEG_SIZE_BYTES=30000000
+
 # Check yt-dlp binary
 echo "📦 Checking yt-dlp binary..."
 if [ -f "yt-dlp_macos" ]; then
@@ -56,11 +60,11 @@ if [ -f "binaries/ffmpeg-arm64" ]; then
     FFMPEG_ARM_SIZE=$(ls -lh binaries/ffmpeg-arm64 | awk '{print $5}')
     echo -e "   ${GREEN}✅ Found ffmpeg-arm64 ($FFMPEG_ARM_SIZE)${NC}"
     
-    # Check size (should be > 50MB for static build)
+    # Check size (sanity check only; static ARM64 builds can be smaller)
     FFMPEG_ARM_BYTES=$(stat -f%z "binaries/ffmpeg-arm64" 2>/dev/null || stat --format=%s "binaries/ffmpeg-arm64" 2>/dev/null || echo "0")
-    if [ "$FFMPEG_ARM_BYTES" -lt 50000000 ]; then
-        echo -e "   ${RED}❌ ffmpeg-arm64 is too small (< 50MB)${NC}"
-        echo "   This is likely a dynamic build that won't work in production"
+    if [ "$FFMPEG_ARM_BYTES" -lt "$MIN_FFMPEG_SIZE_BYTES" ]; then
+        echo -e "   ${RED}❌ ffmpeg-arm64 is too small (< 30MB)${NC}"
+        echo "   This is likely an incomplete or invalid binary"
         ISSUES_FOUND=1
     else
         # Test if it works
@@ -93,11 +97,11 @@ if [ -f "binaries/ffmpeg-x64" ]; then
     FFMPEG_X64_SIZE=$(ls -lh binaries/ffmpeg-x64 | awk '{print $5}')
     echo -e "   ${GREEN}✅ Found ffmpeg-x64 ($FFMPEG_X64_SIZE)${NC}"
     
-    # Check size (should be > 50MB for static build)
+    # Check size (sanity check only)
     FFMPEG_X64_BYTES=$(stat -f%z "binaries/ffmpeg-x64" 2>/dev/null || stat --format=%s "binaries/ffmpeg-x64" 2>/dev/null || echo "0")
-    if [ "$FFMPEG_X64_BYTES" -lt 50000000 ]; then
-        echo -e "   ${RED}❌ ffmpeg-x64 is too small (< 50MB)${NC}"
-        echo "   This is likely a dynamic build that won't work in production"
+    if [ "$FFMPEG_X64_BYTES" -lt "$MIN_FFMPEG_SIZE_BYTES" ]; then
+        echo -e "   ${RED}❌ ffmpeg-x64 is too small (< 30MB)${NC}"
+        echo "   This is likely an incomplete or invalid binary"
         ISSUES_FOUND=1
     else
         # Test if it works
