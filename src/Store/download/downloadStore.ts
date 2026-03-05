@@ -2035,10 +2035,9 @@ export type {
   ForDownload,
   HistoryDownloads,
   QueuedDownload,
-  SpeedDataPoint
+  SpeedDataPoint,
 } from './types';
 
 export { PerformanceMonitor } from './selectors';
 export { checkIndexedDBUsage, checkLocalStorageUsage } from './storage';
 export { getProgressPhaseInfo } from './utils';
-

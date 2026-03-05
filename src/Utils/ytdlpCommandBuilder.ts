@@ -17,18 +17,18 @@ export interface YTDLPDownloadArgs {
  */
 export function buildYTDLPArgs(args: YTDLPDownloadArgs): string[] {
   const cmdArgs: string[] = [];
-  
+
   // Add URL
   cmdArgs.push(args.url);
-  
+
   // Output file
   cmdArgs.push('-o', args.outputFilepath);
-  
+
   // Format selection
   if (args.videoFormat && args.audioFormatId) {
     // Download best video and audio, then merge
     cmdArgs.push('-f', `${args.videoFormat}+${args.audioFormatId}/best`);
-    
+
     // Ensure merge happens with the desired output format
     if (args.remuxVideo) {
       cmdArgs.push('--merge-output-format', args.remuxVideo);
@@ -40,21 +40,21 @@ export function buildYTDLPArgs(args: YTDLPDownloadArgs): string[] {
     // Default: best quality
     cmdArgs.push('-f', 'best');
   }
-  
+
   // Rate limiting
   if (args.limitRate) {
     cmdArgs.push('--limit-rate', args.limitRate);
   }
-  
+
   // Ensure FFmpeg is used for merging
   cmdArgs.push('--prefer-ffmpeg');
-  
+
   // Keep intermediate files for debugging (optional)
   // cmdArgs.push('--keep-video');
-  
+
   // Verbose output for debugging
   cmdArgs.push('--verbose');
-  
+
   return cmdArgs;
 }
 
@@ -66,11 +66,11 @@ export function getFFmpegLocation(): string {
   if (process.env.FFMPEG_PATH) {
     return process.env.FFMPEG_PATH;
   }
-  
+
   // Fallback to common locations
   if (process.platform === 'darwin') {
     return '/opt/homebrew/bin/ffmpeg';
   }
-  
+
   return 'ffmpeg';
 }

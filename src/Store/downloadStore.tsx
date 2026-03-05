@@ -1076,12 +1076,20 @@ const useDownloadStore = create<DownloadStore>()(
             return { success: true, outputPath: result.outputPath };
           } else {
             // Check if the conversion was paused - if so, don't treat as failure
-            const currentDownload = get().downloading.find((d) => d.id === downloadId);
+            const currentDownload = get().downloading.find(
+              (d) => d.id === downloadId,
+            );
             if (currentDownload && currentDownload.status === 'paused') {
-              console.log(`⏸️ Conversion was paused, not treating as failure: ${downloadId}`);
-              return { success: false, paused: true, error: 'Conversion was paused' };
+              console.log(
+                `⏸️ Conversion was paused, not treating as failure: ${downloadId}`,
+              );
+              return {
+                success: false,
+                paused: true,
+                error: 'Conversion was paused',
+              };
             }
-            
+
             // Update status to show conversion failed
             get().updateDownload(downloadId, {
               type: 'conversion',
@@ -1096,12 +1104,20 @@ const useDownloadStore = create<DownloadStore>()(
           }
         } catch (error) {
           // Check if the conversion was paused - if so, don't treat as failure
-          const currentDownload = get().downloading.find((d) => d.id === downloadId);
+          const currentDownload = get().downloading.find(
+            (d) => d.id === downloadId,
+          );
           if (currentDownload && currentDownload.status === 'paused') {
-            console.log(`⏸️ Conversion was paused (in catch), not treating as failure: ${downloadId}`);
-            return { success: false, paused: true, error: 'Conversion was paused' };
+            console.log(
+              `⏸️ Conversion was paused (in catch), not treating as failure: ${downloadId}`,
+            );
+            return {
+              success: false,
+              paused: true,
+              error: 'Conversion was paused',
+            };
           }
-          
+
           // Update status to show conversion failed
           get().updateDownload(downloadId, {
             type: 'conversion',
@@ -1203,13 +1219,17 @@ const useDownloadStore = create<DownloadStore>()(
 
           set((state) => {
             // Ensure a downloading entry exists for this id (important when converting a finished item)
-            const existingIndex = state.downloading.findIndex((d) => d.id === id);
+            const existingIndex = state.downloading.findIndex(
+              (d) => d.id === id,
+            );
             let downloadingList = state.downloading;
 
             if (existingIndex === -1) {
               const source =
                 state.downloading.find((d) => d.id === id) ||
-                (state.finishedDownloads as any).find((d: any) => d.id === id) ||
+                (state.finishedDownloads as any).find(
+                  (d: any) => d.id === id,
+                ) ||
                 (state.historyDownloads as any).find((d: any) => d.id === id) ||
                 (state.forDownloads as any).find((d: any) => d.id === id);
 
@@ -1227,7 +1247,8 @@ const useDownloadStore = create<DownloadStore>()(
                 DateAdded: source?.DateAdded || fallbackNow,
                 // Progress/status
                 status: status === 'paused' ? 'paused' : 'initializing',
-                progress: typeof source?.progress === 'number' ? source.progress : 0,
+                progress:
+                  typeof source?.progress === 'number' ? source.progress : 0,
                 // Sizing
                 size: typeof source?.size === 'number' ? source.size : 0,
                 speed: source?.speed || '',
@@ -1243,7 +1264,8 @@ const useDownloadStore = create<DownloadStore>()(
                 thumbnails: source?.thumbnails,
                 getTranscript: source?.getTranscript ?? false,
                 getThumbnail: source?.getThumbnail ?? false,
-                duration: typeof source?.duration === 'number' ? source.duration : 0,
+                duration:
+                  typeof source?.duration === 'number' ? source.duration : 0,
                 isCreateFolder: source?.isCreateFolder ?? false,
                 // Conversion marker
                 type: 'conversion',
@@ -1267,8 +1289,20 @@ const useDownloadStore = create<DownloadStore>()(
 
               // Update status based on conversion result
               if (status === 'converting') {
-                updates.status = 'initializing'; // Keep status as initializing for conversion
-                updates.progress = (downloading as any).progress || 0;
+                // We keep the status as 'initializing' so the UI knows it's being processed
+                // but we update the progress if provided by the main process
+                updates.status = 'initializing';
+                if (typeof result.data.progress === 'number') {
+                  updates.progress = result.data.progress;
+                } else {
+                  updates.progress = (downloading as any).progress || 0;
+                }
+
+                // Also set a speed string for conversions to keep the graph "alive"
+                // Even if it's just a placeholder, it indicates activity
+                if (!downloading.speed || downloading.speed === '---') {
+                  updates.speed = 'Processing...';
+                }
               } else if (status === 'paused') {
                 // Keep the download in the list with paused status
                 console.log(
@@ -1539,11 +1573,16 @@ const useDownloadStore = create<DownloadStore>()(
                   updates.log.includes('Destination:') ||
                   updates.log.includes('ffmpeg')
                 ) {
-                  console.log(`🔄 Merge/Remux detected for ${downloading.id}:`, {
-                    phase: downloading.downloadPhase,
-                    completionCount: downloading.completionCount,
-                    logSnippet: updates.log.substring(updates.log.length - 200)
-                  });
+                  console.log(
+                    `🔄 Merge/Remux detected for ${downloading.id}:`,
+                    {
+                      phase: downloading.downloadPhase,
+                      completionCount: downloading.completionCount,
+                      logSnippet: updates.log.substring(
+                        updates.log.length - 200,
+                      ),
+                    },
+                  );
                   updates.status = 'initializing';
                   updates.progress = 100;
                 }
@@ -1552,11 +1591,16 @@ const useDownloadStore = create<DownloadStore>()(
                   console.log(`📦 Video remuxing for ${downloading.id}`);
                   updates.status = 'initializing';
                 }
-                
+
                 // Check for FFmpeg errors
-                if (updates.log.includes('ffmpeg: error') || 
-                    updates.log.includes('No such file or directory')) {
-                  console.error(`⚠️ FFmpeg error detected for ${downloading.id}:`, updates.log);
+                if (
+                  updates.log.includes('ffmpeg: error') ||
+                  updates.log.includes('No such file or directory')
+                ) {
+                  console.error(
+                    `⚠️ FFmpeg error detected for ${downloading.id}:`,
+                    updates.log,
+                  );
                 }
               }
 

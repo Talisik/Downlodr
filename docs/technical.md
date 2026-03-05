@@ -343,3 +343,33 @@ The component uses a sophisticated trend detection algorithm:
 - **Gray**: Stable speeds (`#6b7280`)
 
 All colors include gradient variations for visual appeal and dark mode support.
+
+### IPC Robustness Improvements
+
+**Comprehensive IPC Handler Alignment**
+
+To ensure seamless communication between the main and renderer processes, the IPC system has been updated with comprehensive handler alignment and error prevention.
+
+#### Key Improvements
+
+- **Missing Handler Resolution**: Added several missing handlers that were defined in `preload.ts` but not implemented in `main.ts`, preventing "No handler registered" errors during runtime.
+- **Protocol Mismatch Fixes**: Resolved naming mismatches between `ipcRenderer.invoke` calls and `ipcMain.handle` definitions.
+- **Robust Variable Handling**: Fixed bugs where IPC handlers were referencing non-existent variables (e.g., `isClipboardMonitoring` vs `isMonitoring`).
+- **Dummy Handlers for Optional APIs**: Implemented safe dummy handlers for optional features like auto-launch and activity indicators to prevent crashes when these APIs are called but not yet fully implemented.
+
+#### Added/Fixed Handlers
+
+1.  **`check-app-packaged`**: Now correctly returns `app.isPackaged` for dev/prod detection.
+2.  **`check-ffmpeg-status`**: Provides detailed status of the FFmpeg binary availability and path.
+3.  **`isValidPath`**: Added as an alias/helper for file path existence checks.
+4.  **`is-clipboard-monitoring-active`**: Fixed mismatch with preload and aligned with correct internal state.
+5.  **`set-auto-launch` / `get-auto-launch`**: Added foundational handlers for future auto-launch implementation.
+6.  **`start-activity-indicator` / `stop-activity-indicator`**: Added handlers for UI activity tracking.
+7.  **`telemetry-consent-required` / `telemetry-consent-completed`**: Integrated handlers for telemetry permission workflows.
+
+#### Technical Benefits
+
+- **Stability**: Eliminates common Electron "No handler registered" runtime errors.
+- **Developer Experience**: Aligning preload and main process APIs makes the codebase easier to reason about.
+- **Robustness**: Improved error handling within IPC handlers ensures the app remains responsive even when individual operations fail.
+- **Consistency**: Unified naming conventions across processes for all core functionality.

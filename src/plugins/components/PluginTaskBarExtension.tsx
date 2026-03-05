@@ -17,30 +17,35 @@ const PluginTaskBarExtension: React.FC = () => {
   const { downloading } = useDownloadStore(); // Only get downloading for rendering
   const { toast } = useToast();
   const clearAllSelections = useMainStore((state) => state.clearAllSelections);
-  
+
   // Filter for active conversions (exclude finished/failed)
   const activeConversions = downloading.filter((download) => {
     const d: any = download as any;
     // Check multiple ways conversions might be marked
-    const isConversion = d.type === 'conversion' || 
-                        d.convertedFormat !== undefined ||
-                        (d.status === 'converting');
+    const isConversion =
+      d.type === 'conversion' ||
+      d.convertedFormat !== undefined ||
+      d.status === 'converting';
     const status = String(download.status);
     // Include all non-finished/failed conversions
-    const isActive = status !== 'finished' && 
-                    status !== 'failed' && 
-                    status !== 'conversion_complete' && 
-                    status !== 'conversion_failed' &&
-                    status !== 'cancelled';
+    const isActive =
+      status !== 'finished' &&
+      status !== 'failed' &&
+      status !== 'conversion_complete' &&
+      status !== 'conversion_failed' &&
+      status !== 'cancelled';
     return isConversion && isActive;
   });
-  
+
   // Debug logging to see what's in downloading
   useEffect(() => {
     // Log all downloading items to see their structure
     if (downloading.length > 0) {
-      console.log('🔍 [PluginTaskBarExtension] All downloading items:', downloading.length);
-      downloading.forEach(item => {
+      console.log(
+        '🔍 [PluginTaskBarExtension] All downloading items:',
+        downloading.length,
+      );
+      downloading.forEach((item) => {
         const d = item as any;
         console.log(`🔍 [PluginTaskBarExtension] Item ${item.id}:`, {
           status: item.status,
@@ -50,14 +55,25 @@ const PluginTaskBarExtension: React.FC = () => {
         });
       });
     }
-    
+
     if (activeConversions.length > 0) {
-      console.log('🎯 [PluginTaskBarExtension] Active conversions found:', activeConversions.length);
-      activeConversions.forEach(item => {
-        console.log(`🎯 [PluginTaskBarExtension] Active conversion ${item.id}: status=${item.status}, type=${(item as any).type}`);
+      console.log(
+        '🎯 [PluginTaskBarExtension] Active conversions found:',
+        activeConversions.length,
+      );
+      activeConversions.forEach((item) => {
+        console.log(
+          `🎯 [PluginTaskBarExtension] Active conversion ${item.id}: status=${
+            item.status
+          }, type=${(item as any).type}`,
+        );
       });
     } else if (downloading.length > 0) {
-      console.log('⚠️ [PluginTaskBarExtension] No active conversions detected from', downloading.length, 'downloading items');
+      console.log(
+        '⚠️ [PluginTaskBarExtension] No active conversions detected from',
+        downloading.length,
+        'downloading items',
+      );
     }
   }, [downloading, activeConversions]);
 
@@ -180,17 +196,26 @@ const PluginTaskBarExtension: React.FC = () => {
   };
 
   // Handle conversion pause/resume - mirrors right-click menu behavior
-  const handleConversionPauseResume = async (downloadId: string, isPaused: boolean) => {
+  const handleConversionPauseResume = async (
+    downloadId: string,
+    isPaused: boolean,
+  ) => {
     try {
-      console.log(`🎯 [handleConversionPauseResume] Called with downloadId=${downloadId}, isPaused=${isPaused}`);
-      
+      console.log(
+        `🎯 [handleConversionPauseResume] Called with downloadId=${downloadId}, isPaused=${isPaused}`,
+      );
+
       // Get the latest state from store
-      const { pauseConversion, resumeConversion, updateDownload, downloading } = useDownloadStore.getState();
-      
+      const { pauseConversion, resumeConversion, updateDownload, downloading } =
+        useDownloadStore.getState();
+
       // Find the conversion to ensure it exists
-      const conversion = downloading.find(d => d.id === downloadId);
-      console.log(`🎯 [handleConversionPauseResume] Found conversion:`, conversion);
-      
+      const conversion = downloading.find((d) => d.id === downloadId);
+      console.log(
+        `🎯 [handleConversionPauseResume] Found conversion:`,
+        conversion,
+      );
+
       if (isPaused) {
         // Resume conversion
         console.log('🔄 Resuming conversion from navbar:', downloadId);
@@ -221,7 +246,7 @@ const PluginTaskBarExtension: React.FC = () => {
       } else {
         // Pause conversion
         console.log('⏸️ Pausing conversion from navbar:', downloadId);
-        
+
         // CRITICAL: Update status to paused BEFORE calling pauseConversion
         // This prevents race condition where FFmpeg termination triggers failure
         updateDownload(downloadId, {
@@ -231,7 +256,7 @@ const PluginTaskBarExtension: React.FC = () => {
             log: 'Conversion pausing from navbar...',
           },
         });
-        
+
         // Now pause the actual conversion
         const result = await pauseConversion(downloadId);
         if (result.success) {
@@ -258,7 +283,7 @@ const PluginTaskBarExtension: React.FC = () => {
               log: 'Failed to pause conversion',
             },
           });
-          
+
           toast({
             variant: 'destructive',
             title: 'Pause Failed',
@@ -268,7 +293,10 @@ const PluginTaskBarExtension: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('Error toggling conversion pause state from navbar:', error);
+      console.error(
+        'Error toggling conversion pause state from navbar:',
+        error,
+      );
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -317,29 +345,38 @@ const PluginTaskBarExtension: React.FC = () => {
   // Global controls - mirrors right-click menu "pause all" behavior
   const pauseAll = async () => {
     try {
-      console.log('🎯 [pauseAll] Called with activeConversions:', activeConversions.length);
-      
+      console.log(
+        '🎯 [pauseAll] Called with activeConversions:',
+        activeConversions.length,
+      );
+
       // Get fresh functions from store
       const { pauseConversion, updateDownload } = useDownloadStore.getState();
       const ids = activeConversions
         .filter((c) => c.status !== 'paused')
         .map((c) => c.id);
-      
+
       console.log('⏸️ Pausing all conversions:', ids);
-      
+
       for (const id of ids) {
         // CRITICAL: Update status to paused BEFORE calling pauseConversion
         updateDownload(id, {
           type: 'conversion',
-          data: { status: 'paused', log: 'Conversion pausing from navbar (all)...' },
+          data: {
+            status: 'paused',
+            log: 'Conversion pausing from navbar (all)...',
+          },
         });
-        
+
         const res = await pauseConversion(id);
         if (res.success) {
-          // Update log to confirm pause completed  
+          // Update log to confirm pause completed
           updateDownload(id, {
             type: 'conversion',
-            data: { status: 'paused', log: 'Conversion paused from navbar (all)' },
+            data: {
+              status: 'paused',
+              log: 'Conversion paused from navbar (all)',
+            },
           });
         } else {
           // Revert status if pause failed
@@ -359,7 +396,12 @@ const PluginTaskBarExtension: React.FC = () => {
       }
     } catch (err) {
       console.error('Pause all error:', err);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to pause all', duration: 3000 });
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to pause all',
+        duration: 3000,
+      });
     }
   };
 
@@ -370,15 +412,18 @@ const PluginTaskBarExtension: React.FC = () => {
       const ids = activeConversions
         .filter((c) => c.status === 'paused')
         .map((c) => c.id);
-      
+
       console.log('▶️ Resuming all conversions:', ids);
-      
+
       for (const id of ids) {
         const res = await resumeConversion(id);
         if (res.success) {
           updateDownload(id, {
             type: 'conversion',
-            data: { status: 'converting', log: 'Conversion resumed from navbar (all)' },
+            data: {
+              status: 'converting',
+              log: 'Conversion resumed from navbar (all)',
+            },
           });
         }
       }
@@ -392,7 +437,12 @@ const PluginTaskBarExtension: React.FC = () => {
       }
     } catch (err) {
       console.error('Resume all error:', err);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to resume all', duration: 3000 });
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to resume all',
+        duration: 3000,
+      });
     }
   };
 
@@ -401,9 +451,9 @@ const PluginTaskBarExtension: React.FC = () => {
       const ids = activeConversions.map((c) => c.id);
       // Get fresh functions from store
       const { stopConversion, deleteDownloading } = useDownloadStore.getState();
-      
+
       console.log('🛑 Stopping all conversions:', ids);
-      
+
       for (const id of ids) {
         const res = await stopConversion(id);
         if (res.success) {
@@ -420,7 +470,12 @@ const PluginTaskBarExtension: React.FC = () => {
       }
     } catch (err) {
       console.error('Stop all error:', err);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to stop all', duration: 3000 });
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to stop all',
+        duration: 3000,
+      });
     }
   };
 
@@ -529,36 +584,43 @@ const PluginTaskBarExtension: React.FC = () => {
       {activeConversions.length > 0 && (
         <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-md mr-3">
           <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-            Converting {activeConversions.length} file{activeConversions.length !== 1 ? 's' : ''}
+            Converting {activeConversions.length} file
+            {activeConversions.length !== 1 ? 's' : ''}
           </span>
 
           {/* Global controls to mirror context menu behaviour */}
           <div className="flex items-center gap-1 border-l border-gray-300 dark:border-gray-600 pl-2 ml-1">
             {anyRunning && (
               <TooltipWrapper content="Pause all conversions" side="bottom">
-                <button 
-                  onClick={pauseAll} 
+                <button
+                  onClick={pauseAll}
                   className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
                   aria-label="Pause all conversions"
                 >
-                  <FaPause size={12} className="text-yellow-600 dark:text-yellow-400" />
+                  <FaPause
+                    size={12}
+                    className="text-yellow-600 dark:text-yellow-400"
+                  />
                 </button>
               </TooltipWrapper>
             )}
             {anyPaused && (
               <TooltipWrapper content="Resume all conversions" side="bottom">
-                <button 
-                  onClick={resumeAll} 
+                <button
+                  onClick={resumeAll}
                   className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
                   aria-label="Resume all conversions"
                 >
-                  <FaPlay size={12} className="text-green-600 dark:text-green-400" />
+                  <FaPlay
+                    size={12}
+                    className="text-green-600 dark:text-green-400"
+                  />
                 </button>
               </TooltipWrapper>
             )}
             <TooltipWrapper content="Stop all conversions" side="bottom">
-              <button 
-                onClick={stopAll} 
+              <button
+                onClick={stopAll}
                 className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
                 aria-label="Stop all conversions"
               >
@@ -572,34 +634,55 @@ const PluginTaskBarExtension: React.FC = () => {
             <div className="flex items-center gap-1 border-l border-gray-300 dark:border-gray-600 pl-2 ml-1">
               {activeConversions.map((conversion, index) => {
                 const isPaused = conversion.status === 'paused';
-                const conversionName = conversion.name || conversion.downloadName || `Conversion ${index + 1}`;
+                const conversionName =
+                  conversion.name ||
+                  conversion.downloadName ||
+                  `Conversion ${index + 1}`;
 
                 return (
                   <div key={conversion.id} className="flex items-center gap-1">
-                    <TooltipWrapper 
-                      content={`${conversionName}: ${isPaused ? 'Resume' : 'Pause'}`} 
+                    <TooltipWrapper
+                      content={`${conversionName}: ${
+                        isPaused ? 'Resume' : 'Pause'
+                      }`}
                       side="bottom"
                     >
                       <button
-                        onClick={() => handleConversionPauseResume(conversion.id, isPaused)}
+                        onClick={() =>
+                          handleConversionPauseResume(conversion.id, isPaused)
+                        }
                         className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                        aria-label={`${isPaused ? 'Resume' : 'Pause'} ${conversionName}`}
+                        aria-label={`${
+                          isPaused ? 'Resume' : 'Pause'
+                        } ${conversionName}`}
                       >
                         {isPaused ? (
-                          <FaPlay size={10} className="text-green-600 dark:text-green-400" />
+                          <FaPlay
+                            size={10}
+                            className="text-green-600 dark:text-green-400"
+                          />
                         ) : (
-                          <FaPause size={10} className="text-yellow-600 dark:text-yellow-400" />
+                          <FaPause
+                            size={10}
+                            className="text-yellow-600 dark:text-yellow-400"
+                          />
                         )}
                       </button>
                     </TooltipWrapper>
 
-                    <TooltipWrapper content={`Stop ${conversionName}`} side="bottom">
+                    <TooltipWrapper
+                      content={`Stop ${conversionName}`}
+                      side="bottom"
+                    >
                       <button
                         onClick={() => handleConversionStop(conversion.id)}
                         className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
                         aria-label={`Stop ${conversionName}`}
                       >
-                        <FaStop size={10} className="text-red-600 dark:text-red-400" />
+                        <FaStop
+                          size={10}
+                          className="text-red-600 dark:text-red-400"
+                        />
                       </button>
                     </TooltipWrapper>
                   </div>
@@ -621,67 +704,68 @@ const PluginTaskBarExtension: React.FC = () => {
               'max-w-none',
           )}
         >
-        {taskBarItems.map((item) => (
-          <TooltipWrapper key={item.id} content={item.label} side="bottom">
-            <Button
-              variant="transparent"
-              disabled={selectedDownloads.length === 0}
-              style={
-                typeof item.buttonStyle === 'string'
-                  ? {
-                      ...(item.buttonStyle as React.CSSProperties),
-                    }
-                  : item.buttonStyle
-              }
-              className={`bg-transparent hover:bg-lightGray dark:hover:bg-darkModeHover transition-colors duration-200 px-2 py-1 rounded flex gap-1 font-semibold text-gray-700 dark:text-gray-200 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+          {taskBarItems.map((item) => (
+            <TooltipWrapper key={item.id} content={item.label} side="bottom">
+              <Button
+                variant="transparent"
+                disabled={selectedDownloads.length === 0}
+                style={
+                  typeof item.buttonStyle === 'string'
+                    ? {
+                        ...(item.buttonStyle as React.CSSProperties),
+                      }
+                    : item.buttonStyle
+                }
+                className={`bg-transparent hover:bg-lightGray dark:hover:bg-darkModeHover transition-colors duration-200 px-2 py-1 rounded flex gap-1 font-semibold text-gray-700 dark:text-gray-200 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
                 ${
                   selectedDownloads.length === 0
                     ? 'cursor-not-allowed disabled:pointer-events-auto'
                     : ''
                 }`}
-              onClick={() => handleItemClick(item)}
-              icon={
-                item.icon && (
+                onClick={() => handleItemClick(item)}
+                icon={
+                  item.icon && (
+                    <span
+                      style={
+                        typeof item.iconStyle === 'string'
+                          ? {
+                              ...(item.iconStyle as React.CSSProperties),
+                            }
+                          : item.iconStyle
+                      }
+                      className="inline-flex items-center justify-center w-4 h-4 flex-shrink-0"
+                    >
+                      {typeof item.icon === 'string' &&
+                      isSvgString(item.icon) ? (
+                        <span
+                          dangerouslySetInnerHTML={{ __html: item.icon }}
+                          className="text-black dark:text-white [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-none [&>svg]:stroke-current"
+                        />
+                      ) : (
+                        <span className="text-black dark:text-white">
+                          {renderIcon(item.icon, 'sm')}
+                        </span>
+                      )}
+                    </span>
+                  )
+                }
+                aria-label={item.label}
+              >
+                {item.label && !item.icon && (
                   <span
+                    className="text-xs"
                     style={
-                      typeof item.iconStyle === 'string'
-                        ? {
-                            ...(item.iconStyle as React.CSSProperties),
-                          }
-                        : item.iconStyle
+                      typeof item.labelStyle === 'string'
+                        ? { ...(item.labelStyle as React.CSSProperties) }
+                        : item.labelStyle
                     }
-                    className="inline-flex items-center justify-center w-4 h-4 flex-shrink-0"
                   >
-                    {typeof item.icon === 'string' && isSvgString(item.icon) ? (
-                      <span
-                        dangerouslySetInnerHTML={{ __html: item.icon }}
-                        className="text-black dark:text-white [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-none [&>svg]:stroke-current"
-                      />
-                    ) : (
-                      <span className="text-black dark:text-white">
-                        {renderIcon(item.icon, 'sm')}
-                      </span>
-                    )}
+                    {item.label}
                   </span>
-                )
-              }
-              aria-label={item.label}
-            >
-              {item.label && !item.icon && (
-                <span
-                  className="text-xs"
-                  style={
-                    typeof item.labelStyle === 'string'
-                      ? { ...(item.labelStyle as React.CSSProperties) }
-                      : item.labelStyle
-                  }
-                >
-                  {item.label}
-                </span>
-              )}
-            </Button>
-          </TooltipWrapper>
-        ))}
+                )}
+              </Button>
+            </TooltipWrapper>
+          ))}
         </div>
       )}
     </>

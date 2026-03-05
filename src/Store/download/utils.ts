@@ -128,4 +128,3 @@ export function updateDownloadsInAllArrays<T extends BaseDownload>(
 ): T[] {
   return downloads.map(updater);
 }
-

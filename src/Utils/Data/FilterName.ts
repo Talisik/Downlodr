@@ -75,4 +75,3 @@ const processFileName = async (
 
 // returns processed filtered and validated name
 export { processFileName, removeInvalidChar };
-

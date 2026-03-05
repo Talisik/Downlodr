@@ -2069,6 +2069,7 @@ const StatusSpecificDownloads = () => {
                                 'paused',
                                 'failed',
                                 'initializing',
+                                'converting',
                               ].includes(download.status) ? (
                                 <div className="w-full">
                                   <SpeedGraph

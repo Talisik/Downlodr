@@ -54,7 +54,7 @@ if (window.require) {
 
           // Remove the _mp4 subfolder and save directly in Downloads
           const correctedPath = filePath.replace(
-            /RAG Just Got Updated[^\\\/]*_mp4[\\\/]/,
+            /RAG Just Got Updated[^\\\/]*_mp4[\\/]/,
             '',
           );
           console.log(`🔍 [RENDERER DEBUG] Redirecting from: ${filePath}`);
@@ -81,7 +81,7 @@ if (window.require) {
           (filePath.includes('_mp4\\') || filePath.includes('_mp4/'))
         ) {
           const correctedPath = filePath.replace(
-            /RAG Just Got Updated[^\\\/]*_mp4[\\\/]/,
+            /RAG Just Got Updated[^\\\/]*_mp4[\\/]/,
             '',
           );
           console.log(
@@ -159,7 +159,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 // Listen for conversion status updates from main process
 ipcRenderer.on('conversion-status-update', (_event, data) => {
   // Dispatch a custom event that the renderer can listen to
-  window.dispatchEvent(new CustomEvent('conversion-status-update', { detail: data }));
+  window.dispatchEvent(
+    new CustomEvent('conversion-status-update', { detail: data }),
+  );
 });
 
 // downlodr exlusive functions
@@ -214,6 +216,7 @@ contextBridge.exposeInMainWorld('downlodrFunctions', {
     ipcRenderer.invoke('get-thumbnail-data-url', path),
   getOSType: () => ipcRenderer.invoke('get-os-type'),
   getPathSeparator: () => ipcRenderer.invoke('get-path-separator'),
+  resetAppData: () => ipcRenderer.invoke('reset-app-data'),
 });
 
 // give download a unique id

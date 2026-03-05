@@ -270,91 +270,109 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
     [currentSpeed],
   );
 
+  // Determine if the current status is an "active" state that should collect data
+  const isStatusActive = useCallback((status: string) => {
+    const activeStatuses = [
+      'downloading',
+      'converting',
+      'initializing',
+      'fetching metadata',
+    ];
+    return activeStatuses.includes(status.toLowerCase());
+  }, []);
+
+  const isActivelyProcessing = isStatusActive(downloadStatus);
+
   // Enhanced update function that responds immediately to changes
-  const updateSpeedHistory = useCallback(() => {
-    if (!mountedRef.current) return;
+  const updateSpeedHistory = useCallback(
+    (forceUpdate = false) => {
+      if (!mountedRef.current) return;
 
-    const now = Date.now();
-    const speedValue = currentSpeedValue();
-    const isDownloading = downloadStatus === 'downloading';
+      const now = Date.now();
+      const speedValue = currentSpeedValue();
+      const isActive = isStatusActive(downloadStatus);
 
-    if (debug) {
-      console.log('SpeedGraph Update:', {
-        currentSpeed,
-        speedValue,
-        downloadStatus,
-        isDownloading,
-        historyLength: speedHistory.length,
-        lastSpeed: lastSpeedRef.current,
-        lastSpeedValue: lastSpeedValueRef.current,
-        shouldUpdate:
-          isDownloading &&
-          (currentSpeed !== lastSpeedRef.current ||
-            speedValue !== lastSpeedValueRef.current),
-        speedChanged: currentSpeed !== lastSpeedRef.current,
-        speedValueChanged: speedValue !== lastSpeedValueRef.current,
-      });
-    }
+      if (debug) {
+        console.log('SpeedGraph Update:', {
+          currentSpeed,
+          speedValue,
+          downloadStatus,
+          isActive,
+          forceUpdate,
+          historyLength: speedHistory.length,
+          lastSpeed: lastSpeedRef.current,
+          shouldUpdate:
+            isActive &&
+            (forceUpdate ||
+              currentSpeed !== lastSpeedRef.current ||
+              speedValue !== lastSpeedValueRef.current ||
+              speedHistory.length === 0),
+        });
+      }
 
-    // Add data points when actively downloading AND (speed has changed OR we have no data yet)
-    // This ensures we capture at least some data during download
-    if (
-      isDownloading &&
-      (currentSpeed !== lastSpeedRef.current ||
-        speedValue !== lastSpeedValueRef.current ||
-        speedHistory.length === 0) // Always add first data point
-    ) {
-      const newDataPoint: SpeedDataPoint = {
-        timestamp: now,
-        speed: speedValue,
-        rawSpeed: currentSpeed,
-      };
+      // Add data points when actively processing AND (speed has changed OR we have no data yet OR forced by heartbeat)
+      if (
+        isActive &&
+        (forceUpdate ||
+          currentSpeed !== lastSpeedRef.current ||
+          speedValue !== lastSpeedValueRef.current ||
+          speedHistory.length === 0)
+      ) {
+        const newDataPoint: SpeedDataPoint = {
+          timestamp: now,
+          speed: speedValue,
+          rawSpeed: currentSpeed || '0 B/s',
+        };
 
-      // Add to persistent storage
-      speedHistoryService.addSpeedPoint(downloadId, newDataPoint);
+        // Add to persistent storage
+        speedHistoryService.addSpeedPoint(downloadId, newDataPoint);
 
-      // Update local state
-      setSpeedHistory((prev) => {
-        const newHistory = [...prev, newDataPoint];
+        // Update local state
+        setSpeedHistory((prev) => {
+          const newHistory = [...prev, newDataPoint];
 
-        // Keep only the last maxDataPoints for performance
-        if (newHistory.length > maxDataPoints) {
-          newHistory.splice(0, newHistory.length - maxDataPoints);
-        }
+          // Keep only the last maxDataPoints for performance
+          if (newHistory.length > maxDataPoints) {
+            newHistory.splice(0, newHistory.length - maxDataPoints);
+          }
 
-        if (debug) {
-          console.log(
-            'SpeedGraph: Added data point. New history length:',
-            newHistory.length,
-          );
-        }
+          return newHistory;
+        });
 
-        return newHistory;
-      });
+        lastSpeedRef.current = currentSpeed;
+        lastSpeedValueRef.current = speedValue;
+      }
+    },
+    [
+      currentSpeed,
+      downloadStatus,
+      downloadId,
+      currentSpeedValue,
+      isStatusActive,
+      maxDataPoints,
+      debug,
+      speedHistory.length,
+      speedHistoryService,
+    ],
+  );
 
-      lastSpeedRef.current = currentSpeed;
-      lastSpeedValueRef.current = speedValue;
-    }
-
-    // When not downloading, we simply retain all existing speedHistory data
-    // No new data is added, but all previous points remain visible
-  }, [
-    currentSpeed,
-    downloadStatus,
-    downloadId,
-    currentSpeedValue,
-    maxDataPoints,
-    debug,
-    speedHistory.length,
-    speedHistoryService,
-  ]);
-
-  // Effect to handle prop changes immediately - this makes it super responsive
+  // Effect to handle prop changes immediately
   useEffect(() => {
-    updateSpeedHistory();
+    updateSpeedHistory(false);
   }, [currentSpeed, downloadStatus, updateSpeedHistory]);
 
-  // No interval needed anymore - we update immediately on prop changes
+  // Heartbeat effect: ensures at least one data point every 2 seconds while active
+  // This prevents the "flat line" issue when speed remains constant for a long time
+  useEffect(() => {
+    if (!isActivelyProcessing) return;
+
+    const heartbeatInterval = setInterval(() => {
+      updateSpeedHistory(true); // forceUpdate = true
+    }, 2000);
+
+    return () => clearInterval(heartbeatInterval);
+  }, [isActivelyProcessing, updateSpeedHistory]);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -362,10 +380,10 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
     };
   }, []);
 
-  // Calculate max speed for scaling with better scaling
+  // Calculate max speed for scaling
   const maxSpeed =
     speedHistory.length > 0
-      ? Math.max(...speedHistory.map((point) => point.speed), 0.1) * 1.1 // Reduced headroom for better scaling
+      ? Math.max(...speedHistory.map((point) => point.speed), 0.1) * 1.1
       : 1;
   const speedScale = graphHeight / maxSpeed;
 
@@ -381,7 +399,7 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
     }
 
     const points = speedHistory.map((point, index) => {
-      // Always spread points across the full width
+      // Always spread points across the full width based on their relative index
       const x = (index / Math.max(speedHistory.length - 1, 1)) * graphWidth;
       const y = graphHeight - point.speed * speedScale;
       return `${x},${y}`;
@@ -394,54 +412,46 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
   const generateFillPath = (): string => {
     if (speedHistory.length < 1) return '';
 
-    if (speedHistory.length === 1) {
-      // Single point - fill the entire area at that speed level
-      const point = speedHistory[0];
-      const y = graphHeight - point.speed * speedScale;
-      const bottomY = graphHeight;
-      return `M 0,${y} L ${graphWidth},${y} L ${graphWidth},${bottomY} L 0,${bottomY} Z`;
-    }
-
     const speedPath = generateSpeedPath();
-    const bottomY = graphHeight;
+    if (!speedPath) return '';
 
-    // Ensure the fill area extends to the full width
+    const bottomY = graphHeight;
     return `${speedPath} L ${graphWidth},${bottomY} L 0,${bottomY} Z`;
   };
 
-  // Get colors based on trend - enhanced for better visual feedback
+  // Get colors based on trend
   const getColors = () => {
-    const isActivelyDownloading = downloadStatus === 'downloading';
+    const isActive = isActivelyProcessing;
     const currentTrend = calculateTrendFromHistory(speedHistory);
 
     switch (currentTrend) {
       case 'increasing':
         return {
-          line: isActivelyDownloading ? '#10b981' : '#10b98180', // green-500, muted when not downloading
-          gradientStart: '#10b98130', // green-500
-          gradientEnd: '#10b981', // green-500 with opacity
-          bg: 'bg-transparent border-gray-200 dark:border-gray-700', // No background, just border
+          line: isActive ? '#10b981' : '#10b98180',
+          gradientStart: '#10b98130',
+          gradientEnd: '#10b981',
+          bg: 'bg-transparent border-gray-200 dark:border-gray-700',
         };
       case 'decreasing':
         return {
-          line: isActivelyDownloading ? '#ef4444' : '#ef444480', // red-500, muted when not downloading
-          gradientStart: '#ef444430', // red-500 '#ef444430'
-          gradientEnd: '#ef4444', // red-500 with opacity
-          bg: 'bg-transparent border-gray-200 dark:border-gray-700', // No background, just border
+          line: isActive ? '#ef4444' : '#ef444480',
+          gradientStart: '#ef444430',
+          gradientEnd: '#ef4444',
+          bg: 'bg-transparent border-gray-200 dark:border-gray-700',
         };
       default:
         return {
-          line: isActivelyDownloading ? '#6b7280' : '#3b82f680', // gray-500, muted when not downloading
-          gradientStart: isActivelyDownloading ? '#6b7280' : '#3b82f6', // gray-500
-          gradientEnd: isActivelyDownloading ? '#6b728030' : '#3b82f630', // gray-500 with opacity
-          bg: 'bg-transparent border-gray-200 dark:border-gray-700', // No background, just border
+          line: isActive ? '#6b7280' : '#3b82f680',
+          gradientStart: isActive ? '#6b7280' : '#3b82f6',
+          gradientEnd: isActive ? '#6b728030' : '#3b82f630',
+          bg: 'bg-transparent border-gray-200 dark:border-gray-700',
         };
     }
   };
 
   const colors = getColors();
   const currentSpeedDisplay = formatSpeed(currentSpeedValue());
-  const isActivelyDownloading = downloadStatus === 'downloading';
+  const isActive = isActivelyProcessing;
   const currentTrend = calculateTrendFromHistory(speedHistory);
 
   // Calculate responsive icon sizing based on component dimensions
@@ -466,14 +476,14 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
           <div className="flex items-center justify-between p-2 pb-1">
             <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
               Download Speed{' '}
-              {!isActivelyDownloading && speedHistory.length > 0 && (
+              {!isActive && speedHistory.length > 0 && (
                 <span className="text-xs opacity-70 font-normal">
                   (Last Session)
                 </span>
               )}
             </span>
             <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-              {isActivelyDownloading
+              {isActive
                 ? currentSpeedDisplay
                 : speedHistory.length > 0
                 ? formatSpeed(speedHistory[speedHistory.length - 1].speed)
@@ -499,7 +509,7 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
                 <stop
                   offset="0%"
                   stopColor={colors.gradientStart}
-                  stopOpacity={isActivelyDownloading ? '0.8' : '0.5'}
+                  stopOpacity={isActive ? '0.8' : '0.5'}
                 />
                 <stop
                   offset="100%"
@@ -557,7 +567,7 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
             )}
 
             {/* Current speed indicator dot - only show when actively downloading */}
-            {speedHistory.length > 0 && isActivelyDownloading && (
+            {speedHistory.length > 0 && isActive && (
               <circle
                 cx={
                   speedHistory.length === 1
@@ -582,7 +592,7 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
                 style={{ backgroundColor: colors.line }}
               />
               <span className="text-xs text-gray-600 dark:text-gray-400">
-                {isActivelyDownloading
+                {isActive
                   ? currentTrend === 'increasing'
                     ? 'Increasing'
                     : currentTrend === 'decreasing'
@@ -611,7 +621,7 @@ const SpeedGraph: React.FC<SpeedGraphProps> = ({
             </div>
             <div>
               Status: {downloadStatus} | Mode:{' '}
-              {isActivelyDownloading ? 'COLLECTING' : 'RETAINED'}
+              {isActive ? 'COLLECTING' : 'RETAINED'}
             </div>
             <div>
               Trend: {currentTrend} | Points: {speedHistory.length}/

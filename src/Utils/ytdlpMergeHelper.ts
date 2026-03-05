@@ -22,7 +22,9 @@ interface MergeOptions {
 export function getFFmpegPath(): string {
   if (!app.isPackaged) {
     // Development mode
-    return process.platform === 'darwin' ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg';
+    return process.platform === 'darwin'
+      ? '/opt/homebrew/bin/ffmpeg'
+      : 'ffmpeg';
   }
 
   // Production mode
@@ -38,12 +40,12 @@ export async function checkFFmpegAvailable(): Promise<boolean> {
   return new Promise((resolve) => {
     const ffmpegPath = getFFmpegPath();
     const ffmpeg = spawn(ffmpegPath, ['-version']);
-    
+
     ffmpeg.on('error', () => {
       console.error('FFmpeg not found at:', ffmpegPath);
       resolve(false);
     });
-    
+
     ffmpeg.on('close', (code) => {
       resolve(code === 0);
     });
@@ -54,7 +56,8 @@ export async function checkFFmpegAvailable(): Promise<boolean> {
  * Manually merge video and audio files using FFmpeg
  */
 export async function mergeVideoAudio(options: MergeOptions): Promise<boolean> {
-  const { videoPath, audioPath, outputPath, onProgress, onComplete, onError } = options;
+  const { videoPath, audioPath, outputPath, onProgress, onComplete, onError } =
+    options;
 
   // Validate input files
   if (!fs.existsSync(videoPath)) {
@@ -68,18 +71,25 @@ export async function mergeVideoAudio(options: MergeOptions): Promise<boolean> {
   }
 
   const ffmpegPath = getFFmpegPath();
-  
+
   // FFmpeg arguments for merging
   const args = [
-    '-i', videoPath,      // Input video
-    '-i', audioPath,      // Input audio
-    '-c:v', 'copy',       // Copy video codec (no re-encoding)
-    '-c:a', 'copy',       // Copy audio codec (no re-encoding)
-    '-map', '0:v:0',      // Map video stream from first input
-    '-map', '1:a:0',      // Map audio stream from second input
-    '-movflags', '+faststart',  // Optimize for streaming
-    '-y',                 // Overwrite output
-    outputPath
+    '-i',
+    videoPath, // Input video
+    '-i',
+    audioPath, // Input audio
+    '-c:v',
+    'copy', // Copy video codec (no re-encoding)
+    '-c:a',
+    'copy', // Copy audio codec (no re-encoding)
+    '-map',
+    '0:v:0', // Map video stream from first input
+    '-map',
+    '1:a:0', // Map audio stream from second input
+    '-movflags',
+    '+faststart', // Optimize for streaming
+    '-y', // Overwrite output
+    outputPath,
   ];
 
   console.log(`🎬 Merging video and audio: ${path.basename(outputPath)}`);
@@ -91,7 +101,7 @@ export async function mergeVideoAudio(options: MergeOptions): Promise<boolean> {
 
     ffmpeg.stderr.on('data', (data) => {
       const output = data.toString();
-      
+
       // Parse duration
       const durationMatch = output.match(/Duration: (\d{2}):(\d{2}):(\d{2})/);
       if (durationMatch) {
@@ -108,7 +118,7 @@ export async function mergeVideoAudio(options: MergeOptions): Promise<boolean> {
         const minutes = parseInt(timeMatch[2]);
         const seconds = parseInt(timeMatch[3]);
         currentTime = hours * 3600 + minutes * 60 + seconds;
-        
+
         const progress = Math.min(100, (currentTime / duration) * 100);
         onProgress?.(progress);
       }
@@ -117,7 +127,7 @@ export async function mergeVideoAudio(options: MergeOptions): Promise<boolean> {
     ffmpeg.on('close', (code) => {
       if (code === 0) {
         console.log(`✅ Successfully merged: ${path.basename(outputPath)}`);
-        
+
         // Clean up temporary files
         try {
           fs.unlinkSync(videoPath);
@@ -126,7 +136,7 @@ export async function mergeVideoAudio(options: MergeOptions): Promise<boolean> {
         } catch (error) {
           console.warn('Could not clean up temporary files:', error);
         }
-        
+
         onComplete?.();
         resolve(true);
       } else {
@@ -148,42 +158,46 @@ export async function mergeVideoAudio(options: MergeOptions): Promise<boolean> {
 /**
  * Find and merge orphaned video/audio file pairs
  */
-export async function findAndMergeOrphans(downloadPath: string): Promise<string[]> {
+export async function findAndMergeOrphans(
+  downloadPath: string,
+): Promise<string[]> {
   const merged: string[] = [];
-  
+
   try {
     const files = fs.readdirSync(downloadPath);
-    
+
     // Look for file pairs with format IDs (e.g., video.f137.mp4 and video.f140.m4a)
-    const videoFiles = files.filter(f => f.match(/\.f\d+\.(mp4|webm|mkv)$/));
-    const audioFiles = files.filter(f => f.match(/\.f\d+\.(m4a|webm|opus|aac)$/));
-    
+    const videoFiles = files.filter((f) => f.match(/\.f\d+\.(mp4|webm|mkv)$/));
+    const audioFiles = files.filter((f) =>
+      f.match(/\.f\d+\.(m4a|webm|opus|aac)$/),
+    );
+
     for (const videoFile of videoFiles) {
       // Extract base name without format ID
       const baseName = videoFile.replace(/\.f\d+\.\w+$/, '');
-      
+
       // Find matching audio file
-      const matchingAudio = audioFiles.find(a => a.startsWith(baseName));
-      
+      const matchingAudio = audioFiles.find((a) => a.startsWith(baseName));
+
       if (matchingAudio) {
         const videoPath = path.join(downloadPath, videoFile);
         const audioPath = path.join(downloadPath, matchingAudio);
         const outputPath = path.join(downloadPath, `${baseName}.mp4`);
-        
+
         // Skip if output already exists
         if (fs.existsSync(outputPath)) {
           continue;
         }
-        
+
         console.log(`🔍 Found orphaned pair: ${videoFile} + ${matchingAudio}`);
-        
+
         const success = await mergeVideoAudio({
           videoPath,
           audioPath,
           outputPath,
           onProgress: (p) => console.log(`Progress: ${p.toFixed(1)}%`),
         });
-        
+
         if (success) {
           merged.push(outputPath);
         }
@@ -192,7 +206,7 @@ export async function findAndMergeOrphans(downloadPath: string): Promise<string[
   } catch (error) {
     console.error('Error scanning for orphans:', error);
   }
-  
+
   return merged;
 }
 
@@ -201,7 +215,7 @@ export async function findAndMergeOrphans(downloadPath: string): Promise<string[
  */
 export function configureYTDLPFFmpeg(ytdlpModule: any): void {
   const ffmpegPath = getFFmpegPath();
-  
+
   if (ytdlpModule?.Config) {
     ytdlpModule.Config.ffmpegPath = ffmpegPath;
     console.log(`📦 Configured yt-dlp to use FFmpeg at: ${ffmpegPath}`);

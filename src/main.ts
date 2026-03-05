@@ -26,7 +26,10 @@ import os from 'os';
 import path from 'path';
 import { checkForUpdates } from './DataFunctions/updateChecker';
 import { initializeYTDLP, ensureYTDLPBinary } from './Utils/ytdlpWrapper';
-import { checkSystemFFmpeg, copySystemFFmpegToApp } from './Utils/ffmpegDownloader';
+import {
+  checkSystemFFmpeg,
+  copySystemFFmpegToApp,
+} from './Utils/ffmpegDownloader';
 
 // Lazy-load YTDLP to prevent file system errors
 let YTDLP: any = null;
@@ -34,42 +37,45 @@ let YTDLP: any = null;
 // Configure FFmpeg binary for production
 async function setupFFmpegBinary() {
   const ffmpegName = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
-  
+
   // In production, use app's user data directory which is writable
   // In development, use system FFmpeg
   if (app.isPackaged) {
     const targetDir = app.getPath('userData');
     const expectedPath = path.join(targetDir, ffmpegName);
-    
+
     // Determine architecture-specific FFmpeg binary
     const arch = process.arch;
     const ffmpegResourceName = arch === 'arm64' ? 'ffmpeg-arm64' : 'ffmpeg-x64';
     const sourcePath = path.join(process.resourcesPath, ffmpegResourceName);
-    
+
     console.log('Setting up FFmpeg binary for production...');
     console.log(`Architecture: ${arch}`);
     console.log('Source path:', sourcePath);
     console.log('Target path:', expectedPath);
-    
+
     // First, check if we have a local copy
     if (existsSync(expectedPath)) {
       console.log('FFmpeg binary already exists at:', expectedPath);
       process.env.FFMPEG_PATH = expectedPath;
       return;
     }
-    
+
     // Check if FFmpeg exists in resources (bundled with app)
     if (existsSync(sourcePath)) {
       try {
         // Copy the binary to the user data location
         fs.copyFileSync(sourcePath, expectedPath);
-        
+
         // Make it executable on Unix systems
         if (process.platform !== 'win32') {
           fs.chmodSync(expectedPath, 0o755);
         }
-        
-        console.log('✅ FFmpeg binary copied from bundled resources to:', expectedPath);
+
+        console.log(
+          '✅ FFmpeg binary copied from bundled resources to:',
+          expectedPath,
+        );
         process.env.FFMPEG_PATH = expectedPath;
         return;
       } catch (error) {
@@ -89,14 +95,14 @@ async function setupFFmpegBinary() {
     } else {
       console.warn(`⚠️ Bundled FFmpeg not found at: ${sourcePath}`);
     }
-    
+
     // Fallback: Try to find system FFmpeg (should not be needed with bundled binaries)
     console.log('Checking for system FFmpeg as fallback...');
     const systemFFmpeg = await checkSystemFFmpeg();
-    
+
     if (systemFFmpeg) {
       console.log('✅ Found system FFmpeg at:', systemFFmpeg);
-      
+
       // Try to copy system FFmpeg to app directory for faster access
       const copied = await copySystemFFmpegToApp();
       if (copied && existsSync(expectedPath)) {
@@ -109,8 +115,12 @@ async function setupFFmpegBinary() {
       }
     } else {
       console.error('❌ Critical: FFmpeg not found in bundle or system!');
-      console.error('The app bundle should include FFmpeg. This is a build issue.');
-      console.error('Downloads will likely fail to merge video and audio streams.');
+      console.error(
+        'The app bundle should include FFmpeg. This is a build issue.',
+      );
+      console.error(
+        'Downloads will likely fail to merge video and audio streams.',
+      );
       // Set a fallback path anyway
       process.env.FFMPEG_PATH = 'ffmpeg';
     }
@@ -119,18 +129,24 @@ async function setupFFmpegBinary() {
     const arch = process.arch;
     const devBinaryName = arch === 'arm64' ? 'ffmpeg-arm64' : 'ffmpeg-x64';
     const devBinaryPath = path.join(__dirname, 'binaries', devBinaryName);
-    
+
     if (existsSync(devBinaryPath)) {
       process.env.FFMPEG_PATH = devBinaryPath;
-      console.log('✅ Development mode: using bundled FFmpeg at:', devBinaryPath);
+      console.log(
+        '✅ Development mode: using bundled FFmpeg at:',
+        devBinaryPath,
+      );
     } else {
       // Fallback to system FFmpeg in development
       const systemFFmpeg = await checkSystemFFmpeg();
       process.env.FFMPEG_PATH = systemFFmpeg || 'ffmpeg';
-      console.log('Development mode: using system FFmpeg at:', process.env.FFMPEG_PATH);
+      console.log(
+        'Development mode: using system FFmpeg at:',
+        process.env.FFMPEG_PATH,
+      );
     }
   }
-  
+
   console.log('FFmpeg configured at:', process.env.FFMPEG_PATH);
 }
 
@@ -138,13 +154,11 @@ async function setupFFmpegBinary() {
 function setupYTDLPBinary() {
   const binaryName =
     process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp_macos';
-  
+
   // In production, use app's user data directory which is writable
   // In development, use current working directory
-  const targetDir = app.isPackaged
-    ? app.getPath('userData')
-    : process.cwd();
-    
+  const targetDir = app.isPackaged ? app.getPath('userData') : process.cwd();
+
   const expectedPath = path.join(targetDir, binaryName);
 
   if (app.isPackaged) {
@@ -164,7 +178,7 @@ function setupYTDLPBinary() {
         if (!existsSync(userDataDir)) {
           fs.mkdirSync(userDataDir, { recursive: true });
         }
-        
+
         // Copy the binary to the user data location if it doesn't exist or is outdated
         if (!existsSync(expectedPath)) {
           fs.copyFileSync(sourcePath, expectedPath);
@@ -179,7 +193,7 @@ function setupYTDLPBinary() {
           // Check if source is newer than target (for updates)
           const sourceStats = fs.statSync(sourcePath);
           const targetStats = fs.statSync(expectedPath);
-          
+
           if (sourceStats.mtime > targetStats.mtime) {
             fs.copyFileSync(sourcePath, expectedPath);
             if (process.platform !== 'win32') {
@@ -190,17 +204,19 @@ function setupYTDLPBinary() {
             console.log('YTDLP binary already up-to-date at:', expectedPath);
           }
         }
-        
+
         // Update YTDLP configuration to use the correct path
         process.env.YTDLP_PATH = expectedPath;
-        
       } catch (error) {
         console.error('Failed to copy YTDLP binary:', error);
-        
+
         // Fallback: try to use the binary directly from resources
         if (existsSync(sourcePath)) {
           process.env.YTDLP_PATH = sourcePath;
-          console.log('Using YTDLP binary directly from resources:', sourcePath);
+          console.log(
+            'Using YTDLP binary directly from resources:',
+            sourcePath,
+          );
         }
       }
     } else {
@@ -247,7 +263,7 @@ app.whenReady().then(async () => {
   try {
     // Setup FFmpeg binary first (needed for merging)
     await setupFFmpegBinary();
-    
+
     // Setup additional binary configuration
     setupYTDLPBinary();
 
@@ -317,6 +333,13 @@ function getCachedVersion(): string | null {
 
 // Function to create the main application window
 const createWindow = () => {
+  // If window already exists and isn't destroyed, just show it
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show();
+    mainWindow.focus();
+    return;
+  }
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 1350,
@@ -865,18 +888,46 @@ ipcMain.handle('getAppInfo', async () => {
   }
 });
 
-function getCpuUsagePercent() {
-  const startTime = process.hrtime();
-  const startUsage = process.cpuUsage();
+// Check if app is packaged (dev/prod detection)
+ipcMain.handle('check-app-packaged', () => {
+  return app.isPackaged;
+});
 
-  // Simulate some work or wait for a short interval
-  const now = Date.now();
-  while (Date.now() - now < 500) {
-    /* spin the CPU for 500ms */
+// Enhanced FFmpeg status checking
+ipcMain.handle('check-ffmpeg-status', async () => {
+  try {
+    const ffmpegPath = process.env.FFMPEG_PATH || 'ffmpeg';
+    const exists = fs.existsSync(ffmpegPath);
+
+    // If it's just 'ffmpeg' (not a full path), we need to check if it's in PATH
+    let available = false;
+    if (exists) {
+      available = true;
+    } else if (ffmpegPath === 'ffmpeg') {
+      const systemFFmpeg = await checkSystemFFmpeg();
+      available = !!systemFFmpeg;
+    }
+
+    return {
+      available,
+      path: ffmpegPath,
+      version: available ? 'Available' : 'Not found',
+    };
+  } catch (error) {
+    console.error('Error checking FFmpeg status:', error);
+    return { available: false, error: error.message };
   }
+});
 
-  const elapTime = process.hrtime(startTime);
+async function getCpuUsagePercent() {
+  const startUsage = process.cpuUsage();
+  const startTime = process.hrtime();
+
+  // Wait for 100ms without blocking the event loop
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
   const elapUsage = process.cpuUsage(startUsage);
+  const elapTime = process.hrtime(startTime);
 
   const elapTimeMS = elapTime[0] * 1000 + elapTime[1] / 1000000;
   const elapUserMS = elapUsage.user / 1000;
@@ -888,7 +939,7 @@ function getCpuUsagePercent() {
 
 ipcMain.handle('getPerformanceMetrics', async () => {
   try {
-    const cpuUsage = getCpuUsagePercent();
+    const cpuUsage = await getCpuUsagePercent();
     return {
       cpu_usage: cpuUsage,
     };
@@ -1003,6 +1054,15 @@ ipcMain.handle('file-exists', async (_event, path) => {
   return existsSync(path);
 });
 
+// Validates if a path exists
+ipcMain.handle('isValidPath', async (_event, filePath) => {
+  try {
+    return existsSync(filePath);
+  } catch (error) {
+    return false;
+  }
+});
+
 // Function for opening video
 ipcMain.handle('openVideo', async (event, filePath) => {
   shell.openPath(filePath);
@@ -1057,6 +1117,65 @@ ipcMain.handle('deleteFolder', async (event, filepath) => {
   }
 });
 
+// Reset Application Data functionality
+ipcMain.handle('reset-app-data', async () => {
+  try {
+    console.log('🧹 Resetting application data...');
+    const userDataPath = app.getPath('userData');
+
+    // Stop all active conversions
+    for (const [id, conversion] of activeConversions.entries()) {
+      if (conversion.process) {
+        console.log(`🛑 Stopping conversion ${id} for reset`);
+        conversion.status = 'stopped';
+        conversion.process.kill('SIGKILL');
+      }
+    }
+    activeConversions.clear();
+
+    // Close the main window first if it exists
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.hide();
+    }
+
+    // Give some time for file handles to close
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Get all items in userData
+    const items = fs.readdirSync(userDataPath);
+
+    for (const item of items) {
+      // Don't delete the app itself or its binaries if they are in this path (unlikely but safe)
+      if (item === 'Downlodr' || item === 'Downlodr.exe') continue;
+
+      const itemPath = path.join(userDataPath, item);
+
+      try {
+        const stats = fs.statSync(itemPath);
+        if (stats.isDirectory()) {
+          fs.rmSync(itemPath, { recursive: true, force: true });
+        } else {
+          fs.unlinkSync(itemPath);
+        }
+        console.log(`🗑️ Deleted: ${item}`);
+      } catch (err) {
+        console.error(`Failed to delete ${itemPath}:`, err);
+      }
+    }
+
+    console.log('✅ Application data cleared. Relaunching...');
+
+    // Relaunch the app
+    app.relaunch();
+    app.exit(0);
+
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Failed to reset application data:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // adjust pathname to ensure its safe
 ipcMain.handle('normalizePath', async (event, filepath) => {
   try {
@@ -1076,10 +1195,10 @@ ipcMain.handle('ytdlp:playlist:info', async (e, videoUrl) => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     // Ensure YTDLP binary is set up before getting playlist info
     setupYTDLPBinary();
-    
+
     // Configure YTDLP to use the correct binary path
     if (process.env.YTDLP_PATH) {
       YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
@@ -1104,12 +1223,12 @@ ipcMain.handle('ytdlp:info', async (e, url) => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     YTDLP.Config.log = true;
-    
+
     // Ensure YTDLP binary is set up before getting info
     setupYTDLPBinary();
-    
+
     // Configure YTDLP to use the correct binary path
     if (process.env.YTDLP_PATH) {
       YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
@@ -1133,10 +1252,10 @@ ipcMain.handle('ytdlp:getCurrentVersion', async () => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     // Ensure YTDLP binary is set up before checking version
     setupYTDLPBinary();
-    
+
     // Configure YTDLP to use the correct binary path
     if (process.env.YTDLP_PATH) {
       YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
@@ -1178,12 +1297,12 @@ ipcMain.handle('ytdlp:getLatestVersion', async () => {
 
     // Make the API call
     lastGitHubApiCall = Date.now();
-    
+
     // Ensure YTDLP is initialized
     if (!YTDLP) {
       YTDLP = initializeYTDLP();
     }
-    
+
     const response = await YTDLP.getLatestYTDLPVersionFromGitHub();
 
     // Cache the result if successful
@@ -1223,7 +1342,7 @@ ipcMain.handle('ytdlp:checkAndUpdate', async () => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     // Ensure YTDLP binary is set up before checking version
     setupYTDLPBinary();
 
@@ -1273,12 +1392,12 @@ ipcMain.handle('ytdlp:checkAndUpdate', async () => {
 
     if (!currentVersion) {
       console.log('YT-DLP not found. Downloading latest version...');
-      
+
       // Ensure YTDLP is initialized
       if (!YTDLP) {
         YTDLP = initializeYTDLP();
       }
-      
+
       await YTDLP.downloadYTDLP();
       return {
         success: true,
@@ -1294,12 +1413,12 @@ ipcMain.handle('ytdlp:checkAndUpdate', async () => {
 
     if (latestVersion && currentVersion !== latestVersion) {
       console.log('Updating YT-DLP to latest version...');
-      
+
       // Ensure YTDLP is initialized
       if (!YTDLP) {
         YTDLP = initializeYTDLP();
       }
-      
+
       await YTDLP.downloadYTDLP({
         version: latestVersion,
         forceDownload: true,
@@ -1338,7 +1457,7 @@ ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
   try {
     // Ensure YTDLP binary is set up first
     setupYTDLPBinary();
-    
+
     // Configure YTDLP to use the correct binary path
     if (process.env.YTDLP_PATH) {
       YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
@@ -1391,7 +1510,7 @@ ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     await YTDLP.downloadYTDLP(downloadOptions);
     return { success: true };
   } catch (error) {
@@ -1408,7 +1527,7 @@ async function killControllerById(id: any) {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     const controller = YTDLP.getTerminalFromID(id);
 
     if (controller) {
@@ -1430,7 +1549,7 @@ ipcMain.handle('ytdlp:stop', async (e, id: string) => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     const terminal = YTDLP.getTerminalFromID(id);
     if (!terminal) {
       return false;
@@ -1454,10 +1573,10 @@ ipcMain.handle('ytdlp:download', async (e, id, args) => {
     if (!YTDLP) {
       YTDLP = await initializeYTDLP();
     }
-    
+
     // Ensure YTDLP binary is set up before downloading
     setupYTDLPBinary();
-    
+
     // Configure YTDLP to use the correct binary path
     if (process.env.YTDLP_PATH) {
       YTDLP.Config.ytdlpPath = process.env.YTDLP_PATH;
@@ -1606,49 +1725,91 @@ ipcMain.handle('stop-clipboard-monitoring', () => {
 
 // check if clipboard monitoring is active
 ipcMain.handle('check-clipboard-monitoring', () => {
-  return isClipboardMonitoring;
+  return isMonitoring;
+});
+
+// Alias for clipboard monitoring to match preload name
+ipcMain.handle('is-clipboard-monitoring-active', () => {
+  return isMonitoring;
+});
+
+// Activity indicator handlers
+ipcMain.handle('start-activity-indicator', () => {
+  return true;
+});
+
+ipcMain.handle('stop-activity-indicator', () => {
+  return true;
+});
+
+// Telemetry consent handlers
+ipcMain.handle('telemetry-consent-required', () => {
+  return false;
+});
+
+ipcMain.handle('telemetry-consent-completed', () => {
+  return true;
+});
+
+// Auto-launch handlers
+ipcMain.handle('set-auto-launch', (_event, _enabled) => {
+  return true;
+});
+
+ipcMain.handle('get-auto-launch', () => {
+  return false;
 });
 
 // Manual merge handler for troubleshooting
 ipcMain.handle('merge-video-audio', async (event, options) => {
   const { videoPath, audioPath, outputPath } = options;
-  
+
   try {
     const { spawn } = await import('child_process');
-    const ffmpegPath = process.env.FFMPEG_PATH || 
+    const ffmpegPath =
+      process.env.FFMPEG_PATH ||
       (process.platform === 'darwin' ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg');
-    
+
     console.log(`🎬 Manual merge requested: ${path.basename(outputPath)}`);
-    
+
     return new Promise((resolve) => {
       const ffmpeg = spawn(ffmpegPath, [
-        '-i', videoPath,
-        '-i', audioPath,
-        '-c:v', 'copy',
-        '-c:a', 'copy',
-        '-map', '0:v:0',
-        '-map', '1:a:0',
-        '-movflags', '+faststart',
+        '-i',
+        videoPath,
+        '-i',
+        audioPath,
+        '-c:v',
+        'copy',
+        '-c:a',
+        'copy',
+        '-map',
+        '0:v:0',
+        '-map',
+        '1:a:0',
+        '-movflags',
+        '+faststart',
         '-y',
-        outputPath
+        outputPath,
       ]);
-      
+
       let errorOutput = '';
-      
+
       ffmpeg.stderr.on('data', (data) => {
         errorOutput += data.toString();
       });
-      
+
       ffmpeg.on('close', (code) => {
         if (code === 0) {
-          console.log(`✅ Manual merge successful: ${path.basename(outputPath)}`);
+          console.log(
+            `✅ Manual merge successful: ${path.basename(outputPath)}`,
+          );
           resolve({ success: true, outputPath });
         } else {
           console.error(`❌ Manual merge failed with code ${code}`);
           resolve({ success: false, error: errorOutput });
         }
       });
-      
+
       ffmpeg.on('error', (error) => {
         console.error('❌ FFmpeg error:', error.message);
         resolve({ success: false, error: error.message });
@@ -2045,10 +2206,12 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  } else {
-    mainWindow?.show();
+  if (app.isReady()) {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    } else {
+      mainWindow?.show();
+    }
   }
 
   // Reset the tray icon when the app is activated
@@ -2265,7 +2428,7 @@ ipcMain.handle('convert-file', async (event, options) => {
     targetFormat,
     keepOriginal,
     downloadName,
-    saveToCustomLocation,
+    // saveToCustomLocation,
   } = options;
 
   try {
@@ -2274,7 +2437,8 @@ ipcMain.handle('convert-file', async (event, options) => {
     );
 
     // Check if FFmpeg is available - use configured path
-    const ffmpegPath = process.env.FFMPEG_PATH || 
+    const ffmpegPath =
+      process.env.FFMPEG_PATH ||
       (process.platform === 'darwin' ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg');
 
     // Generate output path
@@ -2336,8 +2500,23 @@ ipcMain.handle('convert-file', async (event, options) => {
         const timeMatch = output.match(/time=(\d{2}):(\d{2}):(\d{2})/);
         if (timeMatch) {
           // Update progress (simplified - would need duration to calculate percentage)
-          conversionProcess.progress += 5; // Increment by 5% per time update
-          console.log(`⏳ Conversion progress: ${conversionProcess.progress}%`);
+          // Increment by a small amount each time we get an update from FFmpeg
+          // Limit to 95% to leave room for the final completion message
+          if (conversionProcess.progress < 95) {
+            conversionProcess.progress += 1;
+          }
+
+          // Send update to renderer so progress bar and speed graph can update
+          if (mainWindow) {
+            mainWindow.webContents.send(`ytdlp:download:status:${downloadId}`, {
+              type: 'conversion',
+              data: {
+                status: 'converting',
+                progress: conversionProcess.progress,
+                log: `Conversion progress: ${conversionProcess.progress}%`,
+              },
+            });
+          }
         }
       });
 
@@ -2345,8 +2524,13 @@ ipcMain.handle('convert-file', async (event, options) => {
         const conversion = activeConversions.get(downloadId);
 
         // Check if this was an intentional pause or stop
-        if (conversion && (conversion.status === 'paused' || conversion.status === 'stopped')) {
-          console.log(`⏸️ FFmpeg process closed due to ${conversion.status} for download ${downloadId}`);
+        if (
+          conversion &&
+          (conversion.status === 'paused' || conversion.status === 'stopped')
+        ) {
+          console.log(
+            `⏸️ FFmpeg process closed due to ${conversion.status} for download ${downloadId}`,
+          );
           // Don't delete from activeConversions for paused, don't resolve promise
           // The pause/stop handler already returned success
           // For pause, we keep the conversion in the map
@@ -2358,7 +2542,10 @@ ipcMain.handle('convert-file', async (event, options) => {
         if (isResolved) return;
 
         // Only delete if not intentionally paused/stopped
-        if (!conversion || (conversion.status !== 'paused' && conversion.status !== 'stopped')) {
+        if (
+          !conversion ||
+          (conversion.status !== 'paused' && conversion.status !== 'stopped')
+        ) {
           activeConversions.delete(downloadId);
         }
 
@@ -2410,8 +2597,13 @@ ipcMain.handle('convert-file', async (event, options) => {
         const conversion = activeConversions.get(downloadId);
 
         // Check if this was an intentional pause or stop
-        if (conversion && (conversion.status === 'paused' || conversion.status === 'stopped')) {
-          console.log(`⏸️ FFmpeg process error during ${conversion.status} (expected): ${error.message}`);
+        if (
+          conversion &&
+          (conversion.status === 'paused' || conversion.status === 'stopped')
+        ) {
+          console.log(
+            `⏸️ FFmpeg process error during ${conversion.status} (expected): ${error.message}`,
+          );
           // Don't resolve with error if this was a pause/stop
           return;
         }
@@ -2420,7 +2612,10 @@ ipcMain.handle('convert-file', async (event, options) => {
         if (isResolved) return;
 
         // Only delete if not intentionally paused/stopped
-        if (!conversion || (conversion.status !== 'paused' && conversion.status !== 'stopped')) {
+        if (
+          !conversion ||
+          (conversion.status !== 'paused' && conversion.status !== 'stopped')
+        ) {
           activeConversions.delete(downloadId);
         }
 
@@ -2463,7 +2658,7 @@ ipcMain.handle('pause-conversion', async (event, downloadId) => {
 
     // Mark as paused BEFORE killing the process to prevent race conditions
     conversion.status = 'paused';
-    
+
     // Kill the FFmpeg process but keep the conversion state
     try {
       if (conversion.process) {
@@ -2657,7 +2852,7 @@ ipcMain.handle('stop-conversion', async (event, downloadId) => {
 
     // Mark as stopped BEFORE killing the process to prevent race conditions
     conversion.status = 'stopped';
-    
+
     // Kill the FFmpeg process
     if (conversion.process) {
       try {

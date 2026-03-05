@@ -6,7 +6,7 @@
  * that are accessible in the renderer process.
  */
 import { FormatSelectorResult, MenuItem, PluginInfo, PluginManifest, PluginModalOptions, PluginSidePanelOptions, PluginSidePanelResult, TaskBarItem } from './plugins/types';
-import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult } from './Schema/downlodrFunction';
+import { SaveDialogOptions, SaveDialogResult, WriteFileOptions, WriteFileResult } from './schema/downlodrFunction';
 
 declare global {
   interface Window {
@@ -88,9 +88,9 @@ declare global {
       getThumbnailDataUrl: (path: string) => Promise<string | null>;
       getOSType: () => Promise<'windows' | 'macos' | 'linux' | string>; // Gets the current operating system type
       getPathSeparator: () => Promise<string>; // Gets the path separator for the current OS
+      resetAppData: () => Promise<{ success: boolean; error?: string }>; // Clears all user data and restarts
       // Enhanced FFmpeg status checking
-      checkFfmpegStatus: () => Promise<{
-        available: boolean;
+      checkFfmpegStatus: () => Promise<{        available: boolean;
         version?: string;
         path?: string;
         architecture?: string;

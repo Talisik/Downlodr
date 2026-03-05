@@ -648,6 +648,62 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               </div>
             </CollapsibleSection>
 
+            {/* Reset App Data Section */}
+            <div className="pt-3 pb-2">
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block text-red-600 dark:text-red-500 text-nowrap font-bold">
+                  Danger Zone
+                </label>
+                <hr className="flex-grow border-t-1 border-red-200 dark:border-red-900/30 ml-2" />
+              </div>
+
+              <div className="ml-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-medium dark:text-gray-200">
+                    Reset Application Data
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    This will clear all history, settings, and logs. The app
+                    will relaunch in a fresh state.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (
+                      window.confirm(
+                        'Are you sure you want to reset ALL application data? This cannot be undone and the app will relaunch immediately.',
+                      )
+                    ) {
+                      try {
+                        const result =
+                          await window.downlodrFunctions.resetAppData();
+                        if (result && !result.success) {
+                          toast({
+                            title: 'Reset Failed',
+                            description:
+                              result.error || 'Unknown error occurred',
+                            variant: 'destructive',
+                          });
+                        }
+                      } catch (err) {
+                        console.error('Failed to reset app data:', err);
+                        toast({
+                          title: 'Error',
+                          description:
+                            'An unexpected error occurred during reset.',
+                          variant: 'destructive',
+                        });
+                      }
+                    }
+                  }}
+                  className="h-8 px-3 text-xs font-medium border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                >
+                  Reset All Data
+                </button>
+              </div>
+            </div>
+
             {/* Collapsible column visibility section */}
             <CollapsibleSection
               title="Visible Columns"
