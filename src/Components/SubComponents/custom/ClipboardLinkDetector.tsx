@@ -1,5 +1,5 @@
 import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import useDownloadStore from '@/Store/downloadStore';
+import { useDownloadStore } from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import { cleanRawLink, extractUrlFromText } from '@/Utils/Data/urlValidation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -14,9 +14,7 @@ const ClipboardLinkDetector: React.FC = () => {
   const { toast } = useToast();
   const { setDownload } = useDownloadStore();
   const { settings, isDownloadModalOpen } = useMainStore();
-  const [downloadFolder, setDownloadFolder] = useState<string>(
-    settings.defaultLocation,
-  );
+  const [downloadFolder] = useState<string>(settings.defaultLocation);
   const maxDownload =
     settings.defaultDownloadSpeed === 0
       ? ''

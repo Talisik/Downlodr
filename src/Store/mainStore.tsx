@@ -11,6 +11,7 @@
 
 // Interface for download settings
 import { TaskBarButtonsVisibility } from '@/plugins/types';
+import { createIndexedDBStorageWithMigration } from '@/Utils/indexedDBStorage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
@@ -44,6 +45,7 @@ interface SelectedDownload {
 
 // Main interface for the main store
 interface MainStore {
+  getSelectedWithStatusCount: () => number;
   settings: DownloadSettings; // Current download settings
   selectedDownloads: SelectedDownload[]; // List of currently selected downloads
   isDownloadModalOpen: boolean; // Add new state for download modal
@@ -300,7 +302,10 @@ export const useMainStore = create<MainStore>()(
       selectedRows: [] as string[],
       setSelectedRows: (rows) => set({ selectedRows: rows }),
       clearSelectedRows: () => set({ selectedRows: [] }),
-
+      getSelectedWithStatusCount: () =>
+        get().selectedRowIds.filter((id) =>
+          get().selectedDownloads.some((d) => d.id === id && d.status),
+        ).length,
       selectedRowIds: [] as string[],
       setSelectedRowIds: (rows) =>
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -367,7 +372,14 @@ export const useMainStore = create<MainStore>()(
     {
       name: 'download-settings-storage', // Name of the storage
       version: MAIN_STORE_VERSION, // version tracking
-      storage: createJSONStorage(() => localStorage), // Use local storage for persistence
+      storage: createJSONStorage(() =>
+        createIndexedDBStorageWithMigration({
+          dbName: 'downlodr-main-database',
+          storeName: 'main-storage',
+          version: MAIN_STORE_VERSION,
+          localStorageKey: 'download-settings-storage', // Migrate existing localStorage data
+        }),
+      ), // Use IndexedDB with automatic localStorage migration
       migrate: migrateMainStore, // migration function
       // Exclude temporary session state from persistence
       partialize: (state) => ({

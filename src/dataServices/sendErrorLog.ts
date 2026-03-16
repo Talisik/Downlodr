@@ -1,20 +1,9 @@
-import { POST } from '@/Hooks/useAxios';
-import { TelemetryPayload } from '@/Utils/Telemetry/telemetryTypes';
-import { config } from '../config';
+/**
+ * Backward compatibility wrapper for sendErrorLog
+ *
+ * DEPRECATED: Use @/services/api/telemetryApiService instead
+ *
+ * This file re-exports the new service to maintain backward compatibility.
+ */
 
-const useSendErrorLog = async (payload: TelemetryPayload): Promise<boolean> => {
-  // console.log(payload);
-
-  const response = await POST({
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    url: config.telemetry.endpoint,
-    data: payload,
-  });
-  return true;
-
-  // return true;
-};
-
-export default useSendErrorLog;
+export { sendTelemetryData as default } from '@/services/api/telemetryApiService';

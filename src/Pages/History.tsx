@@ -9,7 +9,7 @@
 import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import useDownloadStore from '@/Store/downloadStore';
+import { HistoryDownloads, useDownloadStore } from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import { getExtractorIcon } from '@/Utils/Icons/IconMapper';
 import React, { useEffect, useRef, useState } from 'react';
@@ -22,6 +22,7 @@ import { VscPlayCircle } from 'react-icons/vsc';
 interface HistoryDownload {
   id: string;
   name: string;
+  displayName: string;
   location: string;
   videoUrl: string;
   DateAdded: string;
@@ -39,7 +40,7 @@ const History = () => {
   // get settings from MainStore
   const { settings } = useMainStore();
   // values of longs are based on historical logs
-  const [logs, setLogs] = useState<HistoryDownload[]>(historyDownloads);
+  const [logs, setLogs] = useState<HistoryDownloads[]>(historyDownloads);
   // handle selected states
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const setSelectedDownloads = useMainStore(
@@ -355,7 +356,9 @@ const History = () => {
                     ? 'bg-blue-50 dark:bg-gray-600'
                     : 'dark:bg-darkMode'
                 }`}
-                  onContextMenu={(e) => handleRowClick(e, product)}
+                  onContextMenu={(e) =>
+                    handleRowClick(e, product as HistoryDownload)
+                  }
                   onClick={(e) => {
                     e.stopPropagation();
                     handleCheckboxChange(product.id);
@@ -376,7 +379,7 @@ const History = () => {
                     <div className="line-clamp-2 break-words flex justify-start items-start">
                       <div>
                         <TooltipWrapper
-                          content={product.name}
+                          content={product.displayName || product.name}
                           side="bottom"
                           contentClassname="text-start justify-start"
                         >
@@ -388,7 +391,7 @@ const History = () => {
                                   : 'line-through text-gray-400 dark:text-gray-500'
                               } line-clamp-1 break-words break-all font-bold`}
                             >
-                              {product.name}
+                              {product.displayName || product.name}
                             </span>
                           </div>
                         </TooltipWrapper>

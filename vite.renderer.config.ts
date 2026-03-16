@@ -32,6 +32,9 @@ export default defineConfig(({ mode }) => {
       __TELEMETRY_RETRY_ATTEMPTS__: JSON.stringify(
         env.VITE_TELEMETRY_RETRY_ATTEMPTS || '3',
       ),
+      __TELEMETRY_SCHEMA_URL__: JSON.stringify(
+        env.VITE_TELEMETRY_SCHEMA_URL || 'https://endpoint',
+      ),
     },
   };
 });

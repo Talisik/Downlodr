@@ -173,11 +173,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setEnableClipboardMonitoring(settings.enableClipboardMonitoring ?? false);
     setDontShowAppUpdates(settings.dontShowAppUpdates ?? false);
     setDontShowPluginUpdates(settings.dontShowPluginUpdates ?? false);
+    // Sync downloadLocation when it gets populated by store rehydration
+    setDownloadLocation(settings.defaultLocation);
   }, [
     settings.runInBackground,
     settings.enableClipboardMonitoring,
     settings.dontShowAppUpdates,
     settings.dontShowPluginUpdates,
+    settings.defaultLocation,
   ]);
 
   // Column options with required flag
@@ -189,7 +192,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     { id: 'name', label: 'Title', required: true },
     { id: 'dateAdded', label: 'Date Added', required: false },
     { id: 'transcript', label: 'Closed Caption', required: false },
-    { id: 'thumbnail', label: 'Thumbnail', required: false },
     { id: 'status', label: 'Status', required: true },
     { id: 'action', label: 'Action', required: true },
   ];

@@ -211,6 +211,7 @@ export interface Download {
 export interface DownloadOptions {
   name: string;
   downloadName?: string;
+  displayName?: string;
   size?: number;
   format?: string;
   location?: string;

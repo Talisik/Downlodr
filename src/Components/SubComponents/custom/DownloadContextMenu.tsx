@@ -35,7 +35,7 @@
 import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { usePluginState } from '@/plugins/Hooks/usePluginState';
 import { MenuItem } from '@/plugins/types';
-import useDownloadStore, { BaseDownload } from '@/Store/downloadStore';
+import { BaseDownload, useDownloadStore } from '@/Store/downloadStore';
 import { useMainStore } from '@/Store/mainStore';
 import { processFileName } from '@/Utils/Data/FilterName';
 import React, { useEffect, useState } from 'react';
@@ -109,9 +109,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   onRetry,
   onShowLog,
   onShowActivityTracker,
-  onStop,
-  onForceStart,
-  onRemove,
   onViewDownload,
   onAddTag,
   onRemoveTag,
@@ -396,6 +393,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       download.videoUrl || '',
       `${processedName}.${download.ext || ''}`,
       `${processedName}.${download.ext || ''}`,
+      download.displayName || '',
       download.size || 0,
       download.speed || '0 KB/s',
       download.channelName || '',

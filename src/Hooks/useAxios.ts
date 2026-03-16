@@ -1,27 +1,9 @@
-import type { AxiosResponse } from 'axios';
-import axios from 'axios';
-
-// Create axios instance
-const instance = axios.create({
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
 /**
- * Sends a POST request using the Axios instance.
+ * Backward compatibility wrapper for useAxios
  *
- * @param {Object} args - The arguments for the POST request.
- * @returns {Promise<AxiosResponse<R>>} The response from the server.
+ * DEPRECATED: Use @/services/api/httpClient instead
+ *
+ * This file re-exports the new HTTP client to maintain backward compatibility.
  */
-const POST = async <R>(args: any): Promise<AxiosResponse<R>> => {
-  return instance({
-    ...args,
-    method: 'POST',
-  });
-};
 
-export { instance, POST };
-// eslint-disable-next-line prettier/prettier
-
+export { POST, httpClient as instance } from '@/services/api/httpClient';

@@ -17,3 +17,8 @@
   !define MUI_INSTALLMODE_INSTALL_TEXT "Please confirm to install this software just for you."
   !define MUI_INSTALLMODE_INSTALLED "just for me"
 !macroend
+
+!macro customUnInstall
+  DetailPrint "Stopping background process..."
+  nsExec::ExecToStack 'taskkill /F /IM "Downlodr.exe" /T'
+!macroend

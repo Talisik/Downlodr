@@ -47,7 +47,7 @@ const AdditionalOptions = ({
           Additional Options
         </p>
 
-        <p className="text-sm text-darkModeDarkGray dark:text-darkModeLight">
+        <p className="text-xxs text-darkModeDarkGray dark:text-darkModeLight">
           Get the transcript and Thumbnail along with your download.
         </p>
 
@@ -61,8 +61,8 @@ const AdditionalOptions = ({
               onChange={(e) => setGetTranscript(e.target.checked)}
               style={{
                 ...(document.documentElement.classList.contains('dark') && {
-                  backgroundColor: getTranscript ? '#D4D4D8' : '#09090B',
-                  borderColor: getTranscript ? '#D4D4D8' : '#27272ACC',
+                  backgroundColor: getTranscript ? '#F45513' : '#09090B',
+                  borderColor: getTranscript ? '#F45513' : '#27272ACC',
                   accentColor: '#ffffff',
                 }),
               }}
@@ -83,8 +83,8 @@ const AdditionalOptions = ({
               onChange={(e) => setGetThumbnail(e.target.checked)}
               style={{
                 ...(document.documentElement.classList.contains('dark') && {
-                  backgroundColor: getThumbnail ? '#D4D4D8' : '#09090B',
-                  borderColor: getThumbnail ? '#D4D4D8' : '#27272ACC',
+                  backgroundColor: getThumbnail ? '#F45513' : '#09090B',
+                  borderColor: getThumbnail ? '#F45513' : '#27272ACC',
                   accentColor: '#ffffff',
                 }),
               }}
@@ -122,7 +122,7 @@ const AdditionalOptions = ({
             <PlaylistSkeleton />
           ) : (
             <div className="video-section">
-              <div className="sticky top-0 bg-white dark:bg-darkModeDropdown pb-4 z-10">
+              <div className="sticky top-0 bg-white dark:bg-darkModeDropdown pb-4 z-10 mt-1">
                 <div className="select-all flex items-center justify-between">
                   <div className="select-all flex items-center">
                     <Input
@@ -131,21 +131,21 @@ const AdditionalOptions = ({
                       checked={selectAll}
                       onChange={handleSelectAll}
                       style={{
-                        width: 15,
-                        height: 15,
-                        marginBottom: 0.5,
                         ...(document.documentElement.classList.contains(
                           'dark',
                         ) && {
-                          backgroundColor: selectAll ? '#D4D4D8' : '#09090B',
-                          borderColor: selectAll ? '#D4D4D8' : '#27272ACC',
+                          backgroundColor: selectAll ? '#F45513' : '#09090B',
+                          borderColor: selectAll ? '#F45513' : '#27272ACC',
+                          accentColor: '#ffffff',
                         }),
                       }}
                       className="mr-2"
                     />
                     <label htmlFor={`select-all`}>
-                      <p className="w-6/7 dark:text-darkModeLight font-medium px-2">
-                        {videoTitle}
+                      <p className="dark:text-darkModeLight font-medium px-2">
+                        {videoTitle.length > 50
+                          ? `${videoTitle.slice(0, 50)}...`
+                          : videoTitle}
                       </p>
                     </label>
                   </div>
@@ -170,10 +170,10 @@ const AdditionalOptions = ({
                           'dark',
                         ) && {
                           backgroundColor: selectedVideos.has(video.id)
-                            ? '#D4D4D8'
+                            ? '#F45513'
                             : '#09090B',
                           borderColor: selectedVideos.has(video.id)
-                            ? '#D4D4D8'
+                            ? '#F45513'
                             : '#27272ACC',
                           accentColor: '#ffffff',
                         }),
@@ -187,10 +187,10 @@ const AdditionalOptions = ({
                     />
                     <div className="flex-1 min-w-0">
                       <label htmlFor={`select-all-${video.id}`}>
-                        <h1 className="font-medium dark:text-darkModeLight truncate break-all">
+                        <h1 className="text-xs font-medium dark:text-darkModeLight truncate break-all">
                           {video.title}
                         </h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="text-xxs text-gray-500 dark:text-gray-400">
                           {video.channel}
                         </p>
                       </label>

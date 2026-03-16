@@ -14,12 +14,12 @@
  *
  */
 import AboutModal from '@/Components/Main/Modal/AboutModal';
-import AdvancedSettingsModal from '@/Components/Main/Modal/AdvancedSettingsModal';
 import HelpModal from '@/Components/Main/Modal/HelpModal';
 import SettingsModal from '@/Components/Main/Modal/SettingsModal';
+import { ToastAction } from '@/Components/SubComponents/shadcn/components/ui/toast';
 import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { DownloadItem } from '@/Schema/componentSchema';
-import useDownloadStore, { HistoryDownloads } from '@/Store/downloadStore';
+import { HistoryDownloads, useDownloadStore } from '@/Store/downloadStore';
 import { useTaskbarDownloadStore } from '@/Store/taskbarDownloadStore';
 import { useEffect, useRef, useState } from 'react';
 import { AiOutlineExclamationCircle } from 'react-icons/ai';
@@ -35,11 +35,8 @@ const DropdownBar = ({ className }: { className?: string }) => {
     'file' | 'help' | 'help2' | null
   >(null);
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
-  const [isDownloadModalOpen, setDownloadModalOpen] = useState(false);
   const [isAboutModalOpen, setAboutModalOpen] = useState(false);
   const [isHelpModalOpen, setHelpModalOpen] = useState(false);
-  const [isAdvancedSettingsModalOpen, setAdvancedSettingsModalOpen] =
-    useState(false); // Misc
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -115,6 +112,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
           extractorKey: download.extractorKey,
           status: download.status,
           download: {
+            displayName: download.displayName || '',
             ...download,
           },
         };
@@ -129,6 +127,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
         title: 'Error Opening File',
         description: error?.message || String(error) || 'Failed to open file',
         duration: 5000,
+        expandable: true,
       });
     }
 
@@ -156,15 +155,54 @@ const DropdownBar = ({ className }: { className?: string }) => {
   }, []);
 
   const handleCheckForUpdates = async () => {
+    // Show connection checking toast
+    toast({
+      title: 'Checking connection',
+      description: 'Verifying internet connectivity...',
+      duration: 5500, // Slightly longer than the 5s timeout
+    });
+
+    const hasInternet =
+      await window.downlodrFunctions.checkInternetConnection();
+
+    if (!hasInternet) {
+      toast({
+        variant: 'destructive',
+        title: 'No internet connection',
+        description: `Please check your internet connection and try again`,
+        duration: 5000,
+        action: (
+          <ToastAction
+            altText="Retry connection check"
+            onClick={handleCheckForUpdates}
+          >
+            Retry
+          </ToastAction>
+        ),
+      });
+      setActiveMenu(null);
+      return;
+    }
+
+    console.log(hasInternet);
     toast({
       title: 'Checking for updates',
       description: `Currently checking for new updates, please wait`,
       duration: 3000,
     });
-    if (window.updateAPI?.checkForUpdates) {
+
+    if (window.updateAPI?.checkForUpdates && hasInternet) {
       try {
         const result = await window.updateAPI.checkForUpdates();
-        if (!result.hasUpdate) {
+        if (result.error) {
+          // Handle error from update checker
+          toast({
+            variant: 'destructive',
+            title: 'Update Check Failed',
+            description: result.error,
+            duration: 4000,
+          });
+        } else if (!result.hasUpdate) {
           toast({
             title: "You're up to date!",
             description: `You're using the latest version (v${result.currentVersion}).`,
@@ -175,8 +213,8 @@ const DropdownBar = ({ className }: { className?: string }) => {
       } catch (error) {
         toast({
           variant: 'destructive',
-          title: 'Server Unavailable',
-          description: `Please check again later`,
+          title: 'Update Check Failed',
+          description: 'Unable to check for updates. Please try again later.',
           duration: 3000,
         });
         console.error('Error checking for updates:', error);
@@ -325,20 +363,32 @@ const DropdownBar = ({ className }: { className?: string }) => {
             </div>
           )}
         </div>
+        {/*
+        <button
+          onClick={async () => {
+            try {
+              await selectAndTranscribe({
+                language: 'en',
+                format: 'srt',
+              });
+            } catch (error) {
+              toast({
+                title: 'Transcription Error',
+                description:
+                  error instanceof Error
+                    ? error.message
+                    : 'Failed to transcribe video',
+                variant: 'destructive',
+                duration: 5000,
+              });
+            }
+          }}
+          className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Transcribe Video
+        </button>
+        */}
       </div>
-      {/* Advanced Settings Button 
-      <button
-        className="text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
-        onClick={(e) => {
-          e.stopPropagation();
-          setAdvancedSettingsModalOpen(true);
-          setActiveMenu(null);
-        }}
-      >
-        <FiSettings size={16} />
-        <span className="text-xs">Advanced Settings</span>
-      </button>
-      */}
       {/* Search Bar */}
 
       <div ref={searchRef} className="relative my-10 mr-6 w-1/4 hidden">
@@ -406,11 +456,6 @@ const DropdownBar = ({ className }: { className?: string }) => {
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
-      />
-
-      <AdvancedSettingsModal
-        isOpen={isAdvancedSettingsModalOpen}
-        onClose={() => setAdvancedSettingsModalOpen(false)}
       />
 
       <AboutModal

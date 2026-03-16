@@ -19,10 +19,10 @@ import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
 import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
 import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
 import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
-import useDownloadStore from '@/Store/downloadStore';
-import { useMainStore } from '@/Store/mainStore';
 import PluginTaskBarExtension from '@/plugins/components/PluginTaskBarExtension';
 import { DownloadItem } from '@/Schema/componentSchema';
+import { useDownloadStore } from '@/Store/downloadStore';
+import { useMainStore } from '@/Store/mainStore';
 import React, { useState } from 'react';
 import { LuTrash } from 'react-icons/lu';
 import { useLocation } from 'react-router-dom';
@@ -302,6 +302,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         downloadInfo.videoUrl,
         `${processedName}.${downloadInfo.ext}`,
         `${processedName}.${downloadInfo.ext}`,
+        downloadInfo.displayName,
         downloadInfo.size,
         downloadInfo.speed,
         downloadInfo.channelName,
@@ -385,7 +386,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     } = useDownloadStore.getState();
 
     // Helper function to handle file deletion
-    const deleteFileSafely = async (download: any) => {
+    const deleteFileSafely = async (download: DownloadItem) => {
       try {
         let success = false;
         if (deleteFolder && download.location) {
@@ -565,7 +566,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       }
 
       // Delete the file or folder
-      await deleteFileSafely(download);
+      await deleteFileSafely(download as DownloadItem);
     }
   };
 

@@ -88,6 +88,9 @@ module.exports = {
         darkModeNotAvailableStatus: '#C6C6C6',
         darkModeButtonDefault: '#71717A',
         darkModeButtonActive: '#E4E4E7',
+
+        // Toast
+        destructiveToast: '#FF3B30',
       },
     },
   },
