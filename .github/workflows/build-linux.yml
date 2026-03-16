@@ -28,13 +28,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os: [ubuntu-22.04, ubuntu-24.04]
         include:
-          - os: ubuntu-20.04
-            os_label: Ubuntu-20.04
-            build_deb: true
-            build_rpm: true
-            build_zip: true
           - os: ubuntu-22.04
             os_label: Ubuntu-22.04
             build_deb: true
@@ -204,7 +199,6 @@ jobs:
           ### 📦 Available Packages
           
           This release includes packages for:
-          - Ubuntu 20.04 LTS (Focal Fossa)
           - Ubuntu 22.04 LTS (Jammy Jellyfish)
           - Ubuntu 24.04 LTS (Noble Numbat)
           
