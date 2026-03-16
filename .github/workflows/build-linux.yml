@@ -164,7 +164,11 @@ jobs:
       - name: Organize artifacts
         run: |
           mkdir -p ./release-packages
-          find ./release-artifacts -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.zip" \) -exec cp {} ./release-packages/ \;
+          if [ -d "./release-artifacts" ]; then
+            find ./release-artifacts -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.zip" \) -exec cp {} ./release-packages/ \;
+          else
+            echo "⚠️ No release-artifacts directory found"
+          fi
           echo "📦 Release packages:"
           ls -lh ./release-packages/
 
