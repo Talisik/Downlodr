@@ -5,6 +5,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+docs/
+
+# Dev notes
+CLAUDE.md
+corrections.txt
 
 # Maven
 target/
@@ -24,7 +29,7 @@ TEST*.xml
 *.exe
 *.war
 
-# Exception for specific exe files
+# Exception for specific exe file
 !yt-dlp.exe
 
 # Large media files
@@ -35,21 +40,14 @@ TEST*.xml
 *.mov
 *.wmv
 *.bin
-*.webm
-*.mkv
-*.m4v
-*.m4a
-*.m4b
-*.m4p
-*.m4v
-*.m4a
-*.m4b
-*.m4p
-*.srt
-*.bin
+*.zip
 
 # Package files
 *.jar
+src/skedulosa/backend/video-nemesis-toolkit/
+src/skedulosa/backend/1/
+src/skedulosa/backend/examples/
+
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
@@ -109,10 +107,6 @@ typings/
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 
-# sonar
-*.properties
-.scannerwork/
-
 # next.js build output
 .next
 
@@ -139,3 +133,8 @@ typings/
 
 # Electron-Forge
 out/
+
+# newSrc
+newSrc/
+extensions/whisper-x-extension
+extensions/yt-dlp-extension

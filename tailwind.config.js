@@ -88,9 +88,14 @@ module.exports = {
         darkModeNotAvailableStatus: '#C6C6C6',
         darkModeButtonDefault: '#71717A',
         darkModeButtonActive: '#E4E4E7',
+        buttonBg: '#FCFDFD',
+        FooterBg: '#F9F9F9',
+        buttonBorder: '#E8E8E8',
+        toggleGroupBaseColor: '#F3F3F3',
+        appBG: '#FCFCFC',
+        recurringTag: '#F3F3F3',
+        lightOrangeTag: '#FDDDD0',
 
-        // Toast
-        destructiveToast: '#FF3B30',
       },
     },
   },
