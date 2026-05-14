@@ -1,4 +1,5 @@
 export { default as Copy } from './Copy';
+export { default as EmptySearch } from './EmptySearch';
 export { default as Download } from './Download';
 export { default as Folder } from './Folder';
 export { default as Play } from './Play';
