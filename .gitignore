@@ -29,9 +29,6 @@ TEST*.xml
 *.exe
 *.war
 
-# Exception for specific exe file
-!yt-dlp.exe
-
 # Large media files
 *.mp4
 *.tiff

@@ -32,6 +32,12 @@
        - better-sqlite3
        - other one
 
+6. Add Dependency binaries such as
+   - ytdlp.exe
+   - ffmpeg
+   - ffprobe
+   - whisper x (ggml-base)
+
 6. You're good to go!
 
 ### Running the Application
