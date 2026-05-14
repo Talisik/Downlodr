@@ -1,22 +1,10 @@
-import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { useCallback, useState } from 'react';
-import { PluginInfo } from '../types';
+import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 import {
-  fetchLatestRelease as fetchLatestReleaseFromAPI,
-  type GitHubRelease as GitHubReleaseType,
-} from '@/services/api/githubService';
-
-interface GitHubRelease {
-  tag_name: string;
-  assets: Array<{
-    name: string;
-    browser_download_url: string;
-    content_type: string;
-    size: number;
-  }>;
-  published_at: string;
-  body: string;
-}
+    fetchLatestRelease as fetchLatestReleaseFromAPI,
+    type GitHubRelease,
+} from '@/github/githubService';
+import { useCallback, useState } from 'react';
+import { PluginInfo } from '../schema/types';
 
 interface InstallationProgress {
   pluginId: string;

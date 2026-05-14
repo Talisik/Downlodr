@@ -1,12 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/plugins/pluginAPI.ts
-import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { formatFileSize } from '@/Pages/StatusSpecificDownload';
-import useDownloadStore from '@/Store/downloadStore';
-import { useMainStore } from '@/Store/mainStore';
-import { usePluginStore } from '@/Store/pluginStore';
+import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
+import { useMainStore } from '@/core-app/store/mainStore';
+import { formatFileSize } from '@/downlodr/pages/status/statusPageUtils';
+import useDownloadStore from '@/downlodr/store/downloadStore';
+import type {
+  CaptionSource,
+  ThumbnailSource,
+} from '@/downlodr/store/download/downloadPayloads';
+import { usePluginStore } from '@/plugins/store/pluginStore';
 import {
   DownloadAPI,
+  DownloadInfo,
   DownloadOptions,
   DownloadSource,
   FormatAPI,
@@ -29,7 +34,7 @@ import {
   UtilityAPI,
   WriteFileOptions,
   WriteFileResult,
-} from './types';
+} from './schema/types';
 
 // Type for context data passed to menu item handlers
 type MenuContextData =
@@ -148,7 +153,10 @@ export function createPluginAPI(pluginId: string): PluginAPI {
       };
 
       // Register the item without the onClick function
-      return await window.plugins.registerTaskBarItem(serializableItem);
+      return await window.plugins.registerTaskBarItem({
+        ...serializableItem,
+        icon: serializableItem.icon as string,
+      });
     },
 
     unregisterTaskBarItem: async (id: string) => {
@@ -288,32 +296,32 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
     addDownload: async (url: string, options: DownloadOptions) => {
       const { addQueue } = useDownloadStore.getState();
 
-      addQueue(
-        url,
-        options.name,
-        options.downloadName,
-        options.displayName || '',
-        options.size || 0,
-        options.speed || '',
-        options.channelName || '',
-        options.timeLeft || '',
-        new Date().toISOString(),
-        0,
-        options.location,
-        'to download',
-        options.ext || '',
-        options.formatId || '',
-        options.audioExt || '',
-        options.audioFormatId || '',
-        options.extractorKey || '',
-        options.limitRate || '',
-        options.automaticCaption || '',
-        options.thumbnails,
-        options.getTranscript || false,
-        options.getThumbnail || false,
-        options.duration || 60,
-        false,
-      );
+      addQueue({
+        videoUrl: url,
+        name: options.name,
+        downloadName: options.downloadName,
+        displayName: options.displayName || '',
+        size: options.size || 0,
+        speed: options.speed || '',
+        channelName: options.channelName || '',
+        timeLeft: options.timeLeft || '',
+        DateAdded: new Date().toISOString(),
+        progress: 0,
+        location: options.location,
+        status: 'to download',
+        ext: options.ext || '',
+        formatId: options.formatId || '',
+        audioExt: options.audioExt || '',
+        audioFormatId: options.audioFormatId || '',
+        extractorKey: options.extractorKey || '',
+        limitRate: options.limitRate || '',
+        automaticCaption: (options.automaticCaption ?? '') as CaptionSource,
+        thumbnails: (options.thumbnails ?? null) as unknown as ThumbnailSource,
+        getTranscript: options.getTranscript || false,
+        getThumbnail: options.getThumbnail || false,
+        duration: options.duration || 60,
+        isCreateFolder: false,
+      });
 
       return options.name; // Return ID
     },
@@ -489,32 +497,32 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           }
 
           // Resume the download
-          addQueue(
-            currentDownload.videoUrl,
-            currentDownload.name,
-            currentDownload.downloadName,
-            currentDownload.displayName || '',
-            currentDownload.size,
-            currentDownload.speed,
-            currentDownload.channelName,
-            currentDownload.timeLeft,
-            new Date().toISOString(),
-            currentDownload.progress,
-            currentDownload.location,
-            'downloading',
-            currentDownload.backupExt,
-            currentDownload.backupFormatId,
-            currentDownload.backupAudioExt,
-            currentDownload.backupAudioFormatId,
-            currentDownload.extractorKey,
-            '',
-            currentDownload.automaticCaption,
-            currentDownload.thumbnails,
-            currentDownload.getTranscript || false,
-            currentDownload.getThumbnail || false,
-            currentDownload.duration || 60,
-            false,
-          );
+          addQueue({
+            videoUrl: currentDownload.videoUrl ?? '',
+            name: currentDownload.name,
+            downloadName: currentDownload.downloadName,
+            displayName: currentDownload.displayName || '',
+            size: currentDownload.size,
+            speed: currentDownload.speed,
+            channelName: currentDownload.channelName ?? '',
+            timeLeft: currentDownload.timeLeft ?? '',
+            DateAdded: new Date().toISOString(),
+            progress: currentDownload.progress,
+            location: currentDownload.location ?? '',
+            status: 'downloading',
+            ext: currentDownload.backupExt,
+            formatId: currentDownload.backupFormatId,
+            audioExt: currentDownload.backupAudioExt,
+            audioFormatId: currentDownload.backupAudioFormatId,
+            extractorKey: currentDownload.extractorKey,
+            limitRate: '',
+            automaticCaption: currentDownload.automaticCaption,
+            thumbnails: currentDownload.thumbnails ?? null,
+            getTranscript: currentDownload.getTranscript || false,
+            getThumbnail: currentDownload.getThumbnail || false,
+            duration: currentDownload.duration || 60,
+            isCreateFolder: false,
+          });
 
           deleteDownloading(currentDownload.id);
           return true;
@@ -640,32 +648,32 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
 
         // If the download is already paused, resume it
         if (currentDownload.status === 'paused') {
-          addQueue(
-            currentDownload.videoUrl,
-            currentDownload.name,
-            currentDownload.downloadName,
-            currentDownload.displayName || '',
-            currentDownload.size,
-            currentDownload.speed,
-            currentDownload.channelName,
-            currentDownload.timeLeft,
-            new Date().toISOString(),
-            currentDownload.progress,
-            currentDownload.location,
-            'downloading',
-            currentDownload.backupExt,
-            currentDownload.backupFormatId,
-            currentDownload.backupAudioExt,
-            currentDownload.backupAudioFormatId,
-            currentDownload.extractorKey,
-            '',
-            currentDownload.automaticCaption,
-            currentDownload.thumbnails,
-            currentDownload.getTranscript || false,
-            currentDownload.getThumbnail || false,
-            currentDownload.duration || 60,
-            false,
-          );
+          addQueue({
+            videoUrl: currentDownload.videoUrl ?? '',
+            name: currentDownload.name,
+            downloadName: currentDownload.downloadName,
+            displayName: currentDownload.displayName || '',
+            size: currentDownload.size,
+            speed: currentDownload.speed,
+            channelName: currentDownload.channelName ?? '',
+            timeLeft: currentDownload.timeLeft ?? '',
+            DateAdded: new Date().toISOString(),
+            progress: currentDownload.progress,
+            location: currentDownload.location ?? '',
+            status: 'downloading',
+            ext: currentDownload.backupExt,
+            formatId: currentDownload.backupFormatId,
+            audioExt: currentDownload.backupAudioExt,
+            audioFormatId: currentDownload.backupAudioFormatId,
+            extractorKey: currentDownload.extractorKey,
+            limitRate: '',
+            automaticCaption: currentDownload.automaticCaption,
+            thumbnails: currentDownload.thumbnails ?? null,
+            getTranscript: currentDownload.getTranscript || false,
+            getThumbnail: currentDownload.getThumbnail || false,
+            duration: currentDownload.duration || 60,
+            isCreateFolder: false,
+          });
 
           deleteDownloading(currentDownload.id);
           return true;
@@ -837,32 +845,32 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           }
 
           // Resume the download
-          addQueue(
-            currentDownload.videoUrl,
-            currentDownload.name,
-            currentDownload.downloadName,
-            currentDownload.displayName || '',
-            currentDownload.size,
-            currentDownload.speed,
-            currentDownload.channelName,
-            currentDownload.timeLeft,
-            new Date().toISOString(),
-            currentDownload.progress,
-            currentDownload.location,
-            'downloading',
-            currentDownload.backupExt,
-            currentDownload.backupFormatId,
-            currentDownload.backupAudioExt,
-            currentDownload.backupAudioFormatId,
-            currentDownload.extractorKey,
-            '',
-            currentDownload.automaticCaption,
-            currentDownload.thumbnails,
-            currentDownload.getTranscript || false,
-            currentDownload.getThumbnail || false,
-            currentDownload.duration || 60,
-            false,
-          );
+          addQueue({
+            videoUrl: currentDownload.videoUrl ?? '',
+            name: currentDownload.name,
+            downloadName: currentDownload.downloadName,
+            displayName: currentDownload.displayName || '',
+            size: currentDownload.size,
+            speed: currentDownload.speed,
+            channelName: currentDownload.channelName ?? '',
+            timeLeft: currentDownload.timeLeft ?? '',
+            DateAdded: new Date().toISOString(),
+            progress: currentDownload.progress,
+            location: currentDownload.location ?? '',
+            status: 'downloading',
+            ext: currentDownload.backupExt,
+            formatId: currentDownload.backupFormatId,
+            audioExt: currentDownload.backupAudioExt,
+            audioFormatId: currentDownload.backupAudioFormatId,
+            extractorKey: currentDownload.extractorKey,
+            limitRate: '',
+            automaticCaption: currentDownload.automaticCaption,
+            thumbnails: currentDownload.thumbnails ?? null,
+            getTranscript: currentDownload.getTranscript || false,
+            getThumbnail: currentDownload.getThumbnail || false,
+            duration: currentDownload.duration || 60,
+            isCreateFolder: false,
+          });
 
           deleteDownloading(currentDownload.id);
 
@@ -1076,7 +1084,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
       }
     },
 
-    getInfo: async (url: string) => {
+    getInfo: async (url: string): Promise<DownloadInfo> => {
       try {
         // Use the IPC handler instead of window.ytdlp
         const info = await window.downlodrFunctions.invokeMainProcess(
@@ -1084,15 +1092,26 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           url,
         );
 
-        if (!info || info.error) {
-          throw new Error(info?.error || 'Failed to get video info');
+        if (
+          !info ||
+          (typeof info === 'object' &&
+            'error' in info &&
+            (info as { error?: string }).error)
+        ) {
+          throw new Error(
+            (info as { error?: string })?.error || 'Failed to get video info',
+          );
         }
 
         // Map the data to match DownloadInfo interface
-        return info;
+        return info as DownloadInfo;
       } catch (error) {
         console.error(`Error getting info for ${url}:`, error);
-        throw new Error(`Failed to get video info: ${error.message}`);
+        throw new Error(
+          `Failed to get video info: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
       }
     },
   };

@@ -300,6 +300,9 @@ export interface MenuItemRegistration {
   /** Unique identifier for the menu item */
   id?: string;
 
+  /** Unique handler identifier for this specific menu item instance */
+  handlerId?: string;
+
   /** Display label for the menu item */
   label: string;
 
@@ -358,6 +361,7 @@ export interface FormatSelectorOptions {
     id: string;
     name: string;
     selected: boolean;
+    downloadName: string;
   }>;
   showItemSelection?: boolean;
   showSelectAll?: boolean;
@@ -462,6 +466,7 @@ export interface SaveDialogResult {
 export interface WriteFileOptions {
   fileName: string;
   content: string;
+  pluginId?: string;
   fileType?: 'txt' | 'json' | 'docx' | string;
   directory?: string; // Optional subdirectory within plugin data directory
   overwrite?: boolean; // Whether to overwrite existing file, defaults to false
@@ -540,6 +545,7 @@ export interface TaskBarButtonsVisibility {
 }
 
 export interface UpdateInfo {
+  error?: string;
   hasUpdate?: boolean;
   latestVersion?: string;
   currentVersion?: string;

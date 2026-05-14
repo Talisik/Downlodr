@@ -1,21 +1,27 @@
-import TooltipWrapper from '@/Components/SubComponents/custom/TooltipWrapper';
-import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
-import { useToast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
-import useDownloadStore from '@/Store/downloadStore';
-import { useMainStore } from '@/Store/mainStore';
-import { usePluginState } from '@/plugins/Hooks/usePluginState';
-import { TaskBarItem } from '@/plugins/types';
+import { Button } from '@/core-app/components/shadcn/components/ui/button';
+import { useToast } from '@/core-app/components/shadcn/hooks/use-toast';
+import { cn } from '@/core-app/components/shadcn/lib/utils';
+import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
+import { useMainStore } from '@/core-app/store/mainStore';
+import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore';
+import useDownloadStore from '@/downlodr/store/downloadStore';
+import { TaskBarItem } from '@/plugins/schema/types';
 import React, { useEffect, useState } from 'react';
+import { usePluginState } from '../hook/usePluginState';
 
 const PluginTaskBarExtension: React.FC = () => {
   const [taskBarItems, setTaskBarItems] = useState<TaskBarItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const enabledPlugins = usePluginState();
-  const { selectedDownloads, taskBarButtonsVisibility } = useMainStore();
+  const { taskBarButtonsVisibility } = useMainStore();
+  const selectedDownloads = useSelectedDownloadStore(
+    (state) => state.selectedDownloads,
+  );
   const { downloading } = useDownloadStore();
   const { toast } = useToast();
-  const clearAllSelections = useMainStore((state) => state.clearAllSelections);
+  const clearAllSelections = useSelectedDownloadStore(
+    (state) => state.clearAllSelections,
+  );
 
   // Helper function to check if a string is an SVG
   const isSvgString = (str: string): boolean => {

@@ -1,14 +1,14 @@
 // src/plugins/extensionPoints.ts
 import {
-  DownloadSource,
   Download,
   DownloadOptions,
-  SettingsPage,
-  MenuItem,
-  NotifItem,
+  DownloadSource,
   FormatHandler,
   FormatProvider,
-} from './types';
+  MenuItem,
+  NotifItem,
+  SettingsPage,
+} from './schema/types';
 
 export interface DownloadAPI {
   // Allow plugins to add new download sources

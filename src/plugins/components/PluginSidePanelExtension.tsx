@@ -1,4 +1,7 @@
-import { PluginSidePanelOptions, PluginSidePanelResult } from '@/plugins/types';
+import {
+  PluginSidePanelOptions,
+  PluginSidePanelResult,
+} from '@/plugins/schema/types';
 import React, { useEffect, useRef, useState } from 'react';
 
 interface PluginSidePanelExtensionProps {
