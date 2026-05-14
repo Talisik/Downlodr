@@ -1,0 +1,35 @@
+{
+  "sections": {
+    "status": "Status",
+    "categories": "Categories",
+    "tags": "Tags"
+  },
+  "status": {
+    "all": "All",
+    "fetchingMetadata": "Fetching Metadata",
+    "startDownload": "Start Download",
+    "queued": "Queued",
+    "downloading": "Downloading",
+    "paused": "Paused",
+    "initializing": "Initializing",
+    "failed": "Failed",
+    "finished": "Finished"
+  },
+  "subscriptions": "Subscriptions",
+  "categories": {
+    "all": "All",
+    "uncategorized": "Uncategorized"
+  },
+  "tags": {
+    "all": "All",
+    "untagged": "Untagged"
+  },
+  "collapse": "Collapse sidebar",
+  "expand": "Expand sidebar",
+  "toast": {
+    "categorized": "Download categorized",
+    "categorizedDesc": "Set to \"{{category}}\"",
+    "tagged": "Download tagged",
+    "taggedDesc": "Tagged with \"{{tag}}\""
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "title": "下载日志",
+  "status": "状态",
+  "progress": "进度",
+  "noLogs": "此下载没有可用的日志。",
+  "tooltip": {
+    "copyActive": "下载进行中时无法复制",
+    "copy": "复制日志",
+    "saveActive": "下载进行中时无法保存",
+    "save": "下载日志",
+    "errorReportActive": "下载进行中时无法发送错误报告",
+    "errorReportSending": "正在发送错误报告...",
+    "errorReportSent": "错误报告已成功发送",
+    "errorReportFailed": "发送失败：{{error}}",
+    "errorReport": "发送错误报告以帮助改善应用程序",
+    "close": "关闭日志"
+  },
+  "toast": {
+    "copyFailedTitle": "复制失败",
+    "copyFailedDesc": "无法将活动日志复制到剪贴板",
+    "logsSavedTitle": "下载日志已保存",
+    "logsSavedDesc": "日志已保存至下载文件夹",
+    "logsSavedPathDesc": "日志已保存至 {{path}}",
+    "logsFailedTitle": "下载日志失败",
+    "logsFailedPathDesc": "无法保存日志至 {{path}}",
+    "logsFailedDesc": "无法保存日志",
+    "activityCopiedTitle": "活动日志已复制",
+    "activityCopiedDesc": "活动日志已复制到剪贴板",
+    "activityCopyFailedTitle": "活动日志复制失败",
+    "activityCopyFailedDesc": "无法复制活动日志",
+    "errorReportSentTitle": "错误报告已发送",
+    "errorReportSentDesc": "错误信息已发送以帮助改善应用程序",
+    "errorReportFailedTitle": "错误报告发送失败"
+  }
+}

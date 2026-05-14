@@ -1,0 +1,8 @@
+{
+  "title": "Opciones Adicionales",
+  "subtitle": "Obtén la transcripción y la miniatura junto con tu descarga.",
+  "getClosedCaptions": "Obtener Subtítulos",
+  "getThumbnail": "Obtener Miniatura",
+  "disclaimer": "Ten en cuenta que los subtítulos y miniaturas pueden no estar disponibles en todos los sitios web.",
+  "selected": "{{count}} seleccionados"
+}

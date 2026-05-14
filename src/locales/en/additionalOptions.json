@@ -1,0 +1,8 @@
+{
+  "title": "Additional Options",
+  "subtitle": "Get the transcript and Thumbnail along with your download.",
+  "getClosedCaptions": "Get Closed Captions",
+  "getThumbnail": "Get Thumbnail",
+  "disclaimer": "Please note that Closed Captions and Thumbnails may not be available for all websites.",
+  "selected": "{{count}} selected"
+}

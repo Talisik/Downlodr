@@ -1,0 +1,50 @@
+{
+  "title": "設定",
+  "language": "語言",
+  "downloadLocation": "下載位置",
+  "speedLimit": "速度限制",
+  "noLimit": "無限制",
+  "connectionLimits": "連線限制",
+  "maxActiveDownloads": "最大同時下載數",
+  "appBehavior": "應用程式行為",
+  "runInBackground": "關閉視窗時在背景執行",
+  "runInBackgroundDesc": "停用時，關閉視窗將完全結束應用程式",
+  "clipboardMonitoring": "自動下載剪貼簿中的連結",
+  "clipboardMonitoringDesc": "啟用時，Downlodr 將偵測複製的網址並自動下載",
+  "telemetry": "Downlodr 應用程式資料使用",
+  "telemetryDesc": "傳送匿名錯誤報告和效能指標以協助改善應用程式。",
+  "appUpdates": "顯示應用程式更新通知",
+  "visibleColumns": "可見欄位",
+  "required": "（必要）",
+  "directoryInProgress": "目錄選擇進行中",
+  "directoryInProgressDesc": "請完成目錄選擇對話框後再繼續。",
+  "toast": {
+    "clipboardEnabled": "剪貼簿監控將被啟用",
+    "clipboardDisabled": "剪貼簿監控將被停用",
+    "clipboardDesc": "按一下「確定」儲存此設定並套用變更。",
+    "telemetryEnabled": "遙測將被啟用",
+    "telemetryDisabled": "遙測將被停用",
+    "telemetryEnabledDesc": "將傳送匿名使用資料和錯誤報告以協助改善 Downlodr。",
+    "telemetryDisabledDesc": "不會收集任何遙測資料。",
+    "appUpdatesEnabled": "應用程式更新通知已啟用",
+    "appUpdatesDisabled": "應用程式更新通知已停用",
+    "appUpdatesEnabledDesc": "有可用的應用程式更新時您將收到通知。",
+    "appUpdatesDisabledDesc": "應用程式更新通知已停用。"
+  },
+  "speedUnits": {
+    "kb": "千位元組 (KB)",
+    "mb": "百萬位元組 (MB)",
+    "gb": "十億位元組 (GB)"
+  },
+  "columns": {
+    "format": "格式",
+    "size": "大小",
+    "speed": "速度",
+    "source": "來源",
+    "name": "標題",
+    "dateAdded": "新增日期",
+    "transcript": "字幕",
+    "status": "狀態",
+    "action": "操作"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Save File to",
+  "subtitle": "Pick a location to save your file.",
+  "placeholder": "Download Destination Folder",
+  "folderTooltip": "Folder",
+  "toast": {
+    "errorTitle": "Error",
+    "errorDesc": "Failed to select directory"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "title": "다운로드 로그",
+  "status": "상태",
+  "progress": "진행률",
+  "noLogs": "이 다운로드에 사용 가능한 로그가 없습니다.",
+  "tooltip": {
+    "copyActive": "활성 다운로드 중에는 복사할 수 없습니다",
+    "copy": "로그 복사",
+    "saveActive": "활성 다운로드 중에는 저장할 수 없습니다",
+    "save": "로그 다운로드",
+    "errorReportActive": "활성 다운로드 중에는 오류 보고서를 보낼 수 없습니다",
+    "errorReportSending": "오류 보고서 전송 중...",
+    "errorReportSent": "오류 보고서가 성공적으로 전송되었습니다",
+    "errorReportFailed": "전송 실패: {{error}}",
+    "errorReport": "애플리케이션 개선에 도움이 되도록 오류 보고서를 보내세요",
+    "close": "로그 닫기"
+  },
+  "toast": {
+    "copyFailedTitle": "복사 실패",
+    "copyFailedDesc": "활동 로그를 클립보드에 복사하지 못했습니다",
+    "logsSavedTitle": "다운로드 로그 저장됨",
+    "logsSavedDesc": "다운로드 폴더에 로그가 저장되었습니다",
+    "logsSavedPathDesc": "{{path}}에 로그가 저장되었습니다",
+    "logsFailedTitle": "다운로드 로그 실패",
+    "logsFailedPathDesc": "{{path}}에 로그를 저장하지 못했습니다",
+    "logsFailedDesc": "로그를 저장하지 못했습니다",
+    "activityCopiedTitle": "활동 로그 복사됨",
+    "activityCopiedDesc": "활동 로그가 클립보드에 복사되었습니다",
+    "activityCopyFailedTitle": "활동 로그 복사 실패",
+    "activityCopyFailedDesc": "활동 로그를 복사하지 못했습니다",
+    "errorReportSentTitle": "오류 보고서 전송됨",
+    "errorReportSentDesc": "애플리케이션 개선에 도움이 되도록 오류 정보가 전송되었습니다",
+    "errorReportFailedTitle": "오류 보고서 전송 실패"
+  }
+}

@@ -1,0 +1,483 @@
+﻿{
+  "contextMenu": {
+    "pause": "暂停",
+    "resume": "继续",
+    "stop": "停止",
+    "forceStart": "强制开始",
+    "remove": "移除",
+    "rename": "重命名",
+    "viewFolder": "打开文件夹",
+    "viewEmbedded": "通过嵌入查看",
+    "retry": "重试",
+    "showLog": "显示日志",
+    "activityTracker": "活动追踪器",
+    "tags": "标签",
+    "categories": "分类",
+    "addTag": "添加标签",
+    "addCategory": "添加分类",
+    "plugins": "插件",
+    "copyLink": "复制链接",
+    "openBrowser": "在浏览器中打开",
+    "start": "开始",
+    "playDownload": "播放下载"
+  },
+  "status": {
+    "queued": "排队中",
+    "downloading": "下载中",
+    "finished": "已完成",
+    "error": "错误",
+    "paused": "已暂停",
+    "stopped": "已停止",
+    "converting": "转换中",
+    "gettingInfo": "获取信息中"
+  },
+  "table": {
+    "title": "标题",
+    "format": "格式",
+    "size": "大小",
+    "speed": "速度",
+    "source": "来源",
+    "dateAdded": "添加日期",
+    "transcript": "字幕",
+    "status": "状态",
+    "action": "操作",
+    "noDownloads": "暂无下载",
+    "tags": "标签",
+    "categories": "分类",
+    "noTags": "无标签",
+    "noCategories": "无分类"
+  },
+  "itemsSelected_one": "已选择 {{count}} 个项目",
+  "itemsSelected_other": "已选择 {{count}} 个项目",
+  "timeAgo": {
+    "minutes": "{{count}} 分钟前",
+    "hour_one": "{{count}} 小时前",
+    "hour_other": "{{count}} 小时前",
+    "day_one": "{{count}} 天前",
+    "day_other": "{{count}} 天前",
+    "week_one": "{{count}} 周前",
+    "week_other": "{{count}} 周前",
+    "month_one": "{{count}} 个月前",
+    "month_other": "{{count}} 个月前",
+    "year_one": "{{count}} 年前",
+    "year_other": "{{count}} 年前"
+  },
+  "fileSize": {
+    "gb": "{{value}} GB",
+    "mb": "{{value}} MB",
+    "kb": "{{value}} KB",
+    "bytes": "{{count}} 字节",
+    "unknown": "—"
+  },
+  "modals": {
+    "about": {
+      "title": "关于",
+      "visitSite": "访问官方网站",
+      "version": "版本 {{version}}",
+      "developedForYou": "专为您开发。",
+      "features": {
+        "title": "功能",
+        "downloadVideos": {
+          "title": "从您最喜爱的网站下载视频",
+          "item1": "支持 YouTube、Twitch、Twitter、TikTok 及数百个网站",
+          "item2": "一键下载整个频道或播放列表",
+          "item3": "保存直播、短视频和快拍",
+          "item4": "选择您偏好的视频画质"
+        },
+        "easyToUse": {
+          "title": "简单易用",
+          "item1": "自定义文件保存位置",
+          "item2": "自定义文件命名方式",
+          "item3": "自动更新至最新版本"
+        },
+        "advancedMedia": {
+          "title": "高级媒体选项",
+          "item1": "随下载保留视频缩略图",
+          "item2": "下载播放列表的指定部分"
+        }
+      }
+    },
+    "help": {
+      "title": "帮助"
+    },
+    "stop": {
+      "title": "停止下载",
+      "message": "确定要停止此下载吗？",
+      "confirm": "停止",
+      "cancel": "取消"
+    }
+  },
+  "shareButton": {
+    "tooltip": "分享视频",
+    "title": "分享视频",
+    "videoFallback": "视频",
+    "copyLink": "复制链接",
+    "emailLink": "通过电子邮件发送链接",
+    "facebook": "Facebook",
+    "twitter": "X (Twitter)",
+    "disclaimer": "请注意，如果您选择分享此视频，它将对公众可见，其他人可能能够访问其内容。",
+    "emailSubject": "查看这个视频：{{name}}",
+    "emailBody": "我认为您可能会喜欢这个视频：{{link}}",
+    "twitterText": "查看这个视频：{{name}}",
+    "toast": {
+      "errorTitle": "错误",
+      "errorDesc": "无法生成可分享的链接",
+      "copiedTitle": "链接已复制",
+      "copiedDesc": "链接已复制到剪贴板。",
+      "copyFailedTitle": "复制失败",
+      "copyFailedDesc": "无法复制链接到剪贴板，请重试。"
+    }
+  },
+  "statusPage": {
+    "thumbnail": {
+      "viewFull": "查看完整缩略图",
+      "notDownloaded": "缩略图未下载",
+      "notAvailable": "缩略图不可用",
+      "unableToLoad": "无法加载"
+    },
+    "status": {
+      "clickToRetry": "点击以重试下载",
+      "viewVideo": "查看视频",
+      "openFolder": "打开文件夹"
+    },
+    "format": {
+      "unknown": "未知"
+    }
+  },
+  "taskbarInput": {
+    "placeholder": "搜索下载或输入网址",
+    "tooltip": {
+      "copy": "复制",
+      "settings": "下载时同时获取字幕和缩略图。",
+      "download": "下载",
+      "openArticle": "打开文章安装器"
+    },
+    "toast": {
+      "playlistErrorTitle": "播放列表错误",
+      "playlistErrorDesc": "无法获取播放列表信息",
+      "channelDetectedTitle": "检测到频道链接",
+      "channelDetectedDesc": "正在发送至 Skedulosa 以设置此频道的订阅。",
+      "playlistDetectedTitle": "检测到播放列表链接",
+      "playlistDetectedDesc": "正在获取播放列表下载信息，这可能需要一些时间。",
+      "invalidUrlTitle": "无效的网址",
+      "invalidUrlDesc": "请输入有效的网址",
+      "invalidUrlFormatTitle": "无效的网址格式",
+      "invalidUrlFormatDesc": "网址格式无效",
+      "selectionErrorTitle": "选择错误",
+      "selectionErrorDesc": "请至少选择一个要下载的视频",
+      "downloadQueuedTitle": "下载已加入队列",
+      "downloadQueuedDesc": "正在获取视频元数据以进行下载...",
+      "noInternetTitle": "无网络连接",
+      "noInternetDesc": "请检查您的网络连接后重试",
+      "errorTitle": "错误",
+      "errorDesc": "无法添加至下载队列",
+      "copiedTitle": "已复制到剪贴板",
+      "copiedDesc": "网址已复制到您的剪贴板",
+      "copyFailedTitle": "复制网址失败",
+      "copyFailedDesc": "无法复制网址到剪贴板"
+    }
+  },
+  "toolbar": {
+    "tooltip": {
+      "startDisabled": "选择排队中的下载项目以开始下载",
+      "startEnabled": "开始选中的下载",
+      "stopEnabled": "停止选中的下载",
+      "stopDisabled": "选择当前下载中的项目以停止",
+      "stopAllDisabled": "没有活动的下载可停止",
+      "stopAll": "全部停止",
+      "generateCaptions": "生成字幕",
+      "generateCaptionsDisabled": "选择无字幕的已完成视频以生成字幕",
+      "remove": "移除"
+    },
+    "toast": {
+      "noDownloadsSelectedTitle": "未选择下载",
+      "noDownloadsSelectedStop": "请选择要停止的下载",
+      "noDownloadsSelectedPlay": "请选择要播放的下载",
+      "noDownloadsSelectedRemove": "请选择要移除的下载",
+      "noDownloadsFoundTitle": "未找到下载",
+      "noDownloadsFoundDesc": "没有当前的下载可停止",
+      "downloadStoppedTitle": "下载已停止",
+      "downloadStoppedDesc": "下载已成功停止",
+      "stopErrorTitle": "停止下载错误",
+      "stopErrorCouldNotDesc": "无法使用控制器 {{controllerId}} 停止下载",
+      "stopErrorDesc": "使用控制器 {{controllerId}} 停止下载时发生错误",
+      "noValidDownloadsTitle": "没有有效的下载",
+      "noValidDownloadsDesc": "请选择准备好开始的下载",
+      "addedToQueueTitle": "下载已加入队列",
+      "addedToQueueDesc": "{{count}} 个下载已加入队列，下载控制器将根据您的限制自动开始。",
+      "downloadDeletedTitle": "下载已删除",
+      "downloadDeletedDesc": "下载已成功删除",
+      "folderDeletedTitle": "文件夹已删除",
+      "folderDeletedDesc": "文件夹及其内容已成功删除",
+      "folderDeleteErrorTitle": "错误",
+      "folderDeleteErrorDesc": "无法删除文件夹，它可能不存在或正在使用中。",
+      "fileDeletedTitle": "文件已删除",
+      "fileDeletedDesc": "文件已成功删除",
+      "downloadRemovedTitle": "下载已移除",
+      "pendingRemovedDesc": "待处理的下载已成功移除",
+      "failedRemovedDesc": "失败的下载已成功移除",
+      "cancelledRemovedDesc": "已取消的下载已成功移除",
+      "pausedRemovedDesc": "已暂停的下载已成功移除",
+      "initializingRemovedDesc": "初始化中的下载已成功移除",
+      "queuedRemovedDesc": "排队中的下载已成功移除",
+      "noEligibleTitle": "没有符合条件的下载",
+      "noEligibleDesc": "选中的下载已有字幕或尚未完成。",
+      "batchStartedTitle": "批量字幕生成已开始",
+      "batchStartedDesc": "正在依次为 {{count}} 个下载生成字幕。",
+      "transcriptionFailedTitle": "字幕生成失败",
+      "transcriptionFailedDefault": "无法创建字幕",
+      "batchCompleteTitle": "批量字幕生成完成",
+      "batchCompleteDesc": "{{successCount}} 个成功，{{failCount}} 个失败。",
+      "selectOneTitle": "选择一个下载",
+      "selectOneDesc": "请选择一个下载以获取链接"
+    },
+    "settingsButton": "设置"
+  },
+  "removeModal": {
+    "title": "移除选中的项目",
+    "message": "您确定要将这些下载从下载列表中移除吗？",
+    "alsoDeleteFolder": "同时删除已下载的文件夹及其文件"
+  },
+  "categorySearchBar": {
+    "placeholder": "按 {{fields}} 搜索...",
+    "filterTooltip": "筛选字段",
+    "clearTooltip": "清除",
+    "fields": {
+      "title": "标题",
+      "tags": "标签",
+      "categories": "分类",
+      "status": "状态",
+      "source": "来源"
+    }
+  },
+  "downloadController": {
+    "downloadStarted": "已从队列开始下载",
+    "downloadStartedDesc": "「{{name}}」已开始下载。"
+  },
+  "downloadButton": {
+    "tooltip": "下载视频",
+    "toastTitle": "下载已加入队列",
+    "toastDesc": "「{{name}}」已加入队列。下载控制器将自动开始。"
+  },
+  "statusHandler": {
+    "transcriptRedownloaded": "字幕重新下载完成",
+    "transcriptRedownloadedDesc": "字幕已成功重新下载",
+    "downloadRetried": "下载已重试",
+    "downloadRetriedDesc": "下载已成功重试",
+    "downloadResumed": "下载已继续",
+    "downloadResumedDesc": "下载已成功继续",
+    "downloadPaused": "下载已暂停",
+    "downloadPausedDesc": "下载已成功暂停",
+    "pauseFailed": "暂停失败",
+    "pauseFailedDesc": "无法暂停下载，请重试。",
+    "pauseError": "暂停下载时发生错误",
+    "cannotPauseYet": "目前无法暂停",
+    "cannotPauseYetDesc": "下载仍在初始化中，请重试。",
+    "noDownloadLocation": "无下载位置",
+    "invalidDownloadLocation": "无效的下载位置",
+    "fileNotFound": "找不到文件",
+    "fileNotFoundDesc": "指定位置中不存在该文件",
+    "failedToViewDownload": "无法查看下载",
+    "failedToStopDownload": "无法停止下载",
+    "failedToViewFolder": "无法查看文件夹",
+    "missingFolder": "找不到文件夹",
+    "missingFolderDesc": "下载文件夹尚不存在",
+    "error": "错误"
+  }
+,
+  "dropdownBar": {
+    "menus": {
+      "file": "文件",
+      "settings": "设置",
+      "help": "帮助"
+    },
+    "file": {
+      "history": "历史记录",
+      "exit": "退出"
+    },
+    "help": {
+      "guide": "指南",
+      "appUpdates": "应用更新",
+      "about": "关于"
+    },
+    "search": {
+      "placeholder": "搜索下载...",
+      "noResults": "未找到下载"
+    },
+    "toast": {
+      "downloadStartedTitle": "下载已开始",
+      "downloadStartedDesc": "您的文件正在下载中。根据文件大小和连接速度，可能需要几分钟。",
+      "errorOpeningFileTitle": "打开文件时出错",
+      "checkingConnectionTitle": "正在检查连接",
+      "checkingConnectionDesc": "正在验证网络连接...",
+      "noInternetTitle": "无网络连接",
+      "noInternetDesc": "请检查您的网络连接后重试",
+      "checkingUpdatesTitle": "正在检查更新",
+      "checkingUpdatesDesc": "正在检查新更新，请稍候",
+      "upToDateTitle": "已是最新版本！",
+      "upToDateDesc": "您正在使用最新版本（v{{version}}）。",
+      "updateCheckFailedTitle": "检查更新失败",
+      "updateCheckFailedDesc": "无法检查更新，请稍后重试。",
+      "retry": "重试"
+    }
+  }
+,
+  "helpModal": {
+    "title": "帮助指南",
+    "tabs": {
+      "guide": "下载指南",
+      "common": "常见问题",
+      "advanced": "故障排除与高级技巧",
+      "subscription": "订阅"
+    },
+    "guide": {
+      "downloadSteps": {
+        "title": "下载步骤",
+        "s1": "打开添加网址区域。",
+        "s2": "粘贴有效的视频网址并选择下载目标位置。",
+        "s3": "点击下载按钮。",
+        "s4": "前往下载中或所有下载状态页面。",
+        "s5": "等待视频元数据处理完成。",
+        "s6": "准备就绪后，点击状态区域中的播放按钮。",
+        "s7": "等待下载完成。",
+        "s8": "完成后，右键单击条目可查看更多选项。您可以：",
+        "s8a": "查看下载详情",
+        "s8b": "打开下载文件夹",
+        "s8c": "删除下载",
+        "s8d": "调整标签和分类",
+        "s9": "点击某行可查看下载的详细信息。",
+        "s10": "您的下载日志将保存在历史记录中供将来参考。"
+      },
+      "pauseStop": {
+        "title": "暂停、停止、移除和开始下载",
+        "s1": "每个下载在状态列和右键菜单中都有控制按钮",
+        "s1a": "播放按钮 - 开始或继续下载",
+        "s1b": "暂停按钮 - 临时暂停下载",
+        "s1c": "停止按钮 - 完全停止并移除下载",
+        "s2": "下载控制按钮也可在任务栏和任务下拉菜单中使用",
+        "s2a": "用户可选择多个下载项目进行播放或停止",
+        "s2b": "用户也可使用全部选项控制所有正在下载的视频",
+        "s3": "移除下载",
+        "s3a": "移除下载会影响已完成的下载。此操作会从设备删除已下载的文件，并从历史记录中删除该条目。",
+        "s3b": "对于待处理的下载，只保存下载记录；尚未有任何文件保存到磁盘。"
+      }
+    },
+    "common": {
+      "whatIsHistory": {
+        "title": "什么是历史记录",
+        "s1": "历史记录是您所有过去下载的记录",
+        "s2": "与状态页面不同，历史记录：",
+        "s2a": "不显示下载进度或控件",
+        "s2b": "只追踪您已下载的内容",
+        "s2c": "显示文件是否仍存在于您的设备上",
+        "s3": "您可以使用历史记录重新下载视频或查看过去的下载"
+      },
+      "viewVideos": {
+        "title": "如何查看视频",
+        "s1": "在状态页面中的视频行上右键单击，打开右键菜单并从中访问视频查看"
+      },
+      "contextMenus": {
+        "title": "如何使用右键菜单",
+        "s1": "右键单击任何下载项目以访问更多选项：",
+        "s1a": "查看已下载的视频",
+        "s1b": "打开所在文件夹",
+        "s1c": "控制下载状态",
+        "s1d": "从列表中移除"
+      }
+    },
+    "advanced": {
+      "stuckInitializing": {
+        "title": "下载卡在初始化中",
+        "s1": "检查您的网络连接",
+        "s2": "确认视频网址仍然有效",
+        "s3": "重新开始下载：",
+        "s3a": "暂停下载",
+        "s3b": "前往文件夹并删除任何残留的部分文件",
+        "s3c": "继续下载"
+      },
+      "failedDelete": {
+        "title": "删除视频失败",
+        "s1": "如果无法删除视频：",
+        "s1a": "关闭正在使用视频文件的应用程序",
+        "s1b": "重新启动应用程序",
+        "s1c": "检查您是否有权限删除该位置的文件"
+      },
+      "slowSpeed": {
+        "title": "下载速度缓慢",
+        "s1": "改善下载速度的方法：",
+        "s1a": "检查您的网络连接",
+        "s1b": "减少同时下载的数量",
+        "s1c": "如果已启用，在设置中调整速度限制"
+      },
+      "permissionErrors": {
+        "title": "权限错误 (EPERM)",
+        "s1": "如果看到权限错误：",
+        "s1a": "以管理员身份运行应用程序",
+        "s1b": "检查文件夹权限",
+        "s1c": "选择不同的下载位置"
+      }
+    },
+    "subscription": {
+      "howToAdd": {
+        "title": "如何添加订阅",
+        "s1": "从侧边栏导航至订阅部分。",
+        "s2": "点击订阅按钮以打开订阅对话框。",
+        "s3": "将 YouTube 频道网址粘贴到来源网址字段中。",
+        "s3a": "必须是频道或播放列表网址 — 不能是单个视频或 Shorts 链接。",
+        "s3b": "目前仅支持 YouTube 频道。",
+        "s4": "等待频道分析完成 — 系统会自动检测频道的上传规律。",
+        "s5": "分析完成后，配置您的订阅：",
+        "s5a": "自动 — 使用检测到的上传规律设置检查计划。",
+        "s5b": "手动 — 选择特定的星期几、检查时间和时区。",
+        "s5c": "选择画质预设（最低、低或最佳）。",
+        "s5d": "选择下载视频的保存文件夹。",
+        "s6": "使用下载最近个视频下拉菜单设置首次运行时下载频道现有视频的数量。",
+        "s7": "点击订阅以确认 — 订阅将加入队列并在后台处理。"
+      },
+      "whatHappensAfter": {
+        "title": "订阅后会发生什么",
+        "s1": "订阅将加入队列并在后台设置 — 您会看到它出现在订阅列表中。",
+        "s2": "首次运行时，订阅会下载不超过您所选限制的最新视频。",
+        "s3": "初始抓取后，订阅会根据您配置的计划（每日、每周或自动检测）自动检查新上传。",
+        "s4": "新检测到的视频将添加到下载队列，并像普通下载一样处理。",
+        "s5": "您可以从每个订阅的详情页面查看活动、下载历史和分析数据。",
+        "s6": "订阅可随时从右键菜单或订阅设置选项卡中暂停、编辑或删除。"
+      },
+      "commonErrors": {
+        "title": "常见错误及处理方法",
+        "invalidUrl": {
+          "title": "无效网址 / 不支持的协议",
+          "s1": "请确保网址以 https:// 开头。",
+          "s2": "直接从浏览器地址栏复制网址。"
+        },
+        "unsupportedPlatform": {
+          "title": "不支持的平台",
+          "s1": "目前仅支持 YouTube 频道网址。",
+          "s2": "其他平台的网址将无法通过验证。"
+        },
+        "videoOrShorts": {
+          "title": "检测到视频或 Shorts 链接",
+          "s1": "订阅是针对频道的，而非单个视频。",
+          "s2": "单个视频网址请使用主下载功能。",
+          "s3": "对于频道，请导航至频道页面并复制其网址。"
+        },
+        "alreadySubscribed": {
+          "title": "已订阅",
+          "s1": "该频道的订阅已存在。",
+          "s2": "请从订阅列表中查找并管理它。"
+        },
+        "noVideos": {
+          "title": "未找到视频 / 频道似乎为空",
+          "s1": "该频道可能只有 Shorts — 请尝试频道主视频标签页的网址。",
+          "s2": "该频道可能是私密的或没有公开上传。"
+        },
+        "analysisFailed": {
+          "title": "分析失败",
+          "s1": "检查您的网络连接。",
+          "s2": "频道网址可能已更改 — 请在浏览器中验证。",
+          "s3": "如果错误持续存在，请重启应用程序后重试。"
+        }
+      }
+    }
+  }
+}

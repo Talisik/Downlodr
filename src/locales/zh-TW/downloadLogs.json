@@ -1,0 +1,35 @@
+{
+  "title": "下載記錄",
+  "status": "狀態",
+  "progress": "進度",
+  "noLogs": "此下載沒有可用的記錄。",
+  "tooltip": {
+    "copyActive": "下載進行中時無法複製",
+    "copy": "複製記錄",
+    "saveActive": "下載進行中時無法儲存",
+    "save": "下載記錄",
+    "errorReportActive": "下載進行中時無法傳送錯誤報告",
+    "errorReportSending": "正在傳送錯誤報告...",
+    "errorReportSent": "錯誤報告已成功傳送",
+    "errorReportFailed": "傳送失敗：{{error}}",
+    "errorReport": "傳送錯誤報告以協助改善應用程式",
+    "close": "關閉記錄"
+  },
+  "toast": {
+    "copyFailedTitle": "複製失敗",
+    "copyFailedDesc": "無法將活動記錄複製到剪貼簿",
+    "logsSavedTitle": "下載記錄已儲存",
+    "logsSavedDesc": "記錄已儲存至下載資料夾",
+    "logsSavedPathDesc": "記錄已儲存至 {{path}}",
+    "logsFailedTitle": "下載記錄失敗",
+    "logsFailedPathDesc": "無法儲存記錄至 {{path}}",
+    "logsFailedDesc": "無法儲存記錄",
+    "activityCopiedTitle": "活動記錄已複製",
+    "activityCopiedDesc": "活動記錄已複製到剪貼簿",
+    "activityCopyFailedTitle": "活動記錄複製失敗",
+    "activityCopyFailedDesc": "無法複製活動記錄",
+    "errorReportSentTitle": "錯誤報告已傳送",
+    "errorReportSentDesc": "錯誤資訊已傳送以協助改善應用程式",
+    "errorReportFailedTitle": "錯誤報告傳送失敗"
+  }
+}

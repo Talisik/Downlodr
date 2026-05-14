@@ -1,0 +1,101 @@
+{
+  "nav": {
+    "plugins": "플러그인"
+  },
+  "card": {
+    "install": "설치",
+    "uninstall": "제거",
+    "update": "업데이트"
+  },
+  "pluginButtons": {
+    "details": "상세 정보",
+    "remove": "제거",
+    "moreDetails": "자세히 보기",
+    "checkForUpdates": "업데이트 확인",
+    "updating": "업데이트 중...",
+    "install": "설치",
+    "installing": "설치 중...",
+    "version": "버전 {{version}}",
+    "unknownSize": "알 수 없음"
+  },
+  "pluginDescriptions": {
+    "cc-to-markdown": "비디오 자막을 마크다운 문서로 변환합니다.",
+    "cc-to-markdown-downlodr": "비디오 자막을 마크다운 문서로 변환합니다.",
+    "format-converter": "맞춤형 품질 및 설정으로 비디오를 다양한 형식으로 변환합니다.",
+    "format-converter-downlodr": "맞춤형 품질 및 설정으로 비디오를 다양한 형식으로 변환합니다.",
+    "metadata-exporter": "강력한 일괄 처리 도구로 비디오 메타데이터를 보고 편집합니다.",
+    "metadata-exporter-downlodr": "강력한 일괄 처리 도구로 비디오 메타데이터를 보고 편집합니다.",
+    "fall-back-plugin": "강력한 일괄 처리 도구로 비디오 메타데이터를 보고 편집합니다."
+  },
+  "pluginNames": {
+    "cc-to-markdown": "CC에서 마크다운으로",
+    "cc-to-markdown-downlodr": "CC에서 마크다운으로",
+    "format-converter": "형식 변환기",
+    "format-converter-downlodr": "형식 변환기",
+    "metadata-exporter": "메타데이터 내보내기",
+    "metadata-exporter-downlodr": "메타데이터 내보내기",
+    "fall-back-plugin": "대체 플러그인"
+  },
+  "githubPlugin": {
+    "noDescription": "설명 없음",
+    "pluginFrom": "{{releaseName}}의 플러그인"
+  },
+  "page": {
+    "tabs": {
+      "installed": "설치된 플러그인",
+      "browse": "플러그인 탐색"
+    },
+    "tooltip": {
+      "refresh": "추천 플러그인 새로고침"
+    },
+    "search": {
+      "placeholder": "검색",
+      "noResults": "플러그인을 찾을 수 없습니다"
+    },
+    "noPluginsAlt": "사용 가능한 플러그인 없음",
+    "thisPlugin": "이 플러그인",
+    "installed": {
+      "loading": "플러그인 로딩 중...",
+      "emptyTitle": "설치된 플러그인이 없습니다",
+      "addPlugin": "플러그인 추가"
+    },
+    "browse": {
+      "loading": "GitHub에서 플러그인 로딩 중...",
+      "emptyTitle": "플러그인을 찾을 수 없습니다. 목록을 새로고침해 보세요.",
+      "refreshButton": "플러그인 새로고침"
+    },
+    "confirmUninstall": {
+      "message": "\"{{name}}\"을(를) 제거하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+    },
+    "toast": {
+      "loadFailed": "플러그인 로드 실패",
+      "loadFailedDesc": "기본 플러그인 데이터 사용 중",
+      "refreshed": "플러그인 새로고침됨",
+      "refreshedGithub": "GitHub에서 플러그인 데이터가 업데이트되었습니다",
+      "refreshedFallback": "GitHub API 문제로 인해 기본 데이터를 사용합니다",
+      "refreshFailed": "새로고침 실패",
+      "refreshFailedDesc": "플러그인 데이터를 새로고침할 수 없습니다",
+      "installSuccess": "성공",
+      "installSuccessDesc": "플러그인이 성공적으로 설치되었습니다",
+      "alreadyInstalled": "플러그인이 이미 설치됨",
+      "alreadyInstalledDesc": "이 플러그인은 이미 설치되어 있습니다",
+      "invalidDir": "잘못된 플러그인 디렉터리",
+      "invalidDirDesc": "선택한 디렉터리에 유효한 플러그인 구조가 없습니다",
+      "installFailed": "설치 실패",
+      "installFailedDefault": "플러그인 설치 중 예상치 못한 오류가 발생했습니다",
+      "removed": "플러그인 제거됨",
+      "removedDesc": "{{name}}이(가) 성공적으로 제거되었습니다",
+      "removeFailed": "플러그인 제거 실패",
+      "removeFailedDesc": "{{name}}을(를) 제거할 수 없습니다. 다시 시도해 주세요.",
+      "removeError": "오류",
+      "removeErrorDesc": "{{name}} 제거 중 오류가 발생했습니다",
+      "noUpdates": "사용 가능한 업데이트 없음",
+      "noUpdatesDesc": "{{name}}은(는) 이미 최신 버전입니다 (v{{version}})",
+      "updateCheckFailed": "업데이트 확인 실패",
+      "updateSuccess": "업데이트 성공",
+      "updateSuccessDesc": "{{name}}이(가) 성공적으로 업데이트되었습니다",
+      "updateFailed": "업데이트 실패",
+      "updateFailedDesc": "{{name}}을(를) 업데이트할 수 없습니다"
+    }
+  }
+}

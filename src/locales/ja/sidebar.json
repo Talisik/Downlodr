@@ -1,0 +1,35 @@
+{
+  "sections": {
+    "status": "ステータス",
+    "categories": "カテゴリー",
+    "tags": "タグ"
+  },
+  "status": {
+    "all": "すべて",
+    "fetchingMetadata": "メタデータ取得中",
+    "startDownload": "ダウンロード開始",
+    "queued": "待機中",
+    "downloading": "ダウンロード中",
+    "paused": "一時停止中",
+    "initializing": "初期化中",
+    "failed": "失敗",
+    "finished": "完了"
+  },
+  "subscriptions": "サブスクリプション",
+  "categories": {
+    "all": "すべて",
+    "uncategorized": "未分類"
+  },
+  "tags": {
+    "all": "すべて",
+    "untagged": "タグなし"
+  },
+  "collapse": "サイドバーを折りたたむ",
+  "expand": "サイドバーを展開",
+  "toast": {
+    "categorized": "ダウンロードをカテゴリー分けしました",
+    "categorizedDesc": "「{{category}}」に設定しました",
+    "tagged": "ダウンロードにタグを付けました",
+    "taggedDesc": "「{{tag}}」でタグ付けしました"
+  }
+}

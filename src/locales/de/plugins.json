@@ -1,0 +1,101 @@
+{
+  "nav": {
+    "plugins": "Plugins"
+  },
+  "card": {
+    "install": "Installieren",
+    "uninstall": "Deinstallieren",
+    "update": "Aktualisieren"
+  },
+  "pluginButtons": {
+    "details": "Details",
+    "remove": "Entfernen",
+    "moreDetails": "Mehr Details",
+    "checkForUpdates": "Nach Updates suchen",
+    "updating": "Aktualisiert...",
+    "install": "Installieren",
+    "installing": "Wird installiert...",
+    "version": "Version {{version}}",
+    "unknownSize": "Unbekannt"
+  },
+  "pluginDescriptions": {
+    "cc-to-markdown": "Videountertitel in Markdown-Dokumente umwandeln.",
+    "cc-to-markdown-downlodr": "Videountertitel in Markdown-Dokumente umwandeln.",
+    "format-converter": "Videos mit anpassbarer Qualität und Einstellungen in verschiedene Formate konvertieren.",
+    "format-converter-downlodr": "Videos mit anpassbarer Qualität und Einstellungen in verschiedene Formate konvertieren.",
+    "metadata-exporter": "Video-Metadaten mit leistungsstarken Stapelverarbeitungstools anzeigen und bearbeiten.",
+    "metadata-exporter-downlodr": "Video-Metadaten mit leistungsstarken Stapelverarbeitungstools anzeigen und bearbeiten.",
+    "fall-back-plugin": "Video-Metadaten mit leistungsstarken Stapelverarbeitungstools anzeigen und bearbeiten."
+  },
+  "pluginNames": {
+    "cc-to-markdown": "CC zu Markdown",
+    "cc-to-markdown-downlodr": "CC zu Markdown",
+    "format-converter": "Formatkonverter",
+    "format-converter-downlodr": "Formatkonverter",
+    "metadata-exporter": "Metadaten-Exporteur",
+    "metadata-exporter-downlodr": "Metadaten-Exporteur",
+    "fall-back-plugin": "Ausweich-Plugin"
+  },
+  "githubPlugin": {
+    "noDescription": "Keine Beschreibung verfügbar",
+    "pluginFrom": "Plugin von {{releaseName}}"
+  },
+  "page": {
+    "tabs": {
+      "installed": "Installierte Plugins",
+      "browse": "Plugins durchsuchen"
+    },
+    "tooltip": {
+      "refresh": "Empfohlene Plugins aktualisieren"
+    },
+    "search": {
+      "placeholder": "Suchen",
+      "noResults": "Keine Plugins gefunden"
+    },
+    "noPluginsAlt": "Keine Plugins verfügbar",
+    "thisPlugin": "dieses Plugin",
+    "installed": {
+      "loading": "Plugins werden geladen...",
+      "emptyTitle": "Sie haben noch keine Plugins installiert",
+      "addPlugin": "Plugin hinzufügen"
+    },
+    "browse": {
+      "loading": "Plugins von GitHub werden geladen...",
+      "emptyTitle": "Keine Plugins gefunden. Versuchen Sie, die Liste zu aktualisieren.",
+      "refreshButton": "Plugins aktualisieren"
+    },
+    "confirmUninstall": {
+      "message": "Möchten Sie \"{{name}}\" wirklich entfernen? Diese Aktion kann nicht rückgängig gemacht werden."
+    },
+    "toast": {
+      "loadFailed": "Plugins konnten nicht geladen werden",
+      "loadFailedDesc": "Verwende Fallback-Plugin-Daten",
+      "refreshed": "Plugins aktualisiert",
+      "refreshedGithub": "Plugin-Daten von GitHub-Release aktualisiert",
+      "refreshedFallback": "Fallback-Daten werden aufgrund von GitHub-API-Problemen verwendet",
+      "refreshFailed": "Aktualisierung fehlgeschlagen",
+      "refreshFailedDesc": "Plugin-Daten konnten nicht aktualisiert werden",
+      "installSuccess": "Erfolg",
+      "installSuccessDesc": "Plugin wurde erfolgreich installiert",
+      "alreadyInstalled": "Plugin bereits installiert",
+      "alreadyInstalledDesc": "Dieses Plugin ist bereits installiert",
+      "invalidDir": "Ungültiges Plugin-Verzeichnis",
+      "invalidDirDesc": "Das ausgewählte Verzeichnis enthält keine gültige Plugin-Struktur",
+      "installFailed": "Installation fehlgeschlagen",
+      "installFailedDefault": "Beim Installieren des Plugins ist ein unerwarteter Fehler aufgetreten",
+      "removed": "Plugin entfernt",
+      "removedDesc": "{{name}} wurde erfolgreich entfernt",
+      "removeFailed": "Plugin konnte nicht entfernt werden",
+      "removeFailedDesc": "{{name}} konnte nicht entfernt werden. Bitte versuchen Sie es erneut.",
+      "removeError": "Fehler",
+      "removeErrorDesc": "Beim Entfernen von {{name}} ist ein Fehler aufgetreten",
+      "noUpdates": "Keine Updates verfügbar",
+      "noUpdatesDesc": "{{name}} ist bereits aktuell (v{{version}})",
+      "updateCheckFailed": "Update-Prüfung fehlgeschlagen",
+      "updateSuccess": "Update erfolgreich",
+      "updateSuccessDesc": "{{name}} wurde erfolgreich aktualisiert",
+      "updateFailed": "Update fehlgeschlagen",
+      "updateFailedDesc": "{{name}} konnte nicht aktualisiert werden"
+    }
+  }
+}

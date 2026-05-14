@@ -1,0 +1,50 @@
+{
+  "title": "Configurações",
+  "language": "Idioma",
+  "downloadLocation": "Local de download",
+  "speedLimit": "Limite de velocidade",
+  "noLimit": "Sem limite",
+  "connectionLimits": "Limites de conexão",
+  "maxActiveDownloads": "Máximo de downloads ativos",
+  "appBehavior": "Comportamento do aplicativo",
+  "runInBackground": "Executar em segundo plano ao fechar a janela",
+  "runInBackgroundDesc": "Quando desativado, fechar a janela encerrará completamente o aplicativo",
+  "clipboardMonitoring": "Baixar links automaticamente da área de transferência",
+  "clipboardMonitoringDesc": "Quando ativado, o Downlodr detectará URLs copiadas e as baixará automaticamente",
+  "telemetry": "Uso de dados do aplicativo Downlodr",
+  "telemetryDesc": "Envia relatórios de erros anônimos e métricas de desempenho para nos ajudar a melhorar o app.",
+  "appUpdates": "Mostrar notificações de atualização do app",
+  "visibleColumns": "Colunas visíveis",
+  "required": "(obrigatório)",
+  "directoryInProgress": "Seleção de diretório em andamento",
+  "directoryInProgressDesc": "Por favor, conclua a seleção do diretório antes de continuar.",
+  "toast": {
+    "clipboardEnabled": "Monitoramento de área de transferência será ativado",
+    "clipboardDisabled": "Monitoramento de área de transferência será desativado",
+    "clipboardDesc": "Clique em \"Ok\" para salvar esta configuração e aplicar as alterações.",
+    "telemetryEnabled": "Telemetria será ativada",
+    "telemetryDisabled": "Telemetria será desativada",
+    "telemetryEnabledDesc": "Dados de uso anônimos e relatórios de erros serão enviados para melhorar o Downlodr.",
+    "telemetryDisabledDesc": "Nenhum dado de telemetria será coletado.",
+    "appUpdatesEnabled": "Notificações de atualização do app ativadas",
+    "appUpdatesDisabled": "Notificações de atualização do app desativadas",
+    "appUpdatesEnabledDesc": "Você receberá notificações quando houver atualizações disponíveis.",
+    "appUpdatesDisabledDesc": "As notificações de atualização do app foram desativadas."
+  },
+  "speedUnits": {
+    "kb": "Quilo byte (KB)",
+    "mb": "Mega byte (MB)",
+    "gb": "Giga byte (GB)"
+  },
+  "columns": {
+    "format": "Formato",
+    "size": "Tamanho",
+    "speed": "Velocidade",
+    "source": "Fonte",
+    "name": "Título",
+    "dateAdded": "Data de adição",
+    "transcript": "Legenda",
+    "status": "Status",
+    "action": "Ação"
+  }
+}

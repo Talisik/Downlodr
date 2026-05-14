@@ -1,0 +1,50 @@
+{
+  "title": "Einstellungen",
+  "language": "Sprache",
+  "downloadLocation": "Download-Speicherort",
+  "speedLimit": "Geschwindigkeitsbegrenzung",
+  "noLimit": "Kein Limit",
+  "connectionLimits": "Verbindungslimits",
+  "maxActiveDownloads": "Maximale aktive Downloads",
+  "appBehavior": "Programmverhalten",
+  "runInBackground": "Im Hintergrund laufen, wenn das Fenster geschlossen wird",
+  "runInBackgroundDesc": "Wenn deaktiviert, beendet das Schließen des Fensters die Anwendung vollständig",
+  "clipboardMonitoring": "Links aus der Zwischenablage automatisch herunterladen",
+  "clipboardMonitoringDesc": "Wenn aktiviert, erkennt Downlodr kopierte URLs und lädt sie automatisch herunter",
+  "telemetry": "Downlodr App-Datennutzung",
+  "telemetryDesc": "Sendet anonyme Fehlerberichte und Leistungsmetriken, um die App zu verbessern.",
+  "appUpdates": "App-Update-Benachrichtigungen anzeigen",
+  "visibleColumns": "Sichtbare Spalten",
+  "required": "(erforderlich)",
+  "directoryInProgress": "Verzeichnisauswahl läuft",
+  "directoryInProgressDesc": "Bitte schließen Sie den Verzeichnisauswahldialog ab, bevor Sie fortfahren.",
+  "toast": {
+    "clipboardEnabled": "Zwischenablagenüberwachung wird aktiviert",
+    "clipboardDisabled": "Zwischenablagenüberwachung wird deaktiviert",
+    "clipboardDesc": "Klicken Sie auf \"OK\", um diese Einstellung zu speichern und die Änderungen anzuwenden.",
+    "telemetryEnabled": "Telemetrie wird aktiviert",
+    "telemetryDisabled": "Telemetrie wird deaktiviert",
+    "telemetryEnabledDesc": "Anonyme Nutzungsdaten und Fehlerberichte werden gesendet, um Downlodr zu verbessern.",
+    "telemetryDisabledDesc": "Es werden keine Telemetriedaten erfasst.",
+    "appUpdatesEnabled": "App-Update-Benachrichtigungen aktiviert",
+    "appUpdatesDisabled": "App-Update-Benachrichtigungen deaktiviert",
+    "appUpdatesEnabledDesc": "Sie erhalten Benachrichtigungen, wenn App-Updates verfügbar sind.",
+    "appUpdatesDisabledDesc": "App-Update-Benachrichtigungen wurden deaktiviert."
+  },
+  "speedUnits": {
+    "kb": "Kilobyte (KB)",
+    "mb": "Megabyte (MB)",
+    "gb": "Gigabyte (GB)"
+  },
+  "columns": {
+    "format": "Format",
+    "size": "Größe",
+    "speed": "Geschwindigkeit",
+    "source": "Quelle",
+    "name": "Titel",
+    "dateAdded": "Hinzugefügt am",
+    "transcript": "Untertitel",
+    "status": "Status",
+    "action": "Aktion"
+  }
+}

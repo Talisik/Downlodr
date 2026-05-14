@@ -1,0 +1,16 @@
+{
+  "downloads": "下载",
+  "plugins": "插件",
+  "skedulosa": "订阅名称",
+  "addPlugin": "添加插件",
+  "toast": {
+    "installSuccess": "插件安装成功",
+    "installSuccessTitle": "成功",
+    "alreadyInstalledTitle": "插件已安装",
+    "alreadyInstalled": "此插件已安装",
+    "invalidDirTitle": "无效的插件目录",
+    "invalidDir": "所选目录不包含有效的插件结构",
+    "installFailedTitle": "安装失败",
+    "installFailedDefault": "安装插件时发生意外错误"
+  }
+}
