@@ -1,0 +1,888 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/**
+ * A custom React Page Component for Status-Specific Downloads
+ * This component dynamically displays downloads filtered by their status,
+ * reusing the UI structure from the AllDownloads component.
+ *
+ * @returns JSX.Element - The rendered component displaying status-filtered downloads.
+ */
+import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
+import { useMainStore } from '@/core-app/store/mainStore';
+import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore';
+import ColumnHeaderContextMenu from '@/downlodr/components/contextMenu/ColumnHeaderContextMenu';
+import DownloadContextMenu from '@/downlodr/components/contextMenu/DownloadContextMenu';
+import { useResizableColumns } from '@/downlodr/components/download/resizableColumns/useResizableColumns';
+import ExpandedDownloadDetails from '@/downlodr/components/table/ExpandedDownloadDetail';
+import VideoPlayerPanel from '@/downlodr/components/panel/VideoPlayerPanel';
+import { StatusPageModals } from '@/downlodr/pages/status/StatusPageModals';
+import { StatusPageTable } from '@/downlodr/pages/status/StatusPageTable';
+import { useStatusPageHandlers } from '@/downlodr/pages/status/statusPageHandler';
+import {
+  useClickOutsideToCloseMenus,
+  useErrorTransitionMonitor,
+  usePlaylistAutoSelect,
+  useStatusPageTitle,
+  useThumbnails,
+  useTransitionTimeoutRef,
+  useWindowSize,
+} from '@/downlodr/pages/status/statusPageHooks';
+import {
+  getColumnOptions,
+  sortDownloadsByColumn,
+  statusMapping,
+} from '@/downlodr/pages/status/statusPageUtils';
+import { DownloadItem } from '@/downlodr/schema/componentSchema';
+import { useDownloadStore } from '@/downlodr/store/downloadStore';
+import { usePluginStore } from '@/plugins/store/pluginStore';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import type { SearchableDownload } from '../store/taskbarDownloadStore';
+import { useTaskbarDownloadStore } from '../store/taskbarDownloadStore';
+
+export { formatFileSize } from '@/downlodr/pages/status/statusPageUtils';
+
+const StatusSpecificDownloads = () => {
+  const { status } = useParams<{ status: string }>();
+  const currentStatus = status ? statusMapping[status] || status : '';
+
+  useStatusPageTitle(currentStatus);
+  const { windowWidth, windowHeight } = useWindowSize();
+  const speedGraphHeight = Math.floor(windowHeight * 0.027);
+
+  // All downloads from different states
+  const history = useDownloadStore((state) => state.historyDownloads);
+  const downloading = useDownloadStore((state) => state.downloading);
+  const forDownloads = useDownloadStore((state) => state.forDownloads);
+  const finishedDownloads = useDownloadStore(
+    (state) => state.finishedDownloads,
+  );
+  const queuedDownloads = useDownloadStore((state) => state.queuedDownloads);
+  const deleteDownload = useDownloadStore((state) => state.deleteDownload);
+
+  // Sorting state
+  const [sortColumn, setSortColumn] = useState<string>('dateAdded');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const [videoPlayerState, setVideoPlayerState] = useState<{
+    isOpen: boolean;
+    videoUrl: string;
+    title: string;
+    autoCaptionLocation?: string;
+    transcriptLocation?: string;
+    displayName?: string;
+    dateAdded?: string;
+    location?: string;
+    tags?: string[];
+    category?: string[];
+    status?: string;
+    downloadName?: string;
+    description?: string;
+    channelName?: string;
+    thumbnail?: string;
+    ext?: string;
+    duration?: number;
+    size?: number;
+    extractorKey?: string;
+    downloadId?: string;
+  }>({ isOpen: false, videoUrl: '', title: '' });
+  const [panelWidth, setPanelWidth] = useState(75);
+
+  // Tag and Category states and imports
+  const availableTags = useDownloadStore((state) => state.availableTags);
+  const addTag = useDownloadStore((state) => state.addTag);
+  const removeTag = useDownloadStore((state) => state.removeTag);
+  const availableCategories = useDownloadStore(
+    (state) => state.availableCategories,
+  );
+  const addCategory = useDownloadStore((state) => state.addCategory);
+  const removeCategory = useDownloadStore((state) => state.removeCategory);
+
+  // Selected state management
+  const selectedRowIds = useSelectedDownloadStore(
+    (state) => state.selectedRowIds,
+  );
+  const getSelectedWithStatusCount = useSelectedDownloadStore(
+    (state) => state.getSelectedWithStatusCount,
+  );
+  const setSelectedRowIds = useSelectedDownloadStore(
+    (state) => state.setSelectedRowIds,
+  );
+  const setSelectedDownloads = useSelectedDownloadStore(
+    (state) => state.setSelectedDownloads,
+  );
+  const [contextMenu, setContextMenu] = useState<{
+    downloadId: string | null;
+    x: number;
+    y: number;
+    downloadLocation?: string;
+    controllerId?: string;
+    downloadStatus?: string;
+  }>({ downloadId: null, x: 0, y: 0 });
+  const [selectedDownloadId, setSelectedDownloadId] = useState<string | null>(
+    null,
+  );
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+
+  // Get visible columns from the store
+  const visibleColumns = useMainStore((state) => state.visibleColumns);
+  const { updateIsOpenPluginSidebar } = usePluginStore();
+
+  const searchState = useTaskbarDownloadStore((state) => state.searchState);
+  const { isSearchActive, searchQuery, searchResults } = searchState;
+
+  const transitionTimeoutRef = useTransitionTimeoutRef();
+
+  // Downloads
+  const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
+  const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
+  const selectedDownloads = useSelectedDownloadStore(
+    (state) => state.selectedDownloads,
+  );
+  const [showActivityTracker, setShowActivityTracker] = useState(false);
+  const [activityTrackerDownloadId, setActivityTrackerDownloadId] = useState<
+    string | null
+  >(null);
+
+  // Memoize initial columns to prevent re-initialization on window resize
+  const initialColumns = useMemo(
+    () => [
+      {
+        id: 'name',
+        width: Math.max(Math.floor(window.innerWidth * 0.3), 180),
+        minWidth: 180,
+      },
+      { id: 'size', width: 50, minWidth: 50 },
+      { id: 'format', width: 90, minWidth: 90 },
+      { id: 'status', width: 90, minWidth: 90 },
+      { id: 'speed', width: 60, minWidth: 60 },
+      { id: 'dateAdded', width: 70, minWidth: 70 },
+      { id: 'transcript', width: 20, minWidth: 20 },
+      { id: 'source', width: 20, minWidth: 20 },
+      { id: 'action', width: 10, minWidth: 10 },
+    ],
+    [],
+  ); // Empty dependency array ensures this only runs once
+
+  // Call the hook with visible column IDs
+  const {
+    columns,
+    startResizing,
+    startDragging,
+    handleDragOver,
+    handleDrop,
+    cancelDrag,
+    dragging,
+    dragOverIndex,
+  } = useResizableColumns(initialColumns, visibleColumns);
+
+  // PERFORMANCE OPTIMIZATION: Memoize expensive computations
+  // Combine and process downloads only when dependencies change
+  const allDownloads = useMemo((): SearchableDownload[] => {
+    if (isSearchActive) {
+      return searchResults;
+    }
+    const merged = [
+      ...forDownloads,
+      ...downloading,
+      ...finishedDownloads,
+      ...history,
+      ...queuedDownloads,
+    ].filter(
+      (download, index, self) =>
+        index === self.findIndex((d) => d.id === download.id),
+    );
+    const byStatus = currentStatus
+      ? currentStatus.toLowerCase() === 'all'
+        ? merged
+        : currentStatus.toLowerCase() === 'subscriptions'
+        ? merged.filter((d) => !!d.subscriptionId)
+        : merged.filter(
+            (d) => d.status.toLowerCase() === currentStatus.toLowerCase(),
+          )
+      : merged;
+    return sortDownloadsByColumn(byStatus, sortColumn, sortDirection);
+  }, [
+    forDownloads,
+    downloading,
+    finishedDownloads,
+    history,
+    queuedDownloads,
+    currentStatus,
+    sortColumn,
+    sortDirection,
+    isSearchActive,
+    searchQuery,
+  ]);
+
+  const { thumbnailDataUrls, setThumbnailDataUrls } =
+    useThumbnails(allDownloads);
+  useErrorTransitionMonitor(allDownloads);
+
+  // Memoize display columns computation
+  const displayColumns = useMemo(() => {
+    return columns.filter(
+      (column) =>
+        visibleColumns.includes(column.id) ||
+        ['name', 'status', 'format', 'action'].includes(column.id),
+    );
+  }, [columns, visibleColumns]);
+
+  // Memoize display columns with indices
+  const displayColumnsWithIndices = useMemo(() => {
+    return displayColumns.map((column, index) => ({
+      ...column,
+      displayIndex: index,
+    }));
+  }, [displayColumns]);
+
+  const selectedDownload = useMemo(() => {
+    return selectedDownloadId
+      ? allDownloads.find((d) => d.id === selectedDownloadId)
+      : null;
+  }, [selectedDownloadId, allDownloads]);
+
+  // PERFORMANCE OPTIMIZATION: Memoize event handlers
+  const handleFileNotExistModal = useCallback(
+    async (contextDownload: DownloadItem | null = null) => {
+      const missing = [];
+      // If a specific download is provided via context menu, check only that one
+      const downloadsToCheck = contextDownload
+        ? [contextDownload]
+        : selectedDownloads;
+      // Check each download to see if it exists
+      for (const download of downloadsToCheck) {
+        if (download.status === 'finished' && download.location) {
+          const fullDownloadLocation =
+            await window.downlodrFunctions.joinDownloadPath(
+              download.location,
+              download.displayName,
+            );
+          const exists = await window.downlodrFunctions.fileExists(
+            fullDownloadLocation,
+          );
+          if (!exists) {
+            missing.push(download);
+          }
+        }
+      }
+
+      // Set the missing files and show the modal if any were found
+      if (missing.length > 0) {
+        // Filter and ensure all items are valid DownloadItem objects
+        const validMissingFiles = missing.filter(
+          (item): item is DownloadItem =>
+            'videoUrl' in item && item.videoUrl !== undefined,
+        );
+        setMissingFiles(validMissingFiles);
+        setShowFileNotExistModal(true);
+      }
+    },
+    [selectedDownloads],
+  );
+
+  const noopFormatSelect = useCallback(
+    (_formatData: { ext: string; formatId: string }) => {
+      void _formatData;
+    },
+    [],
+  );
+
+  // Handle column header click for sorting
+  const handleSortClick = useCallback(
+    (column: string) => {
+      if (sortColumn === column) {
+        // Toggle direction if same column
+        setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      } else {
+        // Set new column and default to desc
+        setSortColumn(column);
+        setSortDirection('desc');
+      }
+    },
+    [sortColumn, sortDirection],
+  );
+
+  //  new state for the column header context menu
+  const [columnHeaderContextMenu, setColumnHeaderContextMenu] = useState<{
+    x: number;
+    y: number;
+    visible: boolean;
+  }>({ x: 0, y: 0, visible: false });
+
+  //  handler for the column header right-click
+  const handleColumnHeaderContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Close any active download context menu first
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+    // Get the table's position
+    const tableRect = e.currentTarget.getBoundingClientRect();
+
+    // Calculate position relative to the table/header
+    const x = e.clientX - tableRect.left + 2; // Small offset for better appearance
+    const y = e.clientY - tableRect.top + window.scrollY + 2;
+
+    setColumnHeaderContextMenu({
+      x: x,
+      y: y,
+      visible: true,
+    });
+  }, []);
+
+  //  to close the column header context menu
+  const handleCloseColumnHeaderContextMenu = useCallback(() => {
+    setColumnHeaderContextMenu((prev) => ({ ...prev, visible: false }));
+  }, []);
+
+  // Handle toggle column visibility
+  const handleToggleColumn = useCallback(
+    (columnId: string) => {
+      const newVisibleColumns = visibleColumns.includes(columnId)
+        ? visibleColumns.filter((id) => id !== columnId)
+        : [...visibleColumns, columnId];
+
+      useMainStore.getState().setVisibleColumns(newVisibleColumns);
+    },
+    [visibleColumns],
+  );
+
+  // state to track menu transitions
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const handleCheckboxChange = useCallback(
+    (downloadId: string) => {
+      const newSelected = selectedRowIds.includes(downloadId)
+        ? selectedRowIds.filter((id) => id !== downloadId)
+        : [...selectedRowIds, downloadId];
+
+      setSelectedRowIds(newSelected);
+
+      // Create promises for each download
+      const promises = newSelected.map(async (id) => {
+        const download = allDownloads.find((d) => d.id === id);
+        return {
+          id,
+          controllerId: download?.controllerId,
+          videoUrl: download?.videoUrl,
+          downloadName: download?.displayName,
+          status: download?.status,
+          download: download,
+          location: download?.location
+            ? await window.downlodrFunctions.joinDownloadPath(
+                download.location,
+                download.name,
+              )
+            : undefined,
+        };
+      });
+
+      // Resolve all promises before updating state
+      Promise.all(promises).then((resolvedData) => {
+        setSelectedDownloads(resolvedData);
+      });
+    },
+    [selectedRowIds, allDownloads, setSelectedRowIds, setSelectedDownloads],
+  );
+
+  const handleGroupCheckboxChange = useCallback(
+    (downloadIds: string[]) => {
+      const selectedSet = new Set(selectedRowIds);
+      const allSelected = downloadIds.every((id) => selectedSet.has(id));
+      const newSelected = allSelected
+        ? selectedRowIds.filter((id) => !downloadIds.includes(id))
+        : [...new Set([...selectedRowIds, ...downloadIds])];
+
+      setSelectedRowIds(newSelected);
+
+      const promises = newSelected.map(async (id) => {
+        const download = allDownloads.find((d) => d.id === id);
+        return {
+          id,
+          controllerId: download?.controllerId,
+          videoUrl: download?.videoUrl,
+          downloadName: download?.displayName,
+          status: download?.status,
+          download: download,
+          location: download?.location
+            ? await window.downlodrFunctions.joinDownloadPath(
+                download.location,
+                download.name,
+              )
+            : undefined,
+        };
+      });
+
+      Promise.all(promises).then((resolvedData) => {
+        setSelectedDownloads(resolvedData);
+      });
+    },
+    [selectedRowIds, allDownloads, setSelectedRowIds, setSelectedDownloads],
+  );
+
+  const handleSelectAll = useCallback(() => {
+    const newSelected =
+      selectedRowIds.length === allDownloads.length
+        ? []
+        : allDownloads.map((download) => download.id);
+
+    setSelectedRowIds(newSelected);
+
+    // Create promises for each download
+    const promises = newSelected.map(async (id) => {
+      const download = allDownloads.find((d) => d.id === id);
+      return {
+        id,
+        controllerId: download?.controllerId,
+        videoUrl: download?.videoUrl,
+        downloadName: download?.displayName,
+        status: download?.status,
+        download: download,
+        location: download?.location
+          ? await window.downlodrFunctions.joinDownloadPath(
+              download.location,
+              download.name,
+            )
+          : undefined,
+      };
+    });
+
+    // Resolve all promises before updating state
+    Promise.all(promises).then((resolvedData) => {
+      setSelectedDownloads(resolvedData);
+    });
+  }, [selectedRowIds, allDownloads, setSelectedRowIds, setSelectedDownloads]);
+
+  const handleCloseContextMenu = () => {
+    // Clear any pending transitions
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+      transitionTimeoutRef.current = null;
+    }
+
+    // Batch state updates
+    setContextMenu({ downloadId: null, x: 0, y: 0 });
+    setSelectedDownloadId(null);
+    setIsTransitioning(false);
+  };
+
+  const handleRowClick = useCallback(
+    (downloadId: string) => {
+      // Find the download object
+      const clickedDownload = allDownloads.find((d) => d.id === downloadId);
+
+      if (!clickedDownload) {
+        return;
+      }
+
+      // Set the selected download ID - this is crucial for the details panel
+      setSelectedDownloadId(downloadId);
+
+      // Update the expanded row state
+      setExpandedRowId(downloadId === expandedRowId ? null : downloadId);
+
+      // Update selected row IDs for highlighting
+      // setSelectedRowIds([downloadId]);
+    },
+    [allDownloads, expandedRowId],
+  );
+
+  // Find current tags for the selected download
+  const getCurrentTags = useCallback(
+    (downloadId: string) => {
+      const download = allDownloads.find((d) => d.id === downloadId);
+      return download?.tags || [];
+    },
+    [allDownloads],
+  );
+
+  const getCurrentCategories = useCallback(
+    (downloadId: string) => {
+      const download = allDownloads.find((d) => d.id === downloadId);
+      return download?.category || [];
+    },
+    [allDownloads],
+  );
+
+  useClickOutsideToCloseMenus({
+    contextMenuDownloadId: contextMenu.downloadId,
+    transitionTimeoutRef,
+    setContextMenu: (menu) => setContextMenu((prev) => ({ ...prev, ...menu })),
+    setSelectedDownloadId,
+    setColumnHeaderContextMenuVisible: (visible) =>
+      setColumnHeaderContextMenu((prev) => ({ ...prev, visible })),
+    setIsTransitioning,
+  });
+
+  usePlaylistAutoSelect({
+    forDownloads,
+    selectedRowIds,
+    allDownloads,
+    setSelectedRowIds,
+    setSelectedDownloads,
+  });
+
+  // rename modal state
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameDownloadId, setRenameDownloadId] = useState<string>('');
+  const [renameCurrentName, setRenameCurrentName] = useState<string>('');
+
+  // remove modal state
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [removeDownloadId, setRemoveDownloadId] = useState<string>('');
+  const [removeDownloadLocation, setRemoveDownloadLocation] =
+    useState<string>('');
+  const [removeControllerId, setRemoveControllerId] = useState<string>('');
+
+  // stop modal state
+  const [showStopModal, setShowStopModal] = useState(false);
+  const [stopDownloadId, setStopDownloadId] = useState<string>('');
+  const [stopDownloadLocation, setStopDownloadLocation] = useState<string>('');
+  const [stopControllerId, setStopControllerId] = useState<string>('');
+
+  // log modal state
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [logModalDownloadId, setLogModalDownloadId] = useState<string>('');
+
+  const statusHandlers = useStatusPageHandlers({
+    allDownloads,
+    contextMenu,
+    setContextMenu,
+    columnHeaderContextMenu,
+    setColumnHeaderContextMenu,
+    transitionTimeoutRef,
+    setIsTransitioning,
+    setSelectedDownloadId,
+    setLogModalDownloadId,
+    setShowLogModal,
+    setActivityTrackerDownloadId,
+    setShowActivityTracker,
+    setSelectedRowIds,
+    setSelectedDownloads,
+    updateIsOpenPluginSidebar,
+    handleFileNotExistModal,
+  });
+
+  // Get renameDownload function from store
+  const renameDownload = useDownloadStore((state) => state.renameDownload);
+
+  // rename handler
+  const handleRename = useCallback(
+    (downloadId: string, currentName: string) => {
+      setRenameDownloadId(downloadId);
+      setRenameCurrentName(currentName);
+      setShowRenameModal(true);
+    },
+    [],
+  );
+
+  // remove handler
+  const handleShowRemoveModal = useCallback(
+    (downloadId: string, downloadLocation?: string, controllerId?: string) => {
+      setRemoveDownloadId(downloadId);
+      setRemoveDownloadLocation(downloadLocation || '');
+      setRemoveControllerId(controllerId || '');
+      setShowRemoveModal(true);
+    },
+    [],
+  );
+
+  // stop handler
+  const handleShowStopModal = useCallback(
+    (downloadId: string, downloadLocation?: string, controllerId?: string) => {
+      setStopDownloadId(downloadId);
+      setStopDownloadLocation(downloadLocation || '');
+      setStopControllerId(controllerId || '');
+      setShowStopModal(true);
+    },
+    [],
+  );
+
+  // function to perform the rename
+  const performRename = useCallback(
+    (newName: string) => {
+      renameDownload(renameDownloadId, newName);
+      setShowRenameModal(false);
+      setRenameDownloadId('');
+      setRenameCurrentName('');
+    },
+    [renameDownload, renameDownloadId],
+  );
+
+  // function to perform the remove
+  const performRemove = useCallback(
+    (deleteFolder?: boolean) => {
+      statusHandlers.handleRemove(
+        removeDownloadLocation,
+        removeDownloadId,
+        removeControllerId,
+        deleteFolder,
+      );
+      setShowRemoveModal(false);
+      setRemoveDownloadId('');
+      setRemoveDownloadLocation('');
+      setRemoveControllerId('');
+    },
+    [removeDownloadLocation, removeDownloadId, removeControllerId],
+  );
+
+  // function to perform the stop
+  const performStop = useCallback(() => {
+    // Get processQueue function
+    const { processQueue } = useDownloadStore.getState();
+    statusHandlers.handleStop(
+      stopDownloadId,
+      stopDownloadLocation,
+      stopControllerId,
+    );
+    processQueue();
+    setShowStopModal(false);
+    setStopDownloadId('');
+    setStopDownloadLocation('');
+    setStopControllerId('');
+  }, [stopDownloadId, stopDownloadLocation, stopControllerId]);
+
+  return (
+    <div className="flex flex-col h-full bg-[#F9F9F9] dark:bg-darkMode">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        <StatusPageTable
+          allDownloads={allDownloads}
+          searchQuery={searchQuery}
+          isSearchActive={isSearchActive}
+          displayColumns={displayColumns}
+          columns={columns}
+          thumbnailDataUrls={thumbnailDataUrls}
+          selectedRowIds={selectedRowIds}
+          selectedDownloadId={selectedDownloadId}
+          sortColumn={sortColumn}
+          sortDirection={sortDirection}
+          dragging={dragging}
+          dragOverIndex={dragOverIndex}
+          getSelectedWithStatusCount={getSelectedWithStatusCount}
+          onColumnHeaderContextMenu={handleColumnHeaderContextMenu}
+          onSelectAll={handleSelectAll}
+          onSortClick={handleSortClick}
+          onResizeStart={startResizing}
+          startDragging={startDragging}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          cancelDrag={cancelDrag}
+          onContextMenu={statusHandlers.handleContextMenu}
+          onRowClick={handleRowClick}
+          onCheckboxChange={handleCheckboxChange}
+          onViewFile={statusHandlers.handleViewFile}
+          onViewDownload={statusHandlers.handleViewDownload}
+          onViewFolder={statusHandlers.handleViewFolder}
+          onRetry={statusHandlers.handleRetry}
+          onPause={statusHandlers.handlePause}
+          onRedownloadTranscript={statusHandlers.handleRedownloadTranscript}
+          onFormatSelect={noopFormatSelect}
+          onClosePluginSidebar={() => updateIsOpenPluginSidebar(false)}
+          onGroupCheckboxChange={handleGroupCheckboxChange}
+          onViewEmbed={(download) => {
+            setVideoPlayerState({
+              isOpen: true,
+              videoUrl: download.videoUrl ?? '',
+              title: download.displayName ?? download.name ?? '',
+              autoCaptionLocation: download.autoCaptionLocation,
+              transcriptLocation: download.transcriptLocation,
+              displayName: download.displayName,
+              dateAdded: download.DateAdded,
+              location: download.location,
+              tags: download.tags,
+              category: download.category,
+              status: download.status,
+              downloadName: download.name,
+              description: download.description,
+              channelName: download.channelName,
+              thumbnail: typeof download.thumbnails === 'string' && download.thumbnails !== '—' ? download.thumbnails : undefined,
+              ext: download.ext,
+              duration: download.duration,
+              size: download.size,
+              extractorKey: download.extractorKey,
+              downloadId: download.id,
+            });
+          }}
+          videoPlayerPanel={
+            <VideoPlayerPanel
+              isOpen={videoPlayerState.isOpen}
+              onClose={() =>
+                setVideoPlayerState({
+                  isOpen: false,
+                  videoUrl: '',
+                  title: '',
+                  autoCaptionLocation: undefined,
+                  transcriptLocation: undefined,
+                  displayName: undefined,
+                  dateAdded: undefined,
+                  location: undefined,
+                  tags: undefined,
+                  category: undefined,
+                  description: undefined,
+                  channelName: undefined,
+                  thumbnail: undefined,
+                  ext: undefined,
+                  duration: undefined,
+                  size: undefined,
+                  extractorKey: undefined,
+                  downloadId: undefined,
+                })
+              }
+              videoUrl={videoPlayerState.videoUrl}
+              title={videoPlayerState.title}
+              autoCaptionLocation={videoPlayerState.autoCaptionLocation}
+              transcriptLocation={videoPlayerState.transcriptLocation}
+              displayName={videoPlayerState.displayName}
+              dateAdded={videoPlayerState.dateAdded}
+              location={videoPlayerState.location}
+              tags={videoPlayerState.tags}
+              category={videoPlayerState.category}
+              status={videoPlayerState.status}
+              downloadName={videoPlayerState.downloadName}
+              description={videoPlayerState.description}
+              channelName={videoPlayerState.channelName}
+              thumbnail={videoPlayerState.thumbnail}
+              ext={videoPlayerState.ext}
+              duration={videoPlayerState.duration}
+              size={videoPlayerState.size}
+              extractorKey={videoPlayerState.extractorKey}
+              downloadId={videoPlayerState.downloadId}
+              width={panelWidth}
+              onWidthChange={setPanelWidth}
+            />
+          }
+        />
+      </div>
+
+      {/* Context Menus - keep these unchanged */}
+      {contextMenu.downloadId &&
+        !isTransitioning &&
+        (() => {
+          const download = allDownloads.find(
+            (d) => d.id === contextMenu.downloadId,
+          );
+          return download ? (
+            <DownloadContextMenu
+              download={download}
+              position={{ x: contextMenu.x, y: contextMenu.y }}
+              onShowLog={statusHandlers.handleShowLog}
+              onShowActivityTracker={statusHandlers.handleShowActivityTracker}
+              onClose={handleCloseContextMenu}
+              onRetry={statusHandlers.handleRetry}
+              onPause={statusHandlers.handlePause}
+              onStop={statusHandlers.handleStop}
+              onForceStart={statusHandlers.handleForceStart}
+              onRemove={statusHandlers.handleRemove}
+              onViewDownload={statusHandlers.handleViewDownload}
+              onViewFolder={statusHandlers.handleViewFolder}
+              onAddTag={addTag}
+              onRemoveTag={removeTag}
+              currentTags={getCurrentTags(contextMenu.downloadId)}
+              availableTags={availableTags}
+              onAddCategory={addCategory}
+              onRemoveCategory={removeCategory}
+              currentCategories={getCurrentCategories(contextMenu.downloadId)}
+              availableCategories={availableCategories}
+              onRename={handleRename}
+              onShowRemoveModal={handleShowRemoveModal}
+              onShowStopModal={handleShowStopModal}
+              onViewEmbed={(
+                videoUrl,
+                title,
+                autoCaptionLocation,
+                transcriptLocation,
+                displayName,
+                dateAdded,
+                location,
+                tags,
+                category,
+                status,
+                downloadName,
+              ) => {
+                if (!videoUrl && !location) return;
+                setVideoPlayerState({
+                  isOpen: true,
+                  videoUrl,
+                  title,
+                  autoCaptionLocation,
+                  transcriptLocation,
+                  displayName,
+                  dateAdded,
+                  location,
+                  tags,
+                  category,
+                  status,
+                  downloadName,
+                });
+              }}
+            />
+          ) : null;
+        })()}
+
+      <ColumnHeaderContextMenu
+        position={{
+          x: columnHeaderContextMenu.x,
+          y: columnHeaderContextMenu.y,
+        }}
+        visible={columnHeaderContextMenu.visible}
+        visibleColumns={visibleColumns}
+        onToggleColumn={handleToggleColumn}
+        onClose={handleCloseColumnHeaderContextMenu}
+        columnOptions={getColumnOptions()}
+      />
+      <StatusPageModals
+        showFileNotExistModal={showFileNotExistModal}
+        onCloseFileNotExistModal={() => setShowFileNotExistModal(false)}
+        missingFiles={missingFiles}
+        showRenameModal={showRenameModal}
+        onCloseRenameModal={() => {
+          setShowRenameModal(false);
+          setRenameDownloadId('');
+          setRenameCurrentName('');
+        }}
+        renameCurrentName={renameCurrentName}
+        onRename={performRename}
+        showRemoveModal={showRemoveModal}
+        onCloseRemoveModal={() => {
+          setShowRemoveModal(false);
+          setRemoveDownloadId('');
+          setRemoveDownloadLocation('');
+          setRemoveControllerId('');
+        }}
+        onConfirmRemove={performRemove}
+        showStopModal={showStopModal}
+        onCloseStopModal={() => {
+          setShowStopModal(false);
+          setStopDownloadId('');
+          setStopDownloadLocation('');
+          setStopControllerId('');
+        }}
+        onConfirmStop={performStop}
+        showActivityTracker={showActivityTracker}
+        onCloseActivityTracker={() => setShowActivityTracker(false)}
+        activityTrackerDownloadId={activityTrackerDownloadId}
+        showLogModal={showLogModal}
+        onCloseLogModal={() => {
+          setShowLogModal(false);
+          setLogModalDownloadId('');
+        }}
+        logModalDownloadId={logModalDownloadId}
+      />
+
+      <div className="flex-shrink-0 mt-4">
+        <ExpandedDownloadDetails
+          download={
+            selectedDownload
+              ? {
+                  ...selectedDownload,
+                  elapsed: selectedDownload.elapsed || 0,
+                }
+              : null
+          }
+        />
+      </div>
+    </div>
+  );
+};
+
+export default StatusSpecificDownloads;
