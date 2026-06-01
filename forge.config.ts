@@ -10,8 +10,11 @@ import { spawn } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
 
-// Declare __dirname for TypeScript in CommonJS mode
-declare const __dirname: string;
+// electron-forge loads this config from the project root, so process.cwd() is
+// the project root in BOTH CommonJS and ES module scopes. We avoid projectRoot,
+// which is undefined when this file is evaluated as an ES module on the runner
+// (Node 24 reparses it as ESM), silently breaking signing/resource paths.
+const projectRoot = process.cwd();
 
 // Platform-conditional extra resources. A missing extraResource path fails
 // packaging, so each platform lists only the binaries it actually ships.
@@ -137,8 +140,8 @@ const config: ForgeConfig = {
             identity: process.env.APPLE_IDENTITY,
             'hardened-runtime': true,
             'gatekeeper-assess': false,
-            entitlements: path.join(__dirname, 'entitlements.plist'),
-            'entitlements-inherit': path.join(__dirname, 'entitlements.plist'),
+            entitlements: path.join(projectRoot, 'entitlements.plist'),
+            'entitlements-inherit': path.join(projectRoot, 'entitlements.plist'),
             'signature-flags': 'library',
             'pre-embed-provisioning-profile': false,
           } as any)
@@ -203,8 +206,8 @@ const config: ForgeConfig = {
       // Non-fatal: core downloading works on older FFmpeg; only transcription needs 8+.
       const ffmpegPath =
         process.platform === 'darwin'
-          ? path.resolve(__dirname, 'binaries/ffmpeg-arm64')
-          : path.resolve(__dirname, 'ffmpeg.exe');
+          ? path.resolve(projectRoot, 'binaries/ffmpeg-arm64')
+          : path.resolve(projectRoot, 'ffmpeg.exe');
 
       try {
         const { execSync } = await import('child_process');
@@ -237,8 +240,8 @@ const config: ForgeConfig = {
             const macBinaryName = 'yt-dlp_macos';
 
             const sourcePaths = [
-              path.resolve(__dirname, binaryName),
-              path.resolve(__dirname, macBinaryName),
+              path.resolve(projectRoot, binaryName),
+              path.resolve(projectRoot, macBinaryName),
             ];
 
             let sourceBinaryPath: string | null = null;
@@ -275,7 +278,7 @@ const config: ForgeConfig = {
                     await signBinaryWithEntitlements(
                       destPath,
                       'yt-dlp',
-                      path.join(__dirname, 'yt-dlp-entitlements.plist'),
+                      path.join(projectRoot, 'yt-dlp-entitlements.plist'),
                     );
                   }
                 } catch (copyError) {
@@ -328,7 +331,7 @@ const config: ForgeConfig = {
         if (process.platform === 'win32') {
           try {
             await fs.copyFile(
-              path.resolve(__dirname, 'yt-dlp.exe'),
+              path.resolve(projectRoot, 'yt-dlp.exe'),
               path.join(outputPath, 'yt-dlp.exe'),
             );
             console.log(`✓ Copied yt-dlp.exe to ${outputPath}`);
@@ -341,7 +344,7 @@ const config: ForgeConfig = {
         // The video-nemesis-toolkit backend is not yet tracked / built for macOS,
         // so this copy is best-effort: failures are logged but never fail the build.
         const toolkitNodeModules = path.resolve(
-          __dirname,
+          projectRoot,
           'src/skedulosa/backend/video-nemesis-toolkit/node_modules',
         );
         const unpackedNodeModules = path.join(
