@@ -65,19 +65,27 @@ echo ""
 
 # Step 2: Build the app (package only, no makers to avoid DMG permission issues)
 echo "🔧 Step 2: Building application..."
+set +e
 yarn electron-forge package
-echo "✅ Application packaged"
+PKG_EXIT=$?
+set -e
+echo "ℹ️  electron-forge package exit code: $PKG_EXIT"
 echo ""
 
-# Locate the packaged .app (output dir/app name can vary by packager version)
+# Diagnostics + locate the packaged .app (output dir/app name can vary)
 echo "📂 Locating packaged app..."
-ls -la out/ 2>/dev/null || true
-APP_PATH=$(find out -maxdepth 2 -name "*.app" -type d 2>/dev/null | head -1)
+echo "--- ls -la out/ ---"
+ls -la out/ 2>&1 || echo "(out/ does not exist)"
+echo "--- find *.app (depth 4) ---"
+find . -maxdepth 4 -name "*.app" -type d 2>/dev/null || true
+echo "-------------------"
+APP_PATH=$(find out -maxdepth 3 -name "*.app" -type d 2>/dev/null | head -1)
 if [ -z "$APP_PATH" ]; then
-    echo "❌ Could not find a built .app under out/"
+    echo "❌ Could not find a built .app under out/ (electron-forge package exit was $PKG_EXIT)"
     exit 1
 fi
 APP_BUNDLE_NAME=$(basename "$APP_PATH")
+echo "✅ Application packaged"
 echo "📱 Found app: $APP_PATH"
 echo ""
 
