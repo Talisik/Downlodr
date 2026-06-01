@@ -65,11 +65,14 @@ echo ""
 
 # Step 2: Build the app (package only, no makers to avoid DMG permission issues)
 echo "🔧 Step 2: Building application..."
+echo "   disk free before package:"; df -h . | tail -1
 set +e
-yarn electron-forge package
+DEBUG='@electron/packager*,@electron/osx-sign*,@electron/universal*,electron-forge:*' \
+    yarn electron-forge package 2>&1
 PKG_EXIT=$?
 set -e
 echo "ℹ️  electron-forge package exit code: $PKG_EXIT"
+echo "   disk free after package:"; df -h . | tail -1
 echo ""
 
 # Diagnostics + locate the packaged .app (output dir/app name can vary)
