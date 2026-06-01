@@ -1,4 +1,3 @@
-import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerPKG } from '@electron-forge/maker-pkg';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
@@ -153,13 +152,10 @@ const config: ForgeConfig = {
   rebuildConfig: {},
 
   makers: [
-    // macOS DMG installer
-    new MakerDMG({
-      icon: './src/Assets/Logo/downlodr_icon.icns',
-      name: 'Downlodr',
-      title: 'Install Downlodr',
-      format: 'ULFO',
-    }),
+    // NOTE: macOS DMGs are produced by Homebrew create-dmg in
+    // scripts/build-with-create-dmg*.sh (the CI release path), not by a forge
+    // maker. We intentionally omit MakerDMG to keep the @electron-forge tree at
+    // a single coherent 7.6.0 version (see "resolutions" in package.json).
 
     // macOS PKG installer — needs a "Developer ID Installer" certificate.
     new MakerPKG({

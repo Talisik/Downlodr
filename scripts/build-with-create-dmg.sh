@@ -66,11 +66,7 @@ echo ""
 # Step 2: Build the app (package only, no makers to avoid DMG permission issues)
 echo "🔧 Step 2: Building application..."
 echo "   disk free before package:"; df -h . | tail -1
-# DIAGNOSTIC: skip code-signing DURING packaging (osxSign undefined). Signing is
-# applied afterward by fix-binary-signing.sh + DMG signing. This isolates whether
-# osxSign-during-package is what aborts "Finalizing package" on the macOS runner.
 set +e
-SKIP_CODE_SIGNING=1 \
 DEBUG='@electron/packager*,@electron/osx-sign*,@electron/universal*,electron-forge:*' \
     yarn electron-forge package 2>&1
 PKG_EXIT=$?

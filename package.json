@@ -18,7 +18,6 @@
   "devDependencies": {
     "@electron-forge/cli": "7.6.0",
     "@electron-forge/maker-deb": "7.6.0",
-    "@electron-forge/maker-dmg": "^7.8.3",
     "@electron-forge/maker-pkg": "7.6.0",
     "@electron-forge/maker-rpm": "7.6.0",
     "@electron-forge/maker-squirrel": "7.6.0",
@@ -53,6 +52,12 @@
     "email": "downlodr@email.com"
   },
   "license": "MIT",
+  "resolutions": {
+    "@electron-forge/shared-types": "7.6.0",
+    "@electron-forge/tracer": "7.6.0",
+    "@electron-forge/core-utils": "7.6.0",
+    "@electron-forge/maker-base": "7.6.0"
+  },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
