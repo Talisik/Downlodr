@@ -46,7 +46,7 @@ echo "🎨 Creating test DMG with create-dmg..."
 
 create-dmg \
     --volname "Downlodr ${APP_VERSION}" \
-    --volicon "src/Assets/AppLogo/icon.icns" \
+    --volicon "src/Assets/Logo/downlodr_icon.icns" \
     --window-pos 200 120 \
     --window-size 800 550 \
     --icon-size 100 \

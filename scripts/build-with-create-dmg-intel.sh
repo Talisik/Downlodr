@@ -91,23 +91,27 @@ echo "   📂 Preparing clean DMG source..."
 DMG_SOURCE_DIR="$(mktemp -d -t downlodr_dmg_source_intel)"
 echo "   📍 Using temporary directory: $DMG_SOURCE_DIR"
 
-# Copy the Intel x64 app bundle (note the different path)
-INTEL_APP_PATH="out/Downlodr-darwin-x64/Downlodr.app"
-if [ ! -d "$INTEL_APP_PATH" ]; then
-    echo "❌ Intel app bundle not found at: $INTEL_APP_PATH"
+# Locate the packaged Intel x64 app bundle (auto-detect; dir/app name can vary)
+echo "   📂 Locating packaged app..."
+ls -la out/ 2>/dev/null || true
+INTEL_APP_PATH=$(find out -maxdepth 2 -name "*.app" -type d 2>/dev/null | head -1)
+if [ -z "$INTEL_APP_PATH" ]; then
+    echo "❌ Intel app bundle not found under out/"
     echo "💡 Available builds:"
     ls -la out/ || echo "No builds found"
     exit 1
 fi
+INTEL_APP_BUNDLE_NAME=$(basename "$INTEL_APP_PATH")
+echo "   📱 Found app: $INTEL_APP_PATH"
 
 cp -R "$INTEL_APP_PATH" "$DMG_SOURCE_DIR/"
 
 # Set proper permissions on the app bundle
-chmod -R 755 "$DMG_SOURCE_DIR/Downlodr.app"
+chmod -R 755 "$DMG_SOURCE_DIR/$INTEL_APP_BUNDLE_NAME"
 
 # Verify the app bundle architecture
 echo "   🔍 Verifying app bundle architecture..."
-BUNDLE_ARCH=$(lipo -archs "$DMG_SOURCE_DIR/Downlodr.app/Contents/MacOS/Downlodr" 2>/dev/null || echo "unknown")
+BUNDLE_ARCH=$(lipo -archs "$DMG_SOURCE_DIR/$INTEL_APP_BUNDLE_NAME/Contents/MacOS/Downlodr" 2>/dev/null || echo "unknown")
 echo "   📋 App bundle architecture: $BUNDLE_ARCH"
 
 if [[ "$BUNDLE_ARCH" == *"x86_64"* ]]; then
@@ -145,12 +149,12 @@ echo "   🔧 Creating professional DMG with create-dmg (using Full Disk Access)
     # Try create-dmg with Full Disk Access (no sudo needed)
     if /opt/homebrew/bin/create-dmg \
         --volname "Downlodr ${APP_VERSION} (Intel)" \
-        --volicon "src/Assets/AppLogo/icon.icns" \
+        --volicon "src/Assets/Logo/downlodr_icon.icns" \
         --window-pos 200 120 \
         --window-size 660 400 \
         --icon-size 128 \
-        --icon "Downlodr.app" 180 200 \
-        --hide-extension "Downlodr.app" \
+        --icon "$INTEL_APP_BUNDLE_NAME" 180 200 \
+        --hide-extension "$INTEL_APP_BUNDLE_NAME" \
         --app-drop-link 480 200 \
         --background "src/Assets/DMG/dmg-background.png" \
         --text-size 16 \

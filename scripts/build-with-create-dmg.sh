@@ -69,6 +69,18 @@ yarn electron-forge package
 echo "✅ Application packaged"
 echo ""
 
+# Locate the packaged .app (output dir/app name can vary by packager version)
+echo "📂 Locating packaged app..."
+ls -la out/ 2>/dev/null || true
+APP_PATH=$(find out -maxdepth 2 -name "*.app" -type d 2>/dev/null | head -1)
+if [ -z "$APP_PATH" ]; then
+    echo "❌ Could not find a built .app under out/"
+    exit 1
+fi
+APP_BUNDLE_NAME=$(basename "$APP_PATH")
+echo "📱 Found app: $APP_PATH"
+echo ""
+
 # Step 3: Apply comprehensive signing (makes app ready for notarization)
 echo "🔐 Step 3: Applying comprehensive code signing..."
 ./scripts/fix-binary-signing.sh
@@ -92,10 +104,10 @@ DMG_SOURCE_DIR="$(mktemp -d -t downlodr_dmg_source)"
 echo "   📍 Using temporary directory: $DMG_SOURCE_DIR"
 
 # Copy only the app bundle (not loose files)
-cp -R "out/Downlodr-darwin-arm64/Downlodr.app" "$DMG_SOURCE_DIR/"
+cp -R "$APP_PATH" "$DMG_SOURCE_DIR/"
 
 # Set proper permissions on the app bundle
-chmod -R 755 "$DMG_SOURCE_DIR/Downlodr.app"
+chmod -R 755 "$DMG_SOURCE_DIR/$APP_BUNDLE_NAME"
 
 # Create a beautiful DMG with create-dmg
 echo "   🎨 Creating styled DMG with Applications folder..."
@@ -124,12 +136,12 @@ echo "   🔧 Creating professional DMG with create-dmg (using Full Disk Access)
     # Try create-dmg with Full Disk Access (no sudo needed)
     if /opt/homebrew/bin/create-dmg \
         --volname "Downlodr ${APP_VERSION}" \
-        --volicon "src/Assets/AppLogo/icon.icns" \
+        --volicon "src/Assets/Logo/downlodr_icon.icns" \
         --window-pos 200 120 \
         --window-size 660 400 \
         --icon-size 128 \
-        --icon "Downlodr.app" 180 200 \
-        --hide-extension "Downlodr.app" \
+        --icon "$APP_BUNDLE_NAME" 180 200 \
+        --hide-extension "$APP_BUNDLE_NAME" \
         --app-drop-link 480 200 \
         --background "src/Assets/DMG/dmg-background.png" \
         --text-size 16 \
@@ -225,7 +237,7 @@ if [ $? -eq 0 ]; then
 else
     echo "❌ DMG notarization failed"
     echo "💡 You can still distribute the signed app bundle from:"
-    echo "   out/Downlodr-darwin-arm64/Downlodr.app"
+    echo "   $APP_PATH"
     exit 1
 fi
 
@@ -233,11 +245,11 @@ echo ""
 echo "🎉 BUILD COMPLETE!"
 echo "=================="
 echo "📂 Your distribution files:"
-echo "   • App Bundle: out/Downlodr-darwin-arm64/Downlodr.app"
+echo "   • App Bundle: $APP_PATH"
 echo "   • Professional DMG: $DMG_PATH"
 echo ""
 echo "📊 File sizes:"
-ls -lh out/Downlodr-darwin-arm64/Downlodr.app
+ls -lh $APP_PATH
 ls -lh "$DMG_PATH"
 echo ""
 echo "✅ Ready for distribution!"

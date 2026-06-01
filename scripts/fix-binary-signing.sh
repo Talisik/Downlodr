@@ -13,14 +13,12 @@ if [ -z "$APPLE_IDENTITY" ]; then
     exit 1
 fi
 
-# Find the built app
-APP_PATH=""
-if [ -d "./out/Downlodr-darwin-arm64/Downlodr.app" ]; then
-    APP_PATH="./out/Downlodr-darwin-arm64/Downlodr.app"
-elif [ -d "./out/Downlodr-darwin-x64/Downlodr.app" ]; then
-    APP_PATH="./out/Downlodr-darwin-x64/Downlodr.app"
-else
-    echo "❌ Could not find built app in expected locations"
+# Find the built app (auto-detect: the output dir/app name can vary by
+# @electron/packager version, so don't assume a hardcoded path).
+APP_PATH=$(find ./out -maxdepth 2 -name "*.app" -type d 2>/dev/null | head -1)
+if [ -z "$APP_PATH" ]; then
+    echo "❌ Could not find a built .app under ./out. Contents:"
+    ls -la ./out 2>/dev/null || echo "  (./out does not exist)"
     exit 1
 fi
 
