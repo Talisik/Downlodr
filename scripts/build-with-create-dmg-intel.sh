@@ -222,36 +222,31 @@ else
 fi
 echo ""
 
-# Step 5: Submit DMG for notarization
+# Step 5: Submit DMG for notarization (non-fatal — see ARM64 script rationale).
 echo "🍎 Step 5: Submitting DMG for notarization..."
-xcrun notarytool submit "$DMG_PATH" \
+if xcrun notarytool submit "$DMG_PATH" \
     --apple-id "$APPLE_ID" \
     --password "$APPLE_APP_SPECIFIC_PASSWORD" \
     --team-id "$APPLE_TEAM_ID" \
-    --wait
-
-if [ $? -eq 0 ]; then
+    --wait; then
     echo "✅ DMG notarization successful"
-    
+
     # Step 6: Staple the notarization ticket to DMG
     echo "📎 Step 6: Stapling notarization ticket to DMG..."
     if xcrun stapler staple "$DMG_PATH"; then
         echo "✅ DMG notarization ticket stapled successfully"
-        if xcrun stapler validate "$DMG_PATH"; then
-            echo "✅ DMG notarization validation passed"
-        else
-            echo "⚠️  DMG validation had issues but stapling succeeded"
-        fi
+        xcrun stapler validate "$DMG_PATH" \
+            && echo "✅ DMG notarization validation passed" \
+            || echo "⚠️  DMG validation had issues but stapling succeeded"
     else
-        echo "⚠️  DMG stapling failed (Error 65 - this is sometimes normal)"
-        echo "💡 The DMG is still notarized and can be distributed"
-        echo "💡 Stapling just embeds the notarization ticket for offline verification"
+        echo "⚠️  DMG stapling failed (Error 65 - sometimes normal); DMG is still notarized"
     fi
 else
-    echo "❌ DMG notarization failed"
-    echo "💡 You can still distribute the signed app bundle from:"
-    echo "   $INTEL_APP_PATH"
-    exit 1
+    echo "⚠️  DMG notarization FAILED — continuing with the signed (un-notarized) DMG."
+    echo "    Typically an Apple Developer account issue (HTTP 403 = a required Program"
+    echo "    License Agreement must be accepted/renewed at https://developer.apple.com/account)."
+    echo "    The signed DMG at $DMG_PATH is usable for validation; re-run once the"
+    echo "    agreement is in effect to produce a fully notarized build."
 fi
 
 echo ""

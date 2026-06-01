@@ -65,30 +65,18 @@ echo ""
 
 # Step 2: Build the app (package only, no makers to avoid DMG permission issues)
 echo "🔧 Step 2: Building application..."
-echo "   disk free before package:"; df -h . | tail -1
-set +e
-DEBUG='@electron/packager*,@electron/osx-sign*,@electron/universal*,electron-forge:*' \
-    yarn electron-forge package 2>&1
-PKG_EXIT=$?
-set -e
-echo "ℹ️  electron-forge package exit code: $PKG_EXIT"
-echo "   disk free after package:"; df -h . | tail -1
+yarn electron-forge package
+echo "✅ Application packaged"
 echo ""
 
-# Diagnostics + locate the packaged .app (output dir/app name can vary)
-echo "📂 Locating packaged app..."
-echo "--- ls -la out/ ---"
-ls -la out/ 2>&1 || echo "(out/ does not exist)"
-echo "--- find *.app (depth 4) ---"
-find . -maxdepth 4 -name "*.app" -type d 2>/dev/null || true
-echo "-------------------"
+# Locate the packaged .app (output dir/app name can vary by packager version)
 APP_PATH=$(find out -maxdepth 3 -name "*.app" -type d 2>/dev/null | head -1)
 if [ -z "$APP_PATH" ]; then
-    echo "❌ Could not find a built .app under out/ (electron-forge package exit was $PKG_EXIT)"
+    echo "❌ Could not find a built .app under out/"
+    ls -la out/ 2>&1 || true
     exit 1
 fi
 APP_BUNDLE_NAME=$(basename "$APP_PATH")
-echo "✅ Application packaged"
 echo "📱 Found app: $APP_PATH"
 echo ""
 
@@ -220,36 +208,34 @@ else
 fi
 echo ""
 
-# Step 5: Submit DMG for notarization
+# Step 5: Submit DMG for notarization (non-fatal). A code-signed DMG is a valid
+# build artifact on its own; notarization additionally requires a current Apple
+# Developer Program License Agreement, which is an account-side prerequisite.
 echo "🍎 Step 5: Submitting DMG for notarization..."
-xcrun notarytool submit "$DMG_PATH" \
+if xcrun notarytool submit "$DMG_PATH" \
     --apple-id "$APPLE_ID" \
     --password "$APPLE_APP_SPECIFIC_PASSWORD" \
     --team-id "$APPLE_TEAM_ID" \
-    --wait
-
-if [ $? -eq 0 ]; then
+    --wait; then
     echo "✅ DMG notarization successful"
-    
+
     # Step 6: Staple the notarization ticket to DMG
     echo "📎 Step 6: Stapling notarization ticket to DMG..."
     if xcrun stapler staple "$DMG_PATH"; then
         echo "✅ DMG notarization ticket stapled successfully"
-        if xcrun stapler validate "$DMG_PATH"; then
-            echo "✅ DMG notarization validation passed"
-        else
-            echo "⚠️  DMG validation had issues but stapling succeeded"
-        fi
+        xcrun stapler validate "$DMG_PATH" \
+            && echo "✅ DMG notarization validation passed" \
+            || echo "⚠️  DMG validation had issues but stapling succeeded"
     else
-        echo "⚠️  DMG stapling failed (Error 65 - this is sometimes normal)"
-        echo "💡 The DMG is still notarized and can be distributed"
-        echo "💡 Stapling just embeds the notarization ticket for offline verification"
+        echo "⚠️  DMG stapling failed (Error 65 - sometimes normal); DMG is still notarized"
     fi
 else
-    echo "❌ DMG notarization failed"
-    echo "💡 You can still distribute the signed app bundle from:"
-    echo "   $APP_PATH"
-    exit 1
+    echo "⚠️  DMG notarization FAILED — continuing with the signed (un-notarized) DMG."
+    echo "    This is typically an Apple Developer account issue (HTTP 403 = a required"
+    echo "    Program License Agreement must be accepted/renewed at"
+    echo "    https://developer.apple.com/account by the Account Holder)."
+    echo "    The signed DMG at $DMG_PATH is usable for validation; re-run once the"
+    echo "    agreement is in effect to produce a fully notarized build."
 fi
 
 echo ""
