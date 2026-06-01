@@ -1,0 +1,16 @@
+{
+  "downloads": "다운로드",
+  "plugins": "플러그인",
+  "skedulosa": "구독 이름",
+  "addPlugin": "플러그인 추가",
+  "toast": {
+    "installSuccess": "플러그인이 성공적으로 설치되었습니다",
+    "installSuccessTitle": "성공",
+    "alreadyInstalledTitle": "플러그인이 이미 설치됨",
+    "alreadyInstalled": "이 플러그인은 이미 설치되어 있습니다",
+    "invalidDirTitle": "잘못된 플러그인 디렉터리",
+    "invalidDir": "선택한 디렉터리에 유효한 플러그인 구조가 없습니다",
+    "installFailedTitle": "설치 실패",
+    "installFailedDefault": "플러그인 설치 중 예상치 못한 오류가 발생했습니다"
+  }
+}

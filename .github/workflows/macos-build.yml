@@ -83,6 +83,10 @@ jobs:
       - name: Ensure scripts are executable
         run: chmod +x ./scripts/*.sh
 
+      - name: Refresh static FFmpeg (8.0+)
+        continue-on-error: true
+        run: bash ./download-static-ffmpeg.sh
+
       - name: Build ARM64 production DMG
         run: yarn build:dmg
 
@@ -154,6 +158,10 @@ jobs:
 
       - name: Ensure scripts are executable
         run: chmod +x ./scripts/*.sh
+
+      - name: Refresh static FFmpeg (8.0+)
+        continue-on-error: true
+        run: bash ./download-static-ffmpeg.sh
 
       - name: Build Intel production DMG
         run: yarn build:intel

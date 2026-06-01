@@ -1,5 +1,8 @@
-import { usePluginStore } from '@/Store/pluginStore';
-import { PluginSidePanelOptions, PluginSidePanelResult } from '@/plugins/types';
+import {
+  PluginSidePanelOptions,
+  PluginSidePanelResult,
+} from '@/plugins/schema/types';
+import { usePluginStore } from '@/plugins/store/pluginStore';
 import React, { useEffect, useState } from 'react';
 import PluginSidePanelExtension from './PluginSidePanelExtension';
 
@@ -89,7 +92,7 @@ const PluginSidePanelManager: React.FC = () => {
       handleClose();
     };
 
-    // Add event listener for plugin:close-panel
+    // event listener for plugin:close-panel
     if (typeof window !== 'undefined') {
       window.addEventListener('plugin:close-panel', handleClosePanel);
     }
@@ -120,14 +123,3 @@ const PluginSidePanelManager: React.FC = () => {
 };
 
 export default PluginSidePanelManager;
-
-// Add typings for the window object
-declare global {
-  interface Window {
-    pluginSidePanelManager?: {
-      showPluginSidePanel: (
-        options: PluginSidePanelOptions,
-      ) => Promise<PluginSidePanelResult>;
-    };
-  }
-}

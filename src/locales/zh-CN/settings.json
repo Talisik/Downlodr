@@ -1,0 +1,50 @@
+{
+  "title": "设置",
+  "language": "语言",
+  "downloadLocation": "下载位置",
+  "speedLimit": "速度限制",
+  "noLimit": "无限制",
+  "connectionLimits": "连接限制",
+  "maxActiveDownloads": "最大同时下载数",
+  "appBehavior": "应用程序行为",
+  "runInBackground": "关闭窗口时在后台运行",
+  "runInBackgroundDesc": "禁用时，关闭窗口将完全退出应用程序",
+  "clipboardMonitoring": "自动下载剪贴板中的链接",
+  "clipboardMonitoringDesc": "启用时，Downlodr 将检测复制的网址并自动下载",
+  "telemetry": "Downlodr 应用程序数据使用",
+  "telemetryDesc": "发送匿名错误报告和性能指标以帮助改善应用程序。",
+  "appUpdates": "显示应用程序更新通知",
+  "visibleColumns": "可见列",
+  "required": "（必填）",
+  "directoryInProgress": "目录选择进行中",
+  "directoryInProgressDesc": "请完成目录选择对话框后再继续。",
+  "toast": {
+    "clipboardEnabled": "剪贴板监控将被启用",
+    "clipboardDisabled": "剪贴板监控将被禁用",
+    "clipboardDesc": "点击「确定」保存此设置并应用更改。",
+    "telemetryEnabled": "遥测将被启用",
+    "telemetryDisabled": "遥测将被禁用",
+    "telemetryEnabledDesc": "将发送匿名使用数据和错误报告以帮助改善 Downlodr。",
+    "telemetryDisabledDesc": "不会收集任何遥测数据。",
+    "appUpdatesEnabled": "应用程序更新通知已启用",
+    "appUpdatesDisabled": "应用程序更新通知已禁用",
+    "appUpdatesEnabledDesc": "有可用的应用程序更新时您将收到通知。",
+    "appUpdatesDisabledDesc": "应用程序更新通知已禁用。"
+  },
+  "speedUnits": {
+    "kb": "千字节 (KB)",
+    "mb": "兆字节 (MB)",
+    "gb": "吉字节 (GB)"
+  },
+  "columns": {
+    "format": "格式",
+    "size": "大小",
+    "speed": "速度",
+    "source": "来源",
+    "name": "标题",
+    "dateAdded": "添加日期",
+    "transcript": "字幕",
+    "status": "状态",
+    "action": "操作"
+  }
+}

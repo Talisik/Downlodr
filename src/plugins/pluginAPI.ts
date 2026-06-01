@@ -1,12 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/plugins/pluginAPI.ts
-import { toast } from '@/Components/SubComponents/shadcn/hooks/use-toast';
-import { formatFileSize } from '@/Pages/StatusSpecificDownload';
-import useDownloadStore from '@/Store/downloadStore';
-import { useMainStore } from '@/Store/mainStore';
-import { usePluginStore } from '@/Store/pluginStore';
+import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
+import { useMainStore } from '@/core-app/store/mainStore';
+import { formatFileSize } from '@/downlodr/pages/status/statusPageUtils';
+import useDownloadStore from '@/downlodr/store/downloadStore';
+import type {
+  CaptionSource,
+  ThumbnailSource,
+} from '@/downlodr/store/download/downloadPayloads';
+import { usePluginStore } from '@/plugins/store/pluginStore';
 import {
   DownloadAPI,
+  DownloadInfo,
   DownloadOptions,
   DownloadSource,
   FormatAPI,
@@ -29,7 +34,7 @@ import {
   UtilityAPI,
   WriteFileOptions,
   WriteFileResult,
-} from './types';
+} from './schema/types';
 
 // Type for context data passed to menu item handlers
 type MenuContextData =
@@ -148,7 +153,10 @@ export function createPluginAPI(pluginId: string): PluginAPI {
       };
 
       // Register the item without the onClick function
-      return await window.plugins.registerTaskBarItem(serializableItem);
+      return await window.plugins.registerTaskBarItem({
+        ...serializableItem,
+        icon: serializableItem.icon as string,
+      });
     },
 
     unregisterTaskBarItem: async (id: string) => {
@@ -286,34 +294,34 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
     },
 
     addDownload: async (url: string, options: DownloadOptions) => {
-      const { addDownload } = useDownloadStore.getState();
+      const { addQueue } = useDownloadStore.getState();
 
-      // Add download with plugin-provided options
-      addDownload(
-        url,
-        options.name,
-        options.downloadName,
-        options.size || 0,
-        options.speed || '',
-        options.channelName || '',
-        options.timeLeft || '',
-        new Date().toISOString(),
-        0,
-        options.location,
-        'to download',
-        options.ext || '',
-        options.formatId || '',
-        options.audioExt || '',
-        options.audioFormatId || '',
-        options.extractorKey || '',
-        options.limitRate || '',
-        options.automaticCaption || '',
-        options.thumbnails,
-        options.getTranscript || false,
-        options.getThumbnail || false,
-        options.duration || 60,
-        false,
-      );
+      addQueue({
+        videoUrl: url,
+        name: options.name,
+        downloadName: options.downloadName,
+        displayName: options.displayName || '',
+        size: options.size || 0,
+        speed: options.speed || '',
+        channelName: options.channelName || '',
+        timeLeft: options.timeLeft || '',
+        DateAdded: new Date().toISOString(),
+        progress: 0,
+        location: options.location,
+        status: 'to download',
+        ext: options.ext || '',
+        formatId: options.formatId || '',
+        audioExt: options.audioExt || '',
+        audioFormatId: options.audioFormatId || '',
+        extractorKey: options.extractorKey || '',
+        limitRate: options.limitRate || '',
+        automaticCaption: (options.automaticCaption ?? '') as CaptionSource,
+        thumbnails: (options.thumbnails ?? null) as unknown as ThumbnailSource,
+        getTranscript: options.getTranscript || false,
+        getThumbnail: options.getThumbnail || false,
+        duration: options.duration || 60,
+        isCreateFolder: false,
+      });
 
       return options.name; // Return ID
     },
@@ -417,12 +425,8 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
     },
 
     pauseDownload: async (downloadId?: string) => {
-      const {
-        downloading,
-        updateDownloadStatus,
-        addDownload,
-        deleteDownloading,
-      } = useDownloadStore.getState();
+      const { downloading, updateDownloadStatus, addQueue, deleteDownloading } =
+        useDownloadStore.getState();
 
       try {
         // If no downloadId is provided, find the first item with status 'downloading'
@@ -444,108 +448,8 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           return false;
         }
 
-        // Check if this is a conversion in progress and handle it appropriately
-        const isConversion = (currentDownload as any).type === 'conversion';
-
-        if (isConversion) {
-          try {
-            const downloadStore = useDownloadStore.getState();
-            const result = await downloadStore.pauseConversion(
-              currentDownload.id,
-            );
-            if (result.success) {
-              // Update status using conversion update mechanism
-              downloadStore.updateDownload(currentDownload.id, {
-                type: 'conversion',
-                data: {
-                  status: 'paused',
-                  log: 'Conversion paused from plugin',
-                },
-              });
-
-              toast({
-                variant: 'success',
-                title: 'Conversion Paused',
-                description: 'Conversion has been paused successfully',
-                duration: 3000,
-              });
-              return true;
-            } else {
-              toast({
-                variant: 'destructive',
-                title: 'Pause Failed',
-                description: `Failed to pause conversion: ${result.error}`,
-                duration: 3000,
-              });
-              return false;
-            }
-          } catch (error) {
-            toast({
-              variant: 'destructive',
-              title: 'Error',
-              description: 'Failed to pause conversion',
-              duration: 3000,
-            });
-            console.error('Error pausing conversion:', error);
-            return false;
-          }
-        }
-
         // If already paused, handle resume with M4A cleanup
         if (currentDownload.status === 'paused') {
-          // Check if this is a paused conversion that needs to be resumed
-          const downloadStore = useDownloadStore.getState();
-          const allDownloads = downloadStore.downloading;
-          const conversionDownload = allDownloads.find(
-            (conv) =>
-              conv.id === downloadId &&
-              conv.status === 'paused' &&
-              (conv as any).type === 'conversion',
-          );
-
-          if (conversionDownload) {
-            // This is a paused conversion, resume it
-            console.log('Plugin API: Resuming paused conversion:', downloadId);
-            try {
-              const result = await downloadStore.resumeConversion(downloadId);
-              if (result.success) {
-                // Update status using conversion update mechanism
-                downloadStore.updateDownload(downloadId, {
-                  type: 'conversion',
-                  data: {
-                    status: 'converting',
-                    log: 'Conversion resumed from plugin',
-                  },
-                });
-
-                toast({
-                  variant: 'success',
-                  title: 'Conversion Resumed',
-                  description: 'Conversion has been resumed successfully',
-                  duration: 3000,
-                });
-                return true;
-              } else {
-                toast({
-                  variant: 'destructive',
-                  title: 'Resume Failed',
-                  description: `Failed to resume conversion: ${result.error}`,
-                  duration: 3000,
-                });
-                return false;
-              }
-            } catch (error) {
-              toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to resume conversion',
-                duration: 3000,
-              });
-              console.error('Error resuming conversion:', error);
-              return false;
-            }
-          }
-
           // Check if this is an m4a download and handle existing partial file
           const isM4aDownload =
             currentDownload.ext === 'm4a' || currentDownload.audioExt === 'm4a';
@@ -593,31 +497,32 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           }
 
           // Resume the download
-          addDownload(
-            currentDownload.videoUrl,
-            currentDownload.name,
-            currentDownload.downloadName,
-            currentDownload.size,
-            currentDownload.speed,
-            currentDownload.channelName,
-            currentDownload.timeLeft,
-            new Date().toISOString(),
-            currentDownload.progress,
-            currentDownload.location,
-            'downloading',
-            currentDownload.backupExt,
-            currentDownload.backupFormatId,
-            currentDownload.backupAudioExt,
-            currentDownload.backupAudioFormatId,
-            currentDownload.extractorKey,
-            '',
-            currentDownload.automaticCaption,
-            currentDownload.thumbnails,
-            currentDownload.getTranscript || false,
-            currentDownload.getThumbnail || false,
-            currentDownload.duration || 60,
-            false,
-          );
+          addQueue({
+            videoUrl: currentDownload.videoUrl ?? '',
+            name: currentDownload.name,
+            downloadName: currentDownload.downloadName,
+            displayName: currentDownload.displayName || '',
+            size: currentDownload.size,
+            speed: currentDownload.speed,
+            channelName: currentDownload.channelName ?? '',
+            timeLeft: currentDownload.timeLeft ?? '',
+            DateAdded: new Date().toISOString(),
+            progress: currentDownload.progress,
+            location: currentDownload.location ?? '',
+            status: 'downloading',
+            ext: currentDownload.backupExt,
+            formatId: currentDownload.backupFormatId,
+            audioExt: currentDownload.backupAudioExt,
+            audioFormatId: currentDownload.backupAudioFormatId,
+            extractorKey: currentDownload.extractorKey,
+            limitRate: '',
+            automaticCaption: currentDownload.automaticCaption,
+            thumbnails: currentDownload.thumbnails ?? null,
+            getTranscript: currentDownload.getTranscript || false,
+            getThumbnail: currentDownload.getThumbnail || false,
+            duration: currentDownload.duration || 60,
+            isCreateFolder: false,
+          });
 
           deleteDownloading(currentDownload.id);
           return true;
@@ -699,7 +604,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             error: null as unknown as string,
           });
 
-          // Add small delay to prevent race conditions
+          // small delay to prevent race conditions
           await new Promise((resolve) => setTimeout(resolve, 100));
         } catch (error) {
           results.push({
@@ -724,7 +629,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
     },
 
     resumeDownload: async (downloadId?: string) => {
-      const { downloading, deleteDownloading, addDownload } =
+      const { downloading, deleteDownloading, addDownload, addQueue } =
         useDownloadStore.getState();
 
       try {
@@ -743,76 +648,35 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
 
         // If the download is already paused, resume it
         if (currentDownload.status === 'paused') {
-          // Check if this is a paused conversion
-          const isConversion = (currentDownload as any).type === 'conversion';
+          addQueue({
+            videoUrl: currentDownload.videoUrl ?? '',
+            name: currentDownload.name,
+            downloadName: currentDownload.downloadName,
+            displayName: currentDownload.displayName || '',
+            size: currentDownload.size,
+            speed: currentDownload.speed,
+            channelName: currentDownload.channelName ?? '',
+            timeLeft: currentDownload.timeLeft ?? '',
+            DateAdded: new Date().toISOString(),
+            progress: currentDownload.progress,
+            location: currentDownload.location ?? '',
+            status: 'downloading',
+            ext: currentDownload.backupExt,
+            formatId: currentDownload.backupFormatId,
+            audioExt: currentDownload.backupAudioExt,
+            audioFormatId: currentDownload.backupAudioFormatId,
+            extractorKey: currentDownload.extractorKey,
+            limitRate: '',
+            automaticCaption: currentDownload.automaticCaption,
+            thumbnails: currentDownload.thumbnails ?? null,
+            getTranscript: currentDownload.getTranscript || false,
+            getThumbnail: currentDownload.getThumbnail || false,
+            duration: currentDownload.duration || 60,
+            isCreateFolder: false,
+          });
 
-          if (isConversion) {
-            // Resume conversion using the conversion API
-            console.log(
-              'Plugin API: Resuming paused conversion:',
-              currentDownload.id,
-            );
-            const downloadStore = useDownloadStore.getState();
-            const result = await downloadStore.resumeConversion(
-              currentDownload.id,
-            );
-            if (result.success) {
-              // Update status using conversion update mechanism
-              downloadStore.updateDownload(currentDownload.id, {
-                type: 'conversion',
-                data: {
-                  status: 'converting',
-                  log: 'Conversion resumed from plugin (resumeDownload)',
-                },
-              });
-
-              toast({
-                variant: 'success',
-                title: 'Conversion Resumed',
-                description: 'Format conversion has been resumed successfully',
-                duration: 3000,
-              });
-              return true;
-            } else {
-              toast({
-                variant: 'destructive',
-                title: 'Resume Failed',
-                description: result.error || 'Failed to resume conversion',
-                duration: 3000,
-              });
-              return false;
-            }
-          } else {
-            // Regular download resume
-            addDownload(
-              currentDownload.videoUrl,
-              currentDownload.name,
-              currentDownload.downloadName,
-              currentDownload.size,
-              currentDownload.speed,
-              currentDownload.channelName,
-              currentDownload.timeLeft,
-              new Date().toISOString(),
-              currentDownload.progress,
-              currentDownload.location,
-              'downloading',
-              currentDownload.backupExt,
-              currentDownload.backupFormatId,
-              currentDownload.backupAudioExt,
-              currentDownload.backupAudioFormatId,
-              currentDownload.extractorKey,
-              '',
-              currentDownload.automaticCaption,
-              currentDownload.thumbnails,
-              currentDownload.getTranscript || false,
-              currentDownload.getThumbnail || false,
-              currentDownload.duration || 60,
-              false,
-            );
-
-            deleteDownloading(currentDownload.id);
-            return true;
-          }
+          deleteDownloading(currentDownload.id);
+          return true;
         } else {
           console.warn('Download found but not paused:', currentDownload);
           return false;
@@ -889,11 +753,23 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
       };
     },
 
+    isFolderExist: async (dirPath: string) => {
+      const exists = await window.downlodrFunctions.fileExists(dirPath);
+      return exists;
+    },
+
+    createFolder: async (dirPath: string) => {
+      const dirCreated = await window.downlodrFunctions.ensureDirectoryExists(
+        dirPath,
+      );
+      return dirCreated;
+    },
+
     resumeDownloadWithCleanup: async (
       downloadId?: string,
       cleanupFormats: string[] = ['m4a'],
     ) => {
-      const { downloading, deleteDownloading, addDownload } =
+      const { downloading, deleteDownloading, addDownload, addQueue } =
         useDownloadStore.getState();
 
       try {
@@ -968,84 +844,43 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             }
           }
 
-          // Check if this is a paused conversion
-          const isConversion = (currentDownload as any).type === 'conversion';
+          // Resume the download
+          addQueue({
+            videoUrl: currentDownload.videoUrl ?? '',
+            name: currentDownload.name,
+            downloadName: currentDownload.downloadName,
+            displayName: currentDownload.displayName || '',
+            size: currentDownload.size,
+            speed: currentDownload.speed,
+            channelName: currentDownload.channelName ?? '',
+            timeLeft: currentDownload.timeLeft ?? '',
+            DateAdded: new Date().toISOString(),
+            progress: currentDownload.progress,
+            location: currentDownload.location ?? '',
+            status: 'downloading',
+            ext: currentDownload.backupExt,
+            formatId: currentDownload.backupFormatId,
+            audioExt: currentDownload.backupAudioExt,
+            audioFormatId: currentDownload.backupAudioFormatId,
+            extractorKey: currentDownload.extractorKey,
+            limitRate: '',
+            automaticCaption: currentDownload.automaticCaption,
+            thumbnails: currentDownload.thumbnails ?? null,
+            getTranscript: currentDownload.getTranscript || false,
+            getThumbnail: currentDownload.getThumbnail || false,
+            duration: currentDownload.duration || 60,
+            isCreateFolder: false,
+          });
 
-          if (isConversion) {
-            // Resume conversion using the conversion API
-            console.log(
-              'Plugin API: Resuming paused conversion with cleanup:',
-              currentDownload.id,
-            );
-            const downloadStore = useDownloadStore.getState();
-            const result = await downloadStore.resumeConversion(
-              currentDownload.id,
-            );
-            if (result.success) {
-              // Update status using conversion update mechanism
-              downloadStore.updateDownload(currentDownload.id, {
-                type: 'conversion',
-                data: {
-                  status: 'converting',
-                  log: 'Conversion resumed from plugin (resumeDownloadWithCleanup)',
-                },
-              });
+          deleteDownloading(currentDownload.id);
 
-              return {
-                success: true,
-                cleanedUp,
-                format: downloadFormat,
-                downloadId: currentDownload.id,
-                downloadName: currentDownload.name,
-              };
-            } else {
-              return {
-                success: false,
-                error: result.error || 'Failed to resume conversion',
-                cleanedUp,
-                format: downloadFormat,
-                downloadId: currentDownload.id,
-                downloadName: currentDownload.name,
-              };
-            }
-          } else {
-            // Resume regular download
-            addDownload(
-              currentDownload.videoUrl,
-              currentDownload.name,
-              currentDownload.downloadName,
-              currentDownload.size,
-              currentDownload.speed,
-              currentDownload.channelName,
-              currentDownload.timeLeft,
-              new Date().toISOString(),
-              currentDownload.progress,
-              currentDownload.location,
-              'downloading',
-              currentDownload.backupExt,
-              currentDownload.backupFormatId,
-              currentDownload.backupAudioExt,
-              currentDownload.backupAudioFormatId,
-              currentDownload.extractorKey,
-              '',
-              currentDownload.automaticCaption,
-              currentDownload.thumbnails,
-              currentDownload.getTranscript || false,
-              currentDownload.getThumbnail || false,
-              currentDownload.duration || 60,
-              false,
-            );
-
-            deleteDownloading(currentDownload.id);
-
-            return {
-              success: true,
-              cleanedUp,
-              format: downloadFormat,
-              downloadId: currentDownload.id,
-              downloadName: currentDownload.name,
-            };
-          }
+          return {
+            success: true,
+            cleanedUp,
+            format: downloadFormat,
+            downloadId: currentDownload.id,
+            downloadName: currentDownload.name,
+          };
         } else {
           console.warn(
             'Plugin API: Download found but not paused:',
@@ -1214,9 +1049,6 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           );
 
           if (deleteSuccess) {
-            console.log(
-              `Plugin API: Cleaned up ${downloadFormat} file: ${fullFilePath}`,
-            );
             return {
               success: true,
               cleanedUp: true,
@@ -1252,7 +1084,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
       }
     },
 
-    getInfo: async (url: string) => {
+    getInfo: async (url: string): Promise<DownloadInfo> => {
       try {
         // Use the IPC handler instead of window.ytdlp
         const info = await window.downlodrFunctions.invokeMainProcess(
@@ -1260,15 +1092,26 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           url,
         );
 
-        if (!info || info.error) {
-          throw new Error(info?.error || 'Failed to get video info');
+        if (
+          !info ||
+          (typeof info === 'object' &&
+            'error' in info &&
+            (info as { error?: string }).error)
+        ) {
+          throw new Error(
+            (info as { error?: string })?.error || 'Failed to get video info',
+          );
         }
 
         // Map the data to match DownloadInfo interface
-        return info;
+        return info as DownloadInfo;
       } catch (error) {
         console.error(`Error getting info for ${url}:`, error);
-        throw new Error(`Failed to get video info: ${error.message}`);
+        throw new Error(
+          `Failed to get video info: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
       }
     },
   };
@@ -1408,7 +1251,6 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
       return await window.ytdlp.selectDownloadDirectory();
     },
 
-    // Add file reading API
     readFileContents: async (
       filePath: string,
     ): Promise<{ success: boolean; data?: string; error?: string }> => {

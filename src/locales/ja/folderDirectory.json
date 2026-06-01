@@ -1,0 +1,10 @@
+{
+  "title": "保存先",
+  "subtitle": "ファイルの保存場所を選択してください。",
+  "placeholder": "ダウンロード先フォルダ",
+  "folderTooltip": "フォルダ",
+  "toast": {
+    "errorTitle": "エラー",
+    "errorDesc": "ディレクトリの選択に失敗しました"
+  }
+}

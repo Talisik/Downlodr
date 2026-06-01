@@ -1,0 +1,44 @@
+{
+  "article_title": "The Rise of Open-Source AI Models in 2025",
+  "article_publish_date": "2025-03-15T10:30:00.000Z",
+  "article_authors": [
+    { "name": "Jane Doe", "url": "https://example.com/authors/jane-doe" },
+    { "name": "John Smith", "url": null }
+  ],
+  "article_sections": [
+    {
+      "heading": "Introduction",
+      "content": "Open-source AI models have seen explosive growth over the past year, with new releases challenging proprietary giants across benchmarks."
+    },
+    {
+      "heading": "Key Players",
+      "content": "Meta, Mistral, and a growing roster of startups have pushed the frontier of what open weights can achieve, particularly in coding and reasoning tasks."
+    },
+    {
+      "heading": "What This Means for Developers",
+      "content": "Developers now have access to powerful models they can run locally, fine-tune, and deploy without usage-based billing — a paradigm shift for the industry."
+    }
+  ],
+  "article_content": "Open-source AI models have seen explosive growth over the past year... [full article text would appear here]",
+  "article_videos": [
+    {
+      "url": "https://example.com/videos/open-source-ai-overview.mp4",
+      "alt": "Overview of open-source AI models",
+      "caption": "A 5-minute breakdown of the top open-source models in 2025"
+    }
+  ],
+  "article_images": [
+    {
+      "url": "https://picsum.photos/300/200",
+      "alt": "Benchmark comparison chart",
+      "caption": "Open-source vs proprietary model scores on MMLU"
+    }
+  ],
+  "article_status": "Done",
+  "article_error_status": null,
+  "is_published_date_correct": true,
+  "updated_by": "Parser Microservice",
+  "date_updated": "2025-03-15T11:00:00.000Z",
+  "date_parsed": "2025-03-15T10:59:00.000Z",
+  "raw_html": null
+}

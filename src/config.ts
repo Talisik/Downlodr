@@ -1,5 +1,12 @@
+/**
+ * Application configuration using environment variables
+ * Environment variables are injected at build time via Vite
+ */
 export const config = {
   telemetry: {
-    endpoint: 'https://logging-api-staging.salina.app/api/v1/logs/',
+    endpoint: __TELEMETRY_ENDPOINT__,
+    timeout: parseInt(__TELEMETRY_TIMEOUT__, 10),
+    retryAttempts: parseInt(__TELEMETRY_RETRY_ATTEMPTS__, 10),
+    schemaUrl: __TELEMETRY_SCHEMA_URL__,
   },
-};
+} as const;

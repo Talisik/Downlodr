@@ -1,0 +1,481 @@
+{
+  "contextMenu": {
+    "pause": "Pausar",
+    "resume": "Retomar",
+    "stop": "Parar",
+    "forceStart": "Forçar início",
+    "remove": "Remover",
+    "rename": "Renomear",
+    "viewFolder": "Abrir pasta",
+    "viewEmbedded": "Ver via incorporação",
+    "retry": "Tentar novamente",
+    "showLog": "Mostrar registro",
+    "activityTracker": "Rastreador de atividade",
+    "tags": "Tags",
+    "categories": "Categorias",
+    "addTag": "Adicionar tag",
+    "addCategory": "Adicionar categoria",
+    "plugins": "Plugins",
+    "copyLink": "Copiar link",
+    "openBrowser": "Abrir no navegador",
+    "start": "Iniciar",
+    "playDownload": "Reproduzir download"
+  },
+  "status": {
+    "queued": "Na fila",
+    "downloading": "Baixando",
+    "finished": "Concluído",
+    "error": "Erro",
+    "paused": "Pausado",
+    "stopped": "Parado",
+    "converting": "Convertendo",
+    "gettingInfo": "Obtendo informações"
+  },
+  "table": {
+    "title": "Título",
+    "format": "Formato",
+    "size": "Tamanho",
+    "speed": "Velocidade",
+    "source": "Fonte",
+    "dateAdded": "Data de adição",
+    "transcript": "Legenda",
+    "status": "Status",
+    "action": "Ação",
+    "noDownloads": "Nenhum download ainda",
+    "tags": "Tags",
+    "categories": "Categorias",
+    "noTags": "Sem tags",
+    "noCategories": "Sem categorias"
+  },
+  "itemsSelected_one": "{{count}} item selecionado",
+  "itemsSelected_other": "{{count}} itens selecionados",
+  "timeAgo": {
+    "minutes": "há {{count}} min",
+    "hour_one": "há {{count}} hora",
+    "hour_other": "há {{count}} horas",
+    "day_one": "há {{count}} dia",
+    "day_other": "há {{count}} dias",
+    "week_one": "há {{count}} semana",
+    "week_other": "há {{count}} semanas",
+    "month_one": "há {{count}} mês",
+    "month_other": "há {{count}} meses",
+    "year_one": "há {{count}} ano",
+    "year_other": "há {{count}} anos"
+  },
+  "fileSize": {
+    "gb": "{{value}} GB",
+    "mb": "{{value}} MB",
+    "kb": "{{value}} KB",
+    "bytes": "{{count}} bytes",
+    "unknown": "—"
+  },
+  "modals": {
+    "about": {
+      "title": "Sobre",
+      "visitSite": "Visitar site oficial",
+      "version": "Versão {{version}}",
+      "developedForYou": "Desenvolvido para você.",
+      "features": {
+        "title": "Recursos",
+        "downloadVideos": {
+          "title": "Baixe videos de todos os seus sites favoritos",
+          "item1": "Funciona com YouTube, Twitch, Twitter, TikTok e centenas de outros",
+          "item2": "Baixe canais ou playlists inteiras com um clique",
+          "item3": "Salve transmissões ao vivo, shorts e histórias",
+          "item4": "Escolha sua qualidade de video preferida"
+        },
+        "easyToUse": {
+          "title": "Fácil de usar",
+          "item1": "Personalize onde seus arquivos são salvos",
+          "item2": "Escolha como os arquivos são nomeados",
+          "item3": "Atualize para a versão mais recente automaticamente"
+        },
+        "advancedMedia": {
+          "title": "Opções avançadas de mídia",
+          "item1": "Mantenha as miniaturas de video com seus downloads",
+          "item2": "Baixe partes selecionadas de playlists"
+        }
+      }
+    },
+    "help": {
+      "title": "Ajuda"
+    },
+    "stop": {
+      "title": "Parar download",
+      "message": "Tem certeza de que deseja parar este download?",
+      "confirm": "Parar",
+      "cancel": "Cancelar"
+    }
+  },
+  "shareButton": {
+    "tooltip": "Compartilhar vídeo",
+    "title": "Compartilhar vídeo",
+    "videoFallback": "Vídeo",
+    "copyLink": "Copiar link",
+    "emailLink": "Enviar por email",
+    "facebook": "Facebook",
+    "twitter": "X (Twitter)",
+    "disclaimer": "Esteja ciente de que, se você optar por compartilhar este vídeo, ele ficará visível para o público e outras pessoas poderão acessar seu conteúdo.",
+    "emailSubject": "Confira este vídeo: {{name}}",
+    "emailBody": "Achei que você poderia gostar deste vídeo: {{link}}",
+    "twitterText": "Confira este vídeo: {{name}}",
+    "toast": {
+      "errorTitle": "Erro",
+      "errorDesc": "Não foi possível gerar um link para compartilhar",
+      "copiedTitle": "Link copiado",
+      "copiedDesc": "O link foi copiado para a área de transferência.",
+      "copyFailedTitle": "Falha ao copiar",
+      "copyFailedDesc": "Não foi possível copiar o link para a área de transferência. Por favor tente novamente."
+    }
+  },
+  "statusPage": {
+    "thumbnail": {
+      "viewFull": "Ver miniatura completa",
+      "notDownloaded": "Miniatura não baixada",
+      "notAvailable": "Miniatura não disponível",
+      "unableToLoad": "Não foi possível carregar"
+    },
+    "status": {
+      "clickToRetry": "Clique para tentar novamente",
+      "viewVideo": "Ver vídeo",
+      "openFolder": "Abrir pasta"
+    },
+    "format": {
+      "unknown": "Desconhecido"
+    }
+  },
+  "taskbarInput": {
+    "placeholder": "Pesquisar downloads ou digitar uma URL",
+    "tooltip": {
+      "copy": "Copiar",
+      "settings": "Obtenha a transcrição e a miniatura junto com o seu download.",
+      "download": "Baixar",
+      "openArticle": "Abrir instalador de artigo"
+    },
+    "toast": {
+      "playlistErrorTitle": "Erro de playlist",
+      "playlistErrorDesc": "Falha ao obter informações da playlist",
+      "channelDetectedTitle": "Link de canal detectado",
+      "channelDetectedDesc": "Enviando para o Skedulosa para configurar uma assinatura para este canal.",
+      "playlistDetectedTitle": "Link de playlist detectado",
+      "playlistDetectedDesc": "Obtendo informações da playlist para download... Isso pode demorar um pouco.",
+      "invalidUrlTitle": "URL inválida",
+      "invalidUrlDesc": "Por favor insira uma URL válida",
+      "invalidUrlFormatTitle": "Formato de URL inválido",
+      "invalidUrlFormatDesc": "O formato da URL não é válido",
+      "selectionErrorTitle": "Erro de seleção",
+      "selectionErrorDesc": "Por favor selecione pelo menos um vídeo para baixar",
+      "downloadQueuedTitle": "Download na fila",
+      "downloadQueuedDesc": "Obtendo metadados do vídeo para download...",
+      "noInternetTitle": "Sem conexão com a internet",
+      "noInternetDesc": "Por favor verifique sua conexão com a internet e tente novamente",
+      "errorTitle": "Erro",
+      "errorDesc": "Falha ao adicionar à fila de download",
+      "copiedTitle": "Copiado para a área de transferência",
+      "copiedDesc": "A URL foi copiada para sua área de transferência",
+      "copyFailedTitle": "Falha ao copiar URL",
+      "copyFailedDesc": "Não foi possível copiar a URL para a área de transferência"
+    }
+  },
+  "toolbar": {
+    "tooltip": {
+      "startDisabled": "Selecione itens na fila para iniciar o download",
+      "startEnabled": "Iniciar downloads selecionados",
+      "stopEnabled": "Parar downloads selecionados",
+      "stopDisabled": "Selecione itens em download para parar",
+      "stopAllDisabled": "Nenhum download ativo para parar",
+      "stopAll": "Parar tudo",
+      "generateCaptions": "Gerar legendas",
+      "generateCaptionsDisabled": "Selecione vídeos finalizados sem legendas para gerar transcrições",
+      "remove": "Remover"
+    },
+    "toast": {
+      "noDownloadsSelectedTitle": "Nenhum download selecionado",
+      "noDownloadsSelectedStop": "Por favor selecione downloads para parar",
+      "noDownloadsSelectedPlay": "Por favor selecione downloads para reproduzir",
+      "noDownloadsSelectedRemove": "Por favor selecione downloads para remover",
+      "noDownloadsFoundTitle": "Nenhum download encontrado",
+      "noDownloadsFoundDesc": "Nenhum download atual para parar",
+      "downloadStoppedTitle": "Download parado",
+      "downloadStoppedDesc": "O download foi parado com sucesso",
+      "stopErrorTitle": "Erro ao parar download",
+      "stopErrorCouldNotDesc": "Não foi possível parar o download com o controlador {{controllerId}}",
+      "stopErrorDesc": "Erro ao parar o download com o controlador {{controllerId}}",
+      "noValidDownloadsTitle": "Nenhum download válido",
+      "noValidDownloadsDesc": "Por favor selecione downloads que estejam prontos para iniciar",
+      "addedToQueueTitle": "Downloads adicionados à fila",
+      "addedToQueueDesc": "{{count}} download(s) adicionado(s) à fila. O controlador de downloads os iniciará automaticamente com base no seu limite.",
+      "downloadDeletedTitle": "Download excluído",
+      "downloadDeletedDesc": "O download foi excluído com sucesso",
+      "folderDeletedTitle": "Pasta excluída",
+      "folderDeletedDesc": "A pasta e seu conteúdo foram excluídos com sucesso",
+      "folderDeleteErrorTitle": "Erro",
+      "folderDeleteErrorDesc": "Falha ao excluir a pasta. Ela pode não existir ou estar em uso.",
+      "fileDeletedTitle": "Arquivo excluído",
+      "fileDeletedDesc": "O arquivo foi excluído com sucesso",
+      "downloadRemovedTitle": "Download removido",
+      "pendingRemovedDesc": "O download pendente foi removido com sucesso",
+      "failedRemovedDesc": "O download com falha foi removido com sucesso",
+      "cancelledRemovedDesc": "O download cancelado foi removido com sucesso",
+      "pausedRemovedDesc": "O download pausado foi removido com sucesso",
+      "initializingRemovedDesc": "O download em inicialização foi removido com sucesso",
+      "queuedRemovedDesc": "O download na fila foi removido com sucesso",
+      "noEligibleTitle": "Nenhum download elegível",
+      "noEligibleDesc": "Os downloads selecionados já têm transcrições ou não estão finalizados.",
+      "batchStartedTitle": "Transcrição em lote iniciada",
+      "batchStartedDesc": "Gerando legendas para {{count}} download(s) sequencialmente.",
+      "transcriptionFailedTitle": "Transcrição falhou",
+      "transcriptionFailedDefault": "Não foi possível criar a transcrição",
+      "batchCompleteTitle": "Transcrição em lote concluída",
+      "batchCompleteDesc": "{{successCount}} bem-sucedido(s), {{failCount}} com falha.",
+      "selectOneTitle": "Selecione um download",
+      "selectOneDesc": "Por favor selecione exatamente um download para obter o link"
+    },
+    "settingsButton": "Configurações"
+  },
+  "removeModal": {
+    "title": "Remover item selecionado",
+    "message": "Tem certeza de que deseja remover esses downloads da lista de downloads?",
+    "alsoDeleteFolder": "Remover também a pasta baixada e seus arquivos"
+  },
+  "categorySearchBar": {
+    "placeholder": "Buscar por {{fields}}...",
+    "filterTooltip": "Filtrar campos",
+    "clearTooltip": "Limpar",
+    "fields": {
+      "title": "Título",
+      "tags": "Tags",
+      "categories": "Categorias",
+      "status": "Status",
+      "source": "Fonte"
+    }
+  },
+  "downloadController": {
+    "downloadStarted": "Download iniciado da fila",
+    "downloadStartedDesc": "\"{{name}}\" começou a ser baixado."
+  },
+  "downloadButton": {
+    "tooltip": "Baixar vídeo",
+    "toastTitle": "Download adicionado à fila",
+    "toastDesc": "\"{{name}}\" adicionado à fila. O controlador de downloads o iniciará automaticamente."
+  },
+  "statusHandler": {
+    "transcriptRedownloaded": "Transcrição re-baixada",
+    "transcriptRedownloadedDesc": "A transcrição foi re-baixada com sucesso",
+    "downloadRetried": "Download refeito",
+    "downloadRetriedDesc": "O download foi refeito com sucesso",
+    "downloadResumed": "Download retomado",
+    "downloadResumedDesc": "O download foi retomado com sucesso",
+    "downloadPaused": "Download pausado",
+    "downloadPausedDesc": "O download foi pausado com sucesso",
+    "pauseFailed": "Falha ao pausar",
+    "pauseFailedDesc": "Não foi possível pausar o download. Por favor, tente novamente.",
+    "pauseError": "Erro ao pausar o download",
+    "cannotPauseYet": "Não é possível pausar ainda",
+    "cannotPauseYetDesc": "O download ainda está sendo inicializado. Por favor, tente novamente.",
+    "noDownloadLocation": "Sem local de download",
+    "invalidDownloadLocation": "Local de download inválido",
+    "fileNotFound": "Arquivo não encontrado",
+    "fileNotFoundDesc": "O arquivo não existe no local especificado",
+    "failedToViewDownload": "Erro ao visualizar o download",
+    "failedToStopDownload": "Erro ao parar o download",
+    "failedToViewFolder": "Erro ao visualizar a pasta",
+    "missingFolder": "Pasta não encontrada",
+    "missingFolderDesc": "A pasta de download ainda não existe",
+    "error": "Erro"
+  },
+  "dropdownBar": {
+    "menus": {
+      "file": "Arquivo",
+      "settings": "Configurações",
+      "help": "Ajuda"
+    },
+    "file": {
+      "history": "Histórico",
+      "exit": "Sair"
+    },
+    "help": {
+      "guide": "Guia",
+      "appUpdates": "Atualizações",
+      "about": "Sobre"
+    },
+    "search": {
+      "placeholder": "Pesquisar downloads...",
+      "noResults": "Nenhum download encontrado"
+    },
+    "toast": {
+      "downloadStartedTitle": "Download iniciado",
+      "downloadStartedDesc": "Seu arquivo está sendo baixado. Isso pode levar alguns minutos dependendo do tamanho do arquivo e da sua velocidade de conexão.",
+      "errorOpeningFileTitle": "Erro ao abrir arquivo",
+      "checkingConnectionTitle": "Verificando conexão",
+      "checkingConnectionDesc": "Verificando conectividade com a internet...",
+      "noInternetTitle": "Sem conexão à internet",
+      "noInternetDesc": "Por favor, verifique sua conexão à internet e tente novamente",
+      "checkingUpdatesTitle": "Verificando atualizações",
+      "checkingUpdatesDesc": "Verificando novas atualizações, por favor aguarde",
+      "upToDateTitle": "Você está atualizado!",
+      "upToDateDesc": "Você está usando a versão mais recente (v{{version}}).",
+      "updateCheckFailedTitle": "Falha na verificação de atualizações",
+      "updateCheckFailedDesc": "Não foi possível verificar atualizações. Por favor, tente novamente mais tarde.",
+      "retry": "Tentar novamente"
+    }
+  },
+  "helpModal": {
+    "title": "Guia de ajuda",
+    "tabs": {
+      "guide": "Guia de download",
+      "common": "Perguntas frequentes",
+      "advanced": "Solução de problemas e dicas avançadas",
+      "subscription": "Assinatura"
+    },
+    "guide": {
+      "downloadSteps": {
+        "title": "Passos para baixar",
+        "s1": "Abra a seção \"Adicionar URL\".",
+        "s2": "Cole uma URL de vídeo válida e selecione o destino do download.",
+        "s3": "Clique no botão \"Baixar\".",
+        "s4": "Navegue até a página de status \"Baixando\" ou \"Todos os downloads\".",
+        "s5": "Aguarde o processamento dos metadados do vídeo.",
+        "s6": "Quando pronto, clique no botão de reprodução na seção de status.",
+        "s7": "Aguarde o download ser concluído.",
+        "s8": "Após a conclusão, clique com o botão direito na entrada para opções adicionais. Você pode:",
+        "s8a": "Ver os detalhes do download",
+        "s8b": "Abrir a pasta de download",
+        "s8c": "Excluir o download",
+        "s8d": "Ajustar tags e categorias",
+        "s9": "Clique em uma linha para ver informações detalhadas sobre seu download.",
+        "s10": "Seus registros de download serão salvos para referência futura no histórico."
+      },
+      "pauseStop": {
+        "title": "Pausar, parar, remover e iniciar downloads",
+        "s1": "Cada download tem botões de controle nas colunas de status e no menu de contexto",
+        "s1a": "Botão de reprodução - Inicia ou retoma o download",
+        "s1b": "Botão de pausa - Pausa temporariamente o download",
+        "s1c": "Botão de parada - Para e remove completamente o download",
+        "s2": "Os botões de controle de download também estão disponíveis na barra de tarefas e no menu suspenso",
+        "s2a": "Os usuários podem selecionar múltiplos downloads para reproduzir ou parar",
+        "s2b": "Os usuários também podem usar a opção todos para controlar todos os vídeos em download",
+        "s3": "Removendo Downloads",
+        "s3a": "Remover downloads afeta os downloads concluídos. Esta ação exclui o arquivo baixado do dispositivo e remove o registro do histórico.",
+        "s3b": "Para downloads pendentes, apenas o registro é salvo; nenhum arquivo foi salvo no disco ainda."
+      }
+    },
+    "common": {
+      "whatIsHistory": {
+        "title": "O que é o Histórico",
+        "s1": "O Histórico é um registro de todos os seus downloads anteriores",
+        "s2": "Ao contrário das páginas de status, o Histórico:",
+        "s2a": "Não mostra o progresso ou controles de download",
+        "s2b": "Apenas rastreia o que você baixou",
+        "s2c": "Mostra se os arquivos ainda existem no seu dispositivo",
+        "s3": "Você pode usar o Histórico para baixar novamente vídeos ou verificar seus downloads anteriores"
+      },
+      "viewVideos": {
+        "title": "Como ver vídeos",
+        "s1": "Clique com o botão direito em uma linha de vídeo nas páginas de status para abrir o menu de contexto e acessar a visualização do vídeo"
+      },
+      "contextMenus": {
+        "title": "Como usar menus de contexto",
+        "s1": "Clique com o botão direito em qualquer download para acessar opções adicionais:",
+        "s1a": "Ver vídeo baixado",
+        "s1b": "Abrir pasta contendo",
+        "s1c": "Controlar status do download",
+        "s1d": "Remover da lista"
+      }
+    },
+    "advanced": {
+      "stuckInitializing": {
+        "title": "Download preso na inicialização",
+        "s1": "Verifique sua conexão com a internet",
+        "s2": "Verifique se a URL do vídeo ainda é válida",
+        "s3": "Reinicie o download:",
+        "s3a": "Pause o download",
+        "s3b": "Vá até a pasta e exclua qualquer arquivo parcial restante",
+        "s3c": "Retome o download"
+      },
+      "failedDelete": {
+        "title": "Falha ao excluir o vídeo",
+        "s1": "Se não conseguir excluir um vídeo:",
+        "s1a": "Feche os aplicativos que estão usando o arquivo de vídeo",
+        "s1b": "Reinicie o aplicativo",
+        "s1c": "Verifique se você tem permissão para excluir arquivos nesse local"
+      },
+      "slowSpeed": {
+        "title": "A velocidade de download está lenta",
+        "s1": "Para melhorar a velocidade de download:",
+        "s1a": "Verifique sua conexão com a internet",
+        "s1b": "Reduza o número de downloads simultâneos",
+        "s1c": "Ajuste o limite de velocidade nas configurações se estiver ativado"
+      },
+      "permissionErrors": {
+        "title": "Erros de permissão (EPERM)",
+        "s1": "Se você vir erros de permissão:",
+        "s1a": "Execute o aplicativo como administrador",
+        "s1b": "Verifique as permissões da pasta",
+        "s1c": "Escolha um local de download diferente"
+      }
+    },
+    "subscription": {
+      "howToAdd": {
+        "title": "Como adicionar uma assinatura",
+        "s1": "Navegue até a seção Assinatura na barra lateral.",
+        "s2": "Clique no botão Assinar para abrir o modal de assinatura.",
+        "s3": "Cole uma URL de canal do YouTube no campo de URL de origem.",
+        "s3a": "Deve ser uma URL de canal ou lista de reprodução — não um vídeo individual ou link de Shorts.",
+        "s3b": "Apenas canais do YouTube são suportados no momento.",
+        "s4": "Aguarde a análise do canal terminar — ela detecta automaticamente o padrão de envio do canal.",
+        "s5": "Após a conclusão da análise, configure sua assinatura:",
+        "s5a": "Automático — usa o padrão de envio detectado para definir o cronograma de verificação.",
+        "s5b": "Manual — escolha dias específicos da semana, horário de verificação e fuso horário.",
+        "s5c": "Selecione uma predefinição de qualidade (Mais baixa, Baixa ou Melhor).",
+        "s5d": "Escolha uma pasta de destino para os vídeos baixados.",
+        "s6": "Defina quantos vídeos existentes do canal baixar na primeira execução usando o menu suspenso \"Baixar últimos N vídeos\".",
+        "s7": "Clique em Assinar para confirmar — a assinatura é colocada na fila e processada em segundo plano."
+      },
+      "whatHappensAfter": {
+        "title": "O que acontece após assinar",
+        "s1": "A assinatura é colocada na fila e configurada em segundo plano — você a verá aparecer na lista de assinaturas.",
+        "s2": "Na primeira execução, a assinatura baixa os vídeos mais recentes até o limite selecionado.",
+        "s3": "Após o scraping inicial, a assinatura verifica automaticamente novos envios conforme o cronograma configurado (diário, semanal ou conforme detectado).",
+        "s4": "Vídeos recém-detectados são adicionados à fila de download e processados como downloads regulares.",
+        "s5": "Você pode ver atividade, histórico de downloads e análises de cada assinatura em sua página de detalhes.",
+        "s6": "As assinaturas podem ser pausadas, editadas ou excluídas a qualquer momento pelo menu de contexto ou pela aba de configurações de assinatura."
+      },
+      "commonErrors": {
+        "title": "Erros comuns e o que fazer",
+        "invalidUrl": {
+          "title": "URL inválida / Protocolo não suportado",
+          "s1": "Certifique-se de que a URL começa com https://.",
+          "s2": "Copie a URL diretamente da barra de endereços do navegador."
+        },
+        "unsupportedPlatform": {
+          "title": "Plataforma não suportada",
+          "s1": "Apenas URLs de canais do YouTube são suportadas atualmente.",
+          "s2": "URLs de outras plataformas não passarão na validação."
+        },
+        "videoOrShorts": {
+          "title": "Link de vídeo ou Shorts detectado",
+          "s1": "A assinatura assina canais, não vídeos individuais.",
+          "s2": "Use o recurso de download principal para URLs de vídeos individuais.",
+          "s3": "Para um canal, navegue até a página do canal e copie sua URL."
+        },
+        "alreadySubscribed": {
+          "title": "Já assinado",
+          "s1": "Uma assinatura para este canal já existe.",
+          "s2": "Encontre e gerencie-a na lista de assinaturas."
+        },
+        "noVideos": {
+          "title": "Nenhum vídeo encontrado / Canal parece vazio",
+          "s1": "O canal pode ter apenas Shorts — tente a URL da aba de vídeos principais do canal.",
+          "s2": "O canal pode ser privado ou não ter envios públicos."
+        },
+        "analysisFailed": {
+          "title": "Análise falhou",
+          "s1": "Verifique sua conexão com a internet.",
+          "s2": "A URL do canal pode ter mudado — verifique-a no seu navegador.",
+          "s3": "Reinicie o aplicativo e tente novamente se o erro persistir."
+        }
+      }
+    }
+  }
+}

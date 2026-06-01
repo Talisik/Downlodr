@@ -1,58 +1,79 @@
 #!/bin/bash
 
-# Script to download static FFmpeg binaries for macOS
-# These binaries have no external dependencies and can be bundled with the app
+# Download static FFmpeg binaries for macOS (targets FFmpeg 8.0+).
+# These are dependency-free static builds that can be bundled with the app.
+#
+# Resilient by design: if the download fails (e.g. network/CI hiccup), the
+# previously committed binaries are restored and the script exits 0 so the
+# core build still succeeds with whatever FFmpeg is already in binaries/.
 
-echo "📦 Downloading static FFmpeg binaries for macOS..."
+set -u
 
-# Create binaries directory if it doesn't exist
+# evermeet.cx "getrelease" always serves the latest stable FFmpeg (currently 8.x).
+FFMPEG_URL="https://evermeet.cx/ffmpeg/getrelease/ffmpeg/zip"
+
+echo "📦 Downloading static FFmpeg binaries for macOS (target 8.0+)..."
+
 mkdir -p binaries
 
-# Backup existing binaries
-if [ -f "binaries/ffmpeg-arm64" ]; then
-  echo "Backing up existing ffmpeg-arm64..."
-  mv binaries/ffmpeg-arm64 binaries/ffmpeg-arm64.backup
+# Backup existing (committed) binaries so we can fall back on failure.
+[ -f "binaries/ffmpeg-arm64" ] && cp binaries/ffmpeg-arm64 binaries/ffmpeg-arm64.backup
+[ -f "binaries/ffmpeg-x64" ] && cp binaries/ffmpeg-x64 binaries/ffmpeg-x64.backup
+
+restore_backup() {
+  echo "⚠️  Falling back to existing committed FFmpeg binaries."
+  [ -f "binaries/ffmpeg-arm64.backup" ] && mv -f binaries/ffmpeg-arm64.backup binaries/ffmpeg-arm64
+  [ -f "binaries/ffmpeg-x64.backup" ] && mv -f binaries/ffmpeg-x64.backup binaries/ffmpeg-x64
+  chmod +x binaries/ffmpeg-arm64 binaries/ffmpeg-x64 2>/dev/null || true
+  exit 0
+}
+
+echo ""
+echo "Downloading FFmpeg for Apple Silicon (arm64) from evermeet.cx..."
+if ! curl -fL "$FFMPEG_URL" -o /tmp/ffmpeg-arm64.zip; then
+  echo "❌ Download failed."
+  restore_backup
 fi
 
-if [ -f "binaries/ffmpeg-x64" ]; then
-  echo "Backing up existing ffmpeg-x64..."
-  mv binaries/ffmpeg-x64 binaries/ffmpeg-x64.backup
+if ! unzip -o -q /tmp/ffmpeg-arm64.zip -d /tmp/ffmpeg-extract; then
+  echo "❌ Unzip failed."
+  rm -f /tmp/ffmpeg-arm64.zip
+  restore_backup
 fi
 
-# Download static FFmpeg builds from evermeet.cx (reliable source for macOS static builds)
+# evermeet zips contain a bare `ffmpeg` binary.
+if [ ! -f /tmp/ffmpeg-extract/ffmpeg ]; then
+  echo "❌ Extracted archive did not contain an ffmpeg binary."
+  rm -rf /tmp/ffmpeg-arm64.zip /tmp/ffmpeg-extract
+  restore_backup
+fi
+
+mv -f /tmp/ffmpeg-extract/ffmpeg binaries/ffmpeg-arm64
+rm -rf /tmp/ffmpeg-arm64.zip /tmp/ffmpeg-extract
+
+# evermeet.cx provides arm64 static builds; Intel Macs run it via Rosetta 2.
 echo ""
-echo "Downloading FFmpeg for Apple Silicon (arm64)..."
-curl -L "https://evermeet.cx/ffmpeg/ffmpeg-7.0.2.zip" -o /tmp/ffmpeg-arm64.zip
-unzip -q /tmp/ffmpeg-arm64.zip -d /tmp/
-mv /tmp/ffmpeg binaries/ffmpeg-arm64
-rm /tmp/ffmpeg-arm64.zip
+echo "For Intel (x64): reusing the arm64 static build (runs under Rosetta 2)."
+cp -f binaries/ffmpeg-arm64 binaries/ffmpeg-x64
 
+chmod +x binaries/ffmpeg-arm64 binaries/ffmpeg-x64
+
+# Verify version; warn (non-fatal) if older than 8.0.
 echo ""
-echo "For Intel (x64), we'll use the same binary with Rosetta 2 compatibility"
-# Note: evermeet.cx only provides arm64 builds now, but they work on Intel via Rosetta 2
-cp binaries/ffmpeg-arm64 binaries/ffmpeg-x64
+echo "Verifying FFmpeg..."
+VERSION_LINE=$(./binaries/ffmpeg-arm64 -version 2>/dev/null | head -1 || true)
+echo "  $VERSION_LINE"
+MAJOR=$(echo "$VERSION_LINE" | sed -nE 's/.*ffmpeg version ([0-9]+).*/\1/p')
+if [ -n "$MAJOR" ] && [ "$MAJOR" -lt 8 ]; then
+  echo "⚠️  Downloaded FFmpeg is older than 8.0 — transcription (Whisper) may be limited."
+fi
 
-# Alternative: Download from ffmpeg-static npm package (cross-platform static builds)
-# echo "Downloading static FFmpeg from ffmpeg-static..."
-# npm install ffmpeg-static --save-dev
-# cp node_modules/ffmpeg-static/ffmpeg binaries/ffmpeg-arm64
-
-# Make binaries executable
-chmod +x binaries/ffmpeg-arm64
-chmod +x binaries/ffmpeg-x64
-
-# Test the binaries
-echo ""
-echo "Testing FFmpeg binaries..."
-echo "ARM64 version:"
-./binaries/ffmpeg-arm64 -version | head -2
+# Clean up backups on success.
+rm -f binaries/ffmpeg-arm64.backup binaries/ffmpeg-x64.backup
 
 echo ""
 echo "File sizes:"
-ls -lh binaries/ffmpeg-*
+ls -lh binaries/ffmpeg-* 2>/dev/null
 
 echo ""
-echo "✅ Static FFmpeg binaries downloaded successfully!"
-echo ""
-echo "Note: These are static builds with no external dependencies."
-echo "They can be safely bundled with the app."
+echo "✅ Static FFmpeg binaries ready."

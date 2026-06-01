@@ -1,13 +1,12 @@
-import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
+import { Button } from '@/core-app/components/shadcn/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/Components/SubComponents/shadcn/components/ui/enhanced-dialog';
-
-import { PluginModalOptions, PluginModalResult } from '@/plugins/types';
+} from '@/core-app/components/shadcn/components/ui/dialog';
+import { PluginModalOptions, PluginModalResult } from '@/plugins/schema/types';
 import React from 'react';
 
 // Import UI components
@@ -16,7 +15,7 @@ interface PluginModalExtensionProps {
   isOpen: boolean;
   onClose: () => void;
   onOk: () => void;
-  onCancel?: () => void;
+  onCancel: () => void;
   options: PluginModalOptions;
   onAction: (result: PluginModalResult) => void;
 }
@@ -47,7 +46,7 @@ const PluginModalExtension: React.FC<PluginModalExtensionProps> = ({
     centered = true,
     footer = (
       <>
-        <Button variant="outline" onClick={onCancel || onClose}>
+        <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>
         <Button onClick={onOk}>OK</Button>
@@ -69,14 +68,7 @@ const PluginModalExtension: React.FC<PluginModalExtensionProps> = ({
       open={isOpen}
       onOpenChange={closable ? () => handleClose() : undefined}
     >
-      <DialogContent
-        style={contentStyle}
-        className={centered ? 'mx-auto' : ''}
-        showCloseButton={closable}
-        closeButtonVariant="inspector"
-        closeButtonSize="lg"
-        onCloseClick={handleClose}
-      >
+      <DialogContent style={contentStyle} className={centered ? 'mx-auto' : ''}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>

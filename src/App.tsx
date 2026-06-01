@@ -6,42 +6,136 @@
  * - React Router: For handling navigation between different pages.
  * - ThemeProvider: A custom component for managing theme settings.
  * - Various page components: AllDownloads, Downloading, History, etc.
+ *
  */
-import { useEffect } from 'react';
+import ClipboardLinkDetector from '@/core-app/components/clipboard/ClipboardLinkDetector';
+import StoreRehydrationLoader from '@/core-app/components/loader/StoreRehydrationLoader';
+import UpdateNotification from '@/core-app/components/notification/UpdateNotification';
+import { Toaster } from '@/core-app/components/shadcn/components/ui/toaster';
+import TelemetryConsentModal from '@/core-app/components/telemetry/TelemetryConsentModal';
+import { ThemeProvider } from '@/core-app/components/ThemeProvider';
+import NotFound from '@/core-app/pages/NotFound';
+import { useSettingStore } from '@/core-app/store/settingsStore';
+import i18n from '@/core-app/i18n';
+import {
+  initializeTelemetry,
+  useTelemetryStore,
+} from '@/core-app/store/telemetryStore';
+import { otelLogs } from '@/core-app/telemetry/otel-logs';
+import { eventManager } from '@/core-app/utils/manager/eventManager';
+import FavoritesPage from '@/downlodr/pages/FavoritesPage';
+import StatusSpecificDownloads from '@/downlodr/pages/StatusPage';
+import { useEffect, useState } from 'react';
 import {
   Navigate,
   Route,
   HashRouter as Router,
   Routes,
 } from 'react-router-dom';
-import ClipboardLinkDetector from './Components/SubComponents/custom/ClipboardLinkDetector';
-import UpdateNotification from './Components/SubComponents/custom/UpdateNotifications';
-
-import { Toaster } from './Components/SubComponents/shadcn/components/ui/toaster';
-import { useToast } from './Components/SubComponents/shadcn/hooks/use-toast';
-import { ThemeProvider } from './Components/ThemeProvider';
-import MainLayout from './Layout/MainLayout';
-import PluginLayout from './Layout/PluginLayout';
-import History from './Pages/History';
-import PluginManager from './Pages/PlugInManager';
-import StatusSpecificDownloads from './Pages/StatusSpecificDownload';
-import CategoryPage from './Pages/SubPages/CategoryPage';
-import NotFound from './Pages/SubPages/NotFound';
-import PluginDetails from './Pages/SubPages/PluginDetails';
-import TagPage from './Pages/SubPages/TagsPage';
-import { useMainStore } from './Store/mainStore';
-import { PluginLoader } from './plugins/PluginLoader';
-import FormatSelectorManager from './plugins/components/FormatSelectorManager';
-import PluginModalManager from './plugins/components/PluginModalManager';
-import PluginSidePanelManager from './plugins/components/PluginSidePanelManager';
-import SystemTrayHandler from './Components/SubComponents/custom/SystemTrayHandler';
-import ActivityMonitor from './Components/SubComponents/custom/ActivityMonitor';
-import NotificationManager from './Components/SubComponents/custom/NotificationManager';
-import TelemetryConsentHandler from './Components/SubComponents/custom/TelemetryConsentHandler';
+import MainLayout from './core-app/layout/DownloadLayout';
+import History from './downlodr/pages/History';
+import { PluginInitialize } from './plugins/components/PluginInitialize';
+import PluginLayout from './plugins/layout/pluginLayout';
+import PluginDetail from './plugins/pages/PluginDetail';
+import PluginPage from './plugins/pages/PluginPage';
+import SkedulosaLayout from './skedulosa/layout/SkedulosaLayout';
+import NoSchedulePage from './skedulosa/pages/NoSchedulePage';
+import SelectedSubscriptionView from './skedulosa/pages/SelectedSubscriptionView';
+import SkedulosaHistoryPage from './skedulosa/pages/SkedulosaHistoryPage';
+import SkedulosaHome from './skedulosa/pages/SkedulosaHome';
+import SkedulosaSchedulePage from './skedulosa/pages/SkedulosaSchedulePage';
+import SkedulosaSubscriptionPage from './skedulosa/pages/SkedulosaSubscriptionPage';
+import SkedulosaSubscriptionDownloadsPage from './skedulosa/pages/SkedulosaSubscriptionDownloadsPage';
+import SkedulosaUtilsDemoPage from './skedulosa/pages/SkedulosaUtilsDemoPage';
+import ToolkitTestPage from './skedulosa/pages/ToolkitTestPage';
+import { useSkedulosaDownloadBridge } from './skedulosa/hooks/useSkedulosaDownloadBridge';
+import { useYtdlpRecovery } from './skedulosa/hooks/useYtdlpRecovery';
+import SkedulosaRouteGuard from './skedulosa/utils/routeGuard';
+import GlobalScanningModal from './skedulosa/components/GlobalScanningModal';
+import CategoryPage from './smart-organize/base/pages/CategoryPage';
+import TagPage from './smart-organize/base/pages/TagPage';
+import { useScrapingProgressToast } from './skedulosa/hooks/useScrapingProgressToast';
 
 const App = () => {
-  const { settings } = useMainStore();
-  const { toast } = useToast();
+  useSkedulosaDownloadBridge();
+  useYtdlpRecovery();
+  useScrapingProgressToast();
+
+  const { settings } = useSettingStore();
+  const language = useSettingStore((state) => state.settings.language);
+
+  useEffect(() => {
+    if (language && i18n.language !== language) {
+      i18n.changeLanguage(language);
+    }
+  }, [language]);
+
+  const { updateTelemetryConsentShown, settings: telemetrySettings } =
+    useTelemetryStore();
+
+  const [showTelemetryConsentModal, setShowTelemetryConsentModal] =
+    useState(false);
+
+  // Check if we should show telemetry consent modal (only once, after rehydration)
+  useEffect(() => {
+    if (telemetrySettings.telemetryConsentShown) {
+      setShowTelemetryConsentModal(false);
+      return;
+    }
+    // Small delay to allow app to fully load
+    const timer = setTimeout(() => {
+      setShowTelemetryConsentModal(true);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [telemetrySettings.telemetryConsentShown]);
+
+  // Handle telemetry consent modal close
+  const handleTelemetryConsentClose = () => {
+    setShowTelemetryConsentModal(false);
+    // Ensure consent shown flag is set even if user closes modal without choosing
+    if (!telemetrySettings.telemetryConsentShown) {
+      updateTelemetryConsentShown(true);
+    }
+  };
+
+  // Initialize telemetry store on app startup (runs once)
+  useEffect(() => {
+    const initAppTelemetry = async () => {
+      try {
+        const telemetryId = await initializeTelemetry();
+        if (telemetryId) {
+          // console.log('📊 Telemetry ready for app-wide usage');
+        }
+        otelLogs.initialize();
+      } catch (error) {
+        console.error('❌ Failed to initialize app telemetry:', error);
+        // App continues to function normally even if telemetry fails
+      }
+    };
+
+    initAppTelemetry();
+  }, []); // Empty dependency array = runs once on mount
+
+  // Start the skedulosa scraper loop on app startup
+  useEffect(() => {
+    if (window.skedulosaBridge) {
+      console.log('Starting Skedulosa scraper loop');
+      window.skedulosaBridge
+        .startScraper()
+        .catch((err) =>
+          console.error('Failed to start skedulosa scraper:', err),
+        );
+    }
+    return () => {
+      if (window.skedulosaBridge) {
+        window.skedulosaBridge
+          .stopScraper()
+          .catch((err) =>
+            console.error('Failed to stop skedulosa scraper:', err),
+          );
+      }
+    };
+  }, []);
 
   // Sync setting with main process on startup
   useEffect(() => {
@@ -53,195 +147,18 @@ const App = () => {
           console.error('Failed to sync background setting:', err),
         );
     }
-
-    // Listen for background setting sync requests from main process
-    const handleBackgroundSettingSync = () => {
-      if (window.backgroundSettings) {
-        window.backgroundSettings
-          .setRunInBackground(settings.runInBackground)
-          .then(() =>
-            console.log('Background setting re-synced from main process'),
-          )
-          .catch((err) =>
-            console.error('Failed to re-sync background setting:', err),
-          );
-      }
-    };
-
-    // Add IPC listener for background setting sync requests
-    if (window.backgroundSettings) {
-      window.backgroundSettings.onBackgroundSettingSync?.(
-        handleBackgroundSettingSync,
-      );
-    }
-
-    // Cleanup function
-    return () => {
-      // Remove listener if cleanup function exists
-      window.backgroundSettings?.removeBackgroundSettingSync?.(
-        handleBackgroundSettingSync,
-      );
-    };
   }, [settings.runInBackground]);
 
-  // Initialize test utilities for development
+  // Handle YT-DLP auto-update events
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('📱 Notification system loaded! Test with:');
-      console.log('• window.testNotifications.testAll() - Test all features');
-      console.log(
-        '• window.testNotifications.testDownloadComplete() - Test download notification',
-      );
-      console.log(
-        '• window.testNotifications.testDockBadge() - Test dock badge',
-      );
-
-      // Add comprehensive test functions
-      (window as any).testNotifications = {
-        testAll: async () => {
-          console.log('🧪 Testing all notification features...');
-          await (window as any).testNotifications.testPermissions();
-          await (window as any).testNotifications.testDownloadComplete();
-          await (window as any).testNotifications.testDockBadge();
-        },
-
-        testPermissions: async () => {
-          console.log('🔐 Testing notification permissions...');
-          if (window.notificationAPI) {
-            const hasPermissions =
-              await window.notificationAPI.hasPermissions();
-            console.log('Current permissions:', hasPermissions);
-
-            if (!hasPermissions) {
-              const granted = await window.notificationAPI.requestPermissions();
-              console.log('Permission request result:', granted);
-            }
-          }
-        },
-
-        testDownloadComplete: async () => {
-          console.log('📥 Testing download complete notification...');
-          if (window.notificationAPI) {
-            try {
-              const result = await window.notificationAPI.showNotification({
-                title: 'Download Complete',
-                body: 'Test video has finished downloading',
-                icon: '/Assets/AppLogo/notif.png',
-              });
-              console.log('Notification result:', result);
-            } catch (error) {
-              console.error('Notification test failed:', error);
-            }
-          } else {
-            console.error('notificationAPI not available');
-          }
-        },
-
-        testDockBadge: async () => {
-          console.log('🏷️ Testing dock badge...');
-          if (window.dockBadgeAPI) {
-            try {
-              // Test setting badge
-              await window.dockBadgeAPI.setBadgeCount(5);
-              const count = await window.dockBadgeAPI.getBadgeCount();
-              console.log('Badge count set to 5, actual count:', count);
-
-              // Test clearing badge after 3 seconds
-              setTimeout(async () => {
-                await window.dockBadgeAPI.clearBadge();
-                const newCount = await window.dockBadgeAPI.getBadgeCount();
-                console.log('Badge cleared, new count:', newCount);
-              }, 3000);
-            } catch (error) {
-              console.error('Dock badge test failed:', error);
-            }
-          } else {
-            console.error('dockBadgeAPI not available');
-          }
-        },
-      };
-    }
-
-    // Add test functions for dock badge in global window for debugging
-    (window as any).testDockBadge = {
-      setBadgeCount: async (count: number) => {
-        console.log(`Testing dock badge with count: ${count}`);
-        if (window.dockBadgeAPI) {
-          try {
-            const result = await window.dockBadgeAPI.setBadgeCount(count);
-            console.log('Dock badge set result:', result);
-            return result;
-          } catch (error) {
-            console.error('Failed to set dock badge:', error);
-            return false;
-          }
-        } else {
-          console.error('dockBadgeAPI not available');
-          return false;
-        }
-      },
-      getBadgeCount: async () => {
-        if (window.dockBadgeAPI) {
-          try {
-            const count = await window.dockBadgeAPI.getBadgeCount();
-            console.log('Current dock badge count:', count);
-            return count;
-          } catch (error) {
-            console.error('Failed to get dock badge count:', error);
-            return null;
-          }
-        } else {
-          console.error('dockBadgeAPI not available');
-          return null;
-        }
-      },
-      clearBadge: async () => {
-        if (window.dockBadgeAPI) {
-          try {
-            const result = await window.dockBadgeAPI.clearBadge();
-            console.log('Badge cleared:', result);
-            return result;
-          } catch (error) {
-            console.error('Failed to clear badge:', error);
-            return false;
-          }
-        } else {
-          console.error('dockBadgeAPI not available');
-          return false;
-        }
-      },
-    };
-  }, []); // Empty dependency array since this only needs to run once
-
-  // Handle YT-DLP auto-update events and settings modal
-  useEffect(() => {
-    const removeListeners: Array<() => void> = [];
+    const removeListeners: Array<(() => void) | undefined> = [];
 
     if (window.updateAPI) {
-      // Handle settings modal open request from system tray
-      if (window.updateAPI.onOpenSettingsModal) {
-        const removeSettingsModalListener =
-          window.updateAPI.onOpenSettingsModal(() => {
-            // Since we can't directly access DropdownBar state from here,
-            // we'll emit a custom event that the DropdownBar can listen to
-            const event = new CustomEvent('open-settings-from-tray');
-            window.dispatchEvent(event);
-          });
-        removeListeners.push(removeSettingsModalListener);
-      }
-
-      // Handle other update API events
       // Handle YT-DLP auto-updated event
       if (window.updateAPI.onYtdlpAutoUpdated) {
         const removeYtdlpUpdated = window.updateAPI.onYtdlpAutoUpdated(
           (updateInfo) => {
-            /*
-            toast({
-              title: 'YT-DLP Updated Successfully',
-              description: updateInfo.message,
-              duration: 5000,
-            });
-            */
+            // hello
           },
         );
         removeListeners.push(removeYtdlpUpdated);
@@ -251,13 +168,7 @@ const App = () => {
       if (window.updateAPI.onYtdlpAutoInstalled) {
         const removeYtdlpInstalled = window.updateAPI.onYtdlpAutoInstalled(
           (installInfo) => {
-            /*
-            toast({
-              title: 'YT-DLP Installed Successfully',
-              description: installInfo.message,
-              duration: 5000,
-            });
-            */
+            //hello
           },
         );
         removeListeners.push(removeYtdlpInstalled);
@@ -271,43 +182,86 @@ const App = () => {
           removeListener();
         }
       });
+      // Clean up the centralized event manager on app unmount
+      eventManager.cleanup();
     };
   }, []); // Empty dependency array = runs once on mount
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <Router>
-        <Routes>
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Navigate to="/status/all" replace />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/category/:categoryId" element={<CategoryPage />} />
-            <Route path="/tags/:tagId" element={<TagPage />} />
-            <Route
-              path="/status/:status"
-              element={<StatusSpecificDownloads />}
-            />
-            <Route path="*" element={<NotFound />} />
-          </Route>
-
-          <Route path="/plugins" element={<PluginLayout />}>
-            <Route index element={<PluginManager />} />
-            <Route path="details" element={<PluginDetails />} />
-          </Route>
-        </Routes>
-      </Router>
-      <Toaster />
-
-      <UpdateNotification />
-      <ClipboardLinkDetector />
-      <PluginLoader />
-      <FormatSelectorManager />
-      <PluginSidePanelManager />
-      <PluginModalManager />
-      <SystemTrayHandler />
-      <ActivityMonitor />
-      <NotificationManager />
-      <TelemetryConsentHandler />
+      <StoreRehydrationLoader>
+        <Router>
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Navigate to="/status/all" replace />} />
+              <Route path="/history" element={<History />} />
+              <Route
+                path="/status/:status"
+                element={<StatusSpecificDownloads />}
+              />
+              <Route path="/favorites" element={<FavoritesPage />} />
+              <Route path="*" element={<NotFound />} />
+              <Route path="/tags/:tagId" element={<TagPage />} />
+              <Route path="/category/:categoryId" element={<CategoryPage />} />
+            </Route>
+            <Route path="/plugins" element={<MainLayout />}>
+              <Route index element={<PluginPage />} />
+              <Route path="details" element={<PluginDetail />} />
+              {/* Additional plugin routes can be added here 
+              <Route
+                path="/plugins/toolkit-test"
+                element={<ToolkitTestPage />}
+              />
+              */}
+            </Route>
+            <Route path="/skedulosa" element={<SkedulosaLayout />}>
+              <Route element={<SkedulosaRouteGuard />}>
+                <Route element={<SkedulosaHome />}>
+                  <Route
+                    path="/skedulosa/no-schedule"
+                    element={<NoSchedulePage />}
+                  />
+                  <Route
+                    index
+                    path="/skedulosa/schedule"
+                    element={<SkedulosaSchedulePage />}
+                  />
+                  <Route
+                    path="/skedulosa/subscription"
+                    element={<SkedulosaSubscriptionPage />}
+                  />
+                  <Route
+                    path="/skedulosa/history"
+                    element={<SkedulosaHistoryPage />}
+                  />
+                  <Route
+                    path="/skedulosa/selected-subscription/:channelId?"
+                    element={<SelectedSubscriptionView />}
+                  />
+                  <Route
+                    path="/skedulosa/utils-demo"
+                    element={<SkedulosaUtilsDemoPage />}
+                  />
+                  <Route
+                    path="/skedulosa/subscription-downloads"
+                    element={<SkedulosaSubscriptionDownloadsPage />}
+                  />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+              </Route>
+            </Route>
+          </Routes>
+          <GlobalScanningModal />
+        </Router>
+        <Toaster />
+        <PluginInitialize />
+        <UpdateNotification />
+        <ClipboardLinkDetector />
+        <TelemetryConsentModal
+          isOpen={showTelemetryConsentModal}
+          onClose={handleTelemetryConsentClose}
+        />
+      </StoreRehydrationLoader>
     </ThemeProvider>
   );
 };

@@ -1,0 +1,16 @@
+{
+  "downloads": "Downloads",
+  "plugins": "Plugins",
+  "skedulosa": "Subscription",
+  "addPlugin": "Add Plugin",
+  "toast": {
+    "installSuccess": "Plugin was installed successfully",
+    "installSuccessTitle": "Success",
+    "alreadyInstalledTitle": "Plugin Already Installed",
+    "alreadyInstalled": "This plugin is already installed",
+    "invalidDirTitle": "Invalid Plugin Directory",
+    "invalidDir": "The selected directory does not contain a valid plugin structure",
+    "installFailedTitle": "Installation Failed",
+    "installFailedDefault": "An unexpected error occurred while installing the plugin"
+  }
+}

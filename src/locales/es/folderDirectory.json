@@ -1,0 +1,10 @@
+{
+  "title": "Guardar archivo en",
+  "subtitle": "Elige una ubicación para guardar tu archivo.",
+  "placeholder": "Carpeta de destino de descarga",
+  "folderTooltip": "Carpeta",
+  "toast": {
+    "errorTitle": "Error",
+    "errorDesc": "No se pudo seleccionar el directorio"
+  }
+}

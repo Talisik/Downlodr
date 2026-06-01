@@ -1,0 +1,101 @@
+{
+  "nav": {
+    "plugins": "外掛"
+  },
+  "card": {
+    "install": "安裝",
+    "uninstall": "解除安裝",
+    "update": "更新"
+  },
+  "pluginButtons": {
+    "details": "詳細資訊",
+    "remove": "移除",
+    "moreDetails": "更多詳情",
+    "checkForUpdates": "檢查更新",
+    "updating": "更新中...",
+    "install": "安裝",
+    "installing": "安裝中...",
+    "version": "版本 {{version}}",
+    "unknownSize": "未知"
+  },
+  "pluginDescriptions": {
+    "cc-to-markdown": "將影片字幕轉換為 Markdown 文件。",
+    "cc-to-markdown-downlodr": "將影片字幕轉換為 Markdown 文件。",
+    "format-converter": "使用可自訂的品質和設定將影片轉換為不同格式。",
+    "format-converter-downlodr": "使用可自訂的品質和設定將影片轉換為不同格式。",
+    "metadata-exporter": "使用強大的批次處理工具檢視和編輯影片中繼資料。",
+    "metadata-exporter-downlodr": "使用強大的批次處理工具檢視和編輯影片中繼資料。",
+    "fall-back-plugin": "使用強大的批次處理工具檢視和編輯影片中繼資料。"
+  },
+  "pluginNames": {
+    "cc-to-markdown": "CC 轉 Markdown",
+    "cc-to-markdown-downlodr": "CC 轉 Markdown",
+    "format-converter": "格式轉換器",
+    "format-converter-downlodr": "格式轉換器",
+    "metadata-exporter": "元資料匯出器",
+    "metadata-exporter-downlodr": "元資料匯出器",
+    "fall-back-plugin": "備用外掛程式"
+  },
+  "githubPlugin": {
+    "noDescription": "無可用描述",
+    "pluginFrom": "來自 {{releaseName}} 的外掛"
+  },
+  "page": {
+    "tabs": {
+      "installed": "已安裝的外掛",
+      "browse": "瀏覽外掛"
+    },
+    "tooltip": {
+      "refresh": "重新整理精選外掛"
+    },
+    "search": {
+      "placeholder": "搜尋",
+      "noResults": "找不到外掛"
+    },
+    "noPluginsAlt": "無可用外掛",
+    "thisPlugin": "此外掛",
+    "installed": {
+      "loading": "載入外掛中...",
+      "emptyTitle": "您尚未安裝任何外掛",
+      "addPlugin": "新增外掛"
+    },
+    "browse": {
+      "loading": "從 GitHub 載入外掛中...",
+      "emptyTitle": "找不到外掛，請嘗試重新整理清單。",
+      "refreshButton": "重新整理外掛"
+    },
+    "confirmUninstall": {
+      "message": "確定要移除「{{name}}」嗎？此操作無法復原。"
+    },
+    "toast": {
+      "loadFailed": "載入外掛失敗",
+      "loadFailedDesc": "使用備用外掛資料",
+      "refreshed": "外掛已重新整理",
+      "refreshedGithub": "外掛資料已從 GitHub 版本更新",
+      "refreshedFallback": "由於 GitHub API 問題，使用備用資料",
+      "refreshFailed": "重新整理失敗",
+      "refreshFailedDesc": "無法重新整理外掛資料",
+      "installSuccess": "成功",
+      "installSuccessDesc": "外掛安裝成功",
+      "alreadyInstalled": "外掛已安裝",
+      "alreadyInstalledDesc": "此外掛已安裝",
+      "invalidDir": "無效的外掛目錄",
+      "invalidDirDesc": "所選目錄不包含有效的外掛結構",
+      "installFailed": "安裝失敗",
+      "installFailedDefault": "安裝外掛時發生意外錯誤",
+      "removed": "外掛已移除",
+      "removedDesc": "{{name}} 已成功移除",
+      "removeFailed": "移除外掛失敗",
+      "removeFailedDesc": "無法移除 {{name}}，請重試。",
+      "removeError": "錯誤",
+      "removeErrorDesc": "移除 {{name}} 時發生錯誤",
+      "noUpdates": "無可用更新",
+      "noUpdatesDesc": "{{name}} 已是最新版本 (v{{version}})",
+      "updateCheckFailed": "更新檢查失敗",
+      "updateSuccess": "更新成功",
+      "updateSuccessDesc": "{{name}} 已成功更新",
+      "updateFailed": "更新失敗",
+      "updateFailedDesc": "{{name}} 更新失敗"
+    }
+  }
+}

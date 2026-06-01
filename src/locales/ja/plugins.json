@@ -1,0 +1,101 @@
+{
+  "nav": {
+    "plugins": "プラグイン"
+  },
+  "card": {
+    "install": "インストール",
+    "uninstall": "アンインストール",
+    "update": "更新"
+  },
+  "pluginButtons": {
+    "details": "詳細",
+    "remove": "削除",
+    "moreDetails": "詳細を見る",
+    "checkForUpdates": "更新を確認",
+    "updating": "更新中...",
+    "install": "インストール",
+    "installing": "インストール中...",
+    "version": "バージョン {{version}}",
+    "unknownSize": "不明"
+  },
+  "pluginDescriptions": {
+    "cc-to-markdown": "動画の字幕をMarkdownドキュメントに変換します。",
+    "cc-to-markdown-downlodr": "動画の字幕をMarkdownドキュメントに変換します。",
+    "format-converter": "カスタマイズ可能な品質と設定を使用して動画を異なるフォーマットに変換します。",
+    "format-converter-downlodr": "カスタマイズ可能な品質と設定を使用して動画を異なるフォーマットに変換します。",
+    "metadata-exporter": "強力な一括処理ツールで動画メタデータを表示・編集します。",
+    "metadata-exporter-downlodr": "強力な一括処理ツールで動画メタデータを表示・編集します。",
+    "fall-back-plugin": "強力な一括処理ツールで動画メタデータを表示・編集します。"
+  },
+  "pluginNames": {
+    "cc-to-markdown": "CCからMarkdownへ",
+    "cc-to-markdown-downlodr": "CCからMarkdownへ",
+    "format-converter": "フォーマットコンバーター",
+    "format-converter-downlodr": "フォーマットコンバーター",
+    "metadata-exporter": "メタデータエクスポーター",
+    "metadata-exporter-downlodr": "メタデータエクスポーター",
+    "fall-back-plugin": "フォールバックプラグイン"
+  },
+  "githubPlugin": {
+    "noDescription": "説明はありません",
+    "pluginFrom": "{{releaseName}} のプラグイン"
+  },
+  "page": {
+    "tabs": {
+      "installed": "インストール済みプラグイン",
+      "browse": "プラグインを探す"
+    },
+    "tooltip": {
+      "refresh": "注目プラグインを更新"
+    },
+    "search": {
+      "placeholder": "検索",
+      "noResults": "プラグインが見つかりません"
+    },
+    "noPluginsAlt": "利用可能なプラグインなし",
+    "thisPlugin": "このプラグイン",
+    "installed": {
+      "loading": "プラグインを読み込み中...",
+      "emptyTitle": "プラグインがインストールされていません",
+      "addPlugin": "プラグインを追加"
+    },
+    "browse": {
+      "loading": "GitHubからプラグインを読み込み中...",
+      "emptyTitle": "プラグインが見つかりません。リストを更新してみてください。",
+      "refreshButton": "プラグインを更新"
+    },
+    "confirmUninstall": {
+      "message": "「{{name}}」を削除してもよろしいですか？この操作は元に戻せません。"
+    },
+    "toast": {
+      "loadFailed": "プラグインの読み込みに失敗",
+      "loadFailedDesc": "フォールバックプラグインデータを使用しています",
+      "refreshed": "プラグインを更新しました",
+      "refreshedGithub": "GitHubリリースからプラグインデータを更新しました",
+      "refreshedFallback": "GitHub APIの問題によりフォールバックデータを使用しています",
+      "refreshFailed": "更新失敗",
+      "refreshFailedDesc": "プラグインデータを更新できませんでした",
+      "installSuccess": "成功",
+      "installSuccessDesc": "プラグインが正常にインストールされました",
+      "alreadyInstalled": "プラグインはすでにインストール済みです",
+      "alreadyInstalledDesc": "このプラグインはすでにインストールされています",
+      "invalidDir": "無効なプラグインディレクトリ",
+      "invalidDirDesc": "選択したディレクトリに有効なプラグイン構造が含まれていません",
+      "installFailed": "インストール失敗",
+      "installFailedDefault": "プラグインのインストール中に予期しないエラーが発生しました",
+      "removed": "プラグインを削除しました",
+      "removedDesc": "{{name}} が正常に削除されました",
+      "removeFailed": "プラグインの削除に失敗",
+      "removeFailedDesc": "{{name}} を削除できませんでした。もう一度お試しください。",
+      "removeError": "エラー",
+      "removeErrorDesc": "{{name}} の削除中にエラーが発生しました",
+      "noUpdates": "利用可能な更新なし",
+      "noUpdatesDesc": "{{name}} はすでに最新版です (v{{version}})",
+      "updateCheckFailed": "更新確認に失敗",
+      "updateSuccess": "更新成功",
+      "updateSuccessDesc": "{{name}} が正常に更新されました",
+      "updateFailed": "更新失敗",
+      "updateFailedDesc": "{{name}} の更新に失敗しました"
+    }
+  }
+}

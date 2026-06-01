@@ -1,0 +1,50 @@
+{
+  "title": "Settings",
+  "language": "Language",
+  "downloadLocation": "Download Location",
+  "speedLimit": "Speed Limit",
+  "noLimit": "No limit",
+  "connectionLimits": "Connection Limits",
+  "maxActiveDownloads": "Maximum Active Downloads",
+  "appBehavior": "Application Behavior",
+  "runInBackground": "Run in background when window is closed",
+  "runInBackgroundDesc": "When disabled, closing the window will completely exit the application",
+  "clipboardMonitoring": "Automatically download links from clipboard",
+  "clipboardMonitoringDesc": "When enabled, Downlodr will detect copied URLs and automatically download them",
+  "telemetry": "Downlodr app data usage",
+  "telemetryDesc": "Sends anonymous error reports and performance metrics to help us improve the app.",
+  "appUpdates": "Show app update notifications",
+  "visibleColumns": "Visible Columns",
+  "required": "(required)",
+  "directoryInProgress": "Directory Selection In Progress",
+  "directoryInProgressDesc": "Please complete the directory selection dialog before continuing.",
+  "toast": {
+    "clipboardEnabled": "Clipboard Monitoring Will Be Enabled",
+    "clipboardDisabled": "Clipboard Monitoring Will Be Disabled",
+    "clipboardDesc": "Click \"Okay\" to save this setting and apply the changes.",
+    "telemetryEnabled": "Telemetry Will Be Enabled",
+    "telemetryDisabled": "Telemetry Will Be Disabled",
+    "telemetryEnabledDesc": "Anonymous usage data and error reports will be sent to help improve Downlodr.",
+    "telemetryDisabledDesc": "No telemetry data will be collected.",
+    "appUpdatesEnabled": "App Update Notifications Enabled",
+    "appUpdatesDisabled": "App Update Notifications Disabled",
+    "appUpdatesEnabledDesc": "You will receive notifications when app updates are available.",
+    "appUpdatesDisabledDesc": "App update notifications have been disabled."
+  },
+  "speedUnits": {
+    "kb": "Kilo byte (KB)",
+    "mb": "Mega byte (MB)",
+    "gb": "Giga byte (GB)"
+  },
+  "columns": {
+    "format": "Format",
+    "size": "Size",
+    "speed": "Speed",
+    "source": "Source",
+    "name": "Title",
+    "dateAdded": "Date Added",
+    "transcript": "Closed Caption",
+    "status": "Status",
+    "action": "Action"
+  }
+}

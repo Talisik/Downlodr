@@ -33,7 +33,7 @@ The Preload Script acts as a secure bridge between the renderer and main process
 - Maintains security through contextIsolation
 - Provides a way for the renderer to access main process capabilities
 
-## State Management
+### 3. State Management
 
 Downlodr uses Zustand for state management with separate stores:
 
@@ -41,6 +41,7 @@ Downlodr uses Zustand for state management with separate stores:
 - **Download Store** (`downloadStore.tsx`): Manages download items, their status, and operations
 - **Plugin Store** (`pluginStore.tsx`): Manages plugin configuration and state
 - **Playlist Store** (`playlistStore.tsx`): Manages playlist information and operations
+- **Telemetry Store** (`telemetryStore.tsx`): Manages persistent telemetry ID for analytics and error tracking
 
 ## Component Architecture
 

@@ -50,6 +50,17 @@ body {
   display: none;
 }
 
+/* Hover-only scrollbar — thumb is invisible until the user hovers the container */
+.hover-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+.hover-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: #888;
+}
+.hover-scrollbar:hover::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
 /* end of custom scroll bar */
 /* Draggable */
 

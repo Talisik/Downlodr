@@ -1,0 +1,16 @@
+{
+  "downloads": "ダウンロード",
+  "plugins": "プラグイン",
+  "skedulosa": "サブスクリプション名",
+  "addPlugin": "プラグインを追加",
+  "toast": {
+    "installSuccess": "プラグインが正常にインストールされました",
+    "installSuccessTitle": "成功",
+    "alreadyInstalledTitle": "プラグインはすでにインストール済みです",
+    "alreadyInstalled": "このプラグインはすでにインストールされています",
+    "invalidDirTitle": "無効なプラグインディレクトリ",
+    "invalidDir": "選択したディレクトリに有効なプラグイン構造が含まれていません",
+    "installFailedTitle": "インストール失敗",
+    "installFailedDefault": "プラグインのインストール中に予期しないエラーが発生しました"
+  }
+}

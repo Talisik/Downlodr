@@ -1,0 +1,50 @@
+{
+  "title": "Configuración",
+  "language": "Idioma",
+  "downloadLocation": "Ubicación de descarga",
+  "speedLimit": "Límite de velocidad",
+  "noLimit": "Sin límite",
+  "connectionLimits": "Límites de conexión",
+  "maxActiveDownloads": "Descargas activas máximas",
+  "appBehavior": "Comportamiento de la aplicación",
+  "runInBackground": "Ejecutar en segundo plano al cerrar la ventana",
+  "runInBackgroundDesc": "Cuando está deshabilitado, cerrar la ventana cerrará completamente la aplicación",
+  "clipboardMonitoring": "Descargar automáticamente enlaces del portapapeles",
+  "clipboardMonitoringDesc": "Cuando está habilitado, Downlodr detectará URLs copiadas y las descargará automáticamente",
+  "telemetry": "Uso de datos de la app Downlodr",
+  "telemetryDesc": "Envía informes de errores anónimos y métricas de rendimiento para ayudarnos a mejorar la app.",
+  "appUpdates": "Mostrar notificaciones de actualización de la app",
+  "visibleColumns": "Columnas visibles",
+  "required": "(requerido)",
+  "directoryInProgress": "Selección de directorio en curso",
+  "directoryInProgressDesc": "Completa el diálogo de selección de directorio antes de continuar.",
+  "toast": {
+    "clipboardEnabled": "La supervisión del portapapeles se habilitará",
+    "clipboardDisabled": "La supervisión del portapapeles se deshabilitará",
+    "clipboardDesc": "Haz clic en \"Aceptar\" para guardar esta configuración y aplicar los cambios.",
+    "telemetryEnabled": "La telemetría se habilitará",
+    "telemetryDisabled": "La telemetría se deshabilitará",
+    "telemetryEnabledDesc": "Se enviarán datos de uso anónimos e informes de errores para mejorar Downlodr.",
+    "telemetryDisabledDesc": "No se recopilarán datos de telemetría.",
+    "appUpdatesEnabled": "Notificaciones de actualización habilitadas",
+    "appUpdatesDisabled": "Notificaciones de actualización deshabilitadas",
+    "appUpdatesEnabledDesc": "Recibirás notificaciones cuando haya actualizaciones disponibles.",
+    "appUpdatesDisabledDesc": "Las notificaciones de actualización han sido deshabilitadas."
+  },
+  "speedUnits": {
+    "kb": "Kilobyte (KB)",
+    "mb": "Megabyte (MB)",
+    "gb": "Gigabyte (GB)"
+  },
+  "columns": {
+    "format": "Formato",
+    "size": "Tamaño",
+    "speed": "Velocidad",
+    "source": "Fuente",
+    "name": "Título",
+    "dateAdded": "Fecha de agregado",
+    "transcript": "Subtítulos",
+    "status": "Estado",
+    "action": "Acción"
+  }
+}

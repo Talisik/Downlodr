@@ -1,0 +1,16 @@
+{
+  "downloads": "下載",
+  "plugins": "外掛",
+  "skedulosa": "訂閱名稱",
+  "addPlugin": "新增外掛",
+  "toast": {
+    "installSuccess": "外掛安裝成功",
+    "installSuccessTitle": "成功",
+    "alreadyInstalledTitle": "外掛已安裝",
+    "alreadyInstalled": "此外掛已安裝",
+    "invalidDirTitle": "無效的外掛目錄",
+    "invalidDir": "所選目錄不包含有效的外掛結構",
+    "installFailedTitle": "安裝失敗",
+    "installFailedDefault": "安裝外掛時發生意外錯誤"
+  }
+}

@@ -1,56 +1,42 @@
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 
-export default defineConfig(({ mode }) => ({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
+export default defineConfig(({ mode }) => {
+  // Load environment variables
+  const env = loadEnv(mode, process.cwd(), '');
+
+  return {
+    plugins: [react()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, 'src'),
+      },
+      // Ensure a single React instance so Radix UI (e.g. Slider) hooks work correctly
+      dedupe: ['react', 'react-dom'],
     },
-  },
-  esbuild: {
-    drop: mode === 'production' ? ['console', 'debugger'] : [],
-  },
-  css: {
-    postcss: {
-      plugins: [require('tailwindcss'), require('autoprefixer')],
+    esbuild: {
+      drop: mode === 'production' ? ['console', 'debugger'] : [],
     },
-  },
-  build: {
-    chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          // React and React DOM
-          'react-vendor': ['react', 'react-dom'],
-          // UI libraries
-          'ui-vendor': [
-            '@radix-ui/react-alert-dialog',
-            '@radix-ui/react-avatar',
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-separator',
-            '@radix-ui/react-slider',
-            '@radix-ui/react-slot',
-            '@radix-ui/react-switch',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-toast',
-            '@radix-ui/react-tooltip',
-          ],
-          // Icons and utilities
-          'utils-vendor': [
-            'react-icons',
-            'lucide-react',
-            'clsx',
-            'tailwind-merge',
-            'class-variance-authority',
-          ],
-          // Data and state management
-          'data-vendor': ['zustand', '@tanstack/react-query', 'axios'],
-          // Large utilities
-          'heavy-vendor': ['date-fns', 'docx'],
-        },
+    css: {
+      postcss: {
+        plugins: [require('tailwindcss'), require('autoprefixer')],
       },
     },
-  },
-}));
+    // Make environment variables available to the renderer process
+    define: {
+      __TELEMETRY_ENDPOINT__: JSON.stringify(
+        env.VITE_TELEMETRY_ENDPOINT || 'https://endpoint',
+      ),
+      __TELEMETRY_TIMEOUT__: JSON.stringify(
+        env.VITE_TELEMETRY_TIMEOUT || '30000',
+      ),
+      __TELEMETRY_RETRY_ATTEMPTS__: JSON.stringify(
+        env.VITE_TELEMETRY_RETRY_ATTEMPTS || '3',
+      ),
+      __TELEMETRY_SCHEMA_URL__: JSON.stringify(
+        env.VITE_TELEMETRY_SCHEMA_URL || 'https://opentelemetry.io/schemas/1.9.0',
+      ),
+    },
+  };
+});

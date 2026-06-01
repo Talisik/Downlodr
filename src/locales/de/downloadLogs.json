@@ -1,0 +1,35 @@
+{
+  "title": "Download-Protokolle",
+  "status": "Status",
+  "progress": "Fortschritt",
+  "noLogs": "Keine Protokolle für diesen Download verfügbar.",
+  "tooltip": {
+    "copyActive": "Kopieren während eines aktiven Downloads nicht möglich",
+    "copy": "Protokoll kopieren",
+    "saveActive": "Speichern während eines aktiven Downloads nicht möglich",
+    "save": "Protokoll herunterladen",
+    "errorReportActive": "Fehlerbericht während eines aktiven Downloads nicht möglich",
+    "errorReportSending": "Fehlerbericht wird gesendet...",
+    "errorReportSent": "Fehlerbericht erfolgreich gesendet",
+    "errorReportFailed": "Senden fehlgeschlagen: {{error}}",
+    "errorReport": "Fehlerbericht senden, um die Anwendung zu verbessern",
+    "close": "Protokoll schließen"
+  },
+  "toast": {
+    "copyFailedTitle": "Kopieren fehlgeschlagen",
+    "copyFailedDesc": "Aktivitätsprotokoll konnte nicht in die Zwischenablage kopiert werden",
+    "logsSavedTitle": "Download-Protokolle gespeichert",
+    "logsSavedDesc": "Protokolle im Download-Ordner gespeichert",
+    "logsSavedPathDesc": "Protokolle gespeichert unter {{path}}",
+    "logsFailedTitle": "Download-Protokolle fehlgeschlagen",
+    "logsFailedPathDesc": "Protokolle konnten nicht gespeichert werden unter {{path}}",
+    "logsFailedDesc": "Protokolle konnten nicht gespeichert werden",
+    "activityCopiedTitle": "Aktivitätsprotokoll kopiert",
+    "activityCopiedDesc": "Aktivitätsprotokoll in die Zwischenablage kopiert",
+    "activityCopyFailedTitle": "Kopieren des Aktivitätsprotokolls fehlgeschlagen",
+    "activityCopyFailedDesc": "Aktivitätsprotokoll konnte nicht kopiert werden",
+    "errorReportSentTitle": "Fehlerbericht gesendet",
+    "errorReportSentDesc": "Fehlerinformationen wurden gesendet, um die Anwendung zu verbessern",
+    "errorReportFailedTitle": "Fehlerbericht fehlgeschlagen"
+  }
+}

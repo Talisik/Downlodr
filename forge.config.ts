@@ -1,20 +1,35 @@
+import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerPKG } from '@electron-forge/maker-pkg';
 import { MakerZIP } from '@electron-forge/maker-zip';
-import { MakerDMG } from '@electron-forge/maker-dmg';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import MakerNSIS from '@felixrieseberg/electron-forge-maker-nsis';
-
+import { spawn } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
-import { spawn } from 'child_process';
 
 // Declare __dirname for TypeScript in CommonJS mode
 declare const __dirname: string;
 
-// Helper function to sign binaries with proper entitlements
+// Platform-conditional extra resources. A missing extraResource path fails
+// packaging, so each platform lists only the binaries it actually ships.
+// - darwin: bundled mac yt-dlp + static ffmpeg (arm64/x64) — all tracked in repo.
+// - win32:  Windows binaries (ffmpeg/ffprobe/ggml) are fetched at build time.
+const extraResource =
+  process.platform === 'darwin'
+    ? [
+        './src/Assets/Logo',
+        './yt-dlp_macos',
+        './binaries/ffmpeg-arm64',
+        './binaries/ffmpeg-x64',
+      ]
+    : process.platform === 'win32'
+      ? ['./src/Assets/Logo', './ffmpeg.exe', './ggml-base.bin', './ffprobe.exe']
+      : ['./src/Assets/Logo'];
+
+// Helper: sign a bundled binary with hardened runtime + optional entitlements.
 async function signBinaryWithEntitlements(
   binaryPath: string,
   binaryName: string,
@@ -110,29 +125,12 @@ async function signBinaryWithEntitlements(
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: './src/Assets/AppLogo/icon', // Will use icon.icns on macOS, icon.ico on Windows
+    // No extension → electron-packager picks downlodr_icon.icns (mac) / .ico (win).
+    icon: './src/Assets/Logo/downlodr_icon',
     name: 'Downlodr',
     executableName: 'Downlodr',
-    extraResource: [
-      './src/Assets/AppLogo',
-      './yt-dlp_macos',
-      // Enhanced FFmpeg bundling with architecture-specific binaries
-      './binaries/ffmpeg-arm64', // Apple Silicon native
-      './binaries/ffmpeg-x64', // Intel native
-    ],
-    // Explicit macOS app bundle configuration
-    ...(process.platform === 'darwin'
-      ? {
-          osxUniversal: {
-            x64ArchFiles: '*',
-          },
-          extendInfo: {
-            CFBundleIconFile: 'icon.icns',
-            CFBundleIconName: 'icon',
-          },
-        }
-      : {}),
-    // Simplified macOS code signing - always applied on macOS when certificate is available
+    extraResource,
+    // macOS code signing — applied on macOS when a signing identity is available.
     osxSign:
       process.env.APPLE_IDENTITY && !process.env.SKIP_CODE_SIGNING
         ? ({
@@ -145,22 +143,22 @@ const config: ForgeConfig = {
             'pre-embed-provisioning-profile': false,
           } as any)
         : undefined,
-    // Disable automatic notarization - we'll handle it manually after binary fixes
-    // Note: We need to fix binary signatures before notarization
+    // Notarization is handled manually after binary signatures are fixed.
     osxNotarize: undefined,
   },
+
   rebuildConfig: {},
+
   makers: [
-    // macOS DMG installer - preferred by most macOS users
+    // macOS DMG installer
     new MakerDMG({
-      icon: './src/Assets/AppLogo/icon.icns',
+      icon: './src/Assets/Logo/downlodr_icon.icns',
       name: 'Downlodr',
       title: 'Install Downlodr',
       format: 'ULFO',
     }),
 
-    // macOS PKG installer - requires "Developer ID Installer" certificate (different from Application cert)
-    // If you get signing errors, you need both certificates from Apple Developer Portal
+    // macOS PKG installer — needs a "Developer ID Installer" certificate.
     new MakerPKG({
       identity:
         process.env.APPLE_INSTALLER_IDENTITY ||
@@ -179,8 +177,8 @@ const config: ForgeConfig = {
             artifactName: '${productName}-${version}-${arch}.${ext}',
             oneClick: false,
             allowElevation: true,
-            installerIcon: './src/Assets/AppLogo/256x256.ico',
-            uninstallerIcon: './src/Assets/AppLogo/256x256.ico',
+            installerIcon: './src/Assets/Logo/downlodr_icon.ico',
+            uninstallerIcon: './src/Assets/Logo/downlodr_icon.ico',
             allowToChangeInstallationDirectory: true,
             createDesktopShortcut: true,
             createStartMenuShortcut: true,
@@ -188,8 +186,8 @@ const config: ForgeConfig = {
             uninstallDisplayName: 'Downlodr',
             deleteAppDataOnUninstall: true,
             warningsAsErrors: false,
-            perMachine: false, // Changed to false - install per-user, not machine-wide
-            include: './installer.nsh', // Keep this for admin privileges at runtime
+            perMachine: false,
+            include: './installer.nsh',
           },
         };
       },
@@ -198,169 +196,175 @@ const config: ForgeConfig = {
     // Cross-platform ZIP packages
     new MakerZIP({}, ['win32', 'linux']),
   ],
+
   hooks: {
+    prePackage: async () => {
+      // Verify the bundled FFmpeg meets the 8.0+ requirement (Whisper support).
+      // Non-fatal: core downloading works on older FFmpeg; only transcription needs 8+.
+      const ffmpegPath =
+        process.platform === 'darwin'
+          ? path.resolve(__dirname, 'binaries/ffmpeg-arm64')
+          : path.resolve(__dirname, 'ffmpeg.exe');
+
+      try {
+        const { execSync } = await import('child_process');
+        const versionOutput = execSync(`"${ffmpegPath}" -version`, {
+          encoding: 'utf-8',
+        });
+        const versionMatch = versionOutput.match(/ffmpeg version (\d+)\.(\d+)/);
+        if (versionMatch) {
+          const majorVersion = parseInt(versionMatch[1], 10);
+          const version = `${versionMatch[1]}.${versionMatch[2]}`;
+          if (majorVersion < 8) {
+            console.warn(
+              `⚠ FFmpeg ${version} is older than 8.0 — transcription (Whisper) may be limited.`,
+            );
+          } else {
+            console.log(`✓ FFmpeg ${version} verified`);
+          }
+        }
+      } catch (error) {
+        console.warn('⚠ Could not verify FFmpeg version');
+      }
+    },
+
     postPackage: async (forgeConfig, packageResult) => {
       for (const outputPath of packageResult.outputPaths) {
-        try {
-          // Skip signing for non-macOS platforms
-          if (process.platform !== 'darwin') {
-            console.log(
-              `📦 Skipping code signing for platform: ${process.platform}`,
-            );
-            continue;
-          }
-
-          // Binary names for macOS
-          const binaryName = 'yt-dlp';
-          const macBinaryName = 'yt-dlp_macos';
-
-          console.log(`📦 Processing yt-dlp binary for ${outputPath}`);
-          console.log(`   Platform: ${process.platform}`);
-          console.log(`   Binary name: ${binaryName}`);
-
-          // Define potential source paths for the binary
-          const sourcePaths = [
-            path.resolve(__dirname, binaryName),
-            path.resolve(__dirname, macBinaryName),
-          ];
-
-          // Find the first existing source binary
-          let sourceBinaryPath = null;
-          for (const sourcePath of sourcePaths) {
-            if (
-              await fs
-                .access(sourcePath)
-                .then(() => true)
-                .catch(() => false)
-            ) {
-              sourceBinaryPath = sourcePath;
-              console.log(`   Found source binary: ${sourcePath}`);
-              break;
-            }
-          }
-
-          if (!sourceBinaryPath) {
-            console.warn(
-              `⚠️  No yt-dlp binary found in project root. Checked paths:`,
-              sourcePaths,
-            );
-            continue;
-          }
-
-          // Define destination paths in the packaged app
-          const resourcesPath = path.join(outputPath, 'Resources');
-          const destinationPaths = [
-            path.join(resourcesPath, 'yt-dlp'),
-            path.join(resourcesPath, macBinaryName),
-          ];
-
-          // Copy binary to both destination names to ensure compatibility
-          for (const destPath of destinationPaths) {
-            try {
-              await fs.copyFile(sourceBinaryPath, destPath);
-
-              // Make the binary executable on macOS
-              await fs.chmod(destPath, 0o755);
-              console.log(`   ✅ Made ${destPath} executable`);
-
-              console.log(`   ✅ Copied to ${destPath}`);
-
-              // Sign the yt-dlp binary on macOS if we have a signing identity
-              if (
-                process.platform === 'darwin' &&
-                process.env.APPLE_IDENTITY &&
-                !process.env.SKIP_CODE_SIGNING
-              ) {
-                await signBinaryWithEntitlements(
-                  destPath,
-                  'yt-dlp',
-                  path.join(__dirname, 'yt-dlp-entitlements.plist'),
-                );
-              }
-            } catch (copyError) {
-              console.warn(
-                `   ⚠️  Failed to copy to ${destPath}:`,
-                copyError.message,
-              );
-            }
-          }
-
-          // Also copy to the main output directory as fallback
-          const fallbackPath = path.join(outputPath, binaryName);
+        // ----- macOS: bundle + sign yt-dlp and FFmpeg binaries -----
+        if (process.platform === 'darwin') {
           try {
-            await fs.copyFile(sourceBinaryPath, fallbackPath);
-            await fs.chmod(fallbackPath, 0o755);
-            console.log(`   ✅ Copied fallback to ${fallbackPath}`);
-          } catch (fallbackError) {
-            console.warn(
-              `   ⚠️  Failed to create fallback binary:`,
-              fallbackError.message,
-            );
-          }
-        } catch (error) {
-          console.error(
-            `❌ Failed to process yt-dlp for ${outputPath}:`,
-            error,
-          );
-        }
+            const binaryName = 'yt-dlp';
+            const macBinaryName = 'yt-dlp_macos';
 
-        // Also process and sign FFmpeg binaries if we're on macOS with signing enabled
-        if (
-          process.platform === 'darwin' &&
-          process.env.APPLE_IDENTITY &&
-          !process.env.SKIP_CODE_SIGNING
-        ) {
-          console.log(`🔧 Processing FFmpeg binaries for ${outputPath}`);
+            const sourcePaths = [
+              path.resolve(__dirname, binaryName),
+              path.resolve(__dirname, macBinaryName),
+            ];
 
-          const resourcesPath = path.join(outputPath, 'Resources');
-          const ffmpegCandidates = [
-            {
-              name: 'ffmpeg-arm64',
-              path: path.join(resourcesPath, 'ffmpeg-arm64'),
-            },
-            {
-              name: 'ffmpeg-x64',
-              path: path.join(resourcesPath, 'ffmpeg-x64'),
-            },
-            { name: 'ffmpeg', path: path.join(resourcesPath, 'ffmpeg') },
-          ];
+            let sourceBinaryPath: string | null = null;
+            for (const sourcePath of sourcePaths) {
+              if (
+                await fs
+                  .access(sourcePath)
+                  .then(() => true)
+                  .catch(() => false)
+              ) {
+                sourceBinaryPath = sourcePath;
+                console.log(`   Found source binary: ${sourcePath}`);
+                break;
+              }
+            }
 
-          for (const candidate of ffmpegCandidates) {
-            if (
-              await fs
-                .access(candidate.path)
-                .then(() => true)
-                .catch(() => false)
-            ) {
-              try {
-                console.log(
-                  `   📦 Processing ${candidate.name} at ${candidate.path}`,
-                );
+            if (sourceBinaryPath) {
+              const resourcesPath = path.join(outputPath, 'Resources');
+              const destinationPaths = [
+                path.join(resourcesPath, 'yt-dlp'),
+                path.join(resourcesPath, macBinaryName),
+              ];
 
-                // Make sure it's executable
-                await fs.chmod(candidate.path, 0o755);
-                console.log(`   ✅ Made ${candidate.name} executable`);
+              for (const destPath of destinationPaths) {
+                try {
+                  await fs.copyFile(sourceBinaryPath, destPath);
+                  await fs.chmod(destPath, 0o755);
+                  console.log(`   ✅ Copied + chmod ${destPath}`);
 
-                // Sign the FFmpeg binary (no special entitlements needed)
-                await signBinaryWithEntitlements(
-                  candidate.path,
-                  candidate.name,
-                );
-              } catch (ffmpegError) {
-                console.warn(
-                  `   ⚠️  Failed to process ${candidate.name}: ${ffmpegError.message}`,
-                );
+                  if (
+                    process.env.APPLE_IDENTITY &&
+                    !process.env.SKIP_CODE_SIGNING
+                  ) {
+                    await signBinaryWithEntitlements(
+                      destPath,
+                      'yt-dlp',
+                      path.join(__dirname, 'yt-dlp-entitlements.plist'),
+                    );
+                  }
+                } catch (copyError) {
+                  console.warn(
+                    `   ⚠️  Failed to copy to ${destPath}:`,
+                    copyError.message,
+                  );
+                }
               }
             } else {
-              console.log(
-                `   ❌ ${candidate.name} not found at ${candidate.path}`,
+              console.warn(
+                `⚠️  No yt-dlp binary found in project root. Checked:`,
+                sourcePaths,
               );
             }
+          } catch (error) {
+            console.error(`❌ Failed to process yt-dlp for ${outputPath}:`, error);
+          }
+
+          // Sign FFmpeg binaries when signing is enabled.
+          if (process.env.APPLE_IDENTITY && !process.env.SKIP_CODE_SIGNING) {
+            const resourcesPath = path.join(outputPath, 'Resources');
+            const ffmpegCandidates = [
+              { name: 'ffmpeg-arm64', path: path.join(resourcesPath, 'ffmpeg-arm64') },
+              { name: 'ffmpeg-x64', path: path.join(resourcesPath, 'ffmpeg-x64') },
+              { name: 'ffmpeg', path: path.join(resourcesPath, 'ffmpeg') },
+            ];
+
+            for (const candidate of ffmpegCandidates) {
+              if (
+                await fs
+                  .access(candidate.path)
+                  .then(() => true)
+                  .catch(() => false)
+              ) {
+                try {
+                  await fs.chmod(candidate.path, 0o755);
+                  await signBinaryWithEntitlements(candidate.path, candidate.name);
+                } catch (ffmpegError) {
+                  console.warn(
+                    `   ⚠️  Failed to process ${candidate.name}: ${ffmpegError.message}`,
+                  );
+                }
+              }
+            }
+          }
+        }
+
+        // ----- Windows: copy yt-dlp.exe next to the executable -----
+        if (process.platform === 'win32') {
+          try {
+            await fs.copyFile(
+              path.resolve(__dirname, 'yt-dlp.exe'),
+              path.join(outputPath, 'yt-dlp.exe'),
+            );
+            console.log(`✓ Copied yt-dlp.exe to ${outputPath}`);
+          } catch (error) {
+            console.error(`Failed to copy yt-dlp.exe for ${outputPath}:`, error);
+          }
+        }
+
+        // ----- skedulosa DB backend (better-sqlite3) — degrades gracefully -----
+        // The video-nemesis-toolkit backend is not yet tracked / built for macOS,
+        // so this copy is best-effort: failures are logged but never fail the build.
+        const toolkitNodeModules = path.resolve(
+          __dirname,
+          'src/skedulosa/backend/video-nemesis-toolkit/node_modules',
+        );
+        const unpackedNodeModules = path.join(
+          outputPath,
+          'resources/app.asar.unpacked/src/skedulosa/backend/video-nemesis-toolkit/node_modules',
+        );
+        for (const pkg of ['better-sqlite3', 'bindings', 'file-uri-to-path']) {
+          try {
+            await fs.mkdir(unpackedNodeModules, { recursive: true });
+            await fs.cp(
+              path.join(toolkitNodeModules, pkg),
+              path.join(unpackedNodeModules, pkg),
+              { recursive: true },
+            );
+            console.log(`✓ Copied ${pkg} to app.asar.unpacked`);
+          } catch (error) {
+            console.error(`Failed to copy ${pkg} (non-fatal):`, error.message);
           }
         }
       }
     },
   },
+
   plugins: [
     new VitePlugin({
       build: [
@@ -382,7 +386,8 @@ const config: ForgeConfig = {
         },
       ],
     }),
-    // Only enable Fuses plugin when NOT code signing to avoid conflicts
+
+    // Fuses conflict with macOS code signing, so enable them only when NOT signing.
     ...(process.env.APPLE_IDENTITY
       ? []
       : [
