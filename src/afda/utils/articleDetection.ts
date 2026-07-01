@@ -1,4 +1,5 @@
-const ARTICLE_KEYWORDS = ['article', 'https://articlesEasterEgg0101.com'];
+/** @deprecated — replaced by articleSiteDetection.ts */
+const ARTICLE_KEYWORDS = ['article', 'https://articles.com'];
 
 /**
  * Returns true if the input matches any registered article keyword
