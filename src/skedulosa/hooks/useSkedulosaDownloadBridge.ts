@@ -50,6 +50,20 @@ export function useSkedulosaDownloadBridge() {
         tasks,
       );
 
+      // Wait for skedulosaStore to finish rehydrating from IndexedDB before
+      // reading subscriptions. On startup the scraper can fire this event
+      // before the persist middleware has loaded persisted data, which would
+      // cause subscription lookup to return undefined for every task and queue
+      // downloads without a subscriptionId (ungrouped in the UI).
+      if (!useSkedulosaStore.persist.hasHydrated()) {
+        await new Promise<void>((resolve) => {
+          const unsub = useSkedulosaStore.persist.onFinishHydration(() => {
+            unsub();
+            resolve();
+          });
+        });
+      }
+
       // Read settings at call-time to avoid stale closure
       const { settings } = useSettingStore.getState();
       const { setDownload } = useDownloadStore.getState();

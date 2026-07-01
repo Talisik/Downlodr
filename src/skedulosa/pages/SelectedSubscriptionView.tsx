@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -26,9 +26,7 @@ import SkedulosaContextMenu, {
   type ContextMenuPosition,
 } from '@/skedulosa/components/SkedulosaContextMenu';
 import SkedulosaEditModal from '@/skedulosa/components/SkedulosaEditModal';
-import { showScrapeErrors } from '@/skedulosa/error-mapping/skedulosaErrors';
 import ConfirmModal from '@/core-app/components/modal/custom/ConfirmModal';
-import { MdOutlineFileDownload } from 'react-icons/md';
 
 // ── Tab ids (labels are translated at render time) ─────────────────────────
 const TAB_IDS = ['downloads', 'analytics', 'activity-log', 'settings'] as const;
@@ -49,10 +47,6 @@ function StatCard({ value, label }: { value: string; label: string }) {
 const SelectedSubscriptionView = () => {
   const { t } = useTranslation('skedulosa');
   const [activeTab, setActiveTab] = useState<string>('downloads');
-  const [scrapeStatus, setScrapeStatus] = useState<
-    'idle' | 'running' | 'done' | 'error'
-  >('idle');
-  const scrapeResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [contextMenu, setContextMenu] = useState<{
     position: ContextMenuPosition;
@@ -154,47 +148,6 @@ const SelectedSubscriptionView = () => {
   );
 
   const channelsForNav = useMemo(() => filteredChannels, [filteredChannels]);
-
-  const handleScrapeNow = useCallback(async () => {
-    if (!selectedSubscription) return;
-    // Guard: toolkit_channel_id must exist before starting any state change
-    if (selectedSubscription.toolkit_channel_id === undefined) return;
-    const bridge =
-      typeof window !== 'undefined' ? window.skedulosaBridge : undefined;
-    if (!bridge) return;
-    if (scrapeResetTimer.current) {
-      clearTimeout(scrapeResetTimer.current);
-      scrapeResetTimer.current = null;
-    }
-    setScrapeStatus('running');
-    try {
-      const scrapeResult = await (bridge.runScraperOnce(
-        selectedSubscription.toolkit_channel_id,
-      ) as Promise<unknown>);
-      showScrapeErrors(scrapeResult);
-      setScrapeStatus('done');
-      scrapeResetTimer.current = setTimeout(
-        () => setScrapeStatus('idle'),
-        3000,
-      );
-    } catch (err) {
-      console.error('[skedulosa] scrapeNow failed', err);
-      setScrapeStatus('error');
-      scrapeResetTimer.current = setTimeout(
-        () => setScrapeStatus('idle'),
-        4000,
-      );
-    }
-  }, [selectedSubscription]);
-
-  // Reset scrapeStatus when the selected channel changes
-  useEffect(() => {
-    setScrapeStatus('idle');
-    if (scrapeResetTimer.current) {
-      clearTimeout(scrapeResetTimer.current);
-      scrapeResetTimer.current = null;
-    }
-  }, [selectedChannelId]);
 
   const handleTabChange = (tabValue: string) => {
     setActiveTab(tabValue);
@@ -343,30 +296,6 @@ const SelectedSubscriptionView = () => {
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleScrapeNow}
-                  disabled={scrapeStatus === 'running'}
-                  className={`flex px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-                    scrapeStatus === 'done'
-                      ? 'bg-emerald-600 text-white'
-                      : scrapeStatus === 'error'
-                      ? 'bg-red-600 text-white'
-                      : 'bg-[#F9F9F9] hover:bg-black hover:text-white dark:bg-darkMode dark:text-white hover:dark:bg-white hover:dark:text-black text-black border border-gray-200 dark:border-gray-600'
-                  }`}
-                >
-                  <MdOutlineFileDownload
-                    size={16}
-                    className="inline-block mr-1"
-                  />
-                  {scrapeStatus === 'running'
-                    ? 'Fetching...'
-                    : scrapeStatus === 'done'
-                    ? 'Done!'
-                    : scrapeStatus === 'error'
-                    ? 'Failed'
-                    : 'Fetch Now'}
-                </button>
               </div>
 
               {/* Stat cards */}

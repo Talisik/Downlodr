@@ -52,8 +52,8 @@ export function useScrapingProgressToast() {
       }
 
       toast({
-        title: `Scraping ${totalScrapesInitiatedThisSession} channel(s)`,
-        description: 'Videos will appear in the Downloads tab.',
+        title: `Upload Queue Updated`,
+        description: 'New uploads will follow your selected schedule.',
         duration: 0, // Don't auto-dismiss while scraping
       });
     }
@@ -72,25 +72,20 @@ export function useScrapingProgressToast() {
           const queued = currentCount - forDownloadsCountAtStart;
           toast({
             title: (
-              <span className="flex items-center gap-2">
-                <span className="flex items-center justify-center w-4 h-4 rounded-full bg-green-600 shrink-0">
-                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                </span>
-                {count} channel{count !== 1 ? 's' : ''} synced
-              </span>
+              <span className="flex items-center gap-2">Sync Complete</span>
             ),
             description: (
-              <span className="block whitespace-nowrap ml-6">
-                New videos are ready in the{' '}
-                <span className="text-blue-500 block">Downloads tab</span>
+              <span className="block">
+                New videos are now available in your downloads tab.
               </span>
             ),
             duration: 5000, // Auto-dismiss after 5 seconds
             className: 'w-[300px]',
+            variant: 'success',
           });
         } else {
           toast({
-            title: 'Skedulosa Scraping',
+            title: 'Subscription Scraping',
             description: `Scraping completed but no new videos were added to the Downloads tab. Will try again on the next scheduled run.`,
             duration: 7000,
           });

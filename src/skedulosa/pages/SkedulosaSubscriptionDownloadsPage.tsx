@@ -181,22 +181,22 @@ export default function SkedulosaSubscriptionDownloadsPage() {
                   <table className="w-full text-sm text-left">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-darkModeCompliment bg-gray-50 dark:bg-darkModeCompliment/20">
-                        <th className="px-4 py-2 font-semibold text-gray-900 dark:text-gray-100">
+                        <th className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100">
                           Name
                         </th>
-                        <th className="px-4 py-2 font-semibold text-gray-900 dark:text-gray-100">
+                        <th className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100">
                           Status
                         </th>
-                        <th className="px-4 py-2 font-semibold text-gray-900 dark:text-gray-100">
+                        <th className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100">
                           Size
                         </th>
-                        <th className="px-4 py-2 font-semibold text-gray-900 dark:text-gray-100">
+                        <th className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100">
                           Speed
                         </th>
-                        <th className="px-4 py-2 font-semibold text-gray-900 dark:text-gray-100">
+                        <th className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100">
                           Date added
                         </th>
-                        <th className="px-4 py-2 font-semibold text-gray-900 dark:text-gray-100">
+                        <th className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100">
                           ID
                         </th>
                       </tr>
@@ -208,10 +208,10 @@ export default function SkedulosaSubscriptionDownloadsPage() {
                             key={d.id}
                             className="border-b border-gray-100 dark:border-darkModeCompliment/50 hover:bg-gray-50 dark:hover:bg-darkModeCompliment/20"
                           >
-                            <td className="px-4 py-2 text-gray-800 dark:text-gray-200 font-medium max-w-[200px] truncate">
+                            <td className="px-4 py-3 text-gray-800 dark:text-gray-200 font-medium max-w-[200px] truncate">
                               {d.name}
                             </td>
-                            <td className="px-4 py-2">
+                            <td className="px-4 py-3">
                               {(() => {
                                 const badge = getStatusBadge(d.status);
                                 return (
@@ -223,16 +223,16 @@ export default function SkedulosaSubscriptionDownloadsPage() {
                                 );
                               })()}
                             </td>
-                            <td className="px-4 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                               {d.size || '—'}
                             </td>
-                            <td className="px-4 py-2 text-gray-600 dark:text-gray-400">
+                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
                               {d.speed || '—'}
                             </td>
-                            <td className="px-4 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                               {formatDateAdded(d.date_added)}
                             </td>
-                            <td className="px-4 py-2 text-gray-500 dark:text-gray-500 text-xs font-mono max-w-[120px] truncate">
+                            <td className="px-4 py-3 text-gray-500 dark:text-gray-500 text-xs font-mono max-w-[120px] truncate">
                               {d.id}
                             </td>
                           </tr>

@@ -81,7 +81,7 @@ const SKEDULOSA_ERROR_MAP: readonly SkedulosaErrorEntry[] = Object.freeze([
     pattern: 'Failed to fetch accurate timestamps',
     title: 'Could Not Get Precise Upload Times',
     description:
-      'Try again. If the error persists, Skedulosa will fall back to a less precise schedule automatically.',
+      'Try again. If the error persists, Subscription will fall back to a less precise schedule automatically.',
   },
 
   // ── ERR-006: Invalid Video URL ────────────────────────────────────────────
@@ -115,7 +115,7 @@ const SKEDULOSA_ERROR_MAP: readonly SkedulosaErrorEntry[] = Object.freeze([
     pattern: '[download] yt-dlp exit',
     title: 'Download Failed — Tool Exited with an Error',
     description:
-      'Check if the video is still publicly available on YouTube. Persistent failures may mean the video has restrictions Skedulosa cannot bypass.',
+      'Check if the video is still publicly available on YouTube. Persistent failures may mean the video has restrictions Subscription cannot bypass.',
   },
 
   // ── ERR-012: Quick Playlist Scan Timed Out ───────────────────────────────
@@ -131,7 +131,7 @@ const SKEDULOSA_ERROR_MAP: readonly SkedulosaErrorEntry[] = Object.freeze([
     pattern: 'yt-dlp timed out after',
     title: 'Request Timed Out',
     description:
-      'Skedulosa waited too long for a response. Try again later. Channels with large video libraries take longer to process.',
+      'Subscription waited too long for a response. Try again later. Channels with large video libraries take longer to process.',
   },
 
   // ── ERR-014: Scraper Tool Returned an Error ───────────────────────────────
@@ -171,7 +171,7 @@ const SKEDULOSA_ERROR_MAP: readonly SkedulosaErrorEntry[] = Object.freeze([
     pattern: '[intelligent-schedule] Error analyzing channel',
     title: 'Smart Schedule Analysis Failed',
     description:
-      'Try re-adding or re-analyzing the channel. Skedulosa will fall back to a manual or default schedule.',
+      'Try re-adding or re-analyzing the channel. Subscription will fall back to a manual or default schedule.',
   },
 
   // ── ERR-019: Could Not Load Channels Due for Scraping ────────────────────
@@ -259,7 +259,7 @@ const SKEDULOSA_ERROR_MAP: readonly SkedulosaErrorEntry[] = Object.freeze([
     pattern: 'video(s) with dates; need at least',
     title: 'Not Enough Videos to Detect an Upload Pattern',
     description:
-      "Add this channel's scrape times manually. As the channel posts more videos, Skedulosa may eventually build a smart schedule automatically.",
+      "Add this channel's scrape times manually. As the channel posts more videos, Subscription may eventually build a smart schedule automatically.",
   },
 
   // ── ERR-030: Irregular Upload Schedule Detected ───────────────────────────

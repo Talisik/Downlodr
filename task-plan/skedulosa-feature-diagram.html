@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Skedulosa Feature — Architecture & Flow</title>
+<style>
+  :root {
+    --orange: #F45513;
+    --orange-light: #fff3ef;
+    --orange-mid: #fcd5c4;
+    --bg: #f8f9fb;
+    --card: #ffffff;
+    --border: #e4e7ed;
+    --text: #1a1d23;
+    --text-muted: #6b7280;
+    --text-light: #9ca3af;
+    --blue: #3b82f6;
+    --blue-light: #eff6ff;
+    --green: #10b981;
+    --green-light: #ecfdf5;
+    --purple: #8b5cf6;
+    --purple-light: #f5f3ff;
+    --yellow: #f59e0b;
+    --yellow-light: #fffbeb;
+    --red: #ef4444;
+    --red-light: #fef2f2;
+    --gray-light: #f3f4f6;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+    --radius: 10px;
+    --radius-sm: 6px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--text);
+    color: #fff;
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-md);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 14px; }
+  .topbar-logo {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--orange);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px; color: #fff; letter-spacing: -1px;
+  }
+  .topbar h1 { font-size: 17px; font-weight: 700; color: #fff; }
+  .topbar-sub { font-size: 12px; color: #9ca3af; margin-top: 1px; }
+  .topbar-badge {
+    background: var(--orange); color: #fff;
+    padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  }
+
+  /* ── NAV ── */
+  .nav {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+  }
+  .nav a {
+    padding: 12px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: color .15s, border-color .15s;
+  }
+  .nav a:hover { color: var(--orange); }
+  .nav a.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+  /* ── LAYOUT ── */
+  .page { max-width: 1200px; margin: 0 auto; padding: 36px 40px 80px; }
+
+  section { margin-bottom: 52px; }
+
+  .section-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px;
+  }
+  .section-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--orange); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-size: 18px; font-weight: 700; color: var(--text);
+  }
+  .section-header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--gray-light);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-header h3 { font-size: 14px; font-weight: 700; color: var(--text); }
+  .card-body { padding: 20px; }
+
+  /* ── GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* ── OVERVIEW BOXES ── */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .ov-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .ov-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; margin: 0 auto 10px;
+  }
+  .ov-box h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .ov-box p { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+  /* ── ROUTE TREE ── */
+  .route-tree { font-family: var(--mono); font-size: 13px; line-height: 2; }
+  .route-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 3px 0;
+    border-radius: 4px;
+    transition: background .1s;
+  }
+  .route-row:hover { background: var(--gray-light); padding-left: 6px; }
+  .route-indent { color: var(--text-light); user-select: none; }
+  .route-path {
+    background: var(--blue-light); color: var(--blue);
+    padding: 1px 8px; border-radius: 4px; font-weight: 600;
+    font-size: 12px;
+  }
+  .route-component {
+    background: var(--orange-light); color: var(--orange);
+    padding: 1px 8px; border-radius: 4px; font-weight: 600;
+    font-size: 12px;
+  }
+  .route-guard {
+    background: var(--yellow-light); color: var(--yellow);
+    padding: 1px 8px; border-radius: 4px; font-weight: 600;
+    font-size: 12px;
+  }
+  .route-layout {
+    background: var(--purple-light); color: var(--purple);
+    padding: 1px 8px; border-radius: 4px; font-weight: 600;
+    font-size: 12px;
+  }
+  .route-note { font-size: 11px; color: var(--text-muted); font-family: var(--font); }
+  .route-badge {
+    background: var(--green-light); color: var(--green);
+    padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 700;
+  }
+  .route-badge.bypass {
+    background: var(--gray-light); color: var(--text-muted);
+  }
+
+  /* ── TABLES ── */
+  table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  thead tr { background: var(--gray-light); }
+  th {
+    text-align: left; padding: 10px 14px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafbfc; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--gray-light);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--orange);
+  }
+
+  .fn-name {
+    font-family: var(--mono); font-weight: 700; color: var(--blue);
+    font-size: 13px;
+  }
+  .fn-sig {
+    font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+    line-height: 1.8; margin-top: 4px;
+  }
+  .fn-return { color: var(--green); font-weight: 600; }
+  .fn-desc { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .fn-note {
+    display: inline-block;
+    background: var(--orange-light); color: var(--orange);
+    font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px;
+    margin-top: 4px;
+  }
+
+  /* ── STATE FIELDS ── */
+  .state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .state-item {
+    background: var(--gray-light);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+  }
+  .state-key { font-family: var(--mono); font-weight: 700; font-size: 13px; color: var(--text); }
+  .state-type { font-family: var(--mono); font-size: 11px; color: var(--blue); margin-top: 2px; }
+  .state-note { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* ── TYPE BLOCK ── */
+  .type-block {
+    background: #1e2030;
+    color: #cdd6f4;
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.9;
+    overflow-x: auto;
+  }
+  .t-kw { color: #89b4fa; }
+  .t-type { color: #f38ba8; }
+  .t-str { color: #a6e3a1; }
+  .t-key { color: #cba6f7; }
+  .t-comment { color: #6c7086; }
+  .t-opt { color: #fab387; }
+
+  /* ── FLOW DIAGRAM ── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    align-items: flex-start;
+  }
+  .flow-step {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    width: 100%;
+  }
+  .flow-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 40px;
+    flex-shrink: 0;
+  }
+  .flow-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--orange);
+    background: var(--card);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .flow-dot.filled { background: var(--orange); }
+  .flow-dot.end { border-color: var(--green); background: var(--green); }
+  .flow-line {
+    width: 2px;
+    background: var(--orange-mid);
+    flex: 1;
+    min-height: 20px;
+  }
+  .flow-content {
+    flex: 1;
+    padding: 0 0 20px 16px;
+  }
+  .flow-box {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .flow-box.trigger { border-color: var(--orange); background: var(--orange-light); }
+  .flow-box.store { border-color: var(--blue); background: var(--blue-light); }
+  .flow-box.service { border-color: var(--purple); background: var(--purple-light); }
+  .flow-box.ui { border-color: var(--green); background: var(--green-light); }
+  .flow-box.note { border-color: var(--border); background: var(--gray-light); }
+  .flow-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .flow-box.trigger .flow-label { color: var(--orange); }
+  .flow-box.store .flow-label { color: var(--blue); }
+  .flow-box.service .flow-label { color: var(--purple); }
+  .flow-box.ui .flow-label { color: var(--green); }
+  .flow-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .flow-sub { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
+  .flow-sub code { background: none; padding: 0; }
+
+  /* ── QUICK REF TABLE ── */
+  .qr-table td:first-child { font-family: var(--mono); font-size: 12px; color: var(--text); font-weight: 600; }
+  .qr-table td:nth-child(2) { font-family: var(--mono); font-size: 12px; color: var(--blue); font-weight: 700; }
+  .qr-table td:nth-child(3) { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+
+  /* ── DEPENDENCY TAGS ── */
+  .dep-section { margin-bottom: 20px; }
+  .dep-section h4 { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+  .dep-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .dep-tag {
+    display: flex; align-items: center; gap: 6px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    background: var(--card);
+    font-size: 12px;
+  }
+  .dep-tag .dep-from { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+  .dep-tag .dep-name { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text); }
+
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-orange { background: var(--orange-light); color: var(--orange); }
+  .badge-blue { background: var(--blue-light); color: var(--blue); }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-purple { background: var(--purple-light); color: var(--purple); }
+  .badge-gray { background: var(--gray-light); color: var(--text-muted); }
+  .badge-yellow { background: var(--yellow-light); color: var(--yellow); }
+
+  .tip {
+    background: var(--orange-light);
+    border-left: 3px solid var(--orange);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text);
+    margin-top: 12px;
+  }
+  .tip strong { color: var(--orange); }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 24px 0;
+  }
+
+  /* ── JSON VIEWER ── */
+  .json-viewer {
+    background: #0d1117;
+    border-radius: 0 0 var(--radius) var(--radius);
+    overflow: hidden;
+  }
+  .json-tabs {
+    display: flex;
+    gap: 0;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 0 16px;
+  }
+  .json-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #8b949e;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 10px 14px;
+    transition: color .15s, border-color .15s;
+  }
+  .json-tab:hover { color: #e6edf3; }
+  .json-tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+  .json-panel { display: none; }
+  .json-panel.active { display: block; }
+  .json-pre {
+    margin: 0;
+    padding: 20px 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.9;
+    background: #0d1117;
+    color: #e6edf3;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  /* JSON token colours */
+  .j-key    { color: #79c0ff; }       /* blue  — keys */
+  .j-str    { color: #a5d6ff; }       /* light blue  — string values */
+  .j-type   { color: #ff7b72; font-style: italic; } /* red — type refs */
+  .j-bool   { color: #d2a8ff; }       /* purple — boolean */
+  .j-null   { color: #f78166; }       /* coral — void/null/none */
+  .j-opt    { color: #ffa657; }       /* orange — optional */
+  .j-num    { color: #79c0ff; }       /* blue — numbers */
+  .j-comment{ color: #8b949e; font-style: italic; } /* gray — comments */
+  .j-brace  { color: #e6edf3; }       /* white — braces/brackets */
+  .j-colon  { color: #e6edf3; }       /* white — colon */
+  .note-colon { color: #005eff; }       /* white — colon in notes */
+  .j-comma  { color: #e6edf3; }       /* white — comma */
+  .j-union  { color: #d2a8ff; font-weight: 700; } /* purple — | */
+
+  @media (max-width: 900px) {
+    .overview-grid { grid-template-columns: 1fr 1fr; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .state-grid { grid-template-columns: 1fr; }
+    .page { padding: 20px 16px; }
+    .topbar, .nav { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">SK</div>
+    <div>
+      <div class="topbar h1" style="font-size:17px;font-weight:700;color:#fff;">Skedulosa Feature</div>
+      <div class="topbar-sub">Architecture Diagram &amp; Data Flow — Downlodr v3</div>
+    </div>
+  </div>
+  <span class="topbar-badge">2026-03-17</span>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="#overview" class="active">Overview</a>
+  <a href="#routing">Routing</a>
+  <a href="#stores">Stores</a>
+  <a href="#utils">Utils</a>
+  <a href="#service">Sync Service</a>
+  <a href="#pages">Pages &amp; Components</a>
+  <a href="#flow">Data Flow</a>
+  <a href="#quickref">Quick Reference</a>
+  <a href="#deps">Dependencies</a>
+</nav>
+
+<div class="page">
+
+  <!-- ═══════════════════════════════════════════ 1. OVERVIEW -->
+  <section id="overview">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div>
+        <h2>High-Level Overview</h2>
+        <p>Skedulosa monitors channels/playlists and auto-downloads new content on a recurring schedule.</p>
+      </div>
+    </div>
+
+    <div class="overview-grid">
+      <div class="ov-box">
+        <div class="ov-icon" style="background:var(--blue-light);">🗄️</div>
+        <h4>Stores</h4>
+        <p><code>useSkedulosaStore</code> — subscriptions &amp; filters<br/><code>subscriptionStore</code> — trial/expiry</p>
+      </div>
+      <div class="ov-box">
+        <div class="ov-icon" style="background:var(--orange-light);">🔧</div>
+        <h4>Utils</h4>
+        <p>Storage analytics, schedule formatting, heatmap data, dummy data generation</p>
+      </div>
+      <div class="ov-box">
+        <div class="ov-icon" style="background:var(--purple-light);">⚙️</div>
+        <h4>Sync Service</h4>
+        <p>Bridges core Downlodr queue ↔ Skedulosa store in real-time</p>
+      </div>
+      <div class="ov-box">
+        <div class="ov-icon" style="background:var(--green-light);">🖥️</div>
+        <h4>Pages</h4>
+        <p>Schedule · Subscription · History · Selected View (4 tabs) · No-Schedule</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>Feature Architecture</h3></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 40px 1fr 40px 1fr 40px 1fr;gap:0;align-items:center;text-align:center;">
+          <div style="border:2px solid var(--blue);border-radius:10px;padding:16px 12px;background:var(--blue-light);">
+            <div style="font-size:22px;margin-bottom:6px;">🗄️</div>
+            <div style="font-weight:700;font-size:13px;color:var(--blue);">STORES</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">skedulosaStore<br/>subscriptionStore</div>
+          </div>
+          <div style="font-size:20px;color:var(--border);">⇄</div>
+          <div style="border:2px solid var(--orange);border-radius:10px;padding:16px 12px;background:var(--orange-light);">
+            <div style="font-size:22px;margin-bottom:6px;">🔧</div>
+            <div style="font-weight:700;font-size:13px;color:var(--orange);">UTILS</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">downloadUtils<br/>scheduleUtils<br/>generateDummy</div>
+          </div>
+          <div style="font-size:20px;color:var(--border);">⇄</div>
+          <div style="border:2px solid var(--green);border-radius:10px;padding:16px 12px;background:var(--green-light);">
+            <div style="font-size:22px;margin-bottom:6px;">🖥️</div>
+            <div style="font-weight:700;font-size:13px;color:var(--green);">PAGES</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Schedule · Subscription<br/>History · Selected View</div>
+          </div>
+          <div style="font-size:20px;color:var(--border);">⇄</div>
+          <div style="border:2px solid var(--purple);border-radius:10px;padding:16px 12px;background:var(--purple-light);">
+            <div style="font-size:22px;margin-bottom:6px;">⚙️</div>
+            <div style="font-weight:700;font-size:13px;color:var(--purple);">SERVICE</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Downlodr ↔<br/>Skedulosa Sync</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ 2. ROUTING -->
+  <section id="routing">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div><h2>Routing Structure</h2><p>Base path: <code>/skedulosa</code> — wrapped by <code>SkedulosaLayout</code></p></div>
+    </div>
+
+    <div class="grid-2" style="gap:20px;">
+      <div class="card">
+        <div class="card-header"><h3>Route Tree</h3></div>
+        <div class="card-body">
+          <div class="route-tree">
+
+            <div class="route-row">
+              <span class="route-path">/skedulosa</span>
+              <span class="route-layout">SkedulosaLayout</span>
+            </div>
+
+            <div class="route-row" style="padding-left:20px;">
+              <span class="route-indent">└─</span>
+              <span class="route-guard">SkedulosaRouteGuard</span>
+              <span class="route-note">redirects if no subscriptions</span>
+            </div>
+
+            <div class="route-row" style="padding-left:40px;">
+              <span class="route-indent">├─</span>
+              <span class="route-path">/schedule</span>
+              <span class="route-component">SkedulosaSchedulePage</span>
+              <span class="route-badge">INDEX</span>
+            </div>
+
+            <div class="route-row" style="padding-left:40px;">
+              <span class="route-indent">├─</span>
+              <span class="route-path">/subscription</span>
+              <span class="route-component">SkedulosaSubscriptionPage</span>
+            </div>
+
+            <div class="route-row" style="padding-left:40px;">
+              <span class="route-indent">├─</span>
+              <span class="route-path">/history</span>
+              <span class="route-component">SkedulosaHistoryPage</span>
+            </div>
+
+            <div class="route-row" style="padding-left:40px;">
+              <span class="route-indent">├─</span>
+              <span class="route-path">/selected-subscription/:channelId?</span>
+              <span class="route-component">SelectedSubscriptionView</span>
+            </div>
+
+            <div class="route-row" style="padding-left:60px;">
+              <span class="route-indent">├─ Tab:</span>
+              <span class="route-component" style="font-size:11px;">SkedulosaDownloads</span>
+            </div>
+            <div class="route-row" style="padding-left:60px;">
+              <span class="route-indent">├─ Tab:</span>
+              <span class="route-component" style="font-size:11px;">SkedulosaAnalytics</span>
+            </div>
+            <div class="route-row" style="padding-left:60px;">
+              <span class="route-indent">├─ Tab:</span>
+              <span class="route-component" style="font-size:11px;">SkedulosaActivityLog</span>
+            </div>
+            <div class="route-row" style="padding-left:60px;">
+              <span class="route-indent">└─ Tab:</span>
+              <span class="route-component" style="font-size:11px;">SkedulosaSettings</span>
+            </div>
+
+            <div class="route-row" style="padding-left:40px;">
+              <span class="route-indent">├─</span>
+              <span class="route-path">/utils-demo</span>
+              <span class="route-component">SkedulosaUtilsDemoPage</span>
+              <span class="route-badge bypass">bypass guard</span>
+            </div>
+
+            <div class="route-row" style="padding-left:40px;">
+              <span class="route-indent">└─</span>
+              <span class="route-path">/subscription-downloads</span>
+              <span class="route-component">SkedulosaSubscriptionDownloadsPage</span>
+              <span class="route-badge bypass">bypass guard</span>
+            </div>
+
+            <div class="route-row" style="margin-top:8px;">
+              <span class="route-path">/skedulosa/no-schedule</span>
+              <span class="route-component">NoSchedulePage</span>
+              <span class="route-badge bypass">bypass guard</span>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Layout Shell</h3></div>
+        <div class="card-body">
+          <div style="border:2px solid var(--border);border-radius:8px;overflow:hidden;">
+            <div style="background:#1a1d23;color:#fff;padding:10px 14px;font-size:12px;font-weight:600;">SkedulosaLayout</div>
+            <div style="background:var(--orange-light);border-bottom:1px solid var(--orange-mid);padding:10px 14px;">
+              <span class="badge badge-orange">TitleBar</span>
+              <span style="margin-left:6px;font-size:11px;color:var(--text-muted);">Window controls + logo</span>
+            </div>
+            <div style="background:var(--card);border-bottom:1px solid var(--border);padding:10px 14px;">
+              <span class="badge badge-blue">TaskBar</span>
+              <span style="margin-left:6px;font-size:11px;color:var(--text-muted);">Contains PageNavigation (Downloads / Plugins / Skedulosa tabs)</span>
+            </div>
+            <div style="display:flex;gap:0;">
+              <div style="background:var(--purple-light);border-right:1px solid var(--border);padding:16px 12px;width:140px;flex-shrink:0;">
+                <span class="badge badge-purple" style="display:block;text-align:center;margin-bottom:8px;">SkedulosaNavigation</span>
+                <div style="font-size:11px;color:var(--text-muted);line-height:1.8;">
+                  Subscription<br/>Scheduled<br/>History<br/><hr style="border:none;border-top:1px solid var(--border);margin:6px 0;">Status filters<br/>Category filters
+                </div>
+              </div>
+              <div style="flex:1;padding:16px;background:var(--gray-light);">
+                <span class="badge badge-green" style="display:block;text-align:center;margin-bottom:8px;">&lt;Outlet /&gt;</span>
+                <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:8px;">Active page renders here</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tip" style="margin-top:16px;">
+            <strong>Route Guard Logic:</strong> If <code>scheduledChannels.length === 0</code>, redirects all routes to <code>/skedulosa/no-schedule</code>. Bypassed for: no-schedule, utils-demo, subscription-downloads.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ 3. STORES -->
+  <section id="stores">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <div><h2>Store Layer</h2><p>Zustand with IndexedDB persistence</p></div>
+    </div>
+
+    <!-- useSkedulosaStore -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <h3>useSkedulosaStore <span style="font-weight:400;color:var(--text-muted);font-size:12px;">— src/skedulosa/store/skedulosaStore.tsx</span></h3>
+        <span class="badge badge-blue">Primary Store</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="json-viewer">
+
+          <!-- file tab bar -->
+          <div class="json-tabs">
+            <button class="json-tab active" onclick="showTab(this,'tab-state')">state</button>
+            <button class="json-tab" onclick="showTab(this,'tab-types')">types</button>
+            <button class="json-tab" onclick="showTab(this,'tab-actions')">actions</button>
+          </div>
+
+          <!-- STATE -->
+          <div id="tab-state" class="json-panel active">
+<pre class="json-pre"><span class="j-brace">{</span>
+  <span class="j-key">"store"</span><span class="j-colon">:</span> <span class="j-str">"useSkedulosaStore"</span><span class="j-comma">,</span>
+  <span class="j-key">"persistence"</span><span class="j-colon">:</span> <span class="j-str">"IndexedDB"</span><span class="j-comma">,</span>
+  <span class="j-key">"state"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"subscriptions"</span><span class="j-colon">:</span> <span class="j-comment">// Subscription[]  — primary source of truth</span>
+      <span class="j-brace">[</span>
+        <span class="j-brace">{</span>
+          <span class="j-key">"id"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+          <span class="j-key">"source"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>        <span class="j-comment">// display name</span>
+          <span class="j-key">"sourceUrl"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>     <span class="j-comment">// feed/channel URL</span>
+          <span class="j-key">"status"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+          <span class="j-key">"recurring"</span><span class="j-colon">:</span> <span class="j-bool">boolean</span><span class="j-comma">,</span>
+          <span class="j-key">"date_created"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+          <span class="note-key">"last_checked_time"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+          <span class="note-key">"upload_cadence"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+          <span class="j-key">"downloads"</span><span class="j-colon">:</span> <span class="j-type">Download[]</span><span class="j-comma">,</span>
+          <span class="j-key">"schedule_time"</span><span class="j-colon">:</span> <span class="j-type">ScheduleTime[]</span><span class="j-comma">,</span>
+          <span class="note-key">"upload_list"</span><span class="j-colon">:</span> <span class="j-type">String[]</span><span class="j-comma">,</span>
+          <span class="note-key">"weekly_counter (?)"</span><span class="note-colon">:</span> <span class="j-type">String[]</span><span class="j-comma">,</span>
+          <span class="j-key">"settings"</span><span class="j-colon">:</span> <span class="j-type">SubscriptionSettings[]</span>
+        <span class="j-brace">}</span>
+      <span class="j-brace">]</span><span class="j-comma">,</span>
+
+    <span class="j-key">"scheduledChannels"</span><span class="j-colon">:</span> <span class="j-comment">// ScheduledChannel[]  — auto-synced from subscriptions (legacy)</span>
+      <span class="j-brace">[</span>
+        <span class="j-brace">{</span>
+          <span class="j-key">"channelId"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>   <span class="j-comment">// = Subscription.id</span>
+          <span class="j-key">"channelName"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span> <span class="j-comment">// = Subscription.source</span>
+          <span class="j-key">"channelUrl"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>  <span class="j-comment">// = Subscription.sourceUrl</span>
+          <span class="j-key">"schedule"</span><span class="j-colon">:</span> <span class="j-type">ScheduleEntry[]</span><span class="j-comma">,</span>
+          <span class="j-key">"id"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+          <span class="j-key">"downloads"</span><span class="j-colon">:</span> <span class="j-type">Download[]</span><span class="j-comma">,</span>
+          <span class="j-key">"..."</span><span class="j-colon">:</span> <span class="j-comment">// all other Subscription fields</span>
+        <span class="j-brace">}</span>
+      <span class="j-brace">]</span><span class="j-comma">,</span>
+
+    <span class="j-key">"statusFilter"</span><span class="j-colon">:</span> <span class="j-str">"all"</span> <span class="j-union">|</span> <span class="j-str">"active"</span> <span class="j-union">|</span> <span class="j-str">"paused"</span> <span class="j-union">|</span> <span class="j-str">"needs-attention"</span> <span class="j-union">|</span> <span class="j-str">"error"</span><span class="j-comma">,</span>
+    <span class="j-key">"categoryFilter"</span><span class="j-colon">:</span> <span class="j-str">"all"</span> <span class="j-union">|</span> <span class="j-str">"youtube"</span>
+  <span class="j-brace">}</span>
+<span class="j-brace">}</span></pre>
+          </div>
+
+          <!-- TYPES -->
+          <div id="tab-types" class="json-panel">
+<pre class="json-pre"><span class="j-brace">{</span>
+  <span class="j-key">"Download"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"id"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"status"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"name"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"thumbnail_location"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"size"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>           <span class="j-comment">// e.g. "120.5 MB"</span>
+    <span class="j-key">"speed"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>          <span class="j-comment">// e.g. "2.3 MB/s"</span>
+    <span class="j-key">"date_added"</span><span class="j-colon">:</span> <span class="j-str">"string"</span>     <span class="j-comment">// ISO date string</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+
+  <span class="j-key">"SubscriptionSettings"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"frequency"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"download_quality"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"save_location"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"download_priority"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"lookback_period"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"file_naming_format"</span><span class="j-colon">:</span> <span class="j-str">"string"</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+
+  <span class="j-key">"ScheduleTime"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"day"</span><span class="j-colon">:</span> <span class="j-str">"Monday"</span> <span class="j-union">|</span> <span class="j-str">"Tuesday"</span> <span class="j-union">|</span> <span class="j-str">"Wednesday"</span> <span class="j-union">|</span> <span class="j-str">"Thursday"</span> <span class="j-union">|</span> <span class="j-str">"Friday"</span> <span class="j-union">|</span> <span class="j-str">"Saturday"</span> <span class="j-union">|</span> <span class="j-str">"Sunday"</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+
+  <span class="j-key">"ScheduleEntry"</span><span class="j-colon">:</span> <span class="j-brace">{</span>  <span class="j-comment">// legacy — used inside ScheduledChannel.schedule</span>
+    <span class="j-key">"scheduleId"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"timezone"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"daysTocheck"</span><span class="j-colon">:</span> <span class="j-str">"string[]"</span><span class="j-comma">,</span>
+    <span class="j-key">"timeToCheck"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"qualityPreset"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"lookbackPeriod"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"saveLocation"</span><span class="j-colon">:</span> <span class="j-str">"string"</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+
+  <span class="j-key">"SubscriptionDownloadInput"</span><span class="j-colon">:</span> <span class="j-brace">{</span>  <span class="j-comment">// used in addDownloadToSubscription()</span>
+    <span class="j-key">"id"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"name"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+    <span class="j-key">"size"</span><span class="j-colon">:</span> <span class="j-opt">"string?"</span><span class="j-comma">,</span>
+    <span class="j-key">"speed"</span><span class="j-colon">:</span> <span class="j-opt">"string?"</span><span class="j-comma">,</span>
+    <span class="j-key">"status"</span><span class="j-colon">:</span> <span class="j-opt">"string?"</span><span class="j-comma">,</span>
+    <span class="j-key">"thumbnail_location"</span><span class="j-colon">:</span> <span class="j-opt">"string?"</span><span class="j-comma">,</span>
+    <span class="j-key">"date_added"</span><span class="j-colon">:</span> <span class="j-opt">"string?"</span>
+  <span class="j-brace">}</span>
+<span class="j-brace">}</span></pre>
+          </div>
+
+          <!-- ACTIONS -->
+          <div id="tab-actions" class="json-panel">
+<pre class="json-pre"><span class="j-brace">{</span>
+  <span class="j-comment">// ── Filters ──────────────────────────────────────────────────────</span>
+  <span class="j-key">"setStatusFilter"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-brace">{</span> <span class="j-key">"slug"</span><span class="j-colon">:</span> <span class="j-type">StatusFilterSlug</span> <span class="j-brace">}</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-null">void</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+  <span class="j-key">"setCategoryFilter"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-brace">{</span> <span class="j-key">"slug"</span><span class="j-colon">:</span> <span class="j-type">CategoryFilterSlug</span> <span class="j-brace">}</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-null">void</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+
+  <span class="j-comment">// ── Subscriptions ────────────────────────────────────────────────</span>
+  <span class="j-key">"addSubscription"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-brace">{</span> <span class="j-key">"subscription"</span><span class="j-colon">:</span> <span class="j-type">Subscription</span> <span class="j-brace">}</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-null">void</span><span class="j-comma">,</span>
+    <span class="j-key">"note"</span><span class="j-colon">:</span> <span class="j-str">"auto-syncs scheduledChannels[]"</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+  <span class="j-key">"removeSubscription"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-brace">{</span> <span class="j-key">"subscriptionId"</span><span class="j-colon">:</span> <span class="j-str">"string"</span> <span class="j-brace">}</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-null">void</span><span class="j-comma">,</span>
+    <span class="j-key">"note"</span><span class="j-colon">:</span> <span class="j-str">"auto-syncs scheduledChannels[]"</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+  <span class="j-key">"updateSubscription"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-brace">{</span> <span class="j-key">"subscriptionId"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span> <span class="j-key">"subscription"</span><span class="j-colon">:</span> <span class="j-type">Subscription</span> <span class="j-brace">}</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-null">void</span><span class="j-comma">,</span>
+    <span class="j-key">"note"</span><span class="j-colon">:</span> <span class="j-str">"auto-syncs scheduledChannels[]"</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+  <span class="j-key">"getSubscription"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-brace">{</span> <span class="j-key">"subscriptionId"</span><span class="j-colon">:</span> <span class="j-str">"string"</span> <span class="j-brace">}</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-type">Subscription</span> <span class="j-union">|</span> <span class="j-null">undefined</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+  <span class="j-key">"getSubscriptions"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-null">none</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-type">Subscription[]</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+  <span class="j-key">"getFilteredSubscriptions"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-null">none</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-type">Subscription[]</span><span class="j-comma">,</span>
+    <span class="j-key">"note"</span><span class="j-colon">:</span> <span class="j-str">"applies statusFilter + categoryFilter"</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+
+  <span class="j-comment">// ── Download management ──────────────────────────────────────────</span>
+  <span class="j-key">"addDownloadToSubscription"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+      <span class="j-key">"subscriptionId"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+      <span class="j-key">"input"</span><span class="j-colon">:</span> <span class="j-type">SubscriptionDownloadInput</span>
+    <span class="j-brace">}</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-null">void</span><span class="j-comma">,</span>
+    <span class="j-key">"note"</span><span class="j-colon">:</span> <span class="j-str">"called by SubscriptionDownloadSyncService"</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+  <span class="j-key">"updateSubscriptionDownload"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+      <span class="j-key">"subscriptionId"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+      <span class="j-key">"downloadId"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+      <span class="j-key">"updates"</span><span class="j-colon">:</span> <span class="j-type">Partial&lt;Download&gt;</span>
+    <span class="j-brace">}</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-null">void</span><span class="j-comma">,</span>
+    <span class="j-key">"note"</span><span class="j-colon">:</span> <span class="j-str">"called by SubscriptionDownloadSyncService"</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+
+  <span class="j-comment">// ── Legacy (ScheduledChannel wrappers) ───────────────────────────</span>
+  <span class="j-key">"addScheduledChannel"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-brace">{</span> <span class="j-key">"channel"</span><span class="j-colon">:</span> <span class="j-type">ScheduledChannel</span> <span class="j-brace">}</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-null">void</span><span class="j-comma">,</span>
+    <span class="j-key">"note"</span><span class="j-colon">:</span> <span class="j-str">"wraps addSubscription — legacy"</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+  <span class="j-key">"getFilteredScheduledChannels"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-null">none</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-type">ScheduledChannel[]</span><span class="j-comma">,</span>
+    <span class="j-key">"note"</span><span class="j-colon">:</span> <span class="j-str">"still used by some pages — legacy"</span>
+  <span class="j-brace">}</span>
+<span class="j-brace">}</span></pre>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- subscriptionStore -->
+    <div class="card">
+      <div class="card-header">
+        <h3>subscriptionStore <span style="font-weight:400;color:var(--text-muted);font-size:12px;">— src/skedulosa/store/subscriptionStore.tsx</span></h3>
+        <span class="badge badge-yellow">Trial / Expiry Store</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="json-viewer">
+          <div class="json-tabs">
+            <button class="json-tab active" onclick="showTab(this,'tab-sub-state')">state</button>
+            <button class="json-tab" onclick="showTab(this,'tab-sub-actions')">actions</button>
+          </div>
+
+          <!-- STATE -->
+          <div id="tab-sub-state" class="json-panel active">
+<pre class="json-pre"><span class="j-brace">{</span>
+  <span class="j-key">"store"</span><span class="j-colon">:</span> <span class="j-str">"subscriptionStore"</span><span class="j-comma">,</span>
+  <span class="j-key">"persistence"</span><span class="j-colon">:</span> <span class="j-str">"subscription-store"</span><span class="j-comma">,</span>  <span class="j-comment">// localStorage key via Zustand persist</span>
+  <span class="j-key">"purpose"</span><span class="j-colon">:</span> <span class="j-str">"trial and expiry tracking"</span><span class="j-comma">,</span>
+  <span class="j-key">"state"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"subscriptions"</span><span class="j-colon">:</span> <span class="j-brace">[</span>
+      <span class="j-brace">{</span>
+        <span class="j-key">"id"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span>
+        <span class="j-key">"expirationDate"</span><span class="j-colon">:</span> <span class="j-type">Date</span>
+      <span class="j-brace">}</span>
+    <span class="j-brace">]</span><span class="j-comma">,</span>
+    <span class="j-key">"expirationDate"</span><span class="j-colon">:</span> <span class="j-str">"2026-03-29"</span>  <span class="j-comment">// current trial expiry</span>
+  <span class="j-brace">}</span>
+<span class="j-brace">}</span></pre>
+          </div>
+
+          <!-- ACTIONS -->
+          <div id="tab-sub-actions" class="json-panel">
+<pre class="json-pre"><span class="j-brace">{</span>
+  <span class="j-key">"addSubscription"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-brace">{</span> <span class="j-key">"id"</span><span class="j-colon">:</span> <span class="j-str">"string"</span><span class="j-comma">,</span> <span class="j-key">"expirationDate"</span><span class="j-colon">:</span> <span class="j-type">Date</span> <span class="j-brace">}</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-null">void</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+  <span class="j-key">"removeSubscription"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-brace">{</span> <span class="j-key">"id"</span><span class="j-colon">:</span> <span class="j-str">"string"</span> <span class="j-brace">}</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-null">void</span>
+  <span class="j-brace">}</span><span class="j-comma">,</span>
+  <span class="j-key">"getExpirationDate"</span><span class="j-colon">:</span> <span class="j-brace">{</span>
+    <span class="j-key">"params"</span><span class="j-colon">:</span> <span class="j-null">none</span><span class="j-comma">,</span>
+    <span class="j-key">"returns"</span><span class="j-colon">:</span> <span class="j-type">Date</span>
+  <span class="j-brace">}</span>
+<span class="j-brace">}</span></pre>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ 4. UTILS -->
+  <section id="utils">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div><h2>Utils Layer</h2><p>Pure functions for formatting, analytics, and data transformation</p></div>
+    </div>
+
+    <!-- subscriptionDownloadUtils -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <h3>subscriptionDownloadUtils.ts <span style="font-weight:400;color:var(--text-muted);font-size:12px;">— src/skedulosa/utils/</span></h3>
+        <span class="badge badge-orange">Storage · Counts · Heatmap</span>
+      </div>
+      <div class="card-body">
+        <table>
+          <thead>
+            <tr><th>Function</th><th>Parameters</th><th>Returns</th><th>Use when</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="fn-name">formatBytesToHuman</div>
+              </td>
+              <td><code>bytes: number</code></td>
+              <td><code class="fn-return">string</code></td>
+              <td>Displaying any byte value. e.g. <code>"1.2 GB"</code>, <code>"500 MB"</code></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="fn-name">getTotalStorageForDownloads</div>
+                <div class="fn-note">✅ USE FOR SINGLE CHANNEL</div>
+              </td>
+              <td><code>downloads: Download[]</code></td>
+              <td><code class="fn-return">number</code> (bytes)</td>
+              <td>You have <code>channel.downloads</code> and want total storage for that channel</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="fn-name">getTotalStorageUsedBytes</div>
+              </td>
+              <td><code>subscriptions: Subscription[]</code></td>
+              <td><code class="fn-return">number</code> (bytes)</td>
+              <td>Grand total across ALL subscriptions (e.g. stats bar)</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="fn-name">getTotalStoragePerSubscription</div>
+              </td>
+              <td><code>subscriptions: Subscription[]</code></td>
+              <td><code class="fn-return">Record&lt;subId, bytes&gt;</code></td>
+              <td>Need storage for each sub separately, keyed by ID</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="fn-name">getDownloadCountPerSubscription</div>
+              </td>
+              <td><code>subscriptions: Subscription[]</code></td>
+              <td><code class="fn-return">Record&lt;subId, count&gt;</code></td>
+              <td>Display download count per row in subscription table</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="fn-name">getLastDownloadedTimeAgoPerSubscription</div>
+              </td>
+              <td><code>subscriptions: Subscription[], now?: Date</code></td>
+              <td><code class="fn-return">Record&lt;subId, string | null&gt;</code></td>
+              <td>"2 hours ago" / "3 days ago" per subscription. <code>null</code> if no downloads</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="fn-name">getFinishedDownloadPercentPerSubscription</div>
+              </td>
+              <td><code>subscriptions: Subscription[]</code></td>
+              <td><code class="fn-return">Record&lt;subId, 0–100&gt;</code></td>
+              <td>Progress bar percentage for each subscription</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="fn-name">getAverageSizeBytesPerSubscription</div>
+              </td>
+              <td><code>subscriptions: Subscription[]</code></td>
+              <td><code class="fn-return">Record&lt;subId, bytes&gt;</code></td>
+              <td>Analytics — average file size per subscription</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="fn-name">buildHeatMapFromSubscriptionDownloads</div>
+              </td>
+              <td><code>subscriptions: Subscription[]</code></td>
+              <td><code class="fn-return">HeatMapData</code></td>
+              <td>Analytics heatmap — uses <code>download.date_added</code> dates</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="fn-name">buildHeatMapFromDates</div>
+              </td>
+              <td><code>dates: Array&lt;Date | string&gt;, now?: Date</code></td>
+              <td><code class="fn-return">HeatMapData</code></td>
+              <td>Build heatmap from any array of dates</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:16px;">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:10px;">HeatMapData Type</div>
+          <div class="type-block">
+<span class="t-kw">interface</span> <span class="t-type">HeatMapData</span> {
+  <span class="t-key">rows</span>: [<span class="t-str">'morning'</span>, <span class="t-str">'afternoon'</span>, <span class="t-str">'night'</span>]
+  <span class="t-key">columns</span>: [<span class="t-str">'Mon'</span>, <span class="t-str">'Tue'</span>, <span class="t-str">'Wed'</span>, <span class="t-str">'Thu'</span>, <span class="t-str">'Fri'</span>, <span class="t-str">'Sat'</span>, <span class="t-str">'Sun'</span>]
+  <span class="t-key">grid</span>: <span class="t-str">number</span>[][]      <span class="t-comment">// [3 rows][7 cols] — download counts</span>
+  <span class="t-key">cells</span>: <span class="t-type">HeatMapCell</span>[]  <span class="t-comment">// flat list for rendering</span>
+}
+
+<span class="t-kw">type</span> <span class="t-type">TimeOfDayBucket</span> = <span class="t-str">'morning'</span> | <span class="t-str">'afternoon'</span> | <span class="t-str">'night'</span>
+<span class="t-kw">type</span> <span class="t-type">DayOfWeekIndex</span> = <span class="t-str">0</span> | <span class="t-str">1</span> | <span class="t-str">2</span> | <span class="t-str">3</span> | <span class="t-str">4</span> | <span class="t-str">5</span> | <span class="t-str">6</span>  <span class="t-comment">// Mon=0 … Sun=6</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- scheduleManagerUtils -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <h3>scheduleManagerUtils.ts <span style="font-weight:400;color:var(--text-muted);font-size:12px;">— src/skedulosa/utils/</span></h3>
+        <span class="badge badge-blue">Schedule Formatting · Progress · Status</span>
+      </div>
+      <div class="card-body">
+        <table>
+          <thead>
+            <tr><th>Function</th><th>Parameters</th><th>Returns</th><th>Example output</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="fn-name">formatSchedule</div></td>
+              <td><code>entry: ScheduleEntry</code></td>
+              <td><code class="fn-return">string</code></td>
+              <td><code>"Every Monday 6:00 AM"</code> / <code>"Daily 6:00 AM"</code></td>
+            </tr>
+            <tr>
+              <td><div class="fn-name">formatNextRun</div></td>
+              <td><code>entry: ScheduleEntry, now?: Date</code></td>
+              <td><code class="fn-return">string</code></td>
+              <td><code>"Tomorrow 6:00 AM"</code> / <code>"in 2 hours"</code> / <code>"Mon 6:00 AM"</code></td>
+            </tr>
+            <tr>
+              <td><div class="fn-name">formatProgress</div></td>
+              <td><code>downloads: Download[]</code></td>
+              <td><code class="fn-return">&#123; text: string, percentage: number &#125;</code></td>
+              <td><code>&#123; text: "4 / 10", percentage: 40 &#125;</code></td>
+            </tr>
+            <tr>
+              <td><div class="fn-name">formatStatus</div></td>
+              <td><code>status: string</code></td>
+              <td><code class="fn-return">ScheduleStatusDisplay</code></td>
+              <td>Active→<code>"Running"</code> · Paused→<code>"Pending"</code> · Error→<code>"Missed"</code></td>
+            </tr>
+            <tr>
+              <td><div class="fn-name">getScheduledDownloadsCountToday</div></td>
+              <td><code>subscriptions: Subscription[]</code></td>
+              <td><code class="fn-return">number</code></td>
+              <td>Count of downloads with <code>date_added</code> = today</td>
+            </tr>
+            <tr>
+              <td><div class="fn-name">createSubscriptionDownloadInput</div></td>
+              <td><code>payload: SubscriptionDownloadPayload, overrides?: Partial&lt;SubscriptionDownloadInput&gt;</code></td>
+              <td><code class="fn-return">SubscriptionDownloadInput</code></td>
+              <td>Converts a download payload to the store's input shape</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- generateDummySubscription -->
+    <div class="card">
+      <div class="card-header">
+        <h3>generateDummySubscription.ts <span style="font-weight:400;color:var(--text-muted);font-size:12px;">— src/skedulosa/utils/</span></h3>
+        <span class="badge badge-gray">Dev / Testing Only</span>
+      </div>
+      <div class="card-body" style="display:flex;align-items:flex-start;gap:24px;">
+        <div style="flex:1;">
+          <div class="fn-name">generateDummySubscription</div>
+          <div class="fn-sig">() → <span class="fn-return">Subscription</span></div>
+          <div class="fn-desc" style="margin-top:8px;">Returns a full <code>Subscription</code> object with randomized realistic data. Used only in <code>SkedulosaUtilsDemoPage</code>.</div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text-muted);">Randomized from:</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <span class="badge badge-orange">youtube</span>
+            <span class="badge badge-blue">vimeo</span>
+            <span class="badge badge-purple">twitch</span>
+            <span class="badge badge-gray">rumble</span>
+            <span class="badge badge-gray">odysee</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+            <span class="badge badge-green">Active</span>
+            <span class="badge badge-yellow">Paused</span>
+            <span class="badge badge-red" style="background:var(--red-light);color:var(--red);">Error</span>
+            <span class="badge badge-orange">Needs Attention</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ 5. SERVICE -->
+  <section id="service">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <div><h2>Sync Service</h2><p>Bridges the core Downlodr queue ↔ Skedulosa store</p></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>SubscriptionDownloadSyncService <span style="font-weight:400;color:var(--text-muted);font-size:12px;">— src/skedulosa/services/subscriptionDownloadSync.ts</span></h3>
+        <span class="badge badge-purple">Singleton</span>
+      </div>
+      <div class="card-body">
+        <div class="tip" style="margin-bottom:20px;">
+          <strong>Usage:</strong> Import the singleton — <code>import &#123; subscriptionDownloadSync &#125; from '…/subscriptionDownloadSync'</code>. Never instantiate directly.
+        </div>
+
+        <table>
+          <thead>
+            <tr><th>Method</th><th>Parameters</th><th>What it does</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="fn-name">registerQueuedSubscriptionDownload</div></td>
+              <td>
+                <div class="fn-sig">queueId: <span class="fn-return">string</span></div>
+                <div class="fn-sig">subscriptionId: <span class="fn-return">string</span></div>
+                <div class="fn-sig">downloadData: &#123; name, displayName?, thumbnails?, size?, speed? &#125;</div>
+              </td>
+              <td>Called when a subscription triggers a new download. Stores a queueId→subscriptionId mapping for tracking.</td>
+            </tr>
+            <tr>
+              <td><div class="fn-name">onDownloadStarted</div></td>
+              <td>
+                <div class="fn-sig">actualDownloadId: <span class="fn-return">string</span></div>
+                <div class="fn-sig">queuedDownload: <span class="fn-return">QueuedDownload</span></div>
+              </td>
+              <td>Fires when the core downloader picks up the queued item. Writes a new download entry to <code>useSkedulosaStore</code> with status <code>'initializing'</code>.</td>
+            </tr>
+            <tr>
+              <td><div class="fn-name">syncDownloadStatus</div></td>
+              <td>
+                <div class="fn-sig">downloadId: <span class="fn-return">string</span></div>
+                <div class="fn-sig">updates: &#123; status?, progress?, speed?, size? &#125;</div>
+              </td>
+              <td>Syncs live progress to the Skedulosa store. <strong>Throttled 1000ms</strong> for progress/speed updates to avoid performance issues.</td>
+            </tr>
+            <tr>
+              <td><div class="fn-name">onDownloadCompleted</div></td>
+              <td>
+                <div class="fn-sig">downloadId: <span class="fn-return">string</span></div>
+                <div class="fn-sig">status: <span class="fn-return">'finished' | 'failed'</span></div>
+              </td>
+              <td>Marks the download as completed in the Skedulosa store. Not throttled — fires immediately.</td>
+            </tr>
+            <tr>
+              <td><div class="fn-name">cleanup</div></td>
+              <td>—</td>
+              <td>Clears all internal tracking maps. Call on app unmount.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:20px;">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:10px;">Internal Architecture</div>
+          <div style="display:flex;gap:12px;">
+            <div style="flex:1;background:var(--gray-light);border:1px solid var(--border);border-radius:8px;padding:14px;">
+              <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:8px;">Map 1: queueId → data</div>
+              <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);">&#123; subscriptionId, downloadData &#125;</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Populated by <code>registerQueued…</code><br/>Consumed by <code>onDownloadStarted</code></div>
+            </div>
+            <div style="flex:1;background:var(--gray-light);border:1px solid var(--border);border-radius:8px;padding:14px;">
+              <div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:8px;">Map 2: downloadId → subscriptionId</div>
+              <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);">O(1) lookup</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Populated by <code>onDownloadStarted</code><br/>Used by <code>syncStatus</code> &amp; <code>onCompleted</code></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ 6. PAGES -->
+  <section id="pages">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <div><h2>Pages &amp; Components</h2><p>What each page consumes from stores and utils</p></div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><h3>Pages</h3></div>
+      <div class="card-body" style="padding:0;">
+        <table>
+          <thead>
+            <tr><th>Page</th><th>Route</th><th>Store Fields</th><th>Utils Used</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SkedulosaSchedulePage</strong></td>
+              <td><code>/skedulosa/schedule</code></td>
+              <td><code>scheduledChannels</code><br/><code>statusFilter</code><br/><code>categoryFilter</code></td>
+              <td><code>formatSchedule()</code><br/><code>formatNextRun()</code><br/><code>formatProgress()</code><br/><code>formatStatus()</code></td>
+            </tr>
+            <tr>
+              <td><strong>SkedulosaSubscriptionPage</strong></td>
+              <td><code>/skedulosa/subscription</code></td>
+              <td><code>subscriptions</code><br/><code>scheduledChannels</code><br/><code>statusFilter</code></td>
+              <td><code>getTotalStoragePerSubscription()</code><br/><code>formatBytesToHuman()</code></td>
+            </tr>
+            <tr>
+              <td><strong>SkedulosaHistoryPage</strong></td>
+              <td><code>/skedulosa/history</code></td>
+              <td><code>subscriptions</code></td>
+              <td><code>formatDistanceToNow()</code> (date-fns)<br/><code>SpeedGraph</code> (downlodr)</td>
+            </tr>
+            <tr>
+              <td><strong>SelectedSubscriptionView</strong></td>
+              <td><code>/skedulosa/selected-subscription/:channelId</code></td>
+              <td><code>scheduledChannels</code><br/><code>statusFilter</code><br/><code>categoryFilter</code></td>
+              <td><code>getTotalStorageForDownloads()</code><br/><code>formatBytesToHuman()</code><br/><code>formatRelativeTime()</code></td>
+            </tr>
+            <tr>
+              <td><strong>SkedulosaSubscriptionDownloadsPage</strong></td>
+              <td><code>/skedulosa/subscription-downloads</code></td>
+              <td><code>subscriptions</code></td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><strong>NoSchedulePage</strong></td>
+              <td><code>/skedulosa/no-schedule</code></td>
+              <td>—</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><strong>SkedulosaUtilsDemoPage</strong></td>
+              <td><code>/skedulosa/utils-demo</code></td>
+              <td>— (uses dummy data)</td>
+              <td>All utils + <code>generateDummySubscription()</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>Components</h3></div>
+      <div class="card-body" style="padding:0;">
+        <table>
+          <thead>
+            <tr><th>Component</th><th>Purpose</th><th>Store / Utils Consumed</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SkedulosaNavigation</strong><br/><span style="font-size:11px;color:var(--text-muted);">sidebar</span></td>
+              <td>Route links + status/category filters</td>
+              <td><code>statusFilter</code>, <code>categoryFilter</code><br/><code>setStatusFilter()</code>, <code>setCategoryFilter()</code></td>
+            </tr>
+            <tr>
+              <td><strong>SkedulosaTableTaskbar</strong><br/><span style="font-size:11px;color:var(--text-muted);">stats bar</span></td>
+              <td>Today's downloads count, total storage, next check</td>
+              <td><code>subscriptions</code><br/><code>getScheduledDownloadsCountToday()</code><br/><code>getTotalStorageUsedBytes()</code><br/><code>formatBytesToHuman()</code></td>
+            </tr>
+            <tr>
+              <td><strong>SkedulosaSubscribeModal</strong><br/><span style="font-size:11px;color:var(--text-muted);">add subscription form</span></td>
+              <td>Form to create a new subscription with schedule settings</td>
+              <td><code>addSubscription()</code> from skedulosaStore<br/><code>useSettingStore</code> (defaultLocation)</td>
+            </tr>
+            <tr>
+              <td><strong>AddedSubscriptionModal</strong><br/><span style="font-size:11px;color:var(--text-muted);">success confirmation</span></td>
+              <td>Confirmation shown after successful subscription add</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ 7. FLOW -->
+  <section id="flow">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <div><h2>Data Flow</h2><p>Step-by-step walkthrough of the three main flows</p></div>
+    </div>
+
+    <div class="grid-3" style="align-items:start;">
+
+      <!-- Flow 1: Add Subscription -->
+      <div class="card">
+        <div class="card-header" style="background:var(--orange-light);border-bottom-color:var(--orange-mid);">
+          <h3 style="color:var(--orange);">① Add Subscription</h3>
+        </div>
+        <div class="card-body">
+          <div class="flow">
+            <div class="flow-step">
+              <div class="flow-left"><div class="flow-dot filled"></div><div class="flow-line"></div></div>
+              <div class="flow-content">
+                <div class="flow-box trigger">
+                  <div class="flow-label">User Action</div>
+                  <div class="flow-title">Opens SkedulosaSubscribeModal</div>
+                  <div class="flow-sub">Fills: channelName, sourceURL, schedule days, time, quality, save path</div>
+                </div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+              <div class="flow-content">
+                <div class="flow-box store">
+                  <div class="flow-label">Store Action</div>
+                  <div class="flow-title">addSubscription(subscription)</div>
+                  <div class="flow-sub">skedulosaStore — persisted to IndexedDB</div>
+                </div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-left"><div class="flow-dot"></div><div class="flow-line"></div></div>
+              <div class="flow-content">
+                <div class="flow-box note">
+                  <div class="flow-label">Auto Sync</div>
+                  <div class="flow-title">scheduledChannels[] updated</div>
+                  <div class="flow-sub">Legacy ScheduledChannel derived inside store</div>
+                </div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-left"><div class="flow-dot end"></div></div>
+              <div class="flow-content">
+                <div class="flow-box ui">
+                  <div class="flow-label">UI Reacts</div>
+                  <div class="flow-title">All pages re-render</div>
+                  <div class="flow-sub">RouteGuard unblocks, Schedule/Subscription/Stats all update</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flow 2: Download triggered -->
+      <div class="card">
+        <div class="card-header" style="background:var(--purple-light);border-bottom-color:#d8b4fe;">
+          <h3 style="color:var(--purple);">② Download Triggered</h3>
+        </div>
+        <div class="card-body">
+          <div class="flow">
+            <div class="flow-step">
+              <div class="flow-left"><div class="flow-dot filled" style="border-color:var(--purple);background:var(--purple);"></div><div class="flow-line" style="background:#d8b4fe;"></div></div>
+              <div class="flow-content">
+                <div class="flow-box service">
+                  <div class="flow-label">Scheduler</div>
+                  <div class="flow-title">registerQueuedSubscriptionDownload</div>
+                  <div class="flow-sub">(queueId, subscriptionId, downloadData)</div>
+                </div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-left"><div class="flow-dot" style="border-color:var(--purple);"></div><div class="flow-line" style="background:#d8b4fe;"></div></div>
+              <div class="flow-content">
+                <div class="flow-box service">
+                  <div class="flow-label">Core Downlodr starts</div>
+                  <div class="flow-title">onDownloadStarted</div>
+                  <div class="flow-sub">(actualDownloadId, queuedDownload) → status: 'initializing'</div>
+                </div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-left"><div class="flow-dot" style="border-color:var(--purple);"></div><div class="flow-line" style="background:#d8b4fe;"></div></div>
+              <div class="flow-content">
+                <div class="flow-box service">
+                  <div class="flow-label">Progress (throttled 1s)</div>
+                  <div class="flow-title">syncDownloadStatus</div>
+                  <div class="flow-sub">(downloadId, &#123; status, progress, speed, size &#125;)</div>
+                </div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-left"><div class="flow-dot" style="border-color:var(--purple);"></div><div class="flow-line" style="background:#d8b4fe;"></div></div>
+              <div class="flow-content">
+                <div class="flow-box store">
+                  <div class="flow-label">Store Update</div>
+                  <div class="flow-title">updateSubscriptionDownload</div>
+                  <div class="flow-sub">(subscriptionId, downloadId, Partial&lt;Download&gt;)</div>
+                </div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-left"><div class="flow-dot end" style="border-color:var(--purple);background:var(--purple);"></div></div>
+              <div class="flow-content">
+                <div class="flow-box service">
+                  <div class="flow-label">Completion</div>
+                  <div class="flow-title">onDownloadCompleted</div>
+                  <div class="flow-sub">(downloadId, 'finished' | 'failed')</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flow 3: Read / Display -->
+      <div class="card">
+        <div class="card-header" style="background:var(--green-light);border-bottom-color:#6ee7b7;">
+          <h3 style="color:var(--green);">③ Read &amp; Display</h3>
+        </div>
+        <div class="card-body">
+          <div class="flow">
+            <div class="flow-step">
+              <div class="flow-left"><div class="flow-dot filled" style="border-color:var(--green);background:var(--green);"></div><div class="flow-line" style="background:#6ee7b7;"></div></div>
+              <div class="flow-content">
+                <div class="flow-box ui">
+                  <div class="flow-label">Select data</div>
+                  <div class="flow-title">useSkedulosaStore(s =&gt; s.subscriptions)</div>
+                  <div class="flow-sub">or <code>scheduledChannels</code> for legacy pages</div>
+                </div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-left"><div class="flow-dot" style="border-color:var(--green);"></div><div class="flow-line" style="background:#6ee7b7;"></div></div>
+              <div class="flow-content">
+                <div class="flow-box note">
+                  <div class="flow-label">Filter</div>
+                  <div class="flow-title">filterSubscriptionsByStatusAndCategory</div>
+                  <div class="flow-sub">(subs, statusFilter, categoryFilter)</div>
+                </div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-left"><div class="flow-dot" style="border-color:var(--green);"></div><div class="flow-line" style="background:#6ee7b7;"></div></div>
+              <div class="flow-content">
+                <div class="flow-box note">
+                  <div class="flow-label">Format for display</div>
+                  <div class="flow-title">Pass through utils</div>
+                  <div class="flow-sub">
+                    formatBytesToHuman(getTotalStorageForDownloads(ch.downloads))<br/>
+                    formatSchedule(entry) → "Every Monday 6:00 AM"<br/>
+                    formatStatus(ch.status) → "Running"
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-left"><div class="flow-dot end"></div></div>
+              <div class="flow-content">
+                <div class="flow-box ui">
+                  <div class="flow-label">Render</div>
+                  <div class="flow-title">Page renders formatted data</div>
+                  <div class="flow-sub">Tables, charts, stat cards, heatmaps</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ 8. QUICK REF -->
+  <section id="quickref">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <div><h2>Quick Reference</h2><p>Which function to use for which scenario</p></div>
+    </div>
+
+    <div class="card">
+      <div class="card-body" style="padding:0;">
+        <table class="qr-table">
+          <thead>
+            <tr><th>Scenario</th><th>Function</th><th>Argument type</th></tr>
+          </thead>
+          <tbody>
+            <tr style="background:var(--orange-light);">
+              <td>Total storage for <strong>ONE channel</strong></td>
+              <td>getTotalStorageForDownloads()</td>
+              <td>Download[]</td>
+            </tr>
+            <tr>
+              <td>Total storage across <strong>ALL subscriptions</strong></td>
+              <td>getTotalStorageUsedBytes()</td>
+              <td>Subscription[]</td>
+            </tr>
+            <tr>
+              <td>Storage per subscription (map by id)</td>
+              <td>getTotalStoragePerSubscription()</td>
+              <td>Subscription[]</td>
+            </tr>
+            <tr style="background:var(--blue-light);">
+              <td>Human-readable bytes string</td>
+              <td>formatBytesToHuman()</td>
+              <td>number (bytes)</td>
+            </tr>
+            <tr>
+              <td>Download count for ONE channel</td>
+              <td>channel.downloads.length</td>
+              <td>— (direct property)</td>
+            </tr>
+            <tr>
+              <td>Download count per subscription (map)</td>
+              <td>getDownloadCountPerSubscription()</td>
+              <td>Subscription[]</td>
+            </tr>
+            <tr style="background:var(--green-light);">
+              <td>Downloads added today</td>
+              <td>getScheduledDownloadsCountToday()</td>
+              <td>Subscription[]</td>
+            </tr>
+            <tr>
+              <td>"2 hours ago" per subscription</td>
+              <td>getLastDownloadedTimeAgoPerSubscription()</td>
+              <td>Subscription[], now?: Date</td>
+            </tr>
+            <tr>
+              <td>Finished % per subscription</td>
+              <td>getFinishedDownloadPercentPerSubscription()</td>
+              <td>Subscription[]</td>
+            </tr>
+            <tr>
+              <td>Average file size per subscription</td>
+              <td>getAverageSizeBytesPerSubscription()</td>
+              <td>Subscription[]</td>
+            </tr>
+            <tr style="background:var(--purple-light);">
+              <td>Analytics heatmap data</td>
+              <td>buildHeatMapFromSubscriptionDownloads()</td>
+              <td>Subscription[]</td>
+            </tr>
+            <tr>
+              <td>Schedule display text</td>
+              <td>formatSchedule()</td>
+              <td>ScheduleEntry</td>
+            </tr>
+            <tr>
+              <td>Next run display text</td>
+              <td>formatNextRun()</td>
+              <td>ScheduleEntry, now?: Date</td>
+            </tr>
+            <tr>
+              <td>Progress bar data</td>
+              <td>formatProgress()</td>
+              <td>Download[]</td>
+            </tr>
+            <tr>
+              <td>Status badge text</td>
+              <td>formatStatus()</td>
+              <td>string</td>
+            </tr>
+            <tr style="background:var(--yellow-light);">
+              <td>Filter subscriptions by UI filters</td>
+              <td>filterSubscriptionsByStatusAndCategory()</td>
+              <td>Subscription[], StatusFilterSlug, CategoryFilterSlug</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ 9. DEPS -->
+  <section id="deps">
+    <div class="section-header">
+      <div class="section-num">9</div>
+      <div><h2>Cross-Feature Dependencies</h2><p>What Skedulosa imports from the rest of the codebase</p></div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-header"><h3>from downlodr/</h3></div>
+        <div class="card-body">
+          <div class="dep-tags">
+            <div class="dep-tag">
+              <span class="badge badge-orange">component</span>
+              <div><div class="dep-name">SpeedGraph</div><div class="dep-from">SkedulosaHistoryPage</div></div>
+            </div>
+            <div class="dep-tag">
+              <span class="badge badge-blue">util</span>
+              <div><div class="dep-name">formatRelativeTime</div><div class="dep-from">SelectedSubscriptionView</div></div>
+            </div>
+            <div class="dep-tag">
+              <span class="badge badge-blue">util</span>
+              <div><div class="dep-name">getExtractorIcon</div><div class="dep-from">SkedulosaSubscriptionPage</div></div>
+            </div>
+            <div class="dep-tag">
+              <span class="badge badge-gray">type</span>
+              <div><div class="dep-name">QueuedDownload</div><div class="dep-from">subscriptionDownloadSync.ts</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>from core-app/</h3></div>
+        <div class="card-body">
+          <div class="dep-tags">
+            <div class="dep-tag">
+              <span class="badge badge-purple">store</span>
+              <div><div class="dep-name">useSettingStore</div><div class="dep-from">SkedulosaSubscribeModal</div></div>
+            </div>
+            <div class="dep-tag">
+              <span class="badge badge-orange">component</span>
+              <div><div class="dep-name">Button, Input</div><div class="dep-from">Multiple pages</div></div>
+            </div>
+            <div class="dep-tag">
+              <span class="badge badge-orange">component</span>
+              <div><div class="dep-name">BaseModal</div><div class="dep-from">Modals</div></div>
+            </div>
+            <div class="dep-tag">
+              <span class="badge badge-orange">component</span>
+              <div><div class="dep-name">TooltipWrapper</div><div class="dep-from">SkedulosaNavigation</div></div>
+            </div>
+            <div class="dep-tag">
+              <span class="badge badge-blue">hook</span>
+              <div><div class="dep-name">useToast</div><div class="dep-from">SkedulosaSubscribeModal</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>External Libraries</h3></div>
+        <div class="card-body">
+          <div class="dep-tags">
+            <div class="dep-tag">
+              <span class="badge badge-gray">npm</span>
+              <div><div class="dep-name">zustand</div><div class="dep-from">State management</div></div>
+            </div>
+            <div class="dep-tag">
+              <span class="badge badge-gray">npm</span>
+              <div><div class="dep-name">zustand/middleware</div><div class="dep-from">Persist to IndexedDB</div></div>
+            </div>
+            <div class="dep-tag">
+              <span class="badge badge-gray">npm</span>
+              <div><div class="dep-name">react-router-dom</div><div class="dep-from">NavLink, Outlet, useParams</div></div>
+            </div>
+            <div class="dep-tag">
+              <span class="badge badge-gray">npm</span>
+              <div><div class="dep-name">date-fns</div><div class="dep-from">formatDistanceToNow</div></div>
+            </div>
+            <div class="dep-tag">
+              <span class="badge badge-gray">npm</span>
+              <div><div class="dep-name">react-icons</div><div class="dep-from">Bi, Bs, Fi, Lu sets</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // JSON viewer tab switching
+  function showTab(btn, panelId) {
+    // deactivate all tabs and panels in the same viewer
+    const viewer = btn.closest('.json-viewer');
+    viewer.querySelectorAll('.json-tab').forEach(t => t.classList.remove('active'));
+    viewer.querySelectorAll('.json-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(panelId).classList.add('active');
+  }
+
+  // Highlight nav item on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav a');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navLinks.forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`.nav a[href="#${e.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { threshold: 0.25 });
+  sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

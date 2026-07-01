@@ -4,7 +4,10 @@ import { ToggleGroup } from '@/core-app/components/shadcn/components/ui/toggle-g
 import { showSkedulosaError } from '@/skedulosa/error-mapping/skedulosaErrors';
 import { useSettingStore } from '@/core-app/store/settingsStore';
 import BaseModal from '@/downlodr/components/modal/BaseModal';
-import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
+import {
+  useSkedulosaStore,
+  type ScheduleDay,
+} from '@/skedulosa/store/skedulosaStore';
 import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
 import { useSubscriptionQueue } from '@/skedulosa/context/SubscriptionQueueContext';
 import type { QueuedSubscriptionData } from '@/skedulosa/types/subscriptionQueue';
@@ -22,6 +25,7 @@ import { LiaQuestionCircle } from 'react-icons/lia';
 import { useNavigate } from 'react-router-dom';
 import { ToastAction } from '@/core-app/components/shadcn/components/ui/toast';
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
+import { LuGlobe } from 'react-icons/lu';
 
 const isYouTubeUrl = (url: string): boolean =>
   ['youtube.com', 'www.youtube.com', 'youtu.be', 'm.youtube.com'].some((h) => {
@@ -485,11 +489,15 @@ const SkedulosaSubscribeModal = ({
   onClose,
   onSubscriptionCreated,
   initialUrl,
+  autoSubscribe,
+  onWebsiteUrlReady,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onSubscriptionCreated?: (channelName: string, subscriptionId: string) => void;
   initialUrl?: string;
+  autoSubscribe?: boolean;
+  onWebsiteUrlReady?: (url: string) => void;
 }) => {
   const { t } = useTranslation('skedulosa');
   const navigate = useNavigate();
@@ -525,6 +533,8 @@ const SkedulosaSubscribeModal = ({
     useState<ChannelDetailsResult | null>(null);
   const [firstScrapeLimit, setFirstScrapeLimit] = useState(1);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [urlType, setUrlType] = useState<'youtube' | 'website' | null>(null);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
   // Tracks whether an analysis has started so we know when it truly finishes
   const analysisStarted = useRef(false);
   // Prevents re-analysis when local state is pre-populated from the store
@@ -532,6 +542,8 @@ const SkedulosaSubscribeModal = ({
   // Incremented on every new analysis start or explicit cancel — stale bridge
   // responses check this before touching state or calling finishChannelAnalysis
   const analysisGeneration = useRef(0);
+  // Prevents autoSubscribe from firing more than once per modal open
+  const autoSubscribeFired = useRef(false);
 
   /** Returns null if the URL passes all client-side checks, or an error string. */
   const validateUrlFormat = (raw: string): string | null => {
@@ -545,16 +557,11 @@ const SkedulosaSubscribeModal = ({
     if (!['http:', 'https:'].includes(parsed.protocol)) {
       return t('subscribeModal.errors.unsupportedProtocol');
     }
-    const SUPPORTED_HOSTS = [
-      'youtube.com',
-      'www.youtube.com',
-      'youtu.be',
-      'm.youtube.com',
-    ];
+    // Non-YouTube URLs are treated as website subscriptions — format is valid
+    if (!isYouTubeUrl(raw.trim())) return null;
+
+    // YouTube-specific: reject video/shorts links
     const host = parsed.hostname.toLowerCase();
-    if (!SUPPORTED_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) {
-      return t('subscribeModal.errors.unsupportedPlatform');
-    }
     if (
       host === 'youtu.be' ||
       parsed.pathname.startsWith('/watch') ||
@@ -562,9 +569,6 @@ const SkedulosaSubscribeModal = ({
       parsed.pathname.startsWith('/shorts/')
     ) {
       return t('subscribeModal.errors.videoLink');
-    }
-    if (parsed.pathname.startsWith('/shorts/')) {
-      return t('subscribeModal.errors.shortsLink');
     }
     return null;
   };
@@ -602,6 +606,7 @@ const SkedulosaSubscribeModal = ({
       setChannelDetails(null);
       setIsValidUrl(false);
       setUrlError(null);
+      setUrlType(null);
       return;
     }
 
@@ -622,6 +627,7 @@ const SkedulosaSubscribeModal = ({
       setChannelAnalysis(null);
       setChannelDetails(null);
       setIsValidUrl(false);
+      setUrlType(null);
       return;
     }
     // Check for duplicate subscription
@@ -645,6 +651,16 @@ const SkedulosaSubscribeModal = ({
     }
 
     const timer = setTimeout(async () => {
+      // ── Website path (non-YouTube) ───────────────────────────────────
+      if (!isYouTubeUrl(url)) {
+        setUrlType('website');
+        setIsValidUrl(true);
+        setUrlError(null);
+        return;
+      }
+
+      // ── YouTube path ─────────────────────────────────────────────────
+      setUrlType('youtube');
       const bridge =
         typeof window !== 'undefined' ? window.skedulosaBridge : undefined;
       if (!bridge) {
@@ -743,6 +759,20 @@ const SkedulosaSubscribeModal = ({
     }
   }, [analyzingStatus]);
 
+  // Reset auto-subscribe guard each time the modal opens
+  useEffect(() => {
+    if (isOpen) autoSubscribeFired.current = false;
+  }, [isOpen]);
+
+  // Trigger subscription automatically when the URL came from the extension
+  useEffect(() => {
+    if (!autoSubscribe || autoSubscribeFired.current) return;
+    if (isValidUrl && channelAnalysis && analyzingStatus === 'idle') {
+      autoSubscribeFired.current = true;
+      handleSubscribe();
+    }
+  }, [autoSubscribe, isValidUrl, channelAnalysis, analyzingStatus]);
+
   // Auto-fill channel name from fetched details; user may override afterward
   useEffect(() => {
     if (channelDetails?.channelName) {
@@ -791,9 +821,13 @@ const SkedulosaSubscribeModal = ({
     setChannelDetails(null);
     setIsValidUrl(false);
     setUrlError(null);
+    setUrlType(null);
+    setConfirmingCancel(false);
     clearChannelAnalysis();
+    setPendingAnalysisData(null);
     analysisStarted.current = false;
-  }, [defaultLocation, clearChannelAnalysis]);
+    skipNextAnalysis.current = false;
+  }, [defaultLocation, clearChannelAnalysis, setPendingAnalysisData]);
 
   // Use app default as initial value; do not update app default when user picks a folder
   useEffect(() => {
@@ -803,12 +837,25 @@ const SkedulosaSubscribeModal = ({
   }, [isOpen, defaultLocation]);
 
   const handleSubscribe = useCallback(() => {
-    const name = channelName.trim();
     const url = sourceURL.trim();
+
+    // ── Website subscription — hand off to parent via onWebsiteUrlReady ──
+    // Do NOT call onClose() here: onWebsiteUrlReady sets flowStep → 'website',
+    // which already hides this modal (isOpen becomes false). Calling onClose()
+    // in the same batch would override that with flowStep → 'idle'.
+    if (urlType === 'website') {
+      if (!url) return;
+      resetForm();
+      onWebsiteUrlReady?.(url);
+      return;
+    }
+
+    const name = channelName.trim();
     if (!name || !url) {
       showSkedulosaError('missing-fields');
       return;
     }
+    // ── YouTube subscription ──────────────────────────────────────────
 
     const data: QueuedSubscriptionData = {
       channelName: name,
@@ -858,6 +905,7 @@ const SkedulosaSubscribeModal = ({
     channelAnalysis,
     channelDetails,
     firstScrapeLimit,
+    urlType,
     enqueue,
     onSubscriptionCreated,
     resetForm,
@@ -870,6 +918,17 @@ const SkedulosaSubscribeModal = ({
     resetForm();
     onClose();
   }, [resetForm, onClose]);
+
+  const handleCancelClick = useCallback(() => {
+    const hasProgress =
+      sourceURL.trim().length > 0 &&
+      (isValidUrl || !!urlError || analyzingStatus !== 'idle');
+    if (hasProgress) {
+      setConfirmingCancel(true);
+    } else {
+      handleClose();
+    }
+  }, [sourceURL, isValidUrl, urlError, analyzingStatus, handleClose]);
 
   const handleDeleteAll = useCallback(async () => {
     const bridge =
@@ -894,16 +953,6 @@ const SkedulosaSubscribeModal = ({
     clearSubscriptions();
   }, [clearSubscriptions]);
 
-  const handleAddDummy = useCallback(() => {
-    const dummy = generateDummySubscription();
-    addSubscription(dummy);
-    onSubscriptionCreated?.('Dummy subscription', dummy.id);
-    onClose();
-    if (!onSubscriptionCreated) {
-      navigate('/skedulosa/subscription');
-    }
-  }, [addSubscription, onSubscriptionCreated, onClose, navigate]);
-
   const handleSelectDirectory = async () => {
     if (isSelectingDirectory) return;
     try {
@@ -919,37 +968,62 @@ const SkedulosaSubscribeModal = ({
   };
 
   return (
-    <>
-      <BaseModal
-        isOpen={isOpen && analyzingStatus === 'idle'}
-        onClose={handleClose}
-        title={t('subscribeModal.title')}
-        width="max-w-[530px]"
-        maxHeight="max-h-[90vh]"
-        footer={
-          <div className="flex items-center justify-center gap-2 py-2 mt-4 w-full">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="flex-1 max-w-[180px] bg-buttonBg dark:bg-darkModeCompliment border border-buttonBorder dark:border-darkModeCompliment text-black dark:text-gray-200 py-1.5 rounded-md"
-            >
-              {t('subscribeModal.cancel')}
-            </button>
-            <button
-              type="button"
-              onClick={handleSubscribe}
-              disabled={!isValidUrl}
-              className={`flex-1 max-w-[296px] text-white py-1.5 rounded-md ${
-                isValidUrl
-                  ? 'bg-primary hover:opacity-90 dark:hover:opacity-75'
-                  : 'bg-primary/50 cursor-not-allowed'
-              }`}
-            >
-              {t('subscribeModal.subscribe')}
-            </button>
-          </div>
-        }
-      >
+    <BaseModal
+      isOpen={isOpen && analyzingStatus === 'idle'}
+      onClose={handleCancelClick}
+      title={t('subscribeModal.title')}
+      width="max-w-[530px]"
+      maxHeight="max-h-[90vh]"
+      footer={
+        <div className="flex flex-col gap-2 py-2 mt-2 w-full">
+          {confirmingCancel ? (
+            <>
+              <p className="text-[14px] pb-1 text-center text-gray-600 dark:text-gray-300">
+                Exit setup? Your progress will be lost.
+              </p>
+              <div className="flex items-center justify-center gap-2 w-full">
+                <button
+                  type="button"
+                  onClick={() => setConfirmingCancel(false)}
+                  className="flex-1 max-w-[180px] bg-buttonBg dark:bg-darkModeCompliment border border-buttonBorder dark:border-darkModeCompliment text-black dark:text-gray-200 py-1.5 rounded-md"
+                >
+                  Stay
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { resetForm(); onClose(); }}
+                  className="flex-1 max-w-[296px] bg-red-500 hover:opacity-90 text-white py-1.5 rounded-md"
+                >
+                  Exit
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center gap-2 w-full">
+              <button
+                type="button"
+                onClick={handleCancelClick}
+                className="flex-1 max-w-[180px] bg-buttonBg dark:bg-darkModeCompliment border border-buttonBorder dark:border-darkModeCompliment text-black dark:text-gray-200 py-1.5 rounded-md"
+              >
+                {t('subscribeModal.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleSubscribe}
+                disabled={!isValidUrl}
+                className={`flex-1 max-w-[296px] text-white py-1.5 rounded-md ${
+                  isValidUrl
+                    ? 'bg-primary hover:opacity-90 dark:hover:opacity-75'
+                    : 'bg-primary/50 cursor-not-allowed'
+                }`}
+              >
+                {t('subscribeModal.subscribe')}
+              </button>
+            </div>
+          )}
+        </div>
+      }
+    >
         <div className="flex flex-col">
           <div>
             {/* ---------------Uncomment for Channel name---------------  */}
@@ -1027,6 +1101,7 @@ const SkedulosaSubscribeModal = ({
                     </p>
                     <ul className="list-disc list-inside space-y-0.5 text-xs">
                       <li>{t('subscribeModal.youtubeChannels')}</li>
+                      <li>{t('subscribeModal.articleWebsites')}</li>
                     </ul>
                   </TooltipContent>
                 </Tooltip>
@@ -1051,6 +1126,26 @@ const SkedulosaSubscribeModal = ({
                 />
               </div>
               <div></div>
+            </div>
+          )}
+          {isValidUrl && urlType === 'website' && (
+            <div className="mt-5 flex items-center gap-3 bg-[#0000000D] dark:bg-white/5 p-3 rounded-md">
+              <LuGlobe size={20} className="text-gray-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm dark:text-gray-100 truncate">
+                  {(() => {
+                    try {
+                      return new URL(sourceURL).hostname.replace(/^www\./, '');
+                    } catch {
+                      return sourceURL;
+                    }
+                  })()}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Website — select sections in the next step
+                </p>
+              </div>
+              <FaRegCheckCircle size={16} className="text-green-500 shrink-0" />
             </div>
           )}
           {isValidUrl && channelAnalysis && analyzingStatus === 'idle' && (
@@ -1112,8 +1207,7 @@ const SkedulosaSubscribeModal = ({
             </div>
           )}
         </div>
-      </BaseModal>
-    </>
+    </BaseModal>
   );
 };
 
