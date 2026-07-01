@@ -138,7 +138,8 @@
     "status": {
       "clickToRetry": "クリックしてダウンロードを再試行",
       "viewVideo": "動画を見る",
-      "openFolder": "フォルダを開く"
+      "openFolder": "フォルダを開く",
+      "viewPreview": "プレビューを表示"
     },
     "format": {
       "unknown": "不明"
@@ -231,7 +232,8 @@
       "selectOneTitle": "ダウンロードを1件選択",
       "selectOneDesc": "リンクを取得するには1件のダウンロードを正確に選択してください"
     },
-    "settingsButton": "設定"
+    "settingsButton": "設定",
+    "deleteLabel": "削除"
   },
   "removeModal": {
     "title": "選択したアイテムを削除",
@@ -476,6 +478,72 @@
           "s3": "エラーが続く場合はアプリを再起動して再試行してください。"
         }
       }
+    }
+  },
+  "videoPlayer": {
+    "fallbackTitle": "動画",
+    "fallbackVideoPreview": "動画プレビュー",
+    "floatButton": "フロート",
+    "floatWindowTitle": "フローティングウィンドウ",
+    "backTitle": "戻る",
+    "downloadButtonTitle": "ダウンロード",
+    "error": {
+      "couldNotLoadStream": "動画ストリームを読み込めませんでした。",
+      "retry": "再試行"
+    },
+    "floating": {
+      "message": "フローティングウィンドウで再生中",
+      "returnToPanel": "パネルに戻る"
+    },
+    "menu": {
+      "openFolder": "フォルダを開く",
+      "viewSource": "ソースを表示",
+      "shareVideo": "動画を共有",
+      "generateCaption": "字幕を生成",
+      "download": "ダウンロード",
+      "captions": "字幕",
+      "pictureInPicture": "ピクチャーインピクチャー",
+      "playbackSpeed": "再生速度",
+      "normal": "標準"
+    },
+    "transcript": {
+      "title": "文字起こし",
+      "auto": "自動",
+      "manual": "手動",
+      "platformFallback": "プラットフォーム",
+      "searchPlaceholder": "文字起こしを検索",
+      "noTranscript": "文字起こしがありません",
+      "copyTitle": "文字起こしをコピー",
+      "downloadTitle": "文字起こしをダウンロード"
+    },
+    "chapters": {
+      "title": "チャプター",
+      "count": "{{count}} チャプター",
+      "searchPlaceholder": "チャプターを検索",
+      "noChapters": "チャプターがありません"
+    },
+    "description": {
+      "noDescription": "説明がありません",
+      "categories": "カテゴリ:",
+      "tags": "タグ:",
+      "openWith": "で開く"
+    },
+    "favorites": {
+      "add": "お気に入りに追加",
+      "remove": "お気に入りから削除"
+    },
+    "tabs": {
+      "description": "説明",
+      "transcript": "文字起こし",
+      "chapters": "チャプター"
+    },
+    "duration": {
+      "total": "合計",
+      "current": "現在"
+    },
+    "transcription": {
+      "failed": "文字起こし失敗",
+      "failedDesc": "文字起こしを作成できませんでした"
     }
   }
 }

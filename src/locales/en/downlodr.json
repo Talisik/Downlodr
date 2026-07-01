@@ -38,9 +38,9 @@
     "speed": "Speed",
     "source": "Source",
     "dateAdded": "Date Added",
-    "transcript": "Closed Caption",
+    "transcript": "Closed Captions",
     "status": "Status",
-    "action": "Action",
+    "action": "Actions",
     "noDownloads": "No downloads yet",
     "tags": "Tags",
     "categories": "Categories",
@@ -138,7 +138,8 @@
     "status": {
       "clickToRetry": "Click to retry download",
       "viewVideo": "View video",
-      "openFolder": "Open folder"
+      "openFolder": "Open folder",
+      "viewPreview": "View preview"
     },
     "format": {
       "unknown": "Unknown"
@@ -156,7 +157,7 @@
       "playlistErrorTitle": "Playlist Error",
       "playlistErrorDesc": "Failed to fetch playlist information",
       "channelDetectedTitle": "Channel link detected",
-      "channelDetectedDesc": "Sending to Skedulosa to set up a subscription for this channel.",
+      "channelDetectedDesc": "Sending to Subscription to set up a subscription for this channel.",
       "playlistDetectedTitle": "Playlist link detected",
       "playlistDetectedDesc": "Getting playlist information for download... This may take a while.",
       "invalidUrlTitle": "Invalid URL",
@@ -231,7 +232,8 @@
       "selectOneTitle": "Select One Download",
       "selectOneDesc": "Please select exactly one download to get the link"
     },
-    "settingsButton": "Settings"
+    "settingsButton": "Settings",
+    "deleteLabel": "Delete"
   },
   "removeModal": {
     "title": "Remove selected item",
@@ -325,8 +327,9 @@
     "tabs": {
       "guide": "Downloading Guide",
       "common": "Frequently Asked Questions",
-      "advanced": "Troubleshooting & Advanced Tips",
-      "subscription": "Subscription"
+      "advanced": "Troubleshooting",
+      "subscription": "Subscriptions",
+      "afda": "Article Fetcher"
     },
     "guide": {
       "downloadSteps": {
@@ -415,6 +418,44 @@
         "s1c": "Choose a different download location"
       }
     },
+    "afda": {
+      "whatIsAfda": {
+        "title": "What is Article Fetcher",
+        "s1": "Article Fetcher finds and saves article content from news and blog websites.",
+        "s2": "Two modes are available:",
+        "s2a": "Single article download — paste one article URL and download it immediately.",
+        "s2b": "Website subscription — add a news site and have new articles downloaded automatically on a schedule.",
+        "s3": "Articles are saved as DOCX files to a folder of your choice."
+      },
+      "singleArticle": {
+        "title": "Downloading a Single Article",
+        "s1": "Paste an article URL into the search bar at the top of the app.",
+        "s2": "Article Fetcher detects the URL as an article automatically.",
+        "s3": "Click the Article Installer button (document icon) that appears.",
+        "s4": "Choose a save folder if prompted.",
+        "s5": "The article is downloaded and saved as a DOCX file."
+      },
+      "websiteSubscription": {
+        "title": "Setting Up a Website Subscription",
+        "s1": "Navigate to the Article Fetcher section from the sidebar.",
+        "s2": "Click \"Add Website\" to open the setup modal.",
+        "s3": "Paste the URL of the news or blog website.",
+        "s4": "Wait for the frequency analysis to complete — it detects how often the site publishes.",
+        "s5": "Configure your subscription:",
+        "s5a": "Interval — Every 15 minutes, Every 1 hour, Every 6 hours, or Daily.",
+        "s5b": "Category — News, Sports, Technology, and more.",
+        "s5c": "Save folder — choose where downloaded articles are stored.",
+        "s6": "Click Confirm — the website is added and monitoring begins."
+      },
+      "managingSubscriptions": {
+        "title": "Managing Your Subscriptions",
+        "s1": "Pause or resume a subscription from the context menu or the subscription detail page.",
+        "s2": "Edit the check interval, category, or save folder from the Settings tab inside the subscription detail.",
+        "s3": "Delete a subscription from the context menu — this removes monitoring but does not delete already-downloaded files.",
+        "s4": "View per-subscription download history from the Downloads tab.",
+        "s5": "View check history and activity from the Activity Log tab."
+      }
+    },
     "subscription": {
       "howToAdd": {
         "title": "How to Add a Subscription",
@@ -476,6 +517,72 @@
           "s3": "Restart the app and try again if the error persists."
         }
       }
+    }
+  },
+  "videoPlayer": {
+    "fallbackTitle": "Video",
+    "fallbackVideoPreview": "Video Preview",
+    "floatButton": "Float",
+    "floatWindowTitle": "Float window",
+    "backTitle": "Back",
+    "downloadButtonTitle": "Download",
+    "error": {
+      "couldNotLoadStream": "Could not load video stream.",
+      "retry": "Retry"
+    },
+    "floating": {
+      "message": "Playing in floating window",
+      "returnToPanel": "Return to panel"
+    },
+    "menu": {
+      "openFolder": "Open Folder",
+      "viewSource": "View Source",
+      "shareVideo": "Share Video",
+      "generateCaption": "Generate Caption",
+      "download": "Download",
+      "captions": "Captions",
+      "pictureInPicture": "Picture in Picture",
+      "playbackSpeed": "Playback speed",
+      "normal": "Normal"
+    },
+    "transcript": {
+      "title": "Transcriptions",
+      "auto": "Auto",
+      "manual": "Manual",
+      "platformFallback": "platform",
+      "searchPlaceholder": "Search transcript",
+      "noTranscript": "No transcript available",
+      "copyTitle": "Copy transcript",
+      "downloadTitle": "Download transcript"
+    },
+    "chapters": {
+      "title": "Chapters",
+      "count": "{{count}} Chapters",
+      "searchPlaceholder": "Search chapters",
+      "noChapters": "No chapters available"
+    },
+    "description": {
+      "noDescription": "No description available",
+      "categories": "Categories:",
+      "tags": "Tags:",
+      "openWith": "Open with"
+    },
+    "favorites": {
+      "add": "Add to favorites",
+      "remove": "Remove from favorites"
+    },
+    "tabs": {
+      "description": "Description",
+      "transcript": "Transcript",
+      "chapters": "Chapters"
+    },
+    "duration": {
+      "total": "total",
+      "current": "current"
+    },
+    "transcription": {
+      "failed": "Transcription failed",
+      "failedDesc": "Could not create transcript"
     }
   }
 }

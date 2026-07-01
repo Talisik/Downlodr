@@ -1,7 +1,7 @@
 {
   "nav": {
     "home": "Home",
-    "subscription": "Subscription",
+    "subscription": "Subscriptions",
     "subscriptions": "Subscriptions",
     "scheduled": "Scheduled",
     "schedule": "Schedule",
@@ -21,13 +21,14 @@
   },
   "categoryFilter": {
     "all": "All",
-    "youtube": "Youtube"
+    "youtube": "Youtube",
+    "afda": "Articles"
   },
   "collapse": "Collapse sidebar",
   "expand": "Expand sidebar",
   "subscriptionPage": {
     "columns": {
-      "subscription": "Subscription",
+      "subscription": "Subscriptions",
       "status": "Status",
       "checked": "Checked",
       "downloads": "Downloads",
@@ -37,7 +38,9 @@
     "emptyState": {
       "altText": "No Subscriptions",
       "title": "No Subscriptions yet for this \"{{filter}}\" filter",
-      "description": "Subscribe to YouTube channels, playlists, or RSS feeds and Skedulosa will automatically download new content on your schedule — even when Downlodr is closed."
+      "titleAll": "No Subscriptions Yet",
+      "description": "Subscribe to YouTube channels, playlists, or RSS feeds and Subscriptions will automatically download new content on your schedule — even when Downlodr is closed.",
+      "addFirstButton": "Add your first subscription"
     },
     "status": {
       "active": "Active",
@@ -57,7 +60,7 @@
   "historyPage": {
     "columns": {
       "title": "Title",
-      "subscription": "Subscription",
+      "subscription": "Subscriptions",
       "size": "Size",
       "speed": "Speed",
       "status": "Status",
@@ -99,7 +102,9 @@
     "emptyState": {
       "altText": "No Schedule",
       "title": "No Schedules yet for this \"{{filter}}\" filter",
-      "description": "Subscribe to YouTube channels, playlists, or RSS feeds and Skedulosa will automatically download new content on your schedule — even when Downlodr is closed."
+      "titleAll": "No Schedules Yet",
+      "description": "Subscribe to YouTube channels, playlists, or RSS feeds and Subscriptions will automatically download new content on your schedule — even when Downlodr is closed.",
+      "addFirstButton": "Add your first subscription"
     },
     "type": {
       "recurring": "Recurring",
@@ -196,12 +201,13 @@
     "whatCanSubscribe": "What can I subscribe to?",
     "supportedSources": "Supported Sources",
     "youtubeChannels": "YouTube channels",
+    "articleWebsites": "Article websites like: GMA, CNN, BBC, etc.",
     "basicConfig": "BASIC CONFIGURATION",
     "checkFrequency": "Check Frequency",
     "auto": "Auto",
     "manual": "Manual",
     "toast": {
-      "queued": "Subscription queued",
+      "queued": "Subscriptions queued",
       "queuedDesc": "Your subscription has been added to the queue and will be set up shortly."
     },
     "errors": {
@@ -210,8 +216,8 @@
       "unsupportedPlatform": "Unsupported platform. Currently only YouTube channels and playlists are supported.",
       "videoLink": "YouTube video links are not supported. Please enter a YouTube channel URL (e.g. https://www.youtube.com/@channel).",
       "shortsLink": "YouTube Shorts links are not supported. Please enter a YouTube channel URL (e.g. https://www.youtube.com/@channel).",
-      "alreadySubscribed": "This channel is already subscribed. You can manage it from the Skedulosa tab.",
-      "bridgeUnavailable": "Skedulosa bridge is unavailable. Please restart the app.",
+      "alreadySubscribed": "This channel is already subscribed. You can manage it from the Subscriptions tab.",
+      "bridgeUnavailable": "Subscriptions bridge is unavailable. Please restart the app.",
       "analyzeFailedGeneric": "Could not analyze channel — see notification above.",
       "noVideosShorts": "No videos found on this channel's Videos tab. If it only posts Shorts, try adding \"/shorts\" to the URL (e.g. https://www.youtube.com/@channel/shorts).",
       "noVideos": "No videos found for this channel. Check the URL and try again.",
@@ -241,7 +247,7 @@
       "daysToCheck": "Days to check:",
       "checkAt": "Check at:",
       "timezone": "Timezone:",
-      "schedulePrefix": "Skedulosa will check every",
+      "schedulePrefix": "Subscriptions will check every",
       "scheduleMid": "days at",
       "qualityPreset": "Quality Preset",
       "saveTo": "Save to:",
@@ -270,7 +276,7 @@
     "delete": "Delete"
   },
   "editModal": {
-    "title": "Edit Subscription",
+    "title": "Edit Subscriptions",
     "cancel": "Cancel",
     "save": "Save",
     "channelName": "Channel Name",
@@ -280,6 +286,8 @@
     "recurring": "Recurring",
     "scheduleDays": "Schedule Days",
     "downloadQuality": "Download Quality",
+    "saveLocation": "Save Location",
+    "lookbackPeriod": "Lookback Period",
     "days": {
       "mon": "Mon",
       "tue": "Tue",
@@ -370,7 +378,8 @@
   "selectedSubscriptionView": {
     "emptyState": {
       "title": "Schedule",
-      "description": "No scheduled channels yet. Add a channel from the home page to see entries here."
+      "description": "No scheduled channels yet. Add a channel from the home page to see entries here.",
+      "addFirstButton": "Add your first subscription"
     },
     "channelNav": {
       "header": "Channel"
@@ -395,6 +404,7 @@
     "noChannelSelected": "No channel selected.",
     "channelNameRequired": "Channel name is required.",
     "daysToCheck": "Days to check:",
+    "checkAtHour": "Check at hour:",
     "toast": {
       "saved": "Settings Saved",
       "savedDesc": "Your subscription settings have been updated.",

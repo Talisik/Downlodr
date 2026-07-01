@@ -65,6 +65,7 @@
       "refreshButton": "刷新插件"
     },
     "confirmUninstall": {
+      "title": "移除插件",
       "message": "确定要移除「{{name}}」吗？此操作无法撤销。"
     },
     "toast": {

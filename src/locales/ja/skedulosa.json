@@ -21,7 +21,8 @@
   },
   "categoryFilter": {
     "all": "すべて",
-    "youtube": "YouTube"
+    "youtube": "YouTube",
+    "afda": "記事"
   },
   "collapse": "サイドバーを折りたたむ",
   "expand": "サイドバーを展開",
@@ -196,6 +197,7 @@
     "whatCanSubscribe": "何を購読できますか？",
     "supportedSources": "対応ソース",
     "youtubeChannels": "YouTubeチャンネル",
+    "articleWebsites": "記事サイト（例：GMA、CNN、BBCなど）",
     "basicConfig": "基本設定",
     "checkFrequency": "確認頻度",
     "auto": "自動",
@@ -280,6 +282,8 @@
     "recurring": "定期的",
     "scheduleDays": "スケジュール日",
     "downloadQuality": "ダウンロード品質",
+    "saveLocation": "保存場所",
+    "lookbackPeriod": "保持期間",
     "days": {
       "mon": "月",
       "tue": "火",

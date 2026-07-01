@@ -65,6 +65,7 @@
       "refreshButton": "플러그인 새로고침"
     },
     "confirmUninstall": {
+      "title": "플러그인 제거",
       "message": "\"{{name}}\"을(를) 제거하시겠습니까? 이 작업은 되돌릴 수 없습니다."
     },
     "toast": {

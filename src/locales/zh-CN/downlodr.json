@@ -138,7 +138,8 @@
     "status": {
       "clickToRetry": "点击以重试下载",
       "viewVideo": "查看视频",
-      "openFolder": "打开文件夹"
+      "openFolder": "打开文件夹",
+      "viewPreview": "查看预览"
     },
     "format": {
       "unknown": "未知"
@@ -156,7 +157,7 @@
       "playlistErrorTitle": "播放列表错误",
       "playlistErrorDesc": "无法获取播放列表信息",
       "channelDetectedTitle": "检测到频道链接",
-      "channelDetectedDesc": "正在发送至 Skedulosa 以设置此频道的订阅。",
+      "channelDetectedDesc": "正在发送至 Subscription 以设置此频道的订阅。",
       "playlistDetectedTitle": "检测到播放列表链接",
       "playlistDetectedDesc": "正在获取播放列表下载信息，这可能需要一些时间。",
       "invalidUrlTitle": "无效的网址",
@@ -231,7 +232,8 @@
       "selectOneTitle": "选择一个下载",
       "selectOneDesc": "请选择一个下载以获取链接"
     },
-    "settingsButton": "设置"
+    "settingsButton": "设置",
+    "deleteLabel": "删除"
   },
   "removeModal": {
     "title": "移除选中的项目",
@@ -478,6 +480,72 @@
           "s3": "如果错误持续存在，请重启应用程序后重试。"
         }
       }
+    }
+  },
+  "videoPlayer": {
+    "fallbackTitle": "视频",
+    "fallbackVideoPreview": "视频预览",
+    "floatButton": "浮动",
+    "floatWindowTitle": "浮动窗口",
+    "backTitle": "返回",
+    "downloadButtonTitle": "下载",
+    "error": {
+      "couldNotLoadStream": "无法加载视频流。",
+      "retry": "重试"
+    },
+    "floating": {
+      "message": "正在浮动窗口中播放",
+      "returnToPanel": "返回面板"
+    },
+    "menu": {
+      "openFolder": "打开文件夹",
+      "viewSource": "查看来源",
+      "shareVideo": "分享视频",
+      "generateCaption": "生成字幕",
+      "download": "下载",
+      "captions": "字幕",
+      "pictureInPicture": "画中画",
+      "playbackSpeed": "播放速度",
+      "normal": "正常"
+    },
+    "transcript": {
+      "title": "转录",
+      "auto": "自动",
+      "manual": "手动",
+      "platformFallback": "平台",
+      "searchPlaceholder": "搜索转录",
+      "noTranscript": "没有可用的转录",
+      "copyTitle": "复制转录",
+      "downloadTitle": "下载转录"
+    },
+    "chapters": {
+      "title": "章节",
+      "count": "{{count}} 章节",
+      "searchPlaceholder": "搜索章节",
+      "noChapters": "没有可用的章节"
+    },
+    "description": {
+      "noDescription": "没有可用的描述",
+      "categories": "分类：",
+      "tags": "标签：",
+      "openWith": "打开方式"
+    },
+    "favorites": {
+      "add": "添加到收藏",
+      "remove": "从收藏中移除"
+    },
+    "tabs": {
+      "description": "描述",
+      "transcript": "转录",
+      "chapters": "章节"
+    },
+    "duration": {
+      "total": "总计",
+      "current": "当前"
+    },
+    "transcription": {
+      "failed": "转录失败",
+      "failedDesc": "无法创建转录"
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "downloads": "Downloads",
   "plugins": "Plugins",
-  "skedulosa": "Subscription",
+  "skedulosa": "Subscriptions",
   "addPlugin": "Add Plugin",
   "toast": {
     "installSuccess": "Plugin was installed successfully",
