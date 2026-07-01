@@ -1,0 +1,4 @@
+-- do:
+-- add the metadata info inside the videoPlayerPanel
+-- add the transcript
+-- wonder how you'll call the description part ytdlp
