@@ -5,18 +5,82 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import MakerNSIS from '@felixrieseberg/electron-forge-maker-nsis';
 import fs from 'fs/promises';
 import path from 'path';
+
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    prune: true,
+    asar: {
+      // better-sqlite3 is a native module — native .node binaries cannot be loaded
+      // from inside an ASAR archive, so they must be unpacked to disk.
+      unpack: '**/better-sqlite3/**',
+    },
     icon: './src/assets/logo/downlodr_icon.png',
     name: 'Downlodr',
     executableName: 'Downlodr',
     extraResource: [
       './src/assets/logo',
       './ffmpeg.exe',
-      './ggml-base.bin',
+      './ggml-small.bin',
       './ffprobe.exe',
     ],
+    ignore: (filePath: string) => {
+      if (!filePath) return false;
+
+      // Restore electron-packager's default ignores (these are lost when using a function)
+      if (
+        /\/(\.git|\.hg|\.svn|CVS|\.bzr|\$RECYCLE\.BIN|\.DS_Store)(\/|$)/.test(
+          filePath,
+        )
+      )
+        return true;
+      if (/\/node_modules\/\.bin(\/|$)/.test(filePath)) return true;
+
+      // Exclude forge output and Vite dev caches (but NOT .vite/build — that's the compiled app)
+      if (/^\/out($|\/)/.test(filePath)) return true;
+      if (/^\/\.vite\/deps($|\/)/.test(filePath)) return true;
+      if (/^\/dist($|\/)/.test(filePath)) return true;
+
+      // Exclude entire src/ tree — Vite compiled everything into .vite/build/.
+      // Backend add-ons (afda, skedulosa) are downloaded separately by the add-on manager.
+      if (filePath === '/src' || filePath.startsWith('/src/')) return true;
+
+      // Exclude dev/test artifacts that land in the project root
+      if (/\.(mp4|mkv|avi|mov|webm|mp3|wav|flac)$/i.test(filePath)) return true;
+      // Only exclude image files sitting directly at the root (e.g. /Exclude.png).
+      // Subdirectory images (e.g. /.vite/renderer/assets/*.gif) are Vite-bundled
+      // assets that must be included in the package.
+      if (
+        /\.(png|jpg|jpeg|gif|bmp)$/i.test(filePath) &&
+        /^\/[^/]+$/.test(filePath)
+      )
+        return true;
+      if (/^\/yarn\.lock$/.test(filePath)) return true;
+      if (/^\/lint-output\.txt$/.test(filePath)) return true;
+      if (/^\/task-plan($|\/)/.test(filePath)) return true;
+      if (/^\/docs($|\/)/.test(filePath)) return true;
+      if (/\.(md|txt)$/.test(filePath) && !/^\/src\//.test(filePath))
+        return true;
+
+      // Exclude all node_modules except better-sqlite3 and its two runtime deps.
+      // Vite bundles every other import into .vite/build/main.js and the renderer
+      // output, so nothing else in node_modules is required at runtime.
+      // better-sqlite3 is a native module (.node binary) that cannot be bundled.
+      //   bindings       — required by better-sqlite3/lib/database.js to load the .node file
+      //   file-uri-to-path — required by bindings
+      if (filePath.startsWith('/node_modules/')) {
+        const keep = [
+          '/node_modules/better-sqlite3',
+          '/node_modules/bindings',
+          '/node_modules/file-uri-to-path',
+        ];
+        for (const pkg of keep) {
+          if (filePath === pkg || filePath.startsWith(pkg + '/')) return false;
+        }
+        return true;
+      }
+
+      return false;
+    },
   },
 
   rebuildConfig: {},
@@ -47,6 +111,30 @@ const config: ForgeConfig = {
   ],
 
   hooks: {
+    prePackage: async () => {
+      // Verify FFmpeg version
+      const ffmpegPath = path.resolve(__dirname, 'ffmpeg.exe');
+      try {
+        const { execSync } = await import('child_process');
+        const versionOutput = execSync(`"${ffmpegPath}" -version`, {
+          encoding: 'utf-8',
+        });
+        const versionMatch = versionOutput.match(/ffmpeg version (\d+)\.(\d+)/);
+        if (versionMatch) {
+          const majorVersion = parseInt(versionMatch[1], 10);
+          const version = `${versionMatch[1]}.${versionMatch[2]}`;
+          if (majorVersion < 8) {
+            throw new Error(
+              `FFmpeg ${version} is too old. FFmpeg 8.0+ is required.`,
+            );
+          }
+          console.log(`✓ FFmpeg ${version} verified`);
+        }
+      } catch (error) {
+        console.warn('⚠ Could not verify FFmpeg version');
+      }
+    },
+
     postPackage: async (forgeConfig, packageResult) => {
       for (const outputPath of packageResult.outputPaths) {
         // Copy yt-dlp.exe next to the executable
@@ -59,60 +147,6 @@ const config: ForgeConfig = {
         } catch (error) {
           console.error(`Failed to copy yt-dlp.exe for ${outputPath}:`, error);
         }
-
-        // Copy better-sqlite3 and its runtime deps into app.asar.unpacked.
-        // The src/ directory is not bundled into the ASAR, so asar.unpack globs
-        // won't match these — we must copy them explicitly.
-        // better-sqlite3 requires 'bindings' at runtime, which requires 'file-uri-to-path'.
-        const toolkitNodeModules = path.resolve(
-          __dirname,
-          'src/skedulosa/backend/video-nemesis-toolkit/node_modules',
-        );
-        const unpackedNodeModules = path.join(
-          outputPath,
-          'resources/app.asar.unpacked/src/skedulosa/backend/video-nemesis-toolkit/node_modules',
-        );
-        for (const pkg of ['better-sqlite3', 'bindings', 'file-uri-to-path']) {
-          try {
-            await fs.mkdir(unpackedNodeModules, { recursive: true });
-            await fs.cp(
-              path.join(toolkitNodeModules, pkg),
-              path.join(unpackedNodeModules, pkg),
-              { recursive: true },
-            );
-            console.log(`✓ Copied ${pkg} to app.asar.unpacked`);
-          } catch (error) {
-            console.error(`Failed to copy ${pkg}:`, error);
-          }
-        }
-      }
-    },
-    prePackage: async () => {
-      const ffmpegPath = path.resolve(__dirname, 'ffmpeg.exe');
-
-      try {
-        const { execSync } = await import('child_process');
-
-        const versionOutput = execSync(`"${ffmpegPath}" -version`, {
-          encoding: 'utf-8',
-        });
-
-        const versionMatch = versionOutput.match(/ffmpeg version (\d+)\.(\d+)/);
-
-        if (versionMatch) {
-          const majorVersion = parseInt(versionMatch[1], 10);
-          const version = `${versionMatch[1]}.${versionMatch[2]}`;
-
-          if (majorVersion < 8) {
-            throw new Error(
-              `FFmpeg ${version} is too old. FFmpeg 8.0+ is required.`,
-            );
-          }
-
-          console.log(`✓ FFmpeg ${version} verified`);
-        }
-      } catch (error) {
-        console.warn('⚠ Could not verify FFmpeg version');
       }
     },
   },

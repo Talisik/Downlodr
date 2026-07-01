@@ -5,7 +5,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
-docs/
 
 # Dev notes
 CLAUDE.md
@@ -29,6 +28,9 @@ TEST*.xml
 *.exe
 *.war
 
+# Exception for specific exe file
+!yt-dlp.exe
+
 # Large media files
 *.mp4
 *.tiff
@@ -42,8 +44,15 @@ TEST*.xml
 # Package files
 *.jar
 src/skedulosa/backend/video-nemesis-toolkit/
+src/skedulosa/backend/video-nemesis-toolkit__hidden/
 src/skedulosa/backend/1/
 src/skedulosa/backend/examples/
+src/afda/backend/afda-backend/
+src/afda/backend/afda-backend__hidden/
+src/assets/logo/old/
+
+# AFDA desktop UI
+src/afda/backend/afda_desktop_ui/
 
 
 # Diagnostic reports (https://nodejs.org/api/report.html)

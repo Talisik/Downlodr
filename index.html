@@ -5,9 +5,39 @@
     <meta http-equiv="Content-Security-Policy">
     <link href="./src/index.css" rel="stylesheet">
     <title>Downlodr</title>
+    <style>
+      body { margin: 0; background: #0f0f0f; }
+      #splash {
+        position: fixed; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        background: #0f0f0f; color: #888; font-family: sans-serif;
+        font-size: 14px; gap: 16px; z-index: 9999;
+        transition: opacity 0.3s;
+      }
+      #splash.hidden { opacity: 0; pointer-events: none; }
+      .spinner {
+        width: 32px; height: 32px;
+        border: 3px solid #2a2a2a; border-top-color: #666;
+        border-radius: 50%; animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
   </head>
   <body>
+    <div id="splash">
+      <img src="./src/assets/logo/downlodr_icon.svg" width="64" height="64" alt="Downlodr" style="margin-bottom:4px;" />
+      <div class="spinner"></div>
+      <span>Starting Downlodr…</span>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/renderer.tsx"></script>
+    <script>
+      // Hide the splash once React has mounted
+      window.__hideSplash = function() {
+        var el = document.getElementById('splash');
+        if (el) { el.classList.add('hidden'); setTimeout(function(){ el.remove(); }, 350); }
+      };
+    </script>
   </body>
 </html>

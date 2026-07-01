@@ -1,0 +1,3 @@
+[submodule "src/afda/backend/afda-backend"]
+	path = src/afda/backend/afda-backend
+	url = https://mikaelaherrera@bitbucket.org/metawhale/afda-backend.git
