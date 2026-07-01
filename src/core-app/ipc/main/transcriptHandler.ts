@@ -687,7 +687,7 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
             }
 
             // Build the filter - use absolute paths
-            const language = options.language || 'en';
+            const language = options.language || 'auto';
             const format = options.format || 'srt';
 
             // Normalize paths for FFmpeg filter syntax on Windows

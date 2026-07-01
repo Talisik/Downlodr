@@ -236,6 +236,19 @@ contextBridge.exposeInMainWorld('skedulosaBridge', {
     ipcRenderer.removeAllListeners('toolkit:scraper:status');
   },
 
+  /** Called after each individual channel scrape: { channelId, lastScrapedAt } */
+  onChannelScraped: (
+    callback: (payload: { channelId: number; lastScrapedAt: string }) => void,
+  ) => {
+    ipcRenderer.on('toolkit:scraper:channelScraped', (_event, payload) =>
+      callback(payload),
+    );
+  },
+
+  removeChannelScrapedListener: () => {
+    ipcRenderer.removeAllListeners('toolkit:scraper:channelScraped');
+  },
+
   /** Called for each [scraper] console.log message from the main process */
   onScraperChannelLog: (callback: (message: string) => void) => {
     ipcRenderer.removeAllListeners('toolkit:scraper:channelLog');

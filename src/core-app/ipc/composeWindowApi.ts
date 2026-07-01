@@ -51,6 +51,8 @@ export function initComposedWindowApi(): void {
       ffmpegWhisperTranscribe: transcribe.ffmpegWhisperTranscribe,
       onFFmpegProgress: transcribe.onFFmpegProgress,
       selectVideoFile: fileFn.selectVideoFile,
+      saveBufferToFile: fileFn.saveBufferToFile,
+      htmlToPdf: fileFn.htmlToPdf,
     };
   }
 
@@ -100,6 +102,7 @@ export function initComposedWindowApi(): void {
       readFileContents: pluginBridge.readFileContents,
       registerMenuItem: pluginBridge.registerMenuItem,
       unregisterMenuItem: pluginBridge.unregisterMenuItem,
+      getPluginDataPath: pluginBridge.getPluginDataPath,
       reload: pluginBridge.reload,
       onReloaded: pluginBridge.onReloaded,
       getEnabledPlugins: pluginBridge.getEnabledPlugins,

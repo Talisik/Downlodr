@@ -2,7 +2,8 @@ import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore
 import TaskBar from '@/downlodr/components/base/Taskbar';
 import TitleBar from '@/downlodr/components/base/TitleBar';
 import DownloadNavigationBar from '@/downlodr/components/navigation/DownloadNavigationBar';
-import { Component, ErrorInfo, ReactNode, useRef } from 'react';
+import ArticleSidePanelManager from '@/afda/components/ArticleSidePanelManager';
+import { Component, ErrorInfo, ReactNode, useRef, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useMainStore } from '../store/mainStore';
 // Error Boundary component
@@ -56,17 +57,33 @@ const MainLayout = () => {
   const location = useLocation();
   const previousMainPathRef = useRef<string | null>(null);
 
+  // Extract the top-level route segment (e.g. "downloads", "plugins", "subscriptions").
+  const topSegment = location.pathname.split('/')[1] ?? '';
+
+  useEffect(() => {
+    if (previousMainPathRef.current !== null && previousMainPathRef.current !== topSegment) {
+      clearAllSelections();
+    }
+    previousMainPathRef.current = topSegment;
+  }, [topSegment]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') clearAllSelections();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [clearAllSelections]);
+
   return (
     <ErrorBoundary>
       <div className="h-screen flex flex-col bg-[#F9F9F9] dark:bg-darkMode text-gray-900 dark:text-gray-100 p-4 pt-3 gap-2">
         <TitleBar className="h-8 bg-[#F9F9F9] dark:bg-darkMode" />
         {/*<DropdownBar className="h-11 pl-4 bg-nav-main dark:bg-darkMode border-b-2 border-gray-200 dark:border-darkModeCompliment" />*/}
-        <TaskBar className="rounded-md w-full px-6 py-2 pl-[8px] bg-white dark:bg-darkMode" />
-        <div className="flex flex-1 overflow-hidden h-[calc(100vh-120px)] gap-4">
+        <TaskBar className="rounded-md w-full px-6 py-2 pl-[8px] bg-white dark:bg-darkModeTable" />
+        <div className="flex flex-1 overflow-hidden h-[calc(100vh-120px)] gap-2">
           <DownloadNavigationBar
-            className={`${
-              isNavCollapsed ? 'w-[60px]' : 'w-[190px]'
-            } rounded-md bg-white dark:bg-darkModeNavigation overflow-y-auto h-full transition-all duration-300`}
+            className="rounded-md bg-white dark:bg-darkModeTable overflow-y-auto h-full"
             collapsed={isNavCollapsed}
             toggleCollapse={toggleNavCollapse}
           />

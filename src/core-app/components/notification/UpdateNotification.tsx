@@ -1,6 +1,5 @@
 import {
     AlertDialog,
-    AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
@@ -38,6 +37,15 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
     useState<UpdateInfo | null>(null);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  type DownloadState = 'idle' | 'downloading' | 'ready' | 'error';
+  const [downloadState, setDownloadState] = useState<DownloadState>('idle');
+  const [downloadProgress, setDownloadProgress] = useState<{
+    percent: number;
+    transferred: number;
+    total: number;
+  } | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   // Access main store for "don't show again" preferences
   const settings = useSettingStore((state) => state.settings);
@@ -80,6 +88,28 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
     }
   }, [externalIsOpen, updateType, settings.dontShowPluginUpdates]);
 
+  useEffect(() => {
+    if (updateType !== 'app') return;
+
+    const removeProgress = window.updateFunctionsBridge.onDownloadProgress((progress) => {
+      setDownloadProgress(progress);
+      setDownloadState('downloading');
+    });
+    const removeComplete = window.updateFunctionsBridge.onDownloadComplete((info) => {
+      setDownloadState('ready');
+    });
+    const removeError = window.updateFunctionsBridge.onDownloadError((info) => {
+      setDownloadError(info.error);
+      setDownloadState('error');
+    });
+
+    return () => {
+      removeProgress();
+      removeComplete();
+      removeError();
+    };
+  }, [updateType]);
+
   const handleClose = () => {
     // Save "don't show again" preference if checked
     if (dontShowAgain) {
@@ -99,15 +129,24 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
 
   const handleDownload = async () => {
     if (updateType === 'plugin' && onUpdate) {
-      // For plugin updates, call the provided update handler
       onUpdate();
+      handleClose();
     } else if (updateType === 'app' && updateInfo?.downloadUrl) {
-      // For app updates, open the download link
-      await window.downlodrFunctions.openExternalLink(
-        'https://downlodr.com/downloads/',
-      );
+      setDownloadState('downloading');
+      setDownloadError(null);
+      await window.updateFunctionsBridge.downloadUpdate(updateInfo.downloadUrl);
     }
-    handleClose();
+  };
+
+  const handleCancel = async () => {
+    await window.updateFunctionsBridge.cancelDownload();
+    setDownloadState('idle');
+    setDownloadProgress(null);
+    setDownloadError(null);
+  };
+
+  const handleInstall = async () => {
+    await window.updateFunctionsBridge.installUpdate();
   };
 
   if (!updateInfo || !updateInfo.hasUpdate) {
@@ -193,26 +232,113 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
           </label>
         </div>
 
-        <AlertDialogFooter className="flex items-center justify-end gap-2 py-1">
-          <AlertDialogCancel asChild>
-            <Button
-              variant="default"
-              size="sm"
-              className="h-7 px-4 py-4.8 text-sm text-black dark:bg-darkModeDropdown text-sm dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
-              onClick={handleClose}
-            >
-              Later
-            </Button>
-          </AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <Button
-              onClick={handleDownload}
-              size="sm"
-              className="h-7 px-4 py-4.8 text-sm dark:bg-primary dark:text-white bg-primary text-sm text-white hover:bg-primary/90 dark:hover:bg-primary/90 dark:hover:text-white"
-            >
-              {getDownloadButtonText()}
-            </Button>
-          </AlertDialogAction>
+        <AlertDialogFooter className="flex items-center justify-end gap-2 py-1 w-full">
+          {/* State 1: idle — show Later + Download Now */}
+          {downloadState === 'idle' && (
+            <>
+              <AlertDialogCancel asChild>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-7 px-4 py-4.8 text-sm text-black dark:bg-darkModeDropdown dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
+                  onClick={handleClose}
+                >
+                  Later
+                </Button>
+              </AlertDialogCancel>
+              <Button
+                onClick={handleDownload}
+                size="sm"
+                disabled={!updateInfo?.downloadUrl}
+                className="h-7 px-4 py-4.8 text-sm dark:bg-primary dark:text-white bg-primary text-white hover:bg-primary/90 dark:hover:bg-primary/90 dark:hover:text-white disabled:opacity-50"
+              >
+                {getDownloadButtonText()}
+              </Button>
+            </>
+          )}
+
+          {/* State 2: downloading — show progress bar + cancel */}
+          {downloadState === 'downloading' && (
+            <div className="w-full flex flex-col gap-2">
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>Downloading update...</span>
+                <span>{downloadProgress?.percent ?? 0}%</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-darkMode rounded-full h-2">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all duration-200"
+                  style={{ width: `${downloadProgress?.percent ?? 0}%` }}
+                />
+              </div>
+              {downloadProgress && downloadProgress.total > 0 && (
+                <span className="text-xs text-gray-400 text-right">
+                  {(downloadProgress.transferred / 1024 / 1024).toFixed(1)} MB / {(downloadProgress.total / 1024 / 1024).toFixed(1)} MB
+                </span>
+              )}
+              <div className="flex justify-end">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-7 px-4 text-sm text-black dark:bg-darkModeDropdown dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
+                  onClick={handleCancel}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* State 3: ready — show Later + Install & Restart */}
+          {downloadState === 'ready' && (
+            <>
+              <span className="text-xs text-gray-500 dark:text-gray-400 mr-auto">
+                Ready to install.
+              </span>
+              <AlertDialogCancel asChild>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-7 px-4 py-4.8 text-sm text-black dark:bg-darkModeDropdown dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
+                  onClick={handleClose}
+                >
+                  Later
+                </Button>
+              </AlertDialogCancel>
+              <Button
+                onClick={handleInstall}
+                size="sm"
+                className="h-7 px-4 py-4.8 text-sm bg-primary text-white hover:bg-primary/90 dark:bg-primary dark:text-white dark:hover:bg-primary/90"
+              >
+                Install &amp; Restart
+              </Button>
+            </>
+          )}
+
+          {/* State: error — show error message + Try Again */}
+          {downloadState === 'error' && (
+            <div className="w-full flex flex-col gap-2">
+              <span className="text-xs text-red-500 dark:text-red-400">
+                {downloadError || 'Download failed. Please try again.'}
+              </span>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-7 px-4 text-sm text-black dark:bg-darkModeDropdown dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
+                  onClick={handleClose}
+                >
+                  Later
+                </Button>
+                <Button
+                  onClick={handleDownload}
+                  size="sm"
+                  className="h-7 px-4 text-sm bg-primary text-white hover:bg-primary/90 dark:bg-primary dark:text-white"
+                >
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          )}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

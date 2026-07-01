@@ -22,6 +22,14 @@ contextBridge.exposeInMainWorld('appBehaviorBridge', {
   minimizeApp: () => ipcRenderer.send('minimize-btn'),
   maximizeApp: () => ipcRenderer.send('maximize-btn'),
   closeApp: () => ipcRenderer.send('close-btn'), // close app
+  onMaximizeChange: (callback: (isMaximized: boolean) => void) => {
+    ipcRenderer.on('window-maximize-change', (_event, value: boolean) =>
+      callback(value),
+    );
+  },
+  offMaximizeChange: () => {
+    ipcRenderer.removeAllListeners('window-maximize-change');
+  },
 });
 
 contextBridge.exposeInMainWorld('appInfoBridge', {

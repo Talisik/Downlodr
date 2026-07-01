@@ -6,13 +6,10 @@
  *
  * Dependencies:
  * - Zustand: A small, fast state-management solution.
- * - Zustand middleware for persistence.
  */
 
 // Interface for download settings
-import { createIndexedDBStorageWithMigration } from '@/core-app/utils/indexedDBStorage';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
 
 // Interface for selected downloads
 interface SelectedDownload {
@@ -40,64 +37,57 @@ interface SelectedDownloadStore {
   clearAllSelections: () => void; // Clear all selections
 }
 
-// version constant for migration tracking
-const SELECTED_DOWNLOAD_STORE_VERSION = 1; // Incremented for update notification preferences
-
-// Create the main store with persistence
+// Create the main store without persistence
 export const useSelectedDownloadStore = create<SelectedDownloadStore>()(
-  persist(
-    (set, get) => ({
-      selectedDownloads: [] as SelectedDownload[],
+  (set, get) => ({
+    selectedDownloads: [] as SelectedDownload[],
 
-      setSelectedDownloads: (downloads) =>
-        set({ selectedDownloads: downloads }),
-      clearSelectedDownloads: () => set({ selectedDownloads: [] }),
+    setSelectedDownloads: (downloads) =>
+      set({ selectedDownloads: downloads }),
+    clearSelectedDownloads: () => set({ selectedDownloads: [] }),
 
-      selectedRows: [] as string[],
-      setSelectedRows: (rows) => set({ selectedRows: rows }),
-      clearSelectedRows: () => set({ selectedRows: [] }),
-      getSelectedWithStatusCount: () =>
-        get().selectedRowIds.filter((id) =>
-          get().selectedDownloads.some((d) => d.id === id && d.status),
-        ).length,
-      selectedRowIds: [] as string[],
-      setSelectedRowIds: (rows) =>
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        set((state) => {
-          // Update both selectedRowIds and selectedDownloads
-          const selectedDownloadsData: SelectedDownload[] = rows.map((id) => ({
-            id,
-            controllerId: undefined as string | undefined,
-            location: undefined as string | undefined,
-            videoUrl: undefined as string | undefined,
-            downloadName: undefined as string | undefined,
-            status: undefined as string | undefined,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            download: undefined as any | undefined,
-          }));
-          return {
-            selectedRowIds: rows,
-            selectedDownloads: selectedDownloadsData,
-          };
-        }),
-      clearAllSelections: () =>
-        set({
-          selectedDownloads: [],
-          selectedRowIds: [],
-        }),
-      // Default visible columns
-    }),
-    {
-      name: 'download-selected-download-storage', // Name of the storage
-      version: SELECTED_DOWNLOAD_STORE_VERSION, // version tracking
-      storage: createJSONStorage(() =>
-        createIndexedDBStorageWithMigration({
-          dbName: 'downlodr-selected-download-database',
-          storeName: 'selected-download-storage',
-          version: 1,
-          localStorageKey: 'selected-download-storage', // Migrate existing localStorage data
-        }),
-      ), // Use IndexedDB with automatic localStorage migration
-    },
-  ),
+    selectedRows: [] as string[],
+    setSelectedRows: (rows) => set({ selectedRows: rows }),
+    clearSelectedRows: () => set({ selectedRows: [] }),
+
+    getSelectedWithStatusCount: () =>
+      get().selectedRowIds.filter((id) =>
+        get().selectedDownloads.some((d) => d.id === id && d.status),
+      ).length,
+
+    selectedRowIds: [] as string[],
+    setSelectedRowIds: (rows) =>
+      set((state) => {
+        // Update both selectedRowIds and selectedDownloads. Preserve any rich
+        // entry already present (set via setSelectedDownloads) so pruning the
+        // id list doesn't wipe controllerId/status/location that bulk actions
+        // (Stop/Pause/Remove) rely on; fall back to a placeholder for new ids.
+        const existingById = new Map(
+          state.selectedDownloads.map((d) => [d.id, d]),
+        );
+        const selectedDownloadsData: SelectedDownload[] = rows.map(
+          (id) =>
+            existingById.get(id) ?? {
+              id,
+              controllerId: undefined as string | undefined,
+              location: undefined as string | undefined,
+              videoUrl: undefined as string | undefined,
+              downloadName: undefined as string | undefined,
+              status: undefined as string | undefined,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              download: undefined as any | undefined,
+            },
+        );
+        return {
+          selectedRowIds: rows,
+          selectedDownloads: selectedDownloadsData,
+        };
+      }),
+
+    clearAllSelections: () =>
+      set({
+        selectedDownloads: [],
+        selectedRowIds: [],
+      }),
+  }),
 );

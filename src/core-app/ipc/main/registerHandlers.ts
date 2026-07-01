@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import { appBehaviorHandler } from './appBehaviorHandler';
 import { appInfoHandler } from './appInfoHandler';
 import { appPerformanceHandler } from './appPerformanceHandler';
@@ -8,12 +8,14 @@ import { devHandler } from './devHandler';
 import { fileHandler } from './fileHandler';
 import { pluginFunctionsHandler } from './pluginFunctionsHandler';
 import { pluginHandler } from './pluginHandler';
+import { afdaHandler } from './afdaHandler';
 import { skedulosaHandler } from './skedulosaHandler';
+import { addonManagerHandler, detectAddon, resolveAddonPath } from './addonManager';
 import { telemetryHandler } from './telemetryHandler';
 import { transcriptHandler } from './transcriptHandler';
 import { trayHandler, TrayHandlerOptions } from './trayHandler';
 import { videoHandler } from './videoHandler';
-import { ytdlpHandler } from './ytdlpHandler';
+import { ytdlpHandler, runYtdlpCheckAndUpdate } from './ytdlpHandler';
 
 let handlersRegistered = false;
 
@@ -26,10 +28,10 @@ export interface AppCleanup {
   cleanup(): void;
 }
 
-export function registerMainIpcHandlers(
+export async function registerMainIpcHandlers(
   mainWindow: BrowserWindow,
   options?: RegisterHandlersOptions,
-): AppCleanup {
+): Promise<AppCleanup> {
   if (handlersRegistered) {
     return { cleanup: () => {} };
   }
@@ -40,6 +42,7 @@ export function registerMainIpcHandlers(
     if (typeof fn === 'function') cleanups.push(fn);
   };
 
+  collect(addonManagerHandler(mainWindow));
   collect(appInfoHandler());
   collect(appBehaviorHandler(mainWindow));
   collect(appPerformanceHandler(mainWindow));
@@ -49,12 +52,38 @@ export function registerMainIpcHandlers(
   collect(fileHandler(mainWindow));
   collect(pluginFunctionsHandler(mainWindow));
   collect(pluginHandler(mainWindow));
-  collect(skedulosaHandler(mainWindow));
+  const afdaState = detectAddon('afda-backend');
+  const addonPathAfda = afdaState.status === 'ready' ? resolveAddonPath('afda-backend') : undefined;
+  if (addonPathAfda || !app.isPackaged) {
+    try {
+      collect(await afdaHandler(mainWindow, addonPathAfda));
+    } catch (err) {
+      console.error(`[addons] afdaHandler failed (addonPath: ${addonPathAfda ?? 'undefined'}):`, err);
+    }
+  } else {
+    console.log(`[addons] afda-backend not ready (${afdaState.status}) — skipping handler registration`);
+  }
+
+  const skedulosaState = detectAddon('video-nemesis-toolkit');
+  const addonPathSkedulosa = skedulosaState.status === 'ready' ? resolveAddonPath('video-nemesis-toolkit') : undefined;
+  if (addonPathSkedulosa || !app.isPackaged) {
+    try {
+      collect(await skedulosaHandler(mainWindow, addonPathSkedulosa));
+    } catch (err) {
+      console.error(`[addons] skedulosaHandler failed (addonPath: ${addonPathSkedulosa ?? 'undefined'}):`, err);
+    }
+  } else {
+    console.log(`[addons] video-nemesis-toolkit not ready (${skedulosaState.status}) — skipping handler registration`);
+  }
   collect(telemetryHandler(mainWindow));
   collect(transcriptHandler(mainWindow));
   collect(trayHandler(mainWindow, options?.tray));
   collect(videoHandler(mainWindow));
   collect(ytdlpHandler(mainWindow));
+
+  setTimeout(() => {
+    void runYtdlpCheckAndUpdate();
+  }, 5000);
 
   handlersRegistered = true;
 

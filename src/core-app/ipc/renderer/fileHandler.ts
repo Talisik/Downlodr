@@ -37,4 +37,8 @@ contextBridge.exposeInMainWorld('fileFunctionsBridge', {
     ipcRenderer.invoke('deleteFolder', folderpath),
   openFolder: (folderPath: string, filePath: string) =>
     ipcRenderer.invoke('open-folder', folderPath, filePath),
+  saveBufferToFile: (data: number[], filePath: string) =>
+    ipcRenderer.invoke('save-buffer-to-file', data, filePath),
+  htmlToPdf: (htmlContent: string) =>
+    ipcRenderer.invoke('article-html-to-pdf', htmlContent),
 });
