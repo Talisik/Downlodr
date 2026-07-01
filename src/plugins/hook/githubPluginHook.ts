@@ -1,14 +1,31 @@
 import i18n from '@/core-app/i18n';
+import CCToMarkdownImg from '@/assets/plugin/CCToMarkdown.jpg';
+import FormatConverterImg from '@/assets/plugin/FormatConverter.jpg';
+import MetadataScraperImg from '@/assets/plugin/MetadataScraper.jpg';
 import {
-    FetchResult,
-    GitHubAsset,
-    GitHubRelease,
-    ParsedPluginSection,
-    PluginData,
+  FetchResult,
+  GitHubAsset,
+  GitHubRelease,
+  ParsedPluginSection,
+  PluginData,
 } from '@/plugins/schema/types';
 
 const sampleSvgIcon =
   '<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="red" /></svg>';
+
+// Maps stable plugin IDs to their bundled image assets.
+// Keyed by ID so name changes in GitHub releases don't break icon resolution.
+const PLUGIN_ICON_ASSETS: Record<string, string> = {
+  'cc-to-markdown-downlodr': CCToMarkdownImg,
+  'format-converter-downlodr': FormatConverterImg,
+  'metadata-exporter-downlodr': MetadataScraperImg,
+};
+
+// Looks up an icon by exact ID, then by ID + '-downlodr' suffix, to handle
+// cases where GitHub section headings produce a shorter slug than the asset keys.
+function lookupPluginIcon(id: string): string | undefined {
+  return PLUGIN_ICON_ASSETS[id] ?? PLUGIN_ICON_ASSETS[`${id}-downlodr`];
+}
 
 // GitHub release configuration for your specific release
 const PLUGIN_RELEASE_CONFIG = {
@@ -43,7 +60,7 @@ function getFallbackPluginsData() {
         'Convert video captions into markdown documents.',
       ),
       author: 'Downlodr',
-      icon: sampleSvgIcon,
+      icon: CCToMarkdownImg,
       downloads: '12.1k',
       size: '8.4 MB',
       repoLink: 'https://github.com/Talisik/downlodr-cc-markdown-plugin',
@@ -61,7 +78,7 @@ function getFallbackPluginsData() {
         'Converts videos to different formats using customizable quality and settings.',
       ),
       author: 'Downlodr',
-      icon: sampleSvgIcon,
+      icon: FormatConverterImg,
       downloads: '12.1k',
       size: '120.7 KB',
       repoLink: 'https://github.com/Talisik/downlodr-converter-plugin',
@@ -79,7 +96,7 @@ function getFallbackPluginsData() {
         'View and edit video metadata with powerful batch processing tools.',
       ),
       author: 'Downlodr',
-      icon: sampleSvgIcon,
+      icon: MetadataScraperImg,
       downloads: '12.1k',
       size: '280.7 KB',
       repoLink: 'https://github.com/Talisik/downlodr-metadata-plugin',
@@ -188,7 +205,7 @@ function parsePluginDataFromRelease(releaseData: GitHubRelease): PluginData[] {
           section.description || i18n.t('plugins:githubPlugin.noDescription'),
         ),
         author: section.author || releaseAuthor,
-        icon: sampleSvgIcon, // Store raw SVG string like installed plugins
+        icon: lookupPluginIcon(section.id ?? '') ?? sampleSvgIcon,
         downloads: section.downloads || calculateDownloads(releaseData.assets),
         size: section.size || calculateTotalSize(releaseData.assets),
         repoLink:
@@ -211,7 +228,9 @@ function parsePluginDataFromRelease(releaseData: GitHubRelease): PluginData[] {
         version: releaseVersion,
         description: i18n.t('plugins:githubPlugin.pluginFrom', { releaseName }),
         author: releaseAuthor,
-        icon: sampleSvgIcon, // Store raw SVG string like installed plugins
+        icon:
+          lookupPluginIcon(asset.name.replace(/\.[^/.]+$/, '')) ??
+          sampleSvgIcon,
         downloads: asset.download_count?.toString() || '0',
         size: formatFileSize(asset.size || 0),
         repoLink: `https://github.com/${PLUGIN_RELEASE_CONFIG.owner}/${PLUGIN_RELEASE_CONFIG.repo}`,
@@ -247,6 +266,7 @@ function parseReleaseBodyForPlugins(body: string): ParsedPluginSection[] {
     const plugin: ParsedPluginSection = {
       name: name.trim(),
       id: name
+        .trim()
         .toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, ''),
@@ -421,11 +441,7 @@ function getBrowsePluginsSync(): PluginData[] {
     return cachedData;
   }
 
-  // Return fallback data that stores raw SVG strings
-  return getFallbackPluginsData().map((plugin) => ({
-    ...plugin,
-    icon: sampleSvgIcon, // Ensure it's a raw SVG string, not JSX
-  }));
+  return getFallbackPluginsData();
 }
 
 // Default export for backward compatibility

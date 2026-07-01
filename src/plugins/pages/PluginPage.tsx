@@ -76,7 +76,7 @@ const PluginManager = () => {
   const searchRef = useRef<HTMLDivElement>(null);
 
   // track active tab
-  const [activeTab, setActiveTab] = useState('installed');
+  const [activeTab, setActiveTab] = useState('browse');
 
   // filter search results
   useEffect(() => {
@@ -445,6 +445,7 @@ const PluginManager = () => {
         isOpen={showConfirmModal}
         onClose={cancelUninstall}
         onConfirm={confirmUninstall}
+        title={t('page.confirmUninstall.title')}
         message={t('page.confirmUninstall.message', {
           name:
             plugins.find((p) => p.id === pluginToRemove)?.name ??
@@ -463,7 +464,7 @@ const PluginManager = () => {
         <div className="flex justify-between items-center mb-4">
           <div className="flex justify-between items-center w-full">
             <Tabs
-              defaultValue="installed"
+              defaultValue="browse"
               className="w-full"
               onValueChange={setActiveTab}
             >
@@ -471,16 +472,16 @@ const PluginManager = () => {
                 <div className="bg-[#F4F4F4] dark:bg-darkModeCompliment rounded-md -ml-1 p-1">
                   <div>
                     <TabsTrigger
-                      value="installed"
-                      className="text-sm font-medium data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-divider dark:data-[state=active]:bg-darkMode dark:data-[state=active]:border-darkModeBorderColor dark:data-[state=active]:text-white"
-                    >
-                      {t('page.tabs.installed')}
-                    </TabsTrigger>
-                    <TabsTrigger
                       value="browse"
-                      className="text-sm font-medium data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-divider dark:data-[state=active]:bg-darkMode dark:data-[state=active]:border-darkModeBorderColor dark:data-[state=active]:text-white"
+                      className="text-sm font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-[#412E26] dark:data-[state=active]:text-primary data-[state=active]:text-primary"
                     >
                       {t('page.tabs.browse')}
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="installed"
+                      className="text-sm font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-[#412E26] dark:data-[state=active]:text-primary data-[state=active]:text-primary"
+                    >
+                      {t('page.tabs.installed')}
                     </TabsTrigger>
                   </div>
                 </div>
@@ -508,7 +509,7 @@ const PluginManager = () => {
 
                   {/* Search Bar with increased width */}
                   <div ref={searchRef} className="relative">
-                    <div className="flex items-center bg-[#FFFFFF] dark:bg-darkModeDropdown rounded-md border dark:border-2 border-[#D1D5DB] dark:border-darkModeCompliment px-2">
+                    <div className="flex items-center bg-[#FFFFFF] dark:bg-darkModeTable rounded-md border dark:border-2 border-[#D1D5DB] dark:border-darkModeCompliment px-2">
                       <FiSearch className="text-gray-500 dark:text-gray-400 h-4 w-4 mr-1" />
                       <input
                         type="text"

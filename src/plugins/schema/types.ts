@@ -229,6 +229,7 @@ export interface DownloadOptions {
   getTranscript?: boolean;
   getThumbnail?: boolean;
   duration: number;
+  transcriptLocation?: string;
 }
 
 export interface DownloadInfo {

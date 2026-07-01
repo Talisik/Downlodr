@@ -4,6 +4,28 @@ import {
 } from '@/plugins/schema/types';
 import React, { useEffect, useRef, useState } from 'react';
 
+function usePanelWidth(): number {
+  const [width, setWidth] = useState(() => {
+    const w = window.innerWidth;
+    if (w < 640) return Math.floor(w * 0.9);
+    if (w < 1024) return 300;
+    return 400;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const w = window.innerWidth;
+      if (w < 640) setWidth(Math.floor(w * 0.9));
+      else if (w < 1024) setWidth(300);
+      else setWidth(400);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return width;
+}
+
 interface PluginSidePanelExtensionProps {
   isOpen: boolean;
   onClose: () => void;
@@ -19,6 +41,7 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
   // onAction,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const panelWidth = usePanelWidth();
 
   // Generate theme-aware content
   const getThemedContent = (originalContent: string) => {
@@ -61,6 +84,11 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
           };
           --scrollbar-thumb: ${isDark ? '#52525b' : '#888'};
           --scrollbar-thumb-hover: ${isDark ? '#71717a' : '#666'};
+          --border-subtle: ${isDark ? '#2a2a2e' : '#EDEDED'};
+          --bg-footer: ${isDark ? '#272727' : '#F3F3F3'};
+          --bg-input: ${isDark ? '#18181B' : 'transparent'};
+          --text-info-label: ${isDark ? '#A1A1AA' : '#3E3E46'};
+          --text-info-value: ${isDark ? '#ffffff' : '#01010B'};
         }
         body {
           background-color: ${isDark ? '#09090B' : '#fff'} !important;
@@ -179,27 +207,27 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
 
   return (
     <div
-      className="fixed right-0 top-0 h-full bg-white dark:bg-darkMode shadow-lg z-40 flex flex-col border-2 border-[#D1D5DB] dark:border-darkModeCompliment"
-      style={{ width: '300px' }}
+      className="h-full bg-white dark:bg-darkMode flex flex-col flex-shrink-0"
+      style={{ width: `${panelWidth}px` }}
     >
       {/* Header */}
-      <div className="bg-titleBar dark:bg-darkModeDropdown px-2 py-1 pt-[11px] border-b-2 border-gray-200 dark:border-darkModeCompliment flex items-center justify-between">
+      <div className="rounded-t bg-toggleGroupBaseColor dark:bg-darkModeTable px-2 py-2 pt-[11px] flex items-center justify-between">
         <div className="flex items-center flex-1">
           {options.icon && (
             <span className="inline-flex items-center justify-center w-5 h-5 mr-3 flex-shrink-0">
               {typeof options.icon === 'string' && isSvgString(options.icon) ? (
                 <span
                   dangerouslySetInnerHTML={{ __html: options.icon }}
-                  className="text-black dark:text-white [&>svg]:w-5 [&>svg]:h-5 [&>svg]:fill-current"
+                  className="text-blue-700 dark:text-blue-400 [&>svg]:w-5 [&>svg]:h-5 [&>svg]:fill-current"
                 />
               ) : (
-                <span className="text-black dark:text-white">
+                <span className="text-blue-500 dark:text-blue-400">
                   {options.icon}
                 </span>
               )}
             </span>
           )}
-          <span className="text-black dark:text-white font-semibold text-sm leading-6">
+          <span className="text-black dark:text-white font-semibold text-[13.5px] leading-6">
             {options.title}
           </span>
         </div>

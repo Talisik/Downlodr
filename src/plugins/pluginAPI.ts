@@ -321,6 +321,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         getThumbnail: options.getThumbnail || false,
         duration: options.duration || 60,
         isCreateFolder: false,
+        transcriptLocation: options.transcriptLocation || '',
       });
 
       return options.name; // Return ID

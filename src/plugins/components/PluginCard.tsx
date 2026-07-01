@@ -72,12 +72,18 @@ const PluginCard = ({
   }, [plugin.id]);
 
   return (
-    <div className="w-sm bg-titleBar dark:bg-darkMode rounded-md p-4 shadow-md h-50 flex flex-col drop-shadow-sm hover:drop-shadow-lg transition-all duration-300">
+    <div className="w-sm bg-titleBar dark:bg-darkModeTable rounded-md p-4 shadow-md h-50 flex flex-col drop-shadow-sm hover:drop-shadow-lg transition-all duration-300">
       {/* Header section */}
       <div className="flex items-center mb-3">
-        <span className="inline-flex items-center justify-center mr-2 flex-shrink-0">
-          {renderIcon(plugin.icon, 'md', plugin.name)}
-        </span>
+        {pluginType === 'browse' ? (
+          <div className="inline-flex items-center justify-center mr-3 flex-shrink-0 w-12 h-12 rounded-xl bg-gray-100 dark:bg-darkModeCompliment border border-gray-200 dark:border-darkModeHover overflow-hidden shadow-sm">
+            {renderIcon(plugin.icon, 'lg', plugin.name)}
+          </div>
+        ) : (
+          <span className="inline-flex items-center justify-center mr-2 flex-shrink-0">
+            {renderIcon(plugin.icon, 'md', plugin.name)}
+          </span>
+        )}
         <div className="flex flex-col">
           <h3 className="text-lg text-[14px] font-semibold truncate">
             {plugin.name}
