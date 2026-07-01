@@ -13,6 +13,7 @@ import StoreRehydrationLoader from '@/core-app/components/loader/StoreRehydratio
 import UpdateNotification from '@/core-app/components/notification/UpdateNotification';
 import { Toaster } from '@/core-app/components/shadcn/components/ui/toaster';
 import TelemetryConsentModal from '@/core-app/components/telemetry/TelemetryConsentModal';
+import AddonManagerModal from '@/downlodr/components/modal/custom/AddonManagerModal';
 import { ThemeProvider } from '@/core-app/components/ThemeProvider';
 import NotFound from '@/core-app/pages/NotFound';
 import { useSettingStore } from '@/core-app/store/settingsStore';
@@ -25,22 +26,26 @@ import { otelLogs } from '@/core-app/telemetry/otel-logs';
 import { eventManager } from '@/core-app/utils/manager/eventManager';
 import FavoritesPage from '@/downlodr/pages/FavoritesPage';
 import StatusSpecificDownloads from '@/downlodr/pages/StatusPage';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Navigate,
   Route,
   HashRouter as Router,
   Routes,
+  useNavigate,
 } from 'react-router-dom';
 import MainLayout from './core-app/layout/DownloadLayout';
+import OnboardingPage from './onboarding/pages/OnboardingPage';
 import History from './downlodr/pages/History';
 import { PluginInitialize } from './plugins/components/PluginInitialize';
-import PluginLayout from './plugins/layout/pluginLayout';
+import PluginLayout from './plugins/layout/PluginLayout';
 import PluginDetail from './plugins/pages/PluginDetail';
 import PluginPage from './plugins/pages/PluginPage';
 import SkedulosaLayout from './skedulosa/layout/SkedulosaLayout';
 import NoSchedulePage from './skedulosa/pages/NoSchedulePage';
 import SelectedSubscriptionView from './skedulosa/pages/SelectedSubscriptionView';
+import SkedulosaSelectedViewTable from './skedulosa/pages/SkedulosaSelectedViewTable';
+import AfdaSelectedViewTable from './afda/pages/AfdaSelectedViewTable';
 import SkedulosaHistoryPage from './skedulosa/pages/SkedulosaHistoryPage';
 import SkedulosaHome from './skedulosa/pages/SkedulosaHome';
 import SkedulosaSchedulePage from './skedulosa/pages/SkedulosaSchedulePage';
@@ -50,18 +55,64 @@ import SkedulosaUtilsDemoPage from './skedulosa/pages/SkedulosaUtilsDemoPage';
 import ToolkitTestPage from './skedulosa/pages/ToolkitTestPage';
 import { useSkedulosaDownloadBridge } from './skedulosa/hooks/useSkedulosaDownloadBridge';
 import { useYtdlpRecovery } from './skedulosa/hooks/useYtdlpRecovery';
+import { useAfdaWebsitesInit } from './afda/hooks/useAfdaWebsitesInit';
+import { useAfdaArticleSync } from './afda/hooks/useAfdaArticleSync';
+import { useToast } from '@/core-app/components/shadcn/hooks/use-toast';
+import { useAddonStore } from '@/core-app/store/addonStore';
 import SkedulosaRouteGuard from './skedulosa/utils/routeGuard';
 import GlobalScanningModal from './skedulosa/components/GlobalScanningModal';
+import GlobalAddonDownloadToast from '@/core-app/components/GlobalAddonDownloadToast';
 import CategoryPage from './smart-organize/base/pages/CategoryPage';
 import TagPage from './smart-organize/base/pages/TagPage';
+import AfdaSelectedTableGroup from './afda/pages/AfdaSelectedTableGroup';
+import SubscriptionSelectedTableGroup from './skedulosa/pages/SubscriptionSelectedTableGroup';
 import { useScrapingProgressToast } from './skedulosa/hooks/useScrapingProgressToast';
+
+function OnboardingNavigator() {
+  const navigate = useNavigate();
+  const onboardingShown = useSettingStore((s) => s.settings.onboardingShown);
+  const telemetryConsentShown = useTelemetryStore((s) => s.settings.telemetryConsentShown);
+
+  useEffect(() => {
+    if (telemetryConsentShown && !onboardingShown) {
+      navigate('/onboarding');
+    }
+  }, [telemetryConsentShown, onboardingShown]);
+
+  return null;
+}
 
 const App = () => {
   useSkedulosaDownloadBridge();
   useYtdlpRecovery();
   useScrapingProgressToast();
+  useAfdaWebsitesInit();
+  useAfdaArticleSync();
 
-  const { settings } = useSettingStore();
+  const initFromMain = useAddonStore((s) => s.initFromMain);
+  useEffect(() => { void initFromMain(); }, []);
+
+  const { toast } = useToast();
+  const afdaStatus = useAddonStore((s) => s.afda.status);
+  const skedulosaStatus = useAddonStore((s) => s.skedulosa.status);
+  const prevAfdaStatus = useRef(afdaStatus);
+  const prevSkedulosaStatus = useRef(skedulosaStatus);
+
+  useEffect(() => {
+    if (prevAfdaStatus.current === 'downloading' && afdaStatus === 'ready') {
+      toast({ title: 'Article Fetcher add-on installed', description: 'Restart downlodr to activate.' });
+    }
+    prevAfdaStatus.current = afdaStatus;
+  }, [afdaStatus]);
+
+  useEffect(() => {
+    if (prevSkedulosaStatus.current === 'downloading' && skedulosaStatus === 'ready') {
+      toast({ title: 'Subscriptions add-on installed', description: 'Restart downlodr to activate.' });
+    }
+    prevSkedulosaStatus.current = skedulosaStatus;
+  }, [skedulosaStatus]);
+
+  const { settings, updateAddonOnboardingShown } = useSettingStore();
   const language = useSettingStore((state) => state.settings.language);
 
   useEffect(() => {
@@ -96,6 +147,26 @@ const App = () => {
     if (!telemetrySettings.telemetryConsentShown) {
       updateTelemetryConsentShown(true);
     }
+  };
+
+  const [showAddonOnboardingModal, setShowAddonOnboardingModal] =
+    useState(false);
+
+  // TEMP: addon onboarding modal disabled — only shown when user clicks subscriptions nav
+  // useEffect(() => {
+  //   if (settings.addonOnboardingShown) {
+  //     setShowAddonOnboardingModal(false);
+  //     return;
+  //   }
+  //   const timer = setTimeout(() => {
+  //     setShowAddonOnboardingModal(true);
+  //   }, 1500);
+  //   return () => clearTimeout(timer);
+  // }, [settings.addonOnboardingShown]);
+
+  const handleAddonOnboardingClose = () => {
+    setShowAddonOnboardingModal(false);
+    updateAddonOnboardingShown(true);
   };
 
   // Initialize telemetry store on app startup (runs once)
@@ -191,20 +262,28 @@ const App = () => {
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <StoreRehydrationLoader>
         <Router>
+          <OnboardingNavigator />
           <Routes>
+            <Route path="/onboarding" element={<OnboardingPage />} />
             <Route path="/" element={<MainLayout />}>
               <Route index element={<Navigate to="/status/all" replace />} />
               <Route path="/history" element={<History />} />
               <Route
+                path="/status"
+                element={<Navigate to="/status/all" replace />}
+              />
+              <Route
                 path="/status/:status"
                 element={<StatusSpecificDownloads />}
               />
-              <Route path="/favorites" element={<FavoritesPage />} />
+              <Route path="/status/favorites" element={<FavoritesPage />} />
+              <Route path="/status/group/afda/:websiteId" element={<AfdaSelectedTableGroup />} />
+              <Route path="/status/group/subscription/:subscriptionId" element={<SubscriptionSelectedTableGroup />} />
               <Route path="*" element={<NotFound />} />
               <Route path="/tags/:tagId" element={<TagPage />} />
               <Route path="/category/:categoryId" element={<CategoryPage />} />
             </Route>
-            <Route path="/plugins" element={<MainLayout />}>
+            <Route path="/plugins" element={<PluginLayout />}>
               <Route index element={<PluginPage />} />
               <Route path="details" element={<PluginDetail />} />
               {/* Additional plugin routes can be added here 
@@ -214,7 +293,12 @@ const App = () => {
               />
               */}
             </Route>
+
             <Route path="/skedulosa" element={<SkedulosaLayout />}>
+              <Route
+                index
+                element={<Navigate to="/skedulosa/subscription" replace />}
+              />
               <Route element={<SkedulosaRouteGuard />}>
                 <Route element={<SkedulosaHome />}>
                   <Route
@@ -236,11 +320,11 @@ const App = () => {
                   />
                   <Route
                     path="/skedulosa/selected-subscription/:channelId?"
-                    element={<SelectedSubscriptionView />}
+                    element={<SkedulosaSelectedViewTable />}
                   />
                   <Route
-                    path="/skedulosa/utils-demo"
-                    element={<SkedulosaUtilsDemoPage />}
+                    path="/skedulosa/selected-article/:channelId?"
+                    element={<AfdaSelectedViewTable />}
                   />
                   <Route
                     path="/skedulosa/subscription-downloads"
@@ -252,6 +336,7 @@ const App = () => {
             </Route>
           </Routes>
           <GlobalScanningModal />
+          <GlobalAddonDownloadToast />
         </Router>
         <Toaster />
         <PluginInitialize />
@@ -260,6 +345,10 @@ const App = () => {
         <TelemetryConsentModal
           isOpen={showTelemetryConsentModal}
           onClose={handleTelemetryConsentClose}
+        />
+        <AddonManagerModal
+          isOpen={showAddonOnboardingModal}
+          onClose={handleAddonOnboardingClose}
         />
       </StoreRehydrationLoader>
     </ThemeProvider>

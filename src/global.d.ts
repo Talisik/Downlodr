@@ -98,6 +98,8 @@ declare global {
       minimizeApp: () => void;
       maximizeApp: () => void;
       closeApp: () => void;
+      onMaximizeChange: (callback: (isMaximized: boolean) => void) => void;
+      offMaximizeChange: () => void;
     };
 
     /** App/device info (baseAppHandler) */
@@ -175,6 +177,8 @@ declare global {
       deleteFile: (filepath: string) => Promise<boolean>;
       deleteFolder: (folderpath: string) => Promise<boolean>;
       openFolder: (folderPath: string, filePath: string) => Promise<{ success: boolean; error?: string }>;
+      saveBufferToFile: (data: number[], filePath: string) => Promise<{ success: boolean; error?: string }>;
+      htmlToPdf: (htmlContent: string) => Promise<{ success: boolean; data?: number[]; error?: string }>;
     };
 
     /** External link, thumbnail, internet check (browserHandler) */
@@ -259,6 +263,18 @@ declare global {
       onYtdlpAutoInstalled: (callback: (installInfo: { version: string; message: string }) => void) => () => void;
       checkForUpdates: () => Promise<UpdateInfo>;
       getCurrentVersion: () => Promise<string>;
+      downloadUpdate: (url: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+      cancelDownload: () => Promise<void>;
+      onDownloadProgress: (callback: (progress: { percent: number; transferred: number; total: number }) => void) => () => void;
+      onDownloadComplete: (callback: (info: { filePath: string }) => void) => () => void;
+      onDownloadError: (callback: (info: { error: string }) => void) => () => void;
+      installUpdate: () => Promise<{ success: boolean; error?: string }>;
+      getAutoUpdateState: () => Promise<{ status: string; percent?: number; transferred?: number; total?: number; updateInfo?: UpdateInfo; filePath?: string; error?: string }>;
+      startAutoUpdateCheck: () => Promise<{ checked: boolean; hasUpdate?: boolean; reason?: string }>;
+      onAutoUpdateStarted: (callback: (info: { updateInfo?: UpdateInfo }) => void) => () => void;
+      onAutoUpdateProgress: (callback: (progress: { percent: number; transferred: number; total: number }) => void) => () => void;
+      onAutoUpdateReady: (callback: (info: { filePath: string; updateInfo?: UpdateInfo }) => void) => () => void;
+      onAutoUpdateError: (callback: (info: { error: string }) => void) => () => void;
     };
 
     /** Transcription (transcriptHandler) */
@@ -321,6 +337,8 @@ declare global {
       }) => Promise<{ success: boolean; outputFile: string; stdout: string; stderr: string }>;
       onFFmpegProgress: (callback: (progress: string) => void) => () => void;
       selectVideoFile: () => Promise<string | null>;
+      saveBufferToFile: (data: number[], filePath: string) => Promise<{ success: boolean; error?: string }>;
+      htmlToPdf: (htmlContent: string) => Promise<{ success: boolean; data?: number[]; error?: string }>;
     };
 
     /** YT-DLP API (use ytdlpFunctionsBridge or this) */
@@ -390,6 +408,7 @@ declare global {
       unregisterTaskBarItem: (id: string) => Promise<boolean>;
       getTaskBarItems: () => Promise<TaskBarItem[]>;
       executeTaskBarItem: (id: string, contextData?: unknown) => Promise<boolean>;
+      getPluginDataPath: (pluginId: string) => Promise<string>;
       saveFileDialog: (options: SaveDialogOptions) => Promise<SaveDialogResult>;
     };
 
@@ -409,6 +428,22 @@ declare global {
       clearLastClipboardText: () => Promise<void>;
       clearClipboard: () => Promise<boolean>;
       isWindowFocused: () => Promise<boolean>;
+    };
+
+    // ─── Add-on Manager bridge ────────────────────────────────────────────
+    addonBridge: {
+      getStatus: () => Promise<{
+        afda: { status: string; installedVersion?: string; path: string | null };
+        skedulosa: { status: string; installedVersion?: string; path: string | null };
+      }>;
+      download: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<{ started: boolean }>;
+      delete: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<{ success: boolean; error?: string }>;
+      openFolder: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<{ success: boolean }>;
+      cancel: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<void>;
+      on: {
+        progress: (cb: (data: { pack: 'afda-backend' | 'video-nemesis-toolkit'; percent: number }) => void) => () => void;
+        complete: (cb: (data: { pack: 'afda-backend' | 'video-nemesis-toolkit'; success: boolean; error?: string }) => void) => () => void;
+      };
     };
 
     // ─── Skedulosa (video-nemesis-toolkit) bridge ─────────────────────────
@@ -498,6 +533,123 @@ declare global {
       removeScraperStatusListener: () => void;
       onScraperChannelLog: (callback: (message: string) => void) => void;
       removeScraperChannelLogListener: () => void;
+      onChannelScraped: (callback: (payload: { channelId: number; lastScrapedAt: string }) => void) => void;
+      removeChannelScrapedListener: () => void;
+    };
+    
+    // ─── AFDA (Article Fetcher & Detail Analyzer) bridge ─────────────────
+    afdaBridge: {
+      // Legacy compatibility
+      parseArticle: (url: string) => Promise<unknown>;
+      
+      // Mapper
+      mapper: {
+        run: (payload: unknown) => Promise<unknown>;
+      };
+      
+      // Batch
+      batch: {
+        start: (payload: unknown) => Promise<unknown>;
+        cancel: () => Promise<unknown>;
+        getStatus: () => Promise<unknown>;
+      };
+      
+      // Websites
+      websites: {
+        save: (payload: unknown) => Promise<unknown>;
+        delete: (id: number) => Promise<unknown>;
+        update: (payload: unknown) => Promise<unknown>;
+        addSections: (payload: unknown) => Promise<unknown>;
+        resetInitialScrape: (id: number) => Promise<unknown>;
+      };
+      
+      // Schedule
+      schedule: {
+        assign: (payload: unknown) => Promise<unknown>;
+        pause: (id: number) => Promise<unknown>;
+        resume: (id: number) => Promise<unknown>;
+        get: (id: number) => Promise<unknown>;
+      };
+      
+      // Scrape
+      scrape: {
+        runNow: (payload: unknown) => Promise<unknown>;
+        jobStatus: (id: number) => Promise<unknown>;
+        listJobs: (payload?: unknown) => Promise<unknown>;
+        jobSize: (id: number) => Promise<unknown>;
+        jobArticles: (payload: unknown) => Promise<unknown>;
+      };
+      
+      // Articles
+      articles: {
+        list: (payload?: unknown) => Promise<unknown>;
+        get: (id: number) => Promise<unknown>;
+        reparse: (id: number) => Promise<unknown>;
+        distinctFqdns: () => Promise<unknown>;
+        distinctSectionPaths: (fqdn: string) => Promise<unknown>;
+        listFiltered: (payload: unknown) => Promise<unknown>;
+        countFiltered: (payload: unknown) => Promise<unknown>;
+        export: (payload: unknown) => Promise<unknown>;
+      };
+      
+      // Manual Articles
+      manualArticles: {
+        parse: (payload: unknown) => Promise<unknown>;
+        list: (payload?: unknown) => Promise<unknown>;
+        count: (payload?: unknown) => Promise<unknown>;
+        get: (id: number) => Promise<unknown>;
+        delete: (id: number) => Promise<unknown>;
+        reparse: (id: number) => Promise<unknown>;
+      };
+      
+      // Analytics
+      analytics: {
+        getWebsite: (payload: unknown) => Promise<unknown>;
+        runSection: (payload: unknown) => Promise<unknown>;
+      };
+      
+      // Sections
+      sections: {
+        delete: (id: number) => Promise<unknown>;
+        add: (payload: unknown) => Promise<unknown>;
+      };
+      
+      // Store
+      store: {
+        getAll: () => Promise<unknown>;
+      };
+      
+      // Settings
+      settings: {
+        get: () => Promise<unknown>;
+        set: (payload: unknown) => Promise<unknown>;
+        updateLoadControl: (payload: unknown) => Promise<unknown>;
+      };
+      
+      // Shell
+      shell: {
+        openPath: (path: string) => Promise<unknown>;
+      };
+      
+      // Memory Monitor
+      memory: {
+        start: () => Promise<unknown>;
+        stop: () => Promise<unknown>;
+        export: () => Promise<unknown>;
+      };
+      
+      // Auth
+      auth: {
+        openLogin: () => Promise<unknown>;
+        getStatus: () => Promise<unknown>;
+        clear: () => Promise<unknown>;
+      };
+    };
+
+    /** Browser extension download bridge (extensionHandler) */
+    extensionDownloadBridge?: {
+      onDownload: (callback: (data: { url: string; title: string; format_id?: string; autoDownload?: boolean }) => void) => void;
+      offDownload: () => void;
     };
 
     // Optional UI managers (may be set by app)
