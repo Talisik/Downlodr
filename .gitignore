@@ -144,3 +144,5 @@ out/
 newSrc/
 extensions/whisper-x-extension
 extensions/yt-dlp-extension
+
+lint-output.txt
