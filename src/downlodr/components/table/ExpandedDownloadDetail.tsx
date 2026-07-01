@@ -29,10 +29,16 @@ interface DownloadDetails {
 // Interface representing the props for the ExpandedDownloadDetails component
 interface ExpandedDownloadDetailsProps {
   download?: DownloadDetails | null;
+  finishedCount?: number;
+  queuedCount?: number;
+  failedCount?: number;
 }
 
 const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
   download,
+  finishedCount = 0,
+  queuedCount = 0,
+  failedCount = 0,
 }) => {
   // state to track expanded/collapsed state
   const { isDownloadDetailExpanded, setIsDownloadDetailExpanded } =
@@ -66,33 +72,8 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
 
   return (
     <div
-      className={`w-full rounded-md bg-white dark:bg-darkMode dark:border-t dark:border-darkModeCompliment dark:bg-darkModeCompliment h-auto flex flex-col shadow-lg transition-all duration-300`}
+      className={`w-full rounded-md bg-white dark:bg-darkModeTable dark:border-t dark:border-darkModeCompliment dark:bg-darkModeCompliment h-auto flex flex-col shadow-lg transition-all duration-300`}
     >
-      {/* Progress Bar - Always visible */}
-      <div className="px-4 pt-2 pb-1">
-        <div className="flex flex-row items-center gap-4">
-          <p className="font-semibold dark:text-gray-200 text-[12px]">
-            Progress
-          </p>
-          <div className="w-full">
-            <div className="w-full bg-[#E8E8E8] dark:bg-darkModeDarkGray rounded-full h-1.5">
-              <div
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  isEmpty || !download.progress || download.progress === 0
-                    ? 'bg-gray-400 dark:bg-darkModeDarkGray'
-                    : 'bg-green-500'
-                }`}
-                style={{ width: `${isEmpty ? 0 : download.progress || 0}%` }}
-              ></div>
-            </div>
-          </div>
-          {/* Add percentage number */}
-          <span className="dark:text-gray-200 text-[12px]">
-            {isEmpty ? 0 : download.progress || 0}%
-          </span>
-        </div>
-      </div>
-
       {/* The rest of your details component - now using CSS for visibility */}
       <div
         className={`px-4 pb-2 overflow-hidden transition-all duration-300 ${
@@ -101,6 +82,30 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
             : 'max-h-0 opacity-0'
         }`}
       >
+        {/* Progress Bar - visible when expanded */}
+        <div className="pt-2 pb-1">
+          <div className="flex flex-row items-center gap-4">
+            <p className="font-semibold dark:text-gray-200 text-[12px]">
+              Progress
+            </p>
+            <div className="w-full">
+              <div className="w-full bg-[#E8E8E8] dark:bg-darkModeDarkGray rounded-full h-1.5">
+                <div
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    isEmpty || !download.progress || download.progress === 0
+                      ? 'bg-gray-400 dark:bg-darkModeDarkGray'
+                      : 'bg-green-500'
+                  }`}
+                  style={{ width: `${isEmpty ? 0 : download.progress || 0}%` }}
+                ></div>
+              </div>
+            </div>
+            <span className="dark:text-gray-200 text-[12px]">
+              {isEmpty ? 0 : download.progress || 0}%
+            </span>
+          </div>
+        </div>
+
         <div className="flex flex-col md:flex-row py-2 justify-center">
           {/* Transfer section - now takes 40% of the space */}
           <div className="p-3 w-full md:w-2/5">
@@ -173,17 +178,17 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
 
       {/* Status bar - always visible */}
       <div
-        className="sticky bottom-0 left-0 right-0 py-1 flex justify-between mt-auto cursor-pointer"
+        className="sticky bottom-0 left-0 right-0 py-1 px-2 flex items-center gap-3 mt-auto cursor-pointer"
         onClick={(e) => {
-          e.stopPropagation(); // Prevent double toggle from parent div click
+          e.stopPropagation();
           toggleExpanded();
         }}
       >
         {/* Toggle button */}
         <button
-          className="ml-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+          className="ml-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors flex-shrink-0 pb-2"
           onClick={(e) => {
-            e.stopPropagation(); // Prevent double toggle from parent div click
+            e.stopPropagation();
             toggleExpanded();
           }}
         >
@@ -216,26 +221,64 @@ const ExpandedDownloadDetails: React.FC<ExpandedDownloadDetailsProps> = ({
           )}
         </button>
 
-        {/* Download info */}
-        <p className="text-gray-600 dark:text-gray-300 px-4 flex items-center text-[11px]">
-          <svg
-            className="w-3 h-3 mr-1"
-            fill="#34C759"
-            viewBox="0 0 20 20"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              fillRule="evenodd"
-              d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-              clipRule="evenodd"
-            ></path>
-          </svg>
-          {isEmpty
-            ? '0 MB/s'
-            : `${download.speed || '0 MB/s'} (${formatFileSize(
-                download.size || 0,
-              )})`}
-        </p>
+        {/* Collapsed-only: status counts, speed, and progress bar */}
+        {!isDownloadDetailExpanded && (
+          <div className="flex items-center gap-3 justify-center flex-1 min-w-0 pb-2 px-2">
+            <div className="flex items-center gap-3 text-[11px] text-gray-600 dark:text-gray-300 flex-shrink-0">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                {finishedCount} finished
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500 flex-shrink-0"></span>
+                {queuedCount} queued
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></span>
+                {failedCount} failed
+              </span>
+            </div>
+
+            <p className="text-gray-600 dark:text-gray-300 flex items-center text-[11px] flex-shrink-0">
+              <svg
+                className="w-3 h-3 mr-1"
+                fill="#34C759"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                ></path>
+              </svg>
+              {isEmpty
+                ? '0 MB/s'
+                : `${download.speed || '0 MB/s'} (${formatFileSize(
+                    download.size || 0,
+                  )})`}
+            </p>
+
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <span className="text-[11px] text-gray-600 dark:text-gray-300 flex-shrink-0">
+                Progress
+              </span>
+              <div className="flex-1 bg-[#E8E8E8] dark:bg-darkModeDarkGray rounded-full h-1.5 min-w-0">
+                <div
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    isEmpty || !download.progress || download.progress === 0
+                      ? 'bg-gray-400 dark:bg-darkModeDarkGray'
+                      : 'bg-green-500'
+                  }`}
+                  style={{ width: `${isEmpty ? 0 : download.progress || 0}%` }}
+                ></div>
+              </div>
+              <span className="text-[11px] text-gray-600 dark:text-gray-300 flex-shrink-0">
+                {isEmpty ? 0 : download.progress || 0}%
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

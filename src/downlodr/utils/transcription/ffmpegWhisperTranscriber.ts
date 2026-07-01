@@ -22,7 +22,7 @@ export interface WhisperTranscriptionOptions {
   inputFile: string;
   /** Path where the transcription file will be saved */
   outputFile?: string;
-  /** Path to the Whisper model file (defaults to ggml-base.bin in project root) */
+  /** Path to the Whisper model file (defaults to ggml-small.bin in project root) */
   modelPath?: string;
   /** Language code for transcription (e.g., 'en', 'tl', 'es') */
   language?: string;
@@ -50,7 +50,7 @@ export interface WhisperTranscriptionResult {
 }
 
 export class FFmpegWhisperTranscriber {
-  private static readonly DEFAULT_MODEL_NAME = 'ggml-base.bin';
+  private static readonly DEFAULT_MODEL_NAME = 'ggml-small.bin';
   private static readonly SUPPORTED_FORMATS = ['srt', 'vtt', 'txt'] as const;
   private static readonly SUPPORTED_AUDIO_EXTENSIONS = [
     '.mp3',
@@ -598,7 +598,7 @@ export class FFmpegWhisperTranscriber {
     }
 
     // Set default language
-    const language = options.language || 'en';
+    const language = options.language || 'auto';
 
     return {
       inputFile: options.inputFile,

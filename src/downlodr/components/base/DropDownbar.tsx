@@ -25,6 +25,7 @@ import {
   useDownloadStore,
 } from '@/downlodr/store/downloadStore';
 import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
+import { useDropdownAnimation } from '@/core-app/hooks/animation/useDropdownAnimation';
 import { useEffect, useRef, useState } from 'react';
 import { AiOutlineExclamationCircle } from 'react-icons/ai';
 import { FiBook, FiSearch } from 'react-icons/fi';
@@ -50,6 +51,9 @@ const DropdownBar = ({ className }: { className?: string }) => {
   const setActiveButton = useTaskbarDownloadStore(
     (state) => state.setActiveButton,
   );
+
+  const { ref: fileRef, mounted: fileMounted } = useDropdownAnimation(activeMenu === 'file');
+  const { ref: helpRef, mounted: helpMounted } = useDropdownAnimation(activeMenu === 'help');
 
   // Search
   const [searchTerm, setSearchTerm] = useState('');
@@ -218,14 +222,19 @@ const DropdownBar = ({ className }: { className?: string }) => {
       try {
         const result = await window.updateAPI.checkForUpdates();
         if (result.error) {
-          // Handle error from update checker
           toast({
             variant: 'destructive',
             title: 'Update Check Failed',
             description: result.error,
             duration: 4000,
           });
-        } else if (!result.hasUpdate) {
+        } else if (result.hasUpdate) {
+          toast({
+            title: `Update v${result.latestVersion} available`,
+            description: 'Downloading in the background...',
+            duration: 4000,
+          });
+        } else {
           toast({
             title: "You're up to date!",
             description: `You're using the latest version (v${result.currentVersion}).`,
@@ -288,8 +297,8 @@ const DropdownBar = ({ className }: { className?: string }) => {
           >
             File
           </button>
-          {activeMenu === 'file' && (
-            <div className="absolute left-0 mt-1 w-[100px] bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+          {fileMounted && (
+            <div ref={fileRef} className="absolute left-0 mt-1 w-[100px] bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <div className="mx-1">
                 <NavLink
                   to="/history"
@@ -343,8 +352,8 @@ const DropdownBar = ({ className }: { className?: string }) => {
           >
             Help
           </button>
-          {activeMenu === 'help' && (
-            <div className="absolute left-0 mt-1 w-[125px] bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+          {helpMounted && (
+            <div ref={helpRef} className="absolute left-0 mt-1 w-[125px] bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
               <div className="mx-1">
                 <button
                   className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"

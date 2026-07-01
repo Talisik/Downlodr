@@ -4,8 +4,15 @@
  * non-subscription downloads render as StatusPageTableRow (unchanged).
  */
 import ArticleSidePanelManager from '@/afda/components/ArticleSidePanelManager';
+import { ArticleDownloadTableRow } from '@/afda/components/ArticleDownloadTableRow';
+import AfdaTableGroup from '@/afda/components/AfdaTableGroup';
+import { useAfdaStore } from '@/afda/store/afdaStore';
+import type {
+  ArticleSearchableDownload,
+  SearchableDownload,
+} from '@/downlodr/store/taskbarDownloadStore';
 import EmptySearch from '@/assets/icon/EmptySearch';
-import type { SearchableDownload } from '@/downlodr/store/taskbarDownloadStore';
+
 import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
 import React, {
@@ -15,12 +22,12 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import { StatusPageTableHeader } from './StatusPageTableHeader';
 import type { DisplayColumn } from './statusPageTypes';
 
 import Toolbar from '@/downlodr/components/base/Toolbar';
 import SkedulosaTableGroup from '@/skedulosa/components/SkedulosaTableGroup';
-import { splitBySubscription } from '@/skedulosa/utils/skedulosaGroupUtils';
 import { StatusPageTableRow } from './StatusPageTableRow';
 
 export interface StatusPageTableProps {
@@ -36,9 +43,9 @@ export interface StatusPageTableProps {
   sortDirection: 'asc' | 'desc';
   dragging: { columnId: string; index: number } | null;
   dragOverIndex: number | null;
-  getSelectedWithStatusCount: () => number;
+  onClearSelection: () => void;
+  onSelectPage: (pageIds: string[], allPageSelected: boolean) => void;
   onColumnHeaderContextMenu: (e: React.MouseEvent) => void;
-  onSelectAll: () => void;
   onSortClick: (columnId: string) => void;
   onResizeStart: (columnId: string, clientX: number) => void;
   startDragging: (columnId: string, index: number) => void;
@@ -63,7 +70,7 @@ export interface StatusPageTableProps {
   onClosePluginSidebar: () => void;
   onGroupCheckboxChange: (downloadIds: string[]) => void;
   onViewEmbed: (download: SearchableDownload) => void;
-  videoPlayerPanel?: React.ReactNode;
+  isPanelOpen?: boolean;
 }
 
 export const StatusPageTable: React.FC<StatusPageTableProps> = ({
@@ -79,9 +86,9 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
   sortDirection,
   dragging,
   dragOverIndex,
-  getSelectedWithStatusCount,
+  onClearSelection,
+  onSelectPage,
   onColumnHeaderContextMenu,
-  onSelectAll,
   onSortClick,
   onResizeStart,
   startDragging,
@@ -101,9 +108,10 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
   onClosePluginSidebar,
   onGroupCheckboxChange,
   onViewEmbed,
-  videoPlayerPanel,
+  isPanelOpen,
 }) => {
   const clearSearch = useTaskbarDownloadStore((s) => s.clearSearch);
+  const isArticlePanelOpen = useAfdaStore((s) => s.isOpen);
   const subscriptions = useSkedulosaStore((s) => s.subscriptions);
   const scrapingChannels = useSkedulosaStore((s) => s.scrapingChannels);
   const [pendingCountBySubId, setPendingCountBySubId] = useState<
@@ -112,6 +120,20 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const PAGE_SIZE = 10;
+  const [currentPage, setCurrentPage] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Reset to first page when the downloads list changes (e.g. navigating status pages)
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [allDownloads.length]);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   const handleScroll = useCallback(() => {
     setIsScrolling(true);
@@ -149,43 +171,129 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
     };
   }, [allDownloads.length, subscriptions]);
 
-  // Split once per allDownloads change; groups preserve insertion order of first download.
-  const { grouped } = useMemo(
-    () => splitBySubscription(allDownloads),
-    [allDownloads],
-  );
-
-  // Build render list that interleaves groups and ungrouped rows in their
-  // original list positions (group appears where its first download was).
-  const renderItems = useMemo(() => {
-    type RenderItem =
-      | { type: 'ungrouped'; download: SearchableDownload; index: number }
-      | { type: 'group'; subscriptionId: string };
+  // Each group (Skedulosa or AFDA) counts as 1 pagination item, not N downloads.
+  const allVirtualItems = useMemo(() => {
+    type VirtualItem =
+      | { type: 'ungrouped'; download: SearchableDownload }
+      | {
+          type: 'group';
+          subscriptionId: string;
+          downloads: SearchableDownload[];
+        }
+      | {
+          type: 'afda-group';
+          websiteId: string;
+          downloads: ArticleSearchableDownload[];
+        };
 
     const subscriptionIds = new Set(subscriptions.map((s) => s.id));
-    const items: RenderItem[] = [];
-    const seenGroups = new Set<string>();
-    let ungroupedIndex = 0;
+    const skedulosaGroups: Record<string, SearchableDownload[]> = {};
+    const afdaGroups: Record<string, ArticleSearchableDownload[]> = {};
 
     for (const download of allDownloads) {
       const subId = download.subscriptionId;
-      if (!subId || !subscriptionIds.has(subId)) {
-        items.push({ type: 'ungrouped', download, index: ungroupedIndex++ });
+      if (download.type === 'article' && subId) {
+        if (!afdaGroups[subId]) afdaGroups[subId] = [];
+        afdaGroups[subId].push(download as ArticleSearchableDownload);
+      } else if (subId && subscriptionIds.has(subId)) {
+        if (!skedulosaGroups[subId]) skedulosaGroups[subId] = [];
+        skedulosaGroups[subId].push(download);
+      }
+    }
+
+    const items: VirtualItem[] = [];
+    const seenGroups = new Set<string>();
+    const seenAfdaGroups = new Set<string>();
+
+    for (const download of allDownloads) {
+      const subId = download.subscriptionId;
+      if (download.type === 'article' && subId) {
+        if (!seenAfdaGroups.has(subId)) {
+          seenAfdaGroups.add(subId);
+          items.push({
+            type: 'afda-group',
+            websiteId: subId,
+            downloads: afdaGroups[subId],
+          });
+        }
+      } else if (!subId || !subscriptionIds.has(subId)) {
+        items.push({ type: 'ungrouped', download });
       } else if (!seenGroups.has(subId)) {
         seenGroups.add(subId);
-        items.push({ type: 'group', subscriptionId: subId });
+        items.push({
+          type: 'group',
+          subscriptionId: subId,
+          downloads: skedulosaGroups[subId],
+        });
       }
     }
 
     return items;
   }, [allDownloads, subscriptions]);
 
+  const totalPages = Math.ceil(allVirtualItems.length / PAGE_SIZE);
+  const pageStart = currentPage * PAGE_SIZE + 1;
+  const pageEnd = Math.min(
+    (currentPage + 1) * PAGE_SIZE,
+    allVirtualItems.length,
+  );
+
+  const renderItems = useMemo(() => {
+    let ungroupedIndex = currentPage * PAGE_SIZE;
+    return allVirtualItems
+      .slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
+      .map((item) => {
+        if (item.type === 'ungrouped')
+          return { ...item, index: ungroupedIndex++ };
+        return item;
+      });
+  }, [allVirtualItems, currentPage]);
+
+  const pageRowIds = useMemo(() => {
+    const ids: string[] = [];
+    for (const item of renderItems) {
+      if (item.type === 'ungrouped') ids.push(item.download.id);
+      else if (item.type === 'group')
+        ids.push(...item.downloads.map((d) => d.id));
+      else if (item.type === 'afda-group')
+        ids.push(...item.downloads.map((d) => d.id));
+    }
+    return ids;
+  }, [renderItems]);
+
+  const handleSelectAll = useCallback(() => {
+    const allPageSelected = pageRowIds.every((id) =>
+      selectedRowIds.includes(id),
+    );
+    onSelectPage(pageRowIds, allPageSelected);
+  }, [pageRowIds, selectedRowIds, onSelectPage]);
+
+  const PANEL_COLUMNS = ['name', 'size', 'format', 'status'];
+  const EYE_COLUMN: DisplayColumn = { id: 'eye', width: 40 };
+
+  const panelFilteredColumns = isPanelOpen
+    ? displayColumns.filter((c) => PANEL_COLUMNS.includes(c.id))
+    : displayColumns;
+
+  const hiddenColumnIds = isPanelOpen
+    ? displayColumns
+        .filter((c) => !PANEL_COLUMNS.includes(c.id))
+        .map((c) => c.id)
+    : [];
+
+  const effectiveDisplayColumns = isArticlePanelOpen
+    ? panelFilteredColumns.filter((c) => c.id === 'name')
+    : isPanelOpen
+    ? [...panelFilteredColumns, EYE_COLUMN]
+    : panelFilteredColumns;
+
   return (
-    <div className="flex-grow flex flex-col overflow-hidden bg-white dark:bg-darkMode rounded-b-md group/scrollarea">
+    <div className="flex-grow flex flex-col overflow-hidden bg-white dark:bg-darkModeTable rounded-md group/scrollarea gap-2">
       <Toolbar className="pt-2 pb-1 pr-4 flex-shrink-0" />
       <div className="flex-1 flex flex-row overflow-hidden min-w-0">
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <div
+            ref={scrollContainerRef}
             className={`${
               isSearchActive && allDownloads.length === 0 && searchQuery
                 ? ''
@@ -199,17 +307,21 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
           >
             <table className="w-full">
               <StatusPageTableHeader
-                displayColumns={displayColumns}
+                displayColumns={effectiveDisplayColumns}
                 columns={columns}
-                selectedRowIdsLength={selectedRowIds.length}
-                allDownloadsLength={allDownloads.length}
-                getSelectedWithStatusCount={getSelectedWithStatusCount}
+                selectedRowIds={selectedRowIds}
+                pageRowIds={pageRowIds}
+                onClearSelection={onClearSelection}
+                pageStart={pageStart}
+                pageEnd={pageEnd}
+                totalDownloads={allVirtualItems.length}
+                totalPages={totalPages}
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 dragging={dragging}
                 dragOverIndex={dragOverIndex}
                 onColumnHeaderContextMenu={onColumnHeaderContextMenu}
-                onSelectAll={onSelectAll}
+                onSelectAll={handleSelectAll}
                 onSortClick={onSortClick}
                 onResizeStart={onResizeStart}
                 startDragging={startDragging}
@@ -239,7 +351,7 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
                           </div>
                         </div>
                       </td>
-                      {displayColumns.map((col) => (
+                      {effectiveDisplayColumns.map((col) => (
                         <td
                           key={col.id}
                           style={{ width: col.width }}
@@ -250,18 +362,66 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
                   ),
                 )}
                 {renderItems.map((item) => {
+                  if (item.type === 'afda-group') {
+                    return (
+                      <AfdaTableGroup
+                        key={`afda-group-${item.websiteId}`}
+                        websiteId={item.websiteId}
+                        downloads={item.downloads}
+                        displayColumns={effectiveDisplayColumns}
+                        selectedRowIds={selectedRowIds}
+                        selectedDownloadId={selectedDownloadId}
+                        onCheckboxChange={onCheckboxChange}
+                        onRowClick={onRowClick}
+                        onGroupCheckboxChange={onGroupCheckboxChange}
+                        onClosePluginSidebar={onClosePluginSidebar}
+                      />
+                    );
+                  }
+
                   if (item.type === 'ungrouped') {
+                    if (item.download.type === 'article') {
+                      const articleDownload =
+                        item.download as ArticleSearchableDownload;
+                      return (
+                        <ArticleDownloadTableRow
+                          key={articleDownload.id}
+                          download={articleDownload}
+                          displayColumns={effectiveDisplayColumns}
+                          isChecked={selectedRowIds.includes(
+                            articleDownload.id,
+                          )}
+                          isSelectedDownload={
+                            selectedDownloadId === articleDownload.id
+                          }
+                          index={item.index}
+                          hiddenColumnIds={hiddenColumnIds}
+                          onCheckboxChange={() =>
+                            onCheckboxChange(articleDownload.id)
+                          }
+                          onRowClick={() => {
+                            onClosePluginSidebar();
+                            onRowClick(articleDownload.id);
+                          }}
+                          onContextMenu={(e) =>
+                            onContextMenu(e, articleDownload)
+                          }
+                        />
+                      );
+                    }
+
                     return (
                       <StatusPageTableRow
                         key={item.download.id}
                         download={item.download}
-                        displayColumns={displayColumns}
+                        displayColumns={effectiveDisplayColumns}
                         thumbnailDataUrls={thumbnailDataUrls}
                         isChecked={selectedRowIds.includes(item.download.id)}
                         isSelectedDownload={
                           selectedDownloadId === item.download.id
                         }
                         index={item.index}
+                        hiddenColumnIds={hiddenColumnIds}
                         handlers={{
                           onContextMenu,
                           onRowClick: () => {
@@ -292,8 +452,8 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
                       pendingCount={
                         pendingCountBySubId[item.subscriptionId] ?? 0
                       }
-                      downloads={grouped[item.subscriptionId] ?? []}
-                      displayColumns={displayColumns}
+                      downloads={item.downloads}
+                      displayColumns={effectiveDisplayColumns}
                       thumbnailDataUrls={thumbnailDataUrls}
                       selectedRowIds={selectedRowIds}
                       selectedDownloadId={selectedDownloadId}
@@ -316,6 +476,27 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
               </tbody>
             </table>
           </div>
+          {totalPages > 1 && (
+            <div className="flex-shrink-0 flex items-center justify-center gap-1 px-4 py-1.5 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-darkModeTable">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 0}
+                className="p-1 rounded-md text-gray-500 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-darkModeTableBorder transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <LuChevronLeft size={14} />
+              </button>
+              <span className="text-xs text-gray-400 dark:text-gray-500 min-w-[80px] text-center">
+                Page {currentPage + 1} of {totalPages}
+              </span>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages - 1}
+                className="p-1 rounded-md text-gray-500 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-darkModeTableBorder transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <LuChevronRight size={14} />
+              </button>
+            </div>
+          )}
           {isSearchActive && allDownloads.length === 0 && searchQuery && (
             <div className="flex-1 flex flex-col items-center justify-center gap-3">
               <EmptySearch className="text-gray-300 dark:text-gray-600" />
@@ -342,7 +523,6 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
           )}
         </div>
         <ArticleSidePanelManager />
-        {videoPlayerPanel}
       </div>
     </div>
   );

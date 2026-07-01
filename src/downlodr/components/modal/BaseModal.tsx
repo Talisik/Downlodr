@@ -1,3 +1,4 @@
+import { useModalAnimation } from '@/core-app/hooks/animation/usePopModal';
 import { useEffect } from 'react';
 import { IoMdClose } from 'react-icons/io';
 
@@ -12,6 +13,7 @@ interface BaseModalProps {
   width?: string; // tailwind width class
   maxHeight?: string; // optional tailwind max-height class (e.g. max-h-[90vh])
   contentClassName?: string; // optional class for content area (e.g. max-h overflow-y-auto)
+  containerClassName?: string; // optional class to override the modal container (e.g. bg-white)
   closeOnOverlay?: boolean;
   showCloseButton?: boolean;
 }
@@ -25,9 +27,12 @@ const BaseModal: React.FC<BaseModalProps> = ({
   width = 'max-w-lg',
   maxHeight,
   contentClassName,
+  containerClassName,
   closeOnOverlay = true,
   showCloseButton = true,
 }) => {
+  const { overlayRef, modalRef, mounted } = useModalAnimation(isOpen);
+
   // ESC key support
   useEffect(() => {
     if (!isOpen) return;
@@ -45,10 +50,11 @@ const BaseModal: React.FC<BaseModalProps> = ({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!mounted) return null;
 
   return (
     <div
+      ref={overlayRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onClick={(e) => {
         if (closeOnOverlay && e.target === e.currentTarget) {
@@ -57,14 +63,17 @@ const BaseModal: React.FC<BaseModalProps> = ({
       }}
     >
       <div
-        className={`bg-FooterBg dark:bg-darkMode border border-darkModeCompliment rounded-lg w-full ${width} mx-2 shadow-xl flex flex-col overflow-hidden${
+        ref={modalRef}
+        className={`${
+          containerClassName ?? 'bg-FooterBg dark:bg-darkMode'
+        } rounded-lg w-full ${width} mx-2 shadow-xl flex flex-col overflow-hidden${
           maxHeight ? ` ${maxHeight}` : ''
         }`}
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-4">
-            <div className="text-[14px] font-bold text-gray-900 dark:text-gray-100">
+          <div className="flex items-center justify-between p-4 py-6">
+            <div className="text-[14.5px] font-extrabold text-gray-900 dark:text-gray-100">
               {title}
             </div>
 

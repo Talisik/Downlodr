@@ -44,7 +44,6 @@ const DownloadLogs: React.FC<DownloadLogsProps> = ({
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
   const [autoScroll, setAutoScroll] = useState(true);
-  const containerRef = useRef<HTMLDivElement>(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const logContainerRef = useRef<HTMLDivElement>(null);
@@ -82,27 +81,6 @@ const DownloadLogs: React.FC<DownloadLogsProps> = ({
     );
 
   // Removed automatic error telemetry trigger - now handled app-wide by useErrorTelemetryMonitor
-
-  // Handle click outside to close
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        isOpen &&
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen, onClose]);
 
   // Update activity logs when store changes
   useEffect(() => {
@@ -567,12 +545,11 @@ ${
 
   return (
     <div
-      ref={containerRef}
-      className="fixed right-0 top-10 h-full drop-shadow-md bg-white dark:bg-darkMode shadow-lg z-40 flex flex-col border-l-2 border-[#D1D5DB] dark:border-darkModeCompliment"
-      style={{ width: '350px' }}
+      className="h-full bg-white dark:bg-darkMode flex flex-col flex-shrink-0"
+      style={{ width: '400px' }}
     >
       {/* Header */}
-      <div className="bg-titleBar pr-6 pl-4 dark:bg-darkModeDropdown px-2 py-1 pt-[11px] dark:border-darkModeCompliment flex items-center justify-between">
+      <div className="bg-toggleGroupBaseColor pr-6 pl-4 dark:bg-darkModeTable px-2 py-1 pt-[11px] dark:border-darkModeCompliment flex items-center justify-between rounded-t-md">
         <div className="flex items-center flex-1">
           <IoCodeSlashSharp
             size={16}
@@ -681,7 +658,7 @@ ${
       </div>
 
       {/* Log content container */}
-      <div className="flex-1 overflow-hidden mb-10">
+      <div className="flex-1 overflow-hidden mb-4">
         <div
           ref={logContainerRef}
           onScroll={handleScroll}

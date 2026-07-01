@@ -58,8 +58,13 @@ export function createQueueActions(set: SetState, get: GetState) {
           getThumbnail,
           duration,
           isCreateFolder,
+          description,
+          chapters,
+          autoCaptionLocation,
+          thumnailsLocation,
+          transcriptLocation,
         } = payload;
-
+        console.log('[Queue] addQueue called with payload:', payload);
         const queueId = uuidv4();
 
         set((state) => ({
@@ -92,13 +97,16 @@ export function createQueueActions(set: SetState, get: GetState) {
               getThumbnail,
               duration,
               isCreateFolder,
+              description,
+              chapters,
+              autoCaptionLocation,
+              thumnailsLocation,
+              transcriptLocation,
               queuedAt: new Date().toISOString(),
               tags: [],
               category: [],
               isLive: false,
               elapsed: 0,
-              autoCaptionLocation: 'eee',
-              thumnailsLocation: '',
               controllerId: undefined,
               log: '',
               downloadPhase: 'video' as const,

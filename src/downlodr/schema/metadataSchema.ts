@@ -39,6 +39,7 @@ export interface VideoInfo {
     is_live?: boolean;
     elapsed?: number | null;
     duration?: number | null;
+    chapters?: { start_time: number; end_time: number; title: string }[];
   };
 }
 

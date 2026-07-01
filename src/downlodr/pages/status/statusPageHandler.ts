@@ -3,6 +3,7 @@
  * and pass the required state/setters so handlers update the correct UI.
  */
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
+import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import { DownloadItem } from '@/downlodr/schema/componentSchema';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import type { SearchableDownload } from '@/downlodr/store/taskbarDownloadStore';
@@ -82,6 +83,7 @@ function toDownloadItem(download: SearchableDownload): DownloadItem {
 export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
   const { t } = useTranslation('downlodr');
   const deleteDownload = useDownloadStore((s) => s.deleteDownload);
+  const removeArticleDownload = useArticleDownloadStore((s) => s.removeArticleDownload);
   const depsRef = useRef(deps);
   depsRef.current = deps;
 
@@ -104,7 +106,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
     redownloadTranscript({
       inputFile: inputLocation,
       outputFile: outputLocation,
-      modelPath: 'ggml-base.bin',
+      modelPath: 'ggml-small.bin',
       language: 'en',
       format: 'srt',
     });
@@ -611,6 +613,20 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
       const download = allDownloads.find((d) => d.id === downloadId);
       if (!download) return;
 
+      // Article downloads live in articleDownloadStore, not downloadStore.
+      if ((download as { type?: string }).type === 'article') {
+        const filePath = download.location;
+        if (filePath) {
+          // Best-effort file delete; ignore errors (file may not exist yet).
+          try { await window.downlodrFunctions.deleteFile(filePath); } catch { /* ignore */ }
+        }
+        removeArticleDownload(downloadId);
+        setSelectedRowIds([]);
+        setSelectedDownloads([]);
+        closeContextMenu(setContextMenu);
+        return;
+      }
+
       const { processQueue } = useDownloadStore.getState();
 
       if (download.status === 'to download') {
@@ -745,7 +761,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
       }
       closeContextMenu(setContextMenu);
     },
-    [deleteDownload],
+    [deleteDownload, removeArticleDownload],
   );
 
   const handleViewFolder = useCallback(

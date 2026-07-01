@@ -15,7 +15,10 @@
 // HIII you are adding disabled tooltip logic, bye bye
 
 import { Play, Stop, StopAll } from '@/assets/icon';
-import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
+import {
+  useTaskbarDownloadStore,
+  type TypeFilter,
+} from '@/downlodr/store/taskbarDownloadStore';
 import { HiXMark } from 'react-icons/hi2';
 import { Button } from '@/core-app/components/shadcn/components/ui/button';
 import { useToast } from '@/core-app/components/shadcn/hooks/use-toast';
@@ -25,25 +28,30 @@ import { useMainStore } from '@/core-app/store/mainStore';
 import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore';
 import { useSettingStore } from '@/core-app/store/settingsStore';
 import TaskBarInputField from '@/downlodr/components/base/InputField/TaskbarInputField';
+import BulkTranscriptModal from '@/downlodr/components/modal/custom/BulkTranscriptModal';
 import FileNotExistModal from '@/downlodr/components/modal/custom/FileNotExistModal';
 import RemoveModal from '@/downlodr/components/modal/custom/RemoveModal';
 import StopModal from '@/downlodr/components/modal/custom/StopModal';
+import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import { DownloadItem } from '@/downlodr/schema/componentSchema';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import PluginToolbarExtension from '@/plugins/components/PluginTaskBarExtension';
 import React, { useState } from 'react';
 import { LuTrash } from 'react-icons/lu';
-import { redownloadTranscript } from '@/downlodr/utils/transcription/ffmpegWhisperTranscriber';
-import { transcriptActions } from '@/transcript/store/transcriptStore';
+import { enqueueTranscript } from '@/downlodr/utils/transcription/transcriptQueue';
 import { FaRegClosedCaptioning } from 'react-icons/fa';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 interface ToolbarProps {
   className?: string;
+  hidePluginExtension?: boolean;
 }
 
-const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
+const Toolbar: React.FC<ToolbarProps> = ({
+  className,
+  hidePluginExtension,
+}) => {
   const { t } = useTranslation('downlodr');
   // Handle state for modal
   const [showStopConfirmation, setShowStopConfirmation] = useState(false);
@@ -56,6 +64,9 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
   const { taskBarButtonsVisibility } = useMainStore();
   const { settings } = useSettingStore();
   const { downloading, forDownloads, finishedDownloads } = useDownloadStore();
+  const removeArticleDownload = useArticleDownloadStore(
+    (s) => s.removeArticleDownload,
+  );
   const setSelectedRowIds = useSelectedDownloadStore(
     (state) => state.setSelectedRowIds,
   );
@@ -72,9 +83,13 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
 
   const searchState = useTaskbarDownloadStore((s) => s.searchState);
   const clearSearch = useTaskbarDownloadStore((s) => s.clearSearch);
+  const activeTypeFilters = useTaskbarDownloadStore((s) => s.activeTypeFilters);
+  const toggleTypeFilter = useTaskbarDownloadStore((s) => s.toggleTypeFilter);
 
-  // confirmation modal
+  // confirmation modals
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
+  const [showBulkTranscriptConfirmation, setShowBulkTranscriptConfirmation] =
+    useState(false);
 
   // Check if any selected downloads are in "to download" status (for Start button)
   const hasForDownloadStatus = selectedDownloads.some((download) =>
@@ -130,6 +145,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
         fd !== undefined &&
         fd.status === 'finished' &&
         fd.transcriptionStatus !== 'transcribing' &&
+        fd.transcriptionStatus !== 'queued' &&
         isTranscriptMissing(fd.transcriptLocation, fd.autoCaptionLocation),
     );
 
@@ -516,7 +532,25 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
 
     // Process each download
     for (const download of downloadsToRemove) {
-      if (!download.location || !download.id) {
+      if (!download.id) continue;
+
+      // Article downloads live in articleDownloadStore, not downloadStore.
+      const isArticle =
+        (download.download as { type?: string })?.type === 'article';
+      if (isArticle) {
+        const filePath = download.location;
+        if (filePath) {
+          try {
+            await window.downlodrFunctions.deleteFile(filePath);
+          } catch {
+            /* ignore */
+          }
+        }
+        removeArticleDownload(download.id);
+        continue;
+      }
+
+      if (!download.location) {
         continue;
       }
 
@@ -646,41 +680,6 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
     setShowRemoveConfirmation(true);
   };
 
-  const setDownloadTranscriptionStatus = (
-    id: string,
-    status: 'transcribing' | 'completed' | 'failed',
-  ) => {
-    useDownloadStore.setState((state) => {
-      const withStatus = <
-        T extends {
-          id: string;
-          transcriptionStatus?: string;
-          transcriptionProgress?: number;
-          getTranscript?: boolean;
-        },
-      >(
-        d: T,
-      ): T =>
-        d.id === id
-          ? {
-              ...d,
-              transcriptionStatus: status,
-              ...(status === 'transcribing'
-                ? { getTranscript: true, transcriptionProgress: 0 }
-                : {}),
-              ...(status === 'completed' ? { transcriptionProgress: 100 } : {}),
-            }
-          : d;
-      return {
-        forDownloads: state.forDownloads.map(withStatus),
-        downloading: state.downloading.map(withStatus),
-        finishedDownloads: state.finishedDownloads.map(withStatus),
-        historyDownloads: state.historyDownloads.map(withStatus),
-        queuedDownloads: state.queuedDownloads.map(withStatus),
-      };
-    });
-  };
-
   const handleGetLink = async () => {
     if (selectedDownloads.length !== 1) {
       toast({
@@ -697,24 +696,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
     console.log('Direct URL:', directUrl);
   };
 
-  const setDownloadTranscriptionProgress = (id: string, percent: number) => {
-    useDownloadStore.setState((state) => {
-      const withProgress = <
-        T extends { id: string; transcriptionProgress?: number },
-      >(
-        d: T,
-      ): T => (d.id === id ? { ...d, transcriptionProgress: percent } : d);
-      return {
-        forDownloads: state.forDownloads.map(withProgress),
-        downloading: state.downloading.map(withProgress),
-        finishedDownloads: state.finishedDownloads.map(withProgress),
-        historyDownloads: state.historyDownloads.map(withProgress),
-        queuedDownloads: state.queuedDownloads.map(withProgress),
-      };
-    });
-  };
-
-  const handleBatchTranscript = async () => {
+  const handleBatchTranscript = () => {
     if (eligibleSelectedDownloads.length === 0) {
       toast({
         variant: 'destructive',
@@ -724,14 +706,19 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
       });
       return;
     }
+    setShowBulkTranscriptConfirmation(true);
+  };
 
-    // Snapshot eligible downloads and clear selection immediately
+  const runBatchTranscript = () => {
     const downloadsToProcess = [...eligibleSelectedDownloads];
     clearAllSelections();
 
-    // Mark all queued downloads as transcribing immediately so rows show progress bar
     for (const download of downloadsToProcess) {
-      setDownloadTranscriptionStatus(download.id, 'transcribing');
+      enqueueTranscript({
+        downloadId: download.id,
+        location: download.location,
+        downloadName: download.downloadName,
+      });
     }
 
     toast({
@@ -741,67 +728,6 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
       }),
       duration: 4000,
     });
-
-    const { updateDownloadTranscript } = transcriptActions(
-      useDownloadStore.setState,
-      useDownloadStore.getState,
-    );
-
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const download of downloadsToProcess) {
-      const downloadId = download.id;
-
-      const inputLocation = await window.downlodrFunctions.joinDownloadPath(
-        download.location,
-        download.downloadName,
-      );
-      const outputLocation = await window.downlodrFunctions.joinDownloadPath(
-        download.location,
-        download.downloadName.replace(/\.[^/.]+$/, '.srt'),
-      );
-
-      const result = await redownloadTranscript(
-        {
-          inputFile: inputLocation,
-          outputFile: outputLocation,
-          modelPath: 'ggml-base.bin',
-          language: 'en',
-          format: 'srt',
-        },
-        {
-          onProgressPercent: (percent: number) =>
-            setDownloadTranscriptionProgress(downloadId, percent),
-        },
-      );
-
-      if (result.success && result.outputFile) {
-        setDownloadTranscriptionStatus(downloadId, 'completed');
-        updateDownloadTranscript(downloadId, result.outputFile);
-        successCount++;
-      } else {
-        setDownloadTranscriptionStatus(downloadId, 'failed');
-        failCount++;
-        toast({
-          variant: 'destructive',
-          title: t('toolbar.toast.transcriptionFailedTitle'),
-          description:
-            result.error ?? t('toolbar.toast.transcriptionFailedDefault'),
-          duration: 5000,
-        });
-      }
-    }
-
-    toast({
-      variant: successCount > 0 && failCount === 0 ? 'success' : 'default',
-      title: t('toolbar.toast.batchCompleteTitle'),
-      description: t('toolbar.toast.batchCompleteDesc', {
-        successCount,
-        failCount,
-      }),
-      duration: 5000,
-    });
   };
 
   return (
@@ -809,7 +735,29 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
       <div className="Toolbar-container">
         <div className={cn('flex items-center justify-between', className)}>
           <div className="flex items-center h-full px-2 space-x-0 md:space-x-2">
-            <div className="flex items-center gap-3 pl-4">
+            <div className="flex items-center gap-1.5 pl-2 pr-2">
+              {(['videos', 'subscriptions', 'articles'] as TypeFilter[]).map(
+                (f) => {
+                  const active = activeTypeFilters.has(f);
+                  const label = f.charAt(0).toUpperCase() + f.slice(1);
+                  return (
+                    <button
+                      key={f}
+                      onClick={() => toggleTypeFilter(f)}
+                      className={`h-6 px-2.5 rounded-full text-[11.5px] font-medium transition-colors border ${
+                        active
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:border-primary hover:text-primary dark:hover:text-primary'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                },
+              )}
+            </div>
+            <div className="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1 flex-shrink-0" />
+            <div className="flex items-center gap-3">
               {taskBarButtonsVisibility.start && (
                 <div>
                   <TooltipWrapper
@@ -825,7 +773,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
                         variant="transparent"
                         size="icon"
                         className={cn(
-                          'rounded font-semibold',
+                          'rounded-md h-7 flex items-center justify-center p-[2px] dark:bg-transparent',
                           hasForDownloadStatus
                             ? 'dark:text-gray-100'
                             : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
@@ -849,12 +797,12 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
                     }
                     side="bottom"
                   >
-                    <div className="pb-1">
+                    <div>
                       <Button
                         variant="transparent"
                         size="icon"
                         className={cn(
-                          'rounded font-semibold',
+                          'rounded-md h-7 flex items-center justify-center p-[2px] bg-[#f9f9f9] dark:bg-transparent hover:bg-gray-100 dark:hover:bg-darkModeHover',
                           hasActiveDownloadStatus
                             ? 'dark:text-gray-100'
                             : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
@@ -867,6 +815,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
                   </TooltipWrapper>
                 </div>
               )}
+              {/*
               {taskBarButtonsVisibility.stopAll && (
                 <div className="">
                   <TooltipWrapper
@@ -882,19 +831,20 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
                         variant="transparent"
                         size="icon"
                         className={cn(
-                          'rounded font-semibold',
+                          'rounded-md h-7 flex items-center justify-center p-[2px] bg-[#f9f9f9] dark:bg-transparent hover:bg-gray-100 dark:hover:bg-darkModeHover',
                           hasDownloadingStatus
                             ? 'dark:text-gray-100'
                             : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
                         )}
                         onClick={() => handleStopAll()}
                         disabled={!hasDownloadingStatus}
-                        icon={<StopAll />}
+                        icon={<StopAll className="w-[16px] h-[16px]" />}
                       />
                     </div>
                   </TooltipWrapper>
                 </div>
               )}
+                 */}
               {(location.pathname.includes('/status/') ||
                 location.pathname.includes('/tags/') ||
                 location.pathname.includes('/category/')) && (
@@ -906,12 +856,12 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
                   }
                   side="bottom"
                 >
-                  <div className="pb-1">
+                  <div>
                     <Button
                       variant="transparent"
                       size="icon"
                       className={cn(
-                        'px-[10px] py-4 rounded-md flex gap-2 text-sm h-7 items-center hover:bg-gray-100 dark:hover:bg-darkModeHover',
+                        'rounded-md h-7 flex items-center justify-center p-[2px] bg-[#f9f9f9] dark:bg-transparent hover:bg-gray-100 dark:hover:bg-darkModeHover',
                         eligibleSelectedDownloads.length > 0
                           ? 'dark:text-gray-100'
                           : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
@@ -920,7 +870,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
                       disabled={eligibleSelectedDownloads.length === 0}
                       icon={
                         <FaRegClosedCaptioning
-                          size={18}
+                          size={16}
                           className="text-gray-700 dark:text-gray-300 hover:dark:text-gray-100"
                         />
                       }
@@ -928,18 +878,6 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
                   </div>
                 </TooltipWrapper>
               )}
-            </div>
-          </div>
-
-          <div className="pl-4 flex items-center w-full">
-            <div className="w-full flex items-center justify-end">
-              {location.pathname.includes('/status') && (
-                <PluginToolbarExtension />
-              )}
-
-              {/* Portal target for History-specific Remove button */}
-              <div id="Toolbar-portal"></div>
-
               {selectedDownloads.length > 0 &&
                 (location.pathname.includes('/status/') ||
                   location.pathname.includes('/tags/') ||
@@ -951,37 +889,33 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
                     <Button
                       variant="transparent"
                       size="icon"
-                      className={cn(
-                        'px-[10px] py-4 rounded-md flex gap-2 text-sm h-7 items-center hover:bg-gray-100 dark:hover:bg-darkModeHover',
-                        selectedDownloads.length > 0 &&
-                          (location.pathname.includes('/status/') ||
-                            location.pathname.includes('/tags/') ||
-                            location.pathname.includes('/category/'))
-                          ? 'dark:text-gray-500'
-                          : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
-                      )}
+                      className="text-[12px] text-white rounded-md h-6 flex items-center justify-center px-2 py-[2px] bg-[#FF4F45] hover:bg-red-200 dark:hover:bg-red-900/40"
                       onClick={handleRemoveButtonClick}
-                      disabled={
-                        !(
-                          selectedDownloads.length > 0 &&
-                          (location.pathname.includes('/status/') ||
-                            location.pathname.includes('/tags/') ||
-                            location.pathname.includes('/category/'))
-                        )
-                      }
                       icon={
                         <LuTrash
-                          size={15}
-                          className="text-gray-700 dark:text-gray-300 hover:dark:text-gray-100"
+                          size={13}
+                          className="text-white dark:text-white"
                         />
                       }
-                    />
+                    >
+                      {t('toolbar.deleteLabel')}
+                    </Button>
                   </TooltipWrapper>
                 )}
-
-              <TaskBarInputField />
             </div>
           </div>
+
+          <div className="pl-4 flex items-center w-full">
+            <div className="w-full flex items-center justify-end">
+              {location.pathname.includes('/status') &&
+                !hidePluginExtension && <PluginToolbarExtension />}
+
+              {/* Portal target for History-specific Remove button */}
+              <div id="Toolbar-portal"></div>
+            </div>
+          </div>
+
+          <TaskBarInputField />
         </div>
         <StopModal
           isOpen={showStopConfirmation}
@@ -1008,6 +942,12 @@ const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
             setShowRemoveConfirmation(false);
           }}
           allowFolderDeletion={true}
+        />
+        <BulkTranscriptModal
+          isOpen={showBulkTranscriptConfirmation}
+          onClose={() => setShowBulkTranscriptConfirmation(false)}
+          onConfirm={runBatchTranscript}
+          count={eligibleSelectedDownloads.length}
         />
       </div>
       {/* {searchState.isSearchActive && searchState.searchQuery && (

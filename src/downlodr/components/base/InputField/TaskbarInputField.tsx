@@ -1,6 +1,12 @@
 import { Copy, Download, Folder as FolderIcon, Settings } from '@/assets/icon';
 import { useAfdaStore } from '@/afda/store/afdaStore';
-import { isArticleKeyword } from '@/afda/utils/articleDetection';
+import { isArticleSiteUrl } from '@/afda/utils/articleSiteDetection';
+import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
+import {
+  fetchAsDataUrl,
+  generateArticleDocx,
+  sanitizeFilename,
+} from '@/afda/utils/articleDocxGenerator';
 import Input from '@/core-app/components/shadcn/components/ui/input';
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { cn } from '@/core-app/components/shadcn/lib/utils';
@@ -8,6 +14,7 @@ import { waitForStoreRehydration } from '@/core-app/hooks/useStoreRehydration';
 import { useSettingStore } from '@/core-app/store/settingsStore';
 import { cleanRawLink } from '@/core-app/utils/urlValidation';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
+import { processFileName } from '@/downlodr/utils/download/filterName';
 import {
   SearchableDownload,
   useTaskbarDownloadStore,
@@ -18,6 +25,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
+import { useDropdownAnimation } from '@/core-app/hooks/animation/useDropdownAnimation';
 import AdditionalOptions from './AdditionalOptions';
 import FolderDirectory from './FolderDirectory';
 
@@ -26,6 +34,9 @@ const TaskbarInputField = () => {
   const navigate = useNavigate();
   const setPendingSubscribeUrl = useSkedulosaStore(
     (s) => s.setPendingSubscribeUrl,
+  );
+  const setPendingExtensionSubscribe = useSkedulosaStore(
+    (s) => s.setPendingExtensionSubscribe,
   );
   const scheduledChannels = useSkedulosaStore((s) => s.scheduledChannels);
   const downloadFolder = useTaskbarDownloadStore(
@@ -42,6 +53,12 @@ const TaskbarInputField = () => {
   const setPendingInputUrl = useTaskbarDownloadStore(
     (state) => state.setPendingInputUrl,
   );
+  const pendingExtensionDownload = useTaskbarDownloadStore(
+    (state) => state.pendingExtensionDownload,
+  );
+  const setPendingExtensionDownload = useTaskbarDownloadStore(
+    (state) => state.setPendingExtensionDownload,
+  );
   const clearSearch = useTaskbarDownloadStore((state) => state.clearSearch);
   const setSearchState = useTaskbarDownloadStore(
     (state) => state.setSearchState,
@@ -53,6 +70,10 @@ const TaskbarInputField = () => {
   );
   const settings = useSettingStore((state) => state.settings);
   const setDownload = useDownloadStore((state) => state.setDownload);
+  const addQueue = useDownloadStore((state) => state.addQueue);
+  const removeFromForDownloads = useDownloadStore(
+    (state) => state.removeFromForDownloads,
+  );
   const forDownloads = useDownloadStore((state) => state.forDownloads);
   const downloading = useDownloadStore((state) => state.downloading);
   const finishedDownloads = useDownloadStore(
@@ -61,6 +82,16 @@ const TaskbarInputField = () => {
   const historyDownloads = useDownloadStore((state) => state.historyDownloads);
   const queuedDownloads = useDownloadStore((state) => state.queuedDownloads);
   const fetchAndOpenArticle = useAfdaStore((state) => state.fetchAndOpen);
+  const fetchState = useAfdaStore((state) => state.fetchState);
+  const articleData = useAfdaStore((state) => state.articleData);
+  const articleError = useAfdaStore((state) => state.articleError);
+  const addArticleDownload = useArticleDownloadStore(
+    (state) => state.addArticleDownload,
+  );
+  const updateArticleDownload = useArticleDownloadStore(
+    (state) => state.updateArticleDownload,
+  );
+  const pendingArticleIdRef = useRef<string | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [videoTitle, setVideoTitle] = useState<string | null>(null);
@@ -89,6 +120,9 @@ const TaskbarInputField = () => {
   const [, setIsValidatingUrl] = useState<boolean>(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const shouldAutoDownload = useRef(false);
+  const pendingFormatId = useRef<string | null>(null);
+  const silentDownloadUrlRef = useRef<string | null>(null);
 
   // Validates link if it follows the standard format
   const urlPattern = new RegExp(
@@ -223,15 +257,15 @@ const TaskbarInputField = () => {
 
   // Separate validation function
   const validateUrl = (url: string) => {
-    // Article keyword/URL detected — light up the download icon, don't open panel yet
-    if (isArticleKeyword(url)) {
-      setIsArticle(true);
-      clearSearch();
-      return;
-    }
-
     // Check if the URL starts with http or https to determine if it's a valid URL
     if (url.startsWith('http://') || url.startsWith('https://')) {
+      // Article site URL detected — light up the download icon, don't open panel yet
+      if (isArticleSiteUrl(url)) {
+        setIsArticle(true);
+        clearSearch();
+        return;
+      }
+
       if (!urlPattern.test(url)) {
         toast({
           variant: 'destructive',
@@ -292,14 +326,24 @@ const TaskbarInputField = () => {
   };
 
   // Function for receiving download url and handling next actions depending if url is a single download link or playlist link
-  const handleUrl = async (url: string) => {
-    setVideoUrl(url);
+  // Pass { silent: true } to validate without showing the URL in the input (used for extension-injected URLs)
+  const handleUrl = (url: string, { fromChromeExtension = false } = {}) => {
+    if (fromChromeExtension) {
+      silentDownloadUrlRef.current = url;
+    } else {
+      setVideoUrl(url);
+    }
+
     setIsValidUrl(false);
     setIsArticle(false);
     setIsPlaylist(false);
     setSelectedVideos(new Set());
 
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    if (
+      !fromChromeExtension &&
+      !url.startsWith('http://') &&
+      !url.startsWith('https://')
+    ) {
       setSearchState({
         ...searchState,
         isSearchActive: true,
@@ -314,7 +358,7 @@ const TaskbarInputField = () => {
     // Skip validation for empty URLs
     if (!url.trim()) {
       setActiveButton(null);
-      clearSearch();
+      if (!fromChromeExtension) clearSearch();
       return;
     }
 
@@ -380,6 +424,12 @@ const TaskbarInputField = () => {
     }
   };
 
+  const { ref: additionalOptionsRef, mounted: additionalOptionsMounted } =
+    useDropdownAnimation(activeButton === 'settings' && isAdditionalOptionsOpen);
+
+  const { ref: folderRef, mounted: folderMounted } =
+    useDropdownAnimation(activeButton === 'folder');
+
   // Centralized function to close additional options
   const closeAdditionalOptions = useCallback(() => {
     setActiveButton(null);
@@ -399,10 +449,17 @@ const TaskbarInputField = () => {
     closeAdditionalOptions();
   };
 
-  const handleDownload = async () => {
-    // Article flow — fetch article and open the side panel as a viewer
+  const handleDownload = async (
+    autoQueueFormatId?: string,
+    autoDownload?: boolean,
+  ) => {
+    // Article flow — add to store in for_download state, open side panel for preview
     if (isArticle) {
-      fetchAndOpenArticle(videoUrl.trim());
+      const id = crypto.randomUUID();
+      const articleUrl = silentDownloadUrlRef.current ?? videoUrl;
+      addArticleDownload(id, articleUrl.trim());
+      fetchAndOpenArticle(articleUrl.trim());
+      silentDownloadUrlRef.current = null;
       resetModal();
       return;
     }
@@ -445,9 +502,13 @@ const TaskbarInputField = () => {
       } else {
         console.log('single video download');
         // Single video download with user preferences
-        setDownload(videoUrl, downloadFolder, maxDownload, {
+        const urlToDownload = silentDownloadUrlRef.current ?? videoUrl;
+        silentDownloadUrlRef.current = null;
+        setDownload(urlToDownload, downloadFolder, maxDownload, {
           getTranscript,
           getThumbnail,
+          autoQueueFormatId,
+          autoDownload,
         });
       }
 
@@ -510,6 +571,102 @@ const TaskbarInputField = () => {
     }
   }, [pendingInputUrl]);
 
+  // Consume a download triggered while the user was on a skedulosa page
+  // (TaskbarInputField was not mounted then, so it was deferred via the store)
+  useEffect(() => {
+    if (!pendingExtensionDownload) return;
+    shouldAutoDownload.current = true;
+    pendingFormatId.current = pendingExtensionDownload.format_id ?? null;
+    handleUrl(pendingExtensionDownload.url, { fromChromeExtension: true });
+    setPendingExtensionDownload(null);
+  }, [pendingExtensionDownload]);
+
+  // Receive URL from browser extension via IPC
+  useEffect(() => {
+    window.extensionDownloadBridge?.onDownload(
+      ({ url, format_id, autoDownload }) => {
+        if (autoDownload) {
+          shouldAutoDownload.current = true;
+          console.log("sent format id", format_id)
+          pendingFormatId.current = format_id ?? null;
+        } else {
+          setPendingExtensionSubscribe(true);
+        }
+        handleUrl(url, { fromChromeExtension: true });
+      },
+    );
+    return () => {
+      window.extensionDownloadBridge?.offDownload();
+    };
+  }, []);
+
+  // Auto-trigger download when URL validation completes (from /download endpoint)
+  useEffect(() => {
+    if (shouldAutoDownload.current && (isValidUrl || isArticle)) {
+      console.log('inside auto download');
+      shouldAutoDownload.current = false;
+      handleDownload(pendingFormatId.current ?? undefined, true);
+      pendingFormatId.current = null;
+    }
+  }, [isValidUrl, isArticle]);
+
+  // Auto-queue watcher: fires when setDownload marks an entry pendingAutoQueue=true
+  // (extension /download flow). Runs the exact same logic as DownloadButton.handleDownloadClick.
+  useEffect(() => {
+    const pending = forDownloads.filter((d) => d.pendingAutoQueue);
+    if (pending.length === 0) return;
+
+    pending.forEach(async (download) => {
+      // Clear the flag immediately to prevent double-firing
+      useDownloadStore.setState((state) => ({
+        forDownloads: state.forDownloads.map((d) =>
+          d.id === download.id ? { ...d, pendingAutoQueue: false } : d,
+        ),
+      }));
+
+      const processedName = await processFileName(
+        download.location,
+        download.name,
+        download.ext || download.audioExt,
+      );
+
+      console.log("format", download)
+      addQueue({
+        videoUrl: download.videoUrl ?? '',
+        name: `${processedName}.${download.ext}`,
+        downloadName: `${processedName}.${download.ext}`,
+        displayName: download.displayName ?? `${processedName}.${download.ext}`,
+        size: download.size,
+        speed: download.speed,
+        channelName: download.channelName ?? '',
+        timeLeft: download.timeLeft ?? '',
+        DateAdded: new Date().toISOString(),
+        progress: 0,
+        location: download.location ?? '',
+        status: 'queued',
+        ext: download.ext,
+        formatId: download.formatId,
+        audioExt: download.audioExt,
+        audioFormatId: download.audioFormatId,
+        extractorKey: download.extractorKey,
+        limitRate: maxDownload,
+        automaticCaption: download.automaticCaption,
+        thumbnails: download.thumbnails,
+        getTranscript: download.getTranscript ?? false,
+        getThumbnail: download.getThumbnail ?? false,
+        duration: download.duration ?? 60,
+        isCreateFolder: true,
+        description: download.description,
+        chapters: download.chapters,
+        autoCaptionLocation: download.autoCaptionLocation,
+        thumnailsLocation: download.thumnailsLocation,
+        transcriptLocation: download.transcriptLocation,
+      });
+
+      removeFromForDownloads(download.id);
+    });
+  }, [forDownloads]);
+
   // Clear input when search is cleared externally (e.g. via toolbar chip × button)
   useEffect(() => {
     if (
@@ -558,6 +715,66 @@ const TaskbarInputField = () => {
       setIsAdditionalOptionsOpen(true);
     }
   }, [isPlaylist, isValidUrl]);
+
+  useEffect(() => {
+    if (!pendingArticleIdRef.current) return;
+
+    if (fetchState === 'success' && articleData) {
+      const id = pendingArticleIdRef.current;
+      pendingArticleIdRef.current = null;
+      const currentDownloadFolder =
+        useTaskbarDownloadStore.getState().downloadFolder;
+
+      (async () => {
+        try {
+          const buffer = await generateArticleDocx(articleData);
+          const filename = sanitizeFilename(articleData.article_title);
+          const filePath = await window.downlodrFunctions.joinDownloadPath(
+            currentDownloadFolder,
+            `${filename}.docx`,
+          );
+
+          const result = await window.downlodrFunctions.saveBufferToFile(
+            Array.from(buffer),
+            filePath,
+          );
+
+          const fileSize = result.success
+            ? ((await window.downlodrFunctions.getFileSize(filePath)) ?? 0)
+            : 0;
+
+          const thumbUrl = articleData.article_images[0]?.url ?? null;
+          const thumbnailDataUrl = thumbUrl
+            ? await fetchAsDataUrl(thumbUrl)
+            : null;
+
+          updateArticleDownload(id, {
+            status: result.success ? 'finished' : 'failed',
+            filePath: result.success ? filePath : null,
+            fileSize: result.success ? fileSize : null,
+            title: articleData.article_title ?? 'Article',
+            articleData,
+            thumbnailDataUrl,
+            ...(result.success ? {} : { errorMessage: result.error }),
+          });
+        } catch (err) {
+          updateArticleDownload(id, {
+            status: 'failed',
+            errorMessage:
+              err instanceof Error ? err.message : 'Unknown error',
+          });
+        }
+      })();
+    } else if (fetchState === 'error' && articleError) {
+      const id = pendingArticleIdRef.current;
+      pendingArticleIdRef.current = null;
+      updateArticleDownload(id, {
+        status: 'failed',
+        errorMessage:
+          articleError.article_error_status ?? 'Failed to fetch article',
+      });
+    }
+  }, [fetchState, articleData, articleError]);
 
   // Removes focus from input field when window is blurred or mouse leaves the window
   // This is to prevent the input field from being focused so automatic download will still be triggered
@@ -689,20 +906,26 @@ const TaskbarInputField = () => {
         }}
       />
 
-      {activeButton === 'settings' && isAdditionalOptionsOpen && (
-        <AdditionalOptions
-          // isOpenOptions={isAdditionalOptionsOpen}
-          isPlaylist={isPlaylist}
-          isLoading={isLoading}
-          selectAll={selectAll}
-          handleSelectAll={handleSelectAll}
-          videoTitle={videoTitle}
-          playlistVideos={playlistVideos}
-          selectedVideos={selectedVideos}
-          handleVideoSelect={handleVideoSelect}
-        />
+      {additionalOptionsMounted && (
+        <div ref={additionalOptionsRef} className="relative z-[100]">
+          <AdditionalOptions
+            // isOpenOptions={isAdditionalOptionsOpen}
+            isPlaylist={isPlaylist}
+            isLoading={isLoading}
+            selectAll={selectAll}
+            handleSelectAll={handleSelectAll}
+            videoTitle={videoTitle}
+            playlistVideos={playlistVideos}
+            selectedVideos={selectedVideos}
+            handleVideoSelect={handleVideoSelect}
+          />
+        </div>
       )}
-      {activeButton === 'folder' && <FolderDirectory />}
+      {folderMounted && (
+        <div ref={folderRef} className="relative z-[100]">
+          <FolderDirectory />
+        </div>
+      )}
     </div>
   );
 };

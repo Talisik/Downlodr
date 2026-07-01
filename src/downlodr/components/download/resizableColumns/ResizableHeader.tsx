@@ -57,7 +57,7 @@ const ResizableHeader: React.FC<ResizableHeaderProps> = ({
 
   return (
     <th
-      className={`relative pl-2 dark:text-gray-200 select-none${
+      className={`relative pl-2 dark:text-gray-200 select-none ${
         isDragging ? 'opacity-50 bg-blue-100 dark:bg-blue-900' : ''
       } ${isDragOver ? 'border-l-2 border-blue-500' : ''} ${className}`}
       style={{ width: `${width}px`, minWidth: `${width}px` }}

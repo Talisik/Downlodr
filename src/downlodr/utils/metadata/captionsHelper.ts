@@ -189,7 +189,7 @@ async function processM3UPlaylist(filePath: string): Promise<boolean> {
  */
 
 export async function downloadEnglishCaptions(
-  videoInfo: VideoInfo,
+  videoInfo: VideoInfo | CaptionInfo,
   outputPath: string,
   fileName: string,
 ): Promise<string | undefined> {
@@ -200,18 +200,28 @@ export async function downloadEnglishCaptions(
       return undefined;
     }
 
-    // Priority order: English original, then English
-    let captionsData = undefined;
-    let captionLang = '';
-    if (videoInfo) {
-      captionsData = videoInfo;
-      captionLang = 'en';
-    }
-    if (!captionsData) {
-      return undefined;
+    let selectedCaption: CaptionInfo | undefined;
+
+    // If videoInfo is already a pre-selected CaptionInfo object (has url + ext but is not an array),
+    // use it directly — the caller already ran selectOptimalCaption.
+    if (
+      !Array.isArray(videoInfo) &&
+      typeof videoInfo === 'object' &&
+      'url' in videoInfo &&
+      'ext' in videoInfo
+    ) {
+      selectedCaption = videoInfo as CaptionInfo;
+    } else {
+      const captionsData = videoInfo as CaptionInfo[];
+      if (!captionsData || captionsData.length === 0) {
+        return undefined;
+      }
+      selectedCaption = selectCaption(captionsData);
     }
 
-    const selectedCaption = selectCaption(captionsData);
+    if (!selectedCaption) {
+      return undefined;
+    }
 
     // Remove file extension from fileName if it exists
     const fileNameWithoutExt = fileName
@@ -219,8 +229,8 @@ export async function downloadEnglishCaptions(
       : '';
 
     // Use fileName if provided, otherwise fallback to video title/ID
-    const videoId = videoInfo.id || 'video';
-    const videoTitle = fileNameWithoutExt || videoInfo.title || videoId;
+    const videoId = (videoInfo as VideoInfo).id || 'video';
+    const videoTitle = fileNameWithoutExt || (videoInfo as VideoInfo).title || videoId;
     const sanitizedTitle = videoTitle.replace(/[\\ñ'/:*?"<>|]/g, '_');
 
     // Generate output path if not provided

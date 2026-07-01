@@ -25,6 +25,8 @@ interface ShareButtonProps {
   thumbnailLocation?: string;
   format?: string;
   size?: number;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 interface ShareOptionProps {
@@ -71,9 +73,14 @@ const ShareButton = ({
   thumbnailLocation,
   format,
   size,
+  open,
+  onOpenChange,
 }: ShareButtonProps) => {
   const { t } = useTranslation('downlodr');
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = open !== undefined;
+  const isOpen = isControlled ? open : internalOpen;
+  const setIsOpen = isControlled ? (onOpenChange ?? (() => {})) : setInternalOpen;
   const { toast } = useToast();
 
   // Base64 encoding function
@@ -237,20 +244,22 @@ const ShareButton = ({
 
   return (
     <>
-      <TooltipWrapper content={t('shareButton.tooltip')} side="bottom">
-        <Button
-          variant="outline"
-          size="icon"
-          className="text-black dark:text-white bg-transparent dark:bg-transparent hover:bg-gray-50 dark:hover:bg-darkModeHover border-none"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen(true);
-          }}
-          disabled={status !== 'finished'}
-        >
-          <GoShareAndroid size={20} />
-        </Button>
-      </TooltipWrapper>
+      {!isControlled && (
+        <TooltipWrapper content={t('shareButton.tooltip')} side="bottom">
+          <Button
+            variant="outline"
+            size="icon"
+            className="text-black dark:text-white bg-transparent dark:bg-transparent hover:bg-gray-50 dark:hover:bg-darkModeHover border-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(true);
+            }}
+            disabled={status !== 'finished'}
+          >
+            <GoShareAndroid size={20} />
+          </Button>
+        </TooltipWrapper>
+      )}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent onClick={(e) => e.stopPropagation()}>
           <DialogHeader>

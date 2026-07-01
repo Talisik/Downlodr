@@ -22,6 +22,7 @@ interface AboutModalProps {
 const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation('downlodr');
   const [appVersion, setAppVersion] = useState('1.0.0');
+  const [ytdlpVersion, setYtdlpVersion] = useState<string | null>(null);
 
   useEffect(() => {
     const getVersion = async () => {
@@ -33,6 +34,17 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
           }
         } catch (error) {
           console.error('Error getting version:', error);
+        }
+      }
+
+      if (window.ytdlp) {
+        try {
+          const result = await window.ytdlp.getCurrentVersion();
+          if (result?.success && result.version) {
+            setYtdlpVersion(result.version);
+          }
+        } catch {
+          // silently omit if unavailable
         }
       }
     };
@@ -69,9 +81,17 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
 
           <div className="flex flex-col ml-4 items-start">
             <h1 className="font-bold text-xl">Downlodr</h1>
-            <h1 className="font-bold text-[15px] text-[#BCBCBC]">
-              {t('modals.about.version', { version: appVersion })}
-            </h1>
+            <div className="flex gap-1 items-center">
+              <h1 className="font-bold text-[13px] text-[#BCBCBC]">
+                {t('modals.about.version', { version: appVersion })}
+              </h1>
+              <h1>-</h1>
+              {ytdlpVersion && (
+                <h1 className="ml-0.5 text-[13px] text-[#BCBCBC]">
+                  yt-dlp {ytdlpVersion}
+                </h1>
+              )}
+            </div>
           </div>
         </div>
         <div>

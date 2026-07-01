@@ -1,8 +1,6 @@
 /**
- * All modals used by the Status page: FileNotExist, Rename, Remove, Stop, ActivityTracker, DownloadLogs.
+ * All modals used by the Status page: FileNotExist, Rename, Remove, Stop.
  */
-import ActivityTracker from '@/downlodr/components/download/log/ActivityTracker';
-import DownloadLogs from '@/downlodr/components/download/log/DownloadLogs';
 import FileNotExistModal from '@/downlodr/components/modal/custom/FileNotExistModal';
 import RemoveModal from '@/downlodr/components/modal/custom/RemoveModal';
 import RenameModal from '@/downlodr/components/modal/custom/RenameModal';
@@ -24,12 +22,6 @@ export interface StatusPageModalsProps {
   showStopModal: boolean;
   onCloseStopModal: () => void;
   onConfirmStop: () => void;
-  showActivityTracker: boolean;
-  onCloseActivityTracker: () => void;
-  activityTrackerDownloadId: string | null;
-  showLogModal: boolean;
-  onCloseLogModal: () => void;
-  logModalDownloadId: string;
 }
 
 export const StatusPageModals: React.FC<StatusPageModalsProps> = ({
@@ -46,12 +38,6 @@ export const StatusPageModals: React.FC<StatusPageModalsProps> = ({
   showStopModal,
   onCloseStopModal,
   onConfirmStop,
-  showActivityTracker,
-  onCloseActivityTracker,
-  activityTrackerDownloadId,
-  showLogModal,
-  onCloseLogModal,
-  logModalDownloadId,
 }) => (
   <>
     <FileNotExistModal
@@ -77,19 +63,5 @@ export const StatusPageModals: React.FC<StatusPageModalsProps> = ({
       onClose={onCloseStopModal}
       onConfirm={onConfirmStop}
     />
-    {showActivityTracker && (
-      <ActivityTracker
-        isOpen={showActivityTracker}
-        onClose={onCloseActivityTracker}
-        downloadId={activityTrackerDownloadId}
-      />
-    )}
-    {showLogModal && (
-      <DownloadLogs
-        isOpen={showLogModal}
-        onClose={onCloseLogModal}
-        downloadId={logModalDownloadId}
-      />
-    )}
   </>
 );

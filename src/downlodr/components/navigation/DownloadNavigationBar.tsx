@@ -7,7 +7,6 @@ import { BiLayer, BiSolidPlusSquare } from 'react-icons/bi';
 import { BsHourglassSplit, BsTag } from 'react-icons/bs';
 import {
   FiChevronDown,
-  FiChevronLeft,
   FiChevronRight,
   FiDownload,
   FiFolder,
@@ -16,7 +15,7 @@ import { HiMiniArrowPath } from 'react-icons/hi2';
 import { MdPlayArrow, MdSubscriptions } from 'react-icons/md';
 import { PiPauseBold } from 'react-icons/pi';
 import { TbDeviceTabletSearch } from 'react-icons/tb';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useMatch, useResolvedPath } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDownloadStore } from '../../store/downloadStore';
 import CategoryContextMenu from '../contextMenu/CategoryContextMenu';
@@ -24,7 +23,10 @@ import TagContextMenu from '../contextMenu/TagContextMenu';
 
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
+import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import { FaHeart, FaRegTimesCircle } from 'react-icons/fa';
+import { LuNewspaper, LuPanelLeftClose, LuPanelLeftOpen } from 'react-icons/lu';
+import { useNavAnimation } from '@/downlodr/hooks/useNavAnimation';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -42,33 +44,38 @@ const NavItem: React.FC<NavItemProps> = ({
   label,
   icon,
   collapsed,
-  activeClass = 'bg-titleBar dark:bg-darkModeCompliment',
-  hoverClass = 'hover:bg-titleBar dark:hover:bg-darkModeCompliment',
-}) => (
-  <TooltipWrapper content={collapsed ? label : null} side="left">
-    <NavLink
-      to={to}
-      className={({ isActive }) =>
-        collapsed
-          ? `flex justify-center p-2 rounded ${hoverClass} dark:text-gray-200${
-              isActive ? ` ${activeClass}` : ''
-            }`
-          : `nav-link items-center ml-1 dark:text-gray-200 ${hoverClass}${
-              isActive ? ` ${activeClass}` : ''
-            }`
-      }
-    >
-      {icon}
-      {!collapsed && (
-        <span className="ml-2 text-[12px] whitespace-nowrap">{label}</span>
-      )}
-    </NavLink>
-  </TooltipWrapper>
-);
+  activeClass = 'bg-titleBar dark:bg-[#3D3D3D]',
+  hoverClass = 'hover:bg-titleBar dark:hover:bg-red-100',
+}) => {
+  // useMatch instead of NavLink's className render-prop so Radix Slot (used by
+  // TooltipTrigger asChild) receives a plain string — Slot calls .toString() on
+  // non-string values, which turns a function into its source code and strips all
+  // CSS classes (including display:flex), causing the icon/label to stack vertically.
+  const resolved = useResolvedPath(to);
+  const isActive = !!useMatch({ path: resolved.pathname, end: true });
+
+  return (
+    <TooltipWrapper content={collapsed ? label : null} side="left">
+      <NavLink
+        to={to}
+        className={`flex flex-nowrap items-center h-7 rounded dark:text-gray-200 ${hoverClass}${
+          isActive ? ` ${activeClass}` : ''
+        }`}
+      >
+        <span className="flex items-center justify-center w-[46px] flex-shrink-0">
+          {icon}
+        </span>
+        <span className="nav-label text-[12px] whitespace-nowrap overflow-hidden min-w-0">
+          {label}
+        </span>
+      </NavLink>
+    </TooltipWrapper>
+  );
+};
 
 type SectionHeaderProps = {
   label: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   isOpen: boolean;
   collapsed: boolean;
   onToggle: () => void;
@@ -77,31 +84,23 @@ type SectionHeaderProps = {
 
 const SectionHeader: React.FC<SectionHeaderProps> = ({
   label,
-  icon,
   isOpen,
   collapsed,
   onToggle,
   onCollapsedClick,
 }) => (
   <TooltipWrapper content={collapsed ? label : null} side="left">
-    {collapsed ? (
-      <button
-        onClick={onCollapsedClick}
-        className="p-2 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200"
-      >
-        {icon}
-      </button>
-    ) : (
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 px-2 py-1.5 mb-1.5"
-      >
-        {isOpen ? <FiChevronDown size={18} /> : <FiChevronRight size={18} />}
-        <span className="ml-1 text-sm font-semibold whitespace-nowrap">
-          {label}
+    <button
+      onClick={collapsed ? onCollapsedClick : onToggle}
+      className={`w-full flex items-center h-7 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200`}
+    >
+      <span className="nav-label flex items-center gap-1 whitespace-nowrap overflow-hidden min-w-0">
+        <span className="flex-shrink-0">
+          {isOpen ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
         </span>
-      </button>
-    )}
+        <span className="text-sm font-semibold">{label}</span>
+      </span>
+    </button>
   </TooltipWrapper>
 );
 
@@ -128,6 +127,7 @@ const Navigation = ({
   };
 
   const expandAndOpen = (section: keyof typeof openSections) => {
+    userToggledRef.current = true;
     toggleCollapse?.();
     setTimeout(
       () => setOpenSections((prev) => ({ ...prev, [section]: true })),
@@ -173,7 +173,32 @@ const Navigation = ({
   );
   const availableTags = useDownloadStore((state) => state.availableTags);
 
+  const articleDownloads = useArticleDownloadStore((s) => s.articleDownloads);
+  const allAvailableTags = React.useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...availableTags,
+          ...articleDownloads.flatMap((a) => a.tags ?? []),
+        ]),
+      ),
+    [availableTags, articleDownloads],
+  );
+  const allAvailableCategories = React.useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...availableCategories,
+          ...articleDownloads.flatMap((a) => a.category ?? []),
+        ]),
+      ),
+    [availableCategories, articleDownloads],
+  );
+
+  const [visibleTagCount, setVisibleTagCount] = useState(10);
+
   const navRef = useRef<HTMLElement>(null);
+  const userToggledRef = useRef(false);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -269,12 +294,12 @@ const Navigation = ({
 
   const isCollapsed = !!collapsed;
 
+  useNavAnimation(navRef, isCollapsed, userToggledRef);
+
   return (
     <nav
       ref={navRef}
-      className={`${className} transition-all duration-300 ${
-        isCollapsed ? 'w-[70px]' : ''
-      } relative overflow-hidden group/scrollarea`}
+      className={`${className} relative overflow-hidden group/scrollarea`}
     >
       <div
         onScroll={handleNavScroll}
@@ -284,34 +309,24 @@ const Navigation = ({
             : '[&::-webkit-scrollbar-thumb]:bg-transparent'
         }`}
       >
-        <div
-          className={`${
-            isCollapsed ? 'px-1' : 'p-2 ml-0 md:ml-1'
-          } mt-2 space-y-2 pb-20`}
-        >
+        <div className="py-2 px-3 mt-2 flex flex-col gap-2 pb-8">
           {/* Status Section */}
           <div>
-            {!isCollapsed && (
-              <button
-                onClick={() => toggleSection('status')}
-                className="w-full flex items-center hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200 px-2 py-1.5 mb-1.5"
-              >
-                {openSections.status ? (
-                  <FiChevronDown size={18} />
-                ) : (
-                  <FiChevronRight size={18} />
-                )}
-                <span className="ml-1 text-sm font-semibold whitespace-nowrap">
-                  {t('sections.status')}
-                </span>
-              </button>
-            )}
+            <div
+              className={`h-8 overflow-hidden ${
+                isCollapsed ? 'invisible pointer-events-none' : ''
+              }`}
+            >
+              <SectionHeader
+                label={t('sections.status')}
+                isOpen={openSections.status}
+                collapsed={isCollapsed}
+                onToggle={() => toggleSection('status')}
+                onCollapsedClick={() => expandAndOpen('status')}
+              />
+            </div>
             {(openSections.status || isCollapsed) && (
-              <div
-                className={`${
-                  isCollapsed ? 'flex flex-col items-center' : 'ml-1'
-                } space-y-[6px]`}
-              >
+              <div className="flex flex-col gap-[6px]">
                 <NavItem
                   to="/status/all"
                   label={t('status.all')}
@@ -322,8 +337,6 @@ const Navigation = ({
                     />
                   }
                   collapsed={isCollapsed}
-                  activeClass="bg-titleBar dark:bg-darkModeNavigation"
-                  hoverClass="hover:bg-titleBar dark:hover:bg-darkModeNavigation"
                 />
                 <NavItem
                   to="/status/fetching-metadata"
@@ -418,99 +431,91 @@ const Navigation = ({
           </div>
 
           {/* Favorites */}
-          <div>
-            <NavItem
-              to="/favorites"
-              label="Favorites"
-              icon={
-                <FaHeart
-                  size={15}
-                  className={`text-red-400 flex-shrink-0 ${
-                    isCollapsed ? 'mx-auto ml-6' : ''
-                  }`}
-                />
-              }
-              collapsed={isCollapsed}
-              activeClass="bg-titleBar dark:bg-darkModeNavigation"
-              hoverClass="hover:bg-titleBar dark:hover:bg-darkModeNavigation"
-            />
-          </div>
+          <NavItem
+            to="/status/favorites"
+            label="Favorites"
+            icon={<FaHeart size={15} className="text-red-400 flex-shrink-0" />}
+            collapsed={isCollapsed}
+            activeClass="bg-titleBar dark:bg-[#3D3D3D]"
+            hoverClass="hover:bg-titleBar dark:hover:bg-darkModeNavigation"
+          />
 
           {/* Subscriptions */}
-          <div>
-            <NavItem
-              to="/status/subscriptions"
-              label={t('subscriptions')}
-              icon={
-                <MdSubscriptions
-                  size={16}
-                  className={`text-primary flex-shrink-0 ${
-                    isCollapsed ? 'mx-auto ml-6' : ''
-                  }`}
-                />
-              }
-              collapsed={isCollapsed}
-              activeClass="bg-titleBar dark:bg-darkModeNavigation"
-              hoverClass="hover:bg-titleBar dark:hover:bg-darkModeNavigation"
-            />
-          </div>
+          <NavItem
+            to="/status/subscriptions"
+            label={t('subscriptions')}
+            icon={
+              <MdSubscriptions
+                size={16}
+                className="text-primary flex-shrink-0"
+              />
+            }
+            collapsed={isCollapsed}
+            activeClass="bg-titleBar dark:bg-[#3D3D3D]"
+            hoverClass="hover:bg-titleBar dark:hover:bg-darkModeNavigation"
+          />
+
+          {/* Articles */}
+          <NavItem
+            to="/status/articles"
+            label="Articles"
+            icon={
+              <LuNewspaper size={16} className="text-primary flex-shrink-0" />
+            }
+            collapsed={isCollapsed}
+            activeClass="bg-titleBar dark:bg-[#3D3D3D]"
+            hoverClass="hover:bg-titleBar dark:hover:bg-darkModeNavigation"
+          />
 
           {/* Categories Section */}
           <div>
             <SectionHeader
               label={t('sections.categories')}
-              icon={
-                <BiLayer
-                  size={16}
-                  className={`text-[#16161E] dark:text-white ${
-                    isCollapsed ? 'mx-auto ml-4' : ''
-                  }`}
-                />
-              }
               isOpen={openSections.category}
               collapsed={isCollapsed}
               onToggle={() => toggleSection('category')}
               onCollapsedClick={() => expandAndOpen('category')}
             />
             {openSections.category && !isCollapsed && (
-              <div className="ml-1 space-y-[6px]">
+              <div className="flex flex-col gap-[6px]">
                 <NavLink
                   to="/category/all"
                   className={({ isActive }) =>
-                    `nav-link dark:text-gray-200 dark:hover:bg-darkModeCompliment ml-1${
-                      isActive ? ' bg-titleBar dark:bg-darkModeCompliment' : ''
+                    `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-darkModeCompliment${
+                      isActive ? ' bg-titleBar dark:bg-[#3D3D3D]' : ''
                     }`
                   }
                 >
-                  <BiLayer
-                    size={16}
-                    className="text-orange-500 flex-shrink-0"
-                  />
-                  <span className="ml-2 text-[12px]">
+                  <span className="flex items-center justify-center w-[46px] flex-shrink-0">
+                    <BiLayer size={16} className="text-orange-500" />
+                  </span>
+                  <span className="text-[12px] whitespace-nowrap overflow-hidden min-w-0">
                     {t('categories.all')}
                   </span>
                 </NavLink>
                 <NavLink
                   to="/category/uncategorized"
                   className={({ isActive }) =>
-                    `nav-link dark:text-gray-200 dark:hover:bg-darkModeCompliment ml-1${
-                      isActive ? ' bg-titleBar dark:bg-darkModeCompliment' : ''
+                    `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-darkModeCompliment${
+                      isActive ? ' bg-titleBar dark:bg-[#3D3D3D]' : ''
                     }`
                   }
                 >
-                  <BiLayer size={16} className="text-blue-500 flex-shrink-0" />
-                  <span className="ml-2 text-[12px]">
+                  <span className="flex items-center justify-center w-[46px] flex-shrink-0">
+                    <BiLayer size={16} className="text-blue-500" />
+                  </span>
+                  <span className="text-[12px] whitespace-nowrap overflow-hidden min-w-0">
                     {t('categories.uncategorized')}
                   </span>
                 </NavLink>
-                {availableCategories.map((category) => (
+                {allAvailableCategories.map((category) => (
                   <NavLink
                     key={category}
                     to={`/category/${encodeURIComponent(category)}`}
                     className={({ isActive }) =>
-                      `nav-link dark:text-gray-200 dark:hover:bg-darkModeCompliment ml-1${
+                      `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-darkModeCompliment${
                         isActive || dragOverItem === category
-                          ? ' bg-titleBar dark:bg-darkModeCompliment'
+                          ? ' bg-titleBar dark:bg-[#3D3D3D]'
                           : ''
                       }`
                     }
@@ -521,11 +526,10 @@ const Navigation = ({
                     aria-dropeffect="link"
                     role="listitem"
                   >
-                    <BiLayer
-                      size={16}
-                      className="text-yellow-500 flex-shrink-0"
-                    />
-                    <span className="ml-2 text-[12px] truncate">
+                    <span className="flex items-center justify-center w-[46px] flex-shrink-0">
+                      <BiLayer size={16} className="text-yellow-500" />
+                    </span>
+                    <span className="text-[12px] whitespace-nowrap overflow-hidden min-w-0 truncate">
                       {category}
                     </span>
                   </NavLink>
@@ -538,51 +542,47 @@ const Navigation = ({
           <div>
             <SectionHeader
               label={t('sections.tags')}
-              icon={
-                <BsTag
-                  size={16}
-                  className={`text-[#16161E] dark:text-white ${
-                    isCollapsed ? 'mx-auto ml-4' : ''
-                  } `}
-                />
-              }
               isOpen={openSections.tag}
               collapsed={isCollapsed}
               onToggle={() => toggleSection('tag')}
               onCollapsedClick={() => expandAndOpen('tag')}
             />
             {openSections.tag && !isCollapsed && (
-              <div className="ml-2 space-y-[6px]">
+              <div className="flex flex-col gap-[6px]">
                 <NavLink
                   to="/tags/all"
                   className={({ isActive }) =>
-                    `nav-link dark:text-gray-200 dark:hover:bg-darkModeCompliment${
-                      isActive ? ' bg-titleBar dark:bg-darkModeCompliment' : ''
+                    `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-darkModeCompliment${
+                      isActive ? ' bg-titleBar dark:bg-[#3D3D3D]' : ''
                     }`
                   }
                 >
-                  <BsTag size={16} className="text-orange-500 flex-shrink-0" />
-                  <span className="ml-2 text-[12px]">{t('tags.all')}</span>
+                  <span className="flex items-center justify-center w-[46px] flex-shrink-0">
+                    <BsTag size={16} className="text-orange-500" />
+                  </span>
+                  <span className="text-[12px] whitespace-nowrap overflow-hidden min-w-0">{t('tags.all')}</span>
                 </NavLink>
                 <NavLink
                   to="/tags/untagged"
                   className={({ isActive }) =>
-                    `nav-link dark:text-gray-200 dark:hover:bg-darkModeCompliment${
-                      isActive ? ' bg-titleBar dark:bg-darkModeCompliment' : ''
+                    `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-darkModeCompliment${
+                      isActive ? ' bg-titleBar dark:bg-[#3D3D3D]' : ''
                     }`
                   }
                 >
-                  <BsTag size={16} className="text-blue-500 flex-shrink-0" />
-                  <span className="ml-1 text-[12px]">{t('tags.untagged')}</span>
+                  <span className="flex items-center justify-center w-[46px] flex-shrink-0">
+                    <BsTag size={16} className="text-blue-500" />
+                  </span>
+                  <span className="text-[12px] whitespace-nowrap overflow-hidden min-w-0">{t('tags.untagged')}</span>
                 </NavLink>
-                {availableTags.map((tag) => (
+                {allAvailableTags.map((tag) => (
                   <NavLink
                     key={tag}
                     to={`/tags/${encodeURIComponent(tag)}`}
                     className={({ isActive }) =>
-                      `nav-link dark:text-gray-200 dark:hover:bg-darkModeCompliment${
+                      `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-darkModeCompliment${
                         isActive || dragOverItem === tag
-                          ? ' bg-titleBar dark:bg-darkModeCompliment'
+                          ? ' bg-titleBar dark:bg-[#3D3D3D]'
                           : ''
                       }`
                     }
@@ -591,11 +591,10 @@ const Navigation = ({
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleTagDrop(e, tag)}
                   >
-                    <BsTag
-                      size={16}
-                      className="text-yellow-500 flex-shrink-0"
-                    />
-                    <span className="ml-2 text-[12px] truncate">{tag}</span>
+                    <span className="flex items-center justify-center w-[46px] flex-shrink-0">
+                      <BsTag size={16} className="text-yellow-500" />
+                    </span>
+                    <span className="text-[12px] whitespace-nowrap overflow-hidden min-w-0 truncate">{tag}</span>
                   </NavLink>
                 ))}
               </div>
@@ -606,7 +605,8 @@ const Navigation = ({
 
       {/* Collapse toggle */}
       <div
-        className="fixed bottom-4 z-10 ml-6 mb-4 pointer-events-none"
+        className="fixed bottom-4 z-10 ml-8
+         mb-4 pointer-events-none"
         style={{
           width: isCollapsed ? '70px' : '205px',
           transform: 'translateX(-50%)',
@@ -618,13 +618,16 @@ const Navigation = ({
           side="left"
         >
           <button
-            onClick={toggleCollapse}
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-darkModeCompliment shadow-md hover:bg-titleBar dark:hover:bg-secondary dark:text-white dark:hover:text-white border border-gray-200 dark:border-inputDarkMode pointer-events-auto"
+            onClick={() => {
+              userToggledRef.current = true;
+              toggleCollapse?.();
+            }}
+            className="flex items-center justify-center w-10 h-10 rounded bg-white/70 dark:bg-[#3D3D3D]/70 shadow-lg dark:text-white dark:hover:text-white pointer-events-auto"
           >
-            {isCollapsed ? (
-              <FiChevronRight size={22} />
+            {collapsed ? (
+              <LuPanelLeftOpen size={18} />
             ) : (
-              <FiChevronLeft size={22} />
+              <LuPanelLeftClose size={18} />
             )}
           </button>
         </TooltipWrapper>

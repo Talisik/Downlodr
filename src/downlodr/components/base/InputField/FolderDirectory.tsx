@@ -46,7 +46,7 @@ const FolderDirectory = () => {
   return (
     <div
       id="folder-directory-modal"
-      className="absolute top-full right-10 w-full max-w-[426px] min-w-0 h-fit z-50 bg-white dark:bg-darkModeDropdown border border-divider dark:border-darkModeCompliment rounded-lg shadow-lg p-4"
+      className="absolute top-full mt-1 right-10 w-full max-w-[426px] min-w-0 h-fit z-[100] bg-white dark:bg-darkModeDropdown border border-divider dark:border-darkModeCompliment rounded-lg shadow-lg p-4"
     >
       <div className="flex flex-col gap-2 w-full">
         <p className="dark:text-darkModeLight font-semibold text-[14px] text-nowrap">

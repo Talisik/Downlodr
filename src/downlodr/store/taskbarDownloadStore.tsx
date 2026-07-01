@@ -1,6 +1,7 @@
 import { useSettingStore } from '@/core-app/store/settingsStore';
 import { create } from 'zustand';
 import {
+  BaseDownload,
   Downloading,
   FinishedDownloads,
   ForDownload,
@@ -16,18 +17,28 @@ export interface Video {
   url: string;
 }
 
+export interface ArticleSearchableDownload extends BaseDownload {
+  type: 'article';
+  errorMessage?: string;
+  thumbnailDataUrl?: string | null;
+  format?: 'docx' | 'pdf';
+}
+
 export type SearchableDownload =
   | ForDownload
   | Downloading
   | FinishedDownloads
   | HistoryDownloads
-  | QueuedDownload;
+  | QueuedDownload
+  | ArticleSearchableDownload;
 
 interface SearchState {
   isSearchActive: boolean;
   searchQuery: string;
   searchResults: SearchableDownload[];
 }
+
+export type TypeFilter = 'videos' | 'subscriptions' | 'articles';
 
 interface TaskbarDownloadStore {
   getTranscript: boolean;
@@ -45,6 +56,13 @@ interface TaskbarDownloadStore {
   setActiveButton: (button: string | null) => void;
   pendingInputUrl: string | null;
   setPendingInputUrl: (url: string | null) => void;
+  activeTypeFilters: Set<TypeFilter>;
+  toggleTypeFilter: (filter: TypeFilter) => void;
+  clearTypeFilters: () => void;
+  pendingExtensionDownload: { url: string; format_id?: string } | null;
+  setPendingExtensionDownload: (
+    data: { url: string; format_id?: string } | null,
+  ) => void;
 }
 
 export const useTaskbarDownloadStore = create<TaskbarDownloadStore>((set) => ({
@@ -81,4 +99,15 @@ export const useTaskbarDownloadStore = create<TaskbarDownloadStore>((set) => ({
   setActiveButton: (button) => set({ activeButton: button }),
   pendingInputUrl: null,
   setPendingInputUrl: (url) => set({ pendingInputUrl: url }),
+  activeTypeFilters: new Set<TypeFilter>(),
+  toggleTypeFilter: (filter) =>
+    set((s) => {
+      const next = new Set(s.activeTypeFilters);
+      if (next.has(filter)) next.delete(filter);
+      else next.add(filter);
+      return { activeTypeFilters: next };
+    }),
+  clearTypeFilters: () => set({ activeTypeFilters: new Set<TypeFilter>() }),
+  pendingExtensionDownload: null,
+  setPendingExtensionDownload: (data) => set({ pendingExtensionDownload: data }),
 }));

@@ -9,6 +9,12 @@ export interface SpeedDataPoint {
   rawSpeed: string; // Original speed string
 }
 
+export interface ChapterInfo {
+  start_time: number;
+  end_time: number;
+  title: string;
+}
+
 // Base interface for all download types
 export interface BaseDownload {
   subscriptionId?: string;
@@ -41,6 +47,7 @@ export interface BaseDownload {
   thumnailsLocation?: string; // Location of the thumbnails
   transcriptLocation?: string; // Location of the transcript
   description?: string; // Description of the video
+  chapters?: ChapterInfo[]; // Chapters of the video
   getTranscript: boolean; // Indicates if the download has a transcript
   getThumbnail: boolean; // Indicates if the download has a thumbnail
   duration: number; // Duration of the download
@@ -50,7 +57,7 @@ export interface BaseDownload {
   completionCount?: number; // Number of times reached 100%
   rawProgress?: number; // Raw progress from the download engine (0-100)
   speedHistory?: SpeedDataPoint[]; // Speed history for persistent graph data
-  transcriptionStatus?: 'transcribing' | 'completed' | 'failed';
+  transcriptionStatus?: 'queued' | 'transcribing' | 'completed' | 'failed';
   transcriptionProgress?: number;
 
   // Playlist tracking
@@ -67,6 +74,7 @@ export interface ForDownload extends BaseDownload {
   audioFormatId: string; // ID of the audio format
   formats?: any[]; // formats property to the interface
   error?: string; // error property for error handling
+  pendingAutoQueue?: boolean; // set by setDownload to trigger automated queue via component watcher
 }
 
 // Download status type

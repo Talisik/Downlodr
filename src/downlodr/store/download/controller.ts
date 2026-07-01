@@ -264,49 +264,43 @@ export class DownloadController {
     // Handle captions and thumbnails (same as original)
     let thumbnailPath = ' ';
 
-    if (download.isCreateFolder) {
-      if (download.automaticCaption && download.getTranscript) {
-        console.log(download.automaticCaption);
-        // Start transcription asynchronously so it doesn't block download progress
-        MetadataService.downloadEnglishCaptions(
-          download.automaticCaption,
-          zustandLocation,
-          download.downloadName,
-          finalLocation, // Pass video file path for Whisper fallback
-          downloadId, // Pass download ID to track progress
-          true, // Run asynchronously
-        );
-        const fileNameWithoutExt = download.downloadName
-          ? download.downloadName.replace(/\.[^/.]+$/, '')
-          : 'video';
-        const sanitizedTitle = fileNameWithoutExt.replace(
-          /[\\ñ'/:*?"<>|]/g,
-          '_',
-        );
-        const captionFileName = `${sanitizedTitle}.srt`;
-        captionsPath = await window.downlodrFunctions.joinDownloadPath(
-          zustandLocation,
-          captionFileName,
-        );
-        // Don't await - let it run in background
-        captionsPath = ''; // Will be updated in store when transcription completes
-      }
+    if (download.getTranscript) {
+      console.log(download.automaticCaption);
+      // NOTE: the caption/transcription download is fired AFTER the row is
+      // registered in `downloading` (see end of this method). Firing it here
+      // raced the store registration below — a fast yt-dlp caption could resolve
+      // before the row existed, so updateTranscriptionProgress had nothing to
+      // update and the completion write was silently dropped.
+      const fileNameWithoutExt = download.downloadName
+        ? download.downloadName.replace(/\.[^/.]+$/, '')
+        : 'video';
+      const sanitizedTitle = fileNameWithoutExt.replace(
+        /[\\ñ'/:*?"<>|]/g,
+        '_',
+      );
+      const captionFileName = `${sanitizedTitle}.srt`;
+      captionsPath = await window.downlodrFunctions.joinDownloadPath(
+        zustandLocation,
+        captionFileName,
+      );
+      // Don't await - let it run in background
+      captionsPath = ''; // Will be updated in store when transcription completes
+    }
 
-      if (download.thumbnails && download.getThumbnail) {
-        console.log('download.thumbnails', download.thumbnails);
-        console.log('zustandLocation', zustandLocation);
-        thumbnailPath = await window.downlodrFunctions.joinDownloadPath(
-          zustandLocation,
-          `thumb1.jpg`,
+    if (download.thumbnails && download.getThumbnail) {
+      console.log('download.thumbnails', download.thumbnails);
+      console.log('zustandLocation', zustandLocation);
+      thumbnailPath = await window.downlodrFunctions.joinDownloadPath(
+        zustandLocation,
+        `thumb1.jpg`,
+      );
+      try {
+        await window.downlodrFunctions.downloadFile(
+          download.thumbnails,
+          thumbnailPath,
         );
-        try {
-          await window.downlodrFunctions.downloadFile(
-            download.thumbnails,
-            thumbnailPath,
-          );
-        } catch (error) {
-          console.log('Error downloading thumbnail:', error);
-        }
+      } catch (error) {
+        console.log('Error downloading thumbnail:', error);
       }
     }
 
@@ -353,12 +347,15 @@ export class DownloadController {
           getThumbnail: download.getThumbnail,
           duration: download.duration,
           isCreateFolder: download.isCreateFolder,
+          description: download.description,
+          chapters: download.chapters,
+          transcriptLocation: download.transcriptLocation,
           log: download.log,
           downloadPhase: 'video' as const,
           completionCount: 0,
           rawProgress: download.progress,
           speedHistory: [] as SpeedDataPoint[],
-          ...(download.automaticCaption && download.getTranscript
+          ...(download.getTranscript
             ? {
                 transcriptionStatus: 'transcribing' as const,
                 transcriptionProgress: 0,
@@ -367,6 +364,23 @@ export class DownloadController {
         },
       ],
     }));
+
+    // Fire the caption/transcription download AFTER the row exists in `downloading`.
+    // Zustand setState above is synchronous, so by the time the async caption call
+    // yields on its first await the row is guaranteed registered — every subsequent
+    // updateTranscriptionProgress() now has a row to land on instead of no-opping
+    // across all three arrays and stranding the entry at 'transcribing' 0%.
+    if (download.getTranscript) {
+      // Start transcription asynchronously so it doesn't block download progress
+      MetadataService.downloadEnglishCaptions(
+        download.automaticCaption,
+        zustandLocation,
+        download.downloadName,
+        finalLocation, // Pass video file path for Whisper fallback
+        downloadId, // Pass download ID to track progress
+        true, // Run asynchronously
+      );
+    }
   }
 
   /**

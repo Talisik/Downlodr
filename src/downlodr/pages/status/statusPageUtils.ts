@@ -122,6 +122,7 @@ export const statusMapping: Record<string, string> = {
   finished: 'finished',
   downloading: 'downloading',
   all: 'all',
+  articles: 'articles',
 };
 
 export const calculateContextMenuPosition = (

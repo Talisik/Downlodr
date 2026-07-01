@@ -177,4 +177,9 @@ export interface AddDownload {
   getTranscript: boolean;
   getThumbnail: boolean;
   duration: number;
+  description?: string;
+  chapters?: { start_time: number; end_time: number; title: string }[];
+  autoCaptionLocation?: string;
+  thumnailsLocation?: string;
+  transcriptLocation?: string;
 }

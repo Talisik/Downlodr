@@ -7,13 +7,28 @@
  * @returns JSX.Element - The rendered component displaying status-filtered downloads.
  */
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
+import { useSlidePanel } from '@/core-app/hooks/animation/useSlidePanel';
+import { ChapterInfo } from '@/downlodr/store/download/types';
 import { useMainStore } from '@/core-app/store/mainStore';
 import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore';
 import ColumnHeaderContextMenu from '@/downlodr/components/contextMenu/ColumnHeaderContextMenu';
 import DownloadContextMenu from '@/downlodr/components/contextMenu/DownloadContextMenu';
+import ArticleContextMenu from '@/afda/components/contextMenu/ArticleContextMenu';
+import { useFavoritesStore } from '@/downlodr/store/favoritesStore';
+import {
+  fetchArticle,
+  isArticleModel,
+} from '@/afda/backend/dummy/dummyArticleService';
+import {
+  generateArticleDocx,
+  generateArticleHtml,
+  normalizeArticleRow,
+  sanitizeFilename,
+} from '@/afda/utils/articleDocxGenerator';
 import { useResizableColumns } from '@/downlodr/components/download/resizableColumns/useResizableColumns';
 import ExpandedDownloadDetails from '@/downlodr/components/table/ExpandedDownloadDetail';
 import VideoPlayerPanel from '@/downlodr/components/panel/VideoPlayerPanel';
+import Toolbar from '@/downlodr/components/base/Toolbar';
 import { StatusPageModals } from '@/downlodr/pages/status/StatusPageModals';
 import { StatusPageTable } from '@/downlodr/pages/status/StatusPageTable';
 import { useStatusPageHandlers } from '@/downlodr/pages/status/statusPageHandler';
@@ -34,9 +49,17 @@ import {
 import { DownloadItem } from '@/downlodr/schema/componentSchema';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import { usePluginStore } from '@/plugins/store/pluginStore';
-import React, { useCallback, useMemo, useState } from 'react';
+import ActivityTracker from '@/downlodr/components/download/log/ActivityTracker';
+import DownloadLogs from '@/downlodr/components/download/log/DownloadLogs';
+import PluginSidePanelManager from '@/plugins/components/PluginSidePanelManager';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import type { SearchableDownload } from '../store/taskbarDownloadStore';
+import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
+import { useAfdaStore } from '@/afda/store/afdaStore';
+import type {
+  ArticleSearchableDownload,
+  SearchableDownload,
+} from '../store/taskbarDownloadStore';
 import { useTaskbarDownloadStore } from '../store/taskbarDownloadStore';
 
 export { formatFileSize } from '@/downlodr/pages/status/statusPageUtils';
@@ -57,7 +80,120 @@ const StatusSpecificDownloads = () => {
     (state) => state.finishedDownloads,
   );
   const queuedDownloads = useDownloadStore((state) => state.queuedDownloads);
+  const failedDownloads = useDownloadStore((state) => state.failedDownloads);
+  const articleDownloads = useArticleDownloadStore(
+    (state) => state.articleDownloads,
+  );
+  const fetchAndOpen = useAfdaStore((s) => s.fetchAndOpen);
+  const updateArticleDownload = useArticleDownloadStore(
+    (state) => state.updateArticleDownload,
+  );
+  const removeArticleDownload = useArticleDownloadStore(
+    (state) => state.removeArticleDownload,
+  );
+  const addArticleTag = useArticleDownloadStore((state) => state.addArticleTag);
+  const removeArticleTag = useArticleDownloadStore(
+    (state) => state.removeArticleTag,
+  );
+  const addArticleCategory = useArticleDownloadStore(
+    (state) => state.addArticleCategory,
+  );
+  const removeArticleCategory = useArticleDownloadStore(
+    (state) => state.removeArticleCategory,
+  );
+  const articleAvailableTags = useMemo(
+    () => [...new Set(articleDownloads.flatMap((a) => a.tags ?? []))],
+    [articleDownloads],
+  );
+  const articleAvailableCategories = useMemo(
+    () => [...new Set(articleDownloads.flatMap((a) => a.category ?? []))],
+    [articleDownloads],
+  );
+  const isFavorited = useFavoritesStore((s) => s.isFavorited);
+  const addFavorite = useFavoritesStore((s) => s.addFavorite);
+  const removeFavorite = useFavoritesStore((s) => s.removeFavorite);
   const deleteDownload = useDownloadStore((state) => state.deleteDownload);
+
+  const handleArticleDownload = useCallback(
+    async (articleId: string) => {
+      const d = articleDownloads.find((a) => a.id === articleId);
+      if (!d || d.status !== 'for_download') return;
+      updateArticleDownload(d.id, { status: 'loading' });
+      try {
+        let articleModel;
+        const numericId = parseInt(d.id.replace('afda-article-', ''), 10);
+        const isSubscriptionArticle =
+          !isNaN(numericId) && d.id.startsWith('afda-article-');
+        if (isSubscriptionArticle) {
+          const bridge = (
+            window as unknown as {
+              afdaBridge?: {
+                articles: {
+                  get: (p: {
+                    article_id: number;
+                  }) => Promise<Record<string, unknown> | null>;
+                };
+              };
+            }
+          ).afdaBridge;
+          if (!bridge) throw new Error('Bridge unavailable');
+          const row = await bridge.articles.get({ article_id: numericId });
+          if (!row) throw new Error('Article not found');
+          articleModel = normalizeArticleRow(row);
+        } else {
+          const result = await fetchArticle(d.url);
+          if (!isArticleModel(result)) {
+            throw new Error(
+              result.article_error_status ?? 'Failed to fetch article',
+            );
+          }
+          articleModel = result;
+        }
+        const currentFormat = d.format ?? 'docx';
+        const downloadFolder = await window.downlodrFunctions.getDownloadFolder();
+        const filename = sanitizeFilename(articleModel.article_title);
+        let buffer: number[];
+        let ext: string;
+        if (currentFormat === 'pdf') {
+          const html = generateArticleHtml(articleModel);
+          const pdfResult = await window.downlodrFunctions.htmlToPdf(html);
+          if (!pdfResult.success || !pdfResult.data)
+            throw new Error(pdfResult.error ?? 'PDF generation failed');
+          buffer = pdfResult.data;
+          ext = 'pdf';
+        } else {
+          const bytes = await generateArticleDocx(articleModel);
+          buffer = Array.from(bytes);
+          ext = 'docx';
+        }
+        const filePath = await window.downlodrFunctions.joinDownloadPath(
+          downloadFolder,
+          `${filename}.${ext}`,
+        );
+        const saveResult = await window.downlodrFunctions.saveBufferToFile(
+          buffer,
+          filePath,
+        );
+        if (!saveResult.success)
+          throw new Error(saveResult.error ?? 'Failed to save file');
+        const fileSize =
+          (await window.downlodrFunctions.getFileSize(filePath)) ?? 0;
+        updateArticleDownload(d.id, {
+          status: 'finished',
+          title: articleModel.article_title ?? '',
+          filePath,
+          fileSize,
+          articleData: articleModel,
+        });
+      } catch (err) {
+        updateArticleDownload(d.id, {
+          status: 'for_download',
+          errorMessage: err instanceof Error ? err.message : 'Download failed',
+        });
+      }
+    },
+    [articleDownloads, updateArticleDownload],
+  );
 
   // Sorting state
   const [sortColumn, setSortColumn] = useState<string>('dateAdded');
@@ -77,6 +213,7 @@ const StatusSpecificDownloads = () => {
     status?: string;
     downloadName?: string;
     description?: string;
+    chapters?: ChapterInfo[];
     channelName?: string;
     thumbnail?: string;
     ext?: string;
@@ -110,6 +247,9 @@ const StatusSpecificDownloads = () => {
   const setSelectedDownloads = useSelectedDownloadStore(
     (state) => state.setSelectedDownloads,
   );
+  const clearAllSelections = useSelectedDownloadStore(
+    (state) => state.clearAllSelections,
+  );
   const [contextMenu, setContextMenu] = useState<{
     downloadId: string | null;
     x: number;
@@ -125,10 +265,23 @@ const StatusSpecificDownloads = () => {
 
   // Get visible columns from the store
   const visibleColumns = useMainStore((state) => state.visibleColumns);
-  const { updateIsOpenPluginSidebar } = usePluginStore();
+  const { updateIsOpenPluginSidebar, settingsPlugin } = usePluginStore();
+  const isPluginSidebarOpen = settingsPlugin.isOpenPluginSidebar;
 
   const searchState = useTaskbarDownloadStore((state) => state.searchState);
   const { isSearchActive, searchQuery, searchResults } = searchState;
+  const activeTypeFilters = useTaskbarDownloadStore((s) => s.activeTypeFilters);
+  const clearTypeFilters = useTaskbarDownloadStore((s) => s.clearTypeFilters);
+
+  // Clear selection when the filter context changes (different status or search query).
+  useEffect(() => {
+    clearAllSelections();
+  }, [currentStatus, isSearchActive, searchQuery]);
+
+  // Clear type filters when navigating to a different status page.
+  useEffect(() => {
+    clearTypeFilters();
+  }, [currentStatus]);
 
   const transitionTimeoutRef = useTransitionTimeoutRef();
 
@@ -138,7 +291,7 @@ const StatusSpecificDownloads = () => {
   const selectedDownloads = useSelectedDownloadStore(
     (state) => state.selectedDownloads,
   );
-  const [showActivityTracker, setShowActivityTracker] = useState(false);
+  const [showActivityTracker, setShowActivityTrackerRaw] = useState(false);
   const [activityTrackerDownloadId, setActivityTrackerDownloadId] = useState<
     string | null
   >(null);
@@ -181,38 +334,108 @@ const StatusSpecificDownloads = () => {
     if (isSearchActive) {
       return searchResults;
     }
+    const seenIds = new Set<string>();
     const merged = [
       ...forDownloads,
       ...downloading,
       ...finishedDownloads,
       ...history,
       ...queuedDownloads,
-    ].filter(
-      (download, index, self) =>
-        index === self.findIndex((d) => d.id === download.id),
+    ].filter((download) => {
+      if (seenIds.has(download.id)) return false;
+      seenIds.add(download.id);
+      return true;
+    });
+
+    const mappedArticles: ArticleSearchableDownload[] = articleDownloads.map(
+      (a) => ({
+        type: 'article' as const,
+        id: a.id,
+        name: a.title || a.url,
+        displayName: a.title || undefined,
+        status: a.status === 'loading' ? 'downloading' : a.status,
+        size: a.fileSize ?? 0,
+        DateAdded: a.dateAdded,
+        location: a.filePath ?? '',
+        videoUrl: a.url,
+        downloadName: a.title || a.url,
+        channelName: '',
+        extractorKey: 'Article',
+        formatId: '',
+        audioExt: '',
+        audioFormatId: '',
+        ext: a.format ?? 'docx',
+        format: a.format ?? 'docx',
+        speed: '',
+        timeLeft: '',
+        progress:
+          a.status === 'finished' ? 100 : a.status === 'failed' ? 0 : 50,
+        isLive: false,
+        duration: 0,
+        getTranscript: false,
+        getThumbnail: false,
+        tags: [],
+        category: [],
+        automaticCaption: null,
+        thumbnails: null,
+        errorMessage: a.errorMessage,
+        thumbnailDataUrl: a.thumbnailDataUrl,
+        subscriptionId: a.subscriptionId,
+      }),
     );
+
+    const allItems = [...merged, ...mappedArticles];
     const byStatus = currentStatus
       ? currentStatus.toLowerCase() === 'all'
-        ? merged
+        ? allItems
         : currentStatus.toLowerCase() === 'subscriptions'
         ? merged.filter((d) => !!d.subscriptionId)
-        : merged.filter(
+        : currentStatus.toLowerCase() === 'articles'
+        ? allItems.filter((d) => (d as { type?: string }).type === 'article')
+        : allItems.filter(
             (d) => d.status.toLowerCase() === currentStatus.toLowerCase(),
           )
-      : merged;
-    return sortDownloadsByColumn(byStatus, sortColumn, sortDirection);
+      : allItems;
+
+    if (activeTypeFilters.size === 0) {
+      return sortDownloadsByColumn(byStatus, sortColumn, sortDirection);
+    }
+    const byType = byStatus.filter((d) => {
+      const isArticle = (d as { type?: string }).type === 'article';
+      const isSubscription = !isArticle && !!d.subscriptionId;
+      const isVideo = !isArticle && !isSubscription;
+      return (
+        (activeTypeFilters.has('articles') && isArticle) ||
+        (activeTypeFilters.has('subscriptions') && isSubscription) ||
+        (activeTypeFilters.has('videos') && isVideo)
+      );
+    });
+    return sortDownloadsByColumn(byType, sortColumn, sortDirection);
   }, [
     forDownloads,
     downloading,
     finishedDownloads,
     history,
     queuedDownloads,
+    articleDownloads,
     currentStatus,
     sortColumn,
     sortDirection,
     isSearchActive,
     searchQuery,
+    activeTypeFilters,
   ]);
+
+  // Prune stale items from selection when allDownloads changes.
+  useEffect(() => {
+    const currentIds = useSelectedDownloadStore.getState().selectedRowIds;
+    if (currentIds.length === 0) return;
+    const visibleIds = new Set(allDownloads.map((d) => d.id));
+    const still = currentIds.filter((id) => visibleIds.has(id));
+    if (still.length !== currentIds.length) {
+      setSelectedRowIds(still);
+    }
+  }, [allDownloads]);
 
   const { thumbnailDataUrls, setThumbnailDataUrls } =
     useThumbnails(allDownloads);
@@ -420,38 +643,40 @@ const StatusSpecificDownloads = () => {
     [selectedRowIds, allDownloads, setSelectedRowIds, setSelectedDownloads],
   );
 
-  const handleSelectAll = useCallback(() => {
-    const newSelected =
-      selectedRowIds.length === allDownloads.length
-        ? []
-        : allDownloads.map((download) => download.id);
+  const handleSelectPage = useCallback(
+    async (pageIds: string[], allPageSelected: boolean) => {
+      let newSelected: string[];
+      if (allPageSelected) {
+        newSelected = selectedRowIds.filter((id) => !pageIds.includes(id));
+      } else {
+        const existing = new Set(selectedRowIds);
+        pageIds.forEach((id) => existing.add(id));
+        newSelected = Array.from(existing);
+      }
+      setSelectedRowIds(newSelected);
 
-    setSelectedRowIds(newSelected);
-
-    // Create promises for each download
-    const promises = newSelected.map(async (id) => {
-      const download = allDownloads.find((d) => d.id === id);
-      return {
-        id,
-        controllerId: download?.controllerId,
-        videoUrl: download?.videoUrl,
-        downloadName: download?.displayName,
-        status: download?.status,
-        download: download,
-        location: download?.location
-          ? await window.downlodrFunctions.joinDownloadPath(
-              download.location,
-              download.name,
-            )
-          : undefined,
-      };
-    });
-
-    // Resolve all promises before updating state
-    Promise.all(promises).then((resolvedData) => {
-      setSelectedDownloads(resolvedData);
-    });
-  }, [selectedRowIds, allDownloads, setSelectedRowIds, setSelectedDownloads]);
+      const promises = newSelected.map(async (id) => {
+        const download = allDownloads.find((d) => d.id === id);
+        return {
+          id,
+          controllerId: download?.controllerId,
+          videoUrl: download?.videoUrl,
+          downloadName: download?.displayName,
+          status: download?.status,
+          download: download,
+          location: download?.location
+            ? await window.downlodrFunctions.joinDownloadPath(
+                download.location,
+                download.name,
+              )
+            : undefined,
+        };
+      });
+      const resolvedDownloads = await Promise.all(promises);
+      setSelectedDownloads(resolvedDownloads);
+    },
+    [selectedRowIds, allDownloads, setSelectedRowIds, setSelectedDownloads],
+  );
 
   const handleCloseContextMenu = () => {
     // Clear any pending transitions
@@ -541,8 +766,52 @@ const StatusSpecificDownloads = () => {
   const [stopControllerId, setStopControllerId] = useState<string>('');
 
   // log modal state
-  const [showLogModal, setShowLogModal] = useState(false);
+  const [showLogModal, setShowLogModalRaw] = useState(false);
   const [logModalDownloadId, setLogModalDownloadId] = useState<string>('');
+
+  const {
+    wrapperRef: activityTrackerWrapperRef,
+    panelRef: activityTrackerRef,
+    mounted: activityTrackerMounted,
+  } = useSlidePanel(showActivityTracker);
+  const {
+    wrapperRef: downloadLogsWrapperRef,
+    panelRef: downloadLogsRef,
+    mounted: downloadLogsMounted,
+  } = useSlidePanel(showLogModal);
+  const { wrapperRef: pluginWrapperRef, panelRef: pluginPanelRef } =
+    useSlidePanel(isPluginSidebarOpen, { gapPx: 8 });
+
+  // Mutually exclusive side panel openers — opening one closes the others
+  const setShowActivityTracker = useCallback(
+    (open: boolean) => {
+      if (open) {
+        setShowLogModalRaw(false);
+        updateIsOpenPluginSidebar(false);
+      }
+      setShowActivityTrackerRaw(open);
+    },
+    [updateIsOpenPluginSidebar],
+  );
+
+  const setShowLogModal = useCallback(
+    (open: boolean) => {
+      if (open) {
+        setShowActivityTrackerRaw(false);
+        updateIsOpenPluginSidebar(false);
+      }
+      setShowLogModalRaw(open);
+    },
+    [updateIsOpenPluginSidebar],
+  );
+
+  // Close other side panels when the plugin sidebar opens
+  React.useEffect(() => {
+    if (isPluginSidebarOpen) {
+      setShowActivityTrackerRaw(false);
+      setShowLogModalRaw(false);
+    }
+  }, [isPluginSidebarOpen]);
 
   const statusHandlers = useStatusPageHandlers({
     allDownloads,
@@ -643,125 +912,349 @@ const StatusSpecificDownloads = () => {
   }, [stopDownloadId, stopDownloadLocation, stopControllerId]);
 
   return (
-    <div className="flex flex-col h-full bg-[#F9F9F9] dark:bg-darkMode">
+    <div
+      className={`flex flex-col h-full gap-2 ${
+        videoPlayerState.isOpen
+          ? 'bg-white dark:bg-darkMode'
+          : 'bg-[#F9F9F9] dark:bg-darkMode'
+      }`}
+    >
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <StatusPageTable
-          allDownloads={allDownloads}
-          searchQuery={searchQuery}
-          isSearchActive={isSearchActive}
-          displayColumns={displayColumns}
-          columns={columns}
-          thumbnailDataUrls={thumbnailDataUrls}
-          selectedRowIds={selectedRowIds}
-          selectedDownloadId={selectedDownloadId}
-          sortColumn={sortColumn}
-          sortDirection={sortDirection}
-          dragging={dragging}
-          dragOverIndex={dragOverIndex}
-          getSelectedWithStatusCount={getSelectedWithStatusCount}
-          onColumnHeaderContextMenu={handleColumnHeaderContextMenu}
-          onSelectAll={handleSelectAll}
-          onSortClick={handleSortClick}
-          onResizeStart={startResizing}
-          startDragging={startDragging}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          cancelDrag={cancelDrag}
-          onContextMenu={statusHandlers.handleContextMenu}
-          onRowClick={handleRowClick}
-          onCheckboxChange={handleCheckboxChange}
-          onViewFile={statusHandlers.handleViewFile}
-          onViewDownload={statusHandlers.handleViewDownload}
-          onViewFolder={statusHandlers.handleViewFolder}
-          onRetry={statusHandlers.handleRetry}
-          onPause={statusHandlers.handlePause}
-          onRedownloadTranscript={statusHandlers.handleRedownloadTranscript}
-          onFormatSelect={noopFormatSelect}
-          onClosePluginSidebar={() => updateIsOpenPluginSidebar(false)}
-          onGroupCheckboxChange={handleGroupCheckboxChange}
-          onViewEmbed={(download) => {
-            setVideoPlayerState({
-              isOpen: true,
-              videoUrl: download.videoUrl ?? '',
-              title: download.displayName ?? download.name ?? '',
-              autoCaptionLocation: download.autoCaptionLocation,
-              transcriptLocation: download.transcriptLocation,
-              displayName: download.displayName,
-              dateAdded: download.DateAdded,
-              location: download.location,
-              tags: download.tags,
-              category: download.category,
-              status: download.status,
-              downloadName: download.name,
-              description: download.description,
-              channelName: download.channelName,
-              thumbnail: typeof download.thumbnails === 'string' && download.thumbnails !== '—' ? download.thumbnails : undefined,
-              ext: download.ext,
-              duration: download.duration,
-              size: download.size,
-              extractorKey: download.extractorKey,
-              downloadId: download.id,
-            });
-          }}
-          videoPlayerPanel={
+        {videoPlayerState.isOpen && (
+          <Toolbar
+            className="pt-2 pb-1 pr-4 flex-shrink-0 bg-white dark:bg-darkModeTable"
+            hidePluginExtension
+          />
+        )}
+        {videoPlayerState.isOpen ? (
+          <div className="flex flex-row flex-1 min-h-0 overflow-hidden" style={{ minHeight: 0 }}>
             <VideoPlayerPanel
-              isOpen={videoPlayerState.isOpen}
-              onClose={() =>
-                setVideoPlayerState({
-                  isOpen: false,
-                  videoUrl: '',
-                  title: '',
-                  autoCaptionLocation: undefined,
-                  transcriptLocation: undefined,
-                  displayName: undefined,
-                  dateAdded: undefined,
-                  location: undefined,
-                  tags: undefined,
-                  category: undefined,
-                  description: undefined,
-                  channelName: undefined,
-                  thumbnail: undefined,
-                  ext: undefined,
-                  duration: undefined,
-                  size: undefined,
-                  extractorKey: undefined,
-                  downloadId: undefined,
-                })
-              }
-              videoUrl={videoPlayerState.videoUrl}
-              title={videoPlayerState.title}
-              autoCaptionLocation={videoPlayerState.autoCaptionLocation}
-              transcriptLocation={videoPlayerState.transcriptLocation}
-              displayName={videoPlayerState.displayName}
-              dateAdded={videoPlayerState.dateAdded}
-              location={videoPlayerState.location}
-              tags={videoPlayerState.tags}
-              category={videoPlayerState.category}
-              status={videoPlayerState.status}
-              downloadName={videoPlayerState.downloadName}
-              description={videoPlayerState.description}
-              channelName={videoPlayerState.channelName}
-              thumbnail={videoPlayerState.thumbnail}
-              ext={videoPlayerState.ext}
-              duration={videoPlayerState.duration}
-              size={videoPlayerState.size}
-              extractorKey={videoPlayerState.extractorKey}
-              downloadId={videoPlayerState.downloadId}
-              width={panelWidth}
-              onWidthChange={setPanelWidth}
-            />
-          }
-        />
+                isOpen={true}
+                onClose={() =>
+                  setVideoPlayerState({
+                    isOpen: false,
+                    videoUrl: '',
+                    title: '',
+                    autoCaptionLocation: undefined,
+                    transcriptLocation: undefined,
+                    displayName: undefined,
+                    dateAdded: undefined,
+                    location: undefined,
+                    tags: undefined,
+                    category: undefined,
+                    description: undefined,
+                    chapters: undefined,
+                    channelName: undefined,
+                    thumbnail: undefined,
+                    ext: undefined,
+                    duration: undefined,
+                    size: undefined,
+                    extractorKey: undefined,
+                    downloadId: undefined,
+                  })
+                }
+                videoUrl={videoPlayerState.videoUrl}
+                title={videoPlayerState.title}
+                autoCaptionLocation={videoPlayerState.autoCaptionLocation}
+                transcriptLocation={videoPlayerState.transcriptLocation}
+                displayName={videoPlayerState.displayName}
+                dateAdded={videoPlayerState.dateAdded}
+                location={videoPlayerState.location}
+                tags={videoPlayerState.tags}
+                category={videoPlayerState.category}
+                status={videoPlayerState.status}
+                downloadName={videoPlayerState.downloadName}
+                description={videoPlayerState.description}
+                chapters={videoPlayerState.chapters}
+                channelName={videoPlayerState.channelName}
+                thumbnail={videoPlayerState.thumbnail}
+                ext={videoPlayerState.ext}
+                duration={videoPlayerState.duration}
+                size={videoPlayerState.size}
+                extractorKey={videoPlayerState.extractorKey}
+                downloadId={videoPlayerState.downloadId}
+                width={100}
+                onWidthChange={setPanelWidth}
+                allDownloads={allDownloads}
+                thumbnailDataUrls={thumbnailDataUrls}
+                activeDownloadId={videoPlayerState.downloadId}
+                onSelectDownload={(download) => {
+                  setVideoPlayerState({
+                    isOpen: true,
+                    videoUrl: download.videoUrl ?? '',
+                    title:
+                      'displayName' in download && download.displayName
+                        ? download.displayName
+                        : download.name ?? '',
+                    autoCaptionLocation:
+                      'autoCaptionLocation' in download
+                        ? download.autoCaptionLocation
+                        : undefined,
+                    transcriptLocation:
+                      'transcriptLocation' in download
+                        ? download.transcriptLocation
+                        : undefined,
+                    displayName:
+                      'displayName' in download
+                        ? download.displayName
+                        : undefined,
+                    dateAdded:
+                      'DateAdded' in download ? download.DateAdded : undefined,
+                    location:
+                      'location' in download ? download.location : undefined,
+                    tags: 'tags' in download ? download.tags : undefined,
+                    category:
+                      'category' in download ? download.category : undefined,
+                    status: download.status,
+                    downloadName: download.name,
+                    description:
+                      'description' in download
+                        ? download.description
+                        : undefined,
+                    chapters:
+                      'chapters' in download ? download.chapters : undefined,
+                    channelName:
+                      'channelName' in download
+                        ? download.channelName
+                        : undefined,
+                    thumbnail:
+                      'thumbnails' in download &&
+                      typeof download.thumbnails === 'string' &&
+                      download.thumbnails !== '—'
+                        ? download.thumbnails
+                        : undefined,
+                    ext: 'ext' in download ? download.ext : undefined,
+                    duration:
+                      'duration' in download ? download.duration : undefined,
+                    size: 'size' in download ? download.size : undefined,
+                    extractorKey:
+                      'extractorKey' in download
+                        ? download.extractorKey
+                        : undefined,
+                    downloadId: download.id,
+                  });
+                }}
+              />
+          </div>
+        ) : (
+          <div className="flex flex-1 min-h-0 overflow-hidden gap-2 -mr-2">
+            <div className="flex-1 min-w-0 overflow-hidden flex flex-col min-h-0 gap-2">
+              <StatusPageTable
+                allDownloads={allDownloads}
+                searchQuery={searchQuery}
+                isSearchActive={isSearchActive}
+                displayColumns={displayColumns}
+                columns={columns}
+                thumbnailDataUrls={thumbnailDataUrls}
+                selectedRowIds={selectedRowIds}
+                selectedDownloadId={selectedDownloadId}
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                dragging={dragging}
+                dragOverIndex={dragOverIndex}
+                onClearSelection={clearAllSelections}
+                onSelectPage={handleSelectPage}
+                onColumnHeaderContextMenu={handleColumnHeaderContextMenu}
+                onSortClick={handleSortClick}
+                onResizeStart={startResizing}
+                startDragging={startDragging}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                cancelDrag={cancelDrag}
+                onContextMenu={statusHandlers.handleContextMenu}
+                onRowClick={handleRowClick}
+                onCheckboxChange={handleCheckboxChange}
+                onViewFile={statusHandlers.handleViewFile}
+                onViewDownload={statusHandlers.handleViewDownload}
+                onViewFolder={statusHandlers.handleViewFolder}
+                onRetry={statusHandlers.handleRetry}
+                onPause={statusHandlers.handlePause}
+                onRedownloadTranscript={
+                  statusHandlers.handleRedownloadTranscript
+                }
+                onFormatSelect={noopFormatSelect}
+                isPanelOpen={
+                  showActivityTracker ||
+                  showLogModal ||
+                  settingsPlugin.isOpenPluginSidebar
+                }
+                onClosePluginSidebar={() => updateIsOpenPluginSidebar(false)}
+                onGroupCheckboxChange={handleGroupCheckboxChange}
+                onViewEmbed={(download) => {
+                  setVideoPlayerState({
+                    isOpen: true,
+                    videoUrl: download.videoUrl ?? '',
+                    title: download.displayName ?? download.name ?? '',
+                    autoCaptionLocation: download.autoCaptionLocation,
+                    transcriptLocation: download.transcriptLocation,
+                    displayName: download.displayName,
+                    dateAdded: download.DateAdded,
+                    location: download.location,
+                    tags: download.tags,
+                    category: download.category,
+                    status: download.status,
+                    downloadName: download.name,
+                    description: download.description,
+                    chapters: download.chapters,
+                    channelName: download.channelName,
+                    thumbnail:
+                      typeof download.thumbnails === 'string' &&
+                      download.thumbnails !== '—'
+                        ? download.thumbnails
+                        : undefined,
+                    ext: download.ext,
+                    duration: download.duration,
+                    size: download.size,
+                    extractorKey: download.extractorKey,
+                    downloadId: download.id,
+                  });
+                }}
+              />
+              <div className="flex-shrink-0">
+                <ExpandedDownloadDetails
+                  download={
+                    selectedDownload
+                      ? {
+                          ...selectedDownload,
+                          elapsed: selectedDownload.elapsed || 0,
+                        }
+                      : null
+                  }
+                  finishedCount={finishedDownloads.length}
+                  queuedCount={queuedDownloads.length + forDownloads.length}
+                  failedCount={
+                    downloading.filter((d) => d.status === 'failed').length +
+                    failedDownloads.length
+                  }
+                />
+              </div>
+            </div>
+            <div
+              ref={pluginWrapperRef}
+              className="overflow-hidden flex-shrink-0 flex flex-col"
+            >
+              <div ref={pluginPanelRef} className="flex-1 min-h-0">
+                <PluginSidePanelManager />
+              </div>
+            </div>
+            {activityTrackerMounted && (
+              <div
+                ref={activityTrackerWrapperRef}
+                className="overflow-hidden flex-shrink-0 flex flex-col"
+              >
+                <div ref={activityTrackerRef} className="flex-1 min-h-0">
+                  <ActivityTracker
+                    isOpen={showActivityTracker}
+                    onClose={() => setShowActivityTracker(false)}
+                    downloadId={activityTrackerDownloadId}
+                  />
+                </div>
+              </div>
+            )}
+            {downloadLogsMounted && (
+              <div
+                ref={downloadLogsWrapperRef}
+                className="overflow-hidden flex-shrink-0 flex flex-col"
+              >
+                <div ref={downloadLogsRef} className="flex-1 min-h-0">
+                  <DownloadLogs
+                    isOpen={showLogModal}
+                    onClose={() => {
+                      setShowLogModal(false);
+                      setLogModalDownloadId('');
+                    }}
+                    downloadId={logModalDownloadId}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Context Menus - keep these unchanged */}
+      {/* Context Menus */}
       {contextMenu.downloadId &&
         !isTransitioning &&
         (() => {
           const download = allDownloads.find(
             (d) => d.id === contextMenu.downloadId,
           );
-          return download ? (
+          if (!download) return null;
+
+          if ('type' in download && download.type === 'article') {
+            const article = articleDownloads.find(
+              (a) => a.id === contextMenu.downloadId,
+            );
+            if (!article) return null;
+            return (
+              <ArticleContextMenu
+                article={article}
+                position={{ x: contextMenu.x, y: contextMenu.y }}
+                onClose={handleCloseContextMenu}
+                onViewArticle={(articleId) => {
+                  const a = articleDownloads.find((x) => x.id === articleId);
+                  if (a?.url) fetchAndOpen(a.url);
+                }}
+                onOpenInBrowser={(url) =>
+                  window.downlodrFunctions.openExternalLink(url)
+                }
+                onOpenFolder={(filePath) =>
+                  window.downlodrFunctions.openFolder(filePath, filePath)
+                }
+                onRemove={(articleId) => {
+                  const a = articleDownloads.find((x) => x.id === articleId);
+                  if (a?.filePath) {
+                    window.downlodrFunctions.deleteFile(a.filePath).catch(() => {});
+                  }
+                  removeArticleDownload(articleId);
+                  handleCloseContextMenu();
+                }}
+                onRetry={(articleId) =>
+                  updateArticleDownload(articleId, {
+                    status: 'for_download',
+                    errorMessage: undefined,
+                  })
+                }
+                onDownload={handleArticleDownload}
+                onToggleFavorite={(articleId) => {
+                  const a = articleDownloads.find((x) => x.id === articleId);
+                  if (!a) return;
+                  if (isFavorited(articleId)) {
+                    removeFavorite(articleId);
+                  } else {
+                    addFavorite({
+                      downloadId: articleId,
+                      videoUrl: a.url,
+                      title: a.title || a.url,
+                      displayName: a.title || undefined,
+                      downloadName: a.title || a.url,
+                      location: a.filePath ?? '',
+                      channelName: '',
+                      ext: a.format ?? 'docx',
+                      duration: 0,
+                      size: a.fileSize ?? 0,
+                      extractorKey: 'Article',
+                      tags: a.tags ?? [],
+                      category: a.category ?? [],
+                      status: a.status,
+                      dateAdded: a.dateAdded,
+                    });
+                  }
+                }}
+                isFavorited={isFavorited(article.id)}
+                onAddTag={addArticleTag}
+                onRemoveTag={removeArticleTag}
+                currentTags={article.tags ?? []}
+                availableTags={articleAvailableTags}
+                onAddCategory={addArticleCategory}
+                onRemoveCategory={removeArticleCategory}
+                currentCategories={article.category ?? []}
+                availableCategories={articleAvailableCategories}
+              />
+            );
+          }
+
+          return (
             <DownloadContextMenu
               download={download}
               position={{ x: contextMenu.x, y: contextMenu.y }}
@@ -816,7 +1309,7 @@ const StatusSpecificDownloads = () => {
                 });
               }}
             />
-          ) : null;
+          );
         })()}
 
       <ColumnHeaderContextMenu
@@ -858,29 +1351,7 @@ const StatusSpecificDownloads = () => {
           setStopControllerId('');
         }}
         onConfirmStop={performStop}
-        showActivityTracker={showActivityTracker}
-        onCloseActivityTracker={() => setShowActivityTracker(false)}
-        activityTrackerDownloadId={activityTrackerDownloadId}
-        showLogModal={showLogModal}
-        onCloseLogModal={() => {
-          setShowLogModal(false);
-          setLogModalDownloadId('');
-        }}
-        logModalDownloadId={logModalDownloadId}
       />
-
-      <div className="flex-shrink-0 mt-4">
-        <ExpandedDownloadDetails
-          download={
-            selectedDownload
-              ? {
-                  ...selectedDownload,
-                  elapsed: selectedDownload.elapsed || 0,
-                }
-              : null
-          }
-        />
-      </div>
     </div>
   );
 };
