@@ -481,12 +481,22 @@ ${
 
       setErrorSendResult({ success });
 
-      toast({
-        variant: 'success',
-        title: t('toast.errorReportSentTitle'),
-        description: t('toast.errorReportSentDesc'),
-        duration: 3000,
-      });
+      if (success) {
+        toast({
+          variant: 'success',
+          title: t('toast.errorReportSentTitle'),
+          description: t('toast.errorReportSentDesc'),
+          duration: 3000,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: t('toast.errorReportFailedTitle'),
+          description:
+            'Telemetry is disabled or the report could not be delivered.',
+          duration: 3000,
+        });
+      }
     } catch (error: unknown) {
       const errorMessage =
         (

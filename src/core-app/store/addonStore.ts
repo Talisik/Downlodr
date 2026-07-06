@@ -14,13 +14,17 @@ export interface AddonPackState {
   progress?: number;
 }
 
+/** Why the Add-ons manager was opened; drives contextual copy in the modal. */
+export type AddonManagerReason = 'afda-required' | null;
+
 interface AddonStore {
   afda: AddonPackState;
   skedulosa: AddonPackState;
   needsRestart: boolean;
   isAddonManagerOpen: boolean;
+  addonManagerReason: AddonManagerReason;
   setPackState: (pack: PackName, state: Partial<AddonPackState>) => void;
-  setAddonManagerOpen: (open: boolean) => void;
+  setAddonManagerOpen: (open: boolean, reason?: AddonManagerReason) => void;
   cancelDownload: (pack: PackName) => void;
   initFromMain: () => Promise<void>;
 }
@@ -32,6 +36,7 @@ export const useAddonStore = create<AddonStore>((set) => ({
   skedulosa: DEFAULT_STATE,
   needsRestart: false,
   isAddonManagerOpen: false,
+  addonManagerReason: null,
 
   setPackState: (pack, state) =>
     set((s) => {
@@ -39,7 +44,14 @@ export const useAddonStore = create<AddonStore>((set) => ({
       return { [key]: { ...s[key], ...state } };
     }),
 
-  setAddonManagerOpen: (open) => set({ isAddonManagerOpen: open }),
+  setAddonManagerOpen: (open, reason = null) =>
+    // Reason is only updated on open — left untouched on close so the copy
+    // doesn't flip to default mid-way through the modal's close animation.
+    set(
+      open
+        ? { isAddonManagerOpen: true, addonManagerReason: reason }
+        : { isAddonManagerOpen: false },
+    ),
 
   cancelDownload: (pack) => {
     window.addonBridge?.cancel(pack)?.catch((err) => {

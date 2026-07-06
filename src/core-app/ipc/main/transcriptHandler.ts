@@ -1,7 +1,7 @@
 /* Handler for developer tools of base app such as opening dev tools, etc. */
 /* Handler for window behavior of base app such as closing, minimizing, maximizing, etc. */
 
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import { BrowserWindow, app, ipcMain } from 'electron';
 import fs, { existsSync } from 'fs';
 import os from 'os';
@@ -20,6 +20,37 @@ function getDurationMs(filePath: string): number {
     `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
   );
   return Math.floor(parseFloat(output.toString().trim()) * 1000);
+}
+
+/**
+ * Whisper models are trained on 16kHz mono PCM audio. The whisper filter will
+ * resample internally if fed something else, but that internal conversion is
+ * opaque and has been observed to produce worse transcriptions than an
+ * explicit pre-conversion pass (matches the whisper.cpp CLI workflow, which
+ * always runs `ffmpeg -ar 16000 -ac 1 -c:a pcm_s16le` before transcribing).
+ */
+function resampleTo16kMono(ffmpegPath: string, inputFile: string): string {
+  const tempFilePath = path.join(
+    os.tmpdir(),
+    `downlodr-whisper-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}.wav`,
+  );
+
+  execFileSync(ffmpegPath, [
+    '-y',
+    '-i',
+    inputFile,
+    '-ar',
+    '16000',
+    '-ac',
+    '1',
+    '-c:a',
+    'pcm_s16le',
+    tempFilePath,
+  ]);
+
+  return tempFilePath;
 }
 
 export const transcriptHandler = (mainWindow: BrowserWindow) => {
@@ -544,6 +575,8 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
             }
           }
 
+          let resampledInputPath: string | undefined;
+
           try {
             if (!existsSync(options.inputFile)) {
               reject(new Error(`Input file not found: ${options.inputFile}`));
@@ -707,11 +740,20 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
             );
 
             // Build filter complex - use single quotes with escaped colon, forward slashes
-            const filterComplex = `[0:a]whisper=model='${normalizedModelPath}':language=${language}:destination='${normalizedOutputPath}':format=${format}`;
+            const filterComplex = `[0:a]whisper=model='${normalizedModelPath}':language=${language}:queue=30:destination='${normalizedOutputPath}':format=${format}`;
+
+            // Resample to 16kHz mono PCM before transcribing, matching the
+            // known-good whisper.cpp CLI workflow rather than relying on the
+            // whisper filter's implicit internal conversion.
+            resampledInputPath = resampleTo16kMono(
+              ffmpegPath,
+              options.inputFile,
+            );
+
             // Build FFmpeg arguments
             const args = [
               '-i',
-              options.inputFile,
+              resampledInputPath,
               '-filter_complex',
               filterComplex,
               '-f',
@@ -753,7 +795,33 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
 
             // Handle process completion
             ffmpegProcess.on('close', (code) => {
+              if (resampledInputPath && existsSync(resampledInputPath)) {
+                fs.unlink(resampledInputPath, () => {
+                  /* best-effort cleanup of temp resampled audio */
+                });
+              }
               if (code === 0) {
+                // FFmpeg's whisper filter writes plain UTF-8 with no BOM, which
+                // causes editors/viewers that don't auto-detect UTF-8 (e.g.
+                // Notepad) to misread non-ASCII transcripts as mojibake. Prepend
+                // a BOM so those tools recognize the encoding; readCaptionFile
+                // strips it back off before parsing.
+                try {
+                  const UTF8_BOM = '\uFEFF';
+                  const contents = fs.readFileSync(outputFilePath, 'utf-8');
+                  if (!contents.startsWith(UTF8_BOM)) {
+                    fs.writeFileSync(
+                      outputFilePath,
+                      UTF8_BOM + contents,
+                      'utf-8',
+                    );
+                  }
+                } catch (bomError) {
+                  console.error(
+                    'Failed to add UTF-8 BOM to transcript file:',
+                    bomError,
+                  );
+                }
                 resolve({
                   success: true,
                   outputFile: outputFilePath,
@@ -791,11 +859,21 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
 
             // Handle process errors
             ffmpegProcess.on('error', (error) => {
+              if (resampledInputPath && existsSync(resampledInputPath)) {
+                fs.unlink(resampledInputPath, () => {
+                  /* best-effort cleanup of temp resampled audio */
+                });
+              }
               reject(
                 new Error(`Failed to start FFmpeg process: ${error.message}`),
               );
             });
           } catch (error) {
+            if (resampledInputPath && existsSync(resampledInputPath)) {
+              fs.unlink(resampledInputPath, () => {
+                /* best-effort cleanup of temp resampled audio */
+              });
+            }
             const errorMessage =
               error instanceof Error ? error.message : String(error);
             reject(new Error(`FFmpeg execution failed: ${errorMessage}`));

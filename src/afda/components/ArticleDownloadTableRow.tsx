@@ -1,5 +1,7 @@
 import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
+import { highlightText } from '@/downlodr/components/table/HighlightText';
 import type { ArticleSearchableDownload } from '@/downlodr/store/taskbarDownloadStore';
+import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
 import type { DisplayColumn } from '@/downlodr/pages/status/statusPageTypes';
 import {
   formatFileSize,
@@ -112,6 +114,7 @@ export const ArticleDownloadTableRow: React.FC<
   isGrouped = false,
   hiddenColumnIds = [],
 }) => {
+  const searchQuery = useTaskbarDownloadStore((s) => s.searchState.searchQuery);
   const fetchAndOpen = useAfdaStore((s) => s.fetchAndOpen);
   const isArticlePanelOpen = useAfdaStore(
     (s) => s.isOpen && s.articleUrl === download.videoUrl,
@@ -316,7 +319,10 @@ export const ArticleDownloadTableRow: React.FC<
                   <TooltipWrapper content={download.name} side="bottom">
                     <div className="min-w-0 flex-1">
                       <span className="line-clamp-1 break-words break-all font-semibold">
-                        {download.name || download.videoUrl}
+                        {highlightText(
+                          download.name || download.videoUrl,
+                          searchQuery,
+                        )}
                       </span>
                       {siteName && (
                         <span className="text-xs text-gray-400 dark:text-gray-500 truncate block">

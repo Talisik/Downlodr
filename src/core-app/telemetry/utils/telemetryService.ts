@@ -3,12 +3,18 @@
  * Business logic for telemetry collection and reporting
  */
 
-import { getTelemetryId } from '@/core-app/store/telemetryStore';
 import {
+  getTelemetryId,
+  useTelemetryStore,
+} from '@/core-app/store/telemetryStore';
+import {
+  AnyValue,
   AppMetadata,
   DeviceInfo,
   HostInfo,
-  LogRecord,
+  KeyValue,
+  LogRecordInput,
+  OtlpLogRecord,
   ResourceInfo,
   TelemetryConfig,
   TelemetryPayload,
@@ -19,6 +25,34 @@ import { TelemetryErrorMapper } from './telemetryErrorMapping';
 
 interface PackageInfo {
   version: string;
+}
+
+/** Converts a JS primitive into an OTLP AnyValue; returns null for nullish values so callers can drop the key. */
+function toAnyValue(value: unknown): AnyValue | null {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value === 'string') return { stringValue: value };
+  if (typeof value === 'boolean') return { boolValue: value };
+  if (typeof value === 'number') {
+    return Number.isInteger(value)
+      ? { intValue: value }
+      : { doubleValue: value };
+  }
+  return { stringValue: String(value) };
+}
+
+/** Flattens a plain object into an OTLP attributes array, dropping nullish/empty values. */
+function toKeyValueList(attributes: Record<string, unknown>): KeyValue[] {
+  return Object.entries(attributes).reduce<KeyValue[]>((list, [key, value]) => {
+    const anyValue = toAnyValue(value);
+    if (anyValue) list.push({ key, value: anyValue });
+    return list;
+  }, []);
+}
+
+/** Converts an ISO-8601 timestamp into a nanosecond-precision Unix epoch string, as required by OTLP. */
+function toUnixNano(isoTimestamp: string): string {
+  const millis = new Date(isoTimestamp).getTime();
+  return `${BigInt(millis) * BigInt(1_000_000)}`;
 }
 
 /**
@@ -98,7 +132,7 @@ export class TelemetryService {
         downloadLogSnippet: logMessage,
       });
 
-      const logRecord: LogRecord = {
+      const logRecord: LogRecordInput = {
         timestamp: new Date().toISOString(),
         severity_number: 17, // ERROR level
         severity_text: 'ERROR',
@@ -115,22 +149,68 @@ export class TelemetryService {
   }
 
   /**
-   * Create complete telemetry payload
+   * Create complete telemetry payload in OTLP/HTTP JSON logs format
    */
-  private createTelemetryPayload(logRecords: LogRecord[]): TelemetryPayload {
+  private createTelemetryPayload(
+    logRecords: LogRecordInput[],
+  ): TelemetryPayload {
+    const resource = this.resource || this.getDefaultResourceInfo();
+    const host = this.hostInfo;
+    const user = this.userInfo;
+
+    const resourceAttributes = toKeyValueList({
+      'service.name': resource.service_name,
+      'service.version': resource.service_version,
+      'service.namespace': resource.service_namespace,
+      'service.instance.id': resource.service_instance_id,
+      'deployment.environment': resource.deployment_environment,
+      'telemetry.sdk.name': resource.telemetry_sdk_name,
+      'telemetry.sdk.language': resource.telemetry_sdk_language,
+      'telemetry.sdk.version': resource.telemetry_sdk_version,
+      'client.application': resource.client_application,
+      'client.platform': resource.client_platform,
+      'client.language': resource.client_language,
+      'client.timezone': resource.client_timezone,
+      'browser.name': resource.browser_name,
+      'browser.version': resource.browser_version,
+      source: 'electron-app',
+    });
+
+    const traceId = this.generateTraceId();
+    const spanId = this.generateSpanId();
+
+    const otlpLogRecords: OtlpLogRecord[] = logRecords.map((record) => {
+      const timeUnixNano = toUnixNano(record.timestamp);
+      return {
+        timeUnixNano,
+        observedTimeUnixNano: timeUnixNano,
+        severityNumber: record.severity_number,
+        severityText: record.severity_text,
+        body: { stringValue: record.body },
+        attributes: toKeyValueList({
+          ...record.attributes,
+          host_name: host?.host_name,
+          os_name: host?.os_name,
+          user_id: user?.user_id,
+        }),
+        traceId,
+        spanId,
+        flags: 1,
+      };
+    });
+
     return {
-      resource: this.resource || this.getDefaultResourceInfo(),
-      log_records: logRecords,
-      scope_name: 'downlodr-telemetry',
-      scope_version: '1.0.0',
-      scope_schema_url: __TELEMETRY_SCHEMA_URL__,
-      host: this.hostInfo,
-      user: this.userInfo,
-      device: this.deviceInfo,
-      app_metadata: this.appMetadata,
-      trace_id: this.generateTraceId(),
-      span_id: this.generateSpanId(),
-      trace_flags: 1,
+      resourceLogs: [
+        {
+          resource: { attributes: resourceAttributes },
+          scopeLogs: [
+            {
+              scope: { name: 'downlodr-telemetry', version: '1.0.0' },
+              logRecords: otlpLogRecords,
+            },
+          ],
+        },
+      ],
     };
   }
 
@@ -140,14 +220,7 @@ export class TelemetryService {
   private isEnabled(): boolean {
     if (!this.config.enabled) return false;
 
-    try {
-      const settings = JSON.parse(
-        localStorage.getItem('download-settings-storage') || '{}',
-      );
-      return settings?.state?.settings?.telemetryEnabled === true;
-    } catch {
-      return false;
-    }
+    return useTelemetryStore.getState().settings.telemetryEnabled === true;
   }
 
   // System info generation methods
@@ -172,10 +245,10 @@ export class TelemetryService {
       const version = this.packageInfo.version || '1.0.0';
       const browserInfo = await window.downlodrFunctions.getBrowserInfo();
       return {
-        service_name: null,
-        service_version: null,
-        service_namespace: null,
-        service_instance_id: null,
+        service_name: 'downlodr-electron-desktop-app',
+        service_version: version,
+        service_namespace: 'observability',
+        service_instance_id: getTelemetryId(),
         deployment_environment: 'prod',
         telemetry_sdk_name: 'downlodr-telemetry',
         telemetry_sdk_language: 'javascript',
@@ -195,11 +268,12 @@ export class TelemetryService {
   }
 
   private getDefaultResourceInfo(): ResourceInfo {
+    const version = this.packageInfo.version || '1.0.0';
     return {
-      service_name: null,
-      service_version: null,
-      service_namespace: null,
-      service_instance_id: null,
+      service_name: 'downlodr-electron-desktop-app',
+      service_version: version,
+      service_namespace: 'observability',
+      service_instance_id: getTelemetryId(),
       deployment_environment: 'prod',
       telemetry_sdk_name: 'downlodr-telemetry',
       telemetry_sdk_language: 'javascript',

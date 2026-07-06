@@ -10,6 +10,8 @@ import { useAfdaWebsitesStore } from '@/afda/store/afdaWebsitesStore';
 import NoSchedulePage from './NoSchedulePage';
 import AfdaAddedSubscriptionModal from '@/afda/components/AfdaAddedSubscriptionModal';
 import AfdaAddWebsiteModal from '@/afda/components/AfdaAddWebsiteModal';
+import { useAfdaMapperStore } from '@/afda/store/afdaMapperStore';
+import { extractFqdn } from '@/afda/utils/extractFqdn';
 import {
   useAddonStore,
   type AddonPackState,
@@ -58,6 +60,19 @@ const SkedulosaHome = () => {
 
   useEffect(() => {
     if (pendingSubscribeUrl) {
+      // A stashed mapper result/error for this URL means an AFDA website run
+      // finished while this page was unmounted ("Run in background") — resume
+      // the website flow (section picker / error) instead of the subscribe modal.
+      const { pendingResult, pendingError } = useAfdaMapperStore.getState();
+      const fqdn = extractFqdn(pendingSubscribeUrl);
+      if (
+        fqdn &&
+        (pendingResult?.fqdn === fqdn || pendingError?.fqdn === fqdn)
+      ) {
+        setFlowStep({ step: 'website', url: pendingSubscribeUrl });
+        setPendingSubscribeUrl(null);
+        return;
+      }
       setFlowStep({ step: 'subscribe', initialUrl: pendingSubscribeUrl });
       setIsPendingAutoSubscribe(pendingExtensionSubscribe);
       setPendingExtensionSubscribe(false);

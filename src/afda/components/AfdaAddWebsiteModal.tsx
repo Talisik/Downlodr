@@ -1,35 +1,24 @@
 import BaseModal from '@/downlodr/components/modal/BaseModal';
+import {
+  getMissingAddonMessage,
+  isMissingHandlerError,
+  openAddonManager,
+} from '@/core-app/utils/missingAddonError';
 import { initialScrapeGuard } from '@/afda/hooks/initialScrapeGuard';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAfdaWebsitesStore } from '@/afda/store/afdaWebsitesStore';
+import { useAfdaMapperStore } from '@/afda/store/afdaMapperStore';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
+import { extractFqdn } from '@/afda/utils/extractFqdn';
+import type {
+  FrequencyAnalysisResult,
+  FrequencyInterval,
+  MapperResult,
+} from '@/afda/types/mapperTypes';
 import { FiCheck } from 'react-icons/fi';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-type FrequencyInterval = '15 min' | '1 hour' | '6 hours' | 'Daily';
-
-interface FrequencyAnalysisResult {
-  status: 'complete' | 'skipped';
-  suggested_interval: FrequencyInterval;
-  suggested_value_minutes: number;
-  suggested_days: number[];
-  confidence: 'high' | 'medium' | 'low';
-  reasoning: string;
-}
-
-interface MapperResult {
-  fqdn: string;
-  website_url: string;
-  website_name: string;
-  website_category: string;
-  mapper_raw: Record<string, unknown>;
-  section_links: string[];
-  has_paywall: boolean;
-  pagination: unknown;
-  section_analyses: Record<string, FrequencyAnalysisResult> | null;
-}
 
 type ScheduleConfig =
   | {
@@ -60,14 +49,6 @@ const INTERVALS: FrequencyInterval[] = ['15 min', '1 hour', '6 hours', 'Daily'];
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function extractFqdn(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '');
-  } catch {
-    return '';
-  }
-}
 
 function extractPath(sectionUrl: string): string {
   try {
@@ -311,6 +292,16 @@ const AfdaAddWebsiteModal = ({
     Record<string, 'auto' | 'manual'>
   >({});
 
+  const setBridgeError = useCallback((message: string) => {
+    if (isMissingHandlerError(message)) {
+      openAddonManager('afda');
+      setErrorMsg(getMissingAddonMessage('afda'));
+    } else {
+      setErrorMsg(message);
+    }
+    setPhase('error');
+  }, []);
+
   const resetForm = useCallback(() => {
     setWebsiteUrl('');
     setWebsiteName('');
@@ -373,10 +364,20 @@ const AfdaAddWebsiteModal = ({
     const bridge =
       typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
     if (!bridge) {
+      openAddonManager('afda');
+      setErrorMsg(getMissingAddonMessage('afda'));
       setPhase('error');
-      setErrorMsg('Article Fetcher bridge unavailable');
       return;
     }
+
+    // A finished run for this site may already be stashed (mapper completed
+    // while the user was away after "Run in background"). The consume effect
+    // below picks it up — don't start a second run.
+    const { pendingResult, pendingError } = useAfdaMapperStore.getState();
+    if (pendingResult?.fqdn === fqdn || pendingError?.fqdn === fqdn) return;
+
+    // A stash for a different site is stale — this run supersedes it.
+    useAfdaMapperStore.getState().clearPending();
 
     setPhase('running');
     setErrorMsg(null);
@@ -387,41 +388,9 @@ const AfdaAddWebsiteModal = ({
     startChannelAnalysis(url, false);
     analysisStarted.current = true;
 
-    const unsubs: (() => void)[] = [];
-    const cleanup = () => unsubs.forEach((fn) => fn());
-
-    unsubs.push(
-      bridge.on.mapperComplete((data: MapperResult) => {
-        if (data?.fqdn !== fqdn) return;
-        cleanup();
-        analysisStarted.current = false;
-        finishChannelAnalysis();
-        const analyses = data.section_analyses ?? {};
-        const intervals: Record<string, FrequencyInterval> = {};
-        const modes: Record<string, 'auto' | 'manual'> = {};
-        for (const sectionUrl of data.section_links) {
-          intervals[sectionUrl] = defaultInterval(analyses[sectionUrl]);
-          modes[sectionUrl] = 'auto';
-        }
-        setMapperResult(data);
-        setSelectedSections(new Set(data.section_links));
-        setSectionIntervals(intervals);
-        setSectionModes(modes);
-        setPhase('sections');
-      }),
-    );
-
-    unsubs.push(
-      bridge.on.mapperError((data: { fqdn: string; message: string }) => {
-        if (data?.fqdn !== fqdn) return;
-        cleanup();
-        analysisStarted.current = false;
-        finishChannelAnalysis();
-        setPhase('error');
-        setErrorMsg(data.message);
-      }),
-    );
-
+    // Completion arrives via mapper:complete/mapper:error, handled app-wide by
+    // GlobalAfdaMapperListener (this modal unmounts if the user navigates away
+    // mid-analysis) and consumed from afdaMapperStore by the effect below.
     bridge.mapper
       .run({
         website_url: url,
@@ -430,17 +399,51 @@ const AfdaAddWebsiteModal = ({
         website_category: 'News',
       })
       .catch((err: unknown) => {
-        cleanup();
         analysisStarted.current = false;
         finishChannelAnalysis();
-        setPhase('error');
-        setErrorMsg(
+        setBridgeError(
           err instanceof Error ? err.message : 'Failed to start mapper',
         );
       });
+  }, [isOpen, initialUrl, retryKey, setBridgeError]);
 
-    return cleanup;
-  }, [isOpen, initialUrl, retryKey]);
+  // ── Consume mapper results stashed by GlobalAfdaMapperListener ─────────────
+  // Fires both while the modal stays open and on re-mount after the user
+  // navigated away during "Run in background".
+
+  const pendingMapperResult = useAfdaMapperStore((s) => s.pendingResult);
+  const pendingMapperError = useAfdaMapperStore((s) => s.pendingError);
+
+  useEffect(() => {
+    if (!isOpen || !initialUrl) return;
+    const fqdn = extractFqdn(initialUrl.trim());
+    if (!fqdn) return;
+
+    if (pendingMapperResult && pendingMapperResult.fqdn === fqdn) {
+      useAfdaMapperStore.getState().clearPending();
+      const analyses = pendingMapperResult.section_analyses ?? {};
+      const intervals: Record<string, FrequencyInterval> = {};
+      const modes: Record<string, 'auto' | 'manual'> = {};
+      for (const sectionUrl of pendingMapperResult.section_links) {
+        intervals[sectionUrl] = defaultInterval(analyses[sectionUrl]);
+        modes[sectionUrl] = 'auto';
+      }
+      setMapperResult(pendingMapperResult);
+      setSelectedSections(new Set(pendingMapperResult.section_links));
+      setSectionIntervals(intervals);
+      setSectionModes(modes);
+      setPhase('sections');
+    } else if (pendingMapperError && pendingMapperError.fqdn === fqdn) {
+      useAfdaMapperStore.getState().clearPending();
+      setBridgeError(pendingMapperError.message);
+    }
+  }, [
+    isOpen,
+    initialUrl,
+    pendingMapperResult,
+    pendingMapperError,
+    setBridgeError,
+  ]);
 
   // ── Section toggle ─────────────────────────────────────────────────────────
 
@@ -470,8 +473,9 @@ const AfdaAddWebsiteModal = ({
     const bridge =
       typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
     if (!bridge) {
+      openAddonManager('afda');
+      setErrorMsg(getMissingAddonMessage('afda'));
       setPhase('error');
-      setErrorMsg('Article Fetcher bridge unavailable');
       return;
     }
 
@@ -626,8 +630,7 @@ const AfdaAddWebsiteModal = ({
         initialScrapeGuard.delete(id);
       }
       guardedSectionIds.clear();
-      setPhase('error');
-      setErrorMsg(
+      setBridgeError(
         err instanceof Error ? err.message : 'Failed to save website',
       );
     }
@@ -639,6 +642,7 @@ const AfdaAddWebsiteModal = ({
     articleLimit,
     handleClose,
     onSaved,
+    setBridgeError,
   ]);
 
   // ── Derived ────────────────────────────────────────────────────────────────

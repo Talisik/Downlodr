@@ -76,13 +76,14 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // confirmation modal
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showAddonModal, setShowAddonModal] = useState(false);
+  const showAddonModal = useAddonStore((s) => s.isAddonManagerOpen);
+  const setAddonManagerOpen = useAddonStore((s) => s.setAddonManagerOpen);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showHelpMenu, setShowHelpMenu] = useState(false);
   const helpMenuRef = useRef<HTMLDivElement>(null);
-  const { ref: helpDropdownRef, mounted: helpDropdownMounted } = useDropdownAnimation(showHelpMenu);
-  const setAddonManagerOpen = useAddonStore((s) => s.setAddonManagerOpen);
+  const { ref: helpDropdownRef, mounted: helpDropdownMounted } =
+    useDropdownAnimation(showHelpMenu);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -96,10 +97,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    setAddonManagerOpen(showAddonModal);
-  }, [showAddonModal, setAddonManagerOpen]);
 
   const handleCheckForUpdates = async () => {
     setShowHelpMenu(false);
@@ -713,7 +710,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       <div className={cn('flex items-center justify-between', className)}>
         <div className="flex items-center h-full px-2 space-x-0 md:space-x-2">
           <div className="gap-1 flex mr-2">
-            <PageNavigation onAddonRequired={() => setShowAddonModal(true)} isAddonModalOpen={showAddonModal} />
+            <PageNavigation
+              onAddonRequired={() => setAddonManagerOpen(true)}
+              isAddonModalOpen={showAddonModal}
+            />
           </div>
           {/*
           {location.pathname.startsWith('/skedulosa') && (
@@ -744,7 +744,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
               className="px-3 py-1 rounded font-semibold hover:bg-gray-100 dark:hover:bg-darkModeNavigation"
               onClick={(e) => {
                 e.stopPropagation();
-                setShowAddonModal(true);
+                setAddonManagerOpen(true);
               }}
             >
               Add-ons
@@ -771,7 +771,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
                 {t('dropdownBar.menus.help')}
               </button>
               {helpDropdownMounted && (
-                <div ref={helpDropdownRef} className="absolute right-0 mt-1 w-[125px] bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+                <div
+                  ref={helpDropdownRef}
+                  className="absolute right-0 mt-1 w-[125px] bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50"
+                >
                   <div className="mx-1">
                     <button
                       className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
@@ -854,7 +857,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       />
       <AddonManagerModal
         isOpen={showAddonModal}
-        onClose={() => setShowAddonModal(false)}
+        onClose={() => setAddonManagerOpen(false)}
       />
       <HelpModal
         isOpen={showHelpModal}

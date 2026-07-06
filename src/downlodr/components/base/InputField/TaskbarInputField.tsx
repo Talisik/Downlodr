@@ -16,6 +16,7 @@ import { cleanRawLink } from '@/core-app/utils/urlValidation';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import { processFileName } from '@/downlodr/utils/download/filterName';
 import {
+  mapArticleToSearchable,
   SearchableDownload,
   useTaskbarDownloadStore,
   Video,
@@ -85,6 +86,9 @@ const TaskbarInputField = () => {
   const fetchState = useAfdaStore((state) => state.fetchState);
   const articleData = useAfdaStore((state) => state.articleData);
   const articleError = useAfdaStore((state) => state.articleError);
+  const articleDownloads = useArticleDownloadStore(
+    (state) => state.articleDownloads,
+  );
   const addArticleDownload = useArticleDownloadStore(
     (state) => state.addArticleDownload,
   );
@@ -225,6 +229,7 @@ const TaskbarInputField = () => {
       ...finishedDownloads,
       ...historyDownloads,
       ...queuedDownloads,
+      ...articleDownloads.map(mapArticleToSearchable),
     ];
 
     // Remove duplicates based on ID

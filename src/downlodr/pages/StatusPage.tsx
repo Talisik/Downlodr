@@ -60,7 +60,10 @@ import type {
   ArticleSearchableDownload,
   SearchableDownload,
 } from '../store/taskbarDownloadStore';
-import { useTaskbarDownloadStore } from '../store/taskbarDownloadStore';
+import {
+  mapArticleToSearchable,
+  useTaskbarDownloadStore,
+} from '../store/taskbarDownloadStore';
 
 export { formatFileSize } from '@/downlodr/pages/status/statusPageUtils';
 
@@ -348,40 +351,7 @@ const StatusSpecificDownloads = () => {
     });
 
     const mappedArticles: ArticleSearchableDownload[] = articleDownloads.map(
-      (a) => ({
-        type: 'article' as const,
-        id: a.id,
-        name: a.title || a.url,
-        displayName: a.title || undefined,
-        status: a.status === 'loading' ? 'downloading' : a.status,
-        size: a.fileSize ?? 0,
-        DateAdded: a.dateAdded,
-        location: a.filePath ?? '',
-        videoUrl: a.url,
-        downloadName: a.title || a.url,
-        channelName: '',
-        extractorKey: 'Article',
-        formatId: '',
-        audioExt: '',
-        audioFormatId: '',
-        ext: a.format ?? 'docx',
-        format: a.format ?? 'docx',
-        speed: '',
-        timeLeft: '',
-        progress:
-          a.status === 'finished' ? 100 : a.status === 'failed' ? 0 : 50,
-        isLive: false,
-        duration: 0,
-        getTranscript: false,
-        getThumbnail: false,
-        tags: [],
-        category: [],
-        automaticCaption: null,
-        thumbnails: null,
-        errorMessage: a.errorMessage,
-        thumbnailDataUrl: a.thumbnailDataUrl,
-        subscriptionId: a.subscriptionId,
-      }),
+      mapArticleToSearchable,
     );
 
     const allItems = [...merged, ...mappedArticles];

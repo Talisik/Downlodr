@@ -1,6 +1,8 @@
-import { useToast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { useAfdaSubscriptionsStore } from '@/afda/store/afdaSubscriptionsStore';
 import { useAfdaWebsitesStore } from '@/afda/store/afdaWebsitesStore';
+import { config } from '@/core-app/client/config';
+import { useToast } from '@/core-app/components/shadcn/hooks/use-toast';
+import { TelemetryService } from '@/core-app/telemetry/utils/telemetryService';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TbClock } from 'react-icons/tb';
@@ -203,12 +205,52 @@ const AfdaSettings = ({ channelId }: AfdaSettingsProps) => {
     if (bridge && interval) {
       const website = websites.find((w) => w.id === channelId);
       if (website?.sections?.length) {
-        const config = toScheduleConfig(interval);
-        await Promise.allSettled(
-          website.sections.map((s: { id: string }) =>
-            bridge.schedule.assign({ section_id: parseInt(s.id), config }),
-          ),
+        const scheduleConfig = toScheduleConfig(interval);
+        const results: PromiseSettledResult<unknown>[] =
+          await Promise.allSettled(
+            website.sections.map((s: { id: string }) =>
+              bridge.schedule.assign({
+                section_id: parseInt(s.id),
+                config: scheduleConfig,
+              }),
+            ),
+          );
+
+        const failures = results.filter(
+          (r): r is PromiseRejectedResult => r.status === 'rejected',
         );
+        if (failures.length > 0) {
+          console.error(
+            `[afda] Schedule sync failed for ${failures.length}/${results.length} section(s):`,
+            failures.map((f) => f.reason),
+          );
+          // Non-blocking telemetry report — mirrors the pattern in lifecycleActions.ts
+          setTimeout(async () => {
+            try {
+              const telemetryService = new TelemetryService({
+                apiEndpoint: config.telemetry.endpoint,
+              });
+              await telemetryService.init();
+              const message = failures
+                .map((f) =>
+                  f.reason instanceof Error
+                    ? f.reason.message
+                    : String(f.reason),
+                )
+                .join('; ');
+              await telemetryService.sendDownloadError({
+                error: new Error(message),
+                logMessage: `AFDA schedule sync failed for ${failures.length}/${results.length} section(s) of channel ${channelId}: ${message}`,
+                downloadContext: {
+                  downloadName: `[afda] schedule sync (${channelId})`,
+                  location: 'afda',
+                },
+              });
+            } catch (telemetryError) {
+              console.error('Failed to send AFDA telemetry:', telemetryError);
+            }
+          }, 0);
+        }
       }
     }
 

@@ -592,7 +592,10 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
       if (!ALLOWED_EXTENSIONS.includes(ext)) {
         throw new Error(`Unsupported caption extension: ${ext}`);
       }
-      return await readFile(filePath, 'utf-8');
+      const content = await readFile(filePath, 'utf-8');
+      // Strip a leading UTF-8 BOM (added so external editors like Notepad
+      // detect the encoding correctly) so it doesn't leak into caption parsing.
+      return content.charCodeAt(0) === 0xfeff ? content.slice(1) : content;
     } catch (error) {
       console.error('Error reading caption file:', error);
       throw error;

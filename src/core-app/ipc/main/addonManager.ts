@@ -7,6 +7,12 @@ import yauzl from 'yauzl';
 
 export type PackName = 'afda-backend' | 'video-nemesis-toolkit';
 
+// How often download progress is forwarded to the renderer (ms).
+// HTTP response 'data' events can fire hundreds of times per second for a
+// large pack, and each send is a synchronous main->renderer IPC call, so
+// this must be throttled to avoid flooding the renderer and causing lag.
+const PROGRESS_THROTTLE_MS = 150;
+
 export type AddonStatus =
   | { status: 'not-installed'; path: null }
   | { status: 'ready'; path: string }
@@ -21,6 +27,59 @@ const EXPECTED_VERSIONS: Record<PackName, string> = {
 const activeDownloads = new Map<PackName, () => void>();
 // Tracks packs that were explicitly cancelled (so realDownload's catch doesn't re-send complete)
 const cancelledPacks = new Set<PackName>();
+
+function pendingDeleteMarkerPath(): string {
+  return path.join(app.getPath('userData'), 'downlodr-add-ons', '.pending-delete.json');
+}
+
+function readPendingDeletes(): PackName[] {
+  try {
+    const raw = fs.readFileSync(pendingDeleteMarkerPath(), 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function writePendingDeletes(packs: PackName[]): void {
+  const markerPath = pendingDeleteMarkerPath();
+  if (packs.length === 0) {
+    fs.rm(markerPath, { force: true }, () => {});
+    return;
+  }
+  fs.mkdirSync(path.dirname(markerPath), { recursive: true });
+  fs.writeFileSync(markerPath, JSON.stringify(packs));
+}
+
+function markPendingDelete(packName: PackName): void {
+  const pending = new Set(readPendingDeletes());
+  pending.add(packName);
+  writePendingDeletes([...pending]);
+}
+
+/**
+ * Removes any addon directories that failed to delete last session (e.g. their
+ * native module DLL was still locked by the running process on Windows). Must
+ * run before any addon module is loaded, so the files are no longer in use.
+ */
+export function applyPendingDeletes(): void {
+  const pending = readPendingDeletes();
+  if (pending.length === 0) return;
+
+  const stillPending: PackName[] = [];
+  for (const packName of pending) {
+    const addonPath = path.join(app.getPath('userData'), 'downlodr-add-ons', packName);
+    try {
+      if (fs.existsSync(addonPath)) {
+        fs.rmSync(addonPath, { recursive: true, force: true });
+      }
+    } catch (err) {
+      console.error(`[addonManager] deferred delete failed for ${packName}:`, err);
+      stillPending.push(packName);
+    }
+  }
+  writePendingDeletes(stillPending);
+}
 
 export function detectAddon(packName: PackName): AddonStatus {
   const userDataPath = app.getPath('userData');
@@ -167,6 +226,7 @@ function downloadToFile(
         const total = parseInt(response.headers['content-length'] ?? '0', 10);
         const estimatedSize = 80 * 1024 * 1024;
         let downloaded = 0;
+        let lastProgressSentTime = 0;
 
         const out = fs.createWriteStream(destPath);
         response.on('data', (chunk: Buffer) => {
@@ -175,6 +235,9 @@ function downloadToFile(
             total > 0
               ? Math.round((downloaded / total) * 100)
               : Math.min(99, Math.round((downloaded / estimatedSize) * 100));
+          const now = Date.now();
+          if (now - lastProgressSentTime < PROGRESS_THROTTLE_MS) return;
+          lastProgressSentTime = now;
           onProgress(percent);
         });
         response.pipe(out);
@@ -415,7 +478,11 @@ export function addonManagerHandler(mainWindow: BrowserWindow): () => void {
         return { success: true };
       } catch (err) {
         console.error(`[addonManager] delete failed for ${pack}:`, err);
-        return { success: false, error: String(err) };
+        // Most likely cause on Windows: the addon's native module is still
+        // loaded in this process and has a file lock on it. Defer the actual
+        // removal to next launch, before the addon is loaded again.
+        markPendingDelete(pack);
+        return { success: false, deferred: true, error: String(err) };
       }
     },
   );

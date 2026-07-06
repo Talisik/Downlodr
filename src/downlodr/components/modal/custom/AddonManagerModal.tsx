@@ -7,6 +7,7 @@ import {
 } from '@/core-app/store/addonStore';
 import { Trash2, RefreshCw, FolderOpen, Loader2 } from 'lucide-react';
 import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
+import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 
 interface AddonManagerModalProps {
   isOpen: boolean;
@@ -20,21 +21,23 @@ const AddonManagerModal: React.FC<AddonManagerModalProps> = ({
   const afdaState = useAddonStore((s) => s.afda);
   const skedulosaState = useAddonStore((s) => s.skedulosa);
   const needsRestart = useAddonStore((s) => s.needsRestart);
+  const addonManagerReason = useAddonStore((s) => s.addonManagerReason);
+
+  const isAfdaRequired = addonManagerReason === 'afda-required';
+  const title = isAfdaRequired ? 'Download required add-on' : 'Add-ons';
+  const description = isAfdaRequired
+    ? 'To download articles and subscribe to website please download addon'
+    : 'Manage optional add-ons to unlock additional features.';
 
   const handleRestart = () => {
     window.addonBridge?.restart();
   };
 
   return (
-    <BaseModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Add-ons"
-      width="max-w-md"
-    >
+    <BaseModal isOpen={isOpen} onClose={onClose} title={title} width="max-w-md">
       <div className="flex flex-col gap-3 p-1 pb-8 -mt-2">
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          Manage optional add-ons to unlock additional features.
+          {description}
         </p>
         <AddonCard
           packName="video-nemesis-toolkit"
@@ -103,11 +106,29 @@ function AddonCard({
         useAddonStore
           .getState()
           .setPackState(packName, { status: 'not-installed' });
+      } else if (result?.deferred) {
+        useAddonStore.setState({ needsRestart: true });
+        toast({
+          variant: 'destructive',
+          title: `${label} is still in use`,
+          description:
+            'Removal is scheduled for the next restart. Restart the app to finish removing this add-on.',
+        });
       } else {
         console.error('[AddonCard] delete returned non-success:', result);
+        toast({
+          variant: 'destructive',
+          title: `Couldn't delete ${label}`,
+          description: result?.error ?? 'An unknown error occurred.',
+        });
       }
     } catch (err) {
       console.error('[AddonCard] delete failed:', err);
+      toast({
+        variant: 'destructive',
+        title: `Couldn't delete ${label}`,
+        description: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       setIsDeleting(false);
     }
@@ -219,9 +240,7 @@ function AddonCard({
           <div className="flex items-center gap-2 mt-1">
             <button
               type="button"
-              onClick={() =>
-                useAddonStore.getState().cancelDownload(packName)
-              }
+              onClick={() => useAddonStore.getState().cancelDownload(packName)}
               className="flex-1 px-2 py-1 rounded text-xs text-red-500 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             >
               Cancel

@@ -1,4 +1,5 @@
-// OpenTelemetry-compatible telemetry types for Downlodr
+// OpenTelemetry OTLP-compatible telemetry types for Downlodr
+// Wire format follows the OTLP/HTTP JSON logs shape (resourceLogs -> scopeLogs -> logRecords)
 
 export interface TelemetryConfig {
   apiEndpoint: string;
@@ -13,7 +14,7 @@ export interface ResourceInfo {
   service_name: string;
   service_version: string;
   service_namespace: string;
-  service_instance_id: string;
+  service_instance_id?: string | null;
   deployment_environment: string;
   telemetry_sdk_name: string;
   telemetry_sdk_language: string;
@@ -27,24 +28,11 @@ export interface ResourceInfo {
   browser_user_agent?: string;
 }
 
-export interface ProcessInfo {
-  process_pid: number;
-  process_parent_pid?: number;
-  process_executable_name: string;
-  process_executable_path?: string;
-  process_command?: string;
-  process_command_args?: string[];
-  process_owner?: string;
-}
-
 export interface HostInfo {
   host_name: string;
   host_id?: string;
   host_type: string;
   host_arch: string;
-  host_image_name?: string;
-  host_image_id?: string;
-  host_image_version?: string;
   os_type: string;
   os_description?: string;
   os_name: string;
@@ -54,44 +42,23 @@ export interface HostInfo {
   cpu_threads?: number;
   memory_total_gb?: number;
   memory_available_gb?: number;
-  gpu_model?: string;
-  storage_total_gb?: number;
-  storage_available_gb?: number;
-  network_interface?: string;
-  network_speed_mbps?: number;
 }
 
 export interface UserInfo {
-  user_id?: string;
+  user_id?: string | null;
   user_name?: string;
-  user_email?: string;
-  user_roles?: string[];
-  session_id?: string;
-  session_previous_id?: string;
+  user_email?: string | null;
+  session_id?: string | null;
 }
 
 export interface DeviceInfo {
-  device_id?: string;
-  device_manufacturer?: string;
-  screen_width?: number;
-  screen_height?: number;
-  screen_density?: number;
-  screen_resolution?: string;
-  screen_color_depth?: number;
-}
-
-export interface CodeInfo {
-  code_function?: string;
-  code_namespace?: string;
-  code_filepath?: string;
-  code_lineno?: number;
-  code_column?: number;
-  code_stacktrace?: string;
-}
-
-export interface ThreadInfo {
-  thread_id: string;
-  thread_name?: string;
+  device_id?: string | null;
+  device_manufacturer?: string | null;
+  screen_width?: number | null;
+  screen_height?: number | null;
+  screen_density?: number | null;
+  screen_resolution?: string | null;
+  screen_color_depth?: number | null;
 }
 
 export interface AppMetadata {
@@ -100,43 +67,16 @@ export interface AppMetadata {
   build_date?: string;
   git_commit?: string;
   feature_flags?: Record<string, boolean>;
-  performance_metrics?: {
-    startup_time_ms?: number;
-    memory_usage_mb?: number;
-    cpu_usage_percent?: number;
-  };
 }
 
-export interface LogRecord {
+// Intermediate, pre-OTLP representation of a single log entry. Built by
+// TelemetryService and converted into an OtlpLogRecord before it's sent.
+export interface LogRecordInput {
   timestamp: string;
   severity_number: number;
   severity_text: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
   body: string;
-  attributes?: Record<string, any>;
-}
-
-export interface ScopeInfo {
-  scope_name: string;
-  scope_version: string;
-  scope_schema_url?: string;
-}
-
-export interface TelemetryPayload {
-  resource: ResourceInfo;
-  log_records: LogRecord[];
-  scope_name: string;
-  scope_version: string;
-  scope_schema_url?: string;
-  process?: ProcessInfo;
-  host?: HostInfo;
-  user?: UserInfo | null;
-  device?: DeviceInfo;
-  code?: CodeInfo;
-  thread?: ThreadInfo;
-  app_metadata?: AppMetadata;
-  trace_id?: string;
-  span_id?: string;
-  trace_flags?: number;
+  attributes?: Record<string, unknown>;
 }
 
 export enum LogLevel {
@@ -152,5 +92,50 @@ export interface TelemetryEvent {
   message: string;
   error?: Error;
   attributes?: Record<string, any>;
-  codeInfo?: Partial<CodeInfo>;
+}
+
+// ---- OTLP/HTTP JSON wire format ----
+// https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/logs/v1/logs.proto
+
+export interface AnyValue {
+  stringValue?: string;
+  intValue?: number;
+  doubleValue?: number;
+  boolValue?: boolean;
+}
+
+export interface KeyValue {
+  key: string;
+  value: AnyValue;
+}
+
+export interface OtlpLogRecord {
+  timeUnixNano: string;
+  observedTimeUnixNano: string;
+  severityNumber: number;
+  severityText: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
+  body: { stringValue: string };
+  attributes: KeyValue[];
+  traceId: string;
+  spanId: string;
+  flags: number;
+}
+
+export interface ScopeLogs {
+  scope: {
+    name: string;
+    version: string;
+  };
+  logRecords: OtlpLogRecord[];
+}
+
+export interface ResourceLogs {
+  resource: {
+    attributes: KeyValue[];
+  };
+  scopeLogs: ScopeLogs[];
+}
+
+export interface TelemetryPayload {
+  resourceLogs: ResourceLogs[];
 }

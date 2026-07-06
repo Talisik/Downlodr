@@ -35,6 +35,8 @@ contextBridge.exposeInMainWorld('fileFunctionsBridge', {
   deleteFile: (filepath: string) => ipcRenderer.invoke('deleteFile', filepath),
   deleteFolder: (folderpath: string) =>
     ipcRenderer.invoke('deleteFolder', folderpath),
+  copyFile: (sourcePath: string, destinationPath: string) =>
+    ipcRenderer.invoke('copyFile', sourcePath, destinationPath),
   openFolder: (folderPath: string, filePath: string) =>
     ipcRenderer.invoke('open-folder', folderPath, filePath),
   saveBufferToFile: (data: number[], filePath: string) =>

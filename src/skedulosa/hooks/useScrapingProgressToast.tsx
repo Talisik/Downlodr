@@ -80,7 +80,6 @@ export function useScrapingProgressToast() {
               </span>
             ),
             duration: 5000, // Auto-dismiss after 5 seconds
-            className: 'w-[300px]',
             variant: 'success',
           });
         } else {

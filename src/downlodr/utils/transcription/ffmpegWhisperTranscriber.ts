@@ -6,7 +6,9 @@
  * validation, and convenience methods.
  */
 
+import { config } from '@/core-app/client/config';
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
+import { TelemetryService } from '@/core-app/telemetry/utils/telemetryService';
 
 interface WhisperUIHandlers {
   onStart?: (msg: string) => void;
@@ -365,6 +367,32 @@ export class FFmpegWhisperTranscriber {
 
       // Show error toast
       ui?.onError?.(errorMessage);
+
+      // Non-blocking telemetry report — mirrors the pattern in lifecycleActions.ts
+      setTimeout(async () => {
+        try {
+          const telemetryService = new TelemetryService({
+            apiEndpoint: config.telemetry.endpoint,
+          });
+          await telemetryService.init();
+          await telemetryService.sendDownloadError({
+            error: error instanceof Error ? error : new Error(errorMessage),
+            logMessage: errorMessage,
+            downloadContext: {
+              downloadName: this.getFileName(options.inputFile),
+              format: options.format,
+              location: options.outputFile,
+              fileExtension: options.format,
+              sessionDurationSeconds: Math.round(duration / 1000),
+            },
+          });
+        } catch (telemetryError) {
+          console.error(
+            'Failed to send transcription telemetry:',
+            telemetryError,
+          );
+        }
+      }, 0);
 
       return {
         success: false,
