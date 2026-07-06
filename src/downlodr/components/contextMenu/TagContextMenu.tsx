@@ -45,7 +45,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newName.trim() && newName.trim().length <= 10) {
+    if (newName.trim() && newName.trim().length <= 120) {
       onRename(newName.trim());
       onClose();
     }
@@ -68,13 +68,13 @@ const RenameModal: React.FC<RenameModalProps> = ({
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            maxLength={10}
+            maxLength={120}
             className="w-full p-2 border rounded mb-1 dark:bg-darkMode dark:border-inputDarkModeBorder outline-none dark:text-gray-200"
             autoFocus
             onClick={(e) => e.stopPropagation()}
           />
           <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-            {newName.length}/10 characters
+            {newName.length}/120 characters
           </div>
 
           <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
@@ -92,7 +92,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
               type="submit"
               onClick={(e) => e.stopPropagation()}
               className="px-4 py-1 bg-primary text-white rounded disabled:opacity-50 hover:opacity-90 dark:hover:opacity-75"
-              disabled={!newName.trim() || newName.trim().length > 10}
+              disabled={!newName.trim() || newName.trim().length > 120}
             >
               Save
             </button>

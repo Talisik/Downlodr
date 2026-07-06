@@ -39,6 +39,9 @@ module.exports = {
       },
     },
     extend: {
+      fontSize: {
+        xxxs: ['10px', '16px'],
+      },
       keyframes: {
         'accordion-down': {
           from: { height: '0' },
@@ -55,6 +58,7 @@ module.exports = {
       },
       colors: {
         ...colors, // Spread the default colors
+        offWhite: '#FFFFFF',
         titleBar: {
           DEFAULT: '#F9FAF7',
           dark: '#09090B',
@@ -102,6 +106,7 @@ module.exports = {
         grayTag: '#E6E6E6',
         darkModeTable: '#272727',
         darkModeTableBorder: '#474747',
+        titleBarBorder: '#F9F9F9',
       },
     },
   },

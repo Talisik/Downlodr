@@ -80,7 +80,7 @@ async function runJob(job: TranscriptJob): Promise<void> {
       inputFile: inputLocation,
       outputFile: outputLocation,
       modelPath: 'ggml-small.bin',
-      language: 'en',
+      language: 'auto',
       format: 'srt',
     },
     {

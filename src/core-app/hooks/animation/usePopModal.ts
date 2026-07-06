@@ -42,14 +42,9 @@ export function useModalAnimation(
       initialized.current = true;
 
       if (!visible) {
-        gsap.set(overlay, { opacity: 0 });
-
-        gsap.set(modal, {
-          opacity: 0,
-          y: 16,
-          scale: 0.96,
-        });
-
+        // Nothing was ever shown — unmount instead of leaving an invisible
+        // full-screen overlay in the DOM that blocks all pointer events.
+        setMounted(false);
         return;
       }
     }

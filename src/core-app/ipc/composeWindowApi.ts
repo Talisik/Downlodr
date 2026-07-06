@@ -28,6 +28,7 @@ export function initComposedWindowApi(): void {
       openVideo: fileFn.openVideo,
       deleteFile: fileFn.deleteFile,
       deleteFolder: fileFn.deleteFolder,
+      copyFile: fileFn.copyFile,
       getDownloadFolder: fileInfo.getDownloadFolder,
       getAppInfo: appInfo.getAppInfo,
       getBrowserInfo: appInfo.getBrowserInfo,

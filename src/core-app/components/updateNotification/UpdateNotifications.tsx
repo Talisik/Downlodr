@@ -1,12 +1,12 @@
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@/core-app/components/shadcn/components/ui/alert-dialog';
 import { Button } from '@/core-app/components/shadcn/components/ui/button';
 import { useSettingStore } from '@/core-app/store/settingsStore';
@@ -14,6 +14,7 @@ import { useUpdateListener } from '@/core-app/utils/manager/eventManager';
 import { UpdateInfo } from '@/plugins/schema/types';
 import React, { useEffect, useState } from 'react';
 import { FaArrowCircleUp } from 'react-icons/fa';
+import ReactMarkdown from 'react-markdown';
 
 interface UpdateNotificationProps {
   // For plugin updates - external control
@@ -170,9 +171,44 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
 
         {updateInfo.releaseNotes && (
           <div className="p-2 bg-slate-100 rounded text-sm max-h-32 overflow-y-auto dark:bg-darkMode dark:text-gray-200">
-            <p className="text-sm text-slate-700 dark:text-gray-200 whitespace-pre-line text-[12px]">
-              {updateInfo.releaseNotes}
-            </p>
+            <div className="text-sm text-slate-700 dark:text-gray-200 text-[12px]">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => (
+                    <h1 className="text-sm font-semibold mb-1">{children}</h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className="text-sm font-semibold mb-1">{children}</h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="text-sm font-semibold mb-1">{children}</h3>
+                  ),
+                  p: ({ children }) => <p className="mb-1">{children}</p>,
+                  ul: ({ children }) => (
+                    <ul className="list-disc pl-4 mb-1">{children}</ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="list-decimal pl-4 mb-1">{children}</ol>
+                  ),
+                  li: ({ children }) => <li className="mb-0.5">{children}</li>,
+                  strong: ({ children }) => (
+                    <strong className="font-semibold">{children}</strong>
+                  ),
+                  a: ({ children, href }) => (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline"
+                    >
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {updateInfo.releaseNotes}
+              </ReactMarkdown>
+            </div>
           </div>
         )}
 

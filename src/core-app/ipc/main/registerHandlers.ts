@@ -10,7 +10,7 @@ import { pluginFunctionsHandler } from './pluginFunctionsHandler';
 import { pluginHandler } from './pluginHandler';
 import { afdaHandler } from './afdaHandler';
 import { skedulosaHandler } from './skedulosaHandler';
-import { addonManagerHandler, detectAddon, resolveAddonPath } from './addonManager';
+import { addonManagerHandler, applyPendingDeletes, detectAddon, resolveAddonPath } from './addonManager';
 import { telemetryHandler } from './telemetryHandler';
 import { transcriptHandler } from './transcriptHandler';
 import { trayHandler, TrayHandlerOptions } from './trayHandler';
@@ -35,6 +35,8 @@ export async function registerMainIpcHandlers(
   if (handlersRegistered) {
     return { cleanup: () => {} };
   }
+
+  applyPendingDeletes();
 
   const cleanups: (() => void)[] = [];
 

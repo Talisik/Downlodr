@@ -222,6 +222,27 @@ export const fileHandler = (mainWindow: BrowserWindow) => {
     }
   });
 
+  ipcMain.handle('copyFile', async (event, sourcePath, destinationPath) => {
+    try {
+      const normalizedSource = path.normalize(sourcePath);
+      const normalizedDestination = path.normalize(destinationPath);
+
+      if (!fs.existsSync(normalizedSource)) {
+        console.error('Source file does not exist:', normalizedSource);
+        return false;
+      }
+
+      await fs.promises.mkdir(path.dirname(normalizedDestination), {
+        recursive: true,
+      });
+      await fs.promises.copyFile(normalizedSource, normalizedDestination);
+      return true;
+    } catch (error) {
+      console.error('Failed to copy file:', error);
+      return false;
+    }
+  });
+
   ipcMain.handle('deleteFolder', async (event, filepath) => {
     try {
       // Normalize the folder path

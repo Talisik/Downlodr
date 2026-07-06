@@ -888,13 +888,13 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <input
                 type="text"
                 placeholder="Add new tag..."
-                maxLength={10}
+                maxLength={120}
                 onKeyDown={(e) => {
                   const target = e.target as HTMLInputElement;
                   if (
                     e.key === 'Enter' &&
                     target.value.trim() &&
-                    target.value.trim().length <= 10
+                    target.value.trim().length <= 120
                   ) {
                     const newTag = target.value.trim();
 
@@ -925,7 +925,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                 className="w-full outline-none dark:bg-darkMode dark:text-gray-200"
               />
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Max 10 characters
+                Max 120 characters
               </div>
             </div>
           </div>
@@ -972,13 +972,13 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
               <input
                 type="text"
                 placeholder="Add new category..."
-                maxLength={10}
+                maxLength={120}
                 onKeyDown={(e) => {
                   const target = e.target as HTMLInputElement;
                   if (
                     e.key === 'Enter' &&
                     target.value.trim() &&
-                    target.value.trim().length <= 10
+                    target.value.trim().length <= 120
                   ) {
                     const newCategory = target.value.trim();
 

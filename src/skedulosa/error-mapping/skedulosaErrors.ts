@@ -1,10 +1,40 @@
+import { config } from '@/core-app/client/config';
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
+import { TelemetryService } from '@/core-app/telemetry/utils/telemetryService';
 import { ytdlpRecoveryService } from '@/skedulosa/utils/ytdlpRecoveryService';
 
 interface SkedulosaErrorEntry {
   pattern: string | RegExp;
   title: string;
   description: string;
+  /** Set to false for local UI-only sentinels (no backend involved) so they don't get reported. */
+  telemetry?: boolean;
+}
+
+/**
+ * Fires a non-blocking telemetry report for a mapped Skedulosa/Nemesis error.
+ * Reuses the download-error channel since it's the only telemetry sink today —
+ * `title` stands in for a download name so reports stay identifiable in the backend.
+ */
+function reportSkedulosaError(rawError: string, title: string): void {
+  setTimeout(async () => {
+    try {
+      const telemetryService = new TelemetryService({
+        apiEndpoint: config.telemetry.endpoint,
+      });
+      await telemetryService.init();
+      await telemetryService.sendDownloadError({
+        error: new Error(rawError),
+        logMessage: rawError,
+        downloadContext: {
+          downloadName: `[skedulosa] ${title}`,
+          location: 'skedulosa',
+        },
+      });
+    } catch (err) {
+      console.error('Failed to send skedulosa telemetry:', err);
+    }
+  }, 0);
 }
 
 /**
@@ -20,22 +50,26 @@ const SKEDULOSA_ERROR_MAP: readonly SkedulosaErrorEntry[] = Object.freeze([
     pattern: 'missing-fields',
     title: 'Missing fields',
     description: 'Please enter a channel name and source URL.',
+    telemetry: false,
   },
   {
     pattern: 'paste-failed',
     title: 'Paste failed',
     description: 'Could not read from clipboard. Try pasting manually.',
+    telemetry: false,
   },
   {
     pattern: 'directory-failed',
     title: 'Could not open folder',
     description: 'Failed to select a download directory. Please try again.',
+    telemetry: false,
   },
   {
     pattern: 'pause-resume-failed',
     title: 'Could not update subscription',
     description:
       'Something went wrong while pausing or resuming. Please try again.',
+    telemetry: false,
   },
 
   // ── ERR-001: No Channel URL Entered ──────────────────────────────────────
@@ -366,6 +400,9 @@ export function showSkedulosaError(key: string): void {
         description: entry.description,
         duration: 5000,
       });
+      if (entry.telemetry !== false) {
+        reportSkedulosaError(key, entry.title);
+      }
       return;
     }
   }
@@ -377,6 +414,9 @@ export function showSkedulosaError(key: string): void {
     description: key || 'An unexpected error occurred. Please try again.',
     duration: 5000,
   });
+  if (key) {
+    reportSkedulosaError(key, 'Unmapped error');
+  }
 }
 
 /**

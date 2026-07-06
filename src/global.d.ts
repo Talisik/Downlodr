@@ -176,6 +176,7 @@ declare global {
       openVideo: (filePath: string) => Promise<void>;
       deleteFile: (filepath: string) => Promise<boolean>;
       deleteFolder: (folderpath: string) => Promise<boolean>;
+      copyFile: (sourcePath: string, destinationPath: string) => Promise<boolean>;
       openFolder: (folderPath: string, filePath: string) => Promise<{ success: boolean; error?: string }>;
       saveBufferToFile: (data: number[], filePath: string) => Promise<{ success: boolean; error?: string }>;
       htmlToPdf: (htmlContent: string) => Promise<{ success: boolean; data?: number[]; error?: string }>;
@@ -308,6 +309,7 @@ declare global {
       openVideo: (videoPath: string) => Promise<void>;
       deleteFile: (videoPath: string) => Promise<boolean>;
       deleteFolder: (folderPath: string) => Promise<boolean>;
+      copyFile: (sourcePath: string, destinationPath: string) => Promise<boolean>;
       getDownloadFolder: () => Promise<string>;
       getAppInfo: () => Promise<AppInfo | null>;
       getBrowserInfo: () => Promise<BrowserInfo | null>;
@@ -437,7 +439,7 @@ declare global {
         skedulosa: { status: string; installedVersion?: string; path: string | null };
       }>;
       download: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<{ started: boolean }>;
-      delete: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<{ success: boolean; error?: string }>;
+      delete: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<{ success: boolean; deferred?: boolean; error?: string }>;
       openFolder: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<{ success: boolean }>;
       cancel: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<void>;
       on: {

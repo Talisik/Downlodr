@@ -61,6 +61,7 @@ import { useToast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { useAddonStore } from '@/core-app/store/addonStore';
 import SkedulosaRouteGuard from './skedulosa/utils/routeGuard';
 import GlobalScanningModal from './skedulosa/components/GlobalScanningModal';
+import GlobalAfdaMapperListener from '@/afda/components/GlobalAfdaMapperListener';
 import GlobalAddonDownloadToast from '@/core-app/components/GlobalAddonDownloadToast';
 import CategoryPage from './smart-organize/base/pages/CategoryPage';
 import TagPage from './smart-organize/base/pages/TagPage';
@@ -336,6 +337,7 @@ const App = () => {
             </Route>
           </Routes>
           <GlobalScanningModal />
+          <GlobalAfdaMapperListener />
           <GlobalAddonDownloadToast />
         </Router>
         <Toaster />

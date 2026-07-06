@@ -1,3 +1,4 @@
+import type { ArticleDownload } from '@/afda/store/articleDownloadStore';
 import { useSettingStore } from '@/core-app/store/settingsStore';
 import { create } from 'zustand';
 import {
@@ -31,6 +32,44 @@ export type SearchableDownload =
   | HistoryDownloads
   | QueuedDownload
   | ArticleSearchableDownload;
+
+// Shared mapping so article search results (TaskbarInputField) and the
+// article browse view (StatusPage) render the same shape.
+export const mapArticleToSearchable = (
+  a: ArticleDownload,
+): ArticleSearchableDownload => ({
+  type: 'article',
+  id: a.id,
+  name: a.title || a.url,
+  displayName: a.title || undefined,
+  status: a.status === 'loading' ? 'downloading' : a.status,
+  size: a.fileSize ?? 0,
+  DateAdded: a.dateAdded,
+  location: a.filePath ?? '',
+  videoUrl: a.url,
+  downloadName: a.title || a.url,
+  channelName: '',
+  extractorKey: 'Article',
+  formatId: '',
+  audioExt: '',
+  audioFormatId: '',
+  ext: a.format ?? 'docx',
+  format: a.format ?? 'docx',
+  speed: '',
+  timeLeft: '',
+  progress: a.status === 'finished' ? 100 : a.status === 'failed' ? 0 : 50,
+  isLive: false,
+  duration: 0,
+  getTranscript: false,
+  getThumbnail: false,
+  tags: a.tags ?? [],
+  category: a.category ?? [],
+  automaticCaption: null,
+  thumbnails: null,
+  errorMessage: a.errorMessage,
+  thumbnailDataUrl: a.thumbnailDataUrl,
+  subscriptionId: a.subscriptionId,
+});
 
 interface SearchState {
   isSearchActive: boolean;
@@ -66,7 +105,7 @@ interface TaskbarDownloadStore {
 }
 
 export const useTaskbarDownloadStore = create<TaskbarDownloadStore>((set) => ({
-  getTranscript: false,
+  getTranscript: true,
   setGetTranscript: (value) => set({ getTranscript: value }),
   getThumbnail: true,
   setGetThumbnail: (value) => set({ getThumbnail: value }),

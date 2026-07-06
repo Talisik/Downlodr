@@ -221,7 +221,7 @@ const FavoritesContextMenu: React.FC<FavoritesContextMenuProps> = ({
               <input
                 type="text"
                 placeholder="Add new tag..."
-                maxLength={10}
+                maxLength={120}
                 onKeyDown={(e) => {
                   const target = e.target as HTMLInputElement;
                   if (e.key === 'Enter' && target.value.trim()) {
@@ -240,7 +240,9 @@ const FavoritesContextMenu: React.FC<FavoritesContextMenuProps> = ({
                 }}
                 className="w-full outline-none dark:bg-darkMode dark:text-gray-200"
               />
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Max 10 characters</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Max 120 characters
+              </div>
             </div>
           </div>
           <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider dark:border-gray-700" />
@@ -280,7 +282,7 @@ const FavoritesContextMenu: React.FC<FavoritesContextMenuProps> = ({
               <input
                 type="text"
                 placeholder="Add new category..."
-                maxLength={10}
+                maxLength={120}
                 onKeyDown={(e) => {
                   const target = e.target as HTMLInputElement;
                   if (e.key === 'Enter' && target.value.trim()) {
@@ -302,7 +304,9 @@ const FavoritesContextMenu: React.FC<FavoritesContextMenuProps> = ({
                 }}
                 className="w-full outline-none dark:bg-darkMode dark:text-gray-200"
               />
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Max 10 characters</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Max 120 characters
+              </div>
             </div>
           </div>
           <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider dark:border-gray-700" />

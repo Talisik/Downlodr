@@ -9,6 +9,7 @@ import { app, BrowserWindow } from 'electron';
 import started from 'electron-squirrel-startup';
 import http from 'http';
 import path from 'path';
+import { detectAddon } from './core-app/ipc/main/addonManager';
 import { checkForUpdates } from './core-app/hook/updateCheckerHook';
 import { autoDownloadUpdate } from './core-app/ipc/main/appInfoHandler'; // used by 4h interval
 import { setLastClipboardText } from './core-app/ipc/main/clipboardHandler';
@@ -181,7 +182,6 @@ app.on('ready', async () => {
       });
       req.on('end', () => {
         const { url, title, format_id } = JSON.parse(body);
-        console.log("url", url)
         mainWindow?.webContents.send('extension:download', {
           url,
           title,
@@ -201,7 +201,20 @@ app.on('ready', async () => {
       });
       req.on('end', () => {
         const { url } = JSON.parse(body);
-        console.log("article url", url)
+
+        if (detectAddon('afda-backend').status !== 'ready') {
+          res.writeHead(409, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              status: 'error',
+              error: 'addon_not_installed',
+              message:
+                'The Article Fetcher add-on is not installed. Install it from Downlodr to download articles.',
+            }),
+          );
+          return;
+        }
+
         mainWindow?.webContents.send('extension:download', {
           url,
           autoDownload: true,

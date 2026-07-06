@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from '@/core-app/components/shadcn/components/ui/tooltip';
 import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
+import { highlightText } from '@/downlodr/components/table/HighlightText';
 import DownloadButton from '@/downlodr/components/download/DownloadButton';
 import FormatSelector from '@/downlodr/components/download/FormatSelector';
 import { AnimatedLinearProgressBar } from '@/downlodr/components/download/LinearProgress';
@@ -139,27 +140,6 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
 
   const { t } = useTranslation('downlodr');
   const searchQuery = useTaskbarDownloadStore((s) => s.searchState.searchQuery);
-
-  const highlightText = (text: string) => {
-    if (!searchQuery) return text;
-    const regex = new RegExp(
-      `(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
-      'gi',
-    );
-    const parts = text.split(regex);
-    return parts.map((part, i) =>
-      regex.test(part) ? (
-        <mark
-          key={i}
-          className="bg-yellow-200 dark:bg-yellow-600 text-inherit rounded-sm px-0"
-        >
-          {part}
-        </mark>
-      ) : (
-        part
-      ),
-    );
-  };
 
   const handleRowClick = () => {
     console.log(
@@ -312,6 +292,7 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                             <span className="line-clamp-1 break-words break-all font-semibold">
                               {highlightText(
                                 download.displayName || download.name,
+                                searchQuery,
                               )}
                             </span>
                           </div>
@@ -348,7 +329,10 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                       </TooltipWrapper>
                     </div>
                     <span className="line-clamp-1 break-words break-all font-semibold min-w-0 flex-1">
-                      {highlightText(download.displayName || download.name)}
+                      {highlightText(
+                        download.displayName || download.name,
+                        searchQuery,
+                      )}
                     </span>
                   </div>
                 )}
