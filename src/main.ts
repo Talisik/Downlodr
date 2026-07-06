@@ -55,10 +55,18 @@ let extensionServer: http.Server | null = null;
 // Function to create the main application window
 const createWindow = async () => {
   // Create the browser window.
+  // macOS gets native traffic-light window controls (hiddenInset keeps our
+  // custom title bar for dragging/branding but restores the native buttons);
+  // Windows/Linux keep the fully custom frameless chrome.
   mainWindow = new BrowserWindow({
     width: 1500,
     height: 680,
-    frame: false,
+    ...(process.platform === 'darwin'
+      ? {
+          titleBarStyle: 'hiddenInset',
+          trafficLightPosition: { x: 12, y: 10 },
+        }
+      : { frame: false }),
     autoHideMenuBar: true,
     minWidth: 1200,
     minHeight: 600,

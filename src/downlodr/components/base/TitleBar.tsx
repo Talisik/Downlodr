@@ -22,9 +22,13 @@ interface TitleBarProps {
 const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   const { theme } = useTheme();
   const [isMaximized, setIsMaximized] = React.useState<boolean>(false);
+  const [isMac, setIsMac] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     window.appBehaviorBridge?.onMaximizeChange(setIsMaximized);
+    window.downlodrFunctions
+      ?.getOSType()
+      .then((osType) => setIsMac(osType === 'macos'));
     return () => {
       window.appBehaviorBridge?.offMaximizeChange();
     };
@@ -53,38 +57,46 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
       <div className={className}>
         <div className="flex justify-between items-center h-full px-2">
           {/* Title */}
-          <div className="text-sm flex-1 drag-area">{getLogoSrc()}</div>
+          <div
+            className="text-sm flex-1 drag-area"
+            style={isMac ? { paddingLeft: '72px' } : undefined}
+          >
+            {getLogoSrc()}
+          </div>
 
           {/* Buttons */}
           <div className="flex space-x-4 no-drag">
-            {/* Help Button */}
-
             {/*Dark Mode/Light Mode */}
             <ModeToggle />
 
-            {/* Minimize Button */}
-            <button
-              className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
-              onClick={() => window.downlodrFunctions?.minimizeApp()}
-            >
-              <IoMdRemove size={16} />
-            </button>
+            {/* macOS gets native traffic-light controls (see main.ts titleBarStyle) */}
+            {!isMac && (
+              <>
+                {/* Minimize Button */}
+                <button
+                  className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
+                  onClick={() => window.downlodrFunctions?.minimizeApp()}
+                >
+                  <IoMdRemove size={16} />
+                </button>
 
-            {/* Maximize Button with dynamic icon */}
-            <button
-              className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
-              onClick={() => window.downlodrFunctions?.maximizeApp()}
-            >
-              {isMaximized ? <PiBrowsers size={16} /> : <RxBox size={14} />}
-            </button>
+                {/* Maximize Button with dynamic icon */}
+                <button
+                  className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
+                  onClick={() => window.downlodrFunctions?.maximizeApp()}
+                >
+                  {isMaximized ? <PiBrowsers size={16} /> : <RxBox size={14} />}
+                </button>
 
-            {/* Close Button */}
-            <button
-              className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
-              onClick={() => window.downlodrFunctions?.closeApp()}
-            >
-              <IoMdClose size={16} />
-            </button>
+                {/* Close Button */}
+                <button
+                  className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
+                  onClick={() => window.downlodrFunctions?.closeApp()}
+                >
+                  <IoMdClose size={16} />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
