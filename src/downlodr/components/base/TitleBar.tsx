@@ -11,8 +11,8 @@ import React from 'react';
 import { IoMdClose, IoMdRemove } from 'react-icons/io';
 import { PiBrowsers } from 'react-icons/pi';
 import { RxBox } from 'react-icons/rx';
-import DownlodrLogoDark from '../../../assets/logo/downlodr_dark.png';
-import DownlodrLogoLight from '../../../assets/logo/downlodr_light.png';
+import DownlodrLogoDark from '../../../assets/logo/downlodr_dark.svg';
+import DownlodrLogoLight from '../../../assets/logo/downlodr_light.svg';
 import { useTheme } from '../../../core-app/components/ThemeProvider';
 import { ModeToggle } from './ModeToggle';
 interface TitleBarProps {
@@ -23,21 +23,28 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   const { theme } = useTheme();
   const [isMaximized, setIsMaximized] = React.useState<boolean>(false);
 
+  React.useEffect(() => {
+    window.appBehaviorBridge?.onMaximizeChange(setIsMaximized);
+    return () => {
+      window.appBehaviorBridge?.offMaximizeChange();
+    };
+  }, []);
+
   // Adjust downlodr logo used depending on the light/dark mode
+  const logoStyle = { height: '24px', width: 'auto' };
+
   const getLogoSrc = () => {
     if (theme === 'system') {
-      // Check system preference
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? (
-        <img src={DownlodrLogoDark} alt="Downlodr Logo" />
+        <img src={DownlodrLogoDark} alt="Downlodr Logo" style={logoStyle} />
       ) : (
-        <img src={DownlodrLogoLight} alt="Downlodr Logo" />
+        <img src={DownlodrLogoLight} alt="Downlodr Logo" style={logoStyle} />
       );
     }
-    // Direct theme selection
     return theme === 'dark' ? (
-      <img src={DownlodrLogoDark} alt="Downlodr Logo" />
+      <img src={DownlodrLogoDark} alt="Downlodr Logo" style={logoStyle} />
     ) : (
-      <img src={DownlodrLogoLight} alt="Downlodr Logo" />
+      <img src={DownlodrLogoLight} alt="Downlodr Logo" style={logoStyle} />
     );
   };
 

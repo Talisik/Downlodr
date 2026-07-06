@@ -19,6 +19,7 @@ import SkedulosaContextMenu, {
   type ContextMenuPosition,
 } from '@/skedulosa/components/SkedulosaContextMenu';
 import SkedulosaEditModal from '@/skedulosa/components/SkedulosaEditModal';
+import SkedulosaSubscribeModal from '@/skedulosa/components/SkedulosaSubscribeModal';
 import {
   formatNextRun,
   formatProgress,
@@ -27,6 +28,7 @@ import {
   getNextRunDate,
 } from '../utils/scheduleManagerUtils';
 import { RiLoopRightLine } from 'react-icons/ri';
+import { LuNewspaper } from 'react-icons/lu';
 import { getExtractorIcon } from '@/downlodr/utils/icons/iconMapper';
 import NoSchedulePage from './NoSchedulePage';
 import NoSchedule from '@/assets/skedulosa/images/NoSchedule.svg';
@@ -35,6 +37,16 @@ import { enUS, es, ko, pt } from 'date-fns/locale';
 import { useNavigate } from 'react-router';
 import ConfirmModal from '@/core-app/components/modal/custom/ConfirmModal';
 import { useTheme } from '@/core-app/components/ThemeProvider';
+import {
+  useAfdaSubscriptionsStore,
+  afdaSubscriptionToScheduledChannel,
+} from '@/afda/store/afdaSubscriptionsStore';
+import {
+  useAfdaWebsitesStore,
+  websiteToScheduledChannel,
+} from '@/afda/store/afdaWebsitesStore';
+import { getFaviconUrl } from '@/afda/utils/faviconUrl';
+import { deleteAfdaWebsite } from '@/afda/utils/deleteAfdaWebsite';
 
 const INITIAL_COLUMNS = [
   { id: 'channel', width: 220, minWidth: 120 },
@@ -102,11 +114,14 @@ const SkedulosaSchedulePage = () => {
   const [contextMenu, setContextMenu] = useState<{
     position: ContextMenuPosition;
     channelId: string;
+    category: string;
   } | null>(null);
   const [editModalId, setEditModalId] = useState<string | null>(null);
+  const [isSubscribeModalOpen, setIsSubscribeModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{
     channelId: string;
     channelName: string;
+    category: string;
   } | null>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
 
@@ -114,32 +129,50 @@ const SkedulosaSchedulePage = () => {
     (s) => s.bulkDeleteSubscriptions,
   );
   const scheduledChannels = useSkedulosaStore((s) => s.scheduledChannels);
-
+  const afdaSubscriptions = useAfdaSubscriptionsStore(
+    (s) => s.afdaSubscriptions,
+  );
+  const afdaWebsites = useAfdaWebsitesStore((s) => s.websites);
+  const removeWebsite = useAfdaWebsitesStore((s) => s.removeWebsite);
   const handleContextMenu = useCallback(
-    (e: React.MouseEvent, channelId: string) => {
+    (e: React.MouseEvent, channel: ScheduledChannel) => {
       e.preventDefault();
-      setContextMenu({ position: { x: e.clientX, y: e.clientY }, channelId });
+      setContextMenu({
+        position: { x: e.clientX, y: e.clientY },
+        channelId: channel.id,
+        category: channel.category ?? '',
+      });
     },
     [],
   );
 
   const handleDelete = useCallback(
     (channelId: string) => {
-      const channel = scheduledChannels.find((c) => c.channelId === channelId);
+      const allCh = [
+        ...scheduledChannels,
+        ...afdaWebsites.map(websiteToScheduledChannel),
+      ];
+      const channel = allCh.find((c) => c.id === channelId);
       setDeleteConfirm({
         channelId,
         channelName: channel?.channelName ?? channelId,
+        category: channel?.category ?? '',
       });
       setContextMenu(null);
     },
-    [scheduledChannels],
+    [scheduledChannels, afdaWebsites],
   );
 
   const confirmDelete = useCallback(async () => {
     if (!deleteConfirm) return;
-    await bulkDeleteSubscriptions([deleteConfirm.channelId]);
+    const { channelId, category } = deleteConfirm;
+    if (category === 'afda-website') {
+      await deleteAfdaWebsite(channelId, removeWebsite);
+    } else {
+      await bulkDeleteSubscriptions([channelId]);
+    }
     setDeleteConfirm(null);
-  }, [deleteConfirm, bulkDeleteSubscriptions]);
+  }, [deleteConfirm, bulkDeleteSubscriptions, removeWebsite]);
 
   const { t, i18n } = useTranslation('skedulosa');
   const dateLocaleMap: Record<string, Locale> = { en: enUS, es, pt, ko };
@@ -198,9 +231,56 @@ const SkedulosaSchedulePage = () => {
     }
   }, []);
 
+  const allChannels = useMemo(() => {
+    const getDomain = (url: string) => {
+      try {
+        return new URL(url).hostname.replace(/^www\./, '');
+      } catch {
+        return '';
+      }
+    };
+
+    // afdaWebsites is the authoritative backend source. Any legacy entry in
+    // scheduledChannels or afdaSubscriptions whose domain is already covered by
+    // a website entry is excluded to prevent the same site appearing twice.
+    const websiteDomains = new Set(
+      afdaWebsites.map((w) => getDomain(w.url)).filter(Boolean),
+    );
+
+    const merged = [
+      ...scheduledChannels.filter((ch) => {
+        const domain = getDomain(ch.channelUrl ?? '');
+        return !domain || !websiteDomains.has(domain);
+      }),
+      ...afdaSubscriptions
+        .filter((sub) => {
+          const domain = getDomain(sub.sourceUrl ?? '');
+          return !domain || !websiteDomains.has(domain);
+        })
+        .map(afdaSubscriptionToScheduledChannel),
+      ...afdaWebsites.map(websiteToScheduledChannel),
+    ];
+
+    // Safety-net dedup by normalized channelUrl to catch within-source duplicates
+    // (e.g. same channel subscribed twice, or http vs https / www vs no-www variants).
+    // NOTE: do NOT dedup by id — scheduledChannels and afdaWebsites both use
+    // small SQLite integer IDs from separate databases that can collide.
+    const normalizeUrl = (url: string) =>
+      url.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+    const seenUrls = new Set<string>();
+    return merged.filter((ch) => {
+      const raw = ch.channelUrl?.trim();
+      if (!raw) return true;
+      const key = normalizeUrl(raw);
+      if (seenUrls.has(key)) return false;
+      seenUrls.add(key);
+      return true;
+    });
+  }, [scheduledChannels, afdaSubscriptions, afdaWebsites]);
+
   const filteredChannels = useMemo(() => {
     let channels = filterChannelsByStatusAndCategory(
-      scheduledChannels,
+      allChannels,
       statusFilter,
       categoryFilter,
     );
@@ -211,12 +291,13 @@ const SkedulosaSchedulePage = () => {
       );
     }
     return channels;
-  }, [scheduledChannels, statusFilter, categoryFilter, searchQuery]);
+  }, [allChannels, statusFilter, categoryFilter, searchQuery]);
 
   const rows: ScheduleRow[] = useMemo(() => {
-    const unsorted = filteredChannels.flatMap((channel) =>
-      channel.schedule.map((entry) => ({ channel, entry })),
-    );
+    const unsorted = filteredChannels.map((channel) => ({
+      channel,
+      entry: channel.schedule[0],
+    }));
     return [...unsorted].sort((a, b) => {
       let cmp = 0;
       if (sortField === 'name') {
@@ -269,35 +350,51 @@ const SkedulosaSchedulePage = () => {
 
   if (filteredChannels.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <img
-          src={isDark ? NoScheduleDark : NoSchedule}
-          alt={t('scheduledPage.emptyState.altText')}
-          className="w-2/6 h-2/6"
-        />
-        <div className="text-center w-2/6 mt-4">
-          <h1 className="text-sm font-bold">
-            {t('scheduledPage.emptyState.title', { filter: statusFilter })}
-          </h1>
-          <p className="text-gray-500 text-[12.5px] mt-2">
-            {t('scheduledPage.emptyState.description')}
-          </p>
+      <>
+        <div className="flex flex-col items-center justify-center h-full">
+          <img
+            src={isDark ? NoScheduleDark : NoSchedule}
+            alt={t('scheduledPage.emptyState.altText')}
+            className="w-2/6 h-2/6"
+          />
+          <div className="text-center w-2/6 mt-4">
+            <h1 className="text-sm font-bold">
+              {statusFilter === 'all'
+                ? t('scheduledPage.emptyState.titleAll')
+                : t('scheduledPage.emptyState.title', { filter: statusFilter })}
+            </h1>
+            <p className="text-gray-500 text-[12.5px] mt-2">
+              {t('scheduledPage.emptyState.description')}
+            </p>
+            {statusFilter === 'all' && (
+              <button
+                onClick={() => setIsSubscribeModalOpen(true)}
+                className="mt-4 px-4 py-2 bg-primary text-white text-sm rounded-md hover:opacity-90 transition-opacity"
+              >
+                {t('scheduledPage.emptyState.addFirstButton')}
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+        <SkedulosaSubscribeModal
+          isOpen={isSubscribeModalOpen}
+          onClose={() => setIsSubscribeModalOpen(false)}
+        />
+      </>
     );
   }
 
   return (
     <>
       <div className="overflow-auto hover-scrollbar">
-        <table className="w-full min-w-max table-fixed text-sm text-left text-gray-700 dark:text-gray-300">
-          <thead className="border-b-0.5 border-[#EDEDED] dark:border-darkModeCompliment rounded">
+        <table className="w-full min-w-max table-fixed text-sm text-left text-gray-700 dark:text-gray-300 [&>tbody>tr:last-child>td:first-child]:rounded-bl-lg [&>tbody>tr:last-child>td:last-child]:rounded-br-lg">
+          <thead className="">
             <tr className="sticky top-0 z-10 bg-toggleGroupBaseColor dark:bg-darkModeCompliment">
               <th
                 className="bg-toggleGroupBaseColor dark:bg-darkModeCompliment rounded-tl-lg"
                 style={{ width: 44, minWidth: 44 }}
               >
-                <div className="flex items-center justify-end -pr-1">
+                <div className="flex items-center justify-end pr-2">
                   <label className="relative overflow-hidden w-[18px] h-[18px] cursor-pointer flex items-center justify-center">
                     <input
                       ref={selectAllRef}
@@ -357,6 +454,7 @@ const SkedulosaSchedulePage = () => {
                         ? 'cursor-pointer select-none'
                         : ''
                     }`}
+                    onMouseDown={(e) => e.stopPropagation()}
                     onClick={() => handleSortClick(col.id)}
                   >
                     <span>{t(`scheduledPage.columns.${col.id}`)}</span>
@@ -377,16 +475,23 @@ const SkedulosaSchedulePage = () => {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#EDEDED] dark:divide-darkModeCompliment text-[12.5px]">
+          <tbody className="text-[12.5px]">
             {rows.map(({ channel, entry }) => {
               const sub = subscriptions.find((s) => s.id === channel.id);
               const details = sub?.channel_details;
               return (
                 <tr
-                  key={`${channel.channelId}-${entry.scheduleId}`}
-                  className="bg-[#F9F9F9] dark:bg-darkMode hover:bg-gray-100 dark:hover:bg-darkModeCompliment/50"
-                  onContextMenu={(e) => handleContextMenu(e, channel.id)}
+                  key={`${channel.category ?? 'youtube'}-${channel.channelId}-${entry.scheduleId}`}
+                  className="bg-gray-50 dark:bg-darkMode hover:bg-gray-100 dark:hover:bg-darkModeCompliment/50"
+                  onContextMenu={(e) => handleContextMenu(e, channel)}
                   onClick={(e) => {
+                    if (
+                      channel.category === 'afda' ||
+                      channel.category === 'afda-website'
+                    ) {
+                      navigate(`/skedulosa/selected-article/${channel.id}`);
+                      return;
+                    }
                     if (!sub) return;
                     navigate(`/skedulosa/selected-subscription/${sub.id}?`);
                   }}
@@ -399,7 +504,7 @@ const SkedulosaSchedulePage = () => {
                     }}
                     className="py-3"
                   >
-                    <div className="flex items-center justify-end -pr-1">
+                    <div className="flex items-center justify-end pr-2">
                       <label
                         className="relative overflow-hidden w-[18px] h-[18px] cursor-pointer flex items-center justify-center"
                         onClick={(e) => e.stopPropagation()}
@@ -432,24 +537,57 @@ const SkedulosaSchedulePage = () => {
                   </td>
                   {columns.map((col) => {
                     switch (col.id) {
-                      case 'channel':
+                      case 'channel': {
+                        const faviconUrl =
+                          channel.category === 'afda-website'
+                            ? getFaviconUrl(channel.sourceUrl ?? '')
+                            : null;
                         return (
                           <td key={col.id} className="px-4 py-3">
                             <div className="flex flex-row gap-2 items-center justify-start">
-                              {details?.avatarUrl ? (
+                              {channel.category === 'afda-website' ? (
+                                faviconUrl ? (
+                                  <img
+                                    src={faviconUrl}
+                                    className="w-8 h-8 rounded-full object-contain"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                    <LuNewspaper
+                                      size={13}
+                                      className="text-blue-500 dark:text-blue-400"
+                                    />
+                                  </div>
+                                )
+                              ) : channel.category === 'afda' ? (
+                                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                  <LuNewspaper
+                                    size={13}
+                                    className="text-blue-500 dark:text-blue-400"
+                                  />
+                                </div>
+                              ) : details?.avatarUrl ? (
                                 <img
                                   src={details.avatarUrl}
-                                  className="w-6 h-6 rounded-full"
+                                  className="w-8 h-8 rounded-full"
                                 />
                               ) : (
-                                <div className="w-6 h-6 rounded-full bg-gray-200" />
+                                <div className="w-8 h-8 rounded-full bg-gray-200" />
                               )}
-                              <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                {channel.channelName}
-                              </span>
+                              <div className="min-w-0 flex flex-col -gap-0.5">
+                                <div className="flex items-center gap-1">
+                                  <h1 className="font-semibold text-gray-900 dark:text-gray-100">
+                                    {channel.channelName}
+                                  </h1>
+                                </div>
+                                <h2 className="text-[11px] truncate">
+                                  {channel.sourceUrl}
+                                </h2>
+                              </div>
                             </div>
                           </td>
                         );
+                      }
                       case 'type':
                         return (
                           <td key={col.id} className="px-4 py-3">
@@ -491,17 +629,39 @@ const SkedulosaSchedulePage = () => {
                             {formatNextRun(entry)}
                           </td>
                         );
-                      case 'source':
+                      case 'source': {
+                        const faviconUrl =
+                          channel.category === 'afda' ||
+                          channel.category === 'afda-website'
+                            ? getFaviconUrl(channel.sourceUrl ?? '')
+                            : null;
                         return (
-                          <td key={col.id} className="px-4 py-3">
+                          <td key={col.id} className="px-4 py-3 font-medium">
                             <div className="flex gap-1 items-center">
-                              <span className="text-[10px]">
-                                {getExtractorIcon('youtube')}
-                              </span>
-                              <span>{t('scheduledPage.source.youtube')}</span>
+                              {channel.category === 'afda' ||
+                              channel.category === 'afda-website' ? (
+                                faviconUrl ? (
+                                  <img
+                                    src={faviconUrl}
+                                    className="w-6 h-6 rounded object-contain"
+                                  />
+                                ) : (
+                                  <div className="w-6 h-6 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                    <LuNewspaper
+                                      size={13}
+                                      className="text-blue-500 dark:text-blue-400"
+                                    />
+                                  </div>
+                                )
+                              ) : (
+                                <span className="text-[10px]">
+                                  {getExtractorIcon('youtube')}
+                                </span>
+                              )}
                             </div>
                           </td>
                         );
+                      }
                       case 'progress':
                         return (
                           <td key={col.id} className="px-4 py-3">
@@ -543,6 +703,7 @@ const SkedulosaSchedulePage = () => {
         <SkedulosaContextMenu
           position={contextMenu.position}
           subscriptionId={contextMenu.channelId}
+          category={contextMenu.category}
           onEdit={() => setEditModalId(contextMenu.channelId)}
           onDelete={() => handleDelete(contextMenu.channelId)}
           onClose={() => setContextMenu(null)}

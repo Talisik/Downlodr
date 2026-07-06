@@ -29,11 +29,15 @@ interface DownloadButtonProps {
    * download is actually initiated by or associated with a subscription.
    */
   subscriptionId?: string;
+  iconSize?: number;
+  iconClassName?: string;
 }
 
 const DownloadButton: React.FC<DownloadButtonProps> = ({
   download,
   subscriptionId,
+  iconSize = 22,
+  iconClassName = '',
 }) => {
   const { t } = useTranslation('downlodr');
   const [isDisabled, setIsDisabled] = useState(false);
@@ -97,6 +101,11 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
       getThumbnail: download.getThumbnail ?? false,
       duration: download.duration ?? 60,
       isCreateFolder: true,
+      description: download.description,
+      chapters: download.chapters,
+      autoCaptionLocation: download.autoCaptionLocation,
+      thumnailsLocation: download.thumnailsLocation,
+      transcriptLocation: download.transcriptLocation,
     });
 
     // Remove from forDownloads
@@ -118,7 +127,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
       >
         <div className="relative flex items-center text-sm whitespace-nowrap">
           {' '}
-          <IoMdDownload className="mr-1" size={22} />
+          <IoMdDownload className={`mr-1 ${iconClassName}`} size={iconSize} />
         </div>
       </button>
     </TooltipWrapper>

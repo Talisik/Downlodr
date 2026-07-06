@@ -65,6 +65,7 @@
       "refreshButton": "Refresh Plugins"
     },
     "confirmUninstall": {
+      "title": "Remove Plugin",
       "message": "Are you sure you want to remove \"{{name}}\"? This action cannot be undone."
     },
     "toast": {

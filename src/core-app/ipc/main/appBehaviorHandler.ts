@@ -82,6 +82,14 @@ export const appBehaviorHandler = (mainWindow: BrowserWindow) => {
     }
   });
 
+  mainWindow.on('maximize', () => {
+    mainWindow.webContents.send('window-maximize-change', true);
+  });
+
+  mainWindow.on('unmaximize', () => {
+    mainWindow.webContents.send('window-maximize-change', false);
+  });
+
   // support functions
   ipcMain.handle('check-internet-connection', async () => {
     return await isOnline();

@@ -1,5 +1,7 @@
 // eslint-disable-next-line prettier/prettier
 import ResizableHeader from '@/downlodr/components/download/resizableColumns/ResizableHeader';
+import { useAfdaSubscriptionsStore } from '@/afda/store/afdaSubscriptionsStore';
+import type { AfdaSubscription } from '@/afda/types/afdaTypes';
 import { useResizableColumns } from '@/downlodr/components/download/resizableColumns/useResizableColumns';
 import SpeedGraph from '@/downlodr/components/download/SpeedGraph';
 import {
@@ -84,6 +86,9 @@ const SkedulosaHistoryPage = () => {
   } = useResizableColumns(INITIAL_COLUMNS);
 
   const subscriptions = useSkedulosaStore((s) => s.subscriptions);
+  const afdaSubscriptions = useAfdaSubscriptionsStore(
+    (s) => s.afdaSubscriptions,
+  );
   const navigate = useNavigate();
   const sortField = useSkedulosaStore((s) => s.sortField);
   const sortDirection = useSkedulosaStore((s) => s.sortDirection);
@@ -245,10 +250,19 @@ const SkedulosaHistoryPage = () => {
 
   const confirmDelete = () => {
     if (!deleteConfirm) return;
-    removeSubscriptionDownload(
-      deleteConfirm.subscriptionId,
-      deleteConfirm.downloadId,
-    );
+    if (deleteConfirm.subscriptionId.startsWith('afda-')) {
+      useAfdaSubscriptionsStore
+        .getState()
+        .removeAfdaSubscriptionDownload(
+          deleteConfirm.subscriptionId,
+          deleteConfirm.downloadId,
+        );
+    } else {
+      removeSubscriptionDownload(
+        deleteConfirm.subscriptionId,
+        deleteConfirm.downloadId,
+      );
+    }
     setDeleteConfirm(null);
   };
 
@@ -256,7 +270,11 @@ const SkedulosaHistoryPage = () => {
 
   const rows: DownloadRow[] = useMemo(() => {
     const all: DownloadRow[] = [];
-    for (const sub of subscriptions) {
+    const allSubs = [
+      ...subscriptions,
+      ...(afdaSubscriptions as unknown as Subscription[]),
+    ];
+    for (const sub of allSubs) {
       for (const download of sub.downloads) {
         all.push({ subscription: sub, download });
       }
@@ -296,7 +314,7 @@ const SkedulosaHistoryPage = () => {
       return sortDirection === 'asc' ? cmp : -cmp;
     });
     return filtered;
-  }, [subscriptions, searchQuery, sortField, sortDirection]);
+  }, [subscriptions, afdaSubscriptions, searchQuery, sortField, sortDirection]);
 
   // Load local thumbnail file paths as data URLs, batched to avoid IPC flooding
   const loadThumbnails = useCallback(
@@ -369,36 +387,136 @@ const SkedulosaHistoryPage = () => {
   return (
     <>
       <div className="overflow-auto hover-scrollbar">
-        <table className="w-full min-w-max table-fixed text-sm text-left text-gray-700 dark:text-gray-300">
-            <thead className="border-b border-gray-200 dark:border-darkModeCompliment">
-              <tr className="sticky top-0 z-10 bg-toggleGroupBaseColor dark:bg-darkModeCompliment">
-                <th
-                  className="bg-toggleGroupBaseColor dark:bg-darkModeCompliment rounded-tl-lg"
+        <table className="w-full min-w-max table-fixed text-sm text-left text-gray-700 dark:text-gray-300 [&>tbody>tr:last-child>td:first-child]:rounded-bl-lg [&>tbody>tr:last-child>td:last-child]:rounded-br-lg">
+          <thead className="">
+            <tr className="sticky top-0 z-10 bg-toggleGroupBaseColor dark:bg-darkModeCompliment">
+              <th
+                className="bg-toggleGroupBaseColor dark:bg-darkModeCompliment rounded-tl-lg"
+                style={{ width: 44, minWidth: 44 }}
+              >
+                <div className="flex items-center justify-end pr-2">
+                  <label className="relative overflow-hidden w-[18px] h-[18px] cursor-pointer flex items-center justify-center">
+                    <input
+                      ref={selectAllHistoryRef}
+                      type="checkbox"
+                      checked={allHistorySelected}
+                      onChange={() => {
+                        if (allHistorySelected) {
+                          clearHistorySelection();
+                        } else {
+                          selectAllHistory(visibleHistoryIds);
+                        }
+                      }}
+                      className="sr-only"
+                    />
+                    <div
+                      className={`w-[18px] h-[18px] rounded-md border flex items-center justify-center transition-colors ${
+                        allHistorySelected || someHistorySelected
+                          ? 'bg-primary border-primary'
+                          : 'bg-white border-gray-300 dark:bg-transparent dark:border-gray-500'
+                      }`}
+                    >
+                      {allHistorySelected && (
+                        <svg
+                          className="w-4 h-4 text-white"
+                          viewBox="0 0 16 16"
+                          fill="currentColor"
+                        >
+                          <path d="M12.207 4.793a1 1 0 0 1 0 1.414l-5 5a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L6.5 9.086l4.293-4.293a1 1 0 0 1 1.414 0z" />
+                        </svg>
+                      )}
+                      {someHistorySelected && !allHistorySelected && (
+                        <div className="w-2 h-0.5 bg-white rounded-full" />
+                      )}
+                    </div>
+                  </label>
+                </div>
+              </th>
+              {columns.map((col, i) => (
+                <ResizableHeader
+                  key={col.id}
+                  width={col.width}
+                  onResizeStart={(e) => startResizing(col.id, e.clientX)}
+                  index={i}
+                  onDragStart={startDragging}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onDragEnd={cancelDrag}
+                  isDragging={dragging?.columnId === col.id}
+                  isDragOver={dragOverIndex === i}
+                  columnId={col.id}
+                  isLastColumn={i === columns.length - 1}
+                  className={i === columns.length - 1 ? 'rounded-tr-lg' : ''}
+                >
+                  <div
+                    className={`flex flex-row gap-1 items-center justify-start font-semibold text-[13.5px] py-2 ${
+                      COLUMN_SORT_MAP[col.id]
+                        ? 'cursor-pointer select-none'
+                        : ''
+                    }`}
+                    onClick={() => handleSortClick(col.id)}
+                  >
+                    <span>{t(`historyPage.columns.${col.id}`)}</span>
+                    {COLUMN_SORT_MAP[col.id] && (
+                      <HiChevronUpDown
+                        size={14}
+                        className={`flex-shrink-0 ${
+                          sortField === COLUMN_SORT_MAP[col.id]
+                            ? sortDirection === 'asc'
+                              ? 'rotate-180'
+                              : ''
+                            : 'dark:text-gray-400'
+                        }`}
+                      />
+                    )}
+                  </div>
+                </ResizableHeader>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="text-[12.5px]">
+            {rows.map(({ subscription, download }) => (
+              <tr
+                key={`${subscription.id}-${download.id}`}
+                className="bg-gray-50 dark:bg-darkMode hover:bg-gray-100 dark:hover:bg-darkModeCompliment/50"
+              >
+                <td
                   style={{ width: 44, minWidth: 44 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleHistorySelection(`${subscription.id}:${download.id}`);
+                  }}
+                  className="py-3"
                 >
                   <div className="flex items-center justify-end pr-2">
-                    <label className="relative overflow-hidden w-[18px] h-[18px] cursor-pointer flex items-center justify-center">
+                    <label
+                      className="relative overflow-hidden w-[18px] h-[18px] cursor-pointer flex items-center justify-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <input
-                        ref={selectAllHistoryRef}
                         type="checkbox"
-                        checked={allHistorySelected}
-                        onChange={() => {
-                          if (allHistorySelected) {
-                            clearHistorySelection();
-                          } else {
-                            selectAllHistory(visibleHistoryIds);
-                          }
-                        }}
+                        checked={selectedHistorySet.has(
+                          `${subscription.id}:${download.id}`,
+                        )}
+                        onChange={() =>
+                          toggleHistorySelection(
+                            `${subscription.id}:${download.id}`,
+                          )
+                        }
                         className="sr-only"
                       />
                       <div
                         className={`w-[18px] h-[18px] rounded-md border flex items-center justify-center transition-colors ${
-                          allHistorySelected || someHistorySelected
+                          selectedHistorySet.has(
+                            `${subscription.id}:${download.id}`,
+                          )
                             ? 'bg-primary border-primary'
                             : 'bg-white border-gray-300 dark:bg-transparent dark:border-gray-500'
                         }`}
                       >
-                        {allHistorySelected && (
+                        {selectedHistorySet.has(
+                          `${subscription.id}:${download.id}`,
+                        ) && (
                           <svg
                             className="w-4 h-4 text-white"
                             viewBox="0 0 16 16"
@@ -407,217 +525,124 @@ const SkedulosaHistoryPage = () => {
                             <path d="M12.207 4.793a1 1 0 0 1 0 1.414l-5 5a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L6.5 9.086l4.293-4.293a1 1 0 0 1 1.414 0z" />
                           </svg>
                         )}
-                        {someHistorySelected && !allHistorySelected && (
-                          <div className="w-2 h-0.5 bg-white rounded-full" />
-                        )}
                       </div>
                     </label>
                   </div>
-                </th>
-                {columns.map((col, i) => (
-                  <ResizableHeader
-                    key={col.id}
-                    width={col.width}
-                    onResizeStart={(e) => startResizing(col.id, e.clientX)}
-                    index={i}
-                    onDragStart={startDragging}
-                    onDragOver={handleDragOver}
-                    onDrop={handleDrop}
-                    onDragEnd={cancelDrag}
-                    isDragging={dragging?.columnId === col.id}
-                    isDragOver={dragOverIndex === i}
-                    columnId={col.id}
-                    isLastColumn={i === columns.length - 1}
-                  >
-                    <div
-                      className={`flex flex-row gap-1 items-center justify-start font-semibold text-[13.5px] py-2 ${
-                        COLUMN_SORT_MAP[col.id]
-                          ? 'cursor-pointer select-none'
-                          : ''
-                      }`}
-                      onClick={() => handleSortClick(col.id)}
-                    >
-                      <span>{t(`historyPage.columns.${col.id}`)}</span>
-                      {COLUMN_SORT_MAP[col.id] && (
-                        <HiChevronUpDown
-                          size={14}
-                          className={`flex-shrink-0 ${
-                            sortField === COLUMN_SORT_MAP[col.id]
-                              ? sortDirection === 'asc'
-                                ? 'rotate-180'
-                                : ''
-                              : 'dark:text-gray-400'
-                          }`}
-                        />
-                      )}
-                    </div>
-                  </ResizableHeader>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-darkModeCompliment text-[12.5px]">
-              {rows.map(({ subscription, download }) => (
-                <tr
-                  key={`${subscription.id}-${download.id}`}
-                  className="bg-gray-50 dark:bg-darkMode hover:bg-gray-100 dark:hover:bg-darkModeCompliment/50"
-                >
-                  <td
-                    style={{ width: 44, minWidth: 44 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleHistorySelection(
-                        `${subscription.id}:${download.id}`,
-                      );
-                    }}
-                    className="py-3"
-                  >
-                    <div className="flex items-center justify-end pr-2">
-                      <label
-                        className="relative overflow-hidden w-[18px] h-[18px] cursor-pointer flex items-center justify-center"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedHistorySet.has(
-                            `${subscription.id}:${download.id}`,
-                          )}
-                          onChange={() =>
-                            toggleHistorySelection(
-                              `${subscription.id}:${download.id}`,
-                            )
-                          }
-                          className="sr-only"
-                        />
-                        <div
-                          className={`w-[18px] h-[18px] rounded-md border flex items-center justify-center transition-colors ${
-                            selectedHistorySet.has(
-                              `${subscription.id}:${download.id}`,
-                            )
-                              ? 'bg-primary border-primary'
-                              : 'bg-white border-gray-300 dark:bg-transparent dark:border-gray-500'
-                          }`}
+                </td>
+                {columns.map((col) => {
+                  switch (col.id) {
+                    case 'title':
+                      return (
+                        <td
+                          key={col.id}
+                          className="px-4 py-3 truncate max-w-[300px]"
                         >
-                          {selectedHistorySet.has(
-                            `${subscription.id}:${download.id}`,
-                          ) && (
-                            <svg
-                              className="w-4 h-4 text-white"
-                              viewBox="0 0 16 16"
-                              fill="currentColor"
-                            >
-                              <path d="M12.207 4.793a1 1 0 0 1 0 1.414l-5 5a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L6.5 9.086l4.293-4.293a1 1 0 0 1 1.414 0z" />
-                            </svg>
-                          )}
-                        </div>
-                      </label>
-                    </div>
-                  </td>
-                  {columns.map((col) => {
-                    switch (col.id) {
-                      case 'title':
-                        return (
-                          <td
-                            key={col.id}
-                            className="px-4 py-3 truncate max-w-[300px]"
-                          >
-                            <div className="flex flex-row items-center gap-2">
-                              <div className="h-9 w-16 bg-black flex rounded cursor-pointer overflow-hidden justify-center items-center flex-shrink-0">
-                                {thumbnailDataUrls[download.id] ? (
-                                  <img
-                                    src={
-                                      thumbnailDataUrls[download.id] ??
-                                      '/placeholder_thumbnail.png'
-                                    }
-                                    alt="Thumbnail"
-                                    className="max-h-full max-w-full object-contain hover:opacity-70 transition-opacity"
-                                    onError={(e) => {
-                                      e.currentTarget.src =
-                                        '/placeholder_thumbnail.png';
-                                    }}
-                                  />
-                                ) : (
-                                  <div
-                                    className={`flex items-center justify-center h-full w-full ${THUMB_PLACEHOLDER_CLASS}`}
-                                  >
-                                    <FiPlayCircle size={20} color="#F45513" />
-                                  </div>
-                                )}
-                              </div>
-                              <span>{download.name}</span>
+                          <div className="flex flex-row items-center gap-2">
+                            <div className="h-9 w-16 bg-black flex rounded cursor-pointer overflow-hidden justify-center items-center flex-shrink-0">
+                              {thumbnailDataUrls[download.id] ? (
+                                <img
+                                  src={
+                                    thumbnailDataUrls[download.id] ??
+                                    '/placeholder_thumbnail.png'
+                                  }
+                                  alt="Thumbnail"
+                                  className="max-h-full max-w-full object-contain hover:opacity-70 transition-opacity"
+                                  onError={(e) => {
+                                    e.currentTarget.src =
+                                      '/placeholder_thumbnail.png';
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  className={`flex items-center justify-center h-full w-full ${THUMB_PLACEHOLDER_CLASS}`}
+                                >
+                                  <FiPlayCircle size={20} color="#F45513" />
+                                </div>
+                              )}
                             </div>
-                          </td>
-                        );
-                      case 'subscription':
-                        return (
-                          <td key={col.id} className="px-4 py-3 truncate">
-                            {subscription.source}
-                          </td>
-                        );
-                      case 'size':
-                        return (
-                          <td key={col.id} className="px-4 py-3">
-                            {download.size
-                              ? formatBytesToHuman(parseFloat(download.size))
-                              : '—'}
-                          </td>
-                        );
-                      case 'speed':
-                        return (
-                          <td key={col.id} className="px-4 py-3">
-                            <SpeedGraph
-                              key={`speed-graph-${download.id}`}
-                              currentSpeed={download.speed}
-                              downloadStatus={download.status}
-                              downloadId={download.id}
-                              showHeader={false}
-                              height={25}
-                            />
-                          </td>
-                        );
-                      case 'status':
-                        return (
-                          <td key={col.id} className="px-4 py-3">
-                            {statusMapping(download.status)}
-                          </td>
-                        );
-                      case 'date':
-                        return (
-                          <td key={col.id} className="px-4 py-3">
-                            {formatDistanceToNow(download.date_added, {
-                                locale: dateLocale,
-                                addSuffix: true,
-                              })}
-                          </td>
-                        );
-                      case 'actions':
-                        return (
-                          <td
-                            key={col.id}
-                            className="px-4 py-3 flex items-center justify-end"
+                            <span>{download.name}</span>
+                          </div>
+                        </td>
+                      );
+                    case 'subscription':
+                      return (
+                        <td key={col.id} className="px-4 py-3 truncate">
+                          <div className="flex flex-row items-center gap-1">
+                            <span>{subscription.source}</span>
+                            {(subscription as unknown as AfdaSubscription)
+                              .source_type === 'afda' && (
+                              <span className="ml-1 text-[10px] px-1 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-medium flex-shrink-0">
+                                Article
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    case 'size':
+                      return (
+                        <td key={col.id} className="px-4 py-3">
+                          {download.size
+                            ? formatBytesToHuman(parseFloat(download.size))
+                            : '—'}
+                        </td>
+                      );
+                    case 'speed':
+                      return (
+                        <td key={col.id} className="px-4 py-3">
+                          <SpeedGraph
+                            key={`speed-graph-${download.id}`}
+                            currentSpeed={download.speed}
+                            downloadStatus={download.status}
+                            downloadId={download.id}
+                            showHeader={false}
+                            height={25}
+                          />
+                        </td>
+                      );
+                    case 'status':
+                      return (
+                        <td key={col.id} className="px-4 py-3">
+                          {statusMapping(download.status)}
+                        </td>
+                      );
+                    case 'date':
+                      return (
+                        <td key={col.id} className="px-4 py-3">
+                          {formatDistanceToNow(download.date_added, {
+                            locale: dateLocale,
+                            addSuffix: true,
+                          })}
+                        </td>
+                      );
+                    case 'actions':
+                      return (
+                        <td
+                          key={col.id}
+                          className="px-4 py-3 flex items-center justify-end"
+                        >
+                          <button
+                            onClick={(e) =>
+                              handleOpenMenu(
+                                e,
+                                subscription.id,
+                                download.id,
+                                download.name,
+                                download.video_location,
+                              )
+                            }
+                            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-darkModeCompliment text-gray-500 dark:text-gray-400 transition-colors"
                           >
-                            <button
-                              onClick={(e) =>
-                                handleOpenMenu(
-                                  e,
-                                  subscription.id,
-                                  download.id,
-                                  download.name,
-                                  download.video_location,
-                                )
-                              }
-                              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-darkModeCompliment text-gray-500 dark:text-gray-400 transition-colors"
-                            >
-                              <HiDotsVertical size={16} />
-                            </button>
-                          </td>
-                        );
-                      default:
-                        return null;
-                    }
-                  })}
-                </tr>
-              ))}
-            </tbody>
+                            <HiDotsVertical size={16} />
+                          </button>
+                        </td>
+                      );
+                    default:
+                      return null;
+                  }
+                })}
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
 

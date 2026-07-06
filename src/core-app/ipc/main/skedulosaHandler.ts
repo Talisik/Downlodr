@@ -3,7 +3,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { existsSync } from 'fs';
 import path from 'path';
-import { registerVideoNemesisIpcHandlers } from '@/skedulosa/backend/video-nemesis-toolkit/dist/index';
+import { pathToFileURL } from 'url';
 
 /**
  * better-sqlite3 is an optional native module that ships only with the
@@ -41,15 +41,21 @@ function getDatabase(): any | null {
 function resolveYtDlpPath(): string {
   const binaryName = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
 
-  // Packaged app — binaries are in process.resourcesPath
-  if (app.isPackaged && process.resourcesPath) {
-    const bundled = path.join(process.resourcesPath, binaryName);
-    if (existsSync(bundled)) return bundled;
-  }
+  if (app.isPackaged) {
+    // postPackage copies yt-dlp next to the executable, not into resources
+    const nextToExe = path.join(path.dirname(process.execPath), binaryName);
+    if (existsSync(nextToExe)) return nextToExe;
 
-  // Development — yt-dlp.exe sits at the repo root alongside package.json
-  const devPath = path.join(app.getAppPath(), binaryName);
-  if (existsSync(devPath)) return devPath;
+    // Fallback: resources directory (in case it moves there in future builds)
+    if (process.resourcesPath) {
+      const inResources = path.join(process.resourcesPath, binaryName);
+      if (existsSync(inResources)) return inResources;
+    }
+  } else {
+    // Development — yt-dlp.exe sits at the repo root alongside package.json
+    const devPath = path.join(app.getAppPath(), binaryName);
+    if (existsSync(devPath)) return devPath;
+  }
 
   // Fall back to system PATH
   return binaryName;
@@ -58,10 +64,30 @@ function resolveYtDlpPath(): string {
 /**
  * Registers all Skedulosa IPC handlers via the video-nemesis-toolkit.
  * @param mainWindow - The main window of the app (used to push events to the renderer)
+ * @param addonPath - Optional path to the downloaded pack's root directory.
+ *                    When set, loads registerVideoNemesisIpcHandlers from pack dist/index.
+ *                    When undefined, falls through to Vite-bundled imports (dev/full build).
  * @returns cleanup function — stops the scraper, download worker, and closes the DB.
  *          Call this in the app's before-quit handler.
  */
-export const skedulosaHandler = (mainWindow: BrowserWindow): (() => void) => {
+export const skedulosaHandler = async (
+  mainWindow: BrowserWindow,
+  addonPath?: string,
+): Promise<() => void> => {
+  let registerVideoNemesisIpcHandlers: any;
+
+  if (addonPath) {
+    const indexUrl = pathToFileURL(path.join(addonPath, 'dist', 'index.js')).href;
+    const mod = await import(/* @vite-ignore */ indexUrl);
+    registerVideoNemesisIpcHandlers = mod.registerVideoNemesisIpcHandlers;
+  } else if (process.env.NODE_ENV !== 'production') {
+    // Dev only: Vite-bundled imports from source.
+    // Guarded by NODE_ENV so Rollup eliminates this branch (and the toolkit require())
+    // from the production bundle entirely.
+    const mod = await import('@/skedulosa/backend/video-nemesis-toolkit__hidden/dist/index');
+    registerVideoNemesisIpcHandlers = mod.registerVideoNemesisIpcHandlers;
+  }
+
   const ytDlpPath = resolveYtDlpPath();
   const dbPath = path.join(app.getPath('userData'), 'skedulosa.db');
 

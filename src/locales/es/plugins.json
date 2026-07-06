@@ -65,6 +65,7 @@
       "refreshButton": "Actualizar plugins"
     },
     "confirmUninstall": {
+      "title": "Eliminar plugin",
       "message": "¿Estás seguro de que deseas eliminar \"{{name}}\"? Esta acción no se puede deshacer."
     },
     "toast": {

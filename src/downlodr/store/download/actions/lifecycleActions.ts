@@ -3,6 +3,15 @@
  * Lifecycle actions for the download store: updateDownload, checkFinishedDownloads,
  * checkStalledDownloads, etc. Receives Zustand set/get from the store.
  */
+
+const MAX_STORE_LOG_BYTES = 51200; // 50 KB — matches main-process cap
+
+function appendLog(existing: string | undefined, incoming: string): string {
+  const next = existing ? `${existing}${incoming}` : incoming;
+  return next.length > MAX_STORE_LOG_BYTES
+    ? next.slice(next.length - MAX_STORE_LOG_BYTES)
+    : next;
+}
 import { config } from '@/core-app/client/config';
 import { TelemetryService } from '@/core-app/telemetry/utils/telemetryService';
 import { subscriptionDownloadSync } from '@/skedulosa/services/subscriptionDownloadSync';
@@ -179,6 +188,8 @@ export function createLifecycleActions(set: SetState, get: GetState) {
               // still update log for debugging purposes, but don't change progress or status
               if (result.completeLog) {
                 updates.log = result.completeLog;
+              } else if (result.data?.log) {
+                updates.log = appendLog(downloading.log, result.data.log);
               }
 
               return Object.keys(updates).length > 0
@@ -188,9 +199,11 @@ export function createLifecycleActions(set: SetState, get: GetState) {
 
             const updates: Partial<Downloading> = {};
 
-            // Use complete log if available
+            // Use complete log if available, otherwise append incremental line
             if (result.completeLog) {
               updates.log = result.completeLog;
+            } else if (result.data?.log) {
+              updates.log = appendLog(downloading.log, result.data.log);
             }
 
             // Handle progress data updates
@@ -343,8 +356,9 @@ export function createLifecycleActions(set: SetState, get: GetState) {
               }
             }
 
-            // Calculate expected transcript location ONLY if transcript was requested
-            let transcriptLocation = '';
+            // Preserve any pre-set transcript location (e.g. from converter plugin),
+            // then override with the actual location if a transcript was requested.
+            let transcriptLocation = download.transcriptLocation || '';
             if (download.getTranscript) {
               if (
                 download.autoCaptionLocation &&
@@ -352,7 +366,7 @@ export function createLifecycleActions(set: SetState, get: GetState) {
               ) {
                 // Use existing location if available
                 transcriptLocation = download.autoCaptionLocation;
-              } else if (download.isCreateFolder && download.downloadName) {
+              } else if (!transcriptLocation && download.downloadName) {
                 // Calculate expected transcript location path
                 // This matches the logic used in metadataService and controller
                 const fileNameWithoutExt = download.downloadName.replace(
@@ -372,32 +386,51 @@ export function createLifecycleActions(set: SetState, get: GetState) {
               }
             }
 
-            // Create finished download entry
-            const finishedDownload: FinishedDownloads = {
-              ...download,
-              status: 'finished',
-              size: actualSize,
-              transcriptLocation,
-            };
-
             // Update state: move to finished and history, remove from downloading
-            set((state) => ({
-              finishedDownloads: state.finishedDownloads.some(
-                (fd) => fd.id === download.id,
-              )
-                ? state.finishedDownloads
-                : [...state.finishedDownloads, finishedDownload],
+            set((state) => {
+              // Re-read the live downloading entry inside the set callback — any
+              // async updates (e.g. yt-dlp caption completing) that landed after
+              // the snapshot was taken will be present in state.downloading but
+              // NOT in the `download` snapshot captured before the async I/O.
+              const liveDownload = state.downloading.find(
+                (d) => d.id === download.id,
+              );
 
-              historyDownloads: state.historyDownloads.some(
-                (hd) => hd.id === download.id,
-              )
-                ? state.historyDownloads
-                : [...state.historyDownloads, finishedDownload],
+              // Merge snapshot with live transcription fields so we never
+              // promote a stale 'transcribing' status into finishedDownloads.
+              const finishedDownload: FinishedDownloads = {
+                ...download,
+                ...(liveDownload && {
+                  transcriptionStatus: liveDownload.transcriptionStatus,
+                  transcriptionProgress: liveDownload.transcriptionProgress,
+                  autoCaptionLocation: liveDownload.autoCaptionLocation,
+                }),
+                status: 'finished',
+                size: actualSize,
+                transcriptLocation:
+                  liveDownload?.autoCaptionLocation?.trim()
+                    ? liveDownload.autoCaptionLocation
+                    : transcriptLocation,
+              };
 
-              downloading: state.downloading.filter(
-                (d) => d.id !== download.id,
-              ),
-            }));
+              return {
+                finishedDownloads: state.finishedDownloads.some(
+                  (fd) => fd.id === download.id,
+                )
+                  ? state.finishedDownloads
+                  : [...state.finishedDownloads, finishedDownload],
+
+                historyDownloads: state.historyDownloads.some(
+                  (hd) => hd.id === download.id,
+                )
+                  ? state.historyDownloads
+                  : [...state.historyDownloads, finishedDownload],
+
+                downloading: state.downloading.filter(
+                  (d) => d.id !== download.id,
+                ),
+              };
+            });
 
             // Sync final video location and confirmed size to skedulosa subscription record.
             // The sync service maps are already cleaned up at this point so we write directly.

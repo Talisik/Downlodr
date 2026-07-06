@@ -289,329 +289,326 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </div>
         }
       >
-        {isOpen && (
-          <form onSubmit={(e) => e.preventDefault()}>
-            {/* Schedule Name */}
-            <div className="space-y-2">
-              <div className="flex-1">
-                <label className="text-[13px] -mt-6 block mb-1 dark:text-gray-200">
-                  {t('downloadLocation')}
-                </label>
-                <input
-                  type="text"
-                  placeholder={t('downloadLocation')}
-                  value={downloadLocation}
-                  onClick={handleDirectory}
-                  className="w-full border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none"
-                  readOnly
-                />
-              </div>
-              {/* End of Upload Button */}
-              {/* URL Name */}
-              <div>
-                <label className="text-[13px] block dark:text-gray-200 mt-4 mb-[-2]">
-                  {`${t('speedLimit')}:`}
-                  {biteVal === 0
-                    ? ` ${t('noLimit')}`
-                    : ` (${biteVal} ${biteUnitVal})`}
-                </label>
-                <div className="flex gap-4 items-center">
-                  <div className="flex-1">
-                    <Slider
-                      defaultValue={[biteVal]}
-                      value={[biteVal]}
-                      onValueChange={(value) => setbiteVal(value[0])}
-                      max={200}
-                      step={1}
-                    />
-                  </div>
+        <form onSubmit={(e) => e.preventDefault()}>
+          {/* Schedule Name */}
+          <div className="space-y-2">
+            <div className="flex-1">
+              <label className="text-[13px] -mt-6 block mb-1 dark:text-gray-200">
+                {t('downloadLocation')}
+              </label>
+              <input
+                type="text"
+                placeholder={t('downloadLocation')}
+                value={downloadLocation}
+                onClick={handleDirectory}
+                className="w-full border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none"
+                readOnly
+              />
+            </div>
+            {/* End of Upload Button */}
+            {/* URL Name */}
+            <div>
+              <label className="text-[13px] block dark:text-gray-200 mt-4 mb-[-2]">
+                {`${t('speedLimit')}:`}
+                {biteVal === 0
+                  ? ` ${t('noLimit')}`
+                  : ` (${biteVal} ${biteUnitVal})`}
+              </label>
+              <div className="flex gap-4 items-center">
+                <div className="flex-1">
+                  <Slider
+                    defaultValue={[biteVal]}
+                    value={[biteVal]}
+                    onValueChange={(value) => setbiteVal(value[0])}
+                    max={200}
+                    step={1}
+                  />
+                </div>
 
-                  <div className="w-48">
+                <div className="w-48">
+                  <select
+                    value={biteUnit}
+                    onChange={(e) => {
+                      setBiteUnit(e.target.value);
+                      const selectedBite = biteOptions.find(
+                        (bite) => bite.biteDisplayName === e.target.value,
+                      );
+                      if (selectedBite) {
+                        setBiteUnitVal(selectedBite.biteUnitVal);
+                      }
+                    }}
+                    className="w-full border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none [&>option]:dark:bg-darkMode"
+                  >
+                    {biteOptions.map((bite) => (
+                      <option
+                        key={bite.biteUnitVal}
+                        value={bite.biteDisplayName}
+                        className="dark:bg-darkMode dark:text-gray-200"
+                      >
+                        {bite.biteDisplayName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            {/* End of Schedule Name */}
+            {/* Download Location Name */}
+            <div className="flex gap-4 pt-2">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <input
+                    type="checkbox"
+                    id="connection-limits"
+                    checked={isConnectionLimitEnabled}
+                    onChange={(e) =>
+                      setIsConnectionLimitEnabled(e.target.checked)
+                    }
+                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  />
+                  <label
+                    htmlFor="connection-limits"
+                    className="text-[13px] block dark:text-gray-200 text-nowrap font-bold cursor-pointer"
+                  >
+                    {t('connectionLimits')}
+                  </label>
+                  <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
+                </div>
+                <div
+                  className={
+                    isConnectionLimitEnabled
+                      ? ''
+                      : 'opacity-50 pointer-events-none'
+                  }
+                >
+                  <div className="flex flex-row items-center gap-4 ml-2">
+                    <label className="flex-1 dark:text-gray-200">
+                      {t('maxActiveDownloads')}
+                    </label>
                     <select
-                      value={biteUnit}
-                      onChange={(e) => {
-                        setBiteUnit(e.target.value);
-                        const selectedBite = biteOptions.find(
-                          (bite) => bite.biteDisplayName === e.target.value,
-                        );
-                        if (selectedBite) {
-                          setBiteUnitVal(selectedBite.biteUnitVal);
-                        }
-                      }}
-                      className="w-full border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none [&>option]:dark:bg-darkMode"
+                      value={maxDownload}
+                      onChange={(e) => setMaxDownload(Number(e.target.value))}
+                      className="w-24 border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none [&>option]:dark:bg-darkMode"
+                      disabled={!isConnectionLimitEnabled}
                     >
-                      {biteOptions.map((bite) => (
-                        <option
-                          key={bite.biteUnitVal}
-                          value={bite.biteDisplayName}
-                          className="dark:bg-darkMode dark:text-gray-200"
-                        >
-                          {bite.biteDisplayName}
+                      {[...Array(10)].map((_, index) => (
+                        <option key={index} value={index + 1}>
+                          {index + 1}
                         </option>
                       ))}
                     </select>
                   </div>
                 </div>
               </div>
-              {/* End of Schedule Name */}
-              {/* Download Location Name */}
-              <div className="flex gap-4 pt-2">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <input
-                      type="checkbox"
-                      id="connection-limits"
-                      checked={isConnectionLimitEnabled}
-                      onChange={(e) =>
-                        setIsConnectionLimitEnabled(e.target.checked)
-                      }
-                      className="w-4 h-4 text-primary rounded focus:ring-primary"
-                    />
-                    <label
-                      htmlFor="connection-limits"
-                      className="text-[13px] block dark:text-gray-200 text-nowrap font-bold cursor-pointer"
-                    >
-                      {t('connectionLimits')}
-                    </label>
-                    <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
-                  </div>
-                  <div
-                    className={
-                      isConnectionLimitEnabled
-                        ? ''
-                        : 'opacity-50 pointer-events-none'
-                    }
+            </div>
+            {/* End of Download Location Name */}
+          </div>
+
+          {/* background running toggle */}
+          <div className="pt-3">
+            <div className="flex items-center gap-2 mb-2">
+              <label className="block dark:text-gray-200 text-nowrap font-bold">
+                {t('appBehavior')}
+              </label>
+              <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-3 mt-3 ml-2">
+              {/* Run in background toggle */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="run-in-background"
+                    checked={runInBackground}
+                    onChange={(e) => {
+                      setRunInBackground(e.target.checked);
+                    }}
+                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  />
+                  <label
+                    htmlFor="run-in-background"
+                    className="dark:text-gray-200 cursor-pointer"
                   >
-                    <div className="flex flex-row items-center gap-4 ml-2">
-                      <label className="flex-1 dark:text-gray-200">
-                        {t('maxActiveDownloads')}
-                      </label>
-                      <select
-                        value={maxDownload}
-                        onChange={(e) => setMaxDownload(Number(e.target.value))}
-                        className="w-24 border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none [&>option]:dark:bg-darkMode"
-                        disabled={!isConnectionLimitEnabled}
-                      >
-                        {[...Array(10)].map((_, index) => (
-                          <option key={index} value={index + 1}>
-                            {index + 1}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+                    {t('runInBackground')}
+                  </label>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 hidden sm:block h-sm1:hidden">
+                  {t('runInBackgroundDesc')}
                 </div>
               </div>
-              {/* End of Download Location Name */}
-            </div>
 
-            {/* background running toggle */}
-            <div className="pt-3">
-              <div className="flex items-center gap-2 mb-2">
-                <label className="block dark:text-gray-200 text-nowrap font-bold">
-                  {t('appBehavior')}
-                </label>
-                <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
+              {/* Clipboard monitoring toggle */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="clipboard-monitoring"
+                    checked={enableClipboardMonitoring}
+                    onChange={(e) => {
+                      setEnableClipboardMonitoring(e.target.checked);
+                      toast({
+                        title: e.target.checked
+                          ? t('toast.clipboardEnabled')
+                          : t('toast.clipboardDisabled'),
+                        description: t('toast.clipboardDesc'),
+                        duration: 3000,
+                      });
+                    }}
+                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  />
+                  <label
+                    htmlFor="clipboard-monitoring"
+                    className="dark:text-gray-200 cursor-pointer"
+                  >
+                    {t('clipboardMonitoring')}
+                  </label>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 hidden sm:block h-sm1:hidden">
+                  {t('clipboardMonitoringDesc')}
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-3 mt-3 ml-2">
-                {/* Run in background toggle */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="run-in-background"
-                      checked={runInBackground}
-                      onChange={(e) => {
-                        setRunInBackground(e.target.checked);
-                      }}
-                      className="w-4 h-4 text-primary rounded focus:ring-primary"
-                    />
-                    <label
-                      htmlFor="run-in-background"
-                      className="dark:text-gray-200 cursor-pointer"
-                    >
-                      {t('runInBackground')}
-                    </label>
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 hidden sm:block h-sm1:hidden">
-                    {t('runInBackgroundDesc')}
-                  </div>
+              {/* Telemetry setting */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="telemetry-enabled"
+                    checked={telemetrySettings.telemetryEnabled}
+                    onChange={(e) => {
+                      updateTelemetryEnabled(e.target.checked);
+                      toast({
+                        title: e.target.checked
+                          ? t('toast.telemetryEnabled')
+                          : t('toast.telemetryDisabled'),
+                        description: e.target.checked
+                          ? t('toast.telemetryEnabledDesc')
+                          : t('toast.telemetryDisabledDesc'),
+                        duration: 3000,
+                      });
+                    }}
+                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  />
+                  <label
+                    htmlFor="telemetry-enabled"
+                    className="dark:text-gray-200 cursor-pointer"
+                  >
+                    {t('telemetry')}
+                  </label>
                 </div>
-
-                {/* Clipboard monitoring toggle */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="clipboard-monitoring"
-                      checked={enableClipboardMonitoring}
-                      onChange={(e) => {
-                        setEnableClipboardMonitoring(e.target.checked);
-                        toast({
-                          title: e.target.checked
-                            ? t('toast.clipboardEnabled')
-                            : t('toast.clipboardDisabled'),
-                          description: t('toast.clipboardDesc'),
-                          duration: 3000,
-                        });
-                      }}
-                      className="w-4 h-4 text-primary rounded focus:ring-primary"
-                    />
-                    <label
-                      htmlFor="clipboard-monitoring"
-                      className="dark:text-gray-200 cursor-pointer"
-                    >
-                      {t('clipboardMonitoring')}
-                    </label>
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 hidden sm:block h-sm1:hidden">
-                    {t('clipboardMonitoringDesc')}
-                  </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 hidden lg:block h-sm1:hidden">
+                  {t('telemetryDesc')}
                 </div>
+              </div>
 
-                {/* Telemetry setting */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="telemetry-enabled"
-                      checked={telemetrySettings.telemetryEnabled}
-                      onChange={(e) => {
-                        updateTelemetryEnabled(e.target.checked);
-                        toast({
-                          title: e.target.checked
-                            ? t('toast.telemetryEnabled')
-                            : t('toast.telemetryDisabled'),
-                          description: e.target.checked
-                            ? t('toast.telemetryEnabledDesc')
-                            : t('toast.telemetryDisabledDesc'),
-                          duration: 3000,
-                        });
-                      }}
-                      className="w-4 h-4 text-primary rounded focus:ring-primary"
-                    />
-                    <label
-                      htmlFor="telemetry-enabled"
-                      className="dark:text-gray-200 cursor-pointer"
-                    >
-                      {t('telemetry')}
-                    </label>
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 ml-6 hidden lg:block h-sm1:hidden">
-                    {t('telemetryDesc')}
-                  </div>
-                </div>
-
-                {/* Update notification settings */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="enable-app-updates"
-                      checked={!dontShowAppUpdates}
-                      onChange={(e) => {
-                        setDontShowAppUpdates(!e.target.checked);
-                        toast({
-                          title: e.target.checked
-                            ? t('toast.appUpdatesEnabled')
-                            : t('toast.appUpdatesDisabled'),
-                          description: e.target.checked
-                            ? t('toast.appUpdatesEnabledDesc')
-                            : t('toast.appUpdatesDisabledDesc'),
-                          duration: 3000,
-                        });
-                      }}
-                      className="w-4 h-4 text-primary rounded focus:ring-primary"
-                    />
-                    <label
-                      htmlFor="enable-app-updates"
-                      className="dark:text-gray-200 cursor-pointer"
-                    >
-                      {t('appUpdates')}
-                    </label>
-                  </div>
+              {/* Update notification settings */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="enable-app-updates"
+                    checked={!dontShowAppUpdates}
+                    onChange={(e) => {
+                      setDontShowAppUpdates(!e.target.checked);
+                      toast({
+                        title: e.target.checked
+                          ? t('toast.appUpdatesEnabled')
+                          : t('toast.appUpdatesDisabled'),
+                        description: e.target.checked
+                          ? t('toast.appUpdatesEnabledDesc')
+                          : t('toast.appUpdatesDisabledDesc'),
+                        duration: 3000,
+                      });
+                    }}
+                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                  />
+                  <label
+                    htmlFor="enable-app-updates"
+                    className="dark:text-gray-200 cursor-pointer"
+                  >
+                    {t('appUpdates')}
+                  </label>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* column visibility section */}
-            <div className="pt-3">
-              <div className="flex items-center gap-2 mb-2">
-                <label className="block dark:text-gray-200 text-nowrap font-bold">
-                  {t('visibleColumns')}
-                </label>
-                <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
-              </div>
+          {/* column visibility section */}
+          <div className="pt-3">
+            <div className="flex items-center gap-2 mb-2">
+              <label className="block dark:text-gray-200 text-nowrap font-bold">
+                {t('visibleColumns')}
+              </label>
+              <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
+            </div>
 
-              <div className="grid grid-cols-5 gap-1 mt-2 ml-2">
-                {columnOptions.map((column) => (
-                  <div key={column.id} className="flex items-start mr-2">
-                    <input
-                      type="checkbox"
-                      id={`column-${column.id}`}
-                      checked={
-                        localVisibleColumns.includes(column.id) ||
-                        column.required
-                      }
-                      onChange={() =>
-                        column.required ? null : handleToggleColumn(column.id)
-                      }
-                      disabled={column.required}
-                      style={{
-                        width: '13.5px',
-                        height: '13.5px',
-                        marginTop: '1px',
-                        marginLeft: '0.5px',
-                        flexShrink: 0,
-                        accentColor: column.required ? '#ef4444' : '#3b82f6',
-                        transform: 'scale(0.9)',
-                        transformOrigin: 'center',
-                      }}
-                      className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500 mr-2"
-                    />
-                    <label
-                      htmlFor={`column-${column.id}`}
-                      className={`dark:text-gray-200 mr-2 text-xs cursor-pointer ${
-                        column.required ? 'font-semibold' : ''
-                      }`}
-                    >
-                      {column.label}
-                      {column.required && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                          {t('required')}
-                        </span>
-                      )}
-                    </label>
-                  </div>
+            <div className="grid grid-cols-5 gap-1 mt-2 ml-2">
+              {columnOptions.map((column) => (
+                <div key={column.id} className="flex items-start mr-2">
+                  <input
+                    type="checkbox"
+                    id={`column-${column.id}`}
+                    checked={
+                      localVisibleColumns.includes(column.id) || column.required
+                    }
+                    onChange={() =>
+                      column.required ? null : handleToggleColumn(column.id)
+                    }
+                    disabled={column.required}
+                    style={{
+                      width: '13.5px',
+                      height: '13.5px',
+                      marginTop: '1px',
+                      marginLeft: '0.5px',
+                      flexShrink: 0,
+                      accentColor: column.required ? '#ef4444' : '#3b82f6',
+                      transform: 'scale(0.9)',
+                      transformOrigin: 'center',
+                    }}
+                    className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500 mr-2"
+                  />
+                  <label
+                    htmlFor={`column-${column.id}`}
+                    className={`dark:text-gray-200 mr-2 text-xs cursor-pointer ${
+                      column.required ? 'font-semibold' : ''
+                    }`}
+                  >
+                    {column.label}
+                    {column.required && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                        {t('required')}
+                      </span>
+                    )}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Language section */}
+          <div className="pt-3">
+            <div className="flex items-center gap-2 mb-2">
+              <label className="block dark:text-gray-200 text-nowrap font-bold">
+                {t('language')}
+              </label>
+              <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
+            </div>
+            <div className="ml-2">
+              <select
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
+                className="w-48 border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none [&>option]:dark:bg-darkMode"
+              >
+                {languageOptions.map((lang) => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
-
-            {/* Language section */}
-            <div className="pt-3">
-              <div className="flex items-center gap-2 mb-2">
-                <label className="block dark:text-gray-200 text-nowrap font-bold">
-                  {t('language')}
-                </label>
-                <hr className="flex-grow border-t-1 border-divider dark:border-gray-700 ml-2" />
-              </div>
-              <div className="ml-2">
-                <select
-                  value={selectedLanguage}
-                  onChange={(e) => setSelectedLanguage(e.target.value)}
-                  className="w-48 border rounded-md px-3 py-2 dark:bg-darkMode dark:text-gray-200 dark:border-inputDarkModeBorder outline-none [&>option]:dark:bg-darkMode"
-                >
-                  {languageOptions.map((lang) => (
-                    <option key={lang.value} value={lang.value}>
-                      {lang.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </form>
-        )}
+          </div>
+        </form>
       </BaseModal>
     </>
   );

@@ -2,6 +2,12 @@
  * Single table row for the Status page: checkbox + all column cells.
  */
 import { Skeleton } from '@/core-app/components/shadcn/components/ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/core-app/components/shadcn/components/ui/tooltip';
 import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
 import DownloadButton from '@/downlodr/components/download/DownloadButton';
 import FormatSelector from '@/downlodr/components/download/FormatSelector';
@@ -18,6 +24,7 @@ import {
 } from '@/downlodr/utils/icons/iconMapper';
 import { useFavoritesStore } from '@/downlodr/store/favoritesStore';
 import React from 'react';
+import { LuEye } from 'react-icons/lu';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import { FiPlayCircle } from 'react-icons/fi';
@@ -66,6 +73,7 @@ const FavoriteButton: React.FC<{ download: SearchableDownload }> = ({
         tags: download.tags ?? [],
         category: download.category ?? [],
         description: download.description,
+        chapters: download.chapters,
         status: download.status ?? '',
         autoCaptionLocation: download.autoCaptionLocation,
         transcriptLocation: download.transcriptLocation,
@@ -90,7 +98,7 @@ const FavoriteButton: React.FC<{ download: SearchableDownload }> = ({
 };
 
 const THUMB_PLACEHOLDER_CLASS =
-  'h-9 w-14 rounded cursor-pointer overflow-hidden flex justify-center items-center bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.6)_0%,transparent_40%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.5)_0%,transparent_45%),radial-gradient(circle_at_45%_80%,rgba(255,255,255,0.4)_0%,transparent_35%),linear-gradient(135deg,#ffa42e,#fec77d,#ffa42e,#fec170)]';
+  'h-9 w-16 rounded cursor-pointer overflow-hidden flex justify-center items-center bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.6)_0%,transparent_40%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.5)_0%,transparent_45%),radial-gradient(circle_at_45%_80%,rgba(255,255,255,0.4)_0%,transparent_35%),linear-gradient(135deg,#ffa42e,#fec77d,#ffa42e,#fec170)]';
 
 export interface StatusPageTableRowProps {
   download: SearchableDownload;
@@ -101,6 +109,7 @@ export interface StatusPageTableRowProps {
   index: number;
   handlers: StatusPageRowHandlers;
   isGrouped?: boolean;
+  hiddenColumnIds?: string[];
 }
 
 export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
@@ -112,6 +121,7 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
   index,
   handlers,
   isGrouped = false,
+  hiddenColumnIds = [],
 }) => {
   const {
     onContextMenu,
@@ -163,14 +173,16 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
 
   return (
     <tr
-      className={`border-b-2 hover:bg-gray-50 dark:border-[#27272ACC] dark:hover:bg-darkModeHover cursor-pointer ${
+      className={`border-b hover:bg-gray-50 dark:border-darkModeTableBorder dark:hover:bg-darkModeHover cursor-pointer ${
         isSelectedDownload
           ? 'bg-blue-50  dark:bg-darkMode'
           : index === length - 1
           ? 'border-b-0'
           : 'dark:bg-darkMode'
       } ${
-        isGrouped ? 'bg-gray-50 dark:bg-darkMode' : 'bg-white dark:bg-darkMode'
+        isGrouped
+          ? 'bg-gray-50 dark:bg-darkModeTable'
+          : 'bg-white dark:bg-darkModeTable'
       }`}
       onContextMenu={(e) => onContextMenu(e, download)}
       onClick={handleRowClick}
@@ -242,7 +254,7 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                             side="bottom"
                           >
                             <div
-                              className="h-9 w-14 bg-black flex rounded cursor-pointer overflow-hidden justify-center items-center flex-shrink-0"
+                              className="h-9 w-16 bg-black flex rounded cursor-pointer overflow-hidden justify-center items-center flex-shrink-0"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onViewFile(
@@ -272,7 +284,7 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                             side="bottom"
                           >
                             <div
-                              className={`h-10 w-16 flex-shrink-0 ${THUMB_PLACEHOLDER_CLASS}`}
+                              className={`flex-shrink-0 ${THUMB_PLACEHOLDER_CLASS}`}
                             >
                               <FiPlayCircle size={20} color="#F45513" />
                             </div>
@@ -283,7 +295,7 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                           content={t('statusPage.thumbnail.notAvailable')}
                           side="bottom"
                         >
-                          <div className="h-9 w-14 bg-black flex rounded cursor-pointer overflow-hidden flex-shrink-0">
+                          <div className="h-9 w-16 bg-black flex rounded cursor-pointer overflow-hidden flex-shrink-0">
                             <FiPlayCircle size={20} />
                           </div>
                         </TooltipWrapper>
@@ -330,7 +342,7 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                         content={t('statusPage.thumbnail.notAvailable')}
                         side="bottom"
                       >
-                        <div className={`h-9 w-14 ${THUMB_PLACEHOLDER_CLASS}`}>
+                        <div className={THUMB_PLACEHOLDER_CLASS}>
                           <FiPlayCircle size={20} color="#F45513" />
                         </div>
                       </TooltipWrapper>
@@ -388,7 +400,7 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                       t('statusPage.format.unknown')}
                   </div>
                 ) : (
-                  <div className="w-full">
+                  <div className="w-full" onClick={(e) => e.stopPropagation()}>
                     <FormatSelector
                       download={download}
                       onFormatSelect={(formatData) => {
@@ -501,18 +513,23 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                       style={{ color: getStatusColor(download.status) }}
                       className="flex items-center text-sm underline"
                     >
-                      <TooltipWrapper content="View preview" side="bottom">
-                        <span>
-                          <VscPlayCircle
-                            size={20}
-                            className="text-green-600 hover:text-green-400 transition-colors duration-200"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onViewEmbed(download);
-                            }}
-                          />
-                        </span>
-                      </TooltipWrapper>
+                      {(download as { type?: string }).type !== 'article' && (
+                        <TooltipWrapper
+                          content={t('statusPage.status.viewPreview')}
+                          side="bottom"
+                        >
+                          <span className="hover:text-green-400 transition-colors mr-2">
+                            <VscPlayCircle
+                              size={20}
+                              className="text-green-600 hover:text-green-400 transition-colors duration-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onViewEmbed(download);
+                              }}
+                            />
+                          </span>
+                        </TooltipWrapper>
+                      )}
                       <DownloadButton
                         download={{
                           ...download,
@@ -613,7 +630,6 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
               >
                 <TranscrptButton
                   download={download as FinishedDownloads}
-                  column={column}
                   onViewFile={onViewFile}
                 />
               </td>
@@ -666,6 +682,48 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                     size={download.size}
                   />
                 </div>
+              </td>
+            );
+          case 'eye':
+            return (
+              <td key={column.id} style={{ width: column.width }} className="p-2 text-center">
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex justify-center cursor-default">
+                        <LuEye size={14} className="text-gray-400 dark:text-gray-500" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="p-2">
+                      <div className="space-y-1 text-xs">
+                        {hiddenColumnIds.includes('speed') && (
+                          <div className="flex gap-4 justify-between">
+                            <span className="text-gray-400">Speed</span>
+                            <span className="font-medium">{download.speed || '—'}</span>
+                          </div>
+                        )}
+                        {hiddenColumnIds.includes('dateAdded') && (
+                          <div className="flex gap-4 justify-between">
+                            <span className="text-gray-400">Added</span>
+                            <span className="font-medium">{formatRelativeTime(download.DateAdded)}</span>
+                          </div>
+                        )}
+                        {hiddenColumnIds.includes('source') && (
+                          <div className="flex gap-4 justify-between">
+                            <span className="text-gray-400">Source</span>
+                            <span className="font-medium">{download.extractorKey ?? '—'}</span>
+                          </div>
+                        )}
+                        {hiddenColumnIds.includes('transcript') && (
+                          <div className="flex gap-4 justify-between">
+                            <span className="text-gray-400">Transcript</span>
+                            <span className="font-medium">{download.transcriptLocation ? 'Available' : '—'}</span>
+                          </div>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </td>
             );
           default:

@@ -65,6 +65,7 @@
       "refreshButton": "重新整理外掛"
     },
     "confirmUninstall": {
+      "title": "移除外掛",
       "message": "確定要移除「{{name}}」嗎？此操作無法復原。"
     },
     "toast": {

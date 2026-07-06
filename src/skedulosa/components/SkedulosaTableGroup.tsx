@@ -1,8 +1,8 @@
 /**
  * Accordion group row for the Status page.
- * Groups downloads that share a subscriptionId under a collapsible summary row.
+ * Groups downloads that share a subscriptionId under a summary row.
+ * Clicking the row navigates to the subscription detail page.
  */
-import { StatusPageTableRow } from '@/downlodr/pages/status/StatusPageTableRow';
 import type {
   DisplayColumn,
   FormatSelectData,
@@ -19,9 +19,16 @@ import {
   getGroupVideoCount,
 } from '@/skedulosa/utils/skedulosaGroupUtils';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/core-app/components/shadcn/components/ui/tooltip';
 import { FaCircle } from 'react-icons/fa';
-import { FiChevronRight } from 'react-icons/fi';
+import { LuEye } from 'react-icons/lu';
+import { useNavigate } from 'react-router-dom';
 
 export interface SkedulosaTableGroupProps {
   subscriptionId: string;
@@ -64,25 +71,11 @@ const SkedulosaTableGroup = React.memo(
     subscriptionId,
     downloads,
     displayColumns,
-    thumbnailDataUrls,
     selectedRowIds,
-    selectedDownloadId,
-    onContextMenu,
-    onRowClick,
-    onCheckboxChange,
-    onViewFile,
-    onViewDownload,
-    onViewFolder,
-    onRetry,
-    onPause,
-    onRedownloadTranscript,
-    onFormatSelect,
-    onClosePluginSidebar,
     onGroupCheckboxChange,
-    onViewEmbed,
     pendingCount = 0,
   }: SkedulosaTableGroupProps) => {
-    const [isExpanded, setIsExpanded] = useState(false);
+    const navigate = useNavigate();
 
     const selectedSet = useMemo(
       () => new Set(selectedRowIds),
@@ -105,7 +98,6 @@ const SkedulosaTableGroup = React.memo(
       [downloads],
     );
 
-    // Callback ref so we can imperatively set indeterminate (not a React prop)
     const checkboxRef = useCallback(
       (node: HTMLInputElement | null) => {
         if (node) node.indeterminate = isIndeterminate;
@@ -131,8 +123,6 @@ const SkedulosaTableGroup = React.memo(
     const subStatus = subscription?.status ?? '—';
     const lastChecked = subscription?.last_checked_time ?? '';
 
-    // Use date_created from the subscription, falling back to the earliest
-    // download's date_added if the subscription record is missing or incomplete.
     const dateCreated = useMemo(() => {
       if (subscription?.date_created) return subscription.date_created;
       if (downloads.length === 0) return '';
@@ -143,196 +133,193 @@ const SkedulosaTableGroup = React.memo(
     }, [subscription?.date_created, downloads]);
 
     return (
-      <React.Fragment>
-        {/* Collapsed summary row */}
-        <tr
-          onClick={() => setIsExpanded((prev) => !prev)}
-          className={`pl-4 border-b-2 dark:border-[#27272ACC] cursor-pointer`}
-        >
-          {/* Checkbox cell — same width as StatusPageTableRow's checkbox column */}
-          <td className="w-8 p-2">
-            <input
-              ref={checkboxRef}
-              type="checkbox"
-              className="ml-2 mt-1 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
-              checked={isAllSelected}
-              onChange={() => {
-                /* handled via onClick */
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onGroupCheckboxChange(groupDownloadIds);
-              }}
-            />
-          </td>
+      <tr
+        onClick={() => navigate(`/status/group/subscription/${subscriptionId}`)}
+        className="pl-4 border-b dark:border-darkModeTableBorder cursor-pointer"
+      >
+        <td className="w-8 p-2">
+          <input
+            ref={checkboxRef}
+            type="checkbox"
+            className="ml-2 mt-1 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
+            checked={isAllSelected}
+            onChange={() => {
+              /* handled via onClick */
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onGroupCheckboxChange(groupDownloadIds);
+            }}
+          />
+        </td>
 
-          {displayColumns.map((column) => {
-            switch (column.id) {
-              case 'name':
-                return (
-                  <td
-                    key={column.id}
-                    style={{ width: column.width }}
-                    className="p-2 dark:text-gray-200"
-                  >
-                    <div className="flex items-center gap-2">
-                      <FiChevronRight
-                        size={15}
-                        className={`flex-shrink-0 transition-transform duration-200 ${
-                          isExpanded ? 'rotate-90' : ''
-                        }`}
+        {displayColumns.map((column) => {
+          switch (column.id) {
+            case 'name':
+              return (
+                <td
+                  key={column.id}
+                  style={{ width: column.width }}
+                  className="p-2 dark:text-gray-200"
+                >
+                  <div className="flex items-center gap-2">
+                    {subscription?.channel_details?.avatarUrl && (
+                      <img
+                        src={subscription.channel_details.avatarUrl}
+                        alt={sourceName}
+                        className="h-10 w-10 rounded-full flex-shrink-0 object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
-                      {subscription?.channel_details?.avatarUrl && (
-                        <img
-                          src={subscription.channel_details.avatarUrl}
-                          alt={sourceName}
-                          className="h-10 w-10 rounded-full flex-shrink-0 object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      )}
-                      <div>
-                        <div className="flex gap-2 mt-1">
-                          <div className="bg-primary rounded-xl px-3 text-white flex-shrink-0 h-4 flex mt-1.5 items-center justify-center">
-                            <span className="font-semibold text-[10px] mt-0.5">
-                              SUB
-                            </span>
-                          </div>
-                          <span className="line-clamp-1 font-bold py-1">
-                            {sourceName}
+                    )}
+                    <div>
+                      <div className="flex gap-2 mt-1">
+                        <div className="bg-primary rounded-xl px-3 text-white flex-shrink-0 h-4 flex mt-1.5 items-center justify-center">
+                          <span className="font-semibold text-[10px] mt-0.5">
+                            SUB
                           </span>
                         </div>
-                        <div className="-mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                          {/** eslint-disable-next-line prettier/prettier */}
-                          {videoCount} videos · last checked{' '}
-                          {lastChecked &&
-                          dateCreated &&
-                          new Date(lastChecked) >= new Date(dateCreated)
-                            ? formatRelativeTime(lastChecked)
-                            : dateCreated
-                            ? formatRelativeTime(dateCreated)
-                            : 'never checked'}
-                          {pendingCount > 0 && (
-                            <span className="ml-1 text-primary">
-                              · +{pendingCount} queued
-                            </span>
-                          )}
-                        </div>
+                        <span className="line-clamp-1 font-bold py-1">
+                          {sourceName}
+                        </span>
+                      </div>
+                      <div className="-mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        {videoCount} videos · last checked{' '}
+                        {lastChecked &&
+                        dateCreated &&
+                        new Date(lastChecked) >= new Date(dateCreated)
+                          ? formatRelativeTime(lastChecked)
+                          : dateCreated
+                          ? formatRelativeTime(dateCreated)
+                          : 'never checked'}
+                        {pendingCount > 0 && (
+                          <span className="ml-1 text-primary">
+                            · +{pendingCount} queued
+                          </span>
+                        )}
                       </div>
                     </div>
-                  </td>
-                );
-              case 'size':
-                return (
-                  <td
-                    key={column.id}
-                    style={{ width: column.width }}
-                    className="px-2 py-2 dark:text-gray-200 text-left"
+                  </div>
+                </td>
+              );
+            case 'size':
+              return (
+                <td
+                  key={column.id}
+                  style={{ width: column.width }}
+                  className="px-2 py-2 dark:text-gray-200 text-left"
+                >
+                  {formatFileSize(aggregatedSize)}
+                </td>
+              );
+            case 'format':
+              return (
+                <td
+                  key={column.id}
+                  style={{ width: column.width }}
+                  className="p-2 text-center"
+                >
+                  mp4
+                </td>
+              );
+            case 'status':
+              return (
+                <td
+                  key={column.id}
+                  style={{ width: column.width }}
+                  className="p-2 dark:text-gray-200 text-center"
+                >
+                  <div
+                    className={`flex items-center justify-center gap-1.5 ${subStatusColor(
+                      subStatus,
+                    )}`}
                   >
-                    {formatFileSize(aggregatedSize)}
-                  </td>
-                );
-              case 'format':
-                return (
-                  <td
-                    key={column.id}
-                    style={{ width: column.width }}
-                    className="p-2 text-center"
-                  >
-                    mp4
-                  </td>
-                );
-              case 'status':
-                return (
-                  <td
-                    key={column.id}
-                    style={{ width: column.width }}
-                    className="p-2 dark:text-gray-200 text-center"
-                  >
-                    <div
-                      className={`flex items-center justify-center gap-1.5 ${subStatusColor(
-                        subStatus,
-                      )}`}
-                    >
-                      <FaCircle size={8} />
-                      <span>{subStatus}</span>
-                    </div>
-                  </td>
-                );
-              case 'speed':
-                return (
-                  <td
-                    key={column.id}
-                    style={{ width: column.width }}
-                    className="p-2 dark:text-gray-200 text-center"
-                  >
-                    —
-                  </td>
-                );
-              case 'dateAdded':
-                return (
-                  <td
-                    key={column.id}
-                    style={{ width: column.width }}
-                    className="p-2 dark:text-gray-200 text-center"
-                  >
-                    {dateCreated ? formatRelativeTime(dateCreated) : '—'}
-                  </td>
-                );
-              case 'transcript':
-                return <td key={column.id} style={{ width: column.width }} />;
-              case 'source':
-                return (
-                  <td
-                    key={column.id}
-                    style={{ width: column.width }}
-                    className="p-2 dark:text-gray-200"
-                  >
-                    <div className="flex justify-center items-center">
-                      {getExtractorIcon('youtube')}
-                    </div>
-                  </td>
-                );
-              case 'action':
-                return <td key={column.id} style={{ width: column.width }} />;
-              default:
-                return null;
-            }
-          })}
-        </tr>
-
-        {/* Expanded individual download rows */}
-        {isExpanded &&
-          downloads.map((download, index) => (
-            <StatusPageTableRow
-              key={download.id}
-              download={download}
-              displayColumns={displayColumns}
-              thumbnailDataUrls={thumbnailDataUrls}
-              isGrouped={true}
-              isChecked={selectedRowIds.includes(download.id)}
-              isSelectedDownload={selectedDownloadId === download.id}
-              index={index}
-              handlers={{
-                onContextMenu,
-                onRowClick: () => {
-                  onClosePluginSidebar();
-                  onRowClick(download.id);
-                },
-                onCheckboxChange: () => onCheckboxChange(download.id),
-                onViewFile,
-                onViewDownload,
-                onViewFolder,
-                onRetry,
-                onPause,
-                onRedownloadTranscript,
-                onFormatSelect,
-                onViewEmbed,
-              }}
-            />
-          ))}
-      </React.Fragment>
+                    <FaCircle size={8} />
+                    <span>{subStatus}</span>
+                  </div>
+                </td>
+              );
+            case 'speed':
+              return (
+                <td
+                  key={column.id}
+                  style={{ width: column.width }}
+                  className="p-2 dark:text-gray-200 text-center"
+                >
+                  —
+                </td>
+              );
+            case 'dateAdded':
+              return (
+                <td
+                  key={column.id}
+                  style={{ width: column.width }}
+                  className="p-2 dark:text-gray-200 text-center"
+                >
+                  {dateCreated ? formatRelativeTime(dateCreated) : '—'}
+                </td>
+              );
+            case 'transcript':
+              return <td key={column.id} style={{ width: column.width }} />;
+            case 'source':
+              return (
+                <td
+                  key={column.id}
+                  style={{ width: column.width }}
+                  className="p-2 dark:text-gray-200"
+                >
+                  <div className="flex justify-center items-center">
+                    {getExtractorIcon('youtube')}
+                  </div>
+                </td>
+              );
+            case 'action':
+              return <td key={column.id} style={{ width: column.width }} />;
+            case 'eye':
+              return (
+                <td key={column.id} style={{ width: column.width }} className="p-2 text-center">
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="flex justify-center cursor-default"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <LuEye size={14} className="text-gray-400 dark:text-gray-500" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="p-2">
+                        <div className="space-y-1 text-xs">
+                          <div className="flex gap-4 justify-between">
+                            <span className="text-gray-400">Videos</span>
+                            <span className="font-medium">{videoCount}</span>
+                          </div>
+                          <div className="flex gap-4 justify-between">
+                            <span className="text-gray-400">Size</span>
+                            <span className="font-medium">{aggregatedSize ? formatFileSize(aggregatedSize) : '—'}</span>
+                          </div>
+                          {lastChecked && (
+                            <div className="flex gap-4 justify-between">
+                              <span className="text-gray-400">Last checked</span>
+                              <span className="font-medium">{formatRelativeTime(lastChecked)}</span>
+                            </div>
+                          )}
+                          <div className="flex gap-4 justify-between">
+                            <span className="text-gray-400">Status</span>
+                            <span className="font-medium">{subStatus}</span>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </td>
+              );
+            default:
+              return null;
+          }
+        })}
+      </tr>
     );
   },
 );

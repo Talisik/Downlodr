@@ -25,3 +25,8 @@ root.render(
     <App />
   </React.StrictMode>,
 );
+
+// Remove the HTML splash screen once React has mounted
+requestAnimationFrame(() => {
+  (window as typeof window & { __hideSplash?: () => void }).__hideSplash?.();
+});

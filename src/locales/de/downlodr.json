@@ -138,7 +138,8 @@
     "status": {
       "clickToRetry": "Zum Wiederholen klicken",
       "viewVideo": "Video anzeigen",
-      "openFolder": "Ordner öffnen"
+      "openFolder": "Ordner öffnen",
+      "viewPreview": "Vorschau ansehen"
     },
     "format": {
       "unknown": "Unbekannt"
@@ -156,7 +157,7 @@
       "playlistErrorTitle": "Playlist-Fehler",
       "playlistErrorDesc": "Playlist-Informationen konnten nicht abgerufen werden",
       "channelDetectedTitle": "Kanal-Link erkannt",
-      "channelDetectedDesc": "Wird an Skedulosa gesendet, um ein Abonnement für diesen Kanal einzurichten.",
+      "channelDetectedDesc": "Wird an Subscription gesendet, um ein Abonnement für diesen Kanal einzurichten.",
       "playlistDetectedTitle": "Playlist-Link erkannt",
       "playlistDetectedDesc": "Playlist-Informationen für den Download werden abgerufen... Dies kann einen Moment dauern.",
       "invalidUrlTitle": "Ungültige URL",
@@ -231,7 +232,8 @@
       "selectOneTitle": "Einen Download auswählen",
       "selectOneDesc": "Bitte genau einen Download auswählen, um den Link zu erhalten"
     },
-    "settingsButton": "Einstellungen"
+    "settingsButton": "Einstellungen",
+    "deleteLabel": "Löschen"
   },
   "removeModal": {
     "title": "Ausgewähltes Element entfernen",
@@ -476,6 +478,72 @@
           "s3": "Starten Sie die App neu und versuchen Sie es erneut, falls der Fehler weiterhin besteht."
         }
       }
+    }
+  },
+  "videoPlayer": {
+    "fallbackTitle": "Video",
+    "fallbackVideoPreview": "Videovorschau",
+    "floatButton": "Schweben",
+    "floatWindowTitle": "Schwebendes Fenster",
+    "backTitle": "Zurück",
+    "downloadButtonTitle": "Herunterladen",
+    "error": {
+      "couldNotLoadStream": "Videostream konnte nicht geladen werden.",
+      "retry": "Wiederholen"
+    },
+    "floating": {
+      "message": "Wiedergabe in schwebendem Fenster",
+      "returnToPanel": "Zurück zum Panel"
+    },
+    "menu": {
+      "openFolder": "Ordner öffnen",
+      "viewSource": "Quelle anzeigen",
+      "shareVideo": "Video teilen",
+      "generateCaption": "Untertitel generieren",
+      "download": "Herunterladen",
+      "captions": "Untertitel",
+      "pictureInPicture": "Bild im Bild",
+      "playbackSpeed": "Wiedergabegeschwindigkeit",
+      "normal": "Normal"
+    },
+    "transcript": {
+      "title": "Transkriptionen",
+      "auto": "Auto",
+      "manual": "Manuell",
+      "platformFallback": "Plattform",
+      "searchPlaceholder": "Transkription suchen",
+      "noTranscript": "Kein Transkript verfügbar",
+      "copyTitle": "Transkription kopieren",
+      "downloadTitle": "Transkription herunterladen"
+    },
+    "chapters": {
+      "title": "Kapitel",
+      "count": "{{count}} Kapitel",
+      "searchPlaceholder": "Kapitel suchen",
+      "noChapters": "Keine Kapitel verfügbar"
+    },
+    "description": {
+      "noDescription": "Keine Beschreibung verfügbar",
+      "categories": "Kategorien:",
+      "tags": "Tags:",
+      "openWith": "Öffnen mit"
+    },
+    "favorites": {
+      "add": "Zu Favoriten hinzufügen",
+      "remove": "Aus Favoriten entfernen"
+    },
+    "tabs": {
+      "description": "Beschreibung",
+      "transcript": "Transkription",
+      "chapters": "Kapitel"
+    },
+    "duration": {
+      "total": "Gesamt",
+      "current": "Aktuell"
+    },
+    "transcription": {
+      "failed": "Transkription fehlgeschlagen",
+      "failedDesc": "Transkript konnte nicht erstellt werden"
     }
   }
 }

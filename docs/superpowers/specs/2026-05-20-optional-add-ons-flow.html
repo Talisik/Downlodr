@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>downlodr-add-ons — Optional Add-ons Flow</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 40px 24px;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+    .header .badge {
+      display: inline-block;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 99px;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 10px;
+    }
+    .header h1 span { color: #6366f1; }
+    .header p {
+      color: #94a3b8;
+      font-size: 15px;
+      max-width: 560px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* Section titles */
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #6366f1;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #1e293b;
+    }
+
+    /* Cards */
+    .card {
+      background: #161b27;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .card-sm {
+      background: #1a2236;
+      border: 1px solid #243044;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    /* ── SECTION: Startup Flow ── */
+    .startup-flow {
+      margin-bottom: 56px;
+    }
+
+    .flow-row {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+    }
+
+    .flow-step {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .flow-node {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 14px 16px;
+      width: 100%;
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.4;
+      position: relative;
+    }
+    .flow-node.start {
+      background: #312e81;
+      border-color: #4338ca;
+      color: #e0e7ff;
+      font-weight: 600;
+    }
+    .flow-node.decision {
+      background: #1c2d3d;
+      border-color: #1d4ed8;
+      color: #bfdbfe;
+    }
+    .flow-node.action {
+      background: #1a2d1a;
+      border-color: #166534;
+      color: #bbf7d0;
+    }
+    .flow-node.warn {
+      background: #2d1a00;
+      border-color: #92400e;
+      color: #fde68a;
+    }
+    .flow-node.error {
+      background: #2d1515;
+      border-color: #991b1b;
+      color: #fecaca;
+    }
+
+    .flow-node .label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      margin-bottom: 4px;
+    }
+
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+      color: #475569;
+      font-size: 18px;
+      flex-shrink: 0;
+      align-self: center;
+    }
+
+    .flow-down {
+      display: flex;
+      justify-content: center;
+      color: #475569;
+      font-size: 18px;
+      padding: 6px 0;
+    }
+
+    /* ── SECTION: States grid ── */
+    .states-section { margin-bottom: 56px; }
+
+    .states-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .state-card {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #1e293b;
+    }
+
+    .state-header {
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .state-header.not-installed { background: #1e1e2e; color: #a78bfa; border-bottom: 1px solid #2d2d44; }
+    .state-header.downloading { background: #0f2540; color: #60a5fa; border-bottom: 1px solid #1d3a5e; }
+    .state-header.outdated { background: #2d1e00; color: #fbbf24; border-bottom: 1px solid #44300a; }
+
+    .state-body {
+      background: #161b27;
+      padding: 16px;
+    }
+
+    .mock-ui {
+      background: #0f1117;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .mock-lock {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .mock-icon { font-size: 20px; line-height: 1; margin-top: 1px; }
+    .mock-title { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 2px; }
+    .mock-desc { font-size: 12px; color: #64748b; line-height: 1.4; }
+
+    .mock-btn {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: default;
+    }
+    .mock-btn.purple { background: #4338ca; color: #e0e7ff; }
+    .mock-btn.yellow { background: #92400e; color: #fde68a; }
+
+    .progress-bar-wrap {
+      background: #1e293b;
+      border-radius: 4px;
+      height: 6px;
+      margin: 10px 0 6px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4338ca, #6366f1);
+      border-radius: 4px;
+      animation: progress 2s ease-in-out infinite alternate;
+    }
+    @keyframes progress {
+      from { width: 35%; }
+      to { width: 72%; }
+    }
+    .progress-label { font-size: 11px; color: #64748b; }
+
+    /* ── SECTION: Download sequence ── */
+    .sequence-section { margin-bottom: 56px; }
+
+    .sequence-grid {
+      display: grid;
+      grid-template-columns: 1fr 40px 1fr;
+      gap: 0;
+    }
+
+    .seq-col-header {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #64748b;
+      text-align: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #1e293b;
+      margin-bottom: 0;
+    }
+
+    .seq-divider {
+      border-left: 1px dashed #1e293b;
+      margin: 0 auto;
+      width: 1px;
+    }
+
+    .seq-steps { display: flex; flex-direction: column; gap: 0; }
+
+    .seq-step {
+      display: grid;
+      grid-template-columns: 1fr 40px 1fr;
+      align-items: center;
+      min-height: 52px;
+    }
+
+    .seq-bubble {
+      background: #1a2236;
+      border: 1px solid #243044;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #cbd5e1;
+      line-height: 1.4;
+      margin: 4px 0;
+    }
+    .seq-bubble.renderer { margin-right: 8px; }
+    .seq-bubble.main { margin-left: 8px; }
+    .seq-bubble.highlight {
+      background: #1c2d3d;
+      border-color: #1d4ed8;
+      color: #bfdbfe;
+    }
+    .seq-bubble.success {
+      background: #1a2d1a;
+      border-color: #166534;
+      color: #bbf7d0;
+    }
+
+    .seq-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #475569;
+    }
+    .seq-arrow.right { color: #6366f1; }
+    .seq-arrow.left { color: #06b6d4; }
+
+    .seq-empty { min-height: 52px; }
+
+    /* ── SECTION: Version contract ── */
+    .version-section { margin-bottom: 56px; }
+
+    .version-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    .version-state {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #1e293b;
+    }
+
+    .version-state-header {
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .vs-green { background: #1a2d1a; color: #4ade80; border-bottom: 1px solid #166534; }
+    .vs-purple { background: #1e1e2e; color: #a78bfa; border-bottom: 1px solid #2d2d44; }
+    .vs-yellow { background: #2d1e00; color: #fbbf24; border-bottom: 1px solid #44300a; }
+
+    .version-state-body {
+      background: #161b27;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.6;
+    }
+    .version-state-body strong { color: #cbd5e1; }
+
+    /* ── SECTION: Storage layout ── */
+    .storage-section { margin-bottom: 56px; }
+
+    .storage-tree {
+      font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+      font-size: 12.5px;
+      line-height: 2;
+      color: #94a3b8;
+    }
+    .storage-tree .dir { color: #60a5fa; font-weight: 600; }
+    .storage-tree .file { color: #cbd5e1; }
+    .storage-tree .comment { color: #475569; font-style: italic; }
+    .storage-tree .highlight { color: #a78bfa; font-weight: 600; }
+
+    /* ── SECTION: Files changed ── */
+    .files-section { margin-bottom: 56px; }
+
+    .files-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .files-table th {
+      text-align: left;
+      padding: 8px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #475569;
+      border-bottom: 1px solid #1e293b;
+    }
+    .files-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #1a2236;
+      vertical-align: top;
+      color: #cbd5e1;
+    }
+    .files-table tr:last-child td { border-bottom: none; }
+    .files-table code {
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: 12px;
+      background: #1a2236;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #a78bfa;
+    }
+    .badge-new {
+      display: inline-block;
+      background: #1a2d1a;
+      border: 1px solid #166534;
+      color: #4ade80;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 1px 7px;
+      border-radius: 99px;
+      margin-left: 6px;
+    }
+    .badge-mod {
+      display: inline-block;
+      background: #1c2d3d;
+      border: 1px solid #1d4ed8;
+      color: #60a5fa;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 1px 7px;
+      border-radius: 99px;
+      margin-left: 6px;
+    }
+
+    /* Open questions */
+    .questions-section { margin-bottom: 40px; }
+    .question-item {
+      display: flex;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid #1a2236;
+    }
+    .question-item:last-child { border-bottom: none; }
+    .q-num {
+      width: 24px;
+      height: 24px;
+      background: #1e293b;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6366f1;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .q-text { font-size: 13px; color: #94a3b8; line-height: 1.6; }
+    .q-text strong { color: #e2e8f0; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge">Design Proposal · 2026-05-20</div>
+    <h1>downlodr <span>add-ons</span></h1>
+    <p>Making <code style="background:#1e293b;padding:2px 7px;border-radius:4px;font-size:13px;color:#a78bfa">afda-backend</code> and <code style="background:#1e293b;padding:2px 7px;border-radius:4px;font-size:13px;color:#a78bfa">video-nemesis-toolkit</code> optional — ship a lighter installer, download features on demand.</p>
+  </div>
+
+  <!-- Startup Flow -->
+  <div class="startup-flow">
+    <div class="section-title">Startup Detection Flow</div>
+    <div class="card">
+      <div style="display:flex;flex-direction:column;gap:0">
+
+        <div class="flow-row">
+          <div class="flow-step">
+            <div class="flow-node start">
+              <div class="label">Entry</div>
+              downlodr launches
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-down">↓</div>
+
+        <div class="flow-row">
+          <div class="flow-step">
+            <div class="flow-node decision">
+              <div class="label">Check</div>
+              <code style="font-family:monospace;font-size:12px">userData/downlodr-add-ons/&lt;pack&gt;/package.json</code> exists?
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div style="font-size:11px;color:#ef4444;font-weight:700">✗ NOT FOUND</div>
+            <div class="flow-node error" style="width:100%;text-align:center">
+              <div class="label">Result</div>
+              Skip IPC registration<br/>Set state → <strong>not-installed</strong>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div style="font-size:11px;color:#22c55e;font-weight:700">✓ FOUND — version matches</div>
+            <div class="flow-node action" style="width:100%;text-align:center">
+              <div class="label">Result</div>
+              Load pack from userData<br/>Register IPC handlers<br/>Set state → <strong>ready</strong>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div style="font-size:11px;color:#f59e0b;font-weight:700">✓ FOUND — version mismatch</div>
+            <div class="flow-node warn" style="width:100%;text-align:center">
+              <div class="label">Result</div>
+              Skip IPC registration<br/>Set state → <strong>outdated</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-down" style="margin-top:16px">↓</div>
+
+        <div class="flow-row">
+          <div class="flow-step">
+            <div class="flow-node start" style="background:#1a2d1a;border-color:#166534;color:#bbf7d0">
+              <div class="label">Result</div>
+              UI renders with correct state per feature area — active, locked, or update-required
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- UI States -->
+  <div class="states-section">
+    <div class="section-title">UI States — AddonGate Component</div>
+    <div class="states-grid">
+
+      <div class="state-card">
+        <div class="state-header not-installed">🔒 Not Installed</div>
+        <div class="state-body">
+          <div class="mock-ui">
+            <div class="mock-lock">
+              <div class="mock-icon">🔒</div>
+              <div>
+                <div class="mock-title">Add-on not installed</div>
+                <div class="mock-desc">This feature requires the AFDA add-on to be downloaded.</div>
+              </div>
+            </div>
+            <div class="mock-btn purple">Download Add-on</div>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:#475569;line-height:1.5">Pack absent from <code style="color:#a78bfa;font-size:11px">downlodr-add-ons/</code>. IPC handlers not registered.</div>
+        </div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-header downloading">⬇ Downloading</div>
+        <div class="state-body">
+          <div class="mock-ui">
+            <div class="mock-lock">
+              <div class="mock-icon">⬇</div>
+              <div>
+                <div class="mock-title">Downloading add-on…</div>
+                <div class="mock-desc">Please wait while the pack is downloaded and extracted.</div>
+              </div>
+            </div>
+            <div class="progress-bar-wrap"><div class="progress-bar-fill"></div></div>
+            <div class="progress-label">Downloading… (animated)</div>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:#475569;line-height:1.5">Progress emitted via <code style="color:#60a5fa;font-size:11px">addon:progress</code> IPC channel.</div>
+        </div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-header outdated">⚠ Update Required</div>
+        <div class="state-body">
+          <div class="mock-ui">
+            <div class="mock-lock">
+              <div class="mock-icon">⚠️</div>
+              <div>
+                <div class="mock-title">Update required</div>
+                <div class="mock-desc" style="color:#fbbf24;opacity:0.8">v1.1.0 → v1.2.0 — needed for this release of downlodr.</div>
+              </div>
+            </div>
+            <div class="mock-btn yellow">Update Add-on</div>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:#475569;line-height:1.5">Version in <code style="color:#a78bfa;font-size:11px">package.json</code> doesn't match <code style="color:#a78bfa;font-size:11px">downlodrAddons</code> config.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Download Sequence -->
+  <div class="sequence-section">
+    <div class="section-title">Download Sequence</div>
+    <div class="card">
+      <div class="sequence-grid" style="margin-bottom:8px">
+        <div class="seq-col-header">Renderer (UI)</div>
+        <div></div>
+        <div class="seq-col-header">Main Process</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0">
+
+        <div style="display:grid;grid-template-columns:1fr 40px 1fr;align-items:center;min-height:48px">
+          <div class="seq-bubble renderer highlight">User clicks "Download Add-on"</div>
+          <div class="seq-arrow right">→</div>
+          <div class="seq-bubble main"><code style="font-family:monospace;font-size:11px;color:#a78bfa">addon:download { pack }</code></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 40px 1fr;align-items:center;min-height:48px">
+          <div></div>
+          <div></div>
+          <div class="seq-bubble main">Resolve Google Drive URL for pack<br/><span style="color:#475569;font-size:11px">drive.google.com/uc?export=download&id=…</span></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 40px 1fr;align-items:center;min-height:48px">
+          <div></div>
+          <div></div>
+          <div class="seq-bubble main">Stream download → <code style="font-family:monospace;font-size:11px;color:#60a5fa">userData/temp/&lt;pack&gt;.zip</code></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 40px 1fr;align-items:center;min-height:48px">
+          <div class="seq-bubble renderer"><code style="font-family:monospace;font-size:11px;color:#60a5fa">addon:progress { pack, percent }</code><br/><span style="color:#475569;font-size:11px">Progress bar updates in real time</span></div>
+          <div class="seq-arrow left">←</div>
+          <div class="seq-bubble main">Emit progress as bytes arrive</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 40px 1fr;align-items:center;min-height:48px">
+          <div></div>
+          <div></div>
+          <div class="seq-bubble main">Extract zip → <code style="font-family:monospace;font-size:11px;color:#a78bfa">downlodr-add-ons/&lt;pack&gt;/</code></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 40px 1fr;align-items:center;min-height:48px">
+          <div></div>
+          <div></div>
+          <div class="seq-bubble main">Delete temp zip</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 40px 1fr;align-items:center;min-height:48px">
+          <div class="seq-bubble renderer success"><code style="font-family:monospace;font-size:11px;color:#4ade80">addon:complete { success: true }</code><br/><span style="color:#475569;font-size:11px">Toast: "Restart downlodr to activate"</span></div>
+          <div class="seq-arrow left">←</div>
+          <div class="seq-bubble main success">Done</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Version Contract -->
+  <div class="version-section">
+    <div class="section-title">Version Contract</div>
+    <div style="margin-bottom:16px">
+      <div class="card-sm" style="font-family:monospace;font-size:13px;line-height:1.8;color:#94a3b8">
+        <span style="color:#475569">// downlodr's package.json</span><br/>
+        <span style="color:#e2e8f0">"downlodrAddons"</span>: <span style="color:#475569">{</span><br/>
+        &nbsp;&nbsp;<span style="color:#a78bfa">"afda-backend"</span>: <span style="color:#4ade80">"1.2.0"</span>,<br/>
+        &nbsp;&nbsp;<span style="color:#a78bfa">"video-nemesis-toolkit"</span>: <span style="color:#4ade80">"1.0.3"</span><br/>
+        <span style="color:#475569">}</span>
+      </div>
+    </div>
+    <div class="version-grid">
+      <div class="version-state">
+        <div class="version-state-header vs-green">✓ Ready</div>
+        <div class="version-state-body">
+          <strong>Condition:</strong> installed version <em>matches</em> expected<br/>
+          <strong>Result:</strong> IPC handlers registered, features active<br/>
+          <strong>UI:</strong> Normal, no overlay
+        </div>
+      </div>
+      <div class="version-state">
+        <div class="version-state-header vs-purple">— Not Installed</div>
+        <div class="version-state-body">
+          <strong>Condition:</strong> <code style="font-size:11px;color:#a78bfa">package.json</code> absent<br/>
+          <strong>Result:</strong> IPC handlers skipped<br/>
+          <strong>UI:</strong> Locked overlay, "Download Add-on"
+        </div>
+      </div>
+      <div class="version-state">
+        <div class="version-state-header vs-yellow">⚠ Outdated</div>
+        <div class="version-state-body">
+          <strong>Condition:</strong> installed version <em>doesn't match</em> expected<br/>
+          <strong>Result:</strong> IPC handlers skipped<br/>
+          <strong>UI:</strong> Locked overlay, "Update Add-on"
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;font-size:12px;color:#475569;line-height:1.6;padding:0 4px">
+      When a new downlodr release ships a bug-fixed pack: bump version in <code style="color:#a78bfa;font-size:11px">downlodrAddons</code> + upload new zip to Google Drive. On next launch, users in the "outdated" state are prompted to update automatically.
+    </div>
+  </div>
+
+  <!-- Storage Layout -->
+  <div class="storage-section">
+    <div class="section-title">Storage Layout</div>
+    <div class="card">
+      <div class="storage-tree">
+        <div><span class="dir">AppData/Roaming/downlodr/</span> <span class="comment">← userData (persists across app updates)</span></div>
+        <div>&nbsp;&nbsp;<span class="highlight">downlodr-add-ons/</span> <span class="comment">← all add-on packs live here</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">afda-backend/</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">dist/</span> <span class="comment">← compiled TypeScript</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">node_modules/</span> <span class="comment">← native deps (better-sqlite3, playwright, etc.)</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">package.json</span> <span class="comment">← version checked on startup</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">video-nemesis-toolkit/</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">dist/</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">node_modules/</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">package.json</span></div>
+        <div>&nbsp;&nbsp;<span class="dir">temp/</span> <span class="comment">← download staging area, cleaned up after extraction</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Files Changed -->
+  <div class="files-section">
+    <div class="section-title">Files to Create / Modify</div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="files-table">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>src/core-app/ipc/main/addonManager.ts</code> <span class="badge-new">new</span></td>
+            <td style="color:#94a3b8">Detection, download, extraction, and progress logic</td>
+          </tr>
+          <tr>
+            <td><code>src/DataStores/addonStore.ts</code> <span class="badge-new">new</span></td>
+            <td style="color:#94a3b8">Zustand store for addon status (not-installed / ready / outdated)</td>
+          </tr>
+          <tr>
+            <td><code>src/components/AddonGate.tsx</code> <span class="badge-new">new</span></td>
+            <td style="color:#94a3b8">Reusable locked-state wrapper — takes <code>packName</code> prop, handles all 3 states</td>
+          </tr>
+          <tr>
+            <td><code>src/core-app/ipc/main/registerHandlers.ts</code> <span class="badge-mod">modify</span></td>
+            <td style="color:#94a3b8">Conditional handler registration based on addon detection result</td>
+          </tr>
+          <tr>
+            <td><code>src/core-app/ipc/main/afdaHandler.ts</code> <span class="badge-mod">modify</span></td>
+            <td style="color:#94a3b8">Add <code>resolveAddonPath()</code>, guard with addon state</td>
+          </tr>
+          <tr>
+            <td><code>src/core-app/ipc/main/skedulosaHandler.ts</code> <span class="badge-mod">modify</span></td>
+            <td style="color:#94a3b8">Add <code>resolveAddonPath()</code>, guard with addon state</td>
+          </tr>
+          <tr>
+            <td><code>forge.config.ts</code> <span class="badge-mod">modify</span></td>
+            <td style="color:#94a3b8">Add <code>packagerConfig.ignore</code> rules to exclude backend submodule folders</td>
+          </tr>
+          <tr>
+            <td><code>package.json</code> <span class="badge-mod">modify</span></td>
+            <td style="color:#94a3b8">Add <code>downlodrAddons</code> version map + Google Drive file IDs config</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Open Questions -->
+  <div class="questions-section">
+    <div class="section-title">Open Questions for Discussion</div>
+    <div class="card">
+      <div class="question-item">
+        <div class="q-num">1</div>
+        <div class="q-text"><strong>Separate zips or one bundle?</strong> Should each pack be a separate download, or bundled into one "downlodr-add-ons-full.zip"? Separate is recommended — users only download what they need.</div>
+      </div>
+      <div class="question-item">
+        <div class="q-num">2</div>
+        <div class="q-text"><strong>File IDs in package.json or separate config?</strong> Google Drive file IDs (and future GitHub release URLs) could live in <code style="background:#1a2236;padding:1px 6px;border-radius:4px;color:#a78bfa;font-size:12px">package.json</code> or a dedicated <code style="background:#1a2236;padding:1px 6px;border-radius:4px;color:#a78bfa;font-size:12px">addons.config.json</code>. Separate config keeps package.json clean.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:20px 0 8px;font-size:12px;color:#334155">
+    downlodr · optional add-ons design · 2026-05-20
+  </div>
+
+</div>
+</body>
+</html>

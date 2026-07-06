@@ -11,23 +11,34 @@ import {
   formatBytesToHuman,
   getTotalStorageUsedBytes,
 } from '@/skedulosa/utils/subscriptionDownloadUtils';
+import { useDropdownAnimation } from '@/core-app/hooks/animation/useDropdownAnimation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { FiSearch, FiX, FiTrash2, FiPause, FiPlay, FiEdit2, FiEdit } from 'react-icons/fi';
+import {
+  FiSearch,
+  FiX,
+  FiTrash2,
+  FiPause,
+  FiPlay,
+  FiEdit2,
+  FiEdit,
+} from 'react-icons/fi';
 import { LuClock4, LuDownload, LuHardDrive } from 'react-icons/lu';
 import {
   TbSortAscendingLetters,
   TbSortDescendingLetters,
 } from 'react-icons/tb';
 import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
-import SkedulosaSubscribeModal from '../SkedulosaSubscribeModal';
 import SkedulosaEditModal from '../SkedulosaEditModal';
 import ConfirmModal from '@/core-app/components/modal/custom/ConfirmModal';
+import { useAfdaWebsitesStore } from '@/afda/store/afdaWebsitesStore';
+import { deleteAfdaWebsite } from '@/afda/utils/deleteAfdaWebsite';
+import { FaPlus } from 'react-icons/fa6';
 
 type SkedulosaTableTaskbarProps = {
-  onSubscriptionCreated?: (channelName: string, subscriptionId: string) => void;
+  onOpenSubscribe: (url?: string) => void;
 };
 
 type SortOption = {
@@ -46,12 +57,10 @@ const SORT_OPTIONS: SortOption[] = [
 ];
 
 const SkedulosaTableTaskbar = ({
-  onSubscriptionCreated,
+  onOpenSubscribe,
 }: SkedulosaTableTaskbarProps) => {
   const { t } = useTranslation('skedulosa');
   const location = useLocation();
-  const [isSkedulosaSubscribeModalOpen, setIsSkedulosaSubscribeModalOpen] =
-    useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [sortMenuPosition, setSortMenuPosition] = useState({ x: 0, y: 0 });
@@ -62,7 +71,7 @@ const SkedulosaTableTaskbar = ({
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  const sortMenuRef = useRef<HTMLDivElement>(null);
+  const { ref: sortMenuRef, mounted: sortMenuMounted } = useDropdownAnimation(showSortMenu);
 
   const subscriptions = useSkedulosaStore((s) => s.subscriptions);
   const scheduledChannels = useSkedulosaStore((s) => s.scheduledChannels);
@@ -90,6 +99,8 @@ const SkedulosaTableTaskbar = ({
   const bulkDeleteHistoryDownloads = useSkedulosaStore(
     (s) => s.bulkDeleteHistoryDownloads,
   );
+  const afdaWebsites = useAfdaWebsitesStore((s) => s.websites);
+  const removeWebsite = useAfdaWebsitesStore((s) => s.removeWebsite);
 
   // Tick every 60s so "Next check in" stays current without live polling
   const [now, setNow] = useState(() => new Date());
@@ -156,10 +167,6 @@ const SkedulosaTableTaskbar = ({
       clearHistorySelection();
     }
   }, [location.pathname]);
-
-  const handleCloseSkedulosaSubscribeModal = () => {
-    setIsSkedulosaSubscribeModalOpen(false);
-  };
 
   const handleSearchToggle = () => {
     if (isSearchOpen) {
@@ -297,8 +304,7 @@ const SkedulosaTableTaskbar = ({
               <span className="font-bold">
                 {getScheduledDownloadsCountToday(subscriptions)}
               </span>{' '}
-              <span className="text-gray-500">{t('taskbar.stats.today')}</span>
-              /{' '}
+              <span className="text-gray-500">{t('taskbar.stats.today')}</span>/{' '}
               <span className="font-bold">{subscriptions.length}</span>{' '}
               <span className="text-gray-500">
                 {t('taskbar.stats.thisWeek')}
@@ -319,14 +325,16 @@ const SkedulosaTableTaskbar = ({
               <span className="text-gray-500">
                 <LuClock4 className="text-gray-500" />
               </span>
-              <span className="text-gray-500">{t('taskbar.stats.nextCheckIn')}</span>
+              <span className="text-gray-500">
+                {t('taskbar.stats.nextCheckIn')}
+              </span>
               <span className="font-bold">{soonestNextRun}</span>
             </div>
           </div>
         )}
 
         {/* Right: search, sort, subscribe */}
-        <div className="flex flex-row gap-3 items-center justify-center">
+        <div className="flex flex-row gap-2 items-center justify-center">
           {/* Inline search */}
           <div
             ref={searchContainerRef}
@@ -349,7 +357,11 @@ const SkedulosaTableTaskbar = ({
             </div>
             <button
               onClick={handleSearchToggle}
-              title={isSearchOpen ? t('taskbar.search.close') : t('taskbar.search.open')}
+              title={
+                isSearchOpen
+                  ? t('taskbar.search.close')
+                  : t('taskbar.search.open')
+              }
               className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-darkModeCompliment transition-colors ${
                 isSearchOpen || searchQuery
                   ? 'text-primary'
@@ -360,18 +372,35 @@ const SkedulosaTableTaskbar = ({
             </button>
           </div>
 
+          {/* Sort */}
+          <button
+            onClick={handleSortClick}
+            title={activeSortLabel}
+            className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-darkModeCompliment transition-colors ${
+              isSortActive ? 'text-primary' : 'text-gray-500 dark:text-gray-400'
+            }`}
+          >
+            {sortDirection === 'desc' ? (
+              <TbSortDescendingLetters size={15} />
+            ) : (
+              <TbSortAscendingLetters size={15} />
+            )}
+          </button>
+
           {/* Subscribe */}
           <button
-            className="bg-primary text-white px-6 py-1 rounded-md text-[12px] hover:opacity-90 dark:hover:opacity-75"
-            onClick={() => setIsSkedulosaSubscribeModalOpen(true)}
+            className="flex items-center justify-center gap-1 bg-primary text-white px-4 py-1 rounded-md text-[12px] hover:opacity-90 dark:hover:opacity-75"
+            onClick={() => onOpenSubscribe()}
           >
-            {t('taskbar.subscribe')}
+            <FaPlus />
+
+            <span>{t('taskbar.subscribe')}</span>
           </button>
         </div>
       </div>
 
       {/* Sort dropdown portal */}
-      {showSortMenu &&
+      {sortMenuMounted &&
         createPortal(
           <div
             ref={sortMenuRef}
@@ -380,7 +409,7 @@ const SkedulosaTableTaskbar = ({
               top: sortMenuPosition.y,
               left: sortMenuPosition.x,
             }}
-            className="bg-white dark:bg-darkModeCompliment rounded-lg shadow-lg py-1 min-w-[150px] border border-gray-200 dark:border-gray-600 z-50"
+            className="bg-white dark:bg-darkModeCompliment rounded-lg shadow-lg py-1 w-[150px] border border-gray-200 dark:border-gray-600 z-50"
           >
             {SORT_OPTIONS.map((option) => {
               const isActive =
@@ -392,8 +421,8 @@ const SkedulosaTableTaskbar = ({
                   onClick={() => handleSortSelect(option)}
                   className={`w-full text-left px-3 py-2 text-[12px] hover:bg-gray-100 dark:hover:bg-darkModeHover ${
                     isActive
-                      ? 'bg-gray-100 dark:bg-gray-700 text-primary font-medium'
-                      : ''
+                      ? 'bg-gray-100 dark:bg-gray-700 text-primary dark:text-orange-400 font-medium'
+                      : 'dark:text-white '
                   }`}
                 >
                   {t(option.key)}
@@ -403,12 +432,6 @@ const SkedulosaTableTaskbar = ({
           </div>,
           document.body,
         )}
-
-      <SkedulosaSubscribeModal
-        isOpen={isSkedulosaSubscribeModalOpen}
-        onClose={handleCloseSkedulosaSubscribeModal}
-        onSubscriptionCreated={onSubscriptionCreated}
-      />
 
       <ConfirmModal
         isOpen={bulkHistoryDeleteConfirm}
@@ -439,9 +462,19 @@ const SkedulosaTableTaskbar = ({
         isOpen={bulkSubDeleteConfirm}
         onClose={() => setBulkSubDeleteConfirm(false)}
         onConfirm={async () => {
-          await bulkDeleteSubscriptions(selectedChannelIds).catch(
-            console.error,
+          const afdaWebsiteIds = new Set(afdaWebsites.map((w) => w.id));
+          const regularIds = selectedChannelIds.filter(
+            (id) => !afdaWebsiteIds.has(id),
           );
+          const afdaIds = selectedChannelIds.filter((id) =>
+            afdaWebsiteIds.has(id),
+          );
+          await Promise.all([
+            regularIds.length > 0
+              ? bulkDeleteSubscriptions(regularIds).catch(console.error)
+              : Promise.resolve(),
+            ...afdaIds.map((id) => deleteAfdaWebsite(id, removeWebsite)),
+          ]);
           setBulkSubDeleteConfirm(false);
         }}
         title={(() => {

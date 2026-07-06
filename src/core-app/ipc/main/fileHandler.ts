@@ -40,6 +40,25 @@ export const fileHandler = (mainWindow: BrowserWindow) => {
     },
   );
 
+  ipcMain.handle(
+    'save-buffer-to-file',
+    async (
+      _event,
+      data: number[],
+      filePath: string,
+    ): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const dir = path.dirname(filePath);
+        await fs.promises.mkdir(dir, { recursive: true });
+        await fs.promises.writeFile(filePath, Buffer.from(data));
+        return { success: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { success: false, error: message };
+      }
+    },
+  );
+
   ipcMain.handle('createFolder', async (_event, dirPath) => {
     if (!fs.existsSync(dirPath)) {
       await fs.promises.mkdir(dirPath, { recursive: true });
@@ -236,6 +255,42 @@ export const fileHandler = (mainWindow: BrowserWindow) => {
       return '';
     }
   });
+
+  ipcMain.handle(
+    'article-html-to-pdf',
+    async (
+      _event,
+      htmlContent: string,
+    ): Promise<{ success: boolean; data?: number[]; error?: string }> => {
+      let win: BrowserWindow | null = null;
+      const tempFile = path.join(os.tmpdir(), `afda-article-${Date.now()}.html`);
+      try {
+        fs.writeFileSync(tempFile, htmlContent, 'utf-8');
+        win = new BrowserWindow({
+          show: false,
+          webPreferences: { contextIsolation: true, nodeIntegration: false },
+        });
+        await new Promise<void>((resolve, reject) => {
+          win!.webContents.once('did-finish-load', resolve);
+          win!.webContents.once('did-fail-load', (_e, code, desc) =>
+            reject(new Error(`Page load failed: ${desc} (${code})`)),
+          );
+          win!.loadFile(tempFile).catch(reject);
+        });
+        const pdfBuffer = await win.webContents.printToPDF({
+          printBackground: true,
+          pageSize: 'A4',
+        });
+        return { success: true, data: Array.from(new Uint8Array(pdfBuffer)) };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { success: false, error: message };
+      } finally {
+        if (win && !win.isDestroyed()) win.destroy();
+        try { fs.unlinkSync(tempFile); } catch { /* ignore */ }
+      }
+    },
+  );
 
   ipcMain.handle('ensureDirectoryExists', async (event, dirPath) => {
     try {

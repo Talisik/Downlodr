@@ -65,6 +65,7 @@
       "refreshButton": "プラグインを更新"
     },
     "confirmUninstall": {
+      "title": "プラグインを削除",
       "message": "「{{name}}」を削除してもよろしいですか？この操作は元に戻せません。"
     },
     "toast": {

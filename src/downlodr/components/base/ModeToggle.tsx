@@ -10,23 +10,21 @@ import { Moon, Sun } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../../core-app/components/shadcn/components/ui/button';
 import { useTheme } from '../../../core-app/components/ThemeProvider';
+import { useDropdownAnimation } from '../../../core-app/hooks/animation/useDropdownAnimation';
+import { useIconToggleAnimation } from '../../../core-app/hooks/animation/useIconToggleAnimation';
 
 export function ModeToggle() {
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // use effect to close dropdown on window blur
+  const { sunRef, moonRef } = useIconToggleAnimation(theme);
+  const { ref: animRef, mounted } = useDropdownAnimation(isOpen);
+
   useEffect(() => {
-    const handleWindowBlur = () => {
-      setIsOpen(false);
-    };
-
+    const handleWindowBlur = () => setIsOpen(false);
     window.addEventListener('blur', handleWindowBlur);
-
-    return () => {
-      window.removeEventListener('blur', handleWindowBlur);
-    };
+    return () => window.removeEventListener('blur', handleWindowBlur);
   }, []);
 
   useEffect(() => {
@@ -38,7 +36,6 @@ export function ModeToggle() {
         setIsOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -52,14 +49,23 @@ export function ModeToggle() {
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className="relative flex items-center justify-center">
-          <Sun className="absolute h-[1rem] w-[1rem] transition-transform duration-300 text-text-paragraph dark:rotate-90 dark:scale-0" />
-          <Moon className="absolute h-[1rem] w-[1rem] transition-transform duration-300 text-text-paragraph scale-0 dark:rotate-0 dark:scale-100" />
+          <Sun
+            ref={sunRef}
+            className="absolute h-[1rem] w-[1rem] text-text-paragraph"
+          />
+          <Moon
+            ref={moonRef}
+            className="absolute h-[1rem] w-[1rem] text-text-paragraph"
+          />
         </span>
         <span className="sr-only">Toggle theme</span>
       </Button>
 
-      {isOpen && (
-        <div className="fixed right-[inherit] w-[85px] rounded-md bg-white dark:bg-darkModeCompliment shadow-lg ring-1 ring-black ring-opacity-5 z-[100]">
+      {mounted && (
+        <div
+          ref={animRef}
+          className="fixed right-[inherit] w-[85px] rounded-md bg-white dark:bg-darkModeCompliment shadow-lg ring-1 ring-black ring-opacity-5 z-[100]"
+        >
           <div className="py-1 gap-1" role="menu">
             <button
               className="font-semibold rounded-md w-[80%] mx-2 block px-2 py-1.5 text-[12px] text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-darkModeHover"

@@ -10,13 +10,14 @@
  * @returns JSX.Element - The rendered format selector component.
  */
 
-import React, { useState } from 'react';
+import { useDropdownAnimation } from '@/core-app/hooks/animation/useDropdownAnimation';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface Format {
-  value: string; // Value of the format
-  label: string; // Display label for the format
-  fileExtension: string; // File extension associated with the format
-  formatId: string; // Unique identifier for the format
+  value: string;
+  label: string;
+  fileExtension: string;
+  formatId: string;
 }
 
 interface FormatSelectorProps {
@@ -42,41 +43,44 @@ const FormatSelector: React.FC<FormatSelectorProps> = ({
 }) => {
   const [selectedFormatValue, setSelectedFormatValue] = useState('');
   const [selectedFormatDisplay, setSelectedFormatDisplay] = useState('Format');
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { ref: listRef, mounted } = useDropdownAnimation(open);
 
-  const handleFormatChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const formats = (
-      'formats' in download ? (download.formats as Format[]) : []
-    ) as Format[];
-    const selectedFormat = formats.find(
-      (format) => format.value === e.target.value,
-    );
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-    if (selectedFormat) {
-      const isAudioOnly = selectedFormat.label.startsWith('Audio');
-
-      // Update local state
-      setSelectedFormatValue(selectedFormat.value);
-      setSelectedFormatDisplay(selectedFormat.label);
-
-      // Prepare format data
-      const formatData = isAudioOnly
-        ? {
-            ext: selectedFormat.fileExtension,
-            formatId: '',
-            audioExt: selectedFormat.fileExtension,
-            audioFormatId: selectedFormat.formatId,
-          }
-        : {
-            ext: selectedFormat.fileExtension,
-            formatId: selectedFormat.formatId,
-            audioExt: '',
-            audioFormatId: '',
-          };
-
-      // Send format data back to parent
-      onFormatSelect(formatData);
+  const handleSelect = (format: Format | null) => {
+    if (format) {
+      const isAudioOnly = format.label.startsWith('Audio');
+      setSelectedFormatValue(format.value);
+      setSelectedFormatDisplay(format.label);
+      onFormatSelect(
+        isAudioOnly
+          ? {
+              ext: format.fileExtension,
+              formatId: '',
+              audioExt: format.fileExtension,
+              audioFormatId: format.formatId,
+            }
+          : {
+              ext: format.fileExtension,
+              formatId: format.formatId,
+              audioExt: '',
+              audioFormatId: '',
+            },
+      );
     } else {
-      // When no format is selected, keep existing ext and formatId but clear audio fields
       setSelectedFormatValue('');
       setSelectedFormatDisplay('Format');
       onFormatSelect({
@@ -86,43 +90,74 @@ const FormatSelector: React.FC<FormatSelectorProps> = ({
         audioFormatId: '',
       });
     }
+    setOpen(false);
   };
 
   if (download.status !== 'to download') {
     return <span>{download.ext}</span>;
   }
 
+  const formats = Array.isArray(download.formats) ? download.formats : [];
+
   return (
-    <div className="flex-1">
-      <select
-        value={selectedFormatValue}
-        onChange={handleFormatChange}
-        className="flex-1 w-full border rounded-md py-1 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent [&>option]:dark:bg-darkMode"
+    <div ref={containerRef} className="relative w-20">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex items-center text-start justify-between w-full border rounded-md py-1 px-2 bg-white dark:bg-inputDarkMode dark:text-gray-200 dark:border-transparent outline-none text-[13px]"
       >
-        <option
-          value=""
-          className="min-w-[50px] border rounded-md py-1 dark:bg-inputDarkMode dark:text-gray-200 outline-none dark:border-transparent [&>option]:dark:bg-darkMode"
+        <span className="truncate">{selectedFormatDisplay}</span>
+        <svg
+          className={`w-2.5 h-2.5 ml-1 shrink-0 transition-transform duration-200 ${
+            open ? 'rotate-180' : ''
+          }`}
+          viewBox="0 0 10 6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
         >
-          {selectedFormatDisplay}
-        </option>
-        {'formats' in download &&
-        Array.isArray(download.formats) &&
-        (download.formats as Format[]).length > 0 ? (
-          (download.formats as Format[]).map((format) => (
-            <option
-              key={format.value}
-              value={format.value}
-              className="dark:bg-darkMode dark:text-gray-200"
+          <path d="M1 1l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {mounted && (
+        <div
+          ref={listRef}
+          className="absolute z-50 mt-1 min-w-[10rem] w-max bg-white dark:bg-darkModeDropdown border border-[#E4E4E7] dark:border-transparent rounded-md shadow-md overflow-hidden"
+        >
+          <div className="max-h-48 overflow-y-auto py-1 ">
+            <div
+              role="option"
+              aria-selected={selectedFormatValue === ''}
+              onClick={() => handleSelect(null)}
+              className="flex items-center justify-start text-left px-2 py-1 text-[13px] cursor-pointer hover:bg-gray-100 dark:hover:bg-darkModeCompliment dark:text-gray-200"
             >
-              {format.label}
-            </option>
-          ))
-        ) : (
-          <option value="" className="dark:bg-darkMode dark:text-gray-200">
-            No formats available
-          </option>
-        )}
-      </select>
+              Format
+            </div>
+            {formats.length > 0 ? (
+              formats.map((format) => (
+                <div
+                  key={format.value}
+                  role="option"
+                  aria-selected={selectedFormatValue === format.value}
+                  onClick={() => handleSelect(format)}
+                  className={`flex items-center justify-start px-2 py-1 text-[13px] cursor-pointer hover:bg-gray-100 dark:hover:bg-darkModeCompliment dark:text-gray-200 ${
+                    selectedFormatValue === format.value
+                      ? 'font-medium text-primary'
+                      : ''
+                  }`}
+                >
+                  {format.label}
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center justify-start px-2 py-1 text-[13px] dark:text-gray-400 cursor-default">
+                No formats available
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

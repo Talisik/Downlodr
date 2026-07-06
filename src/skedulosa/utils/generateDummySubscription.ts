@@ -1,3 +1,4 @@
+import type { AfdaSubscription } from '@/afda/types/afdaTypes';
 import type {
   Download,
   ScheduleDay,
@@ -134,6 +135,77 @@ function generateDummyChannelName(): string {
   const suffix = pick(CHANNEL_NAME_SUFFIXES);
   const num = Math.floor(Math.random() * 999) + 1;
   return `${prefix} ${suffix} ${num}`;
+}
+
+const ARTICLE_SECTION_NAMES = [
+  'Tech News',
+  'Science Weekly',
+  'World Affairs',
+  'Business Insights',
+  'Health & Wellness',
+  'Entertainment Digest',
+  'Sports Roundup',
+  'Culture & Arts',
+];
+const ARTICLE_SITES = [
+  'reuters.com',
+  'bbc.com',
+  'techcrunch.com',
+  'theverge.com',
+  'wired.com',
+  'arstechnica.com',
+  'nytimes.com',
+  'theguardian.com',
+];
+
+function generateDummyArticleDownload(): Download {
+  const site = pick(ARTICLE_SITES);
+  return {
+    id: randomId(),
+    status: pick(DOWNLOAD_STATUSES),
+    name: `Article_${randomId().slice(0, 8)}.pdf`,
+    thumbnail_location: `https://${site}/favicon.ico`,
+    size: `${(Math.random() * 2 + 0.1).toFixed(2)} MB`,
+    speed: randomSpeed(),
+    date_added: randomPastDate(30),
+  };
+}
+
+/**
+ * Generates a single AFDA subscription with random, unique dummy data.
+ * Safe to call multiple times; each result has unique ids and varied fields.
+ */
+export function generateDummyAfdaSubscription(): AfdaSubscription {
+  const id = `afda-dummy-${randomId()}`;
+  const site = pick(ARTICLE_SITES);
+  const sectionName = pick(ARTICLE_SECTION_NAMES);
+  const downloadCount = Math.floor(Math.random() * 5);
+  const downloads: Download[] = Array.from({ length: downloadCount }, () =>
+    generateDummyArticleDownload(),
+  );
+
+  return {
+    id,
+    source_type: 'afda',
+    downloads,
+    schedule_time: generateDummyScheduleTime(),
+    last_checked_time: randomPastDate(7),
+    source: sectionName,
+    sourceUrl: `https://${site}/sections/${sectionName.toLowerCase().replace(/\s+/g, '-')}`,
+    recurring: Math.random() > 0.2,
+    status: pick(STATUSES),
+    date_created: randomPastDate(365),
+    upload_cadence: pick(UPLOAD_CADENCES),
+    settings: [generateDummySettings()],
+    section_details: {
+      websiteName: sectionName,
+      websiteUrl: `https://${site}/sections/${sectionName.toLowerCase().replace(/\s+/g, '-')}`,
+      articleCount: Math.floor(Math.random() * 200) + 10,
+      sectionCount: Math.floor(Math.random() * 8) + 2,
+      site,
+    },
+    activity_log: [],
+  };
 }
 
 /**

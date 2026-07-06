@@ -10,9 +10,13 @@ import type { DisplayColumn } from './statusPageTypes';
 interface StatusPageTableHeaderProps {
   displayColumns: DisplayColumn[];
   columns: DisplayColumn[];
-  selectedRowIdsLength: number;
-  allDownloadsLength: number;
-  getSelectedWithStatusCount: () => number;
+  selectedRowIds: string[];
+  pageRowIds: string[];
+  onClearSelection: () => void;
+  pageStart?: number;
+  pageEnd?: number;
+  totalDownloads?: number;
+  totalPages?: number;
   sortColumn: string;
   sortDirection: 'asc' | 'desc';
   dragging: { columnId: string; index: number } | null;
@@ -46,9 +50,13 @@ const renderSortIndicator = (
 export const StatusPageTableHeader: React.FC<StatusPageTableHeaderProps> = ({
   displayColumns,
   columns,
-  selectedRowIdsLength,
-  allDownloadsLength,
-  getSelectedWithStatusCount,
+  selectedRowIds,
+  pageRowIds,
+  onClearSelection,
+  pageStart,
+  pageEnd,
+  totalDownloads,
+  totalPages,
   sortColumn,
   sortDirection,
   dragging,
@@ -62,9 +70,9 @@ export const StatusPageTableHeader: React.FC<StatusPageTableHeaderProps> = ({
   onDrop,
   cancelDrag,
 }) => (
-  <thead className="sticky top-0 z-20 bg-white dark:bg-alternateBlack">
+  <thead className="sticky top-0 z-20 bg-white dark:bg-darkModeTable border-b hover:bg-gray-50 dark:border-darkModeTableBorder">
     <tr className="text-left" onContextMenu={onColumnHeaderContextMenu}>
-      <th className="w-6 px-2 py-1 bg-white dark:bg-alternateBlack">
+      <th className="w-6 px-2 py-1">
         <input
           type="checkbox"
           className="mt-2 ml-2 rounded custom-white-checkmark"
@@ -75,15 +83,25 @@ export const StatusPageTableHeader: React.FC<StatusPageTableHeaderProps> = ({
             }),
           }}
           checked={
-            allDownloadsLength > 0 &&
-            selectedRowIdsLength === allDownloadsLength
+            pageRowIds.length > 0 &&
+            pageRowIds.every((id) => selectedRowIds.includes(id))
           }
+          ref={(el) => {
+            if (el) {
+              el.indeterminate =
+                pageRowIds.some((id) => selectedRowIds.includes(id)) &&
+                !pageRowIds.every((id) => selectedRowIds.includes(id));
+            }
+          }}
           onChange={onSelectAll}
         />
       </th>
       {displayColumns.map((column, displayIndex) => {
         if (column.id === 'end') {
           return <th key={column.id} className="w-18 p-2"></th>;
+        }
+        if (column.id === 'eye') {
+          return <th key={column.id} className="w-10 p-2" />;
         }
         const originalIndex = columns.findIndex((col) => col.id === column.id);
         return (
@@ -102,20 +120,26 @@ export const StatusPageTableHeader: React.FC<StatusPageTableHeaderProps> = ({
             isLastColumn={displayIndex === displayColumns.length - 1}
           >
             <div
-              className="flex items-center cursor-pointer whitespace-nowrap"
+              className="flex items-center justify-between w-full cursor-pointer whitespace-nowrap px-2"
               onClick={() => onSortClick(column.id)}
             >
               <span className="flex items-center gap-[0.5px]">
                 {getColumnDisplayName(column.id)}
                 {renderSortIndicator(sortColumn, sortDirection, column.id)}
-                {column.id === 'name' && getSelectedWithStatusCount() > 0 && (
+                {column.id === 'name' && selectedRowIds.length > 0 && (
                   <span className="text-xs">
-                    ({getSelectedWithStatusCount()}{' '}
-                    {getSelectedWithStatusCount() === 1 ? 'item' : 'items'}{' '}
-                    selected)
+                    ({selectedRowIds.length}{' '}
+                    {selectedRowIds.length === 1 ? 'item' : 'items'} selected)
                   </span>
                 )}
               </span>
+              {column.id === 'name' &&
+                totalPages !== undefined &&
+                totalPages > 1 && (
+                  <span className="text-xs font-normal text-gray-400 dark:text-gray-500">
+                    Viewing {pageStart}–{pageEnd} of {totalDownloads}
+                  </span>
+                )}
             </div>
           </ResizableHeader>
         );

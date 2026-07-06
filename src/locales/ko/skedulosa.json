@@ -21,7 +21,8 @@
   },
   "categoryFilter": {
     "all": "전체",
-    "youtube": "Youtube"
+    "youtube": "Youtube",
+    "afda": "기사"
   },
   "collapse": "사이드바 접기",
   "expand": "사이드바 펼치기",
@@ -196,6 +197,7 @@
     "whatCanSubscribe": "무엇을 구독할 수 있나요?",
     "supportedSources": "지원되는 소스",
     "youtubeChannels": "YouTube 채널",
+    "articleWebsites": "기사 웹사이트 예: GMA, CNN, BBC 등",
     "basicConfig": "기본 설정",
     "checkFrequency": "확인 빈도",
     "auto": "자동",
@@ -210,8 +212,8 @@
       "unsupportedPlatform": "지원되지 않는 플랫폼입니다. 현재 YouTube 채널과 재생목록만 지원됩니다.",
       "videoLink": "YouTube 동영상 링크는 지원되지 않습니다. YouTube 채널 URL을 입력하세요 (예: https://www.youtube.com/@채널).",
       "shortsLink": "YouTube Shorts 링크는 지원되지 않습니다. YouTube 채널 URL을 입력하세요 (예: https://www.youtube.com/@채널).",
-      "alreadySubscribed": "이미 구독 중인 채널입니다. Skedulosa 탭에서 관리할 수 있습니다.",
-      "bridgeUnavailable": "Skedulosa 브리지를 사용할 수 없습니다. 앱을 다시 시작하세요.",
+      "alreadySubscribed": "이미 구독 중인 채널입니다. Subscription 탭에서 관리할 수 있습니다.",
+      "bridgeUnavailable": "Subscription 브리지를 사용할 수 없습니다. 앱을 다시 시작하세요.",
       "analyzeFailedGeneric": "채널을 분석할 수 없습니다 — 위의 알림을 확인하세요.",
       "noVideosShorts": "이 채널의 동영상 탭에서 동영상을 찾을 수 없습니다. Shorts만 게시하는 경우 URL에 \"/shorts\"를 추가해 보세요 (예: https://www.youtube.com/@채널/shorts).",
       "noVideos": "이 채널에서 동영상을 찾을 수 없습니다. URL을 확인하고 다시 시도하세요.",
@@ -280,6 +282,8 @@
     "recurring": "반복",
     "scheduleDays": "예약 요일",
     "downloadQuality": "다운로드 품질",
+    "saveLocation": "저장 위치",
+    "lookbackPeriod": "보존 기간",
     "days": {
       "mon": "월",
       "tue": "화",

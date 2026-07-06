@@ -42,7 +42,7 @@ const AdditionalOptions = ({
     <div
       id="additional-options-modal"
       className={cn(
-        'absolute top-full right-10 max-w-[450px] min-w-0 h-fit z-50 bg-white dark:bg-darkModeDropdown border border-divider dark:border-darkModeCompliment rounded-lg shadow-lg p-4',
+        'absolute top-full mt-1 right-10 max-w-[450px] min-w-0 h-fit z-[100] bg-white dark:bg-darkModeDropdown border border-divider dark:border-darkModeCompliment rounded-lg shadow-lg p-4',
         isPlaylist && 'max-w-[800px] flex gap-4',
         !isPlaylist && 'w-full',
       )}

@@ -21,7 +21,8 @@
   },
   "categoryFilter": {
     "all": "Todos",
-    "youtube": "Youtube"
+    "youtube": "Youtube",
+    "afda": "Artigos"
   },
   "collapse": "Recolher barra lateral",
   "expand": "Expandir barra lateral",
@@ -37,7 +38,7 @@
     "emptyState": {
       "altText": "Sem assinaturas",
       "title": "Nenhuma assinatura para o filtro \"{{filter}}\"",
-      "description": "Assine canais do YouTube, listas de reprodução ou feeds RSS e o Skedulosa baixará automaticamente novos conteúdos conforme sua programação — mesmo quando o Downlodr estiver fechado."
+      "description": "Assine canais do YouTube, listas de reprodução ou feeds RSS e o Subscription baixará automaticamente novos conteúdos conforme sua programação — mesmo quando o Downlodr estiver fechado."
     },
     "status": {
       "active": "Ativo",
@@ -99,7 +100,7 @@
     "emptyState": {
       "altText": "Sem agendamento",
       "title": "Nenhum agendamento para o filtro \"{{filter}}\"",
-      "description": "Assine canais do YouTube, listas de reprodução ou feeds RSS e o Skedulosa baixará automaticamente novos conteúdos conforme sua programação — mesmo quando o Downlodr estiver fechado."
+      "description": "Assine canais do YouTube, listas de reprodução ou feeds RSS e o Subscription baixará automaticamente novos conteúdos conforme sua programação — mesmo quando o Downlodr estiver fechado."
     },
     "type": {
       "recurring": "Recorrente",
@@ -196,6 +197,7 @@
     "whatCanSubscribe": "No que posso me inscrever?",
     "supportedSources": "Fontes compatíveis",
     "youtubeChannels": "Canais do YouTube",
+    "articleWebsites": "Sites de artigos como: GMA, CNN, BBC, etc.",
     "basicConfig": "CONFIGURAÇÃO BÁSICA",
     "checkFrequency": "Frequência de verificação",
     "auto": "Automático",
@@ -210,8 +212,8 @@
       "unsupportedPlatform": "Plataforma não suportada. Atualmente apenas canais e playlists do YouTube são suportados.",
       "videoLink": "Links de vídeos do YouTube não são suportados. Por favor insira a URL de um canal do YouTube (ex. https://www.youtube.com/@canal).",
       "shortsLink": "Links do YouTube Shorts não são suportados. Por favor insira a URL de um canal do YouTube (ex. https://www.youtube.com/@canal).",
-      "alreadySubscribed": "Você já está inscrito neste canal. Você pode gerenciá-lo na aba do Skedulosa.",
-      "bridgeUnavailable": "A ponte do Skedulosa está indisponível. Por favor reinicie o aplicativo.",
+      "alreadySubscribed": "Você já está inscrito neste canal. Você pode gerenciá-lo na aba do Subscription.",
+      "bridgeUnavailable": "A ponte do Subscription está indisponível. Por favor reinicie o aplicativo.",
       "analyzeFailedGeneric": "Não foi possível analisar o canal — veja a notificação acima.",
       "noVideosShorts": "Nenhum vídeo encontrado na aba Vídeos deste canal. Se ele só publica Shorts, tente adicionar \"/shorts\" à URL (ex. https://www.youtube.com/@canal/shorts).",
       "noVideos": "Nenhum vídeo encontrado para este canal. Verifique a URL e tente novamente.",
@@ -241,7 +243,7 @@
       "daysToCheck": "Dias de verificação:",
       "checkAt": "Verificar às:",
       "timezone": "Fuso horário:",
-      "schedulePrefix": "O Skedulosa verificará a cada",
+      "schedulePrefix": "O Subscription verificará a cada",
       "scheduleMid": "dias às",
       "qualityPreset": "Qualidade predefinida",
       "saveTo": "Salvar em:",
@@ -280,6 +282,8 @@
     "recurring": "Recorrente",
     "scheduleDays": "Dias agendados",
     "downloadQuality": "Qualidade de download",
+    "saveLocation": "Local de salvamento",
+    "lookbackPeriod": "Período de retenção",
     "days": {
       "mon": "Seg",
       "tue": "Ter",

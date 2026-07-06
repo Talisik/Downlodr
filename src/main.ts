@@ -7,8 +7,10 @@
  */
 import { app, BrowserWindow } from 'electron';
 import started from 'electron-squirrel-startup';
+import http from 'http';
 import path from 'path';
 import { checkForUpdates } from './core-app/hook/updateCheckerHook';
+import { autoDownloadUpdate } from './core-app/ipc/main/appInfoHandler'; // used by 4h interval
 import { setLastClipboardText } from './core-app/ipc/main/clipboardHandler';
 import { registerMainIpcHandlers } from './core-app/ipc/main/registerHandlers';
 import { getRunInBackgroundSetting } from './core-app/ipc/main/trayHandler';
@@ -48,16 +50,17 @@ declare const MAIN_WINDOW_VITE_NAME: string;
 let mainWindow: BrowserWindow | null = null;
 let forceQuit = false;
 let appCleanup: (() => void) | null = null;
+let extensionServer: http.Server | null = null;
 
 // Function to create the main application window
-const createWindow = () => {
+const createWindow = async () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 1350,
+    width: 1500,
     height: 680,
     frame: false,
     autoHideMenuBar: true,
-    minWidth: 1000,
+    minWidth: 1200,
     minHeight: 600,
     webPreferences: {
       contextIsolation: true,
@@ -68,7 +71,7 @@ const createWindow = () => {
     },
   });
 
-  const { cleanup } = registerMainIpcHandlers(mainWindow, {
+  const { cleanup } = await registerMainIpcHandlers(mainWindow, {
     tray: {
       onBeforeQuit: () => {
         forceQuit = true;
@@ -118,45 +121,115 @@ const createWindow = () => {
   });
 };
 
-// TEMPORARY DIAGNOSTIC — catch silent rejections and show them
 process.on('unhandledRejection', (reason) => {
-  const { dialog } = require('electron');
-  dialog.showErrorBox('Unhandled Rejection', String(reason instanceof Error ? reason.stack : reason));
+  console.error('[unhandledRejection]', reason);
 });
 
 // once the app opens
 app.on('ready', async () => {
+  // Start extension setup but don't await it — run it concurrently with window
+  // creation so the window appears immediately instead of waiting for extensions.
+  const extendrReady = setupExtendr().catch((err) =>
+    console.error('[setupExtendr]', err),
+  );
+
   try {
-    await setupExtendr();
+    await createWindow();
   } catch (err) {
     const { dialog } = require('electron');
-    dialog.showErrorBox('setupExtendr failed', String(err instanceof Error ? err.stack : err));
-  }
-  try {
-    createWindow();
-  } catch (err) {
-    const { dialog } = require('electron');
-    dialog.showErrorBox('createWindow failed', String(err instanceof Error ? err.stack : err));
+    dialog.showErrorBox(
+      'createWindow failed',
+      String(err instanceof Error ? err.stack : err),
+    );
   }
 
-  // Check for updates when app starts
-  setTimeout(async () => {
-    const updateInfo = await checkForUpdates();
-    if (updateInfo.hasUpdate) {
-      BrowserWindow.getAllWindows().forEach((win) =>
-        win.webContents.send('update-available', updateInfo),
-      );
+  extensionServer = http.createServer((req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
     }
-  }, 5000); // Check after 5 seconds to not slow startup
 
-  // Set up periodic update checking
-  const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 4; // Check every 4 hours
+    if (req.method === 'GET' && req.url === '/ping') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok' }));
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/subscribe') {
+      let body = '';
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
+      req.on('end', () => {
+        const { url, title } = JSON.parse(body);
+        mainWindow?.webContents.send('extension:download', { url, title });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'queued' }));
+      });
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/download') {
+      let body = '';
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
+      req.on('end', () => {
+        const { url, title, format_id } = JSON.parse(body);
+        console.log("url", url)
+        mainWindow?.webContents.send('extension:download', {
+          url,
+          title,
+          format_id,
+          autoDownload: true,
+        });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'queued' }));
+      });
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/downloadArticle') {
+      let body = '';
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
+      req.on('end', () => {
+        const { url } = JSON.parse(body);
+        console.log("article url", url)
+        mainWindow?.webContents.send('extension:download', {
+          url,
+          autoDownload: true,
+        });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'queued' }));
+      });
+      return;
+    }
+
+    res.writeHead(404);
+    res.end();
+  });
+
+  extensionServer.listen(57000, '127.0.0.1', () => {
+    console.log('Downlodr extension server listening on port 57000');
+  });
+
+  extensionServer.on('error', (e: NodeJS.ErrnoException) => {
+    if (e.code === 'EADDRINUSE') console.warn('Port 57000 already in use');
+  });
+
+  // Periodic update check every 4 hours (renderer handles the startup check)
+  const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 4;
   setInterval(async () => {
     const updateInfo = await checkForUpdates();
-    if (updateInfo.hasUpdate) {
-      BrowserWindow.getAllWindows().forEach((win) =>
-        win.webContents.send('update-available', updateInfo),
-      );
+    if (updateInfo.hasUpdate && updateInfo.downloadUrl) {
+      autoDownloadUpdate(updateInfo.downloadUrl, updateInfo);
     }
   }, UPDATE_CHECK_INTERVAL);
 });
@@ -170,7 +243,9 @@ app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    createWindow().catch((err) => {
+      console.error('[createWindow]', err);
+    });
   } else {
     mainWindow?.show();
   }
@@ -179,6 +254,8 @@ app.on('activate', () => {
 // before-quit handler — graceful teardown of all background services
 app.on('before-quit', async () => {
   forceQuit = true;
+
+  extensionServer?.close();
 
   // Stop scraper, download worker, close DB, and any other registered cleanups
   try {

@@ -6,23 +6,25 @@ const AddedSubscriptionModal = ({
   onClose,
   channelName,
   channelId,
+  onViewSubscription,
 }: {
   isOpen: boolean;
   onClose: () => void;
   channelName?: string;
   channelId?: string;
+  onViewSubscription?: () => void;
 }) => {
   const navigate = useNavigate();
   const displayName = channelName?.trim() || 'your channel';
 
   const handleViewSubscription = () => {
-    console.log('Navigating to subscription details for channelId:', channelId);
-    if (channelId) {
+    if (onViewSubscription) {
+      onViewSubscription();
+    } else if (channelId) {
       navigate(`/skedulosa/selected-subscription/${channelId}`);
     } else {
       navigate('/skedulosa/subscription');
     }
-    onClose();
   };
 
   return (

@@ -155,7 +155,7 @@ export type StatusFilterSlug =
   | 'error';
 
 /** Category filter slugs; 'all' shows every subscription (by source). */
-export type CategoryFilterSlug = 'all' | 'youtube';
+export type CategoryFilterSlug = 'all' | 'youtube' | 'afda';
 
 export interface StatusFilterOption {
   id: string;
@@ -214,6 +214,12 @@ export const CATEGORY_FILTER_OPTIONS: CategoryFilterOption[] = [
     slug: 'youtube',
     iconClassName: 'text-green-500',
   },
+  {
+    id: 'afda',
+    label: 'Articles',
+    slug: 'afda',
+    iconClassName: 'text-blue-500',
+  },
 ];
 
 const STATUS_SLUG_TO_STATUS: Record<
@@ -269,9 +275,12 @@ export function filterChannelsByStatusAndCategory(
     );
   }
   if (categoryFilter !== 'all') {
-    result = result.filter(
-      (ch) => (ch.category ?? 'youtube').toLowerCase() === categoryFilter,
-    );
+    result = result.filter((ch) => {
+      const cat = (ch.category ?? 'youtube').toLowerCase();
+      // 'afda' filter matches both afda subscriptions and afda-website entries
+      if (categoryFilter === 'afda') return cat === 'afda' || cat === 'afda-website';
+      return cat === categoryFilter;
+    });
   }
   return result;
 }
@@ -387,6 +396,9 @@ interface SkedulosaStoreState {
   /** Channel URL to pre-fill in SkedulosaSubscribeModal. Set from taskbar when a channel link is detected. Not persisted. */
   pendingSubscribeUrl: string | null;
   setPendingSubscribeUrl: (url: string | null) => void;
+  /** True when the pending subscribe URL came from the Chrome extension — triggers auto-subscribe after analysis. Not persisted. */
+  pendingExtensionSubscribe: boolean;
+  setPendingExtensionSubscribe: (val: boolean) => void;
   /** Set a channel as scraping. */
   setChannelScraping: (channelId: number, name: string) => void;
   /** Update scraping channel status. */
@@ -852,6 +864,8 @@ export const useSkedulosaStore = create<SkedulosaStoreState>()(
       },
       pendingSubscribeUrl: null,
       setPendingSubscribeUrl: (url) => set({ pendingSubscribeUrl: url }),
+      pendingExtensionSubscribe: false,
+      setPendingExtensionSubscribe: (val) => set({ pendingExtensionSubscribe: val }),
       scrapingChannels: new Map(),
       setChannelScraping: (channelId: number, name: string) => {
         set((state) => {
@@ -1005,6 +1019,21 @@ export const useSkedulosaStore = create<SkedulosaStoreState>()(
             console.log('[skedulosa] Successfully rehydrated store');
             // Kick off the schedule ticker so last_checked_time stays current
             state?.startScheduleTicker();
+            // Update last_checked_time whenever a channel finishes scraping.
+            // This keeps the "Checked X ago" display accurate for auto-detect channels
+            // that have no slot schedule (tickScheduleChecks only handles slot-based channels).
+            window.skedulosaBridge?.onChannelScraped?.((payload) => {
+              const store = useSkedulosaStore.getState();
+              const updated = store.subscriptions.map((sub) =>
+                sub.toolkit_channel_id === payload.channelId
+                  ? { ...sub, last_checked_time: payload.lastScrapedAt }
+                  : sub,
+              );
+              useSkedulosaStore.setState({
+                subscriptions: updated,
+                scheduledChannels: syncScheduledChannels(updated),
+              });
+            });
           }
         };
       },

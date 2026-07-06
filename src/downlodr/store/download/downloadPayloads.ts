@@ -3,7 +3,7 @@
  * Use these as single-argument payloads instead of long parameter lists.
  */
 
-import type { DownloadStatus } from './types';
+import type { ChapterInfo, DownloadStatus } from './types';
 
 /** Caption source: URL string, structured data for automatic captions, or boolean flag from UI */
 export type CaptionSource = string | unknown[] | boolean;
@@ -78,6 +78,8 @@ export interface SetDownloadOptions {
   getThumbnail: boolean;
   isFromPlaylist?: boolean;
   playlistBatchId?: string;
+  autoQueueFormatId?: string;
+  autoDownload?: boolean;
 }
 
 /** Payload for setDownload */
@@ -115,6 +117,11 @@ export interface AddQueuePayload {
   getThumbnail: boolean;
   duration: number;
   isCreateFolder: boolean;
+  description?: string;
+  chapters?: ChapterInfo[];
+  autoCaptionLocation?: string;
+  thumnailsLocation?: string;
+  transcriptLocation?: string;
 }
 
 /** Payload for updateDownloadStatus */

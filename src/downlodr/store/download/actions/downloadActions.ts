@@ -13,6 +13,7 @@ import React from 'react';
 import {
   selectOptimalCaption,
   type AutomaticCaptionsData,
+  type CaptionInfo,
   type SubtitlesData,
 } from '../../../utils/metadata/languageHelper';
 import type {
@@ -20,7 +21,7 @@ import type {
   AddQueuePayload,
   RetryDownloadPayload,
 } from '../downloadPayloads';
-import type { DownloadStoreState, ForDownload, SpeedDataPoint } from '../types';
+import type { ChapterInfo, DownloadStoreState, ForDownload, SpeedDataPoint } from '../types';
 import { handleCheckForUpdates, truncateTitle } from '../utils';
 /** Zustand setter */
 type SetState = (
@@ -98,9 +99,12 @@ export function createDownloadActions(set: SetState, get: GetState) {
           getThumbnail: false,
           isFromPlaylist: false,
           playlistBatchId: undefined as string | undefined,
+          autoQueueFormatId: undefined as string | undefined,
+          autoDownload: undefined as boolean | undefined,
         },
         subscriptionId?: string,
       ) => {
+        console.log("download actions")
         if (!location) {
           console.error('Invalid path parameters:', { location });
           return;
@@ -171,31 +175,21 @@ export function createDownloadActions(set: SetState, get: GetState) {
           // Get channel name from info
           const channelName = info.data?.channel || info.data?.uploader || '';
           const description = info.data?.description ?? '';
+          const chapters = (info.data?.chapters as ChapterInfo[] | undefined) ?? [];
           const subtitles = info.data?.subtitles;
           const automaticCaptions = info.data?.automatic_captions;
           // Only set caption if transcript is requested
-          let caption = '—';
+          let caption: CaptionInfo | null = null;
           const caption2 = selectOptimalCaption(
             subtitles as SubtitlesData,
             automaticCaptions as AutomaticCaptionsData,
           );
-          if (options.getTranscript && caption2) {
-            if (!caption2 == null && automaticCaptions) {
-              console.log(
-                `Selected: ${caption2.languageName} (${caption2.source})`,
-              );
-              console.log(`Original language: ${caption2.isOriginal}`);
-              // Use selectedCaption.caption.url for download
-            }
-            // Get caption from the optimal selection result
-            if (caption2.source === 'subtitle' && subtitles) {
-              caption = caption2.caption?.url ?? caption;
-            }
-
-            // If no manual subtitles, try automatic captions
-            if (caption2.source === 'automatic' && automaticCaptions) {
-              caption = caption2.caption?.url ?? caption;
-            }
+          if (options.getTranscript && caption2?.caption) {
+            console.log(
+              `Selected: ${caption2.languageName} (${caption2.source})`,
+            );
+            console.log(`Original language: ${caption2.isOriginal}`);
+            caption = caption2.caption;
           }
 
           // Only set thumbnail if thumbnail is requested
@@ -231,6 +225,7 @@ export function createDownloadActions(set: SetState, get: GetState) {
                     ),
                     displayName: info.data?.title || 'Untitled',
                     description,
+                    chapters,
                     status: 'to download',
                     ext: defaultExt,
                     formatId: defaultFormatId,
@@ -241,13 +236,13 @@ export function createDownloadActions(set: SetState, get: GetState) {
                     downloadStart: false,
                     formats: formatOptions,
                     isLive: info.data?.is_live || false,
-                    elapsed: info.data?.elapsed || null,
+                    elapsed: info.data?.elapsed ?? undefined,
                     location: location,
                     automaticCaption: caption,
                     thumbnails: thumbnail,
                     getTranscript: options.getTranscript,
                     getThumbnail: options.getThumbnail,
-                    duration: info.data?.duration,
+                    duration: info.data?.duration ?? 0,
                     downloadPhase: 'video',
                     completionCount: 0,
                     rawProgress: 0,
@@ -273,6 +268,26 @@ export function createDownloadActions(set: SetState, get: GetState) {
 
             get().removeFromForDownloads(downloadId); // Call the method
             return;
+          }
+
+          if (options.autoDownload && options.autoQueueFormatId && currentDownload) {
+            const match = formatOptions.find(
+              (f) =>
+                f.formatId === options.autoQueueFormatId ||
+                f.formatId.endsWith(`+${options.autoQueueFormatId}`),
+            );
+            const chosenFormatId = match?.formatId ?? defaultFormatId;
+            const chosenExt = match?.fileExtension ?? defaultExt;
+
+            set((state) => ({
+              ...state,
+              forDownloads: state.forDownloads.map((d) =>
+                d.id === downloadId
+                  ? { ...d, ext: chosenExt, formatId: chosenFormatId, audioExt: '', audioFormatId: '', pendingAutoQueue: true }
+                  : d,
+              ),
+            }));
+            return downloadId;
           }
         } catch (error) {
           const hasInternetConnection =

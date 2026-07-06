@@ -1,6 +1,6 @@
 import TaskBar from '@/downlodr/components/base/Taskbar';
 import TitleBar from '@/downlodr/components/base/TitleBar';
-import { Component, ErrorInfo, ReactNode, useState } from 'react';
+import { Component, ErrorInfo, ReactNode, useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { SkedulosaNavigation } from '../components/SkedulosaNavigation';
 import { SubscriptionQueueProvider } from '../context/SubscriptionQueueContext';
@@ -47,7 +47,19 @@ class ErrorBoundary extends Component<
 // End of Error Detection
 
 const SkedulosaLayout = () => {
-  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const [isNavCollapsed, setIsNavCollapsed] = useState(
+    () => window.matchMedia('(max-width: 1349px)').matches,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1349px)');
+    const handler = (e: MediaQueryListEvent) => {
+      if (e.matches) setIsNavCollapsed(true);
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   const toggleNavCollapse = () => setIsNavCollapsed((prev) => !prev);
 
   return (
@@ -55,12 +67,10 @@ const SkedulosaLayout = () => {
       <SubscriptionQueueProvider>
         <div className="h-screen flex flex-col bg-[#F9F9F9] dark:bg-darkMode text-gray-900 dark:text-gray-100 p-4 pt-3 gap-2">
           <TitleBar className="h-8 bg-[#F9F9F9] dark:bg-darkMode" />
-          <TaskBar className="rounded-md w-full px-6 py-2 pl-[8px] bg-white dark:bg-darkMode" />
-          <div className="flex flex-1 overflow-hidden h-[calc(100vh-120px)] gap-4">
+          <TaskBar className="rounded-md w-full px-6 py-2 pl-[8px] bg-white dark:bg-darkModeTable" />
+          <div className="flex flex-1 overflow-hidden h-[calc(100vh-120px)] gap-2">
             <SkedulosaNavigation
-              className={`${
-                isNavCollapsed ? 'w-[65px]' : 'w-[195px]'
-              } rounded-md bg-white dark:bg-darkModeNavigation overflow-y-auto h-full transition-all duration-300`}
+              className="rounded-md bg-white dark:bg-darkModeTable overflow-y-auto h-full"
               collapsed={isNavCollapsed}
               toggleCollapse={toggleNavCollapse}
             />

@@ -125,20 +125,19 @@ export const trayHandler = (
     if (process.env.NODE_ENV === 'development') {
       // Development: resolve from project root (process.cwd())
       const devIcon = 'src/assets/logo/downlodr_icon.png';
-      const devAlertIcon = 'src/assets/system-tray/downlodr_icon_notif.png';
+      const devAlertIcon = 'src/assets/system-tray/notifCat.png';
       iconPath = path.join(process.cwd(), devIcon);
       alertIconPath = path.join(process.cwd(), devAlertIcon);
     } else {
       // Production: extraResource copies ./src/assets/logo as "logo" in resources
       const prodIcon = path.join('logo', 'downlodr_icon.png');
-      const prodAlertIcon = path.join('system-tray', 'downlodr_icon_notif.png');
+      const prodAlertIcon = path.join('system-tray', 'notifCat.png');
       iconPath = path.join(process.resourcesPath, prodIcon);
       alertIconPath = path.join(process.resourcesPath, prodAlertIcon);
     }
 
-    // Create both icons upfront — resize to standard tray size to strip transparent padding
-    normalTrayIcon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
-    alertTrayIcon = nativeImage.createFromPath(alertIconPath).resize({ width: 16, height: 16 });
+    normalTrayIcon = nativeImage.createFromPath(iconPath);
+    alertTrayIcon = nativeImage.createFromPath(alertIconPath);
     if (!alertTrayIcon || alertTrayIcon.isEmpty()) {
       alertTrayIcon = normalTrayIcon;
     }

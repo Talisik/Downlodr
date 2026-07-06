@@ -55,7 +55,7 @@ async function probe(bridge: Bridge): Promise<void> {
       toast({
         title: 'Scraping is back',
         description:
-          'yt-dlp is working again. Skedulosa will resume scraping normally.',
+          'yt-dlp is working again. Subscription will resume scraping normally.',
         duration: 5000,
       });
       return;

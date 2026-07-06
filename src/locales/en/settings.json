@@ -43,8 +43,8 @@
     "source": "Source",
     "name": "Title",
     "dateAdded": "Date Added",
-    "transcript": "Closed Caption",
+    "transcript": "Closed Captions",
     "status": "Status",
-    "action": "Action"
+    "action": "Actions"
   }
 }

@@ -138,7 +138,8 @@
     "status": {
       "clickToRetry": "點擊以重試下載",
       "viewVideo": "檢視影片",
-      "openFolder": "開啟資料夾"
+      "openFolder": "開啟資料夾",
+      "viewPreview": "檢視預覽"
     },
     "format": {
       "unknown": "未知"
@@ -156,7 +157,7 @@
       "playlistErrorTitle": "播放清單錯誤",
       "playlistErrorDesc": "無法擷取播放清單資訊",
       "channelDetectedTitle": "偵測到頻道連結",
-      "channelDetectedDesc": "正在傳送至 Skedulosa 以設定此頻道的訂閱。",
+      "channelDetectedDesc": "正在傳送至 Subscription 以設定此頻道的訂閱。",
       "playlistDetectedTitle": "偵測到播放清單連結",
       "playlistDetectedDesc": "正在取得播放清單下載資訊，這可能需要一些時間。",
       "invalidUrlTitle": "無效的網址",
@@ -231,7 +232,8 @@
       "selectOneTitle": "選擇一個下載",
       "selectOneDesc": "請選擇一個下載以取得連結"
     },
-    "settingsButton": "設定"
+    "settingsButton": "設定",
+    "deleteLabel": "刪除"
   },
   "removeModal": {
     "title": "移除選取的項目",
@@ -478,6 +480,72 @@
           "s3": "如果錯誤持續存在，請重新啟動應用程式後重試。"
         }
       }
+    }
+  },
+  "videoPlayer": {
+    "fallbackTitle": "影片",
+    "fallbackVideoPreview": "影片預覽",
+    "floatButton": "浮動",
+    "floatWindowTitle": "浮動視窗",
+    "backTitle": "返回",
+    "downloadButtonTitle": "下載",
+    "error": {
+      "couldNotLoadStream": "無法載入影片串流。",
+      "retry": "重試"
+    },
+    "floating": {
+      "message": "正在浮動視窗中播放",
+      "returnToPanel": "返回面板"
+    },
+    "menu": {
+      "openFolder": "開啟資料夾",
+      "viewSource": "檢視來源",
+      "shareVideo": "分享影片",
+      "generateCaption": "生成字幕",
+      "download": "下載",
+      "captions": "字幕",
+      "pictureInPicture": "子母畫面",
+      "playbackSpeed": "播放速度",
+      "normal": "正常"
+    },
+    "transcript": {
+      "title": "轉錄",
+      "auto": "自動",
+      "manual": "手動",
+      "platformFallback": "平台",
+      "searchPlaceholder": "搜尋轉錄",
+      "noTranscript": "沒有可用的轉錄",
+      "copyTitle": "複製轉錄",
+      "downloadTitle": "下載轉錄"
+    },
+    "chapters": {
+      "title": "章節",
+      "count": "{{count}} 章節",
+      "searchPlaceholder": "搜尋章節",
+      "noChapters": "沒有可用的章節"
+    },
+    "description": {
+      "noDescription": "沒有可用的描述",
+      "categories": "分類：",
+      "tags": "標籤：",
+      "openWith": "開啟方式"
+    },
+    "favorites": {
+      "add": "加入收藏",
+      "remove": "從收藏中移除"
+    },
+    "tabs": {
+      "description": "描述",
+      "transcript": "轉錄",
+      "chapters": "章節"
+    },
+    "duration": {
+      "total": "總計",
+      "current": "當前"
+    },
+    "transcription": {
+      "failed": "轉錄失敗",
+      "failedDesc": "無法建立轉錄"
     }
   }
 }

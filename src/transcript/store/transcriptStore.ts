@@ -54,7 +54,8 @@ export function transcriptActions(set: SetState, get: GetState) {
         >(
           d: T,
         ): T =>
-          d.transcriptionStatus === 'transcribing'
+          d.transcriptionStatus === 'transcribing' ||
+          d.transcriptionStatus === 'queued'
             ? { ...d, transcriptionStatus: undefined, transcriptionProgress: undefined }
             : d;
         return {

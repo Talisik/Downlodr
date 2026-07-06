@@ -6,6 +6,7 @@
  * shared `downlodr-database`, object store `favorites-storage`.
  */
 import { createIndexedDBStorageWithMigration } from '@/core-app/utils/indexedDBStorage';
+import { ChapterInfo } from './download/types';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
@@ -26,6 +27,7 @@ export interface FavoriteItem {
   tags: string[];
   category: string[];
   description?: string;
+  chapters?: ChapterInfo[];
   status: string;
   autoCaptionLocation?: string;
   transcriptLocation?: string;
@@ -38,6 +40,9 @@ interface FavoritesState {
   addFavorite: (snapshot: Omit<FavoriteItem, 'id' | 'favoritedAt'>) => void;
   removeFavorite: (downloadId: string) => void;
   isFavorited: (downloadId: string) => boolean;
+  updateFavoriteTags: (downloadId: string, tags: string[]) => void;
+  /** Replaces categories on the matched item. Parameter `categories` writes to the `category` field on FavoriteItem. */
+  updateFavoriteCategories: (downloadId: string, categories: string[]) => void;
 }
 
 export const useFavoritesStore = create<FavoritesState>()(
@@ -67,6 +72,24 @@ export const useFavoritesStore = create<FavoritesState>()(
 
       isFavorited: (downloadId) => {
         return get().favorites.some((f) => f.downloadId === downloadId);
+      },
+
+      updateFavoriteTags: (downloadId, tags) => {
+        if (!get().isFavorited(downloadId)) return;
+        set((state) => ({
+          favorites: state.favorites.map((f) =>
+            f.downloadId === downloadId ? { ...f, tags } : f,
+          ),
+        }));
+      },
+
+      updateFavoriteCategories: (downloadId, categories) => {
+        if (!get().isFavorited(downloadId)) return;
+        set((state) => ({
+          favorites: state.favorites.map((f) =>
+            f.downloadId === downloadId ? { ...f, category: categories } : f,
+          ),
+        }));
       },
     }),
     {

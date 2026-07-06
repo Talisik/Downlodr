@@ -5,6 +5,7 @@
 
 import useDownloadStore from '@/downlodr/store/download/downloadStore';
 import { FFmpegWhisperTranscriber } from '@/downlodr/utils/transcription/ffmpegWhisperTranscriber';
+import { enqueueTranscript } from '@/downlodr/utils/transcription/transcriptQueue';
 import { downloadEnglishCaptions } from './captionsHelper';
 
 /**
@@ -117,25 +118,15 @@ export class MetadataService {
         ytdlpCaptionsPath,
       );
 
-      // Update download store with caption location if downloadId is provided
+      // Update all store arrays (downloading, finishedDownloads, historyDownloads) —
+      // the download may have already been promoted before the caption finished.
       if (downloadId) {
-        try {
-          // Directly update the download store state
-          useDownloadStore.setState((state) => ({
-            downloading: state.downloading.map((d) => {
-              if (d.id !== downloadId) return d;
-              return {
-                ...d,
-                autoCaptionLocation: ytdlpCaptionsPath,
-              };
-            }),
-          }));
-        } catch (error) {
-          console.error(
-            'Error updating download store with yt-dlp caption path:',
-            error,
-          );
-        }
+        this.updateTranscriptionProgress(
+          downloadId,
+          100,
+          'completed',
+          ytdlpCaptionsPath,
+        );
       }
 
       return ytdlpCaptionsPath;
@@ -146,11 +137,6 @@ export class MetadataService {
       console.log(
         'yt-dlp captions not available, attempting FFmpeg Whisper transcription fallback...',
       );
-
-      // Set transcription status to transcribing so UI can show progress immediately
-      if (downloadId) {
-        this.updateTranscriptionProgress(downloadId, 0, 'transcribing');
-      }
 
       console.log('downloadId', downloadId);
 
@@ -194,8 +180,9 @@ export class MetadataService {
   }
 
   /**
-   * Start transcription asynchronously in the background
-   * Updates download store with progress without blocking
+   * Start transcription asynchronously in the background.
+   * Waits for the video file to be ready, then routes through the shared
+   * transcript queue so concurrent ffmpeg/whisper jobs are capped at MAX_CONCURRENT.
    */
   private static async startTranscriptionAsync(
     videoFilePath: string,
@@ -203,18 +190,40 @@ export class MetadataService {
     fileName: string,
     downloadId?: string,
   ): Promise<void> {
-    // Run transcription in background
-    this.runTranscription(
-      videoFilePath,
-      outputPath,
-      fileName,
-      downloadId,
-    ).catch((error) => {
+    try {
+      const videoExists = await waitForFile(videoFilePath, {
+        initialIntervalMs: 5000,
+        activeIntervalMs: 2000,
+        timeoutMs: 300000,
+      });
+
+      if (!videoExists) {
+        console.warn(
+          `Video file not found at ${videoFilePath} after waiting, skipping Whisper transcription`,
+        );
+        if (downloadId) {
+          this.updateTranscriptionProgress(downloadId, undefined, 'failed');
+        }
+        return;
+      }
+
+      // No downloadId → fall back to direct (unqueued) transcription
+      if (!downloadId) {
+        this.runTranscription(videoFilePath, outputPath, fileName).catch(
+          (error) => console.error('Background transcription failed:', error),
+        );
+        return;
+      }
+
+      // Route through queue — handles status (queued → transcribing → completed/failed),
+      // progress updates, and the MAX_CONCURRENT cap shared with manual triggers.
+      enqueueTranscript({ downloadId, location: outputPath, downloadName: fileName });
+    } catch (error) {
       console.error('Background transcription failed:', error);
       if (downloadId) {
         this.updateTranscriptionProgress(downloadId, undefined, 'failed');
       }
-    });
+    }
   }
 
   /**

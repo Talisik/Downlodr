@@ -6,3 +6,4 @@ export { default as Play } from './Play';
 export { default as Settings } from './Settings';
 export { default as Stop } from './Stop';
 export { default as StopAll } from './StopAll';
+export { default as TriangleArrow } from './TriagleArrow';

@@ -26,6 +26,80 @@ const PROGRESS_THROTTLE_MS = 150;
 const MAX_LOG_BYTES = 51200; // 50 KB
 
 /**
+ * Retries a yt-dlp download fn on Windows EBUSY errors.
+ *
+ * yt-dlp-helper's downloadYTDLP() calls getYTDLPVersion() internally, which
+ * spawns yt-dlp.exe, kills it as soon as output arrives, then immediately
+ * streams the new binary to the same path. On Windows, the killed process can
+ * still hold the file handle for a brief moment, causing createWriteStream to
+ * fail with EBUSY. Retrying after a short delay reliably clears the lock.
+ */
+async function downloadWithBusyRetry(
+  fn: () => Promise<void>,
+  maxAttempts = 3,
+): Promise<void> {
+  let delayMs = 2000;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await fn();
+      return;
+    } catch (err: unknown) {
+      const code = (err as NodeJS.ErrnoException)?.code;
+      if (code === 'EBUSY' && attempt < maxAttempts) {
+        console.warn(
+          `[ytdlp update] binary busy, retrying in ${delayMs}ms (attempt ${attempt}/${maxAttempts})`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        delayMs *= 2;
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
+/**
+ * Fire-and-forget function to check and update yt-dlp at startup.
+ * Errors are caught and logged silently. Rate-limit blocks return early.
+ */
+export async function runYtdlpCheckAndUpdate(): Promise<void> {
+  try {
+    const currentVersion = await YTDLP.getYTDLPVersion();
+
+    let latestVersion = getCachedVersion();
+
+    if (!latestVersion) {
+      if (!canMakeGitHubApiCall()) {
+        return;
+      }
+      markGitHubApiCall();
+      const latestResponse = await YTDLP.getLatestYTDLPVersionFromGitHub();
+      if (!latestResponse.ok || !latestResponse.version) {
+        return;
+      }
+      latestVersion = latestResponse.version;
+      setCachedVersion(latestVersion);
+    }
+
+    if (!currentVersion) {
+      await downloadWithBusyRetry(() => YTDLP.downloadYTDLP());
+      return;
+    }
+
+    if (latestVersion && currentVersion !== latestVersion) {
+      await downloadWithBusyRetry(() =>
+        YTDLP.downloadYTDLP({
+          version: latestVersion!,
+          forceDownload: true,
+        }),
+      );
+    }
+  } catch (error) {
+    console.error('[ytdlp startup] check-and-update failed:', error);
+  }
+}
+
+/**
  * Handles the behavior of the base app such as closing, minimizing, maximizing, etc.
  * @param mainWindow - The main window of the base app
  * @returns void

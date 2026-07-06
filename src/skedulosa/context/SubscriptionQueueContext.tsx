@@ -174,9 +174,18 @@ async function createSubscription(item: QueuedSubscriptionData): Promise<void> {
           errors?: unknown[];
           message?: string;
         };
+        const scrapeMessage = scrapeResult.message ?? '';
+        const scrapeSkipped =
+          scrapeMessage === 'Already running' ||
+          scrapeMessage.startsWith('Cooldown:') ||
+          scrapeMessage.includes('Scraper not initialized');
         const scrapeCompletedCleanly =
           !scrapeResult.errors || scrapeResult.errors.length === 0;
-        if (scrapeCompletedCleanly && (scrapeResult.scrapedCount ?? 0) === 0) {
+        if (
+          scrapeCompletedCleanly &&
+          !scrapeSkipped &&
+          (scrapeResult.scrapedCount ?? 0) === 0
+        ) {
           const isYouTubeNonShorts =
             item.sourceURL.toLowerCase().includes('youtube') &&
             !item.sourceURL.toLowerCase().includes('/shorts');

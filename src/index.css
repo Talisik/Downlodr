@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,7 +11,7 @@
 }
 
 html.dark {
-  --card-bg: #09090B;
+  --card-bg: #1D1D1D;
   --card-text: #a1a1aa;
 }
 
@@ -95,7 +96,7 @@ body {
 
 .nav-link:not(.active):hover {
   @apply bg-titleBar;
-  @apply dark:bg-darkModeCompliment;
+  @apply dark:bg-[#3D3D3D];
   @apply rounded w-[95%];
 }
 

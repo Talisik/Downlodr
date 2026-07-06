@@ -65,6 +65,7 @@
       "refreshButton": "Plugins aktualisieren"
     },
     "confirmUninstall": {
+      "title": "Plugin entfernen",
       "message": "Möchten Sie \"{{name}}\" wirklich entfernen? Diese Aktion kann nicht rückgängig gemacht werden."
     },
     "toast": {

@@ -17,6 +17,7 @@ import { cn } from '@/core-app/components/shadcn/lib/utils';
 import { useMainStore } from '@/core-app/store/mainStore';
 import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore';
 import { useSettingStore } from '@/core-app/store/settingsStore';
+import { useAddonStore } from '@/core-app/store/addonStore';
 import AboutModal from '@/downlodr/components/modal/custom/AboutModal';
 import FileNotExistModal from '@/downlodr/components/modal/custom/FileNotExistModal';
 import HelpModal from '@/downlodr/components/modal/custom/HelpModal';
@@ -26,6 +27,7 @@ import { DownloadItem } from '@/downlodr/schema/componentSchema';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 // import PluginTaskBarExtension from '@/plugins/components/PluginTaskBarExtension';
 import PageNavigation from '@/downlodr/components/navigation/PageNavigation';
+import { useAfdaStore } from '@/afda/store/afdaStore';
 import { subscriptionStore } from '@/skedulosa/store/subscriptionStore';
 import { formatDistanceToNow } from 'date-fns';
 import React, { useEffect, useRef, useState } from 'react';
@@ -36,7 +38,9 @@ import { FiBook } from 'react-icons/fi';
 import { LuRefreshCw } from 'react-icons/lu';
 import { RxUpdate } from 'react-icons/rx';
 import { useLocation } from 'react-router-dom';
+import { useDropdownAnimation } from '@/core-app/hooks/animation/useDropdownAnimation';
 import SettingsModal from '../modal/custom/SettingsModal';
+import AddonManagerModal from '../modal/custom/AddonManagerModal';
 
 interface TaskBarProps {
   className?: string;
@@ -72,10 +76,13 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   // confirmation modal
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showAddonModal, setShowAddonModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showHelpMenu, setShowHelpMenu] = useState(false);
   const helpMenuRef = useRef<HTMLDivElement>(null);
+  const { ref: helpDropdownRef, mounted: helpDropdownMounted } = useDropdownAnimation(showHelpMenu);
+  const setAddonManagerOpen = useAddonStore((s) => s.setAddonManagerOpen);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -90,6 +97,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    setAddonManagerOpen(showAddonModal);
+  }, [showAddonModal, setAddonManagerOpen]);
+
   const handleCheckForUpdates = async () => {
     setShowHelpMenu(false);
     toast({
@@ -97,7 +108,6 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       description: t('dropdownBar.toast.checkingConnectionDesc'),
       duration: 5500,
     });
-
     const hasInternet =
       await window.downlodrFunctions.checkInternetConnection();
 
@@ -703,7 +713,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       <div className={cn('flex items-center justify-between', className)}>
         <div className="flex items-center h-full px-2 space-x-0 md:space-x-2">
           <div className="gap-1 flex mr-2">
-            <PageNavigation />
+            <PageNavigation onAddonRequired={() => setShowAddonModal(true)} isAddonModalOpen={showAddonModal} />
           </div>
           {/*
           {location.pathname.startsWith('/skedulosa') && (
@@ -725,9 +735,22 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         </div>
 
         <div className="pl-4 flex items-center w-full">
-          <div className="w-full flex items-center justify-end">
+          <div className="flex-1 flex items-center justify-center mx-4">
+            <div className="flex items-center rounded-lg px-3 py-1 max-w-md w-full"></div>
+          </div>
+
+          <div className="flex items-center justify-end">
             <button
-              className="px-3 py-1 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded font-semibold"
+              className="px-3 py-1 rounded font-semibold hover:bg-gray-100 dark:hover:bg-darkModeNavigation"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAddonModal(true);
+              }}
+            >
+              Add-ons
+            </button>
+            <button
+              className="px-3 py-1 rounded font-semibold hover:bg-gray-100 dark:hover:bg-darkModeNavigation "
               onClick={(e) => {
                 e.stopPropagation();
                 setShowSettingsModal(true);
@@ -737,8 +760,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
             </button>
             <div className="relative" ref={helpMenuRef}>
               <button
-                className={`px-3 py-1 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded font-semibold ${
-                  showHelpMenu ? 'bg-gray-100 dark:bg-darkModeCompliment' : ''
+                className={`px-3 py-1 hover:bg-gray-100 dark:hover:bg-darkModeNavigation rounded font-semibold ${
+                  showHelpMenu ? 'bg-gray-100 dark:bg-darkModeNavigation' : ''
                 }`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -747,8 +770,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
               >
                 {t('dropdownBar.menus.help')}
               </button>
-              {showHelpMenu && (
-                <div className="absolute right-0 mt-1 w-[125px] bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+              {helpDropdownMounted && (
+                <div ref={helpDropdownRef} className="absolute right-0 mt-1 w-[125px] bg-white dark:bg-darkModeDropdown border dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
                   <div className="mx-1">
                     <button
                       className="w-full text-left px-1 py-2 hover:bg-gray-100 dark:hover:bg-darkModeCompliment rounded-md flex items-center gap-2 font-semibold dark:text-gray-200"
@@ -828,6 +851,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
+      />
+      <AddonManagerModal
+        isOpen={showAddonModal}
+        onClose={() => setShowAddonModal(false)}
       />
       <HelpModal
         isOpen={showHelpModal}

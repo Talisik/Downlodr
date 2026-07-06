@@ -35,22 +35,25 @@
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore';
 import { BaseDownload, useDownloadStore } from '@/downlodr/store/downloadStore';
+import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import { processFileName } from '@/downlodr/utils/download/filterName';
 import { usePluginState } from '@/plugins/hook/usePluginState';
 import { MenuItem } from '@/plugins/schema/types';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BsArrowCounterclockwise } from 'react-icons/bs';
 import { FaTerminal } from 'react-icons/fa';
-import { GoChevronRight, GoPlus } from 'react-icons/go';
+import { GoPlus } from 'react-icons/go';
 import { HiOutlineStopCircle } from 'react-icons/hi2';
 import { IoCodeSlashSharp, IoPauseCircleOutline } from 'react-icons/io5';
 import { LiaFileVideoSolid, LiaTagsSolid } from 'react-icons/lia';
-import { LuFolderOpen, LuTrash } from 'react-icons/lu';
+import { LuFileVideo, LuFolderOpen, LuTrash } from 'react-icons/lu';
 import { MdEdit, MdOutlinePlayCircle } from 'react-icons/md';
 
 import { useSettingStore } from '@/core-app/store/settingsStore';
 import { PiPuzzlePieceBold } from 'react-icons/pi';
+import ContextMenuItem from './ContextMenuItem';
+import { useContextMenuAnimation } from '@/core-app/hooks/animation/usePopContextMenu';
 
 interface DownloadContextMenuProps {
   download: BaseDownload;
@@ -141,7 +144,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   onViewEmbed,
 }) => {
   const { t } = useTranslation('downlodr');
-  const menuRef = React.useRef<HTMLDivElement>(null);
   const tagButtonRef = React.useRef<HTMLButtonElement>(null);
   const categoryButtonRef = React.useRef<HTMLButtonElement>(null);
   const pluginButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -167,8 +169,32 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     finishedDownloads,
   } = useDownloadStore();
   const allDownloads = [...forDownloads, ...downloading, ...finishedDownloads]; //Plugins
+
+  const articleDownloads = useArticleDownloadStore((s) => s.articleDownloads);
+  const mergedAvailableTags = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...availableTags,
+          ...articleDownloads.flatMap((a) => a.tags ?? []),
+        ]),
+      ),
+    [availableTags, articleDownloads],
+  );
+  const mergedAvailableCategories = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...availableCategories,
+          ...articleDownloads.flatMap((a) => a.category ?? []),
+        ]),
+      ),
+    [availableCategories, articleDownloads],
+  );
   const [pluginMenuItems, setPluginMenuItems] = useState<MenuItem[]>([]);
   const enabledPlugins = usePluginState();
+
+  const { menuRef } = useContextMenuAnimation();
 
   const fetchPluginMenuItems = async () => {
     try {
@@ -210,9 +236,15 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       const target = e.target as Node;
       const insideMenu = menuRef.current?.contains(target);
       const insideTagSubmenu = tagSubmenuRef.current?.contains(target);
-      const insideCategorySubmenu = categorySubmenuRef.current?.contains(target);
+      const insideCategorySubmenu =
+        categorySubmenuRef.current?.contains(target);
       const insidePluginSubmenu = pluginSubmenuRef.current?.contains(target);
-      if (!insideMenu && !insideTagSubmenu && !insideCategorySubmenu && !insidePluginSubmenu) {
+      if (
+        !insideMenu &&
+        !insideTagSubmenu &&
+        !insideCategorySubmenu &&
+        !insidePluginSubmenu
+      ) {
         onClose();
       }
     };
@@ -273,20 +305,20 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   // Recalculate tag submenu position when available tags change
   useEffect(() => {
     if (showTagMenu) {
-      recalculateSubmenuPosition(tagButtonRef, availableTags.length, 'tag');
+      recalculateSubmenuPosition(tagButtonRef, mergedAvailableTags.length, 'tag');
     }
-  }, [availableTags.length, showTagMenu]);
+  }, [mergedAvailableTags.length, showTagMenu]);
 
   // Recalculate category submenu position when available categories change
   useEffect(() => {
     if (showCategoryMenu) {
       recalculateSubmenuPosition(
         categoryButtonRef,
-        availableCategories.length,
+        mergedAvailableCategories.length,
         'category',
       );
     }
-  }, [availableCategories.length, showCategoryMenu]);
+  }, [mergedAvailableCategories.length, showCategoryMenu]);
 
   // Recalculate plugin submenu position when plugin items change
   useEffect(() => {
@@ -370,7 +402,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
     // Calculate position for submenu
     if (newShowTagMenu) {
-      recalculateSubmenuPosition(tagButtonRef, availableTags.length, 'tag');
+      recalculateSubmenuPosition(tagButtonRef, mergedAvailableTags.length, 'tag');
     }
   };
 
@@ -387,7 +419,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     if (newShowCategoryMenu) {
       recalculateSubmenuPosition(
         categoryButtonRef,
-        availableCategories.length,
+        mergedAvailableCategories.length,
         'category',
       );
     }
@@ -436,6 +468,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
     // Add to queue - let the download controller handle starting it
     addQueue({
+      subscriptionId: download.subscriptionId,
       videoUrl: download.videoUrl ?? download.videoUrl ?? '',
       name: `${processedName}.${download.ext}`,
       downloadName: `${processedName}.${download.ext}`,
@@ -479,193 +512,133 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   // Function to render menu options based on download status
   const renderMenuOptions = () => {
     const viewFolderOption = (
-      <>
-        <button
-          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-          onClick={() => {
-            onViewFolder(download.location, download.name);
-            onClose();
-          }}
-        >
-          <span className="flex items-center gap-1">
-            <LuFolderOpen size={18} />
-            {t('contextMenu.viewFolder')}
-          </span>
-        </button>
-      </>
+      <ContextMenuItem
+        icon={<LuFolderOpen size={18} />}
+        label={t('contextMenu.viewFolder')}
+        onClick={() => {
+          onViewFolder(download.location, download.name);
+          onClose();
+        }}
+      />
     );
 
     const commonOptions = (
       <>
-        <button
-          ref={tagButtonRef}
-          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+        <ContextMenuItem
+          buttonRef={tagButtonRef}
+          icon={<LiaTagsSolid size={18} />}
+          label={t('contextMenu.tags')}
+          chevron
           onClick={handleTagMenuClick}
-        >
-          <span className="flex items-center gap-1">
-            <LiaTagsSolid size={18} />
-            {t('contextMenu.tags')}
-          </span>
-          <span className="ml-auto">
-            <GoChevronRight size={18} />
-          </span>
-        </button>
-
-        <button
-          ref={categoryButtonRef}
-          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+        />
+        <ContextMenuItem
+          buttonRef={categoryButtonRef}
+          icon={<LiaTagsSolid size={18} />}
+          label={t('contextMenu.categories')}
+          chevron
           onClick={handleCategoryMenuClick}
-        >
-          <span className="flex items-center gap-1">
-            <LiaTagsSolid size={18} />
-            {t('contextMenu.categories')}
-          </span>
-          <span className="ml-auto">
-            <GoChevronRight size={18} />
-          </span>
-        </button>
+        />
       </>
     );
 
     const activityTrackerOption = (
-      <>
-        <button
-          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-          onClick={() => {
-            onShowActivityTracker(download.id || '');
-            onClose();
-          }}
-        >
-          <span className="flex items-center gap-1">
-            <FaTerminal size={13} />
-            {t('contextMenu.activityTracker')}
-          </span>
-        </button>
-      </>
+      <ContextMenuItem
+        icon={<FaTerminal size={13} />}
+        label={t('contextMenu.activityTracker')}
+        onClick={() => {
+          onShowActivityTracker(download.id || '');
+          onClose();
+        }}
+      />
     );
 
     const pausedOptions = (
-      <>
-        <button
-          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-          onClick={() => {
-            onPause(
-              download.id || '',
-              download.location,
-              download.controllerId,
-              download.status,
-            );
-            onClose();
-          }}
-        >
-          <span className="flex items-center space-x-2">
-            <IoPauseCircleOutline size={20} />
-            {t('contextMenu.pause')}
-          </span>
-        </button>
-      </>
+      <ContextMenuItem
+        icon={<IoPauseCircleOutline size={18} />}
+        label={t('contextMenu.pause')}
+        onClick={() => {
+          onPause(
+            download.id || '',
+            download.location,
+            download.controllerId,
+            download.status,
+          );
+          onClose();
+        }}
+      />
     );
 
     const stopOptions = (
-      <>
-        <button
-          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-          onClick={(e) => {
-            e.stopPropagation();
-            onShowStopModal(
-              download.id || '',
-              download.location,
-              download.controllerId,
-            );
-            onClose();
-          }}
-        >
-          <span className="flex items-center space-x-2">
-            <HiOutlineStopCircle size={20} />
-            {t('contextMenu.stop')}
-          </span>
-        </button>
-      </>
+      <ContextMenuItem
+        icon={<HiOutlineStopCircle size={18} />}
+        label={t('contextMenu.stop')}
+        onClick={(e) => {
+          e.stopPropagation();
+          onShowStopModal(
+            download.id || '',
+            download.location,
+            download.controllerId,
+          );
+          onClose();
+        }}
+      />
     );
 
     const removeOptions = (
-      <>
-        <button
-          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-          onClick={(e) => {
-            e.stopPropagation();
-            onShowRemoveModal(
-              download.id || '',
-              download.location,
-              download.controllerId,
-            );
-            onClose();
-          }}
-        >
-          <span className="flex items-center gap-1">
-            <LuTrash size={16} />
-            {t('contextMenu.remove')}
-          </span>
-        </button>
-      </>
+      <ContextMenuItem
+        icon={<LuTrash size={16} />}
+        label={t('contextMenu.remove')}
+        onClick={(e) => {
+          e.stopPropagation();
+          onShowRemoveModal(
+            download.id || '',
+            download.location,
+            download.controllerId,
+          );
+          onClose();
+        }}
+      />
     );
 
     const showLogOption = (
-      <>
-        <button
-          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-          onClick={() => {
-            onShowLog(download.id || '');
-            onClose();
-          }}
-        >
-          <span className="flex items-center gap-1">
-            <IoCodeSlashSharp size={16} />
-            {t('contextMenu.showLog')}
-          </span>
-        </button>
-      </>
+      <ContextMenuItem
+        icon={<IoCodeSlashSharp size={16} />}
+        label={t('contextMenu.showLog')}
+        onClick={() => {
+          onShowLog(download.id || '');
+          onClose();
+        }}
+      />
     );
 
     const startOption = (
-      <>
-        <button
-          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-          onClick={handleStartDownload}
-        >
-          <span className="flex items-center space-x-2">
-            <MdOutlinePlayCircle size={16} />
-            <span>{t('contextMenu.start')}</span>
-          </span>
-        </button>
-      </>
+      <ContextMenuItem
+        icon={<MdOutlinePlayCircle size={18} />}
+        label={t('contextMenu.start')}
+        onClick={handleStartDownload}
+      />
     );
 
     const startFromPausedOption = (
-      <>
-        <button
-          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
-          onClick={() => {
-            onPause(
-              download.id || '',
-              download.location,
-              download.controllerId,
-              download.status,
-            );
-            onClose();
-          }}
-        >
-          <span className="flex items-center space-x-2">
-            <MdOutlinePlayCircle size={20} />
-            <span>{t('contextMenu.start')}</span>
-          </span>
-        </button>
-      </>
+      <ContextMenuItem
+        icon={<MdOutlinePlayCircle size={18} />}
+        label={t('contextMenu.start')}
+        onClick={() => {
+          onPause(
+            download.id || '',
+            download.location,
+            download.controllerId,
+            download.status,
+          );
+          onClose();
+        }}
+      />
     );
 
     const viewViaEmbedOption = download.videoUrl ? (
-      <button
-        className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+      <ContextMenuItem
+        icon={<MdOutlinePlayCircle size={18} />}
+        label={t('contextMenu.viewEmbedded')}
         onClick={() => {
           onViewEmbed(
             download.videoUrl ?? '',
@@ -675,30 +648,21 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           );
           onClose();
         }}
-      >
-        <span className="flex items-center gap-1">
-          <MdOutlinePlayCircle size={20} />
-          {t('contextMenu.viewEmbedded')}
-        </span>
-      </button>
+      />
     ) : null;
 
     if (download.status === 'failed') {
       return (
         <>
           {viewFolderOption}
-          <button
-            className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+          <ContextMenuItem
+            icon={<BsArrowCounterclockwise size={18} />}
+            label={t('contextMenu.retry')}
             onClick={() => {
               onRetry(download.id || '');
               onClose();
             }}
-          >
-            <span className="flex items-center space-x-2">
-              <BsArrowCounterclockwise size={20} />
-              {t('contextMenu.retry')}
-            </span>
-          </button>
+          />
           {removeOptions}
           {showLogOption}
           {activityTrackerOption}
@@ -710,18 +674,14 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       return (
         <>
           {viewFolderOption}
-          <button
-            className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+          <ContextMenuItem
+            icon={<LuFileVideo size={18} />}
+            label="Open with External Player"
             onClick={() => {
               onViewDownload(download.location, download.id);
               onClose();
             }}
-          >
-            <span className="flex items-center gap-1">
-              <LiaFileVideoSolid size={20} />
-              <span>Open with External Player</span>
-            </span>
-          </button>
+          />
           {removeOptions}
           {showLogOption}
           {activityTrackerOption}
@@ -760,19 +720,15 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         <>
           {viewFolderOption}
           {startOption}
-          <button
-            className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+          <ContextMenuItem
+            icon={<MdEdit size={18} />}
+            label={t('contextMenu.rename')}
             onClick={(e) => {
               e.stopPropagation();
               onRename(download.id || '', download.name || '');
               onClose();
             }}
-          >
-            <span className="flex items-center space-x-2">
-              <MdEdit size={20} />
-              {t('contextMenu.rename')}
-            </span>
-          </button>
+          />
           {removeOptions}
           {activityTrackerOption}
         </>
@@ -807,9 +763,23 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
           {/* Plugin menu items */}
           {pluginMenuItems.map((item) => (
-            <button
+            <ContextMenuItem
               key={item.id || item.label}
-              className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+              icon={
+                item.icon ? (
+                  typeof item.icon === 'string' && isSvgString(item.icon) ? (
+                    <span
+                      dangerouslySetInnerHTML={{ __html: item.icon }}
+                      className="text-black dark:text-white inline-flex w-4 h-4"
+                    />
+                  ) : (
+                    <span>{item.icon}</span>
+                  )
+                ) : (
+                  <span className="w-4 h-4" />
+                )
+              }
+              label={item.label}
               onClick={async () => {
                 const contextData = {
                   name: download.name || '',
@@ -827,11 +797,24 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                       ?.transcriptLocation ||
                     allDownloads.find((d) => d.id === download.id)
                       ?.autoCaptionLocation,
+                  transcriptLocation:
+                    allDownloads.find((d) => d.id === download.id)
+                      ?.transcriptLocation ||
+                    allDownloads.find((d) => d.id === download.id)
+                      ?.autoCaptionLocation,
                   thumbnailLocation: allDownloads.find(
                     (d) => d.id === download.id,
                   )?.thumnailsLocation,
                   extractorKey: allDownloads.find((d) => d.id === download.id)
                     ?.extractorKey,
+                  getThumbnail: allDownloads.find((d) => d.id === download.id)
+                    ?.getThumbnail,
+                  getTranscript: allDownloads.find((d) => d.id === download.id)
+                    ?.getTranscript,
+                  thumbnails: allDownloads.find((d) => d.id === download.id)
+                    ?.thumbnails,
+                  automaticCaption: allDownloads.find((d) => d.id === download.id)
+                    ?.automaticCaption,
                   osType: await window.downlodrFunctions.getOSType(),
                   seperatorType: window.downlodrFunctions.getPathSeparator(),
                 };
@@ -848,23 +831,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
                 onClose();
               }}
-            >
-              <span className="flex items-center space-x-2">
-                {item.icon && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 mr-2">
-                    {typeof item.icon === 'string' && isSvgString(item.icon) ? (
-                      <span
-                        dangerouslySetInnerHTML={{ __html: item.icon }}
-                        className="text-black dark:text-white"
-                      />
-                    ) : (
-                      <span>{item.icon}</span>
-                    )}
-                  </span>
-                )}
-                <span>{item.label}</span>
-              </span>
-            </button>
+            />
           ))}
         </>
       );
@@ -876,19 +843,13 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         {/* Divider if there are other menu items */}
         <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
 
-        <button
-          ref={pluginButtonRef}
-          className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2 dark:hover:bg-darkModeHover"
+        <ContextMenuItem
+          buttonRef={pluginButtonRef}
+          icon={<PiPuzzlePieceBold size={17} />}
+          label={`${t('contextMenu.plugins')} (${pluginMenuItems.length})`}
+          chevron
           onClick={handlePluginMenuClick}
-        >
-          <span className="flex items-center space-x-2">
-            <PiPuzzlePieceBold size={17} />
-            {t('contextMenu.plugins')} ({pluginMenuItems.length})
-          </span>
-          <span className="ml-auto">
-            <GoChevronRight size={20} />
-          </span>
-        </button>
+        />
       </>
     );
   };
@@ -938,7 +899,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                     const newTag = target.value.trim();
 
                     // Check for duplicates (case-insensitive)
-                    const isDuplicate = availableTags.some(
+                    const isDuplicate = mergedAvailableTags.some(
                       (existingTag) =>
                         existingTag.toLowerCase() === newTag.toLowerCase(),
                     );
@@ -970,7 +931,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           </div>
           <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider dark:border-gray-700" />
           <div className="max-h-48 overflow-y-auto">
-            {availableTags.map((tag) => (
+            {mergedAvailableTags.map((tag) => (
               <button
                 key={tag}
                 className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
@@ -1022,7 +983,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                     const newCategory = target.value.trim();
 
                     // Check for duplicates (case-insensitive)
-                    const isDuplicate = availableCategories.some(
+                    const isDuplicate = mergedAvailableCategories.some(
                       (existingCategory) =>
                         existingCategory.toLowerCase() ===
                         newCategory.toLowerCase(),
@@ -1056,7 +1017,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           </div>
           <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider dark:border-gray-700" />
           <div className="max-h-48 overflow-y-auto">
-            {availableCategories.map((category) => (
+            {mergedAvailableCategories.map((category) => (
               <button
                 key={category}
                 className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
@@ -1095,9 +1056,23 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           {pluginMenuItems.map((item) => (
-            <button
+            <ContextMenuItem
               key={item.id || item.label}
-              className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2"
+              icon={
+                item.icon ? (
+                  typeof item.icon === 'string' && isSvgString(item.icon) ? (
+                    <span
+                      dangerouslySetInnerHTML={{ __html: item.icon }}
+                      className="text-black dark:text-white inline-flex w-4 h-4"
+                    />
+                  ) : (
+                    <span>{item.icon}</span>
+                  )
+                ) : (
+                  <span className="w-4 h-4" />
+                )
+              }
+              label={item.label}
               onClick={() => {
                 const contextData = {
                   name: download.name,
@@ -1115,11 +1090,24 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                       ?.transcriptLocation ||
                     allDownloads.find((d) => d.id === download.id)
                       ?.autoCaptionLocation,
+                  transcriptLocation:
+                    allDownloads.find((d) => d.id === download.id)
+                      ?.transcriptLocation ||
+                    allDownloads.find((d) => d.id === download.id)
+                      ?.autoCaptionLocation,
                   thumbnailLocation: allDownloads.find(
                     (d) => d.id === download.id,
                   )?.thumnailsLocation,
                   extractorKey: allDownloads.find((d) => d.id === download.id)
                     ?.extractorKey,
+                  getThumbnail: allDownloads.find((d) => d.id === download.id)
+                    ?.getThumbnail,
+                  getTranscript: allDownloads.find((d) => d.id === download.id)
+                    ?.getTranscript,
+                  thumbnails: allDownloads.find((d) => d.id === download.id)
+                    ?.thumbnails,
+                  automaticCaption: allDownloads.find((d) => d.id === download.id)
+                    ?.automaticCaption,
                 };
 
                 if (
@@ -1134,23 +1122,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
                 onClose();
               }}
-            >
-              <span className="flex items-center space-x-2">
-                {item.icon && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 mr-2">
-                    {typeof item.icon === 'string' && isSvgString(item.icon) ? (
-                      <span
-                        dangerouslySetInnerHTML={{ __html: item.icon }}
-                        className="text-black dark:text-white"
-                      />
-                    ) : (
-                      <span>{item.icon}</span>
-                    )}
-                  </span>
-                )}
-                <span className="dark:text-gray-200">{item.label}</span>
-              </span>
-            </button>
+            />
           ))}
         </div>
       )}

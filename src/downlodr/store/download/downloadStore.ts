@@ -181,11 +181,10 @@ const useDownloadStore = create<DownloadStore>()(
         availableCategories: state.availableCategories,
         finishedDownloads: state.finishedDownloads,
         failedDownloads: state.failedDownloads,
-        forDownloads: state.forDownloads.map((download) => {
+        forDownloads: state.forDownloads.map(
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { formats, ...downloadWithoutFormats } = download;
-          return downloadWithoutFormats;
-        }),
+          ({ speedHistory, ...rest }) => rest,
+        ),
         // Persist active downloads so we can rescue them as failed on next startup.
         // speedHistory is stripped to keep the payload small.
         downloading: state.downloading.map(

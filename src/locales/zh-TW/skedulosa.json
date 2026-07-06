@@ -21,7 +21,8 @@
   },
   "categoryFilter": {
     "all": "全部",
-    "youtube": "Youtube"
+    "youtube": "Youtube",
+    "afda": "文章"
   },
   "collapse": "收合側邊欄",
   "expand": "展開側邊欄",
@@ -196,6 +197,7 @@
     "whatCanSubscribe": "我可以訂閱什麼？",
     "supportedSources": "支援的來源",
     "youtubeChannels": "YouTube 頻道",
+    "articleWebsites": "新聞文章網站，例如：GMA、CNN、BBC 等",
     "basicConfig": "基本設定",
     "checkFrequency": "檢查頻率",
     "auto": "自動",
@@ -210,8 +212,8 @@
       "unsupportedPlatform": "不支援的平台，目前僅支援 YouTube 頻道和播放清單。",
       "videoLink": "不支援 YouTube 影片連結，請輸入 YouTube 頻道網址（例如 https://www.youtube.com/@channel）。",
       "shortsLink": "不支援 YouTube Shorts 連結，請輸入 YouTube 頻道網址（例如 https://www.youtube.com/@channel）。",
-      "alreadySubscribed": "此頻道已訂閱，您可以從 Skedulosa 標籤頁管理它。",
-      "bridgeUnavailable": "Skedulosa 橋接不可用，請重新啟動應用程式。",
+      "alreadySubscribed": "此頻道已訂閱，您可以從 Subscription 標籤頁管理它。",
+      "bridgeUnavailable": "Subscription 橋接不可用，請重新啟動應用程式。",
       "analyzeFailedGeneric": "無法分析頻道——請查看上方通知。",
       "noVideosShorts": "此頻道的影片標籤頁中找不到影片。如果它只發布 Shorts，請嘗試在網址後加上「/shorts」（例如 https://www.youtube.com/@channel/shorts）。",
       "noVideos": "找不到此頻道的影片，請檢查網址後重試。",
@@ -241,7 +243,7 @@
       "daysToCheck": "檢查日：",
       "checkAt": "檢查時間：",
       "timezone": "時區：",
-      "schedulePrefix": "Skedulosa 將每",
+      "schedulePrefix": "Subscription 將每",
       "scheduleMid": "天在",
       "qualityPreset": "品質預設",
       "saveTo": "儲存至：",
@@ -280,6 +282,8 @@
     "recurring": "定期",
     "scheduleDays": "排程日",
     "downloadQuality": "下載品質",
+    "saveLocation": "儲存位置",
+    "lookbackPeriod": "保留期間",
     "days": {
       "mon": "週一",
       "tue": "週二",

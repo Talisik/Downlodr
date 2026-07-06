@@ -351,7 +351,7 @@ const AnalyticsTab = ({ channelId }: AnalyticsTabProps) => {
   const noDownloadsLabel = t('analytics.stats.noDownloads');
 
   return (
-    <div className="space-y-5 relative">
+    <div className="px-4 py-2 space-y-5 relative">
       {/* ── Stat cards ────────────────────────────────────────────────────── */}
       <div className="flex flex-row divide-x divide-gray-200 dark:divide-gray-700 rounded-lg overflow-hidden">
         <StatCard

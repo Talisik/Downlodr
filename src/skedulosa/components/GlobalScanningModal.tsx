@@ -45,7 +45,6 @@ const GlobalScanningModal = () => {
         variant: 'progress',
         title: (
           <span className="flex items-center gap-2 mr-3 mt-1 text-white font-normal">
-            <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin shrink-0" />
             {t('scanningModal.scanningChannelToast')}
           </span>
         ),

@@ -26,6 +26,8 @@ interface DownloadSettings {
   dontShowAppUpdates: boolean; // Whether to suppress app update notifications
   dontShowPluginUpdates: boolean; // Whether to suppress plugin update notifications
   language: string; // UI language code, e.g. 'en', 'es'
+  addonOnboardingShown: boolean; // Whether the addon manager modal has been shown on first launch
+  onboardingShown: boolean;
 }
 
 // Main interface for the main store
@@ -47,10 +49,12 @@ interface SettingsStore {
   updateDontShowAppUpdates: (dontShow: boolean) => void; // Update app update notification preference
   updateDontShowPluginUpdates: (dontShow: boolean) => void; // Update plugin update notification preference
   updateLanguage: (lang: string) => void;
+  updateAddonOnboardingShown: (shown: boolean) => void;
+  updateOnboardingShown: (shown: boolean) => void;
 }
 
 // version constant for migration tracking
-const MAIN_SETTINGS_VERSION = 1; // Incremented for update notification preferences
+const MAIN_SETTINGS_VERSION = 3; // Incremented for onboarding flag
 
 // Interface for legacy persisted state structure
 interface LegacyPersistedState {
@@ -81,6 +85,8 @@ const migrateMainStore = (persistedState: unknown, version: number) => {
         dontShowAppUpdates: false, // Default to false
         dontShowPluginUpdates: false, // Default to false
         language: 'en',
+        addonOnboardingShown: false,
+        onboardingShown: false,
       },
     };
 
@@ -111,18 +117,20 @@ const migrateMainStore = (persistedState: unknown, version: number) => {
       ...(persistedState as any),
       settings: {
         ...(persistedState as any).settings,
+        // Existing users already know about add-ons; skip the onboarding modal
+        addonOnboardingShown: true,
       },
     };
   }
 
-  // Migration from version 2 to 3: Add update notification preferences
   if (version === 2) {
     return {
       ...(persistedState as any),
       settings: {
         ...(persistedState as any).settings,
-        dontShowAppUpdates: false, // Default to show app updates for existing users
-        dontShowPluginUpdates: false, // Default to show plugin updates for existing users
+        dontShowAppUpdates: false,
+        dontShowPluginUpdates: false,
+        onboardingShown: true, // existing users skip onboarding
       },
     };
   }
@@ -153,6 +161,8 @@ export const useSettingStore = create<SettingsStore>()(
         dontShowAppUpdates: false, // Default to false
         dontShowPluginUpdates: false, // Default to false
         language: 'en',
+        addonOnboardingShown: false,
+        onboardingShown: false,
       },
       isDownloadModalOpen: false,
       setIsDownloadModalOpen: (isOpen: boolean) =>
@@ -213,6 +223,16 @@ export const useSettingStore = create<SettingsStore>()(
       updateLanguage: (lang: string) =>
         set((state) => ({
           settings: { ...state.settings, language: lang },
+        })),
+
+      updateAddonOnboardingShown: (shown: boolean) =>
+        set((state) => ({
+          settings: { ...state.settings, addonOnboardingShown: shown },
+        })),
+
+      updateOnboardingShown: (shown: boolean) =>
+        set((state) => ({
+          settings: { ...state.settings, onboardingShown: shown },
         })),
     }),
     {

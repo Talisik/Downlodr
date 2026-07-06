@@ -21,7 +21,8 @@
   },
   "categoryFilter": {
     "all": "全部",
-    "youtube": "Youtube"
+    "youtube": "Youtube",
+    "afda": "文章"
   },
   "collapse": "收起侧边栏",
   "expand": "展开侧边栏",
@@ -196,6 +197,7 @@
     "whatCanSubscribe": "我可以订阅什么？",
     "supportedSources": "支持的来源",
     "youtubeChannels": "YouTube 频道",
+    "articleWebsites": "新闻文章网站，例如：GMA、CNN、BBC 等",
     "basicConfig": "基本配置",
     "checkFrequency": "检查频率",
     "auto": "自动",
@@ -210,8 +212,8 @@
       "unsupportedPlatform": "不支持的平台，目前仅支持 YouTube 频道和播放列表。",
       "videoLink": "不支持 YouTube 视频链接，请输入 YouTube 频道网址（例如 https://www.youtube.com/@channel）。",
       "shortsLink": "不支持 YouTube Shorts 链接，请输入 YouTube 频道网址（例如 https://www.youtube.com/@channel）。",
-      "alreadySubscribed": "此频道已订阅，您可以从 Skedulosa 标签页管理它。",
-      "bridgeUnavailable": "Skedulosa 桥接不可用，请重新启动应用程序。",
+      "alreadySubscribed": "此频道已订阅，您可以从 Subscription 标签页管理它。",
+      "bridgeUnavailable": "Subscription 桥接不可用，请重新启动应用程序。",
       "analyzeFailedGeneric": "无法分析频道——请查看上方通知。",
       "noVideosShorts": "此频道的视频标签页中未找到视频。如果它只发布 Shorts，请尝试在网址后加上「/shorts」（例如 https://www.youtube.com/@channel/shorts）。",
       "noVideos": "未找到此频道的视频，请检查网址后重试。",
@@ -241,7 +243,7 @@
       "daysToCheck": "检查日：",
       "checkAt": "检查时间：",
       "timezone": "时区：",
-      "schedulePrefix": "Skedulosa 将每",
+      "schedulePrefix": "Subscription 将每",
       "scheduleMid": "天在",
       "qualityPreset": "质量预设",
       "saveTo": "保存至：",
@@ -280,6 +282,8 @@
     "recurring": "定期",
     "scheduleDays": "计划日",
     "downloadQuality": "下载质量",
+    "saveLocation": "保存位置",
+    "lookbackPeriod": "保留期限",
     "days": {
       "mon": "周一",
       "tue": "周二",

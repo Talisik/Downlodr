@@ -27,7 +27,11 @@ function matchesFilter(entry: ActivityLogEntry, filter: FilterSlug): boolean {
   if (filter === 'all') return true;
   if (filter === 'checks') return entry.type === 'check';
   if (filter === 'downloads')
-    return entry.type === 'download' || entry.type === 'retry' || entry.type === 'subscribe';
+    return (
+      entry.type === 'download' ||
+      entry.type === 'retry' ||
+      entry.type === 'subscribe'
+    );
   if (filter === 'errors') return entry.type === 'error';
   return true;
 }
@@ -39,25 +43,33 @@ function EntryIcon({ type }: { type: ActivityLogType }) {
   switch (type) {
     case 'check':
       return (
-        <span className={`${base} bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400`}>
+        <span
+          className={`${base} bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400`}
+        >
           <LuCircle size={14} />
         </span>
       );
     case 'download':
       return (
-        <span className={`${base} bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400`}>
+        <span
+          className={`${base} bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400`}
+        >
           <LuDownload size={14} />
         </span>
       );
     case 'retry':
       return (
-        <span className={`${base} bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400`}>
+        <span
+          className={`${base} bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400`}
+        >
           <LuRefreshCw size={14} />
         </span>
       );
     case 'error':
       return (
-        <span className={`${base} bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400`}>
+        <span
+          className={`${base} bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400`}
+        >
           <LuLoaderCircle size={14} />
         </span>
       );
@@ -85,12 +97,13 @@ const ActivityLogTab = ({ channelId }: ActivityLogTabProps) => {
     const filtered = log.filter((e) => matchesFilter(e, filter));
     // Newest first
     return [...filtered].sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
   }, [subscription, filter]);
 
   return (
-    <div className="space-y-3">
+    <div className="py-4 pl-6 pr-10 space-y-3">
       {/* ── Header + filters ── */}
       <div className="flex items-center justify-between">
         <span className="text-xs text-gray-500 dark:text-gray-400">

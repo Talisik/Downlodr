@@ -1,5 +1,6 @@
 import { showSkedulosaError } from '@/skedulosa/error-mapping/skedulosaErrors';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
+import { useAfdaWebsitesStore } from '@/afda/store/afdaWebsitesStore';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FiEdit2, FiPause, FiPlay, FiTrash2 } from 'react-icons/fi';
@@ -12,6 +13,7 @@ export interface ContextMenuPosition {
 interface SkedulosaContextMenuProps {
   position: ContextMenuPosition;
   subscriptionId: string;
+  category?: string;
   onEdit: () => void;
   onDelete: () => void;
   onClose: () => void;
@@ -20,6 +22,7 @@ interface SkedulosaContextMenuProps {
 const SkedulosaContextMenu = ({
   position,
   subscriptionId,
+  category,
   onEdit,
   onDelete,
   onClose,
@@ -29,10 +32,44 @@ const SkedulosaContextMenu = ({
   const getSubscription = useSkedulosaStore((s) => s.getSubscription);
   const updateSubscription = useSkedulosaStore((s) => s.updateSubscription);
 
-  const subscription = getSubscription(subscriptionId);
-  const isPaused = subscription?.status === 'Paused';
+  const afdaWebsite = useAfdaWebsitesStore((s) =>
+    s.websites.find((w) => w.id === subscriptionId),
+  );
+  const updateWebsite = useAfdaWebsitesStore((s) => s.updateWebsite);
+
+  const isAfda = category === 'afda-website' || category === 'afda';
+
+  // ── Skedulosa pause/resume ─────────────────────────────────────────────────
+  const subscription = isAfda ? null : getSubscription(subscriptionId);
+  const isPaused = isAfda
+    ? afdaWebsite?.status === 'paused'
+    : subscription?.status === 'Paused';
 
   const handlePauseResume = async () => {
+    if (isAfda) {
+      const bridge = typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
+      if (!bridge || !afdaWebsite) return;
+      const isActive = afdaWebsite.status === 'active' || afdaWebsite.status === 'idle';
+      try {
+        await Promise.allSettled(
+          afdaWebsite.sections.map((s) =>
+            isActive
+              ? bridge.schedule.pause({ section_id: parseInt(s.id) })
+              : bridge.schedule.resume({ section_id: parseInt(s.id) }),
+          ),
+        );
+        const result = await bridge.websites.update({
+          id: parseInt(afdaWebsite.id),
+          patch: { status: isActive ? 'paused' : 'active' },
+        });
+        if (result?.website) updateWebsite(result.website);
+      } catch (err) {
+        console.error('[SkedulosaContextMenu] afda pause/resume failed:', err);
+      }
+      onClose();
+      return;
+    }
+
     if (!subscription) return;
     const nextStatus = isPaused ? 'Active' : 'Paused';
     const isActive = nextStatus === 'Active';

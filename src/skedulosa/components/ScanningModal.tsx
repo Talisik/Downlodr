@@ -1,21 +1,22 @@
 import {
-  DownloadPulse,
-  DownloadBounce,
-  DownloadProgress,
-  DownloadStream,
+  // DownloadPulse,
+  // DownloadBounce,
+  // DownloadProgress,
+  // DownloadStream,
   DownloadComplete,
 } from '@/skedulosa/components/downlodr-animations';
+import spaceshipGif from '@/assets/skedulosa/images/spaceship.gif';
 import BaseModal from '@/downlodr/components/modal/BaseModal';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const LOADERS = [
-  DownloadPulse,
-  DownloadBounce,
-  DownloadProgress,
-  DownloadStream,
-];
+// const LOADERS = [
+//   DownloadPulse,
+//   DownloadBounce,
+//   DownloadProgress,
+//   DownloadStream,
+// ];
 
 interface ScanningModalProps {
   isOpen: boolean;
@@ -42,17 +43,10 @@ const ScanningModal = ({
     t('scanningModal.youtubeMsg3'),
   ];
 
-  // Pick a random loader once each time the modal opens
-  const [LoaderComponent, setLoaderComponent] = useState(() => DownloadStream);
   const prevOpen = useRef(false);
   const [ytMsgIndex, setYtMsgIndex] = useState(0);
 
   useEffect(() => {
-    // RANDOMIZE LOADERS
-    if (isOpen && !prevOpen.current) {
-      const pick = LOADERS[Math.floor(Math.random() * LOADERS.length)];
-      setLoaderComponent(() => pick);
-    }
     prevOpen.current = isOpen;
   }, [isOpen]);
 
@@ -91,21 +85,23 @@ const ScanningModal = ({
         </div>
       }
     >
-      <div className="flex flex-col items-center justify-center py-8 gap-3">
-        <div
-          className="relative flex items-center justify-center"
-          style={{ width: 80, height: 94 }}
-        >
+      <div className="flex flex-col items-center justify-center py-4 gap-2">
+        <div className="flex items-center justify-center w-full">
           <AnimatePresence mode="wait">
             {!isDone ? (
               <motion.div
                 key="loader"
-                initial={{ scale: 1, opacity: 1 }}
+                className="w-full"
+                initial={{ opacity: 1 }}
                 exit={{ scale: 0.3, opacity: 0 }}
                 transition={{ duration: 0.25, ease: 'easeIn' }}
-                style={{ position: 'absolute' }}
               >
-                <LoaderComponent size="md" />
+                <img
+                  src={spaceshipGif}
+                  alt=""
+                  style={{ width: 290, objectFit: 'contain' }}
+                  className="mx-auto"
+                />
               </motion.div>
             ) : (
               <motion.div
@@ -113,15 +109,14 @@ const ScanningModal = ({
                 initial={{ scale: 0.4, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
-                style={{ position: 'absolute' }}
               >
                 <DownloadComplete size="md" />
               </motion.div>
             )}
           </AnimatePresence>
         </div>
-        <div className="flex flex-col items-center justify-center gap-1">
-          <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 mt-2">
+        <div className="flex flex-col items-center justify-center gap-1 mt-4">
+          <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">
             {isDone
               ? t('scanningModal.channelScanned')
               : isYouTube
