@@ -402,15 +402,39 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
     }
 
     return new Promise<string>((resolve, reject) => {
-      const proc = spawn(binaryPath, ['-g', '-f', 'best[ext=mp4]', url]);
+      let settled = false;
+      const settle = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        fn();
+      };
+
+      let proc: ReturnType<typeof spawn>;
+      try {
+        proc = spawn(binaryPath, ['-g', '-f', 'best[ext=mp4]', url]);
+      } catch (err) {
+        reject(err);
+        return;
+      }
+
       activeDirectUrlProcs.add(proc);
       let output = '';
-      let error = '';
+      let stderrOutput = '';
+
+      proc.on('error', (err) => {
+        activeDirectUrlProcs.delete(proc);
+        settle(() => reject(err));
+      });
+
       proc.stdout.on('data', (d) => (output += d.toString()));
-      proc.stderr.on('data', (d) => (error += d.toString()));
+      proc.stderr.on('data', (d) => (stderrOutput += d.toString()));
       proc.on('close', (code) => {
         activeDirectUrlProcs.delete(proc);
-        code === 0 ? resolve(output.trim()) : reject(new Error(error.trim()));
+        settle(() =>
+          code === 0
+            ? resolve(output.trim())
+            : reject(new Error(stderrOutput.trim())),
+        );
       });
     });
   });
