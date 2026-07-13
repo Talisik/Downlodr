@@ -26,6 +26,41 @@ const PROGRESS_THROTTLE_MS = 150;
 const MAX_LOG_BYTES = 51200; // 50 KB
 
 /**
+ * Resolves the absolute path to the yt-dlp binary.
+ *
+ * The yt-dlp-helper library defaults to "./yt-dlp_macos" on darwin, which
+ * resolves inside the read-only .app bundle in packaged builds, causing
+ * EROFS errors.  This function returns the correct absolute path so callers
+ * can pass it via `ytdlpDownloadDestination` / `filePath`.
+ */
+function resolveYtDlpBinaryPath(): string {
+  const binaryName = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+
+  if (app.isPackaged && process.resourcesPath) {
+    // Packaged app: binaries live in Resources/
+    const candidates = [
+      path.join(process.resourcesPath, binaryName),
+      path.join(process.resourcesPath, 'yt-dlp_macos'),
+    ];
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) return candidate;
+    }
+    // Fallback to bare name (relies on PATH)
+    return binaryName;
+  }
+
+  // Development: look next to the app entry point
+  const devCandidates = [
+    path.join(app.getAppPath(), binaryName),
+    path.join(app.getAppPath(), 'yt-dlp_macos'),
+  ];
+  for (const candidate of devCandidates) {
+    if (existsSync(candidate)) return candidate;
+  }
+  return binaryName;
+}
+
+/**
  * Retries a yt-dlp download fn on Windows EBUSY errors.
  *
  * yt-dlp-helper's downloadYTDLP() calls getYTDLPVersion() internally, which
@@ -64,7 +99,8 @@ async function downloadWithBusyRetry(
  */
 export async function runYtdlpCheckAndUpdate(): Promise<void> {
   try {
-    const currentVersion = await YTDLP.getYTDLPVersion();
+    const ytdlpPath = resolveYtDlpBinaryPath();
+    const currentVersion = await YTDLP.getYTDLPVersion(ytdlpPath);
 
     let latestVersion = getCachedVersion();
 
@@ -82,13 +118,16 @@ export async function runYtdlpCheckAndUpdate(): Promise<void> {
     }
 
     if (!currentVersion) {
-      await downloadWithBusyRetry(() => YTDLP.downloadYTDLP());
+      await downloadWithBusyRetry(() =>
+        YTDLP.downloadYTDLP({ filePath: ytdlpPath }),
+      );
       return;
     }
 
     if (latestVersion && currentVersion !== latestVersion) {
       await downloadWithBusyRetry(() =>
         YTDLP.downloadYTDLP({
+          filePath: ytdlpPath,
           version: latestVersion!,
           forceDownload: true,
         }),
@@ -107,6 +146,11 @@ export async function runYtdlpCheckAndUpdate(): Promise<void> {
 export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   // Set once at initialisation — not on every info call (fix #9)
   YTDLP.Config.log = true;
+
+  // Resolve the yt-dlp binary path once at init so every library call uses the
+  // correct absolute path instead of the default "./yt-dlp_macos" which breaks
+  // in packaged macOS builds (EROFS — read-only .app bundle).
+  const ytdlpPath = resolveYtDlpBinaryPath();
 
   // Tracks IDs of yt-dlp controllers that are currently downloading.
   // Used by the cleanup function to SIGKILL orphaned processes on app quit.
@@ -128,6 +172,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
         const info = await YTDLP.getPlaylistInfo({
           url,
           cookiesFromBrowser: '',
+          ytdlpDownloadDestination: ytdlpPath,
         });
         return info;
       } catch (error) {
@@ -143,13 +188,27 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
       if (!url) {
         throw new Error('Video URL is required');
       }
-      // Disable Chrome cookies to avoid "Could not copy Chrome cookie database" error
-      // YouTube content is typically public and doesn't require authentication
-      const info = await YTDLP.getInfo(url, { cookiesFromBrowser: '' });
-      if (!info) {
-        throw new Error('No info returned from YTDLP.getInfo');
+      // getInfo() doesn't accept a binary path — use invoke() directly so
+      // the resolved absolute path is used instead of "./yt-dlp_macos".
+      const result = await YTDLP.invoke({
+        ytdlpDownloadDestination: ytdlpPath,
+        args: [
+          '--no-warnings',
+          '--dump-json',
+          url,
+        ],
+        downloadBinary: { ytdlp: false, ffmpeg: false },
+      });
+      if (!result.ok || !result.data) {
+        throw new Error('No info returned from yt-dlp');
       }
-      return info;
+      let data: any;
+      try {
+        data = JSON.parse(result.data);
+      } catch {
+        throw new Error('Failed to parse yt-dlp JSON output');
+      }
+      return data;
     } catch (error) {
       console.error('Error fetching video info:', error);
       throw error; // Propagate the error to the renderer process
@@ -159,7 +218,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   // Get current YT-DLP version
   ipcMain.handle('ytdlp:getCurrentVersion', async () => {
     try {
-      const version = await YTDLP.getYTDLPVersion();
+      const version = await YTDLP.getYTDLPVersion(ytdlpPath);
       return { success: true, version };
     } catch (error) {
       console.error('Error getting current YT-DLP version:', error);
@@ -224,7 +283,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   // Check and update YT-DLP
   ipcMain.handle('ytdlp:checkAndUpdate', async () => {
     try {
-      const currentVersion = await YTDLP.getYTDLPVersion();
+      const currentVersion = await YTDLP.getYTDLPVersion(ytdlpPath);
 
       // Check if we have a cached version first
       let latestVersion = getCachedVersion();
@@ -267,7 +326,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
       }
 
       if (!currentVersion) {
-        await YTDLP.downloadYTDLP();
+        await YTDLP.downloadYTDLP({ filePath: ytdlpPath });
         return {
           success: true,
           action: 'downloaded',
@@ -279,6 +338,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
 
       if (latestVersion && currentVersion !== latestVersion) {
         await YTDLP.downloadYTDLP({
+          filePath: ytdlpPath,
           version: latestVersion,
           forceDownload: true,
         });
@@ -313,6 +373,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
     try {
       const downloadOptions: DownloadOptions = {
+        filePath: ytdlpPath,
         forceDownload: options.forceDownload || false,
       };
 
@@ -391,16 +452,6 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   });
 
   ipcMain.handle('ytdlp:getDirectUrl', async (_e, url: string) => {
-    const binaryName = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
-    let binaryPath: string;
-    if (app.isPackaged && process.resourcesPath) {
-      const bundled = path.join(process.resourcesPath, binaryName);
-      binaryPath = existsSync(bundled) ? bundled : binaryName;
-    } else {
-      const devPath = path.join(app.getAppPath(), binaryName);
-      binaryPath = existsSync(devPath) ? devPath : binaryName;
-    }
-
     return new Promise<string>((resolve, reject) => {
       let settled = false;
       const settle = (fn: () => void) => {
@@ -411,7 +462,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
 
       let proc: ReturnType<typeof spawn>;
       try {
-        proc = spawn(binaryPath, ['-g', '-f', 'best[ext=mp4]', url]);
+        proc = spawn(ytdlpPath, ['-g', '-f', 'best[ext=mp4]', url]);
       } catch (err) {
         reject(err);
         return;
@@ -458,6 +509,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
           audioQuality: args.audioFormatId,
           limitRate: args.limitRate,
         },
+        ytdlpDownloadDestination: ytdlpPath,
       });
 
       if (!controller || typeof controller.listen !== 'function') {
