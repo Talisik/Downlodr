@@ -30,7 +30,7 @@ const FREQUENCY_TO_INTERVAL: Record<string, FrequencyInterval> = {
   'Every 15 minutes': '15 min',
   'Every 1 hour': '1 hour',
   'Every 6 hours': '6 hours',
-  'Daily': 'Daily',
+  Daily: 'Daily',
 };
 
 function toScheduleConfig(interval: FrequencyInterval) {
@@ -106,6 +106,9 @@ const AfdaSettings = ({ channelId }: AfdaSettingsProps) => {
   const updateAfdaSubscription = useAfdaSubscriptionsStore(
     (s) => s.updateAfdaSubscription,
   );
+  const addAfdaSubscription = useAfdaSubscriptionsStore(
+    (s) => s.addAfdaSubscription,
+  );
   const websites = useAfdaWebsitesStore((s) => s.websites);
 
   const [saveLocation, setSaveLocation] = useState('');
@@ -122,9 +125,11 @@ const AfdaSettings = ({ channelId }: AfdaSettingsProps) => {
 
   useEffect(() => {
     if (!channelId) return;
+    // No subscription record exists yet for most websites — settings are
+    // lazily created on first Save (see handleSave). Fall back to defaults
+    // so the form (and hasChanges tracking) still works before that.
     const sub = getAfdaSubscription(channelId);
-    if (!sub) return;
-    const s = sub.settings[0];
+    const s = sub?.settings[0];
 
     const snap: SettingsSnapshot = {
       saveLocation: s?.save_location ?? '',
@@ -157,36 +162,46 @@ const AfdaSettings = ({ channelId }: AfdaSettingsProps) => {
 
   const handleSave = async () => {
     if (!channelId) return;
+    const website = websites.find((w) => w.id === channelId);
     const sub = getAfdaSubscription(channelId);
-    if (!sub) return;
 
-    const updatedSettings =
-      sub.settings.length > 0
-        ? sub.settings.map((s, i) =>
-            i === 0
-              ? {
-                  ...s,
-                  save_location: saveLocation,
-                  frequency: checkFrequency,
-                  download_quality: downloadQuality,
-                  download_priority: downloadPriority,
-                  lookback_period: lookbackPeriod,
-                  file_naming_format: fileNamingFormat,
-                }
-              : s,
-          )
-        : [
-            {
-              frequency: checkFrequency,
-              download_quality: downloadQuality,
-              save_location: saveLocation,
-              download_priority: downloadPriority,
-              lookback_period: lookbackPeriod,
-              file_naming_format: fileNamingFormat,
-            },
-          ];
+    const settingsEntry = {
+      frequency: checkFrequency,
+      download_quality: downloadQuality,
+      save_location: saveLocation,
+      download_priority: downloadPriority,
+      lookback_period: lookbackPeriod,
+      file_naming_format: fileNamingFormat,
+    };
 
-    updateAfdaSubscription(channelId, { ...sub, settings: updatedSettings });
+    if (sub) {
+      const updatedSettings =
+        sub.settings.length > 0
+          ? sub.settings.map((s, i) =>
+              i === 0 ? { ...s, ...settingsEntry } : s,
+            )
+          : [settingsEntry];
+      updateAfdaSubscription(channelId, { ...sub, settings: updatedSettings });
+    } else {
+      // Website tab has no backing subscription record yet — AFDA websites
+      // (afdaWebsitesStore) are created via the backend, not via
+      // addAfdaSubscription, so settings.tsx's snapshot has nothing to read
+      // from until we create one here on first Save.
+      addAfdaSubscription({
+        id: channelId,
+        source_type: 'afda',
+        downloads: [],
+        schedule_time: [],
+        last_checked_time: '',
+        source: website?.name ?? '',
+        sourceUrl: website?.url ?? '',
+        recurring: true,
+        status: website?.status ?? 'Active',
+        date_created: new Date().toISOString(),
+        upload_cadence: '',
+        settings: [settingsEntry],
+      });
+    }
 
     const snap = {
       saveLocation,
@@ -203,7 +218,6 @@ const AfdaSettings = ({ channelId }: AfdaSettingsProps) => {
       typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
     const interval = FREQUENCY_TO_INTERVAL[checkFrequency];
     if (bridge && interval) {
-      const website = websites.find((w) => w.id === channelId);
       if (website?.sections?.length) {
         const scheduleConfig = toScheduleConfig(interval);
         const results: PromiseSettledResult<unknown>[] =

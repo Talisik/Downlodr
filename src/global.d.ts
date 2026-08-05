@@ -90,6 +90,25 @@ declare global {
   interface Window {
     // ========== Actual IPC bridges (exposed by renderer handlers) ==========
 
+    /** Auto-tagging (tagBridge) — see src/auto-tag */
+    autoTagBridge: {
+      run: (
+        inputs: {
+          id: string;
+          title: string;
+          description?: string;
+          channel?: string;
+          category?: string;
+          artist?: string;
+          track?: string;
+          album?: string;
+          transcriptLocation?: string;
+        }[],
+      ) => Promise<
+        | { ok: true; results: { id: string; tags: string[]; tier: 1 | 2 }[] }
+        | { ok: false; message: string }
+      >;
+    };
     /** App window behavior & generic invoke (baseAppHandler) */
     appBehaviorBridge: {
       invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
@@ -167,6 +186,7 @@ declare global {
       fileExists: (path: string) => Promise<boolean>;
       getFileSize: (path: string) => Promise<number | null>;
       getDirectorySize: (path: string) => Promise<number>;
+      getFreeDiskSpace: (path: string) => Promise<number | null>;
     };
 
     /** Open/delete video, download file, select file (fileHandler) */
@@ -218,6 +238,9 @@ declare global {
         callback: (result: YtdlpDownloadStatus) => void,
       ) => string;
       getDirectUrl: (url: string) => Promise<string>;
+      downloadPreview: (requestId: string, url: string) => Promise<string>;
+      cancelPreviewDownload: (requestId: string) => Promise<void>;
+      releasePreviewFile: (tempPath: string) => Promise<void>;
       readCaptionFile: (filePath: string) => Promise<string>;
     };
 
@@ -321,6 +344,7 @@ declare global {
       fileExists: (path: string) => Promise<boolean>;
       getFileSize: (path: string) => Promise<number | null>;
       getDirectorySize: (path: string) => Promise<number>;
+      getFreeDiskSpace: (path: string) => Promise<number | null>;
       showInputContextMenu: () => void;
       invokeMainProcess: (channel: string, ...args: unknown[]) => Promise<unknown>;
       downloadFile: (url: string, outputPath: string) => Promise<{ success: boolean; path?: string; error?: string }>;
@@ -366,6 +390,9 @@ declare global {
         error?: string;
       }>;
       getDirectUrl: (url: string) => Promise<string>;
+      downloadPreview: (requestId: string, url: string) => Promise<string>;
+      cancelPreviewDownload: (requestId: string) => Promise<void>;
+      releasePreviewFile: (tempPath: string) => Promise<void>;
       readCaptionFile: (filePath: string) => Promise<string>;
     };
 
@@ -439,15 +466,31 @@ declare global {
         skedulosa: { status: string; installedVersion?: string; path: string | null };
       }>;
       download: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<{ started: boolean }>;
+      restart: () => Promise<void>;
       delete: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<{ success: boolean; deferred?: boolean; error?: string }>;
       openFolder: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<{ success: boolean }>;
       cancel: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<void>;
       on: {
         progress: (cb: (data: { pack: 'afda-backend' | 'video-nemesis-toolkit'; percent: number }) => void) => () => void;
         complete: (cb: (data: { pack: 'afda-backend' | 'video-nemesis-toolkit'; success: boolean; error?: string }) => void) => () => void;
+        servicesReady: (cb: () => void) => () => void;
       };
     };
 
+    // ─── Boot status bridge (splash screen only) ──────────────────────────
+    bootStatusBridge: {
+      onStatus: (cb: (message: string) => void) => () => void;
+      onProgress: (
+        cb: (progress: {
+          label: string;
+          copiedBytes: number;
+          totalBytes: number;
+          step: number;
+          totalSteps: number;
+        }) => void,
+      ) => () => void;
+      onProgressDone: (cb: () => void) => () => void;
+    };
     // ─── Skedulosa (video-nemesis-toolkit) bridge ─────────────────────────
     skedulosaBridge: {
       // Schedules
@@ -537,6 +580,12 @@ declare global {
       removeScraperChannelLogListener: () => void;
       onChannelScraped: (callback: (payload: { channelId: number; lastScrapedAt: string }) => void) => void;
       removeChannelScrapedListener: () => void;
+      onChannelCreated: (callback: (channel: unknown) => void) => void;
+      removeChannelCreatedListener: () => void;
+      onChannelUpdated: (callback: (payload: unknown) => void) => void;
+      removeChannelUpdatedListener: () => void;
+      onChannelDeleted: (callback: (payload: { id: number }) => void) => void;
+      removeChannelDeletedListener: () => void;
     };
     
     // ─── AFDA (Article Fetcher & Detail Analyzer) bridge ─────────────────
@@ -645,6 +694,28 @@ declare global {
         openLogin: () => Promise<unknown>;
         getStatus: () => Promise<unknown>;
         clear: () => Promise<unknown>;
+      };
+
+      // Social sources (X / Reddit / Facebook / YouTube) — v1.3.0+
+      social: {
+        detectPlatform: (payload: { url: string }) => Promise<{ platform: string }>;
+        scrape: (payload: { url: string; platform?: string; account?: string; useNitter?: boolean }) => Promise<unknown>;
+        sources: {
+          list: () => Promise<unknown>;
+          get: (payload: { id: number }) => Promise<unknown>;
+          add: (payload: { url: string; label?: string; account?: string | null; platform?: string }) => Promise<unknown>;
+          update: (payload: { id: number; label?: string; account?: string | null }) => Promise<unknown>;
+          delete: (payload: { id: number }) => Promise<unknown>;
+          scrapeNow: (payload: { id: number }) => Promise<unknown>;
+        };
+        posts: {
+          list: (payload: { id: number; limit?: number; offset?: number }) => Promise<unknown>;
+        };
+        schedule: {
+          assign: (payload: { id: number; config: unknown }) => Promise<unknown>;
+          pause: (payload: { id: number }) => Promise<unknown>;
+          resume: (payload: { id: number }) => Promise<unknown>;
+        };
       };
     };
 

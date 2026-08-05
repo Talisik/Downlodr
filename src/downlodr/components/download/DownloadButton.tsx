@@ -16,6 +16,7 @@ import { useSettingStore } from '@/core-app/store/settingsStore';
 import { AddDownload } from '@/downlodr/schema/downloadSchema';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import { processFileName } from '@/downlodr/utils/download/filterName';
+import { maybeShowFormatHint } from '@/downlodr/utils/formatHint';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoMdDownload } from 'react-icons/io';
@@ -59,8 +60,13 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
   const handleDownloadClick = async (e: React.MouseEvent) => {
     // 👇 Prevent double click
     if (isDisabled) return;
-    setIsDisabled(true);
     e.stopPropagation(); // Prevent row expansion
+
+    // One-time hint: consumes this click without starting the download.
+    // Do this before setIsDisabled(true) so the button stays clickable.
+    if (maybeShowFormatHint()) return;
+
+    setIsDisabled(true);
     setSelectedRowIds([]);
     setSelectedDownloads([]);
 
@@ -83,6 +89,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
       channelName: download.channelName ?? '',
       timeLeft: download.timeLeft ?? '',
       DateAdded: new Date().toISOString(),
+      uploadDate: download.uploadDate,
       progress: download.progress ?? 0,
       location: download.location ?? download.location ?? '',
       status: 'queued',
@@ -106,6 +113,9 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
       autoCaptionLocation: download.autoCaptionLocation,
       thumnailsLocation: download.thumnailsLocation,
       transcriptLocation: download.transcriptLocation,
+      tags: download.tags,
+      category: download.category,
+      isLive: download.isLive ?? false,
     });
 
     // Remove from forDownloads
@@ -114,7 +124,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
     toast({
       title: t('downloadButton.toastTitle'),
       description: t('downloadButton.toastDesc', { name: processedName }),
-      duration: 3000,
+      duration: 5000,
     });
   };
 

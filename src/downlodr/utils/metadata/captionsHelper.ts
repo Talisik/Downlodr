@@ -21,6 +21,71 @@ function isM3UPlaylist(content: string): boolean {
   return content.trim().startsWith('#EXTM3U');
 }
 
+interface Json3Seg {
+  utf8?: string;
+}
+
+interface Json3Event {
+  tStartMs?: number;
+  dDurationMs?: number;
+  segs?: Json3Seg[];
+}
+
+function formatSrtTimestamp(ms: number): string {
+  const totalMs = Math.max(0, Math.round(ms));
+  const hours = Math.floor(totalMs / 3600000);
+  const minutes = Math.floor((totalMs % 3600000) / 60000);
+  const seconds = Math.floor((totalMs % 60000) / 1000);
+  const millis = totalMs % 1000;
+  return `${hours.toString().padStart(2, '0')}:${minutes
+    .toString()
+    .padStart(2, '0')}:${seconds.toString().padStart(2, '0')},${millis
+    .toString()
+    .padStart(3, '0')}`;
+}
+
+/**
+ * Converts YouTube's json3 timed-text format into standard SRT.
+ * json3 events without segs are position/style-only markers, not cues.
+ */
+function convertJson3ToSrt(jsonContent: string): string | null {
+  let parsed: { events?: Json3Event[] };
+  try {
+    parsed = JSON.parse(jsonContent);
+  } catch {
+    return null;
+  }
+
+  if (!parsed.events || parsed.events.length === 0) return null;
+
+  let cueIndex = 0;
+  const blocks: string[] = [];
+
+  for (const event of parsed.events) {
+    if (event.tStartMs === undefined || !event.segs || event.segs.length === 0)
+      continue;
+
+    const text = event.segs
+      .map((seg) => seg.utf8 ?? '')
+      .join('')
+      .replace(/\n+$/, '')
+      .trim();
+    if (!text) continue;
+
+    const startMs = event.tStartMs;
+    const endMs = startMs + (event.dDurationMs ?? 2000);
+
+    cueIndex += 1;
+    blocks.push(
+      `${cueIndex}\n${formatSrtTimestamp(startMs)} --> ${formatSrtTimestamp(
+        endMs,
+      )}\n${text}\n`,
+    );
+  }
+
+  return blocks.length > 0 ? blocks.join('\n') : null;
+}
+
 // Find the VTT format (preferred) or fallback to others in order of preference
 const formatPreference = [
   'srt',
@@ -181,6 +246,41 @@ async function processM3UPlaylist(filePath: string): Promise<boolean> {
 }
 
 /**
+ * Reads a downloaded json3 caption file, converts it to SRT, writes the SRT
+ * alongside it, and removes the original json3 file.
+ * @returns Path to the new .srt file, or null if conversion failed (original file is kept)
+ */
+async function convertJson3FileToSrt(
+  json3Path: string,
+): Promise<string | null> {
+  try {
+    const fileResult = await window.plugins.readFileContents({
+      filePath: json3Path,
+      pluginId: 'captionsHelper',
+    });
+    if (!fileResult.success || !fileResult.data) return null;
+
+    const srtContent = convertJson3ToSrt(fileResult.data);
+    if (!srtContent) return null;
+
+    const srtPath = json3Path.replace(/\.json3$/, '.srt');
+    const writeResult = await window.plugins.writeFile({
+      customPath: srtPath,
+      content: srtContent,
+      overwrite: true,
+      pluginId: 'captionsHelper',
+      fileName: '',
+    });
+    if (!writeResult.success) return null;
+
+    await window.downlodrFunctions.deleteFile(json3Path);
+    return srtPath;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
  * Attempts to download English automatic captions from video metadata
  * @param videoInfo The video info object returned from ytdlp.getInfo
  * @param outputPath path to save the captions file (defaults to same location as video with .en.vtt extension)
@@ -282,6 +382,16 @@ export async function downloadEnglishCaptions(
     if (selectedCaption.ext === 'vtt') {
       // -_-
     }
+
+    // json3 is YouTube's raw timed-text format, not a readable subtitle file —
+    // convert it to SRT so it opens like every other caption track.
+    if (selectedCaption.ext === 'json3') {
+      const converted = await convertJson3FileToSrt(outputPath);
+      if (converted) {
+        return converted;
+      }
+    }
+
     return outputPath;
   } catch (error) {
     return undefined;

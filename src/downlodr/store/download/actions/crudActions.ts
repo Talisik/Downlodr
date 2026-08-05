@@ -63,7 +63,7 @@ export function createCrudActions(set: SetState, get: GetState) {
         toast({
           title: 'Failed Download Removed',
           description: 'The failed download has been removed from the list.',
-          duration: 2000,
+          duration: 5000,
         });
       },
       clearFailedDownloads: () => {
@@ -76,7 +76,24 @@ export function createCrudActions(set: SetState, get: GetState) {
         toast({
           title: 'Failed Downloads Cleared',
           description: `${count} failed downloads have been removed.`,
-          duration: 2000,
+          duration: 5000,
+        });
+      },
+      setFileMissingFlags: (updates: { id: string; missing: boolean }[]) => {
+        if (updates.length === 0) return;
+
+        const updateMap = new Map(updates.map((u) => [u.id, u.missing]));
+
+        set((state) => {
+          let changed = false;
+          const finishedDownloads = state.finishedDownloads.map((d) => {
+            const missing = updateMap.get(d.id);
+            if (missing === undefined || d.fileMissing === missing) return d;
+            changed = true;
+            return { ...d, fileMissing: missing };
+          });
+
+          return changed ? { finishedDownloads } : {};
         });
       },
   }

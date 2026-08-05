@@ -5,6 +5,7 @@ import {
   fetchArticle,
   isArticleModel,
 } from '@/afda/backend/dummy/dummyArticleService';
+import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 
 export type FetchState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -26,7 +27,34 @@ export const useAfdaStore = create<AfdaStore>((set) => ({
   articleError: null,
 
   fetchAndOpen: async (url: string) => {
-    set({ isOpen: true, articleUrl: url, fetchState: 'loading', articleData: null, articleError: null });
+    // A finished download already has the exact article model (images
+    // included) that was used to build the file — reuse it instead of
+    // re-parsing the URL live, which can return different/fewer images
+    // (e.g. a static-only re-parse missing a dynamic site's lazy images).
+    const existing = useArticleDownloadStore
+      .getState()
+      .articleDownloads.find(
+        (d) => d.url === url && d.status === 'finished' && d.articleData,
+      );
+
+    if (existing?.articleData) {
+      set({
+        isOpen: true,
+        articleUrl: url,
+        fetchState: 'success',
+        articleData: existing.articleData,
+        articleError: null,
+      });
+      return;
+    }
+
+    set({
+      isOpen: true,
+      articleUrl: url,
+      fetchState: 'loading',
+      articleData: null,
+      articleError: null,
+    });
 
     const result = await fetchArticle(url);
 

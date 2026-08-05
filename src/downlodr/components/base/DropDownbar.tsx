@@ -169,7 +169,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
         'Your file is being downloaded. This may take a few minutes depending on the file size and your connection speed.',
       variant: 'destructive',
       expandable: true, // Add this to make it expandable
-      duration: 5500,
+      duration: 5000,
       action: (
         <ToastAction
           altText="Retry connection check"
@@ -186,7 +186,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
     toast({
       title: 'Checking connection',
       description: 'Verifying internet connectivity...',
-      duration: 5500, // Slightly longer than the 5s timeout
+      duration: 5000, // Slightly longer than the 5s timeout
     });
 
     const hasInternet =
@@ -215,7 +215,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
     toast({
       title: 'Checking for updates',
       description: `Currently checking for new updates, please wait`,
-      duration: 3000,
+      duration: 5000,
     });
 
     if (window.updateAPI?.checkForUpdates && hasInternet) {
@@ -226,19 +226,19 @@ const DropdownBar = ({ className }: { className?: string }) => {
             variant: 'destructive',
             title: 'Update Check Failed',
             description: result.error,
-            duration: 4000,
+            duration: 5000,
           });
         } else if (result.hasUpdate) {
           toast({
             title: `Update v${result.latestVersion} available`,
             description: 'Downloading in the background...',
-            duration: 4000,
+            duration: 5000,
           });
         } else {
           toast({
             title: "You're up to date!",
             description: `You're using the latest version (v${result.currentVersion}).`,
-            duration: 3000,
+            duration: 5000,
           });
         }
         setActiveMenu(null);
@@ -247,7 +247,7 @@ const DropdownBar = ({ className }: { className?: string }) => {
           variant: 'destructive',
           title: 'Update Check Failed',
           description: 'Unable to check for updates. Please try again later.',
-          duration: 3000,
+          duration: 5000,
         });
         console.error('Error checking for updates:', error);
       }

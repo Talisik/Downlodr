@@ -45,7 +45,7 @@ const NavItem: React.FC<NavItemProps> = ({
   icon,
   collapsed,
   activeClass = 'bg-titleBar dark:bg-[#3D3D3D]',
-  hoverClass = 'hover:bg-titleBar dark:hover:bg-red-100',
+  hoverClass = 'hover:bg-titleBar dark:hover:bg-[#474747]',
 }) => {
   // useMatch instead of NavLink's className render-prop so Radix Slot (used by
   // TooltipTrigger asChild) receives a plain string — Slot calls .toString() on
@@ -92,7 +92,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   <TooltipWrapper content={collapsed ? label : null} side="left">
     <button
       onClick={collapsed ? onCollapsedClick : onToggle}
-      className={`w-full flex items-center h-7 hover:bg-titleBar dark:hover:bg-darkModeCompliment rounded dark:text-gray-200`}
+      className={`w-full flex items-center h-7 hover:bg-titleBar dark:hover:bg-[#474747] rounded dark:text-gray-200`}
     >
       <span className="nav-label flex items-center gap-1 whitespace-nowrap overflow-hidden min-w-0">
         <span className="flex-shrink-0">
@@ -272,7 +272,7 @@ const Navigation = ({
       toast({
         title: t('toast.categorized'),
         description: t('toast.categorizedDesc', { category }),
-        duration: 3000,
+        duration: 5000,
       });
     }
     setDragOverItem(null);
@@ -286,7 +286,7 @@ const Navigation = ({
       toast({
         title: t('toast.tagged'),
         description: t('toast.taggedDesc', { tag }),
-        duration: 3000,
+        duration: 5000,
       });
     }
     setDragOverItem(null);
@@ -437,7 +437,7 @@ const Navigation = ({
             icon={<FaHeart size={15} className="text-red-400 flex-shrink-0" />}
             collapsed={isCollapsed}
             activeClass="bg-titleBar dark:bg-[#3D3D3D]"
-            hoverClass="hover:bg-titleBar dark:hover:bg-darkModeNavigation"
+            hoverClass="hover:bg-titleBar dark:hover:bg-[#474747]"
           />
 
           {/* Subscriptions */}
@@ -452,7 +452,7 @@ const Navigation = ({
             }
             collapsed={isCollapsed}
             activeClass="bg-titleBar dark:bg-[#3D3D3D]"
-            hoverClass="hover:bg-titleBar dark:hover:bg-darkModeNavigation"
+            hoverClass="hover:bg-titleBar dark:hover:bg-[#474747]"
           />
 
           {/* Articles */}
@@ -464,7 +464,7 @@ const Navigation = ({
             }
             collapsed={isCollapsed}
             activeClass="bg-titleBar dark:bg-[#3D3D3D]"
-            hoverClass="hover:bg-titleBar dark:hover:bg-darkModeNavigation"
+            hoverClass="hover:bg-titleBar dark:hover:bg-[#474747]"
           />
 
           {/* Categories Section */}
@@ -481,7 +481,7 @@ const Navigation = ({
                 <NavLink
                   to="/category/all"
                   className={({ isActive }) =>
-                    `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-darkModeCompliment${
+                    `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-[#474747]${
                       isActive ? ' bg-titleBar dark:bg-[#3D3D3D]' : ''
                     }`
                   }
@@ -496,7 +496,7 @@ const Navigation = ({
                 <NavLink
                   to="/category/uncategorized"
                   className={({ isActive }) =>
-                    `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-darkModeCompliment${
+                    `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-[#474747]${
                       isActive ? ' bg-titleBar dark:bg-[#3D3D3D]' : ''
                     }`
                   }
@@ -513,7 +513,7 @@ const Navigation = ({
                     key={category}
                     to={`/category/${encodeURIComponent(category)}`}
                     className={({ isActive }) =>
-                      `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-darkModeCompliment${
+                      `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-[#474747]${
                         isActive || dragOverItem === category
                           ? ' bg-titleBar dark:bg-[#3D3D3D]'
                           : ''
@@ -552,7 +552,7 @@ const Navigation = ({
                 <NavLink
                   to="/tags/all"
                   className={({ isActive }) =>
-                    `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-darkModeCompliment${
+                    `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-[#474747]${
                       isActive ? ' bg-titleBar dark:bg-[#3D3D3D]' : ''
                     }`
                   }
@@ -565,7 +565,7 @@ const Navigation = ({
                 <NavLink
                   to="/tags/untagged"
                   className={({ isActive }) =>
-                    `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-darkModeCompliment${
+                    `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-[#474747]${
                       isActive ? ' bg-titleBar dark:bg-[#3D3D3D]' : ''
                     }`
                   }
@@ -580,7 +580,7 @@ const Navigation = ({
                     key={tag}
                     to={`/tags/${encodeURIComponent(tag)}`}
                     className={({ isActive }) =>
-                      `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-darkModeCompliment${
+                      `flex flex-nowrap items-center h-7 rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-[#474747]${
                         isActive || dragOverItem === tag
                           ? ' bg-titleBar dark:bg-[#3D3D3D]'
                           : ''

@@ -43,6 +43,21 @@ export function uuidv4(): string {
 }
 
 /**
+ * Convert yt-dlp's upload_date (YYYYMMDD) to an ISO date string.
+ * Returns undefined if the input is missing or malformed.
+ */
+export function parseYtdlpUploadDate(
+  uploadDate: string | null | undefined,
+): string | undefined {
+  if (!uploadDate || !/^\d{8}$/.test(uploadDate)) return undefined;
+  const year = uploadDate.slice(0, 4);
+  const month = uploadDate.slice(4, 6);
+  const day = uploadDate.slice(6, 8);
+  const date = new Date(`${year}-${month}-${day}T00:00:00Z`);
+  return isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
+/**
  * Get progress phase information
  */
 export function getProgressPhaseInfo(download: {
@@ -136,7 +151,7 @@ export const handleCheckForUpdates = async () => {
         title: 'Connection Restored',
         description: 'Internet connection is working properly.',
         variant: 'success',
-        duration: 3000,
+        duration: 5000,
       });
     } else {
       toast({
@@ -144,7 +159,7 @@ export const handleCheckForUpdates = async () => {
         title: 'No Internet Connection',
         description: 'Please check your internet connection and try again.',
         expandable: true,
-        duration: 3000,
+        duration: 5000,
         action: React.createElement(
           ToastAction,
           {
@@ -161,7 +176,7 @@ export const handleCheckForUpdates = async () => {
       variant: 'destructive',
       title: 'Connection Check Failed',
       description: 'Unable to verify internet connection.',
-      duration: 3000,
+      duration: 5000,
     });
   }
 };

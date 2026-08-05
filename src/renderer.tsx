@@ -7,6 +7,10 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { initComposedWindowApi } from './core-app/ipc/composeWindowApi';
+import {
+  APP_READY_EVENT,
+  type AppReadyWindow,
+} from './core-app/hooks/useAppReady';
 import App from './App';
 import './index.css';
 import '@/core-app/i18n';
@@ -26,7 +30,41 @@ root.render(
   </React.StrictMode>,
 );
 
-// Remove the HTML splash screen once React has mounted
-requestAnimationFrame(() => {
+// Remove the HTML splash screen once React has mounted AND the main process
+// has finished its deferred add-on initialization (addons:services-ready).
+// The add-on init blocks the main process for a few seconds, so hiding the
+// splash on mount alone exposed a frozen-looking app; keeping the splash up
+// covers the whole boot. The timeout is a failsafe so a missed event (e.g.
+// services became ready before this listener attached) never strands the
+// splash forever.
+const hideSplash = () => {
   (window as typeof window & { __hideSplash?: () => void }).__hideSplash?.();
-});
+};
+
+let splashHidden = false;
+let unsubReady: (() => void) | undefined = undefined;
+const hideSplashOnce = (reason: string) => {
+  if (splashHidden) return;
+  splashHidden = true;
+  unsubReady?.();
+  console.log(`[boot] hiding splash (${reason})`);
+  requestAnimationFrame(hideSplash);
+
+  // Boot-time modals (telemetry consent, onboarding tour picker) must not
+  // appear while the splash still covers the app. This is the single place
+  // that knows boot is over — including the failsafe and no-bridge paths
+  // above — so it broadcasts rather than letting React re-derive readiness
+  // and risk the two disagreeing. See useAppReady().
+  (window as AppReadyWindow).__appReady = true;
+  window.dispatchEvent(new Event(APP_READY_EVENT));
+};
+
+unsubReady = window.addonBridge?.on?.servicesReady?.(() =>
+  hideSplashOnce('services-ready'),
+);
+if (!unsubReady) {
+  // Bridge unavailable (e.g. preload failed) — fall back to hiding on mount.
+  hideSplashOnce('no addonBridge');
+} else {
+  setTimeout(() => hideSplashOnce('15s failsafe'), 15000);
+}

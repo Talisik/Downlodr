@@ -12,11 +12,6 @@ import AfdaAddedSubscriptionModal from '@/afda/components/AfdaAddedSubscriptionM
 import AfdaAddWebsiteModal from '@/afda/components/AfdaAddWebsiteModal';
 import { useAfdaMapperStore } from '@/afda/store/afdaMapperStore';
 import { extractFqdn } from '@/afda/utils/extractFqdn';
-import {
-  useAddonStore,
-  type AddonPackState,
-  type PackName,
-} from '@/core-app/store/addonStore';
 import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
 
 type FlowStep =
@@ -43,9 +38,6 @@ const SkedulosaHome = () => {
   );
 
   const [flowStep, setFlowStep] = useState<FlowStep>({ step: 'idle' });
-
-  const skedulosaAddonState = useAddonStore((s) => s.skedulosa);
-  const afdaAddonState = useAddonStore((s) => s.afda);
 
   const pendingExtensionSubscribe = useSkedulosaStore(
     (s) => s.pendingExtensionSubscribe,
@@ -182,38 +174,6 @@ const SkedulosaHome = () => {
   };
 
   if (
-    skedulosaAddonState.status !== 'ready' &&
-    afdaAddonState.status !== 'ready'
-  ) {
-    return (
-      <div className="h-full flex items-center justify-center p-6">
-        <div className="w-full max-w-md flex flex-col gap-4">
-          <div className="mb-2">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              Required Add-ons
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Download the add-ons below to unlock these features.
-            </p>
-          </div>
-          <AddOnCard
-            packName="video-nemesis-toolkit"
-            label="Subscriptions"
-            description="YouTube channel scheduling and automated downloads."
-            state={skedulosaAddonState}
-          />
-          <AddOnCard
-            packName="afda-backend"
-            label="Article Fetcher"
-            description="Article scraping and automated downloads for websites."
-            state={afdaAddonState}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (
     scheduledChannels.length === 0 &&
     afdaSubscriptions.length === 0 &&
     afdaWebsites.length === 0
@@ -304,83 +264,5 @@ const SkedulosaHome = () => {
     </>
   );
 };
-
-function AddOnCard({
-  packName,
-  label,
-  description,
-  state,
-}: {
-  packName: PackName;
-  label: string;
-  description: string;
-  state: AddonPackState;
-}) {
-  const handleDownload = () => {
-    window.addonBridge?.download(packName);
-    useAddonStore
-      .getState()
-      .setPackState(packName, { status: 'downloading', progress: 0 });
-  };
-
-  const isReady = state.status === 'ready';
-  const isDownloading = state.status === 'downloading';
-  const isOutdated = state.status === 'outdated';
-
-  return (
-    <div
-      className={`rounded-lg border p-4 flex flex-col gap-3 ${
-        isReady
-          ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/10'
-          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-zinc-900'
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              {label}
-            </span>
-            {isReady && (
-              <span className="text-xs font-medium text-green-600 dark:text-green-400">
-                ✓ Installed
-              </span>
-            )}
-            {isOutdated && (
-              <span className="text-xs font-medium text-amber-500">
-                Update available
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            {description}
-          </p>
-        </div>
-        {!isReady && !isDownloading && (
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="flex-shrink-0 px-3 py-1.5 rounded-md bg-primary hover:opacity-90 text-white text-xs font-semibold transition-opacity"
-          >
-            {isOutdated ? 'Update' : 'Download'}
-          </button>
-        )}
-      </div>
-      {isDownloading && (
-        <div className="flex flex-col gap-1">
-          <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-150"
-              style={{ width: `${state.progress ?? 0}%` }}
-            />
-          </div>
-          <span className="text-[11px] text-gray-400">
-            {state.progress ?? 0}% — Downloading {label}…
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default SkedulosaHome;

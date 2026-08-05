@@ -65,6 +65,8 @@ const FileNotExistModal: React.FC<FileNotExistModalProps> = ({
           getThumbnail: item.download.getThumbnail || false,
           duration: item.download.duration || 60,
           isCreateFolder: false,
+          tags: (item.download as { tags?: string[] }).tags,
+          category: (item.download as { category?: string[] }).category,
         });
 
         deleteDownload(item.id);
@@ -73,7 +75,7 @@ const FileNotExistModal: React.FC<FileNotExistModalProps> = ({
           variant: 'destructive',
           title: 'Redownload Error',
           description: `Failed to redownload: ${error?.message ?? error}`,
-          duration: 3000,
+          duration: 5000,
         });
       }
     }
@@ -84,7 +86,7 @@ const FileNotExistModal: React.FC<FileNotExistModalProps> = ({
       description: isSingleDownload
         ? 'Your download has been added successfully'
         : `${downloads.length} downloads have been added successfully`,
-      duration: 3000,
+      duration: 5000,
     });
 
     clearAllSelections();
@@ -103,7 +105,7 @@ const FileNotExistModal: React.FC<FileNotExistModalProps> = ({
       description: isSingleDownload
         ? 'Download log has been removed successfully'
         : `${downloads.length} download logs have been removed successfully`,
-      duration: 3000,
+      duration: 5000,
     });
 
     clearAllSelections();

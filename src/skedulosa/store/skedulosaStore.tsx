@@ -52,6 +52,8 @@ export interface SubscriptionSettings {
   download_priority: string;
   lookback_period: string;
   file_naming_format: string;
+  /** IANA timezone for the manual check schedule (e.g. "UTC"). Optional — auto-detect subscriptions leave it unset. */
+  timezone?: string;
 }
 
 export interface SubscriptionChannelDetails {
@@ -439,6 +441,26 @@ const DAY_TO_ABBREV: Record<ScheduleDay, string> = {
   Friday: 'fri',
   Saturday: 'sat',
 };
+
+/** Toolkit day_of_week (0=Sun) → store ScheduleDay. */
+const TOOLKIT_DAY_TO_SCHEDULE: ScheduleDay[] = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
+
+function toolkitSlotsToScheduleTime(
+  slots: { day_of_week: number; time_minutes: number }[],
+): ScheduleTime[] {
+  return slots.map((s) => ({
+    day: TOOLKIT_DAY_TO_SCHEDULE[s.day_of_week] ?? 'Sunday',
+    time_minutes: s.time_minutes,
+  }));
+}
 
 /** Map a Subscription to legacy ScheduledChannel for backward compatibility. */
 function subscriptionToChannel(sub: Subscription): ScheduledChannel {
@@ -1028,6 +1050,117 @@ export const useSkedulosaStore = create<SkedulosaStoreState>()(
                 sub.toolkit_channel_id === payload.channelId
                   ? { ...sub, last_checked_time: payload.lastScrapedAt }
                   : sub,
+              );
+              useSkedulosaStore.setState({
+                subscriptions: updated,
+                scheduledChannels: syncScheduledChannels(updated),
+              });
+            });
+
+            // When the MCP bridge creates a channel, add it to the store so the UI shows it immediately
+            window.skedulosaBridge?.onChannelCreated?.((channel) => {
+              const ch = channel as {
+                id: number; url: string; name: string; schedule_id: number;
+                channel_details?: { avatarUrl: string; subscriberCount: number; videoCount: string; site: string };
+                channel_analysis?: { nextScrapeTime: string; pattern: string; confidence: number; isErratic: boolean };
+                settings?: SubscriptionSettings[];
+                slots?: { day_of_week: number; time_minutes: number }[];
+              } | null;
+              if (!ch?.id) return;
+              const store = useSkedulosaStore.getState();
+              // If already in store, patch channel_details, channel_analysis,
+              // and/or settings (quality/save-location/timezone) when they arrive
+              const existing = store.subscriptions.find((s) => s.toolkit_channel_id === ch.id);
+              if (existing) {
+                const hasSettings = Array.isArray(ch.settings) && ch.settings.length > 0;
+                const needsUpdate =
+                  (ch.channel_details && !existing.channel_details) ||
+                  (ch.channel_analysis && !existing.channel_analysis) ||
+                  (hasSettings && existing.settings.length === 0);
+                if (needsUpdate) {
+                  const updated = store.subscriptions.map((s) =>
+                    s.toolkit_channel_id === ch.id
+                      ? {
+                          ...s,
+                          ...(ch.channel_details && !s.channel_details ? { channel_details: ch.channel_details } : {}),
+                          ...(ch.channel_analysis && !s.channel_analysis ? { channel_analysis: ch.channel_analysis } : {}),
+                          ...(hasSettings && s.settings.length === 0 ? { settings: ch.settings! } : {}),
+                        }
+                      : s,
+                  );
+                  useSkedulosaStore.setState({ subscriptions: updated, scheduledChannels: syncScheduledChannels(updated) });
+                }
+                return;
+              }
+              const now = new Date().toISOString();
+              const newSub: Subscription = {
+                id: `mcp-${ch.id}-${Date.now()}`,
+                downloads: [],
+                schedule_time:
+                  Array.isArray(ch.slots) && ch.slots.length > 0
+                    ? toolkitSlotsToScheduleTime(ch.slots)
+                    : [{ day: 'Sunday' }],
+                last_checked_time: '',
+                source: ch.name ?? ch.url,
+                sourceUrl: ch.url,
+                recurring: true,
+                status: 'active',
+                date_created: now,
+                upload_cadence: '',
+                settings: ch.settings ?? [],
+                toolkit_channel_id: ch.id,
+                toolkit_schedule_id: ch.schedule_id,
+                channel_details: ch.channel_details,
+                channel_analysis: ch.channel_analysis,
+                activity_log: [
+                  { id: `${Date.now()}-subscribe`, type: 'subscribe', action: 'Subscription created via Claude', detail: ch.url, timestamp: now },
+                ],
+              };
+              store.addSubscription(newSub);
+            });
+
+            // When the MCP bridge updates a channel (rename, active toggle, format, etc.),
+            // patch the matching subscription in-place so the UI reflects it immediately.
+            window.skedulosaBridge?.onChannelUpdated?.((payload) => {
+              const p = payload as {
+                id: number;
+                name?: string;
+                active?: number | boolean;
+                slots?: { day_of_week: number; time_minutes: number }[];
+                [key: string]: unknown;
+              };
+              if (!p?.id) return;
+              const store = useSkedulosaStore.getState();
+              const updated = store.subscriptions.map((sub) => {
+                if (sub.toolkit_channel_id !== p.id) return sub;
+                return {
+                  ...sub,
+                  // Patch display name if the bridge sent a new one
+                  ...(p.name !== undefined ? { source: p.name } : {}),
+                  // Patch active flag → status so pause/resume shows immediately
+                  ...(p.active !== undefined
+                    ? { status: p.active ? 'active' : 'Paused' }
+                    : {}),
+                  // Patch manual check schedule when slots change via chat/CLI
+                  ...(Array.isArray(p.slots)
+                    ? { schedule_time: toolkitSlotsToScheduleTime(p.slots) }
+                    : {}),
+                };
+              });
+              useSkedulosaStore.setState({
+                subscriptions: updated,
+                scheduledChannels: syncScheduledChannels(updated),
+              });
+            });
+
+            // When the MCP bridge deletes a channel, remove it from the store so
+            // it disappears from the subscription list without a restart.
+            window.skedulosaBridge?.onChannelDeleted?.((payload) => {
+              const p = payload as { id: number };
+              if (!p?.id) return;
+              const store = useSkedulosaStore.getState();
+              const updated = store.subscriptions.filter(
+                (sub) => sub.toolkit_channel_id !== p.id,
               );
               useSkedulosaStore.setState({
                 subscriptions: updated,

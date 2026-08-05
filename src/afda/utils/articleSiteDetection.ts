@@ -23,6 +23,7 @@ export const ARTICLE_SITE_DOMAINS = [
   'cebudailynews.inquirer.net',
   'cebuano.gmanetwork.com',
   'uno.inquirer.net',
+  'panaynews.net',
 
   // ── US News ────────────────────────────────────────────────────────────────
   'cnn.com',

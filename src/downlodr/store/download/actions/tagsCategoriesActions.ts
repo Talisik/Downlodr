@@ -12,6 +12,8 @@ import {
     updateDownloadCategories,
     updateDownloadTags
 } from '../utils';
+import { mergeTierResult } from '@/auto-tag/merge';
+import type { TagResult } from '@/auto-tag/types';
   
 
 /** Zustand setter: accepts partial state or updater function */
@@ -49,7 +51,41 @@ interface UpdateDownloadResult {
 export function createTagsCategoriesActions(set: SetState, get: GetState) {
   return {
 
-    
+    /**
+     * Apply auto-tag results (from the auto-tag IPC) across all download lists.
+     * For each result, merges the tier's tags into the download's existing tags
+     * using the accumulate rules (manual + other tier preserved; this tier's
+     * tags refreshed), tracking per-tag source in `tagSource`.
+     */
+    applyAutoTags: (results: TagResult[]) => {
+      const byId = new Map(results.map((r) => [r.id, r] as const));
+
+      const applyToList = <T extends BaseDownload>(list: T[]): T[] =>
+        list.map((d) => {
+          const result = byId.get(d.id);
+          if (!result) return d;
+          const merged = mergeTierResult(
+            { tags: d.tags ?? [], tagSource: d.tagSource },
+            result,
+          );
+          return { ...d, tags: merged.tags, tagSource: merged.tagSource };
+        });
+
+      set((state) => {
+        const available = new Set(state.availableTags);
+        for (const r of results) for (const t of r.tags) available.add(t);
+
+        return {
+          ...state,
+          availableTags: [...available],
+          downloading: applyToList(state.downloading),
+          finishedDownloads: applyToList(state.finishedDownloads),
+          historyDownloads: applyToList(state.historyDownloads),
+          forDownloads: applyToList(state.forDownloads),
+        };
+      });
+    },
+
     addTag: (downloadId: string, tag: string) => {
         set((state) => {
           return {
@@ -74,6 +110,11 @@ export function createTagsCategoriesActions(set: SetState, get: GetState) {
             ),
             forDownloads: updateDownloadTags(
               state.forDownloads,
+              downloadId,
+              (tags) => [...tags, tag],
+            ),
+            queuedDownloads: updateDownloadTags(
+              state.queuedDownloads,
               downloadId,
               (tags) => [...tags, tag],
             ),
@@ -105,6 +146,57 @@ export function createTagsCategoriesActions(set: SetState, get: GetState) {
               downloadId,
               (tags) => tags.filter((t) => t !== tag),
             ),
+            queuedDownloads: updateDownloadTags(
+              state.queuedDownloads,
+              downloadId,
+              (tags) => tags.filter((t) => t !== tag),
+            ),
+          };
+        });
+      },
+
+      toggleFavorite: (downloadId: string) => {
+        set((state) => {
+          const lists = [
+            state.downloading,
+            state.finishedDownloads,
+            state.historyDownloads,
+            state.forDownloads,
+            state.queuedDownloads,
+          ];
+          const existing = lists
+            .flat()
+            .find((d) => d.id === downloadId) as BaseDownload | undefined;
+          const nextFavorited = !existing?.favorited;
+
+          const applyToList = <T extends BaseDownload>(list: T[]): T[] =>
+            list.map((d) =>
+              d.id === downloadId ? { ...d, favorited: nextFavorited } : d,
+            );
+
+          return {
+            ...state,
+            downloading: applyToList(state.downloading),
+            finishedDownloads: applyToList(state.finishedDownloads),
+            historyDownloads: applyToList(state.historyDownloads),
+            forDownloads: applyToList(state.forDownloads),
+            queuedDownloads: applyToList(state.queuedDownloads),
+          };
+        });
+      },
+
+      setFavorited: (downloadId: string, favorited: boolean) => {
+        set((state) => {
+          const applyToList = <T extends BaseDownload>(list: T[]): T[] =>
+            list.map((d) => (d.id === downloadId ? { ...d, favorited } : d));
+
+          return {
+            ...state,
+            downloading: applyToList(state.downloading),
+            finishedDownloads: applyToList(state.finishedDownloads),
+            historyDownloads: applyToList(state.historyDownloads),
+            forDownloads: applyToList(state.forDownloads),
+            queuedDownloads: applyToList(state.queuedDownloads),
           };
         });
       },
@@ -136,6 +228,11 @@ export function createTagsCategoriesActions(set: SetState, get: GetState) {
               downloadId,
               (categories) => [...categories, category],
             ),
+            queuedDownloads: updateDownloadCategories(
+              state.queuedDownloads,
+              downloadId,
+              (categories) => [...categories, category],
+            ),
           };
         });
       },
@@ -164,6 +261,11 @@ export function createTagsCategoriesActions(set: SetState, get: GetState) {
               downloadId,
               (categories) => categories.filter((c) => c !== category),
             ),
+            queuedDownloads: updateDownloadCategories(
+              state.queuedDownloads,
+              downloadId,
+              (categories) => categories.filter((c) => c !== category),
+            ),
           };
         });
       },
@@ -189,6 +291,7 @@ export function createTagsCategoriesActions(set: SetState, get: GetState) {
             finishedDownloads: updateDownloads(state.finishedDownloads),
             historyDownloads: updateDownloads(state.historyDownloads),
             forDownloads: updateDownloads(state.forDownloads),
+            queuedDownloads: updateDownloads(state.queuedDownloads),
           };
         }),
 
@@ -211,6 +314,7 @@ export function createTagsCategoriesActions(set: SetState, get: GetState) {
             finishedDownloads: updateDownloads(state.finishedDownloads),
             historyDownloads: updateDownloads(state.historyDownloads),
             forDownloads: updateDownloads(state.forDownloads),
+            queuedDownloads: updateDownloads(state.queuedDownloads),
           };
         }),
 
@@ -235,6 +339,7 @@ export function createTagsCategoriesActions(set: SetState, get: GetState) {
             finishedDownloads: updateDownloads(state.finishedDownloads),
             historyDownloads: updateDownloads(state.historyDownloads),
             forDownloads: updateDownloads(state.forDownloads),
+            queuedDownloads: updateDownloads(state.queuedDownloads),
           };
         }),
 
@@ -255,6 +360,7 @@ export function createTagsCategoriesActions(set: SetState, get: GetState) {
             finishedDownloads: updateDownloads(state.finishedDownloads),
             historyDownloads: updateDownloads(state.historyDownloads),
             forDownloads: updateDownloads(state.forDownloads),
+            queuedDownloads: updateDownloads(state.queuedDownloads),
           };
         }),
   }

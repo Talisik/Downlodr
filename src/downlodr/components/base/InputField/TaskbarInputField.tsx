@@ -19,8 +19,8 @@ import {
   mapArticleToSearchable,
   SearchableDownload,
   useTaskbarDownloadStore,
-  Video,
 } from '@/downlodr/store/taskbarDownloadStore';
+import { usePlaylistSelectionStore } from '@/downlodr/store/playlistSelectionStore';
 import type { PlaylistInfoEntry } from '@/global';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -82,7 +82,6 @@ const TaskbarInputField = () => {
   );
   const historyDownloads = useDownloadStore((state) => state.historyDownloads);
   const queuedDownloads = useDownloadStore((state) => state.queuedDownloads);
-  const fetchAndOpenArticle = useAfdaStore((state) => state.fetchAndOpen);
   const fetchState = useAfdaStore((state) => state.fetchState);
   const articleData = useAfdaStore((state) => state.articleData);
   const articleError = useAfdaStore((state) => state.articleError);
@@ -97,25 +96,16 @@ const TaskbarInputField = () => {
   );
   const pendingArticleIdRef = useRef<string | null>(null);
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [videoTitle, setVideoTitle] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string>(
     searchState.isSearchActive ? searchState.searchQuery : '',
   );
   const [isValidUrl, setIsValidUrl] = useState<boolean>(false);
   const [isArticle, setIsArticle] = useState<boolean>(false);
-  const [isPlaylist, setIsPlaylist] = useState<boolean>(false);
-  const [playlistVideos, setPlaylistVideos] = useState<Video[]>([]);
-  const [selectedVideos, setSelectedVideos] = useState<Set<string>>(new Set());
   const [isAdditionalOptionsOpen, setIsAdditionalOptionsOpen] =
     useState<boolean>(false);
 
   //  constant near the top of the component after other constants
   const RAW_YOUTUBE_PATTERN = /^https:\/\/youtu\.be\/[\w-]+(?:\?.*)?$/;
-
-  // Calculate selectAll state
-  const selectAll =
-    selectedVideos.size === playlistVideos.length && playlistVideos.length > 0;
 
   // full debounce timer and URL validation states
   const [validationTimer, setValidationTimer] = useState<NodeJS.Timeout | null>(
@@ -134,7 +124,7 @@ const TaskbarInputField = () => {
       '(' +
       '((([a-zA-Z\\d]([a-zA-Z\\d-]*[a-zA-Z\\d])*)\\.)+[a-zA-Z]{2,}|' +
       '((\\d{1,3}\\.){3}\\d{1,3}))' +
-      '(\\:\\d+)?(\\/[-a-zA-Z\\d%_.~+@]*)*' +
+      '(\\:\\d+)?(\\/[-a-zA-Z\\d%_.~+@:]*)*' +
       '(\\?[;&a-zA-Z\\d%_.~+@=-]*)?' +
       '(\\#[-a-zA-Z\\d_]*)?' +
       ')$',
@@ -147,13 +137,21 @@ const TaskbarInputField = () => {
       ? ''
       : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
 
-  // Playlist validation and fetching metadata
+  // Playlist validation and fetching metadata. Writes into the shared
+  // playlistSelectionStore so the full-page /playlist-selection route
+  // (rendered outside this component) can read it once we navigate there.
   const fetchPlaylistInfo = async (url: string) => {
-    setIsLoading(true);
+    const playlistStore = usePlaylistSelectionStore.getState();
+    // Clear out any previous playlist immediately so a failed fetch doesn't
+    // leave the selection page showing stale data.
+    playlistStore.setPlaylistData({
+      playlistUrl: url,
+      videoTitle: null,
+      playlistVideos: [],
+    });
+    playlistStore.setIsLoading(true);
     try {
       const info = await window.ytdlp.getPlaylistInfo(url);
-
-      setVideoTitle(info.data.title);
 
       // Ensure no duplicate videos in the playlist
       const uniqueVideos = new Map();
@@ -172,19 +170,20 @@ const TaskbarInputField = () => {
       });
 
       const videos = Array.from(uniqueVideos.values());
-      setPlaylistVideos(videos);
-
-      // Start with no videos selected when loading new playlist
-      setSelectedVideos(new Set());
+      usePlaylistSelectionStore.getState().setPlaylistData({
+        playlistUrl: url,
+        videoTitle: info.data.title,
+        playlistVideos: videos,
+      });
     } catch (error) {
       toast({
         variant: 'destructive',
         title: t('taskbarInput.toast.playlistErrorTitle'),
         description: t('taskbarInput.toast.playlistErrorDesc'),
-        duration: 3000,
+        duration: 5000,
       });
     } finally {
-      setIsLoading(false);
+      usePlaylistSelectionStore.getState().setIsLoading(false);
     }
   };
 
@@ -276,7 +275,7 @@ const TaskbarInputField = () => {
           variant: 'destructive',
           title: t('taskbarInput.toast.invalidUrlTitle'),
           description: t('taskbarInput.toast.invalidUrlDesc'),
-          duration: 3000,
+          duration: 5000,
         });
         return;
       }
@@ -295,7 +294,7 @@ const TaskbarInputField = () => {
           toast({
             title: t('taskbarInput.toast.channelDetectedTitle'),
             description: t('taskbarInput.toast.channelDetectedDesc'),
-            duration: 4000,
+            duration: 5000,
           });
           setVideoUrl('');
           setIsValidUrl(false);
@@ -303,13 +302,15 @@ const TaskbarInputField = () => {
           toast({
             title: t('taskbarInput.toast.playlistDetectedTitle'),
             description: t('taskbarInput.toast.playlistDetectedDesc'),
-            duration: 4000,
+            duration: 5000,
           });
-          setIsPlaylist(true);
-          setIsValidUrl(true);
+          // Kick off the metadata fetch (writes into playlistSelectionStore)
+          // and hand off to the full-page selector immediately.
           fetchPlaylistInfo(url);
+          navigate('/playlist-selection');
+          setVideoUrl('');
+          setIsValidUrl(false);
         } else if (linkType === 'video') {
-          setIsPlaylist(false);
           setIsValidUrl(true);
         }
       } catch (err) {
@@ -317,7 +318,7 @@ const TaskbarInputField = () => {
           variant: 'destructive',
           title: t('taskbarInput.toast.invalidUrlFormatTitle'),
           description: t('taskbarInput.toast.invalidUrlFormatDesc'),
-          duration: 3000,
+          duration: 5000,
         });
       }
     } else {
@@ -341,8 +342,6 @@ const TaskbarInputField = () => {
 
     setIsValidUrl(false);
     setIsArticle(false);
-    setIsPlaylist(false);
-    setSelectedVideos(new Set());
 
     if (
       !fromChromeExtension &&
@@ -446,10 +445,6 @@ const TaskbarInputField = () => {
     setVideoUrl('');
     setIsValidUrl(false);
     setIsArticle(false);
-    setIsPlaylist(false);
-    setVideoTitle(null);
-    setPlaylistVideos([]);
-    setSelectedVideos(new Set());
     setDownloadFolder(settings.defaultLocation);
     closeAdditionalOptions();
   };
@@ -458,12 +453,11 @@ const TaskbarInputField = () => {
     autoQueueFormatId?: string,
     autoDownload?: boolean,
   ) => {
-    // Article flow — add to store in for_download state, open side panel for preview
+    // Article flow — add to store in for_download state
     if (isArticle) {
       const id = crypto.randomUUID();
       const articleUrl = silentDownloadUrlRef.current ?? videoUrl;
       addArticleDownload(id, articleUrl.trim());
-      fetchAndOpenArticle(articleUrl.trim());
       silentDownloadUrlRef.current = null;
       resetModal();
       return;
@@ -474,55 +468,23 @@ const TaskbarInputField = () => {
       // This prevents the first URL registration issue during app startup
       await waitForStoreRehydration();
 
-      console.log('handleDownload');
-      if (isPlaylist) {
-        const selectedVideosList = playlistVideos.filter((video) =>
-          selectedVideos.has(video.id),
-        );
-        // If link is a YT playlist link, checks if there is at least one video selected for download
-        if (selectedVideosList.length === 0) {
-          toast({
-            variant: 'destructive',
-            title: t('taskbarInput.toast.selectionErrorTitle'),
-            description: t('taskbarInput.toast.selectionErrorDesc'),
-            duration: 3000,
-          });
-          return;
-        }
-
-        // Generate a unique batch ID for this playlist download
-        const playlistBatchId = `playlist_${Date.now()}_${Math.random()
-          .toString(36)
-          .substr(2, 9)}`;
-
-        // Download each selected video with user preferences and playlist tracking
-        for (const video of selectedVideosList) {
-          setDownload(video.url, downloadFolder, maxDownload, {
-            getTranscript,
-            getThumbnail,
-            isFromPlaylist: true,
-            playlistBatchId,
-          });
-        }
-      } else {
-        console.log('single video download');
-        // Single video download with user preferences
-        const urlToDownload = silentDownloadUrlRef.current ?? videoUrl;
-        silentDownloadUrlRef.current = null;
-        setDownload(urlToDownload, downloadFolder, maxDownload, {
-          getTranscript,
-          getThumbnail,
-          autoQueueFormatId,
-          autoDownload,
-        });
-      }
+      // Single video download with user preferences (playlist downloads are
+      // triggered from the /playlist-selection page instead)
+      const urlToDownload = silentDownloadUrlRef.current ?? videoUrl;
+      silentDownloadUrlRef.current = null;
+      setDownload(urlToDownload, downloadFolder, maxDownload, {
+        getTranscript,
+        getThumbnail,
+        autoQueueFormatId,
+        autoDownload,
+      });
 
       resetModal();
 
       toast({
         title: t('taskbarInput.toast.downloadQueuedTitle'),
         description: t('taskbarInput.toast.downloadQueuedDesc'),
-        duration: 3000,
+        duration: 5000,
       });
     } catch (error) {
       const hasInternetConnection =
@@ -532,7 +494,7 @@ const TaskbarInputField = () => {
           variant: 'destructive',
           title: t('taskbarInput.toast.noInternetTitle'),
           description: t('taskbarInput.toast.noInternetDesc'),
-          duration: 3000,
+          duration: 5000,
         });
         return;
       } else {
@@ -540,32 +502,10 @@ const TaskbarInputField = () => {
           variant: 'destructive',
           title: t('taskbarInput.toast.errorTitle'),
           description: t('taskbarInput.toast.errorDesc'),
-          duration: 3000,
+          duration: 5000,
         });
       }
     }
-  };
-
-  // Selecting all videos from playlist
-  const handleSelectAll = () => {
-    if (selectAll) {
-      setSelectedVideos(new Set());
-    } else {
-      setSelectedVideos(new Set(playlistVideos.map((video) => video.id)));
-    }
-  };
-
-  // Selecting videos from playlist
-  const handleVideoSelect = (id: string) => {
-    setSelectedVideos((prevSelected) => {
-      const newSelected = new Set(prevSelected);
-      if (newSelected.has(id)) {
-        newSelected.delete(id);
-      } else {
-        newSelected.add(id);
-      }
-      return newSelected;
-    });
   };
 
   // Consume a URL redirected from another page (e.g. Skedulosa video link detection)
@@ -646,6 +586,7 @@ const TaskbarInputField = () => {
         channelName: download.channelName ?? '',
         timeLeft: download.timeLeft ?? '',
         DateAdded: new Date().toISOString(),
+        uploadDate: download.uploadDate,
         progress: 0,
         location: download.location ?? '',
         status: 'queued',
@@ -657,6 +598,7 @@ const TaskbarInputField = () => {
         limitRate: maxDownload,
         automaticCaption: download.automaticCaption,
         thumbnails: download.thumbnails,
+        isLive: download.isLive,
         getTranscript: download.getTranscript ?? false,
         getThumbnail: download.getThumbnail ?? false,
         duration: download.duration ?? 60,
@@ -666,6 +608,8 @@ const TaskbarInputField = () => {
         autoCaptionLocation: download.autoCaptionLocation,
         thumnailsLocation: download.thumnailsLocation,
         transcriptLocation: download.transcriptLocation,
+        tags: download.tags,
+        category: download.category,
       });
 
       removeFromForDownloads(download.id);
@@ -712,14 +656,6 @@ const TaskbarInputField = () => {
       document.removeEventListener('click', handleClickOutside);
     };
   }, [closeAdditionalOptions]);
-
-  // Opens additional options when playlist is valid
-  useEffect(() => {
-    if (isPlaylist && isValidUrl) {
-      setActiveButton('settings');
-      setIsAdditionalOptionsOpen(true);
-    }
-  }, [isPlaylist, isValidUrl]);
 
   useEffect(() => {
     if (!pendingArticleIdRef.current) return;
@@ -827,7 +763,7 @@ const TaskbarInputField = () => {
                   toast({
                     title: t('taskbarInput.toast.copiedTitle'),
                     description: t('taskbarInput.toast.copiedDesc'),
-                    duration: 3000,
+                    duration: 5000,
                   });
                 })
                 .catch(() => {
@@ -835,7 +771,7 @@ const TaskbarInputField = () => {
                     variant: 'destructive',
                     title: t('taskbarInput.toast.copyFailedTitle'),
                     description: t('taskbarInput.toast.copyFailedDesc'),
-                    duration: 3000,
+                    duration: 5000,
                   });
                 });
             },
@@ -881,10 +817,7 @@ const TaskbarInputField = () => {
             <Download
               className={cn(
                 'text-darkModeHover',
-                ((isPlaylist && selectedVideos.size > 0) ||
-                  (!isPlaylist && isValidUrl) ||
-                  isArticle) &&
-                  'text-primary',
+                (isValidUrl || isArticle) && 'text-primary',
               )}
             />
           ),
@@ -892,12 +825,8 @@ const TaskbarInputField = () => {
           tooltip: isArticle
             ? t('taskbarInput.tooltip.openArticle')
             : t('taskbarInput.tooltip.download'),
-          disabled:
-            (!isValidUrl && !isArticle) ||
-            isLoading ||
-            (isPlaylist && selectedVideos.size === 0),
+          disabled: !isValidUrl && !isArticle,
         }}
-        disabled={isLoading}
         value={videoUrl}
         onChange={(e) => handleUrl(e.target.value)}
         onContextMenu={(e) => {
@@ -913,17 +842,7 @@ const TaskbarInputField = () => {
 
       {additionalOptionsMounted && (
         <div ref={additionalOptionsRef} className="relative z-[100]">
-          <AdditionalOptions
-            // isOpenOptions={isAdditionalOptionsOpen}
-            isPlaylist={isPlaylist}
-            isLoading={isLoading}
-            selectAll={selectAll}
-            handleSelectAll={handleSelectAll}
-            videoTitle={videoTitle}
-            playlistVideos={playlistVideos}
-            selectedVideos={selectedVideos}
-            handleVideoSelect={handleVideoSelect}
-          />
+          <AdditionalOptions />
         </div>
       )}
       {folderMounted && (

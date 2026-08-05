@@ -36,7 +36,7 @@ const FolderDirectory = () => {
         variant: 'destructive',
         title: t('toast.errorTitle'),
         description: t('toast.errorDesc'),
-        duration: 3000,
+        duration: 5000,
       });
     } finally {
       setIsSelectingDirectory(false);

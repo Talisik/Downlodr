@@ -82,6 +82,7 @@ const FormatSelectorModal: React.FC<FormatSelectorModalProps> = ({
       channelName: download.channelName ?? '',
       timeLeft: download.timeLeft ?? '',
       DateAdded: new Date().toISOString(),
+      uploadDate: download.uploadDate,
       progress: download.progress ?? 0,
       location: download.location ?? '',
       status: 'queued',
@@ -105,6 +106,9 @@ const FormatSelectorModal: React.FC<FormatSelectorModalProps> = ({
       autoCaptionLocation: download.autoCaptionLocation,
       thumnailsLocation: download.thumnailsLocation,
       transcriptLocation: download.transcriptLocation,
+      tags: download.tags,
+      category: download.category,
+      isLive: download.isLive,
     });
 
     removeFromForDownloads(download.id);
@@ -112,7 +116,7 @@ const FormatSelectorModal: React.FC<FormatSelectorModalProps> = ({
     toast({
       title: 'Download queued',
       description: processedName,
-      duration: 3000,
+      duration: 5000,
     });
 
     onClose();

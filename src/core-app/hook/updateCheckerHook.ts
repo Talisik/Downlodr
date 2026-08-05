@@ -26,6 +26,25 @@ export interface UpdateInfo {
   message?: string;
   error?: string;
   fromCache?: boolean;
+  /**
+   * True when updates are delivered by an external package manager (the
+   * Microsoft Store) rather than by this app. Callers must not download or
+   * install anything when this is set.
+   */
+  managedExternally?: boolean;
+}
+
+/**
+ * True when running from an MSIX/APPX package installed via the Microsoft
+ * Store. Electron sets `process.windowsStore` for Store builds only.
+ *
+ * Store builds must never use the GitHub updater: the releases published there
+ * are the website (non-modular) build, and its installer cannot update a sealed
+ * MSIX package — it would leave the user with two parallel installs. The Store
+ * updates these builds on its own from the AppxManifest package version.
+ */
+function isStoreBuild(): boolean {
+  return process.windowsStore === true;
 }
 
 /**
@@ -82,6 +101,17 @@ function filterReleasesByChannel(
  */
 export async function checkForUpdates(): Promise<UpdateInfo> {
   try {
+    // Store builds are updated by the Microsoft Store — never check GitHub.
+    if (isStoreBuild()) {
+      return {
+        hasUpdate: false,
+        currentVersion: app.getVersion(),
+        currentChannel: getVersionChannel(app.getVersion()),
+        managedExternally: true,
+        message: 'Updates are managed by the Microsoft Store.',
+      };
+    }
+
     // Check if we have cached update info first
     const cachedInfo = getCachedUpdateInfo();
     if (cachedInfo) {
@@ -116,7 +146,20 @@ export async function checkForUpdates(): Promise<UpdateInfo> {
     const channelReleases = filterReleasesByChannel(releases, currentChannel);
 
     // Get the latest release from the filtered channel releases
-    const latestRelease = channelReleases[0];
+    // (GitHub's API orders releases by creation date, not by version, so a
+    // release drafted long ago but published recently can appear out of
+    // order — pick the highest semver version instead of the first entry)
+    const latestRelease = channelReleases.reduce<GitHubRelease | undefined>(
+      (latest, release) => {
+        if (!latest) return release;
+        const latestCleanVersion = latest.tag_name.replace(/^v/, '');
+        const releaseCleanVersion = release.tag_name.replace(/^v/, '');
+        return semver.gt(releaseCleanVersion, latestCleanVersion)
+          ? release
+          : latest;
+      },
+      undefined,
+    );
 
     if (!latestRelease) {
       const updateInfo: UpdateInfo = {

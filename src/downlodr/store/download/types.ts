@@ -28,12 +28,18 @@ export interface BaseDownload {
   speed: string; // Current download speed
   timeLeft: string; // Estimated time left for the download
   DateAdded: string; // Date when the download was added
+  uploadDate?: string; // Date the video was uploaded/published on the source site (ISO string)
   progress: number; // Current progress of the download (0-100)
   location: string; // File path where the download will be saved
   status: string; // Current status of the download
   ext: string; // File extension of the download
   controllerId?: string; // ID of the download controller
   tags: string[]; // Tags associated with the download
+  tagSource?: Record<string, 'manual' | 'tier1' | 'tier2'>; // auto-tag: lowercased tag -> source tier (see src/auto-tag)
+  nativeCategory?: string; // auto-tag: native source category (e.g. yt-dlp "Music") — used for routing
+  musicArtist?: string; // auto-tag: yt-dlp artist (music route)
+  musicTrack?: string; // auto-tag: yt-dlp track (music route)
+  musicAlbum?: string; // auto-tag: yt-dlp album (music route)
   category: string[]; // Categories associated with the download
   extractorKey: string; // Key for the extractor used
   formatId: string; // ID of the selected format
@@ -63,6 +69,11 @@ export interface BaseDownload {
   // Playlist tracking
   isFromPlaylist?: boolean; // Whether this download came from a playlist
   playlistBatchId?: string; // Batch ID to group playlist downloads together
+
+  // File integrity tracking
+  fileMissing?: boolean; // Set by the background file integrity checker when the on-disk file can't be found
+
+  favorited?: boolean; // Whether the user has favorited this download
 }
 
 // Interface for downloads that are currently being processed
@@ -85,7 +96,12 @@ export type DownloadStatus =
   | 'cancelled'
   | 'initializing'
   | 'fetching metadata'
-  | 'paused';
+  | 'paused'
+  // Transitional state between clicking Pause and the process actually
+  // exiting — blocks Resume until the graceful kill is confirmed, so a
+  // second process can't start writing the same output file while the
+  // first one is still alive (see ytdlpHandler.ts gracefulKill).
+  | 'pausing';
 
 // Interface for downloads that are currently downloading
 export interface Downloading extends Omit<BaseDownload, 'status'> {
@@ -95,6 +111,8 @@ export interface Downloading extends Omit<BaseDownload, 'status'> {
   backupFormatId?: string; // Backup format ID
   backupAudioExt?: string; // Backup audio file extension
   backupAudioFormatId?: string; // Backup audio format ID
+  liveRetryCount?: number; // Number of auto-retry attempts used after a live-stream error (see docs/superpowers/specs/2026-07-30-live-download-auto-retry-design.md)
+  isFinishingRecording?: boolean; // Set while a graceful "finish recording" kill is in flight, cleared once the row leaves 'downloading' or the kill fails
 }
 
 // Interface for finished downloads

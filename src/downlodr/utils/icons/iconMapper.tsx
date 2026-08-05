@@ -40,8 +40,11 @@ import { FaYoutube } from "react-icons/fa";
 
 
 // Helper function to map extractor keys to their respective icons
-export const getExtractorIcon = (extractorKey: string) => {
-  const key = extractorKey.toLowerCase();
+export const getExtractorIcon = (extractorKey?: string | null) => {
+  // Guard: a download with a missing/undefined extractorKey (e.g. a record
+  // still fetching metadata, or one persisted before this field existed) must
+  // not crash the entire list render with `undefined.toLowerCase()`.
+  const key = (extractorKey ?? '').toLowerCase();
 
   // YouTube and related
   if (key.includes('youtube') || key.includes('youtu.be')) {
@@ -181,8 +184,9 @@ export const getExtractorIcon = (extractorKey: string) => {
 };
 
 // Helper function to map status to their respective icons
-export const getStatusIcon = (status: string, size = 16) => {
-  const statusLower = status.toLowerCase();
+export const getStatusIcon = (status?: string | null, size = 16) => {
+  // Guard against an undefined status so one bad record can't crash the list.
+  const statusLower = (status ?? '').toLowerCase();
 
   switch (statusLower) {
     case 'finished':
@@ -199,7 +203,10 @@ export const getStatusIcon = (status: string, size = 16) => {
     
     case 'paused':
       return <FaPause size={size} className="text-yellow-600" />;
-    
+
+    case 'pausing':
+      return <HiMiniArrowPath size={size} className="text-yellow-600 animate-spin" />;
+
     case 'to download':
       return <FaDownload size={size} className="text-orange-600" />;
     

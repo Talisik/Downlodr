@@ -16,15 +16,29 @@ const sampleSvgIcon =
 // Maps stable plugin IDs to their bundled image assets.
 // Keyed by ID so name changes in GitHub releases don't break icon resolution.
 const PLUGIN_ICON_ASSETS: Record<string, string> = {
-  'cc-to-markdown-downlodr': CCToMarkdownImg,
+  'cc-to-text-downlodr': CCToMarkdownImg,
   'format-converter-downlodr': FormatConverterImg,
   'metadata-exporter-downlodr': MetadataScraperImg,
 };
 
 // Looks up an icon by exact ID, then by ID + '-downlodr' suffix, to handle
 // cases where GitHub section headings produce a shorter slug than the asset keys.
-function lookupPluginIcon(id: string): string | undefined {
+export function lookupPluginIcon(id: string): string | undefined {
   return PLUGIN_ICON_ASSETS[id] ?? PLUGIN_ICON_ASSETS[`${id}-downlodr`];
+}
+
+// Browse-tab ids are slugified from GitHub release headings, while installed
+// plugins carry whatever `id` their own manifest.json declares - the two are
+// unrelated namespaces. `name` is the one field both sides render identically,
+// so slugify it the same way release headings are slugified and reuse the
+// existing id-keyed lookup.
+export function lookupPluginIconByName(name: string): string | undefined {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+  return lookupPluginIcon(slug);
 }
 
 // GitHub release configuration for your specific release
@@ -52,11 +66,11 @@ function translatePluginName(id: string, original: string): string {
 function getFallbackPluginsData() {
   return [
     {
-      id: 'cc-to-markdown-downlodr',
-      name: translatePluginName('cc-to-markdown-downlodr', 'CC to Markdown'),
+      id: 'cc-to-text-downlodr',
+      name: translatePluginName('cc-to-text-downlodr', 'CC to Markdown'),
       version: '1.0.1',
       description: translatePluginDescription(
-        'cc-to-markdown-downlodr',
+        'cc-to-text-downlodr',
         'Convert video captions into markdown documents.',
       ),
       author: 'Downlodr',

@@ -41,7 +41,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
       variant: 'success',
       title: 'File Renamed',
       description: `Successfully renamed to ${trimmedName}`,
-      duration: 3000,
+      duration: 5000,
     });
 
     onClose();

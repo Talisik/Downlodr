@@ -56,6 +56,7 @@ export interface SortableDownloadItem {
   status: string;
   speed?: string;
   DateAdded: string;
+  uploadDate?: string;
   extractorKey?: string;
 }
 
@@ -96,6 +97,11 @@ export function sortDownloadsByColumn<T extends SortableDownloadItem>(
         return sortDirection === 'asc'
           ? new Date(a.DateAdded).getTime() - new Date(b.DateAdded).getTime()
           : new Date(b.DateAdded).getTime() - new Date(a.DateAdded).getTime();
+      case 'uploadedOn': {
+        const uploadA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
+        const uploadB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
+        return sortDirection === 'asc' ? uploadA - uploadB : uploadB - uploadA;
+      }
       case 'source':
       case 'transcript': {
         const sourceA = a.extractorKey ?? '';
@@ -117,6 +123,7 @@ export const statusMapping: Record<string, string> = {
   'fetching-metadata': 'fetching metadata',
   'to-download': 'to download',
   paused: 'paused',
+  pausing: 'pausing',
   initializing: 'initializing',
   failed: 'failed',
   finished: 'finished',
@@ -180,6 +187,7 @@ export const getStatusColor = (status: string): string => {
     case 'initializing':
       return '#3498DB';
     case 'paused':
+    case 'pausing':
       return '#FFEB3B';
     case 'to download':
       return '#FF9800';
@@ -198,6 +206,7 @@ const COLUMN_KEY_MAP: Record<string, string> = {
   status: 'table.status',
   speed: 'table.speed',
   dateAdded: 'table.dateAdded',
+  uploadedOn: 'table.uploadedOn',
   transcript: 'table.transcript',
   source: 'table.source',
   action: 'table.action',

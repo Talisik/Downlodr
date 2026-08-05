@@ -260,4 +260,34 @@ contextBridge.exposeInMainWorld('skedulosaBridge', {
   removeScraperChannelLogListener: () => {
     ipcRenderer.removeAllListeners('toolkit:scraper:channelLog');
   },
+
+  /** Fired by the MCP bridge after it creates a channel — lets the UI store add it without a restart */
+  onChannelCreated: (callback: (channel: unknown) => void) => {
+    ipcRenderer.removeAllListeners('toolkit:channel:created');
+    ipcRenderer.on('toolkit:channel:created', (_event, channel) => callback(channel));
+  },
+
+  removeChannelCreatedListener: () => {
+    ipcRenderer.removeAllListeners('toolkit:channel:created');
+  },
+
+  /** Fired by the MCP bridge after it updates a channel (rename, active toggle, etc.) */
+  onChannelUpdated: (callback: (payload: unknown) => void) => {
+    ipcRenderer.removeAllListeners('toolkit:channel:updated');
+    ipcRenderer.on('toolkit:channel:updated', (_event, payload) => callback(payload));
+  },
+
+  removeChannelUpdatedListener: () => {
+    ipcRenderer.removeAllListeners('toolkit:channel:updated');
+  },
+
+  /** Fired by the MCP bridge after it deletes a channel */
+  onChannelDeleted: (callback: (payload: { id: number }) => void) => {
+    ipcRenderer.removeAllListeners('toolkit:channel:deleted');
+    ipcRenderer.on('toolkit:channel:deleted', (_event, payload) => callback(payload as { id: number }));
+  },
+
+  removeChannelDeletedListener: () => {
+    ipcRenderer.removeAllListeners('toolkit:channel:deleted');
+  },
 });

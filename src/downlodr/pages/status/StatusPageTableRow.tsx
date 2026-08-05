@@ -23,10 +23,11 @@ import {
   getExtractorIcon,
   getStatusIcon,
 } from '@/downlodr/utils/icons/iconMapper';
-import { useFavoritesStore } from '@/downlodr/store/favoritesStore';
+import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import React from 'react';
 import { LuEye } from 'react-icons/lu';
-import { FaHeart, FaRegHeart } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaStop } from 'react-icons/fa';
+import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { FiPlayCircle } from 'react-icons/fi';
 import { HiOutlineFolderOpen } from 'react-icons/hi';
@@ -46,40 +47,15 @@ import { Separator } from '@radix-ui/react-separator';
 const FavoriteButton: React.FC<{ download: SearchableDownload }> = ({
   download,
 }) => {
-  const isFavorited = useFavoritesStore((s) => s.isFavorited(download.id));
-  const addFavorite = useFavoritesStore((s) => s.addFavorite);
-  const removeFavorite = useFavoritesStore((s) => s.removeFavorite);
+  const isArticle = (download as { type?: string }).type === 'article';
+  const isFavorited = !!download.favorited;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isFavorited) {
-      removeFavorite(download.id);
+    if (isArticle) {
+      useArticleDownloadStore.getState().toggleArticleFavorite(download.id);
     } else {
-      addFavorite({
-        downloadId: download.id,
-        videoUrl: download.videoUrl ?? '',
-        title: download.name ?? '',
-        displayName: download.displayName,
-        downloadName: download.downloadName ?? '',
-        location: download.location ?? '',
-        channelName: download.channelName ?? '',
-        thumbnail:
-          typeof download.thumbnails === 'string' && download.thumbnails !== '—'
-            ? download.thumbnails
-            : undefined,
-        ext: download.ext ?? '',
-        duration: download.duration ?? 0,
-        size: download.size ?? 0,
-        extractorKey: download.extractorKey ?? '',
-        tags: download.tags ?? [],
-        category: download.category ?? [],
-        description: download.description,
-        chapters: download.chapters,
-        status: download.status ?? '',
-        autoCaptionLocation: download.autoCaptionLocation,
-        transcriptLocation: download.transcriptLocation,
-        dateAdded: download.DateAdded ?? '',
-      });
+      useDownloadStore.getState().toggleFavorite(download.id);
     }
   };
 
@@ -95,6 +71,61 @@ const FavoriteButton: React.FC<{ download: SearchableDownload }> = ({
         <FaRegHeart size={14} className="text-gray-400 dark:text-gray-500" />
       )}
     </button>
+  );
+};
+
+// Shown instead of a progress bar for a live stream currently being
+// recorded — a live download has no known end/progress, so a bar reading
+// "0%" forever is misleading. Clicking this sends the graceful CTRL_C
+// kill (ytdlpHandler.ts) so yt-dlp/ffmpeg can wrap up the recording
+// cleanly, then lets the normal completion flow mark it 'finished' —
+// unlike the regular stop button, this does NOT kill-and-remove the
+// download from the list.
+const LiveRecordingButton: React.FC<{ onClick: () => void }> = ({
+  onClick,
+}) => {
+  const { t } = useTranslation('downlodr');
+  return (
+    <TooltipWrapper
+      content={t('statusPage.status.liveFinishRecording')}
+      side="bottom"
+    >
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        className="group flex items-center gap-1.5 px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+      >
+        <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+          <span className="group-hover:hidden absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-ping" />
+          <span className="group-hover:hidden relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+          <FaStop
+            size={9}
+            className="hidden group-hover:block text-red-600 dark:text-red-400"
+          />
+        </span>
+        <span className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">
+          Live
+        </span>
+      </button>
+    </TooltipWrapper>
+  );
+};
+
+// Shown in place of LiveRecordingButton while the graceful kill sent by
+// clicking it is still in flight (Downloading.isFinishingRecording) —
+// the row stays on 'downloading' until yt-dlp/ffmpeg actually exits, so
+// without this the button appears to do nothing during that gap.
+const FinishingRecordingIndicator: React.FC = () => {
+  const { t } = useTranslation('downlodr');
+  return (
+    <div className="flex items-center gap-1.5 px-2 py-1">
+      <Loader2 className="h-3 w-3 animate-spin text-gray-500 dark:text-gray-400" />
+      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+        {t('statusPage.status.liveFinishing')}
+      </span>
+    </div>
   );
 };
 
@@ -133,6 +164,8 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
     onViewFolder,
     onRetry,
     onPause,
+    onStop,
+    onFinishRecording,
     onRedownloadTranscript,
     onFormatSelect,
     onViewEmbed,
@@ -153,16 +186,18 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
 
   return (
     <tr
-      className={`border-b hover:bg-gray-50 dark:border-darkModeTableBorder dark:hover:bg-darkModeHover cursor-pointer ${
-        isSelectedDownload
-          ? 'bg-blue-50  dark:bg-darkMode'
-          : index === length - 1
-          ? 'border-b-0'
-          : 'dark:bg-darkMode'
+      className={`border-b dark:border-darkModeTableBorder cursor-pointer ${
+        index === length - 1 && !download.fileMissing ? 'border-b-0' : ''
       } ${
-        isGrouped
-          ? 'bg-gray-50 dark:bg-darkModeTable'
-          : 'bg-white dark:bg-darkModeTable'
+        download.fileMissing
+          ? 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+          : `hover:bg-gray-50 dark:hover:bg-darkModeHover ${
+              isSelectedDownload ? 'bg-blue-50  dark:bg-darkMode' : 'dark:bg-darkMode'
+            } ${
+              isGrouped
+                ? 'bg-gray-50 dark:bg-darkModeTable'
+                : 'bg-white dark:bg-darkModeTable'
+            }`
       }`}
       onContextMenu={(e) => onContextMenu(e, download)}
       onClick={handleRowClick}
@@ -289,7 +324,13 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                           contentClassname="text-start justify-start"
                         >
                           <div>
-                            <span className="line-clamp-1 break-words break-all font-semibold">
+                            <span
+                              className={`${
+                                download.fileMissing
+                                  ? 'line-through text-gray-400 dark:text-gray-500'
+                                  : ''
+                              } line-clamp-1 break-words break-all font-semibold`}
+                            >
                               {highlightText(
                                 download.displayName || download.name,
                                 searchQuery,
@@ -328,7 +369,13 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                         </div>
                       </TooltipWrapper>
                     </div>
-                    <span className="line-clamp-1 break-words break-all font-semibold min-w-0 flex-1">
+                    <span
+                      className={`${
+                        download.fileMissing
+                          ? 'line-through text-gray-400 dark:text-gray-500'
+                          : ''
+                      } line-clamp-1 break-words break-all font-semibold min-w-0 flex-1`}
+                    >
                       {highlightText(
                         download.displayName || download.name,
                         searchQuery,
@@ -420,6 +467,7 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                   'initializing',
                   'queued',
                   'fetching metadata',
+                  'pausing',
                 ].includes(download.status) ? (
                   <div className="flex justify-center">
                     <TooltipWrapper
@@ -523,6 +571,16 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                       />
                     </div>
                   </div>
+                ) : download.status === 'downloading' && download.isLive ? (
+                  <div className="ml-2 flex items-center justify-center">
+                    {(download as { isFinishingRecording?: boolean }).isFinishingRecording ? (
+                      <FinishingRecordingIndicator />
+                    ) : (
+                      <LiveRecordingButton
+                        onClick={() => onFinishRecording(download.id)}
+                      />
+                    )}
+                  </div>
                 ) : download.status === 'paused' ||
                   download.status === 'downloading' ? (
                   <button
@@ -566,6 +624,7 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                   'downloading',
                   'finished',
                   'paused',
+                  'pausing',
                   'failed',
                   'initializing',
                 ].includes(download.status) ? (
@@ -603,6 +662,25 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                 >
                   <div>{formatRelativeTime(download.DateAdded)}</div>
                 </TooltipWrapper>
+              </td>
+            );
+          case 'uploadedOn':
+            return (
+              <td
+                key={column.id}
+                style={{ width: column.width }}
+                className="p-2 dark:text-gray-200 ml-2 justify-center text-center"
+              >
+                {download.uploadDate ? (
+                  <TooltipWrapper
+                    content={new Date(download.uploadDate).toLocaleDateString()}
+                    side="bottom"
+                  >
+                    <div>{formatRelativeTime(download.uploadDate)}</div>
+                  </TooltipWrapper>
+                ) : (
+                  <div>—</div>
+                )}
               </td>
             );
           case 'transcript':

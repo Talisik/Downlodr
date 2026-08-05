@@ -48,7 +48,7 @@ const NavItem: React.FC<NavItemProps> = ({
   icon,
   collapsed,
   activeClass = 'bg-titleBar dark:bg-[#3D3D3D]',
-  hoverClass = 'hover:bg-titleBar dark:hover:bg-darkModeNavigation',
+  hoverClass = 'hover:bg-titleBar dark:hover:bg-[#474747]',
 }) => {
   const resolved = useResolvedPath(to);
   const isActive = !!useMatch({ path: resolved.pathname, end: true });

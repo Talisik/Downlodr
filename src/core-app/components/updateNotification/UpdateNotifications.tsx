@@ -105,7 +105,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
     } else if (updateType === 'app' && updateInfo?.downloadUrl) {
       // For app updates, open the download link
       await window.downlodrFunctions.openExternalLink(
-        'https://downlodr.com/downloads/',
+        'https://downlodr.com/download/',
       );
     }
     handleClose();

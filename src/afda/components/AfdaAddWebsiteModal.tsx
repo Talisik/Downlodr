@@ -1,15 +1,14 @@
 import BaseModal from '@/downlodr/components/modal/BaseModal';
-import {
-  getMissingAddonMessage,
-  isMissingHandlerError,
-  openAddonManager,
-} from '@/core-app/utils/missingAddonError';
 import { initialScrapeGuard } from '@/afda/hooks/initialScrapeGuard';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAfdaWebsitesStore } from '@/afda/store/afdaWebsitesStore';
+import {
+  useAfdaWebsitesStore,
+  socialSourceToWebsite,
+} from '@/afda/store/afdaWebsitesStore';
 import { useAfdaMapperStore } from '@/afda/store/afdaMapperStore';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
+import { syncSocialSource } from '@/afda/hooks/useAfdaSocialSync';
 import { extractFqdn } from '@/afda/utils/extractFqdn';
 import type {
   FrequencyAnalysisResult,
@@ -101,7 +100,42 @@ function sectionNameFromUrl(sectionUrl: string): string {
 
 // ─── Phase type ───────────────────────────────────────────────────────────────
 
-type Phase = 'form' | 'running' | 'sections' | 'saving' | 'error';
+type Phase = 'form' | 'running' | 'sections' | 'social' | 'saving' | 'error';
+
+// Social platforms handled by AFDA's social pipeline (no mapper / no sections).
+// 'fb' is the registry's fallback, so detectPlatform never returns 'article';
+// the modal decides article-vs-social by whether the host matches a known
+// social domain, not by the registry's fb fallback.
+const SOCIAL_PRESETS: { value: string; label: string }[] = [
+  { value: 'every_15m', label: 'Every 15 minutes' },
+  { value: 'every_30m', label: 'Every 30 minutes' },
+  { value: 'every_1h', label: 'Every hour' },
+  { value: 'every_6h', label: 'Every 6 hours' },
+  { value: 'daily', label: 'Daily' },
+];
+
+const SOCIAL_PLATFORM_LABELS: Record<string, string> = {
+  x: 'X (Twitter)',
+  reddit: 'Reddit',
+  youtube: 'YouTube',
+  fb: 'Facebook',
+};
+
+// Mirror of the backend registry's detectPlatform host rules, used to decide
+// whether a URL should take the social path at all (the backend fb fallback
+// would otherwise classify every non-social site as 'fb').
+function isSocialUrl(url: string): boolean {
+  const u = url.toLowerCase();
+  return (
+    u.includes('x.com') ||
+    u.includes('twitter.com') ||
+    u.includes('reddit.com') ||
+    u.includes('youtube.com') ||
+    u.includes('youtu.be') ||
+    u.includes('facebook.com') ||
+    u.includes('fb.com')
+  );
+}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -292,13 +326,13 @@ const AfdaAddWebsiteModal = ({
     Record<string, 'auto' | 'manual'>
   >({});
 
+  // ── Social source state (used when the entered URL is a social platform) ────
+  const [socialPlatform, setSocialPlatform] = useState<string | null>(null);
+  const [socialPreset, setSocialPreset] = useState<string>('every_1h');
+  const [socialAccount, setSocialAccount] = useState<string>('');
+
   const setBridgeError = useCallback((message: string) => {
-    if (isMissingHandlerError(message)) {
-      openAddonManager('afda');
-      setErrorMsg(getMissingAddonMessage('afda'));
-    } else {
-      setErrorMsg(message);
-    }
+    setErrorMsg(message);
     setPhase('error');
   }, []);
 
@@ -313,6 +347,9 @@ const AfdaAddWebsiteModal = ({
     setSelectedSections(new Set());
     setSectionIntervals({});
     setSectionModes({});
+    setSocialPlatform(null);
+    setSocialPreset('every_1h');
+    setSocialAccount('');
     setConfirmingCancel(false);
     clearChannelAnalysis();
     analysisStarted.current = false;
@@ -364,9 +401,39 @@ const AfdaAddWebsiteModal = ({
     const bridge =
       typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
     if (!bridge) {
-      openAddonManager('afda');
-      setErrorMsg(getMissingAddonMessage('afda'));
+      setErrorMsg('Article Fetcher is not available. Please restart Downlodr.');
       setPhase('error');
+      return;
+    }
+
+    // ── Social branch ────────────────────────────────────────────────────────
+    // A social profile (X / Reddit / Facebook / YouTube) has no article
+    // sections, so the mapper does not apply. Skip straight to the social form.
+    if (isSocialUrl(url)) {
+      const platform = bridge.social?.detectPlatform
+        ? undefined // resolved async below
+        : 'fb';
+      // detectPlatform is cheap + sync server-side, but we call it over IPC.
+      Promise.resolve(
+        bridge.social?.detectPlatform
+          ? bridge.social.detectPlatform({ url })
+          : { platform: platform ?? 'fb' },
+      )
+        .then((res: { platform: string }) => {
+          setSocialPlatform(res?.platform ?? 'fb');
+        })
+        .catch(() => setSocialPlatform('fb'));
+      // Default the subscription name to the profile handle.
+      let handle = fqdn;
+      try {
+        const u = new URL(url);
+        handle = u.pathname.split('/').filter(Boolean).pop() || fqdn;
+      } catch {
+        /* keep fqdn */
+      }
+      setWebsiteName(handle);
+      setPhase('social');
+      setErrorMsg(null);
       return;
     }
 
@@ -465,6 +532,84 @@ const AfdaAddWebsiteModal = ({
     );
   }, [mapperResult]);
 
+  // ── Save (social source) ─────────────────────────────────────────────────────
+
+  const handleSaveSocial = useCallback(async () => {
+    const bridge =
+      typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
+    if (!bridge?.social) {
+      setPhase('error');
+      setErrorMsg('Social sources are unavailable in this build');
+      return;
+    }
+    const url = initialUrl?.trim();
+    if (!url) return;
+
+    setPhase('saving');
+    try {
+      // 1. Persist the source (platform auto-detected server-side from the URL).
+      const addRes = await bridge.social.sources.add({
+        url,
+        label: websiteName || url,
+        account: socialAccount.trim() || null,
+      });
+      const source = addRes?.source;
+      if (!addRes?.ok || !source) {
+        throw new Error(addRes?.error || 'Failed to add social source');
+      }
+
+      // 2. Assign the recurring schedule (preset → ScheduleConfig).
+      await bridge.social.schedule.assign({
+        id: source.id,
+        config: { type: 'preset', preset: socialPreset },
+      });
+
+      // 3. Show it in the subscriptions list immediately (re-read so the row
+      //    reflects the assigned schedule/next_run_at).
+      let finalRow = source;
+      try {
+        const fresh = await bridge.social.sources.get({ id: source.id });
+        if (fresh) finalRow = fresh;
+      } catch {
+        /* fall back to the add result */
+      }
+      const savedWebsite = socialSourceToWebsite(finalRow);
+      addWebsite(savedWebsite);
+
+      // 4. Kick off an immediate first scrape so posts show up right away.
+      //    scrapeNow resolves only after posts are stored, so we can mirror them
+      //    into the Downloads-list store immediately rather than waiting for the
+      //    60s poll in useAfdaSocialSync. Best-effort: failures shouldn't block
+      //    subscribing.
+      try {
+        await bridge.social.sources.scrapeNow({ id: source.id });
+        await syncSocialSource(source.id, savedWebsite.id);
+      } catch (err) {
+        console.warn('[AFDA] initial social scrape/sync failed:', err);
+      }
+
+      const savedName = websiteName || url;
+      handleClose();
+      // Pass the store id (`social-<id>`), not the raw numeric id — the detail
+      // route and website store both key social sources by that prefixed id, so
+      // "View Subscription" can navigate to /skedulosa/selected-article/<id>.
+      onSaved?.(savedName, savedWebsite.id);
+    } catch (err) {
+      setPhase('error');
+      setErrorMsg(
+        err instanceof Error ? err.message : 'Failed to add social source',
+      );
+    }
+  }, [
+    initialUrl,
+    websiteName,
+    socialAccount,
+    socialPreset,
+    addWebsite,
+    handleClose,
+    onSaved,
+  ]);
+
   // ── Save ───────────────────────────────────────────────────────────────────
 
   const handleSave = useCallback(async () => {
@@ -473,8 +618,7 @@ const AfdaAddWebsiteModal = ({
     const bridge =
       typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
     if (!bridge) {
-      openAddonManager('afda');
-      setErrorMsg(getMissingAddonMessage('afda'));
+      setErrorMsg('Article Fetcher is not available. Please restart Downlodr.');
       setPhase('error');
       return;
     }
@@ -600,7 +744,7 @@ const AfdaAddWebsiteModal = ({
                   website.id,
                   new Date().toISOString(),
                   article.heroImage ?? null,
-                  undefined,
+                  String(data.section_id),
                   article.published_at ?? null,
                 );
               } else {
@@ -698,18 +842,27 @@ const AfdaAddWebsiteModal = ({
               Retry
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={phase !== 'sections' || selectedSections.size === 0}
-              className={`flex-1 max-w-[300px] text-white py-1.5 rounded-md text-sm ${
-                phase === 'sections' && selectedSections.size > 0
-                  ? 'bg-primary hover:opacity-90 dark:hover:opacity-75'
-                  : 'bg-primary/50 cursor-not-allowed'
-              }`}
-            >
-              {phase === 'saving' ? 'Subscribing…' : 'Subscribe'}
-            </button>
+            (() => {
+              const canSubmitSections =
+                phase === 'sections' && selectedSections.size > 0;
+              const canSubmitSocial =
+                phase === 'social' && !!websiteName.trim();
+              const canSubmit = canSubmitSections || canSubmitSocial;
+              return (
+                <button
+                  type="button"
+                  onClick={phase === 'social' ? handleSaveSocial : handleSave}
+                  disabled={!canSubmit}
+                  className={`flex-1 max-w-[300px] text-white py-1.5 rounded-md text-sm ${
+                    canSubmit
+                      ? 'bg-primary hover:opacity-90 dark:hover:opacity-75'
+                      : 'bg-primary/50 cursor-not-allowed'
+                  }`}
+                >
+                  {phase === 'saving' ? 'Subscribing…' : 'Subscribe'}
+                </button>
+              );
+            })()
           )}
         </>
       )}
@@ -735,6 +888,76 @@ const AfdaAddWebsiteModal = ({
           <div className="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-md px-3 py-2">
             {errorMsg}
           </div>
+        </div>
+      )}
+
+      {/* ── Social source form ── */}
+      {(phase === 'social' || (phase === 'saving' && socialPlatform)) && (
+        <div className="flex flex-col gap-3 pt-0 p-4">
+          {/* Detected platform banner */}
+          <div className="flex items-center gap-2 text-xs bg-primary/10 text-primary rounded-md px-3 py-2">
+            <FiCheck size={12} strokeWidth={3} />
+            Detected{' '}
+            {socialPlatform
+              ? SOCIAL_PLATFORM_LABELS[socialPlatform] ?? socialPlatform
+              : 'social'}{' '}
+            profile — this will be tracked as a social source (no sections).
+          </div>
+
+          {/* Subscription name */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400">
+              Subscription Name
+            </label>
+            <input
+              type="text"
+              value={websiteName}
+              onChange={(e) => setWebsiteName(e.target.value)}
+              className="w-full text-xs px-3 py-2 rounded-md border border-gray-200 dark:border-gray-600 bg-[#F3F3F3] dark:bg-darkModeCompliment text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          {/* Check frequency */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400">
+              Check Frequency
+            </label>
+            <select
+              value={socialPreset}
+              onChange={(e) => setSocialPreset(e.target.value)}
+              className="w-full text-xs px-3 py-2 rounded-md border border-gray-200 dark:border-gray-600 bg-[#F3F3F3] dark:bg-darkModeCompliment text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              {SOCIAL_PRESETS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Login account (optional — needed for FB/X private/paywalled) */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400">
+              Login Account{' '}
+              <span className="text-gray-400 dark:text-gray-500">
+                (optional — required for some Facebook/X profiles)
+              </span>
+            </label>
+            <input
+              type="text"
+              value={socialAccount}
+              placeholder="accounts.json username"
+              onChange={(e) => setSocialAccount(e.target.value)}
+              className="w-full text-xs px-3 py-2 rounded-md border border-gray-200 dark:border-gray-600 bg-[#F3F3F3] dark:bg-darkModeCompliment text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          {phase === 'saving' && (
+            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 rounded-md px-3 py-2">
+              <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
+              Adding social source…
+            </div>
+          )}
         </div>
       )}
 

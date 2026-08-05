@@ -9,6 +9,7 @@ lerna-debug.log*
 # Dev notes
 CLAUDE.md
 corrections.txt
+.claude/
 
 # Maven
 target/
@@ -31,6 +32,11 @@ TEST*.xml
 # Exception for specific exe file
 !yt-dlp.exe
 
+# macOS/Linux yt-dlp binaries — not bundled by forge.config.ts and not used
+# by CI; ytdlpHandler downloads them into userData at runtime
+yt-dlp_macos
+yt-dlp_linux
+
 # Large media files
 *.mp4
 *.tiff
@@ -49,6 +55,7 @@ src/skedulosa/backend/1/
 src/skedulosa/backend/examples/
 src/afda/backend/afda-backend/
 src/afda/backend/afda-backend__hidden/
+src/smart-organize/backend/smart-organize-backend__hidden/
 src/assets/logo/old/
 
 # AFDA desktop UI
@@ -110,6 +117,22 @@ typings/
 .env
 .env.test
 
+# private dev packages — cloned locally, never committed
+src/afda/backend/dummy/afda-backend__hidden/
+src/afda/backend/afda-backend__hidden/
+src/skedulosa/backend/
+src/smart-organize/backend/
+
+# internal engineering notes — describe private backend internals
+BUILD_FIX_NOTES.md
+docs/video-nemesis-toolkit-cleanup-fix.md
+src/skedulosa/docs/
+updates-to-backend.md
+ytdlp-spawn-fixes.md
+
+# lint/tooling output — contains absolute local paths
+lint-output.txt
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 
@@ -144,3 +167,15 @@ out/
 newSrc/
 extensions/whisper-x-extension
 extensions/yt-dlp-extension
+
+# Generated: Claude Code Agent Skills installed at startup from src/chat/claude-skills (chatHandler.ts)
+/.claude/skills/downlodr-*/
+/.claude/skills/.downlodr-skills-version
+
+# auto-tag local eval harness (do not commit)
+src/auto-tag/.temp/
+
+# local git worktrees (do not commit)
+/.worktrees/
+
+.superpowers/

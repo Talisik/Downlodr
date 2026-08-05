@@ -113,7 +113,7 @@ export class FFmpegWhisperTranscriber {
           title: 'Transcription Error',
           description: errorMessage,
           variant: 'destructive',
-          duration: 7000,
+          duration: 5000,
         });
       }
       ui?.onError?.(errorMessage);
@@ -143,7 +143,7 @@ export class FFmpegWhisperTranscriber {
           title: 'No File Selected',
           description: 'Please select a video or audio file to transcribe.',
           variant: 'destructive',
-          duration: 3000,
+          duration: 5000,
         });
         return {
           success: false,
@@ -171,7 +171,7 @@ export class FFmpegWhisperTranscriber {
         title: 'Transcription Error',
         description: errorMessage,
         variant: 'destructive',
-        duration: 7000,
+        duration: 5000,
       });
 
       return {
@@ -217,7 +217,7 @@ export class FFmpegWhisperTranscriber {
               ? validationError.message
               : String(validationError),
           variant: 'destructive',
-          duration: 7000,
+          duration: 5000,
         });
         const errorMessage =
           validationError instanceof Error
@@ -299,7 +299,7 @@ export class FFmpegWhisperTranscriber {
                 title: 'Progress Error',
                 description: 'Failed to parse progress data',
                 variant: 'destructive',
-                duration: 7000,
+                duration: 5000,
               });
               // Not JSON, treat as raw progress line (backward compatibility)
             }
@@ -354,7 +354,7 @@ export class FFmpegWhisperTranscriber {
         title: 'Transcription Error',
         description: error instanceof Error ? error.message : String(error),
         variant: 'destructive',
-        duration: 7000,
+        duration: 5000,
       });
       // Clean up progress listener
       if (progressCleanup) {

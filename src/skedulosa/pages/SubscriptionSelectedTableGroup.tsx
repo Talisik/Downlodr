@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { Play, Stop, StopAll } from '@/assets/icon';
+import { Play, Stop } from '@/assets/icon';
 import { Button } from '@/core-app/components/shadcn/components/ui/button';
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { cn } from '@/core-app/components/shadcn/lib/utils';
@@ -10,19 +10,25 @@ import TaskbarInputField from '@/downlodr/components/base/InputField/TaskbarInpu
 import DownloadContextMenu from '@/downlodr/components/contextMenu/DownloadContextMenu';
 import SidePanels from '@/downlodr/components/panels/SidePanels';
 import { useSidePanels } from '@/downlodr/hooks/useSidePanels';
+import BulkTranscriptModal from '@/downlodr/components/modal/custom/BulkTranscriptModal';
 import RemoveModal from '@/downlodr/components/modal/custom/RemoveModal';
 import RenameModal from '@/downlodr/components/modal/custom/RenameModal';
 import StopModal from '@/downlodr/components/modal/custom/StopModal';
 import VideoPlayerPanel from '@/downlodr/components/panel/VideoPlayerPanel';
+import { useWindowSize } from '@/downlodr/pages/status/statusPageHooks';
 import { StatusPageTableHeader } from '@/downlodr/pages/status/StatusPageTableHeader';
 import { StatusPageTableRow } from '@/downlodr/pages/status/StatusPageTableRow';
 import type {
   DisplayColumn,
   SearchableDownload,
 } from '@/downlodr/pages/status/statusPageTypes';
-import { formatRelativeTime } from '@/downlodr/pages/status/statusPageUtils';
+import {
+  formatRelativeTime,
+  sortDownloadsByColumn,
+} from '@/downlodr/pages/status/statusPageUtils';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
+import { enqueueTranscript } from '@/downlodr/utils/transcription/transcriptQueue';
 import { usePluginStore } from '@/plugins/store/pluginStore';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
 import React, {
@@ -32,6 +38,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { FaRegClosedCaptioning } from 'react-icons/fa';
 import { FaArrowLeft } from 'react-icons/fa6';
 import { LuChevronLeft, LuChevronRight, LuTrash } from 'react-icons/lu';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -39,19 +46,18 @@ import { useNavigate, useParams } from 'react-router-dom';
 const COLUMNS: DisplayColumn[] = [
   {
     id: 'name',
-    width: Math.max(Math.floor(window.innerWidth * 0.4), 220),
-    minWidth: 220,
+    width: Math.max(Math.floor(window.innerWidth * 0.3), 200),
+    minWidth: 200,
   },
   { id: 'status', width: 100, minWidth: 100 },
   { id: 'format', width: 90, minWidth: 90 },
   { id: 'size', width: 70, minWidth: 70 },
   { id: 'speed', width: 70, minWidth: 70 },
-  { id: 'source', width: 50, minWidth: 50 },
+  { id: 'transcript', width: 40, minWidth: 40 },
   { id: 'dateAdded', width: 100, minWidth: 100 },
+  { id: 'uploadedOn', width: 100, minWidth: 100 },
   { id: 'action', width: 60, minWidth: 60 },
 ];
-
-const PAGE_SIZE = 10;
 
 const SubscriptionSelectedTableGroup: React.FC = () => {
   const { subscriptionId } = useParams<{ subscriptionId: string }>();
@@ -88,13 +94,29 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
   const { settings } = useSettingStore();
   const searchState = useTaskbarDownloadStore((s) => s.searchState);
 
-  const [sortColumn] = useState('dateAdded');
-  const [sortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortColumn, setSortColumn] = useState('dateAdded');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const handleSortClick = useCallback(
+    (columnId: string) => {
+      if (columnId === sortColumn) {
+        setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      } else {
+        setSortColumn(columnId);
+        setSortDirection('desc');
+      }
+    },
+    [sortColumn],
+  );
+  const { windowHeight } = useWindowSize();
+  const PAGE_SIZE = windowHeight >= 1000 ? 20 : windowHeight >= 800 ? 15 : 10;
   const [currentPage, setCurrentPage] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Bulk action modals
   const [showBulkRemoveModal, setShowBulkRemoveModal] = useState(false);
+  const [showBulkTranscriptConfirmation, setShowBulkTranscriptConfirmation] =
+    useState(false);
   const [showStopConfirmation, setShowStopConfirmation] = useState(false);
   const [stopAction, setStopAction] = useState<
     'selected' | 'all' | 'single' | null
@@ -172,36 +194,66 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
     ),
   );
 
-  const hasDownloadingStatus = downloads.some((d) =>
-    downloading.some(
-      (dl) =>
-        dl.id === d.id &&
-        (dl.status === 'downloading' ||
-          dl.status === 'initializing' ||
-          dl.status === 'paused'),
-    ),
+  const isTranscriptMissing = (
+    transcriptLocation: string | undefined,
+    autoCaptionLocation: string | undefined,
+  ): boolean => {
+    const resolvedLocation =
+      typeof transcriptLocation === 'string'
+        ? transcriptLocation
+        : autoCaptionLocation;
+    const isValid =
+      !!resolvedLocation &&
+      resolvedLocation.trim() !== '' &&
+      resolvedLocation !== 'iu' &&
+      resolvedLocation !== 'fu';
+    return !isValid;
+  };
+
+  const eligibleSelectedDownloads = useMemo(
+    () =>
+      selectedRowIds
+        .map((id) => finishedDownloads.find((fd) => fd.id === id))
+        .filter(
+          (fd): fd is (typeof finishedDownloads)[0] =>
+            fd !== undefined &&
+            fd.status === 'finished' &&
+            fd.transcriptionStatus !== 'transcribing' &&
+            fd.transcriptionStatus !== 'queued' &&
+            isTranscriptMissing(fd.transcriptLocation, fd.autoCaptionLocation),
+        ),
+    [selectedRowIds, finishedDownloads],
   );
 
   const filteredDownloads = useMemo(() => {
-    if (!searchState.isSearchActive || !searchState.searchQuery.trim()) {
-      return downloads;
-    }
-    const query = searchState.searchQuery.toLowerCase();
-    return downloads.filter(
-      (d) =>
-        d.name?.toLowerCase().includes(query) ||
-        d.displayName?.toLowerCase().includes(query) ||
-        d.channelName?.toLowerCase().includes(query) ||
-        d.extractorKey?.toLowerCase().includes(query) ||
-        d.status?.toLowerCase().includes(query) ||
-        d.tags?.some((t) => t.toLowerCase().includes(query)) ||
-        d.category?.some((c) => c.toLowerCase().includes(query)),
-    );
-  }, [downloads, searchState.isSearchActive, searchState.searchQuery]);
+    const base =
+      !searchState.isSearchActive || !searchState.searchQuery.trim()
+        ? downloads
+        : (() => {
+            const query = searchState.searchQuery.toLowerCase();
+            return downloads.filter(
+              (d) =>
+                d.name?.toLowerCase().includes(query) ||
+                d.displayName?.toLowerCase().includes(query) ||
+                d.channelName?.toLowerCase().includes(query) ||
+                d.extractorKey?.toLowerCase().includes(query) ||
+                d.status?.toLowerCase().includes(query) ||
+                d.tags?.some((t) => t.toLowerCase().includes(query)) ||
+                d.category?.some((c) => c.toLowerCase().includes(query)),
+            );
+          })();
+    return sortDownloadsByColumn(base, sortColumn, sortDirection);
+  }, [
+    downloads,
+    searchState.isSearchActive,
+    searchState.searchQuery,
+    sortColumn,
+    sortDirection,
+  ]);
 
   useEffect(() => {
     setCurrentPage(0);
-  }, [filteredDownloads.length]);
+  }, [filteredDownloads.length, PAGE_SIZE]);
 
   const totalPages = Math.ceil(filteredDownloads.length / PAGE_SIZE);
   const pageStart = currentPage * PAGE_SIZE + 1;
@@ -286,6 +338,7 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
         channelName: download.channelName ?? '',
         timeLeft: download.timeLeft ?? '',
         DateAdded: new Date().toISOString(),
+        uploadDate: download.uploadDate,
         progress: 0,
         location: download.location ?? '',
         status: 'downloading',
@@ -303,11 +356,13 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
         thumnailsLocation: download.thumnailsLocation ?? '',
         autoCaptionLocation: download.autoCaptionLocation ?? '',
         isCreateFolder: false,
+        tags: download.tags,
+        category: download.category,
       });
       deleteDownload(downloadId);
       setSelectedRowIds([]);
       setSelectedDownloads([]);
-      toast({ variant: 'success', title: 'Download retried', duration: 3000 });
+      toast({ variant: 'success', title: 'Download retried', duration: 5000 });
     },
     [downloads, setSelectedRowIds, setSelectedDownloads],
   );
@@ -336,6 +391,7 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
           channelName: currentDownload.channelName ?? '',
           timeLeft: currentDownload.timeLeft ?? '',
           DateAdded: new Date().toISOString(),
+          uploadDate: currentDownload.uploadDate,
           progress: 0,
           location: currentDownload.location ?? '',
           status: 'queued',
@@ -353,6 +409,9 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
           duration: currentDownload.duration ?? 60,
           isCreateFolder: false,
           subscriptionId: currentDownload.subscriptionId,
+          tags: currentDownload.tags,
+          category: currentDownload.category,
+          isLive: currentDownload.isLive,
         });
         deleteDownloading(downloadId);
       } else if (currentDownload.controllerId) {
@@ -387,6 +446,38 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
       }
     },
     [downloads],
+  );
+
+  const handleViewFile = useCallback(
+    async (downloadLocation?: string, _downloadId?: string) => {
+      if (!downloadLocation) {
+        toast({
+          variant: 'destructive',
+          title: 'No download location',
+          description: 'The transcript location could not be found.',
+          duration: 5000,
+        });
+        return;
+      }
+      try {
+        const exists = await window.downlodrFunctions.fileExists(
+          downloadLocation,
+        );
+        if (exists) {
+          window.downlodrFunctions.openVideo(downloadLocation);
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'No download location',
+            description: 'The transcript location could not be found.',
+            duration: 5000,
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+    },
+    [],
   );
 
   const handleViewFolder = useCallback(
@@ -448,7 +539,7 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
         toast({
           variant: 'success',
           title: 'Download removed',
-          duration: 3000,
+          duration: 5000,
         });
         setShowContextRemoveModal(false);
         setContextRemoveTarget(null);
@@ -461,7 +552,7 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
         toast({
           variant: 'success',
           title: 'Download removed',
-          duration: 3000,
+          duration: 5000,
         });
         setShowContextRemoveModal(false);
         setContextRemoveTarget(null);
@@ -519,7 +610,7 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
         }
       }
       deleteDownload(downloadId);
-      toast({ variant: 'success', title: 'Download removed', duration: 3000 });
+      toast({ variant: 'success', title: 'Download removed', duration: 5000 });
       setShowContextRemoveModal(false);
       setContextRemoveTarget(null);
     },
@@ -599,7 +690,7 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
             variant: 'success',
             title: 'Download removed',
             description: 'Pending download removed.',
-            duration: 3000,
+            duration: 5000,
           });
           continue;
         }
@@ -611,7 +702,7 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
             variant: 'success',
             title: 'Download removed',
             description: 'Failed download removed.',
-            duration: 3000,
+            duration: 5000,
           });
           continue;
         }
@@ -623,7 +714,7 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
             variant: 'success',
             title: 'Download removed',
             description: 'Queued download removed.',
-            duration: 3000,
+            duration: 5000,
           });
           continue;
         }
@@ -677,7 +768,7 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
           variant: 'success',
           title: 'Download removed',
           description: 'Download removed successfully.',
-          duration: 3000,
+          duration: 5000,
         });
       }
     },
@@ -700,7 +791,7 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
         variant: 'destructive',
         title: 'No downloads to start',
         description: 'Select downloads with "to download" status.',
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
@@ -720,6 +811,7 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
         channelName: d.channelName ?? '',
         timeLeft: d.timeLeft ?? '',
         DateAdded: new Date().toISOString(),
+        uploadDate: d.uploadDate,
         progress: d.progress ?? 0,
         location: d.location ?? '',
         status: 'queued',
@@ -738,6 +830,9 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
         getThumbnail: d.getThumbnail ?? false,
         duration: d.duration ?? 60,
         isCreateFolder: true,
+        tags: d.tags,
+        category: d.category,
+        isLive: (d as { isLive?: boolean }).isLive,
       });
       removeFromForDownloads(d.id);
     }
@@ -757,7 +852,7 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
         variant: 'destructive',
         title: 'No downloads selected',
         description: 'Select a download to stop.',
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
@@ -765,19 +860,40 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
     setShowStopConfirmation(true);
   }, [selectedRowIds]);
 
-  const handleStopAll = useCallback(() => {
-    if (!hasDownloadingStatus) {
+  const handleBatchTranscript = useCallback(() => {
+    if (eligibleSelectedDownloads.length === 0) {
       toast({
         variant: 'destructive',
-        title: 'No active downloads',
-        description: 'There are no active downloads for this subscription.',
-        duration: 3000,
+        title: 'No eligible downloads',
+        description:
+          'Select finished downloads without an existing transcript.',
+        duration: 5000,
       });
       return;
     }
-    setStopAction('all');
-    setShowStopConfirmation(true);
-  }, [hasDownloadingStatus]);
+    setShowBulkTranscriptConfirmation(true);
+  }, [eligibleSelectedDownloads]);
+
+  const runBatchTranscript = useCallback(() => {
+    const downloadsToProcess = [...eligibleSelectedDownloads];
+    setSelectedRowIds([]);
+
+    for (const download of downloadsToProcess) {
+      enqueueTranscript({
+        downloadId: download.id,
+        location: download.location,
+        downloadName: download.downloadName,
+      });
+    }
+
+    toast({
+      title: 'Transcription started',
+      description: `Generating transcripts for ${
+        downloadsToProcess.length
+      } download${downloadsToProcess.length !== 1 ? 's' : ''}.`,
+      duration: 5000,
+    });
+  }, [eligibleSelectedDownloads, setSelectedRowIds]);
 
   const handleStopConfirm = useCallback(async () => {
     const {
@@ -903,169 +1019,178 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
   return (
     <div className="h-full flex overflow-hidden">
       <div className="flex flex-col overflow-hidden bg-white dark:bg-darkModeTable rounded-md gap-3 py-2 px-4 flex-1 min-w-0">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300 transition-colors mr-2 border px-2 py-1 rounded text-gray-700 dark:text-gray-300 text-[11px] font-extrabold"
-            >
-              <span>
-                <FaArrowLeft />
-              </span>
-              <span>Back</span>
-            </button>
-            <button
-              onClick={() => navigate('/status/all')}
-              className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors font-medium"
-            >
-              Downloads
-            </button>
-            <span>/</span>
-            <button
-              onClick={() => navigate('/status/subscriptions')}
-              className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors font-medium"
-            >
-              Subscriptions
-            </button>
-            <span>/</span>
-            <span className="text-gray-700 dark:text-gray-300 font-bold">
-              {sourceName}
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300 transition-colors mr-2 border px-2 py-1 rounded text-gray-700 dark:text-gray-300 text-[11px] font-extrabold"
+          >
+            <span>
+              <FaArrowLeft />
             </span>
-            <div className="ml-auto flex items-center gap-2">
-              <TooltipWrapper
-                content={
-                  hasForDownloadStatus
-                    ? 'Start download'
-                    : "No downloads with 'to download' status selected"
-                }
-                side="bottom"
-              >
-                <div>
-                  <Button
-                    variant="transparent"
-                    size="icon"
-                    className={cn(
-                      'rounded-md h-7 flex items-center justify-center p-[2px] dark:bg-transparent',
-                      hasForDownloadStatus
-                        ? 'dark:text-gray-100'
-                        : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
-                    )}
-                    onClick={handleBulkDownload}
-                    disabled={!hasForDownloadStatus}
-                    icon={<Play />}
-                  />
-                </div>
-              </TooltipWrapper>
-              <TooltipWrapper
-                content={
-                  hasActiveDownloadStatus
-                    ? 'Stop selected downloads'
-                    : 'No active downloads selected'
-                }
-                side="bottom"
-              >
-                <div>
-                  <Button
-                    variant="transparent"
-                    size="icon"
-                    className={cn(
-                      'rounded-md h-7 flex items-center justify-center p-[2px] bg-[#f9f9f9] dark:bg-transparent hover:bg-gray-100 dark:hover:bg-darkModeHover',
-                      hasActiveDownloadStatus
-                        ? 'dark:text-gray-100'
-                        : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
-                    )}
-                    onClick={handleStopSelected}
-                    disabled={!hasActiveDownloadStatus}
-                    icon={<Stop />}
-                  />
-                </div>
-              </TooltipWrapper>
-              <TooltipWrapper
-                content={
-                  hasDownloadingStatus
-                    ? 'Stop all downloads for this subscription'
-                    : 'No active downloads'
-                }
-                side="bottom"
-              >
-                <div>
-                  <Button
-                    variant="transparent"
-                    size="icon"
-                    className={cn(
-                      'rounded-md h-7 flex items-center justify-center p-[2px] bg-[#f9f9f9] dark:bg-transparent hover:bg-gray-100 dark:hover:bg-darkModeHover',
-                      hasDownloadingStatus
-                        ? 'dark:text-gray-100'
-                        : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
-                    )}
-                    onClick={handleStopAll}
-                    disabled={!hasDownloadingStatus}
-                    icon={<StopAll className="w-[16px] h-[16px]" />}
-                  />
-                </div>
-              </TooltipWrapper>
-              <TooltipWrapper content="Remove selected downloads" side="bottom">
+            <span>Back</span>
+          </button>
+          <button
+            onClick={() => navigate('/status/all')}
+            className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors font-medium"
+          >
+            Downloads
+          </button>
+          <span>/</span>
+          <button
+            onClick={() =>
+              navigate('/status/all', {
+                state: { presetTypeFilter: 'subscriptions' },
+              })
+            }
+            className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors font-medium"
+          >
+            Subscriptions
+          </button>
+          <span>/</span>
+          <span className="text-gray-700 dark:text-gray-300 font-bold">
+            {sourceName}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <TooltipWrapper
+              content={
+                hasForDownloadStatus
+                  ? 'Start download'
+                  : "No downloads with 'to download' status selected"
+              }
+              side="bottom"
+            >
+              <div>
                 <Button
                   variant="transparent"
                   size="icon"
-                  className="text-[12px] text-white rounded-md h-6 flex items-center justify-center px-2 py-[2px] bg-[#FF4F45] hover:bg-red-200 dark:hover:bg-red-900/40"
-                  onClick={() => setShowBulkRemoveModal(true)}
-                  disabled={selectedRowIds.length === 0}
-                  icon={
-                    <LuTrash size={13} className="text-white dark:text-white" />
-                  }
-                >
-                  Delete
-                </Button>
-              </TooltipWrapper>
-              <div className="mr-3 w-[550px] [&>div]:max-w-full">
-                <TaskbarInputField />
+                  className={cn(
+                    'rounded-md h-7 flex items-center justify-center p-[2px] dark:bg-transparent',
+                    hasForDownloadStatus
+                      ? 'dark:text-gray-100'
+                      : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
+                  )}
+                  onClick={handleBulkDownload}
+                  disabled={!hasForDownloadStatus}
+                  icon={<Play />}
+                />
               </div>
+            </TooltipWrapper>
+            <TooltipWrapper
+              content={
+                hasActiveDownloadStatus
+                  ? 'Stop selected downloads'
+                  : 'No active downloads selected'
+              }
+              side="bottom"
+            >
+              <div>
+                <Button
+                  variant="transparent"
+                  size="icon"
+                  className={cn(
+                    'rounded-md h-7 flex items-center justify-center p-[2px] bg-[#f9f9f9] dark:bg-transparent hover:bg-gray-100 dark:hover:bg-darkModeHover',
+                    hasActiveDownloadStatus
+                      ? 'dark:text-gray-100'
+                      : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
+                  )}
+                  onClick={handleStopSelected}
+                  disabled={!hasActiveDownloadStatus}
+                  icon={<Stop />}
+                />
+              </div>
+            </TooltipWrapper>
+            <TooltipWrapper
+              content={
+                eligibleSelectedDownloads.length > 0
+                  ? 'Generate captions'
+                  : 'Select finished downloads without a transcript'
+              }
+              side="bottom"
+            >
+              <div>
+                <Button
+                  variant="transparent"
+                  size="icon"
+                  className={cn(
+                    'rounded-md h-7 flex items-center justify-center p-[2px] bg-[#f9f9f9] dark:bg-transparent hover:bg-gray-100 dark:hover:bg-darkModeHover',
+                    eligibleSelectedDownloads.length > 0
+                      ? 'dark:text-gray-100'
+                      : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
+                  )}
+                  onClick={handleBatchTranscript}
+                  disabled={eligibleSelectedDownloads.length === 0}
+                  icon={
+                    <FaRegClosedCaptioning
+                      size={16}
+                      className="text-gray-700 dark:text-gray-300 hover:dark:text-gray-100"
+                    />
+                  }
+                />
+              </div>
+            </TooltipWrapper>
+            <TooltipWrapper content="Remove selected downloads" side="bottom">
+              <Button
+                variant="transparent"
+                size="icon"
+                className="text-[12px] text-white rounded-md h-6 flex items-center justify-center px-2 py-[2px] bg-[#FF4F45] hover:bg-red-200 dark:hover:bg-red-900/40"
+                onClick={() => setShowBulkRemoveModal(true)}
+                disabled={selectedRowIds.length === 0}
+                icon={
+                  <LuTrash size={13} className="text-white dark:text-white" />
+                }
+              >
+                Delete
+              </Button>
+            </TooltipWrapper>
+            <div className="mr-3 w-[550px] [&>div]:max-w-full">
+              <TaskbarInputField />
             </div>
           </div>
-          <div className="flex flex-row overflow-hidden flex-1 min-w-0">
-            <div className="flex flex-col overflow-hidden flex-1 min-w-0">
-                  <div className="flex items-center gap-4 pb-2 flex-shrink-0">
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt={sourceName}
-                        className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex-shrink-0" />
-                    )}
-                    <div className="flex flex-col gap-0.5">
-                      <div className="flex gap-1 items-center">
-                        <span className="font-bold bg-primary text-white px-2 py-0.5 rounded text-[10.5px]">
-                          Sub
-                        </span>
-                        <span className="font-extrabold text-gray-800 dark:text-gray-100 text-sm">
-                          {sourceName}
-                        </span>
-                      </div>
-                      <div className="flex gap-1.5 items-center">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {downloads.length} video
-                          {downloads.length !== 1 ? 's' : ''}
-                        </div>
-                        <div className="font-extrabold text-gray-700 dark:text-gray-100 text-[8px]">
-                          •
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          Last checked:{' '}
-                          {subscription?.last_checked_time
-                            ? formatRelativeTime(subscription.last_checked_time)
-                            : subscription?.date_created
-                            ? formatRelativeTime(subscription.date_created)
-                            : 'N/A'}
-                        </div>
-                      </div>
-                    </div>
+        </div>
+        <div className="flex flex-row overflow-hidden flex-1 min-w-0">
+          <div className="flex flex-col overflow-hidden flex-1 min-w-0">
+            <div className="flex items-center gap-4 pb-2 flex-shrink-0">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={sourceName}
+                  className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex-shrink-0" />
+              )}
+              <div className="flex flex-col gap-0.5">
+                <div className="flex gap-1 items-center">
+                  <span className="font-bold bg-primary text-white px-2 py-0.5 rounded text-[10.5px]">
+                    Sub
+                  </span>
+                  <span className="font-extrabold text-gray-800 dark:text-gray-100 text-sm">
+                    {sourceName}
+                  </span>
+                </div>
+                <div className="flex gap-1.5 items-center">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {downloads.length} video
+                    {downloads.length !== 1 ? 's' : ''}
                   </div>
+                  <div className="font-extrabold text-gray-700 dark:text-gray-100 text-[8px]">
+                    •
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Last checked:{' '}
+                    {subscription?.last_checked_time
+                      ? formatRelativeTime(subscription.last_checked_time)
+                      : subscription?.date_created
+                      ? formatRelativeTime(subscription.date_created)
+                      : 'N/A'}
+                  </div>
+                </div>
+              </div>
+            </div>
 
                   {/* Table + Pagination */}
                   <div className="flex-1 flex flex-col overflow-hidden min-w-0 border-t-2 dark:border-darkModeTableBorder">
@@ -1098,7 +1223,7 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
                                 ),
                               )
                             }
-                            onSortClick={() => {}}
+                            onSortClick={handleSortClick}
                             onResizeStart={() => {}}
                             startDragging={() => {}}
                             onDragOver={() => {}}
@@ -1124,7 +1249,8 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
                                     setSelectedDownloadId(download.id),
                                   onCheckboxChange: () =>
                                     handleCheckboxChange(download.id),
-                                  onViewFile: () => {},
+                                  onViewFile: (location, downloadId) =>
+                                    handleViewFile(location, downloadId),
                                   onViewDownload: (location, downloadId) =>
                                     handleViewDownload(location, downloadId),
                                   onViewFolder: (location, name) =>
@@ -1181,85 +1307,89 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Modals */}
-                  <RemoveModal
-                    isOpen={showBulkRemoveModal}
-                    onClose={() => setShowBulkRemoveModal(false)}
-                    onConfirm={(deleteFolder) => {
-                      handleBulkRemove(deleteFolder);
-                      setShowBulkRemoveModal(false);
-                    }}
-                    allowFolderDeletion={true}
-                  />
-                  <RemoveModal
-                    isOpen={showContextRemoveModal}
-                    onClose={() => {
-                      setShowContextRemoveModal(false);
-                      setContextRemoveTarget(null);
-                    }}
-                    onConfirm={(deleteFolder) => {
-                      handleContextRemoveConfirm(deleteFolder);
-                    }}
-                    allowFolderDeletion={true}
-                  />
-                  <StopModal
-                    isOpen={showStopConfirmation}
-                    onClose={() => {
-                      setShowStopConfirmation(false);
-                      setStopAction(null);
-                      setSingleStopTarget(null);
-                    }}
-                    onConfirm={() => handleStopConfirm()}
-                  />
-                  <RenameModal
-                    isOpen={showRenameModal}
-                    onClose={() => {
-                      setShowRenameModal(false);
-                      setRenameDownloadId('');
-                      setRenameCurrentName('');
-                    }}
-                    onRename={performRename}
-                    currentName={renameCurrentName}
-                  />
-                </div>
-              <SidePanels {...sidePanels} />
-            {/* Video player panel */}
-            {videoPlayerState.isOpen && videoPlayerState.download && (
-              <VideoPlayerPanel
-                isOpen={true}
-                onClose={() =>
-                  setVideoPlayerState({ isOpen: false, download: null })
-                }
-                videoUrl={videoPlayerState.download.videoUrl ?? ''}
-                title={
-                  videoPlayerState.download.displayName ??
-                  videoPlayerState.download.name ??
-                  ''
-                }
-                autoCaptionLocation={
-                  videoPlayerState.download.autoCaptionLocation
-                }
-                transcriptLocation={
-                  videoPlayerState.download.transcriptLocation
-                }
-                displayName={videoPlayerState.download.displayName}
-                dateAdded={videoPlayerState.download.DateAdded}
-                location={videoPlayerState.download.location}
-                tags={videoPlayerState.download.tags}
-                category={videoPlayerState.download.category}
-                status={videoPlayerState.download.status}
-                downloadName={videoPlayerState.download.name}
-                ext={videoPlayerState.download.ext}
-                duration={videoPlayerState.download.duration}
-                size={videoPlayerState.download.size}
-                extractorKey={videoPlayerState.download.extractorKey}
-                downloadId={videoPlayerState.download.id}
-                width={panelWidth}
-                onWidthChange={setPanelWidth}
-              />
-            )}
+            {/* Modals */}
+            <RemoveModal
+              isOpen={showBulkRemoveModal}
+              onClose={() => setShowBulkRemoveModal(false)}
+              onConfirm={(deleteFolder) => {
+                handleBulkRemove(deleteFolder);
+                setShowBulkRemoveModal(false);
+              }}
+              allowFolderDeletion={true}
+            />
+            <RemoveModal
+              isOpen={showContextRemoveModal}
+              onClose={() => {
+                setShowContextRemoveModal(false);
+                setContextRemoveTarget(null);
+              }}
+              onConfirm={(deleteFolder) => {
+                handleContextRemoveConfirm(deleteFolder);
+              }}
+              allowFolderDeletion={true}
+            />
+            <StopModal
+              isOpen={showStopConfirmation}
+              onClose={() => {
+                setShowStopConfirmation(false);
+                setStopAction(null);
+                setSingleStopTarget(null);
+              }}
+              onConfirm={() => handleStopConfirm()}
+            />
+            <RenameModal
+              isOpen={showRenameModal}
+              onClose={() => {
+                setShowRenameModal(false);
+                setRenameDownloadId('');
+                setRenameCurrentName('');
+              }}
+              onRename={performRename}
+              currentName={renameCurrentName}
+            />
+            <BulkTranscriptModal
+              isOpen={showBulkTranscriptConfirmation}
+              onClose={() => setShowBulkTranscriptConfirmation(false)}
+              onConfirm={runBatchTranscript}
+              count={eligibleSelectedDownloads.length}
+            />
           </div>
+          <SidePanels {...sidePanels} />
+          {/* Video player panel */}
+          {videoPlayerState.isOpen && videoPlayerState.download && (
+            <VideoPlayerPanel
+              isOpen={true}
+              onClose={() =>
+                setVideoPlayerState({ isOpen: false, download: null })
+              }
+              videoUrl={videoPlayerState.download.videoUrl ?? ''}
+              title={
+                videoPlayerState.download.displayName ??
+                videoPlayerState.download.name ??
+                ''
+              }
+              autoCaptionLocation={
+                videoPlayerState.download.autoCaptionLocation
+              }
+              transcriptLocation={videoPlayerState.download.transcriptLocation}
+              displayName={videoPlayerState.download.displayName}
+              dateAdded={videoPlayerState.download.DateAdded}
+              location={videoPlayerState.download.location}
+              tags={videoPlayerState.download.tags}
+              category={videoPlayerState.download.category}
+              status={videoPlayerState.download.status}
+              downloadName={videoPlayerState.download.name}
+              ext={videoPlayerState.download.ext}
+              duration={videoPlayerState.download.duration}
+              size={videoPlayerState.download.size}
+              extractorKey={videoPlayerState.download.extractorKey}
+              downloadId={videoPlayerState.download.id}
+              width={panelWidth}
+              onWidthChange={setPanelWidth}
+            />
+          )}
         </div>
+      </div>
 
       {activeContextDownload && (
         <DownloadContextMenu

@@ -166,7 +166,7 @@ const History = () => {
         variant: 'success',
         title: 'Download Log Deleted',
         description: 'Your download log has been deleted successfully',
-        duration: 3000,
+        duration: 5000,
       });
     } catch (error) {
       console.error('Error deleting:', error);
@@ -228,7 +228,7 @@ const History = () => {
           description: `${deletedCount} download log${
             deletedCount !== 1 ? 's' : ''
           } deleted successfully`,
-          duration: 3000,
+          duration: 5000,
         });
       }
     } catch (error) {
@@ -249,7 +249,7 @@ const History = () => {
       variant: 'success',
       title: 'Download Added',
       description: 'Your download has been added successfully',
-      duration: 3000,
+      duration: 5000,
     });
   };
 

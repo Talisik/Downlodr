@@ -136,8 +136,19 @@ export const trayHandler = (
       alertIconPath = path.join(process.resourcesPath, prodAlertIcon);
     }
 
-    normalTrayIcon = nativeImage.createFromPath(iconPath);
-    alertTrayIcon = nativeImage.createFromPath(alertIconPath);
+    // macOS menu bar icons should be ~18px tall; the source assets are 256x256,
+    // so resize them before handing them to the Tray or they render huge.
+    const TRAY_ICON_SIZE = 18;
+    const toTrayIcon = (p: string): Electron.NativeImage => {
+      const img = nativeImage.createFromPath(p);
+      if (process.platform === 'darwin' && !img.isEmpty()) {
+        return img.resize({ width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE });
+      }
+      return img;
+    };
+
+    normalTrayIcon = toTrayIcon(iconPath);
+    alertTrayIcon = toTrayIcon(alertIconPath);
     if (!alertTrayIcon || alertTrayIcon.isEmpty()) {
       alertTrayIcon = normalTrayIcon;
     }
@@ -155,15 +166,21 @@ export const trayHandler = (
           }
         },
       },
-      {
-        label: 'Check for Updates',
-        click: async () => {
-          const updateInfo = await checkForUpdates();
-          if (updateInfo.hasUpdate && mainWindow) {
-            mainWindow.webContents.send('update-available', updateInfo);
-          }
-        },
-      },
+      // Store builds are updated by the Microsoft Store, so the manual check
+      // would always be a no-op — leave the entry out entirely.
+      ...(process.windowsStore
+        ? []
+        : [
+            {
+              label: 'Check for Updates',
+              click: async () => {
+                const updateInfo = await checkForUpdates();
+                if (updateInfo.hasUpdate && mainWindow) {
+                  mainWindow.webContents.send('update-available', updateInfo);
+                }
+              },
+            },
+          ]),
       { type: 'separator' },
       {
         label: 'Quit',

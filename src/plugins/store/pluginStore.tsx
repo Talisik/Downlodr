@@ -10,6 +10,7 @@
  */
 
 // Interface for download settings
+import { lookupPluginIconByName } from '@/plugins/hook/githubPluginHook';
 import { PluginInfo } from '@/plugins/schema/types';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -55,7 +56,15 @@ export const usePluginStore = create<PluginStore>()(
         try {
           const installedPlugins = await window.plugins.list();
           // console.log('Loaded plugins:', installedPlugins);
-          set({ plugins: installedPlugins });
+          // Match browse-tab icons by name, not id: browse ids are slugified
+          // from GitHub release headings while installed ids come from each
+          // plugin's own manifest.json - unrelated namespaces that don't
+          // reliably line up. Name is the field both sides render identically.
+          const plugins = installedPlugins.map((plugin) => ({
+            ...plugin,
+            icon: lookupPluginIconByName(plugin.name) ?? plugin.icon,
+          }));
+          set({ plugins });
         } catch (error) {
           console.error('Failed to load plugins:', error);
         }

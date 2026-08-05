@@ -1,6 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+/* Lato is self-hosted (@fontsource, bundled by Vite) so the UI font is
+   available instantly and offline — the previous Google Fonts @imports
+   fetched CSS + woff2 from the network on every launch, which delayed
+   styling at startup and left the fallback font on screen. Open Sans and
+   Roboto were imported but never referenced, so they were dropped. */
+@import '@fontsource/lato/300.css';
+@import '@fontsource/lato/400.css';
+@import '@fontsource/lato/700.css';
+@import '@fontsource/lato/900.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -18,7 +24,7 @@ html.dark {
 /* body */
 
 body {
-  font-family: Lato;
+  font-family: Lato, sans-serif;
   font-size: 13px;
 }
 

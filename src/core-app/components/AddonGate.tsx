@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { useAddonStore, type PackName } from '@/core-app/store/addonStore';
+import { useAddonStore, PACK_STORE_KEY, type PackName } from '@/core-app/store/addonStore';
 
 const PACK_LABELS: Record<PackName, string> = {
   'afda-backend': 'Article Fetcher',
@@ -13,7 +13,7 @@ interface AddonGateProps {
 
 export default function AddonGate({ packName, children }: AddonGateProps) {
   const label = PACK_LABELS[packName];
-  const key = packName === 'afda-backend' ? 'afda' : 'skedulosa';
+  const key = PACK_STORE_KEY[packName];
   const packState = useAddonStore((s) => s[key]);
 
   if (packState.status === 'ready') {

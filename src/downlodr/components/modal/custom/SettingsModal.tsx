@@ -452,7 +452,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                           ? t('toast.clipboardEnabled')
                           : t('toast.clipboardDisabled'),
                         description: t('toast.clipboardDesc'),
-                        duration: 3000,
+                        duration: 5000,
                       });
                     }}
                     className="w-4 h-4 text-primary rounded focus:ring-primary"
@@ -485,7 +485,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         description: e.target.checked
                           ? t('toast.telemetryEnabledDesc')
                           : t('toast.telemetryDisabledDesc'),
-                        duration: 3000,
+                        duration: 5000,
                       });
                     }}
                     className="w-4 h-4 text-primary rounded focus:ring-primary"
@@ -518,7 +518,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         description: e.target.checked
                           ? t('toast.appUpdatesEnabledDesc')
                           : t('toast.appUpdatesDisabledDesc'),
-                        duration: 3000,
+                        duration: 5000,
                       });
                     }}
                     className="w-4 h-4 text-primary rounded focus:ring-primary"

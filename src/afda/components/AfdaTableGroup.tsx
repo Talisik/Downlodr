@@ -69,6 +69,8 @@ const AfdaTableGroup = React.memo(
 
     const websiteName = website?.name ?? websiteId;
     const faviconUrl = getFaviconUrl(website?.url ?? '');
+    const isSocial = website?.kind === 'social';
+    const itemNoun = isSocial ? 'post' : 'article';
     const articleCount = downloads.length;
     const latestDate = useMemo(
       () =>
@@ -135,7 +137,8 @@ const AfdaTableGroup = React.memo(
                         </span>
                       </div>
                       <div className="-mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                        {articleCount} article{articleCount !== 1 ? 's' : ''}
+                        {articleCount} {itemNoun}
+                        {articleCount !== 1 ? 's' : ''}
                         {latestDate &&
                           ` · last added ${formatRelativeTime(latestDate)}`}
                       </div>
@@ -178,7 +181,9 @@ const AfdaTableGroup = React.memo(
                       <TooltipContent side="left" className="p-2">
                         <div className="space-y-1 text-xs">
                           <div className="flex gap-4 justify-between">
-                            <span className="text-gray-400">Articles</span>
+                            <span className="text-gray-400">
+                              {isSocial ? 'Posts' : 'Articles'}
+                            </span>
                             <span className="font-medium">{articleCount}</span>
                           </div>
                           {latestDate && (

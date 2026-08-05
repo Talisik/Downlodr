@@ -20,6 +20,31 @@ interface ResolveVideoSourceResult {
   isLocalBlob: boolean;
 }
 
+/**
+ * Reads a local video file through videoBridge and wraps it in a blob: URL.
+ * Returns null when the file can't be read into a buffer — including files
+ * ≥ 2GB, where getVideoBlob switches to its 'stream' shape (no `data`).
+ * Callers own the returned URL and must revoke it when done.
+ */
+export async function blobUrlFromVideoFile(
+  fullPath: string,
+): Promise<string | null> {
+  const result = (await window.videoBridge.getVideoBlob(fullPath)) as {
+    type: 'buffer' | 'stream';
+    data?: Uint8Array;
+    mimeType?: string;
+    filePath?: string;
+  } | null;
+
+  if (result?.type === 'buffer' && result.data) {
+    const blob = new Blob([result.data], {
+      type: result.mimeType ?? 'video/mp4',
+    });
+    return URL.createObjectURL(blob);
+  }
+  return null;
+}
+
 export async function resolveVideoSource(
   opts: ResolveVideoSourceOpts,
 ): Promise<ResolveVideoSourceResult> {
@@ -31,19 +56,8 @@ export async function resolveVideoSource(
       downloadName,
     );
 
-    const result = (await window.videoBridge.getVideoBlob(fullPath)) as {
-      type: 'buffer' | 'stream';
-      data?: Uint8Array;
-      mimeType?: string;
-      filePath?: string;
-    } | null;
-
-    if (result?.type === 'buffer' && result.data) {
-      const blob = new Blob([result.data], {
-        type: result.mimeType ?? 'video/mp4',
-      });
-      return { url: URL.createObjectURL(blob), isLocalBlob: true };
-    }
+    const url = await blobUrlFromVideoFile(fullPath);
+    if (url) return { url, isLocalBlob: true };
   }
 
   const url = await window.ytdlp.getDirectUrl(videoUrl);

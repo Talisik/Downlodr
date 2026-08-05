@@ -103,7 +103,7 @@ const PluginDetails = () => {
           variant: 'success',
           title: 'Plugin Uninstalled',
           description: 'Plugin has been uninstalled successfully',
-          duration: 3000,
+          duration: 5000,
         });
         await window.plugins.reload();
         // Then update the UI list
@@ -115,7 +115,7 @@ const PluginDetails = () => {
         variant: 'destructive',
         title: 'Failed to Uninstall Plugin',
         description: 'Please try again',
-        duration: 3000,
+        duration: 5000,
       });
       console.error('Failed to uninstall plugin:', error);
     }

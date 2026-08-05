@@ -112,7 +112,7 @@ const PluginManager = () => {
           title: 'Browse Plugins Updated',
           description: 'Plugin data loaded from GitHub release',
           variant: 'success',
-          duration: 3000,
+          duration: 5000,
         });  
       } else if (result.error) {
         toast({
@@ -157,7 +157,7 @@ const PluginManager = () => {
             ? t('page.toast.refreshedGithub')
             : t('page.toast.refreshedFallback'),
         variant: result.source === 'github' ? 'success' : 'default',
-        duration: 3000,
+        duration: 5000,
       });
     } catch (error) {
       console.error('Failed to refresh browse plugins:', error);
@@ -232,7 +232,7 @@ const PluginManager = () => {
             title: t('page.toast.installSuccess'),
             description: t('page.toast.installSuccessDesc'),
             variant: 'success',
-            duration: 3000,
+            duration: 5000,
           });
         } else if (
           typeof result === 'string' &&
@@ -242,14 +242,14 @@ const PluginManager = () => {
             title: t('page.toast.alreadyInstalled'),
             description: t('page.toast.alreadyInstalledDesc'),
             variant: 'default',
-            duration: 3000,
+            duration: 5000,
           });
         } else {
           toast({
             title: t('page.toast.invalidDir'),
             description: t('page.toast.invalidDirDesc'),
             variant: 'destructive',
-            duration: 3000,
+            duration: 5000,
           });
         }
       }
@@ -263,7 +263,7 @@ const PluginManager = () => {
           title: t('page.toast.installFailed'),
           description: error.message || t('page.toast.installFailedDefault'),
           variant: 'destructive',
-          duration: 3000,
+          duration: 5000,
         });
       }
     } finally {
@@ -293,14 +293,14 @@ const PluginManager = () => {
           title: t('page.toast.removed'),
           description: t('page.toast.removedDesc', { name: pluginName }),
           variant: 'success',
-          duration: 3000,
+          duration: 5000,
         });
       } else {
         toast({
           title: t('page.toast.removeFailed'),
           description: t('page.toast.removeFailedDesc', { name: pluginName }),
           variant: 'destructive',
-          duration: 3000,
+          duration: 5000,
         });
       }
     } catch (error) {
@@ -309,7 +309,7 @@ const PluginManager = () => {
         title: t('page.toast.removeError'),
         description: t('page.toast.removeErrorDesc', { name: pluginName }),
         variant: 'destructive',
-        duration: 3000,
+        duration: 5000,
       });
     } finally {
       setShowConfirmModal(false);
@@ -383,7 +383,7 @@ const PluginManager = () => {
             version: updateInfoResult.currentVersion,
           }),
           variant: 'default',
-          duration: 3000,
+          duration: 5000,
         });
       }
     } catch (error) {
@@ -413,7 +413,7 @@ const PluginManager = () => {
             name: currentUpdatingPlugin.name,
           }),
           variant: 'success',
-          duration: 3000,
+          duration: 5000,
         });
       }
     } catch (error) {
@@ -587,7 +587,9 @@ const PluginManager = () => {
               )}
               <TabsContent value="installed" className="my-6">
                 {loading ? (
-                  <div>{t('page.installed.loading')}</div>
+                  <div className="flex justify-center items-center py-10">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900 dark:border-white"></div>
+                  </div>
                 ) : plugins.length === 0 ? (
                   <div className="flex flex-col items-center justify-center text-center text-gray-500 p-8 min-h-[60vh]">
                     <img

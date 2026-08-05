@@ -35,9 +35,11 @@ const TranscrptButton: React.FC<TranscrptButtonProps> = ({
   const [fileExists, setFileExists] = useState(false);
 
   // Re-check the file whenever the path or transcription status changes.
-  // This is the ground truth — the store's transcriptionStatus can lag behind
-  // due to race conditions between async caption downloads and the lifecycle
-  // action that promotes downloads to finishedDownloads.
+  // For idle downloads this is the ground truth — the store's
+  // transcriptionStatus can lag behind due to race conditions between async
+  // caption downloads and the lifecycle action that promotes downloads to
+  // finishedDownloads. While a job is queued/transcribing the store wins
+  // instead; see the ordering note below.
   useEffect(() => {
     if (!transcriptLocation || !transcriptLocation.trim()) {
       setFileExists(false);
@@ -72,31 +74,12 @@ const TranscrptButton: React.FC<TranscrptButtonProps> = ({
     );
   }
 
-  // File exists on disk — show the view button regardless of store status.
-  if (fileExists) {
-    return (
-      <TooltipWrapper content="View transcript" side="bottom">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onViewFile(transcriptLocation, download.id);
-          }}
-          className="flex justify-center items-center w-full hover:text-green-400 transition-colors duration-200"
-        >
-          {download.getTranscript ? (
-            <FaRegClosedCaptioning
-              size={20}
-              className="text-green-600 hover:text-green-400 transition-colors duration-200"
-            />
-          ) : (
-            '—'
-          )}
-        </button>
-      </TooltipWrapper>
-    );
-  }
-
-  // File not on disk yet — fall back to store status for in-progress states.
+  // An in-progress transcription always wins over the on-disk check below.
+  // ffmpeg's whisper filter streams into the destination file as it goes, so
+  // the .srt exists (partially written) long before the job finishes — and
+  // `fileExists` is remount-scoped local state, so navigating away and back
+  // would otherwise re-probe the disk mid-run and swap the progress bar for a
+  // "view transcript" button pointing at an incomplete file.
   const isQueued = download.transcriptionStatus === 'queued';
   const isTranscribing = download.transcriptionStatus === 'transcribing';
   const progress = download.transcriptionProgress ?? 0;
@@ -128,6 +111,30 @@ const TranscrptButton: React.FC<TranscrptButtonProps> = ({
             width={80}
           />
         </span>
+      </TooltipWrapper>
+    );
+  }
+
+  // File exists on disk — show the view button regardless of store status.
+  if (fileExists) {
+    return (
+      <TooltipWrapper content="View transcript" side="bottom">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewFile(transcriptLocation, download.id);
+          }}
+          className="flex justify-center items-center w-full hover:text-green-400 transition-colors duration-200"
+        >
+          {download.getTranscript ? (
+            <FaRegClosedCaptioning
+              size={20}
+              className="text-green-600 hover:text-green-400 transition-colors duration-200"
+            />
+          ) : (
+            '—'
+          )}
+        </button>
       </TooltipWrapper>
     );
   }

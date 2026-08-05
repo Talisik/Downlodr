@@ -1,0 +1,16 @@
+{
+  "title": "ダウンロードする動画を選択",
+  "subtitle": "このプレイリストからダウンロードする動画を選択してください。",
+  "getClosedCaptions": "字幕を取得",
+  "getThumbnail": "サムネイルを取得",
+  "videos_other": "{{count}} 本の動画",
+  "selected": "{{total}} 件中 {{count}} 件を選択",
+  "cancel": "キャンセル",
+  "downloadSelected": "選択した動画をダウンロード ({{count}})",
+  "toast": {
+    "selectionErrorTitle": "動画が選択されていません",
+    "selectionErrorDesc": "ダウンロードする動画を 1 本以上選択してください。",
+    "downloadQueuedTitle": "ダウンロードをキューに追加しました",
+    "downloadQueuedDesc": "選択した動画をダウンロードキューに追加しました。"
+  }
+}

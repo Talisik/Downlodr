@@ -17,6 +17,8 @@ import './core-app/ipc/renderer/telemetryHandler';
 import './core-app/ipc/renderer/transcriptHandler';
 import './core-app/ipc/renderer/afdaHandler';
 import './core-app/ipc/renderer/addonHandler';
+import './core-app/ipc/renderer/bootStatusHandler';
 import './core-app/ipc/renderer/updateHandler';
+import './core-app/ipc/renderer/downloadQueryHandler';
 
 extendr.Deployr.setupPreload();

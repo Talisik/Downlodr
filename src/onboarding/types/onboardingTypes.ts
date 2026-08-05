@@ -72,7 +72,7 @@ export const DUMMY_VIDEOS: DummyVideo[] = [
   {
     id: '1',
     title: 'How to Build a React App',
-    channel: 'Code with Mika',
+    channel: 'Code Craft',
     duration: '12:34',
     size: '128 MB',
   },
@@ -93,7 +93,7 @@ export const DUMMY_VIDEOS: DummyVideo[] = [
   {
     id: '4',
     title: 'Node.js Full Course for Beginners',
-    channel: 'Code with Mika',
+    channel: 'Code Craft',
     duration: '45:00',
     size: '512 MB',
   },

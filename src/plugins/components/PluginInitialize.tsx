@@ -8,7 +8,6 @@ export const PluginInitialize: React.FC = () => {
   return (
     <StoreRehydrationLoader>
       <PluginLoader />
-      <PluginLoader />
       <FormatSelectorManager />
       <PluginModalManager />
     </StoreRehydrationLoader>

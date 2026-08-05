@@ -318,6 +318,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         channelName: downloadInfo.channelName ?? '',
         timeLeft: downloadInfo.timeLeft ?? '',
         DateAdded: new Date().toISOString(),
+        uploadDate: downloadInfo.uploadDate,
         progress: downloadInfo.progress ?? 0,
         location: downloadInfo.location ?? selectedDownload.location ?? '',
         status: 'queued',
@@ -336,6 +337,7 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         getThumbnail: downloadInfo.getThumbnail ?? false,
         duration: downloadInfo.duration ?? 60,
         isCreateFolder: true,
+        isLive: downloadInfo.isLive ?? false,
       });
       removeFromForDownloads(selectedDownload.id);
     });

@@ -63,13 +63,24 @@ export function useAfdaArticleSync() {
           });
           if (!article) return;
 
+          const heroImage = ((): string | null => {
+            try {
+              const raw = article.article_images;
+              if (!raw) return null;
+              const images = typeof raw === 'string' ? JSON.parse(raw) : raw;
+              return Array.isArray(images) ? images[0]?.url ?? null : null;
+            } catch {
+              return null;
+            }
+          })();
+
           pendingBatch.push({
             id: `afda-article-${data.article_id}`,
             title: article.title ?? data.url,
             url: data.url,
             subscriptionId: website.id,
             dateAdded: new Date().toISOString(),
-            thumbnailDataUrl: article.heroImage ?? null,
+            thumbnailDataUrl: heroImage,
             sectionId: String(data.section_id),
             publishedAt: article.published_at ?? null,
           });
@@ -92,4 +103,44 @@ export function useAfdaArticleSync() {
       }
     };
   }, []); // registered once — websitesRef always has the latest
+
+  useEffect(() => {
+    const bridge =
+      typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
+    if (!bridge?.on?.manualArticleSaved) return;
+
+    const unsub = bridge.on.manualArticleSaved(
+      (article: {
+        id: number;
+        title: string | null;
+        url: string;
+        heroImage: string | null;
+        publishedAt: string | null;
+      }) => {
+        // The backend save fires on every parse, including re-parses of an
+        // article already present client-side (e.g. the row-level Download
+        // button re-parses via fetchArticle to get full content). Skip if
+        // this URL is already tracked so that doesn't create a second row.
+        const alreadyTracked = useArticleDownloadStore
+          .getState()
+          .articleDownloads.some((d) => d.url === article.url);
+        if (alreadyTracked) return;
+
+        useArticleDownloadStore
+          .getState()
+          .addAfdaArticle(
+            `manual-article-${article.id}`,
+            article.title ?? article.url,
+            article.url,
+            'manual',
+            new Date().toISOString(),
+            article.heroImage ?? null,
+            undefined,
+            article.publishedAt ?? null,
+          );
+      },
+    );
+
+    return () => unsub?.();
+  }, []);
 }

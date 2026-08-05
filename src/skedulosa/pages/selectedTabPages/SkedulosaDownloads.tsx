@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LuTrash2, LuPlay } from 'react-icons/lu';
 import { HiChevronUpDown } from 'react-icons/hi2';
 import { FaSearch, FaSortAlphaDown, FaFilter } from 'react-icons/fa';
-import { FiX } from 'react-icons/fi';
+import { FiPlayCircle, FiX } from 'react-icons/fi';
 import {
   Download,
   useSkedulosaStore,
@@ -285,7 +285,9 @@ const DownloadTab = ({ channelId }: DownloadTabProps) => {
                             }}
                           />
                         ) : (
-                          <div className="flex items-center justify-center h-full w-full bg-black dark:bg-darkModeCompliment" />
+                          <div className="flex items-center justify-center h-full w-full bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.6)_0%,transparent_40%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.5)_0%,transparent_45%),radial-gradient(circle_at_45%_80%,rgba(255,255,255,0.4)_0%,transparent_35%),linear-gradient(135deg,#ffa42e,#fec77d,#ffa42e,#fec170)]">
+                            <FiPlayCircle size={20} color="#F45513" />
+                          </div>
                         )}
                       </div>
                       <div className="flex flex-col min-w-0">

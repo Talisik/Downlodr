@@ -1,4 +1,5 @@
 import React from 'react';
+import { FiPlayCircle } from 'react-icons/fi';
 import { DemoStatus } from '../../hooks/useDemoSimulator';
 import FakeProgressBar from './FakeProgressBar';
 
@@ -29,7 +30,9 @@ const FakeDownloadRow: React.FC<FakeDownloadRowProps> = ({
   return (
     <div className="w-full rounded-md border border-divider dark:border-darkModeCompliment bg-white dark:bg-darkModeTable shadow-sm overflow-hidden">
       <div className="flex items-center gap-3 px-3 py-2">
-        <div className="w-16 h-10 rounded bg-gray-200 dark:bg-darkModeDarkGray flex-shrink-0" />
+        <div className="w-16 h-10 rounded flex items-center justify-center flex-shrink-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.6)_0%,transparent_40%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.5)_0%,transparent_45%),radial-gradient(circle_at_45%_80%,rgba(255,255,255,0.4)_0%,transparent_35%),linear-gradient(135deg,#ffa42e,#fec77d,#ffa42e,#fec170)]">
+          <FiPlayCircle size={16} color="#F45513" />
+        </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium dark:text-darkModeLight truncate">
             {title}

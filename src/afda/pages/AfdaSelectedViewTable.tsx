@@ -1,5 +1,6 @@
 import AfdaActivityLog from './selectedTabPages/AfdaActivityLog';
 import AfdaDownloads from './selectedTabPages/AfdaDownloads';
+import AfdaSocialPosts from './selectedTabPages/AfdaSocialPosts';
 import AfdaSettings from './selectedTabPages/AfdaSettings';
 import AfdaEditWebsiteModal from '@/afda/components/AfdaEditWebsiteModal';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
@@ -73,16 +74,32 @@ const AfdaSelectedViewTable = () => {
   const faviconUrl = getFaviconUrl(website?.url ?? '');
 
   const articleDownloads = useArticleDownloadStore((s) => s.articleDownloads);
-  const downloadedCount = useMemo(
-    () =>
-      website
-        ? articleDownloads.filter((a) => a.subscriptionId === website.id).length
-        : 0,
-    [articleDownloads, website],
-  );
+  const downloadedCount = useMemo(() => {
+    if (!website) return 0;
+    const items = articleDownloads.filter(
+      (a) => a.subscriptionId === website.id,
+    );
+    // Social posts are keyed by DB row id, so duplicate rows for the same
+    // underlying post (e.g. Facebook share-link vs canonical permalink url)
+    // count twice unless we collapse them by title here too — mirrors the
+    // dedup applied in AfdaSocialPosts.tsx.
+    const seen = new Set<string>();
+    let count = 0;
+    for (const item of items) {
+      const key = item.id.startsWith('social-post-')
+        ? `title|${item.title.trim()}`
+        : item.id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      count++;
+    }
+    return count;
+  }, [articleDownloads, website]);
 
   const bridge =
     typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
+
+  const isSocial = website?.kind === 'social';
 
   // ── Delete ────────────────────────────────────────────────────────────────
   const confirmDelete = useCallback(async () => {
@@ -92,7 +109,11 @@ const AfdaSelectedViewTable = () => {
 
     if (bridge) {
       try {
-        await bridge.websites.delete({ id: parseInt(id) });
+        if (isSocial && website?.socialId != null) {
+          await bridge.social.sources.delete({ id: website.socialId });
+        } else {
+          await bridge.websites.delete({ id: parseInt(id) });
+        }
       } catch {
         // proceed with local removal even if bridge call fails
       }
@@ -100,7 +121,7 @@ const AfdaSelectedViewTable = () => {
 
     removeWebsite(id);
     navigate('/skedulosa/subscription');
-  }, [deleteConfirm, removeWebsite, navigate, bridge]);
+  }, [deleteConfirm, removeWebsite, navigate, bridge, isSocial, website]);
 
   // ── Pause / Resume (all sections) ─────────────────────────────────────────
   const handlePauseResume = useCallback(async () => {
@@ -110,44 +131,62 @@ const AfdaSelectedViewTable = () => {
     setActionLoading(isActive ? 'pause' : 'resume');
 
     try {
-      await Promise.all(
-        website.sections.map((s) =>
-          isActive
-            ? bridge.schedule.pause({ section_id: parseInt(s.id) })
-            : bridge.schedule.resume({ section_id: parseInt(s.id) }),
-        ),
-      );
+      if (isSocial && website.socialId != null) {
+        // Social schedule is per-source, not per-section.
+        if (isActive) {
+          await bridge.social.schedule.pause({ id: website.socialId });
+        } else {
+          await bridge.social.schedule.resume({ id: website.socialId });
+        }
+        // Reflect the new status locally (no hydrated Website to fetch).
+        updateWebsite({
+          ...website,
+          status: isActive ? 'paused' : 'active',
+        });
+      } else {
+        await Promise.all(
+          website.sections.map((s) =>
+            isActive
+              ? bridge.schedule.pause({ section_id: parseInt(s.id) })
+              : bridge.schedule.resume({ section_id: parseInt(s.id) }),
+          ),
+        );
 
-      // Fetch a fresh hydrated website to sync the store
-      const result = await bridge.websites.update({
-        id: parseInt(website.id),
-        patch: { status: isActive ? 'paused' : 'active' },
-      });
-      if (result?.website) updateWebsite(result.website);
+        // Fetch a fresh hydrated website to sync the store
+        const result = await bridge.websites.update({
+          id: parseInt(website.id),
+          patch: { status: isActive ? 'paused' : 'active' },
+        });
+        if (result?.website) updateWebsite(result.website);
+      }
     } catch (err) {
       console.error('[afda] pause/resume failed:', err);
     } finally {
       setActionLoading(null);
     }
-  }, [website, bridge, actionLoading, updateWebsite]);
+  }, [website, bridge, actionLoading, updateWebsite, isSocial]);
 
-  // ── Run Now (all enabled sections) ───────────────────────────────────────
+  // ── Run Now (all enabled sections, or the social source) ──────────────────
   const handleRunNow = useCallback(async () => {
     if (!website || !bridge || actionLoading) return;
 
     setActionLoading('run');
     try {
-      await Promise.all(
-        website.sections
-          .filter((s) => s.enabled)
-          .map((s) => bridge.scrape.runNow({ section_id: parseInt(s.id) })),
-      );
+      if (isSocial && website.socialId != null) {
+        await bridge.social.sources.scrapeNow({ id: website.socialId });
+      } else {
+        await Promise.all(
+          website.sections
+            .filter((s) => s.enabled)
+            .map((s) => bridge.scrape.runNow({ section_id: parseInt(s.id) })),
+        );
+      }
     } catch (err) {
       console.error('[afda] run now failed:', err);
     } finally {
       setActionLoading(null);
     }
-  }, [website, bridge, actionLoading]);
+  }, [website, bridge, actionLoading, isSocial]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const sectionCount = website?.sections.length;
@@ -308,7 +347,7 @@ const AfdaSelectedViewTable = () => {
         {/* ── Stat cards ── */}
         <div className="flex flex-1 flex-row items-center w-full rounded-lg px-4 py-2">
           <div className="flex flex-1 justify-center gap-2">
-            {sectionCount !== undefined && (
+            {!isSocial && sectionCount !== undefined && (
               <StatCard
                 value={String(sectionCount)}
                 label="Sections"
@@ -352,7 +391,10 @@ const AfdaSelectedViewTable = () => {
       {/* ── Tabs ─────────────────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 min-h-0">
         <div className="gap-4 flex flex-row border-b border-gray-200 dark:border-gray-700">
-          {TABS.map((tab) => (
+          {(isSocial
+            ? [{ id: 'downloads', label: 'Posts' }]
+            : TABS
+          ).map((tab) => (
             <button
               key={tab.id}
               type="button"
@@ -369,7 +411,12 @@ const AfdaSelectedViewTable = () => {
         </div>
 
         <div className="flex-1 overflow-hidden hover-scrollbar">
-          {activeTab === 'downloads' && <AfdaDownloads website={website} />}
+          {activeTab === 'downloads' &&
+            (isSocial && website ? (
+              <AfdaSocialPosts website={website} />
+            ) : (
+              <AfdaDownloads website={website} />
+            ))}
           {activeTab === 'activity-log' && (
             <AfdaActivityLog channelId={channelId} />
           )}

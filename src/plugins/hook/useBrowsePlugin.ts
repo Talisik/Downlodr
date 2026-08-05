@@ -355,7 +355,7 @@ export const useBrowsePlugin = () => {
             title: 'Installation Complete',
             description: `${plugin.name} has been installed and is ready to use`,
             variant: 'success',
-            duration: 4000,
+            duration: 5000,
           });
 
           // Clean up after a delay
@@ -375,7 +375,7 @@ export const useBrowsePlugin = () => {
           title: 'Installation Incomplete',
           description: `Plugin download completed but requires manual installation. Check your downloads folder.`,
           variant: 'default',
-          duration: 6000,
+          duration: 5000,
         });
 
         setInstallations(
@@ -500,7 +500,7 @@ export const useBrowsePlugin = () => {
             title: 'No Updates Available',
             description: `${plugin.name} is already up to date (v${updateInfo.currentVersion})`,
             variant: 'default',
-            duration: 3000,
+            duration: 5000,
           });
           return false;
         }

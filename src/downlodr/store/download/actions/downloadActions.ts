@@ -22,7 +22,7 @@ import type {
   RetryDownloadPayload,
 } from '../downloadPayloads';
 import type { ChapterInfo, DownloadStoreState, ForDownload, SpeedDataPoint } from '../types';
-import { handleCheckForUpdates, truncateTitle } from '../utils';
+import { handleCheckForUpdates, parseYtdlpUploadDate, truncateTitle } from '../utils';
 /** Zustand setter */
 type SetState = (
   partial:
@@ -49,17 +49,17 @@ export function createDownloadActions(set: SetState, get: GetState) {
       if (!payload.location || !payload.downloadName) return;
       const {
         subscriptionId, videoUrl, name, downloadName, displayName, size, speed,
-        channelName, timeLeft, DateAdded, progress, location, status, ext,
+        channelName, timeLeft, DateAdded, uploadDate, progress, location, status, ext,
         formatId, audioExt, audioFormatId, extractorKey, limitRate,
         automaticCaption, thumbnails, getTranscript, getThumbnail, duration,
-        isCreateFolder,
+        isCreateFolder, tags, category,
       } = payload;
       get().addQueue({
         subscriptionId, videoUrl, name, downloadName, displayName, size, speed,
-        channelName, timeLeft, DateAdded, progress, location, status, ext,
+        channelName, timeLeft, DateAdded, uploadDate, progress, location, status, ext,
         formatId, audioExt, audioFormatId, extractorKey, limitRate,
         automaticCaption, thumbnails, getTranscript, getThumbnail, duration,
-        isCreateFolder,
+        isCreateFolder, tags, category,
       });
     },
 
@@ -67,9 +67,10 @@ export function createDownloadActions(set: SetState, get: GetState) {
       if (!payload.location || !payload.downloadName) return;
       const {
         videoUrl, name, downloadName, displayName, size, speed, channelName,
-        timeLeft, DateAdded, progress, location, status, ext, formatId,
+        timeLeft, DateAdded, uploadDate, progress, location, status, ext, formatId,
         audioExt, audioFormatId, extractorKey, limitRate, automaticCaption,
         thumbnails, getTranscript, getThumbnail, duration, isCreateFolder,
+        tags, category,
       } = payload;
 
       // Delete the old subfolder before queueing so the controller starts fresh
@@ -84,9 +85,10 @@ export function createDownloadActions(set: SetState, get: GetState) {
 
       get().addQueue({
         videoUrl, name, downloadName, displayName, size, speed, channelName,
-        timeLeft, DateAdded, progress, location, status, ext, formatId,
+        timeLeft, DateAdded, uploadDate, progress, location, status, ext, formatId,
         audioExt, audioFormatId, extractorKey, limitRate, automaticCaption,
         thumbnails, getTranscript, getThumbnail, duration, isCreateFolder,
+        tags, category,
       });
     },
 
@@ -175,6 +177,16 @@ export function createDownloadActions(set: SetState, get: GetState) {
           // Get channel name from info
           const channelName = info.data?.channel || info.data?.uploader || '';
           const description = info.data?.description ?? '';
+          const uploadDate = parseYtdlpUploadDate(info.data?.upload_date);
+          // auto-tag: native category (routing) + structured music fields
+          const nativeCategory = info.data?.categories?.[0];
+          const musicArtist =
+            info.data?.artist ||
+            info.data?.artists?.join(', ') ||
+            info.data?.creator ||
+            undefined;
+          const musicTrack = info.data?.track ?? undefined;
+          const musicAlbum = info.data?.album ?? undefined;
           const chapters = (info.data?.chapters as ChapterInfo[] | undefined) ?? [];
           const subtitles = info.data?.subtitles;
           const automaticCaptions = info.data?.automatic_captions;
@@ -233,10 +245,15 @@ export function createDownloadActions(set: SetState, get: GetState) {
                     audioExt: '',
                     audioFormatId: '',
                     channelName: channelName,
+                    nativeCategory,
+                    musicArtist,
+                    musicTrack,
+                    musicAlbum,
                     downloadStart: false,
                     formats: formatOptions,
                     isLive: info.data?.is_live || false,
                     elapsed: info.data?.elapsed ?? undefined,
+                    uploadDate,
                     location: location,
                     automaticCaption: caption,
                     thumbnails: thumbnail,
@@ -256,20 +273,20 @@ export function createDownloadActions(set: SetState, get: GetState) {
           const currentDownload = get().forDownloads.find(
             (d) => d.id === downloadId,
           );
-
-          if (currentDownload?.isLive) {
+          /*
+          if (currentDownload?.isLive) { 
             toast({
               variant: 'destructive',
               title: 'Live Video Links Not Allowed',
               description:
                 'Live video links are not supported. Please enter a valid URL.',
-              duration: 3000,
+              duration: 5000,
             });
 
             get().removeFromForDownloads(downloadId); // Call the method
             return;
           }
-
+          */
           if (options.autoDownload && options.autoQueueFormatId && currentDownload) {
             const match = formatOptions.find(
               (f) =>
@@ -293,6 +310,11 @@ export function createDownloadActions(set: SetState, get: GetState) {
           const hasInternetConnection =
             await window.downlodrFunctions.checkInternetConnection();
           console.log(hasInternetConnection);
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          const isUnsupportedSite = errorMessage.includes('UNSUPPORTED_SITE');
+          const isParseError = errorMessage.includes('PARSE_ERROR');
+          const parseErrorSite = errorMessage.match(/PARSE_ERROR:(\w+)?:/)?.[1];
           if (!hasInternetConnection) {
             toast({
               variant: 'destructive',
@@ -300,7 +322,7 @@ export function createDownloadActions(set: SetState, get: GetState) {
               description:
                 'Please check your internet connection and try again',
               expandable: true, // Add this to make it expandable
-              duration: 3000,
+              duration: 5000,
               action: React.createElement(
                 ToastAction,
                 {
@@ -310,12 +332,30 @@ export function createDownloadActions(set: SetState, get: GetState) {
                 React.createElement(RefreshCw, { size: 12 }),
               ) as unknown as ToastActionElement,
             });
+          } else if (isUnsupportedSite) {
+            toast({
+              variant: 'destructive',
+              title: 'Site Not Supported',
+              description:
+                "This website is not currently supported for downloads. Please try a different website.",
+              duration: 5000,
+            });
+          } else if (isParseError) {
+            const siteName = parseErrorSite
+              ? parseErrorSite[0].toUpperCase() + parseErrorSite.slice(1)
+              : 'this site';
+            toast({
+              variant: 'destructive',
+              title: 'Could Not Read Video Data',
+              description: `${siteName} didn't return readable video data. The video may be private, restricted, or age-gated.`,
+              duration: 5000,
+            });
           } else {
             toast({
               variant: 'destructive',
               title: `Could not find video metadata`,
               description: 'Please enter a valid video URL',
-              duration: 3000,
+              duration: 5000,
             });
           }
           // Access the method correctly
@@ -330,7 +370,11 @@ export function createDownloadActions(set: SetState, get: GetState) {
                 ? {
                     ...download,
                     status: 'metadata_error',
-                    error: 'Failed to fetch video information',
+                    error: isUnsupportedSite
+                      ? 'This site is not supported by yt-dlp'
+                      : isParseError
+                      ? "yt-dlp failed to parse this site's response"
+                      : 'Failed to fetch video information',
                   }
                 : download,
             ),

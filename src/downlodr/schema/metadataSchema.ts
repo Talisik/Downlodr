@@ -40,6 +40,14 @@ export interface VideoInfo {
     elapsed?: number | null;
     duration?: number | null;
     chapters?: { start_time: number; end_time: number; title: string }[];
+    /** yt-dlp upload date, format YYYYMMDD */
+    upload_date?: string | null;
+    categories?: string[];
+    artist?: string;
+    artists?: string[];
+    track?: string;
+    album?: string;
+    creator?: string;
   };
 }
 

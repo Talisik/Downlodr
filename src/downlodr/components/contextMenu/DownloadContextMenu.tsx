@@ -105,6 +105,7 @@ interface DownloadContextMenuProps {
     downloadLocation?: string,
     controllerId?: string,
   ) => void;
+  onFinishRecording?: (downloadId: string) => void; // Function to gracefully finish an in-progress live recording
   onViewEmbed: (
     videoUrl: string,
     title: string,
@@ -141,6 +142,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   onRename,
   onShowRemoveModal,
   onShowStopModal,
+  onFinishRecording,
   onViewEmbed,
 }) => {
   const { t } = useTranslation('downlodr');
@@ -461,7 +463,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
         variant: 'destructive',
         title: 'Download limit reached',
         description: `Maximum download limit (${settings.maxDownloadNum}) reached. Please wait for current downloads to complete or increase limit via settings.`,
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
@@ -478,6 +480,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       channelName: download.channelName ?? '',
       timeLeft: download.timeLeft ?? '',
       DateAdded: new Date().toISOString(),
+      uploadDate: download.uploadDate,
       progress: download.progress ?? 0,
       location: download.location ?? download.location ?? '',
       status: 'queued',
@@ -496,6 +499,9 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       getThumbnail: download.getThumbnail ?? false,
       duration: download.duration ?? 60,
       isCreateFolder: true,
+      tags: download.tags,
+      category: download.category,
+      isLive: download.isLive,
     });
     // Remove from forDownloads
     removeFromForDownloads(download.id || '');
@@ -503,7 +509,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     toast({
       title: 'Download Added to Queue',
       description: `"${processedName}" added to queue. The download controller will start it automatically.`,
-      duration: 3000,
+      duration: 5000,
     });
 
     onClose();
@@ -563,6 +569,17 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
             download.controllerId,
             download.status,
           );
+          onClose();
+        }}
+      />
+    );
+
+    const finishRecordingOption = (
+      <ContextMenuItem
+        icon={<HiOutlineStopCircle size={18} />}
+        label={t('contextMenu.finishRecording')}
+        onClick={() => {
+          onFinishRecording?.(download.id || '');
           onClose();
         }}
       />
@@ -703,6 +720,19 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       );
     }
 
+    // Transitional state while the graceful kill from Pause is still in
+    // flight — no pause/resume/stop options until it resolves to 'paused',
+    // so the user can't start a second process against the same file.
+    if (download.status === 'pausing') {
+      return (
+        <>
+          {viewFolderOption}
+          {showLogOption}
+          {activityTrackerOption}
+        </>
+      );
+    }
+
     if (download.status === 'paused') {
       return (
         <>
@@ -731,6 +761,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           />
           {removeOptions}
           {activityTrackerOption}
+          {commonOptions}
         </>
       );
     }
@@ -739,8 +770,12 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       return (
         <>
           {viewFolderOption}
-          {pausedOptions}
-          {stopOptions}
+          {download.isLive ? finishRecordingOption : (
+            <>
+              {pausedOptions}
+              {stopOptions}
+            </>
+          )}
           {showLogOption}
           {activityTrackerOption}
           {commonOptions}
@@ -748,7 +783,12 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       );
     }
 
-    return <>{viewFolderOption}</>;
+    return (
+      <>
+        {viewFolderOption}
+        {commonOptions}
+      </>
+    );
   };
 
   const renderPluginMenuItems = () => {
@@ -909,14 +949,14 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                         variant: 'destructive',
                         title: 'Duplicate Tag',
                         description: `Tag "${newTag}" already exists.`,
-                        duration: 2000,
+                        duration: 5000,
                       });
                     } else {
                       onAddTag(download.id || '', newTag);
                       toast({
                         title: 'Tag Added',
                         description: `Tag "${newTag}" has been added.`,
-                        duration: 2000,
+                        duration: 5000,
                       });
                     }
                     target.value = '';
@@ -994,7 +1034,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                         variant: 'destructive',
                         title: 'Duplicate Category',
                         description: `Category "${newCategory}" already exists.`,
-                        duration: 2000,
+                        duration: 5000,
                       });
                     } else {
                       // Remove current category first (single category per download)
@@ -1005,7 +1045,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                       toast({
                         title: 'Category Added',
                         description: `Category "${newCategory}" has been added.`,
-                        duration: 2000,
+                        duration: 5000,
                       });
                     }
                     target.value = '';

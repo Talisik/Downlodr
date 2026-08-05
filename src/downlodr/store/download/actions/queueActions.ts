@@ -44,6 +44,7 @@ export function createQueueActions(set: SetState, get: GetState) {
           channelName,
           timeLeft,
           DateAdded,
+          uploadDate,
           progress,
           location,
           ext,
@@ -63,6 +64,9 @@ export function createQueueActions(set: SetState, get: GetState) {
           autoCaptionLocation,
           thumnailsLocation,
           transcriptLocation,
+          tags,
+          category,
+          isLive,
         } = payload;
         console.log('[Queue] addQueue called with payload:', payload);
         const queueId = uuidv4();
@@ -82,6 +86,7 @@ export function createQueueActions(set: SetState, get: GetState) {
               channelName: channelName || '',
               timeLeft,
               DateAdded,
+              uploadDate,
               progress,
               location,
               status: 'queued',
@@ -103,9 +108,9 @@ export function createQueueActions(set: SetState, get: GetState) {
               thumnailsLocation,
               transcriptLocation,
               queuedAt: new Date().toISOString(),
-              tags: [],
-              category: [],
-              isLive: false,
+              tags: tags ?? [],
+              category: category ?? [],
+              isLive: isLive ?? false,
               elapsed: 0,
               controllerId: undefined,
               log: '',
@@ -138,7 +143,7 @@ export function createQueueActions(set: SetState, get: GetState) {
           description: `"${name}" has been added to the download queue. Position: ${
             get().queuedDownloads.length
           }`,
-          duration: 3000,
+          duration: 5000,
         });
         // Start the worker to process the queue
         downloadController.startWorker();
@@ -164,7 +169,7 @@ export function createQueueActions(set: SetState, get: GetState) {
         toast({
           title: 'Queue Cleared',
           description: 'All queued downloads have been removed.',
-          duration: 2000,
+          duration: 5000,
         });
       },
 

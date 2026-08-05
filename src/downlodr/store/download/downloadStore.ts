@@ -54,6 +54,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 // Import from extracted modules
+import { enqueueBackfill } from '@/auto-tag/queue/autoTagQueue';
 import { transcriptActions } from '@/transcript/store/transcriptStore';
 import {
   createCrudActions,
@@ -103,8 +104,12 @@ interface DownloadStore extends DownloadStoreState {
   deleteDownload: (id: string) => void;
   deleteDownloading: (id: string) => void;
   removeFromForDownloads: (id: string) => void;
+  setFileMissingFlags: (updates: { id: string; missing: boolean }[]) => void;
   addTag: (downloadId: string, tag: string) => void;
   removeTag: (downloadId: string, tag: string) => void;
+  toggleFavorite: (downloadId: string) => void;
+  setFavorited: (downloadId: string, favorited: boolean) => void;
+  applyAutoTags: (results: import('@/auto-tag/types').TagResult[]) => void;
   addCategory: (downloadId: string, category: string) => void;
   removeCategory: (downloadId: string, category: string) => void;
   renameCategory: (oldName: string, newName: string) => void;
@@ -120,7 +125,8 @@ interface DownloadStore extends DownloadStoreState {
       | 'cancelled'
       | 'initializing'
       | 'fetching metadata'
-      | 'paused',
+      | 'paused'
+      | 'pausing',
   ) => void;
   renameDownload: (downloadId: string, newName: string) => void;
   addQueue: (payload: AddQueuePayload) => void;
@@ -216,7 +222,7 @@ const useDownloadStore = create<DownloadStore>()(
                 .filter(
                   (d) =>
                     !existingIds.has(d.id) &&
-                    ['downloading', 'initializing', 'paused'].includes(
+                    ['downloading', 'initializing', 'paused', 'pausing'].includes(
                       d.status,
                     ),
                 )
@@ -245,6 +251,10 @@ const useDownloadStore = create<DownloadStore>()(
                 ],
               };
             });
+
+            // Auto-tag: back-fill pre-existing downloads that are missing tags.
+            // Per-tier guard inside makes this a no-op for already-tagged items.
+            enqueueBackfill();
           }
         };
       },

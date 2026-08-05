@@ -29,6 +29,7 @@ import type { DisplayColumn } from './statusPageTypes';
 import Toolbar from '@/downlodr/components/base/Toolbar';
 import SkedulosaTableGroup from '@/skedulosa/components/SkedulosaTableGroup';
 import { StatusPageTableRow } from './StatusPageTableRow';
+import { useWindowSize } from './statusPageHooks';
 
 export interface StatusPageTableProps {
   allDownloads: SearchableDownload[];
@@ -60,6 +61,8 @@ export interface StatusPageTableProps {
   onViewFolder: (downloadLocation?: string, filePath?: string) => void;
   onRetry: (downloadId: string) => void;
   onPause: (downloadId: string) => void;
+  onStop: (downloadId: string) => void;
+  onFinishRecording: (downloadId: string) => void;
   onRedownloadTranscript: (downloadId: string) => void;
   onFormatSelect: (formatData: {
     ext: string;
@@ -103,6 +106,8 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
   onViewFolder,
   onRetry,
   onPause,
+  onStop,
+  onFinishRecording,
   onRedownloadTranscript,
   onFormatSelect,
   onClosePluginSidebar,
@@ -121,14 +126,15 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const PAGE_SIZE = 10;
+  const { windowHeight } = useWindowSize();
+  const PAGE_SIZE = windowHeight >= 1000 ? 20 : windowHeight >= 800 ? 15 : 10;
   const [currentPage, setCurrentPage] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Reset to first page when the downloads list changes (e.g. navigating status pages)
   useEffect(() => {
     setCurrentPage(0);
-  }, [allDownloads.length]);
+  }, [allDownloads.length, PAGE_SIZE]);
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
@@ -192,7 +198,7 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
 
     for (const download of allDownloads) {
       const subId = download.subscriptionId;
-      if (download.type === 'article' && subId) {
+      if (download.type === 'article' && subId && subId !== 'manual') {
         if (!afdaGroups[subId]) afdaGroups[subId] = [];
         afdaGroups[subId].push(download as ArticleSearchableDownload);
       } else if (subId && subscriptionIds.has(subId)) {
@@ -207,7 +213,7 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
 
     for (const download of allDownloads) {
       const subId = download.subscriptionId;
-      if (download.type === 'article' && subId) {
+      if (download.type === 'article' && subId && subId !== 'manual') {
         if (!seenAfdaGroups.has(subId)) {
           seenAfdaGroups.add(subId);
           items.push({
@@ -437,6 +443,8 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
                             onViewFolder(loc, path),
                           onRetry,
                           onPause,
+                          onStop,
+                          onFinishRecording,
                           onRedownloadTranscript,
                           onFormatSelect,
                           onViewEmbed,

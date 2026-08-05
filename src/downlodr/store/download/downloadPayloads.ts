@@ -23,6 +23,7 @@ export interface AddDownloadPayload {
   channelName: string;
   timeLeft: string;
   DateAdded: string;
+  uploadDate?: string;
   progress: number;
   location: string;
   status: string;
@@ -40,6 +41,8 @@ export interface AddDownloadPayload {
   isCreateFolder: boolean;
   autoCaptionLocation?: string;
   thumnailsLocation?: string;
+  tags?: string[];
+  category?: string[];
 }
 
 /** Payload for retryDownload (caption/thumbnail paths required) */
@@ -53,6 +56,7 @@ export interface RetryDownloadPayload {
   channelName: string;
   timeLeft: string;
   DateAdded: string;
+  uploadDate?: string;
   progress: number;
   location: string;
   status: string;
@@ -70,6 +74,8 @@ export interface RetryDownloadPayload {
   thumnailsLocation: string;
   autoCaptionLocation: string;
   isCreateFolder: boolean;
+  tags?: string[];
+  category?: string[];
 }
 
 /** Options for setDownload (metadata fetch + queue) */
@@ -102,6 +108,7 @@ export interface AddQueuePayload {
   channelName: string;
   timeLeft: string;
   DateAdded: string;
+  uploadDate?: string;
   progress: number;
   location: string;
   status: string;
@@ -122,6 +129,9 @@ export interface AddQueuePayload {
   autoCaptionLocation?: string;
   thumnailsLocation?: string;
   transcriptLocation?: string;
+  tags?: string[];
+  category?: string[];
+  isLive?: boolean;
 }
 
 /** Payload for updateDownloadStatus */

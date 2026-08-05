@@ -26,13 +26,7 @@
    - ask dev for copy  of ytdlp helper package
    - replace installed ytdlp helper package via 
 
-5. Add Nemesis Package
-   - ask dev for copy  of nemesis package
-   - install other packages
-       - better-sqlite3
-       - other one
-
-6. You're good to go!
+5. You're good to go!
 
 ### Running the Application
 

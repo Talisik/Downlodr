@@ -29,12 +29,12 @@ import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore
 import { useSettingStore } from '@/core-app/store/settingsStore';
 import TaskBarInputField from '@/downlodr/components/base/InputField/TaskbarInputField';
 import BulkTranscriptModal from '@/downlodr/components/modal/custom/BulkTranscriptModal';
-import FileNotExistModal from '@/downlodr/components/modal/custom/FileNotExistModal';
 import RemoveModal from '@/downlodr/components/modal/custom/RemoveModal';
 import StopModal from '@/downlodr/components/modal/custom/StopModal';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import { DownloadItem } from '@/downlodr/schema/componentSchema';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
+import { maybeShowFormatHint } from '@/downlodr/utils/formatHint';
 import PluginToolbarExtension from '@/plugins/components/PluginTaskBarExtension';
 import React, { useState } from 'react';
 import { LuTrash } from 'react-icons/lu';
@@ -58,8 +58,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [stopAction, setStopAction] = useState<'selected' | 'all' | null>(null);
   const { toast } = useToast();
   const location = useLocation(); // Get current location
-  const [showFileNotExistModal, setShowFileNotExistModal] = useState(false);
-  const [missingFiles, setMissingFiles] = useState<DownloadItem[]>([]);
   // Get the max download limit and current downloads from stores
   const { taskBarButtonsVisibility } = useMainStore();
   const { settings } = useSettingStore();
@@ -105,7 +103,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
         d.id === download.id &&
         (d.status === 'downloading' ||
           d.status === 'initializing' ||
-          d.status === 'paused'),
+          d.status === 'paused' ||
+          d.status === 'pausing'),
     ),
   );
 
@@ -116,7 +115,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
         d.id === download.id &&
         (d.status === 'downloading' ||
           d.status === 'initializing' ||
-          d.status === 'paused'),
+          d.status === 'paused' ||
+          d.status === 'pausing'),
     ),
   );
 
@@ -155,7 +155,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         variant: 'destructive',
         title: t('toolbar.toast.noDownloadsSelectedTitle'),
         description: t('toolbar.toast.noDownloadsSelectedStop'),
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
@@ -169,7 +169,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         variant: 'destructive',
         title: t('toolbar.toast.noDownloadsFoundTitle'),
         description: t('toolbar.toast.noDownloadsFoundDesc'),
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
@@ -205,7 +205,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             variant: 'success',
             title: t('toolbar.toast.downloadStoppedTitle'),
             description: t('toolbar.toast.downloadStoppedDesc'),
-            duration: 3000,
+            duration: 5000,
           });
         } else if (currentForDownload?.status === 'to download') {
           removeFromForDownloads(download.id);
@@ -213,7 +213,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             variant: 'success',
             title: t('toolbar.toast.downloadStoppedTitle'),
             description: t('toolbar.toast.downloadStoppedDesc'),
-            duration: 3000,
+            duration: 5000,
           });
         } else if (currentDownload?.controllerId) {
           try {
@@ -226,7 +226,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 variant: 'success',
                 title: t('toolbar.toast.downloadStoppedTitle'),
                 description: t('toolbar.toast.downloadStoppedDesc'),
-                duration: 3000,
+                duration: 5000,
               });
             } else {
               toast({
@@ -235,7 +235,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 description: t('toolbar.toast.stopErrorCouldNotDesc', {
                   controllerId: currentDownload.controllerId,
                 }),
-                duration: 3000,
+                duration: 5000,
               });
             }
           } catch (error) {
@@ -245,7 +245,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
               description: t('toolbar.toast.stopErrorDesc', {
                 controllerId: currentDownload.controllerId,
               }),
-              duration: 3000,
+              duration: 5000,
             });
           }
         }
@@ -279,7 +279,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
               variant: 'success',
               title: t('toolbar.toast.downloadStoppedTitle'),
               description: t('toolbar.toast.downloadStoppedDesc'),
-              duration: 3000,
+              duration: 5000,
             });
           } else if (download.controllerId) {
             try {
@@ -292,7 +292,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   variant: 'success',
                   title: t('toolbar.toast.downloadStoppedTitle'),
                   description: t('toolbar.toast.downloadStoppedDesc'),
-                  duration: 3000,
+                  duration: 5000,
                 });
               } else {
                 toast({
@@ -301,7 +301,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   description: t('toolbar.toast.stopErrorCouldNotDesc', {
                     controllerId: download.controllerId,
                   }),
-                  duration: 3000,
+                  duration: 5000,
                 });
               }
             } catch (error) {
@@ -311,7 +311,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 description: t('toolbar.toast.stopErrorDesc', {
                   controllerId: download.controllerId,
                 }),
-                duration: 3000,
+                duration: 5000,
               });
             }
           }
@@ -333,10 +333,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
         variant: 'destructive',
         title: t('toolbar.toast.noDownloadsSelectedTitle'),
         description: t('toolbar.toast.noDownloadsSelectedPlay'),
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
+
+    // One-time hint: consumes this click without starting any downloads.
+    if (maybeShowFormatHint()) return;
 
     // get the functions and lists from store
     const { forDownloads, removeFromForDownloads, addQueue } =
@@ -361,7 +364,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         variant: 'destructive',
         title: t('toolbar.toast.noValidDownloadsTitle'),
         description: t('toolbar.toast.noValidDownloadsDesc'),
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
@@ -383,6 +386,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         channelName: downloadInfo.channelName ?? '',
         timeLeft: downloadInfo.timeLeft ?? '',
         DateAdded: new Date().toISOString(),
+        uploadDate: downloadInfo.uploadDate,
         progress: downloadInfo.progress ?? 0,
         location: downloadInfo.location ?? selectedDownload.location ?? '',
         status: 'queued',
@@ -401,6 +405,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
         getThumbnail: downloadInfo.getThumbnail ?? false,
         duration: downloadInfo.duration ?? 60,
         isCreateFolder: true,
+        tags: downloadInfo.tags,
+        category: downloadInfo.category,
+        isLive: downloadInfo.isLive ?? false,
       });
       removeFromForDownloads(selectedDownload.id);
     });
@@ -415,35 +422,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
     });
   };
 
-  const handleFileNotExistModal = async () => {
-    const missing = [];
-
-    // Check each selected download to see if it exists
-    for (const download of selectedDownloads) {
-      if (download.status === 'finished' && download.location) {
-        const exists = await window.downlodrFunctions.fileExists(
-          download.location,
-        );
-        if (!exists) {
-          missing.push(download);
-        }
-      }
-    }
-
-    // Set the missing files and show the modal if any were found
-    if (missing.length > 0) {
-      setMissingFiles(missing as DownloadItem[]);
-      setShowFileNotExistModal(true);
-    }
-  };
-
   const handleRemoveSelected = async (deleteFolder?: boolean) => {
     if (selectedDownloads.length === 0) {
       toast({
         variant: 'destructive',
         title: t('toolbar.toast.noDownloadsSelectedTitle'),
         description: t('toolbar.toast.noDownloadsSelectedRemove'),
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
@@ -477,7 +462,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
               variant: 'success',
               title: t('toolbar.toast.downloadDeletedTitle'),
               description: t('toolbar.toast.downloadDeletedDesc'),
-              duration: 3000,
+              duration: 5000,
             });
             return;
           }
@@ -497,14 +482,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
               variant: 'success',
               title: t('toolbar.toast.folderDeletedTitle'),
               description: t('toolbar.toast.folderDeletedDesc'),
-              duration: 3000,
+              duration: 5000,
             });
           } else {
             toast({
               variant: 'destructive',
               title: t('toolbar.toast.folderDeleteErrorTitle'),
               description: t('toolbar.toast.folderDeleteErrorDesc'),
-              duration: 3000,
+              duration: 5000,
             });
           }
         } else {
@@ -513,20 +498,28 @@ const Toolbar: React.FC<ToolbarProps> = ({
             download.location,
           );
 
-          if (success) {
-            deleteDownload(download.id);
-            toast({
-              variant: 'success',
-              title: t('toolbar.toast.fileDeletedTitle'),
-              description: t('toolbar.toast.fileDeletedDesc'),
-              duration: 3000,
-            });
-          } else {
-            handleFileNotExistModal();
-          }
+          // Whether or not the file itself was on disk, the user asked to
+          // delete this download, so the log always goes away.
+          deleteDownload(download.id);
+          toast({
+            variant: 'success',
+            title: success
+              ? t('toolbar.toast.fileDeletedTitle')
+              : t('toolbar.toast.downloadDeletedTitle'),
+            description: success
+              ? t('toolbar.toast.fileDeletedDesc')
+              : t('toolbar.toast.downloadDeletedDesc'),
+            duration: 5000,
+          });
         }
       } catch (error) {
-        handleFileNotExistModal();
+        deleteDownload(download.id);
+        toast({
+          variant: 'success',
+          title: t('toolbar.toast.downloadDeletedTitle'),
+          description: t('toolbar.toast.downloadDeletedDesc'),
+          duration: 5000,
+        });
       }
     };
 
@@ -562,7 +555,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           variant: 'success',
           title: t('toolbar.toast.downloadRemovedTitle'),
           description: t('toolbar.toast.pendingRemovedDesc'),
-          duration: 3000,
+          duration: 5000,
         });
         continue;
       }
@@ -574,7 +567,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           variant: 'success',
           title: t('toolbar.toast.downloadRemovedTitle'),
           description: t('toolbar.toast.failedRemovedDesc'),
-          duration: 3000,
+          duration: 5000,
         });
         // Process queue after removing a failed download
         processQueue();
@@ -602,7 +595,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 : currentDownload.status === 'paused'
                 ? t('toolbar.toast.pausedRemovedDesc')
                 : t('toolbar.toast.initializingRemovedDesc'),
-            duration: 3000,
+            duration: 5000,
           });
           processQueue();
 
@@ -616,7 +609,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             variant: 'success',
             title: t('toolbar.toast.downloadRemovedTitle'),
             description: t('toolbar.toast.queuedRemovedDesc'),
-            duration: 3000,
+            duration: 5000,
           });
           continue;
         }
@@ -633,7 +626,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 variant: 'success',
                 title: t('toolbar.toast.downloadStoppedTitle'),
                 description: t('toolbar.toast.downloadStoppedDesc'),
-                duration: 3000,
+                duration: 5000,
               });
             } else {
               toast({
@@ -642,7 +635,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 description: t('toolbar.toast.stopErrorCouldNotDesc', {
                   controllerId: download.controllerId,
                 }),
-                duration: 3000,
+                duration: 5000,
               });
               continue; // Skip deletion if we couldn't stop the download
             }
@@ -653,7 +646,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
               description: t('toolbar.toast.stopErrorDesc', {
                 controllerId: download.controllerId,
               }),
-              duration: 3000,
+              duration: 5000,
             });
             continue; // Skip deletion if we couldn't stop the download
           }
@@ -673,7 +666,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         variant: 'destructive',
         title: t('toolbar.toast.noDownloadsSelectedTitle'),
         description: t('toolbar.toast.noDownloadsSelectedRemove'),
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
@@ -686,7 +679,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         variant: 'destructive',
         title: t('toolbar.toast.selectOneTitle'),
         description: t('toolbar.toast.selectOneDesc'),
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
@@ -702,7 +695,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         variant: 'destructive',
         title: t('toolbar.toast.noEligibleTitle'),
         description: t('toolbar.toast.noEligibleDesc'),
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
@@ -726,7 +719,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       description: t('toolbar.toast.batchStartedDesc', {
         count: downloadsToProcess.length,
       }),
-      duration: 4000,
+      duration: 5000,
     });
   };
 
@@ -928,11 +921,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
             setShowStopConfirmation(false);
             setStopAction(null);
           }}
-        />
-        <FileNotExistModal
-          isOpen={showFileNotExistModal}
-          onClose={() => setShowFileNotExistModal(false)}
-          selectedDownloads={missingFiles}
         />
         <RemoveModal
           isOpen={showRemoveConfirmation}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Volume2 } from 'lucide-react';
+import { FiPlayCircle } from 'react-icons/fi';
 import DemoShell from '../shared/DemoShell';
 import { DUMMY_VIDEOS, OnboardingFeature } from '../../types/onboardingTypes';
 
@@ -34,8 +35,8 @@ const VideoPlayerDemo: React.FC = () => {
                   : 'hover:bg-gray-50 dark:hover:bg-darkModeHover border-l-2 border-transparent'
               }`}
             >
-              <div className="w-20 h-14 bg-black rounded flex items-center justify-center flex-shrink-0">
-                <span className="text-white/40 text-lg">▶</span>
+              <div className="w-20 h-14 rounded flex items-center justify-center flex-shrink-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.6)_0%,transparent_40%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.5)_0%,transparent_45%),radial-gradient(circle_at_45%_80%,rgba(255,255,255,0.4)_0%,transparent_35%),linear-gradient(135deg,#ffa42e,#fec77d,#ffa42e,#fec170)]">
+                <FiPlayCircle size={18} color="#F45513" />
               </div>
               <div className="flex-1 min-w-0 pt-0.5">
                 <p className="text-[11px] font-medium dark:text-gray-200 line-clamp-2">

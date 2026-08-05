@@ -653,8 +653,8 @@ const DemoStatusTable: React.FC<DemoStatusTableProps> = ({
               }`}
             >
               <div className="flex gap-2">
-                <div className="flex-shrink-0 w-20 h-14 bg-black rounded overflow-hidden flex items-center justify-center">
-                  <VscPlayCircle size={16} className="text-gray-400" />
+                <div className="flex-shrink-0 w-20 h-14 rounded overflow-hidden flex items-center justify-center bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.6)_0%,transparent_40%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.5)_0%,transparent_45%),radial-gradient(circle_at_45%_80%,rgba(255,255,255,0.4)_0%,transparent_35%),linear-gradient(135deg,#ffa42e,#fec77d,#ffa42e,#fec170)]">
+                  <FiPlayCircle size={16} color="#F45513" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] mb-1 font-medium line-clamp-2 dark:text-gray-200 leading-tight">

@@ -124,7 +124,7 @@ export const StatusPageTableHeader: React.FC<StatusPageTableHeaderProps> = ({
               onClick={() => onSortClick(column.id)}
             >
               <span className="flex items-center gap-[0.5px]">
-                {getColumnDisplayName(column.id)}
+                {column.label ?? getColumnDisplayName(column.id)}
                 {renderSortIndicator(sortColumn, sortDirection, column.id)}
                 {column.id === 'name' && selectedRowIds.length > 0 && (
                   <span className="text-xs">

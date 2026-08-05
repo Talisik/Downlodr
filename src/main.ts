@@ -5,7 +5,8 @@
  * handling IPC (Inter-Process Communication) events, and managing
  * application lifecycle events.
  */
-import { app, BrowserWindow } from 'electron';
+import './core-app/ipc/main/electronPathsInit';
+import { app, BrowserWindow, session } from 'electron';
 import started from 'electron-squirrel-startup';
 import http from 'http';
 import path from 'path';
@@ -16,6 +17,10 @@ import { setLastClipboardText } from './core-app/ipc/main/clipboardHandler';
 import { registerMainIpcHandlers } from './core-app/ipc/main/registerHandlers';
 import { getRunInBackgroundSetting } from './core-app/ipc/main/trayHandler';
 import { setupExtendr } from './extension/utils/extensionLoader';
+import {
+  startMcpBridgeServer,
+  stopMcpBridgeServer,
+} from './core-app/ipc/main/mcpBridgeServer';
 
 // Set app identity early so Windows notifications show "Downlodr" instead of "app.electron"
 app.setName('Downlodr');
@@ -33,7 +38,12 @@ const isSingleInstance = app.requestSingleInstanceLock();
 
 if (!isSingleInstance) {
   console.log('Another instance is already running. Quitting this instance.');
-  app.quit();
+  // app.quit() only requests an async shutdown — without stopping here, this
+  // second instance keeps executing the rest of this file (including
+  // app.on('ready') -> startMcpBridgeServer()), which crashes with
+  // EADDRINUSE trying to bind the port the first instance already owns.
+  // app.exit() terminates immediately instead.
+  app.exit(0);
 }
 
 // focus first window instead
@@ -71,6 +81,10 @@ const createWindow = async () => {
     autoHideMenuBar: true,
     minWidth: 1200,
     minHeight: 600,
+    // Matches index.html's #splash background — without this, Electron paints
+    // the native window white the instant it's created, before any HTML has
+    // loaded, so there's a white flash ahead of the dark splash screen.
+    backgroundColor: '#0f0f0f',
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
@@ -80,6 +94,22 @@ const createWindow = async () => {
     },
   });
 
+  // Twitch's VOD CDNs serve HLS manifests/segments without CORS headers,
+  // which blocks hls.js's XHR fetches in the renderer (a plain <video src>
+  // is no-CORS and unaffected). Inject a permissive ACAO for those hosts only.
+  session.defaultSession.webRequest.onHeadersReceived(
+    { urls: ['*://*.cloudfront.net/*', '*://*.ttvnw.net/*'] },
+    (details, callback) => {
+      const responseHeaders = { ...(details.responseHeaders ?? {}) };
+      for (const key of Object.keys(responseHeaders)) {
+        if (key.toLowerCase() === 'access-control-allow-origin') {
+          delete responseHeaders[key];
+        }
+      }
+      responseHeaders['Access-Control-Allow-Origin'] = ['*'];
+      callback({ responseHeaders });
+    },
+  );
   const { cleanup } = await registerMainIpcHandlers(mainWindow, {
     tray: {
       onBeforeQuit: () => {
@@ -90,6 +120,7 @@ const createWindow = async () => {
   });
   appCleanup = cleanup;
 
+  startMcpBridgeServer();
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
     // Only open DevTools in development
@@ -245,14 +276,17 @@ app.on('ready', async () => {
     if (e.code === 'EADDRINUSE') console.warn('Port 57000 already in use');
   });
 
-  // Periodic update check every 4 hours (renderer handles the startup check)
+  // Periodic update check every 4 hours (renderer handles the startup check).
+  // Skipped for Microsoft Store builds, which the Store updates itself.
   const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 4;
-  setInterval(async () => {
-    const updateInfo = await checkForUpdates();
-    if (updateInfo.hasUpdate && updateInfo.downloadUrl) {
-      autoDownloadUpdate(updateInfo.downloadUrl, updateInfo);
-    }
-  }, UPDATE_CHECK_INTERVAL);
+  if (!process.windowsStore) {
+    setInterval(async () => {
+      const updateInfo = await checkForUpdates();
+      if (updateInfo.hasUpdate && updateInfo.downloadUrl) {
+        autoDownloadUpdate(updateInfo.downloadUrl, updateInfo);
+      }
+    }, UPDATE_CHECK_INTERVAL);
+  }
 });
 
 // Change this to keep app running in background
@@ -284,6 +318,8 @@ app.on('before-quit', async () => {
   } catch (err) {
     console.error('[before-quit] cleanup error:', err);
   }
+
+  stopMcpBridgeServer();
 
   // Process any pending failed downloads before quitting
   if (mainWindow && !mainWindow.isDestroyed()) {

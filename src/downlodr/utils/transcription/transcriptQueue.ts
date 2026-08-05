@@ -134,7 +134,7 @@ export function enqueueTranscript(job: TranscriptJob): void {
   toast({
     title: 'Downloading transcript',
     description: 'Transcript generation has started. Please wait.',
-    duration: 4000,
+    duration: 5000,
   });
   drain();
 }

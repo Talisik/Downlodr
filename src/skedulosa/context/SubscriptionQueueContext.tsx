@@ -198,6 +198,12 @@ async function createSubscription(item: QueuedSubscriptionData): Promise<void> {
             duration: 5000,
           });
         }
+
+        // Seed the intelligent scheduler with analysis videos AFTER the first
+        // scrape resolves — not before. channel_analysis_videos is also the
+        // scraper's "known videos" cutoff (see scraper-worker firstScrape
+        // detection); seeding it beforehand makes the initial scrape look
+        // like a subsequent one and stops it from finding any new videos.
         if (!isManual && item.analysisVideos.length > 0) {
           try {
             await bridge.saveAnalysisVideos(
@@ -211,6 +217,7 @@ async function createSubscription(item: QueuedSubscriptionData): Promise<void> {
             );
           }
         }
+
         setTimeout(() => {
           useSkedulosaStore
             .getState()

@@ -18,6 +18,7 @@ const TagPage: React.FC = () => {
     (state) => state.finishedDownloads,
   );
   const forDownloads = useDownloadStore((state) => state.forDownloads);
+  const queuedDownloads = useDownloadStore((state) => state.queuedDownloads);
   const articleDownloads = useArticleDownloadStore((s) => s.articleDownloads);
 
   const downloads = useMemo(() => {
@@ -25,6 +26,7 @@ const TagPage: React.FC = () => {
       ...downloading,
       ...finishedDownloads,
       ...forDownloads,
+      ...queuedDownloads,
     ];
 
     const articlesMapped = articleDownloads.map((a) => ({
@@ -68,7 +70,14 @@ const TagPage: React.FC = () => {
     return combined.filter(
       (download) => download.tags?.includes(decodeURIComponent(tagId || '')),
     );
-  }, [tagId, downloading, finishedDownloads, forDownloads, articleDownloads]);
+  }, [
+    tagId,
+    downloading,
+    finishedDownloads,
+    forDownloads,
+    queuedDownloads,
+    articleDownloads,
+  ]);
 
   return (
     <div className="w-full h-full">

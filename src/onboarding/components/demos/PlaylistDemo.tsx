@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { FiPlayCircle } from 'react-icons/fi';
 import DemoShell from '../shared/DemoShell';
 import FakeProgressBar from '../shared/FakeProgressBar';
 import { useDemoSimulator } from '../../hooks/useDemoSimulator';
@@ -95,7 +96,9 @@ const PlaylistDemo: React.FC<Props> = ({ started, onReset }) => {
                 key={video.id}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-darkModeHover transition-colors"
               >
-                <div className="w-24 h-16 rounded bg-gray-200 dark:bg-darkModeDarkGray flex-shrink-0" />
+                <div className="w-24 h-16 rounded flex items-center justify-center flex-shrink-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.6)_0%,transparent_40%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.5)_0%,transparent_45%),radial-gradient(circle_at_45%_80%,rgba(255,255,255,0.4)_0%,transparent_35%),linear-gradient(135deg,#ffa42e,#fec77d,#ffa42e,#fec170)]">
+                  <FiPlayCircle size={18} color="#F45513" />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium dark:text-darkModeLight truncate">
                     {video.title}

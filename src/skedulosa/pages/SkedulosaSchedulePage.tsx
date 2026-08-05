@@ -147,16 +147,20 @@ const SkedulosaSchedulePage = () => {
   );
 
   const handleDelete = useCallback(
-    (channelId: string) => {
-      const allCh = [
-        ...scheduledChannels,
-        ...afdaWebsites.map(websiteToScheduledChannel),
-      ];
-      const channel = allCh.find((c) => c.id === channelId);
+    (channelId: string, category: string) => {
+      // Disambiguate by category first — scheduledChannels and afdaWebsites
+      // use small SQLite integer IDs from separate databases that can collide,
+      // so a bare id lookup across both risks resolving the wrong entry.
+      const channel =
+        category === 'afda-website'
+          ? afdaWebsites
+              .map(websiteToScheduledChannel)
+              .find((c) => c.id === channelId)
+          : scheduledChannels.find((c) => c.id === channelId);
       setDeleteConfirm({
         channelId,
         channelName: channel?.channelName ?? channelId,
-        category: channel?.category ?? '',
+        category: channel?.category ?? category,
       });
       setContextMenu(null);
     },
@@ -705,7 +709,7 @@ const SkedulosaSchedulePage = () => {
           subscriptionId={contextMenu.channelId}
           category={contextMenu.category}
           onEdit={() => setEditModalId(contextMenu.channelId)}
-          onDelete={() => handleDelete(contextMenu.channelId)}
+          onDelete={() => handleDelete(contextMenu.channelId, contextMenu.category)}
           onClose={() => setContextMenu(null)}
         />
       )}

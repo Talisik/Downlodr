@@ -8,12 +8,7 @@ contextBridge.exposeInMainWorld('ytdlpFunctionsBridge', {
   },
 
   getInfo: async (url: string) => {
-    try {
-      const info = await ipcRenderer.invoke('ytdlp:info', url);
-      return info;
-    } catch {
-      return null;
-    }
+    return await ipcRenderer.invoke('ytdlp:info', url);
   },
 
   killController: (id: any) => ipcRenderer.invoke('kill-controller', id),
@@ -91,6 +86,18 @@ contextBridge.exposeInMainWorld('ytdlpFunctionsBridge', {
 
   getDirectUrl: async (url: string): Promise<string> => {
     return await ipcRenderer.invoke('ytdlp:getDirectUrl', url);
+  },
+
+  downloadPreview: async (requestId: string, url: string): Promise<string> => {
+    return await ipcRenderer.invoke('ytdlp:downloadPreview', requestId, url);
+  },
+
+  cancelPreviewDownload: async (requestId: string): Promise<void> => {
+    return await ipcRenderer.invoke('ytdlp:cancelPreviewDownload', requestId);
+  },
+
+  releasePreviewFile: async (tempPath: string): Promise<void> => {
+    return await ipcRenderer.invoke('ytdlp:releasePreviewFile', tempPath);
   },
 
   readCaptionFile: async (filePath: string): Promise<string> => {

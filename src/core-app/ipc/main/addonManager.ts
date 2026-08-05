@@ -19,7 +19,7 @@ export type AddonStatus =
   | { status: 'outdated'; installedVersion: string; path: string };
 
 const EXPECTED_VERSIONS: Record<PackName, string> = {
-  'afda-backend': '1.2.0',
+  'afda-backend': '1.3.0',
   'video-nemesis-toolkit': '1.0.0',
 };
 
@@ -29,7 +29,11 @@ const activeDownloads = new Map<PackName, () => void>();
 const cancelledPacks = new Set<PackName>();
 
 function pendingDeleteMarkerPath(): string {
-  return path.join(app.getPath('userData'), 'downlodr-add-ons', '.pending-delete.json');
+  return path.join(
+    app.getPath('userData'),
+    'downlodr-add-ons',
+    '.pending-delete.json',
+  );
 }
 
 function readPendingDeletes(): PackName[] {
@@ -62,23 +66,213 @@ function markPendingDelete(packName: PackName): void {
  * native module DLL was still locked by the running process on Windows). Must
  * run before any addon module is loaded, so the files are no longer in use.
  */
-export function applyPendingDeletes(): void {
+export async function applyPendingDeletes(): Promise<void> {
   const pending = readPendingDeletes();
   if (pending.length === 0) return;
 
   const stillPending: PackName[] = [];
   for (const packName of pending) {
-    const addonPath = path.join(app.getPath('userData'), 'downlodr-add-ons', packName);
+    const addonPath = path.join(
+      app.getPath('userData'),
+      'downlodr-add-ons',
+      packName,
+    );
     try {
-      if (fs.existsSync(addonPath)) {
-        fs.rmSync(addonPath, { recursive: true, force: true });
-      }
+      // rm with force ignores missing paths, so no existsSync guard needed
+      await fs.promises.rm(addonPath, { recursive: true, force: true });
     } catch (err) {
-      console.error(`[addonManager] deferred delete failed for ${packName}:`, err);
+      console.error(
+        `[addonManager] deferred delete failed for ${packName}:`,
+        err,
+      );
       stillPending.push(packName);
     }
   }
   writePendingDeletes(stillPending);
+}
+
+export type SeedProgress = {
+  packName: PackName;
+  copiedBytes: number;
+  totalBytes: number;
+  /** 1-based index of the pack currently being seeded. */
+  step: number;
+  /** Number of packs actually being seeded this run (not always 2). */
+  totalSteps: number;
+};
+
+/**
+ * Recursively lists every file under `dir` that passes `filter`, with its
+ * size. Used to compute an accurate byte total before copying, so the boot
+ * splash can show a real percentage instead of an estimate.
+ */
+async function walkFiles(
+  dir: string,
+  filter: (absPath: string) => boolean,
+): Promise<{ files: { src: string; size: number }[]; totalBytes: number }> {
+  const files: { src: string; size: number }[] = [];
+  let totalBytes = 0;
+
+  const visit = async (current: string): Promise<void> => {
+    const entries = await fs.promises.readdir(current, { withFileTypes: true });
+    for (const entry of entries) {
+      const abs = path.join(current, entry.name);
+      if (!filter(abs)) continue;
+      if (entry.isDirectory()) {
+        await visit(abs);
+      } else if (entry.isFile()) {
+        const stat = await fs.promises.stat(abs);
+        files.push({ src: abs, size: stat.size });
+        totalBytes += stat.size;
+      }
+      // Symlinks and other non-regular entries are skipped: these packs are
+      // plain npm trees, and fs.promises.cp did not preserve them meaningfully
+      // on Windows either.
+    }
+  };
+
+  await visit(dir);
+  return { files, totalBytes };
+}
+
+/**
+ * Copies a pre-walked file list from `srcDir` to `destDir`, creating parent
+ * directories as needed and reporting cumulative bytes copied. Progress is
+ * throttled to PROGRESS_THROTTLE_MS, with a guaranteed final report, because
+ * these packs contain tens of thousands of files and each report is a
+ * synchronous main->renderer IPC send.
+ */
+async function copyFilesWithProgress(
+  files: { src: string; size: number }[],
+  srcDir: string,
+  destDir: string,
+  totalBytes: number,
+  onBytes?: (copiedBytes: number, totalBytes: number) => void,
+): Promise<void> {
+  let copiedBytes = 0;
+  let lastReport = 0;
+  const madeDirs = new Set<string>();
+
+  for (const file of files) {
+    const rel = path.relative(srcDir, file.src);
+    const dest = path.join(destDir, rel);
+    const destParent = path.dirname(dest);
+    if (!madeDirs.has(destParent)) {
+      await fs.promises.mkdir(destParent, { recursive: true });
+      madeDirs.add(destParent);
+    }
+    await fs.promises.copyFile(file.src, dest);
+    copiedBytes += file.size;
+
+    const now = Date.now();
+    if (onBytes && now - lastReport >= PROGRESS_THROTTLE_MS) {
+      lastReport = now;
+      onBytes(copiedBytes, totalBytes);
+    }
+  }
+
+  // Always emit a final 100% report, even if the last throttle window swallowed it.
+  onBytes?.(copiedBytes, totalBytes);
+}
+
+// afda-backend and video-nemesis-toolkit ship as extraResource (plain
+// folders outside the asar — see forge.config.ts) instead of being
+// downloaded post-install. seedBuiltInPacks() below copies each one into
+// userData/downlodr-add-ons/<pack> on first launch so it's found by the
+// exact same detectAddon()/resolveAddonPath() check a downloaded add-on
+// goes through — a package living partially inside an asar breaks
+// directory-listing-based node_modules resolution for its non-native deps,
+// so it can't just be pointed at directly the way this used to work.
+const BUILT_IN_PACKS: Partial<Record<PackName, string>> = {
+  'afda-backend': 'afda-backend__hidden',
+  'video-nemesis-toolkit': 'video-nemesis-toolkit__hidden',
+};
+
+/**
+ * Copies each built-in pack from its bundled extraResource location into
+ * userData/downlodr-add-ons/<pack>, if it isn't already there at the
+ * expected version. No-op in dev (resolveAddonPath's dev fallback already
+ * reads straight from the source tree) and no-op once already seeded, so
+ * this doesn't re-copy ~700MB on every launch.
+ *
+ * Copies file-by-file rather than via fs.promises.cp so the total byte count
+ * is known up front and `onProgress` can drive a real determinate progress
+ * bar on the boot splash — this copy is the entire reason a cold first launch
+ * takes as long as it does.
+ */
+export async function seedBuiltInPacks(
+  onProgress?: (p: SeedProgress) => void,
+): Promise<void> {
+  if (!app.isPackaged) return;
+  const entries = Object.entries(BUILT_IN_PACKS) as [PackName, string][];
+  // Decide the full work list first so `totalSteps` reflects the packs
+  // actually being seeded — a run that seeds one pack reports "1 of 1".
+  const pending = entries.filter(
+    ([packName]) => detectAddon(packName).status !== 'ready',
+  );
+  const totalSteps = pending.length;
+  if (totalSteps === 0) return;
+
+  let step = 0;
+  for (const [packName, resourceDirName] of pending) {
+    step += 1;
+    const srcDir = path.join(process.resourcesPath, resourceDirName);
+    const destDir = path.join(
+      app.getPath('userData'),
+      'downlodr-add-ons',
+      packName,
+    );
+    // node_modules/electron is a leftover devDependency (used only to
+    // run the pack standalone during its own development) — it ships
+    // its own default_app.asar, and Electron's global fs patch throws
+    // "Invalid package" the moment an lstat touches an .asar path
+    // that isn't the host app's own, aborting the whole copy partway
+    // through. Not needed at runtime anyway: code running inside an
+    // already-loaded Electron process resolves require('electron') to
+    // the built-in module regardless of node_modules contents.
+    const marker = `${path.sep}node_modules${path.sep}electron`;
+    const filter = (src: string) =>
+      src !== srcDir + marker && !src.includes(marker + path.sep);
+
+    try {
+      await fs.promises.rm(destDir, { recursive: true, force: true });
+      await fs.promises.mkdir(path.dirname(destDir), { recursive: true });
+
+      const { files, totalBytes } = await walkFiles(srcDir, filter);
+      // Report 0% up front so the bar appears immediately, before the first
+      // throttle window elapses.
+      onProgress?.({ packName, copiedBytes: 0, totalBytes, step, totalSteps });
+      await copyFilesWithProgress(
+        files,
+        srcDir,
+        destDir,
+        totalBytes,
+        (copiedBytes, total) =>
+          onProgress?.({
+            packName,
+            copiedBytes,
+            totalBytes: total,
+            step,
+            totalSteps,
+          }),
+      );
+
+      // The pack's own better-sqlite3.node was compiled during its
+      // standalone `npm install`, against plain Node's ABI — not
+      // Electron's. Swap in the host app's own copy (already correctly
+      // rebuilt for Electron and unpacked via forge.config.ts's
+      // asar.unpack), same as the downloaded-pack flow below already does.
+      patchNativeBinaries(destDir);
+      console.log(
+        `[addonManager] seeded built-in pack ${packName} into userData`,
+      );
+    } catch (err) {
+      console.error(
+        `[addonManager] failed to seed built-in pack ${packName}:`,
+        err,
+      );
+    }
+  }
 }
 
 export function detectAddon(packName: PackName): AddonStatus {
@@ -123,10 +317,16 @@ export function detectAddon(packName: PackName): AddonStatus {
  * Returns the first path that contains a package.json, or the dev path as fallback.
  */
 export function resolveAddonPath(packName: PackName): string {
-  const srcSubpath =
-    packName === 'afda-backend'
-      ? path.join('src', 'afda', 'backend', 'afda-backend')
-      : path.join('src', 'skedulosa', 'backend', 'video-nemesis-toolkit');
+  const SRC_SUBPATHS: Record<PackName, string> = {
+    'afda-backend': path.join('src', 'afda', 'backend', 'afda-backend__hidden'),
+    'video-nemesis-toolkit': path.join(
+      'src',
+      'skedulosa',
+      'backend',
+      'video-nemesis-toolkit__hidden',
+    ),
+  };
+  const srcSubpath = SRC_SUBPATHS[packName];
 
   // Priority 1: userData downloaded pack
   const userDataPack = path.join(
@@ -418,8 +618,16 @@ async function realDownload(
     if (cancelledPacks.has(packName)) {
       // Cancel handler already sent addon:complete — just clean up partial files
       cancelledPacks.delete(packName);
-      try { fs.unlinkSync(tempZip); } catch { /* already gone */ }
-      try { fs.rmSync(destDir, { recursive: true, force: true }); } catch { /* partial */ }
+      try {
+        fs.unlinkSync(tempZip);
+      } catch {
+        /* already gone */
+      }
+      try {
+        fs.rmSync(destDir, { recursive: true, force: true });
+      } catch {
+        /* partial */
+      }
       return;
     }
     console.error(`[addonManager] download failed for ${packName}:`, err);

@@ -75,7 +75,7 @@ const FormatSelectorExtension: React.FC<FormatSelectorExtensionProps> = ({
         variant: 'destructive',
         title: 'Format Required',
         description: 'Please select a format to convert to.',
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }

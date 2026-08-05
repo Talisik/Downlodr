@@ -40,6 +40,7 @@ export function initComposedWindowApi(): void {
       fileExists: fileInfo.fileExists,
       getFileSize: fileInfo.getFileSize,
       getDirectorySize: fileInfo.getDirectorySize,
+      getFreeDiskSpace: fileInfo.getFreeDiskSpace,
       showInputContextMenu: appBehavior.showInputContextMenu,
       invokeMainProcess: appBehavior.invokeMainProcess,
       downloadFile: fileFn.downloadFile,
@@ -70,6 +71,9 @@ export function initComposedWindowApi(): void {
       getLatestVersion: ytdlpBridge.getLatestVersion,
       checkAndUpdate: ytdlpBridge.checkAndUpdate,
       getDirectUrl: ytdlpBridge.getDirectUrl,
+      downloadPreview: ytdlpBridge.downloadPreview,
+      cancelPreviewDownload: ytdlpBridge.cancelPreviewDownload,
+      releasePreviewFile: ytdlpBridge.releasePreviewFile,
       readCaptionFile: ytdlpBridge.readCaptionFile,
     };
   }

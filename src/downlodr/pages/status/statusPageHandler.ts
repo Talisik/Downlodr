@@ -83,7 +83,9 @@ function toDownloadItem(download: SearchableDownload): DownloadItem {
 export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
   const { t } = useTranslation('downlodr');
   const deleteDownload = useDownloadStore((s) => s.deleteDownload);
-  const removeArticleDownload = useArticleDownloadStore((s) => s.removeArticleDownload);
+  const removeArticleDownload = useArticleDownloadStore(
+    (s) => s.removeArticleDownload,
+  );
   const depsRef = useRef(deps);
   depsRef.current = deps;
 
@@ -114,7 +116,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
       variant: 'success',
       title: tRef.current('statusHandler.transcriptRedownloaded'),
       description: tRef.current('statusHandler.transcriptRedownloadedDesc'),
-      duration: 3000,
+      duration: 5000,
     });
     useDownloadStore
       .getState()
@@ -239,6 +241,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
         channelName: currentDownload.channelName ?? '',
         timeLeft: currentDownload.timeLeft ?? '',
         DateAdded: new Date().toISOString(),
+        uploadDate: currentDownload.uploadDate,
         progress: 0,
         location: currentDownload.location ?? '',
         status: 'downloading',
@@ -260,6 +263,8 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
           (currentDownload as { autoCaptionLocation?: string })
             .autoCaptionLocation ?? '',
         isCreateFolder: false,
+        tags: currentDownload.tags,
+        category: currentDownload.category,
       });
       deleteDownload(downloadId);
       setSelectedRowIds([]);
@@ -268,7 +273,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
         variant: 'success',
         title: tRef.current('statusHandler.downloadRetried'),
         description: tRef.current('statusHandler.downloadRetriedDesc'),
-        duration: 3000,
+        duration: 5000,
       });
     },
     [deleteDownload],
@@ -313,6 +318,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
         }
 
         addDownload({
+          subscriptionId: currentDownload.subscriptionId,
           videoUrl: currentDownload.videoUrl ?? '',
           name: currentDownload.name,
           downloadName: currentDownload.downloadName,
@@ -343,6 +349,8 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
               .thumnailsLocation ?? '',
           duration: currentDownload.duration ?? 60,
           isCreateFolder: false,
+          tags: currentDownload.tags,
+          category: currentDownload.category,
         });
         deleteDownloading(downloadId);
         depsRef.current.setSelectedRowIds([]);
@@ -351,7 +359,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
           variant: 'success',
           title: tRef.current('statusHandler.downloadResumed'),
           description: tRef.current('statusHandler.downloadResumedDesc'),
-          duration: 3000,
+          duration: 5000,
         });
       } else if (
         currentDownload &&
@@ -361,14 +369,18 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
         const controllerId = (currentDownload as { controllerId?: string })
           .controllerId;
         try {
-          updateDownloadStatus(downloadId, 'paused');
+          // Block Resume until the process actually exits: 'pausing' has no
+          // Resume option in the UI, so a second process can't start writing
+          // the same output file while the first is still alive.
+          updateDownloadStatus(downloadId, 'pausing');
           const killed = await window.ytdlp.killController(controllerId ?? '');
           if (killed) {
+            updateDownloadStatus(downloadId, 'paused');
             toast({
               variant: 'success',
               title: tRef.current('statusHandler.downloadPaused'),
               description: tRef.current('statusHandler.downloadPausedDesc'),
-              duration: 3000,
+              duration: 5000,
             });
           } else {
             updateDownloadStatus(downloadId, 'downloading');
@@ -376,7 +388,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
               variant: 'destructive',
               title: tRef.current('statusHandler.pauseFailed'),
               description: tRef.current('statusHandler.pauseFailedDesc'),
-              duration: 3000,
+              duration: 5000,
             });
           }
         } catch (error) {
@@ -385,7 +397,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
             variant: 'destructive',
             title: tRef.current('statusHandler.error'),
             description: tRef.current('statusHandler.pauseError'),
-            duration: 3000,
+            duration: 5000,
           });
           console.error('Error in pause:', error);
         }
@@ -394,7 +406,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
           variant: 'destructive',
           title: tRef.current('statusHandler.cannotPauseYet'),
           description: tRef.current('statusHandler.cannotPauseYetDesc'),
-          duration: 3000,
+          duration: 5000,
         });
       }
 
@@ -412,7 +424,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
           variant: 'destructive',
           title: tRef.current('statusHandler.noDownloadLocation'),
           description: tRef.current('statusHandler.invalidDownloadLocation'),
-          duration: 3000,
+          duration: 5000,
         });
         closeContextMenu(setContextMenu);
         return;
@@ -429,7 +441,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
             variant: 'destructive',
             title: tRef.current('statusHandler.noDownloadLocation'),
             description: tRef.current('statusHandler.invalidDownloadLocation'),
-            duration: 3000,
+            duration: 5000,
           });
         }
       } catch (error) {
@@ -458,7 +470,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
           variant: 'destructive',
           title: tRef.current('statusHandler.noDownloadLocation'),
           description: tRef.current('statusHandler.invalidDownloadLocation'),
-          duration: 3000,
+          duration: 5000,
         });
         closeContextMenu(setContextMenu);
         return;
@@ -486,7 +498,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
             variant: 'destructive',
             title: tRef.current('statusHandler.fileNotFound'),
             description: tRef.current('statusHandler.fileNotFoundDesc'),
-            duration: 3000,
+            duration: 5000,
           });
         }
       } catch (error) {
@@ -530,7 +542,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
           variant: 'success',
           title: tRef.current('toolbar.toast.downloadStoppedTitle'),
           description: tRef.current('toolbar.toast.downloadStoppedDesc'),
-          duration: 3000,
+          duration: 5000,
         });
       } else if (currentForDownload?.status === 'to download') {
         removeFromForDownloads(downloadId);
@@ -538,41 +550,69 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
           variant: 'success',
           title: tRef.current('toolbar.toast.downloadStoppedTitle'),
           description: tRef.current('toolbar.toast.downloadStoppedDesc'),
-          duration: 3000,
+          duration: 5000,
         });
         processQueue();
-      } else {
-        downloading.forEach((download) => {
-          const cid = (download as { controllerId?: string }).controllerId;
-          if (cid) {
-            window.ytdlp
-              .killController(cid)
-              .then((result: unknown) => {
-                if (result) {
-                  deleteDownloading(download.id);
-                  toast({
-                    variant: 'success',
-                    title: tRef.current('toolbar.toast.downloadStoppedTitle'),
-                    description: tRef.current(
-                      'toolbar.toast.downloadStoppedDesc',
-                    ),
-                    duration: 3000,
-                  });
+      } else if (currentDownload) {
+        const cid = (currentDownload as { controllerId?: string }).controllerId;
+        if (cid && cid !== '---') {
+          window.ytdlp
+            .killController(cid)
+            .then((result: unknown) => {
+              if (result) {
+                deleteDownloading(currentDownload.id);
+                toast({
+                  variant: 'success',
+                  title: tRef.current('toolbar.toast.downloadStoppedTitle'),
+                  description: tRef.current(
+                    'toolbar.toast.downloadStoppedDesc',
+                  ),
+                  duration: 5000,
+                });
+                processQueue();
+              } else {
+                // killController returns false only when the controller ID
+                // no longer resolves to a running process — which the
+                // gracefulKill/SIGKILL fallback guarantees means the process
+                // already exited on its own (finished/failed) before we
+                // could kill it, not that the kill itself failed. Re-check
+                // the live state before showing an error for what's usually
+                // already resolved.
+                const fresh = useDownloadStore
+                  .getState()
+                  .downloading.find((d) => d.id === downloadId);
+                if (
+                  !fresh ||
+                  fresh.status === 'finished' ||
+                  fresh.status === 'failed'
+                ) {
                   processQueue();
+                  return;
                 }
-              })
-              .catch(() => {
                 toast({
                   variant: 'destructive',
-                  title: tRef.current('statusHandler.error'),
-                  description: tRef.current(
-                    'statusHandler.failedToStopDownload',
-                  ),
-                  duration: 3000,
+                  title: tRef.current('statusHandler.stopFailed'),
+                  description: tRef.current('statusHandler.stopFailedDesc'),
+                  duration: 5000,
                 });
+              }
+            })
+            .catch(() => {
+              toast({
+                variant: 'destructive',
+                title: tRef.current('statusHandler.error'),
+                description: tRef.current('statusHandler.failedToStopDownload'),
+                duration: 5000,
               });
-          }
-        });
+            });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: tRef.current('statusHandler.cannotStopYet'),
+            description: tRef.current('statusHandler.cannotStopYetDesc'),
+            duration: 5000,
+          });
+        }
       }
       setSelectedRowIds([]);
       setSelectedDownloads([]);
@@ -580,6 +620,45 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
     },
     [],
   );
+
+  // Live-recording "finish" button. Unlike handleStop (kill + remove from
+  // the list), this sends the same graceful CTRL_C kill but leaves the
+  // download entry alone — the process exiting cleanly (exit code 0)
+  // drives the normal 'completion' flow in lifecycleActions.updateDownload,
+  // which marks the download 'finished' so it stays in the log like any
+  // other completed download instead of disappearing.
+  const handleFinishRecording = useCallback((downloadId: string) => {
+    const { downloading } = useDownloadStore.getState();
+    const currentDownload = downloading.find((d) => d.id === downloadId);
+    const cid = (currentDownload as { controllerId?: string } | undefined)
+      ?.controllerId;
+    if (!cid) return;
+
+    useDownloadStore.setState((state) => ({
+      downloading: state.downloading.map((d) =>
+        d.id === downloadId ? { ...d, isFinishingRecording: true } : d,
+      ),
+    }));
+    toast({
+      title: tRef.current('statusHandler.savingLivestream'),
+      description: tRef.current('statusHandler.savingLivestreamDesc'),
+      duration: 5000,
+    });
+
+    window.ytdlp.killController(cid).catch(() => {
+      useDownloadStore.setState((state) => ({
+        downloading: state.downloading.map((d) =>
+          d.id === downloadId ? { ...d, isFinishingRecording: false } : d,
+        ),
+      }));
+      toast({
+        variant: 'destructive',
+        title: tRef.current('statusHandler.error'),
+        description: tRef.current('statusHandler.failedToStopDownload'),
+        duration: 5000,
+      });
+    });
+  }, []);
 
   const handleForceStart = useCallback(
     (
@@ -605,7 +684,6 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
         setContextMenu,
         setSelectedRowIds,
         setSelectedDownloads,
-        handleFileNotExistModal,
       } = depsRef.current;
 
       if (!downloadLocation || !downloadId) return;
@@ -618,7 +696,11 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
         const filePath = download.location;
         if (filePath) {
           // Best-effort file delete; ignore errors (file may not exist yet).
-          try { await window.downlodrFunctions.deleteFile(filePath); } catch { /* ignore */ }
+          try {
+            await window.downlodrFunctions.deleteFile(filePath);
+          } catch {
+            /* ignore */
+          }
         }
         removeArticleDownload(downloadId);
         setSelectedRowIds([]);
@@ -627,7 +709,8 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
         return;
       }
 
-      const { processQueue } = useDownloadStore.getState();
+      const { processQueue, queuedDownloads, removeFromQueue } =
+        useDownloadStore.getState();
 
       if (download.status === 'to download') {
         deleteDownload(downloadId);
@@ -637,9 +720,25 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
           variant: 'success',
           title: tRef.current('toolbar.toast.downloadDeletedTitle'),
           description: tRef.current('toolbar.toast.downloadDeletedDesc'),
-          duration: 3000,
+          duration: 5000,
         });
         processQueue();
+        closeContextMenu(setContextMenu);
+        return;
+      }
+
+      // Queued downloads haven't produced a file yet — just drop them from
+      // the queue instead of falling into the filesystem check below.
+      if (queuedDownloads.some((d) => d.id === downloadId)) {
+        removeFromQueue(downloadId);
+        setSelectedRowIds([]);
+        setSelectedDownloads([]);
+        toast({
+          variant: 'success',
+          title: tRef.current('toolbar.toast.downloadRemovedTitle'),
+          description: tRef.current('toolbar.toast.queuedRemovedDesc'),
+          duration: 5000,
+        });
         closeContextMenu(setContextMenu);
         return;
       }
@@ -647,6 +746,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
       if (
         download.status === 'cancelled' ||
         download.status === 'paused' ||
+        download.status === 'initializing' ||
         download.status === 'failed'
       ) {
         const descKey =
@@ -654,6 +754,8 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
             ? 'toolbar.toast.cancelledRemovedDesc'
             : download.status === 'paused'
             ? 'toolbar.toast.pausedRemovedDesc'
+            : download.status === 'initializing'
+            ? 'toolbar.toast.initializingRemovedDesc'
             : 'toolbar.toast.failedRemovedDesc';
         deleteDownload(downloadId);
         setSelectedRowIds([]);
@@ -662,7 +764,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
           variant: 'success',
           title: tRef.current('toolbar.toast.downloadRemovedTitle'),
           description: tRef.current(descKey),
-          duration: 3000,
+          duration: 5000,
         });
         processQueue();
         closeContextMenu(setContextMenu);
@@ -676,11 +778,10 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
             toast({
               variant: 'destructive',
               title: tRef.current('toolbar.toast.stopErrorTitle'),
-              description: tRef.current(
-                'toolbar.toast.stopErrorCouldNotDesc',
-                { controllerId },
-              ),
-              duration: 3000,
+              description: tRef.current('toolbar.toast.stopErrorCouldNotDesc', {
+                controllerId,
+              }),
+              duration: 5000,
             });
             return;
           }
@@ -692,18 +793,25 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
             description: tRef.current('toolbar.toast.stopErrorDesc', {
               controllerId,
             }),
-            duration: 3000,
+            duration: 5000,
           });
           return;
         }
       }
 
       try {
-        const folderExists = await window.downlodrFunctions.fileExists(
-          downloadLocation,
-        );
+        const fileName = download.downloadName || download.name;
+        const fullFilePath = fileName
+          ? await window.downlodrFunctions.joinDownloadPath(
+              downloadLocation,
+              fileName,
+            )
+          : downloadLocation;
 
         if (deleteFolder) {
+          const folderExists = await window.downlodrFunctions.fileExists(
+            downloadLocation,
+          );
           if (!folderExists) {
             deleteDownload(downloadId);
             setSelectedRowIds([]);
@@ -712,7 +820,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
               variant: 'success',
               title: tRef.current('toolbar.toast.downloadDeletedTitle'),
               description: tRef.current('toolbar.toast.downloadDeletedDesc'),
-              duration: 3000,
+              duration: 5000,
             });
             closeContextMenu(setContextMenu);
             return;
@@ -728,36 +836,46 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
               variant: 'success',
               title: tRef.current('toolbar.toast.folderDeletedTitle'),
               description: tRef.current('toolbar.toast.folderDeletedDesc'),
-              duration: 3000,
+              duration: 5000,
             });
           } else {
             toast({
               variant: 'destructive',
               title: tRef.current('statusHandler.error'),
               description: tRef.current('toolbar.toast.folderDeleteErrorDesc'),
-              duration: 3000,
+              duration: 5000,
             });
           }
         } else {
           const success = await window.downlodrFunctions.deleteFile(
-            downloadLocation,
+            fullFilePath,
           );
-          if (success) {
-            deleteDownload(downloadId);
-            setSelectedRowIds([]);
-            setSelectedDownloads([]);
-            toast({
-              variant: 'success',
-              title: tRef.current('toolbar.toast.fileDeletedTitle'),
-              description: tRef.current('toolbar.toast.fileDeletedDesc'),
-              duration: 3000,
-            });
-          } else {
-            handleFileNotExistModal(toDownloadItem(download));
-          }
+          // Whether or not the file itself was on disk, the user asked to
+          // delete this download, so the log always goes away.
+          deleteDownload(downloadId);
+          setSelectedRowIds([]);
+          setSelectedDownloads([]);
+          toast({
+            variant: 'success',
+            title: success
+              ? tRef.current('toolbar.toast.fileDeletedTitle')
+              : tRef.current('toolbar.toast.downloadDeletedTitle'),
+            description: success
+              ? tRef.current('toolbar.toast.fileDeletedDesc')
+              : tRef.current('toolbar.toast.downloadDeletedDesc'),
+            duration: 5000,
+          });
         }
       } catch {
-        handleFileNotExistModal(toDownloadItem(download));
+        deleteDownload(downloadId);
+        setSelectedRowIds([]);
+        setSelectedDownloads([]);
+        toast({
+          variant: 'success',
+          title: tRef.current('toolbar.toast.downloadDeletedTitle'),
+          description: tRef.current('toolbar.toast.downloadDeletedDesc'),
+          duration: 5000,
+        });
       }
       closeContextMenu(setContextMenu);
     },
@@ -766,17 +884,22 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
 
   const handleViewFolder = useCallback(
     async (downloadLocation?: string, filePath?: string) => {
-      const { setContextMenu } = depsRef.current;
+      const { allDownloads, setContextMenu, handleFileNotExistModal } =
+        depsRef.current;
       if (!downloadLocation) {
         toast({
           variant: 'destructive',
           title: tRef.current('statusHandler.error'),
           description: tRef.current('statusHandler.failedToViewFolder'),
-          duration: 3000,
+          duration: 5000,
         });
         closeContextMenu(setContextMenu);
         return;
       }
+
+      const download = allDownloads.find(
+        (d) => d.location === downloadLocation && d.name === filePath,
+      );
 
       const openFolderWithFallback = async (
         folderPath: string,
@@ -803,12 +926,14 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
             null,
           );
           if (!success) throw new Error('Failed to open folder');
+        } else if (download) {
+          handleFileNotExistModal(toDownloadItem(download));
         } else {
           toast({
             variant: 'destructive',
             title: tRef.current('statusHandler.missingFolder'),
             description: tRef.current('statusHandler.missingFolderDesc'),
-            duration: 3000,
+            duration: 5000,
           });
         }
       };
@@ -832,7 +957,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
           variant: 'destructive',
           title: tRef.current('statusHandler.error'),
           description: tRef.current('statusHandler.failedToViewFolder'),
-          duration: 3000,
+          duration: 5000,
         });
       }
       closeContextMenu(setContextMenu);
@@ -850,6 +975,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
     handleViewFile,
     handleViewDownload,
     handleStop,
+    handleFinishRecording,
     handleForceStart,
     handleRemove,
     handleViewFolder,

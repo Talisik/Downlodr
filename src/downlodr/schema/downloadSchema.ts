@@ -115,6 +115,11 @@ interface VideoInfo {
   heatmap?: HeatmapPoint[];
   tags?: string[];
   categories?: string[];
+  artist?: string;
+  artists?: string[];
+  track?: string;
+  album?: string;
+  creator?: string;
   _has_drm?: boolean | null;
   epoch?: number;
   requested_formats?: VideoFormat[];
@@ -182,4 +187,7 @@ export interface AddDownload {
   autoCaptionLocation?: string;
   thumnailsLocation?: string;
   transcriptLocation?: string;
+  tags?: string[];
+  category?: string[];
+  isLive?: boolean; // Whether the source is a live stream currently being recorded
 }

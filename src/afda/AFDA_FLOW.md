@@ -21,7 +21,13 @@ AFDA (Article Feed Download Aggregator) lets users subscribe to websites, scrape
 **Phase: `running`**
 - On open, immediately calls `bridge.mapper.run({ website_url, fqdn, ... })`
 - `startChannelAnalysis` fires to show the global scanning overlay
-- Listens for `bridge.on.mapperComplete` and `bridge.on.mapperError`
+- Completion events are **not** handled here: `GlobalAfdaMapperListener`
+  (`src/afda/components/GlobalAfdaMapperListener.tsx`, mounted app-wide in
+  `App.tsx`) owns `bridge.on.mapperComplete`/`mapperError`, calls
+  `finishChannelAnalysis()`, and stashes the result in `afdaMapperStore`. This
+  survives the modal unmounting when the user clicks "Run in background" on the
+  scanning overlay and leaves `/skedulosa` — the modal consumes the stashed
+  result whenever it is (re)mounted with a matching fqdn
 
 **Phase: `sections`** (on `mapperComplete`)
 - `MapperResult` contains `section_links[]` and optional `section_analyses` (frequency suggestions per section)

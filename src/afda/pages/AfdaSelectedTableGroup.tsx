@@ -11,13 +11,14 @@ import {
 import { useAfdaStore } from '@/afda/store/afdaStore';
 import { usePluginStore } from '@/plugins/store/pluginStore';
 import { useAfdaWebsitesStore } from '@/afda/store/afdaWebsitesStore';
+import { useAfdaSubscriptionsStore } from '@/afda/store/afdaSubscriptionsStore';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
-import { useFavoritesStore } from '@/downlodr/store/favoritesStore';
 import {
+  buildArticleFilename,
+  fetchSocialPostModel,
   generateArticleDocx,
   generateArticleHtml,
   normalizeArticleRow,
-  sanitizeFilename,
 } from '@/afda/utils/articleDocxGenerator';
 import { getFaviconUrl } from '@/afda/utils/faviconUrl';
 import { Play } from '@/assets/icon';
@@ -28,9 +29,13 @@ import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
 import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore';
 import TaskbarInputField from '@/downlodr/components/base/InputField/TaskbarInputField';
 import RemoveModal from '@/downlodr/components/modal/custom/RemoveModal';
+import { useWindowSize } from '@/downlodr/pages/status/statusPageHooks';
 import { StatusPageTableHeader } from '@/downlodr/pages/status/StatusPageTableHeader';
 import type { DisplayColumn } from '@/downlodr/pages/status/statusPageTypes';
-import { formatRelativeTime } from '@/downlodr/pages/status/statusPageUtils';
+import {
+  formatRelativeTime,
+  sortDownloadsByColumn,
+} from '@/downlodr/pages/status/statusPageUtils';
 import type { ArticleSearchableDownload } from '@/downlodr/store/taskbarDownloadStore';
 import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
 import React, {
@@ -59,13 +64,11 @@ const COLUMNS: DisplayColumn[] = [
   { id: 'status', width: 100, minWidth: 100 },
   { id: 'format', width: 90, minWidth: 90 },
   { id: 'size', width: 70, minWidth: 70 },
-  { id: 'speed', width: 70, minWidth: 70 },
   { id: 'source', width: 50, minWidth: 50 },
   { id: 'dateAdded', width: 100, minWidth: 100 },
+  { id: 'uploadedOn', width: 100, minWidth: 100, label: 'Published' },
   { id: 'action', width: 60, minWidth: 60 },
 ];
-
-const PAGE_SIZE = 10;
 
 const AfdaSelectedTableGroup: React.FC = () => {
   const { websiteId } = useParams<{ websiteId: string }>();
@@ -73,6 +76,9 @@ const AfdaSelectedTableGroup: React.FC = () => {
 
   const website = useAfdaWebsitesStore((s) =>
     s.websites.find((w) => w.id === websiteId),
+  );
+  const getAfdaSubscription = useAfdaSubscriptionsStore(
+    (s) => s.getAfdaSubscription,
   );
   const articleDownloads = useArticleDownloadStore((s) => s.articleDownloads);
   const removeArticleDownload = useArticleDownloadStore(
@@ -92,9 +98,9 @@ const AfdaSelectedTableGroup: React.FC = () => {
 
   const afdaIsOpen = useAfdaStore((s) => s.isOpen);
   const fetchAndOpen = useAfdaStore((s) => s.fetchAndOpen);
-  const isFavorited = useFavoritesStore((s) => s.isFavorited);
-  const addFavorite = useFavoritesStore((s) => s.addFavorite);
-  const removeFavorite = useFavoritesStore((s) => s.removeFavorite);
+  const toggleArticleFavorite = useArticleDownloadStore(
+    (s) => s.toggleArticleFavorite,
+  );
 
   const selectedRowIds = useSelectedDownloadStore((s) => s.selectedRowIds);
   const setSelectedRowIds = useSelectedDownloadStore(
@@ -106,8 +112,22 @@ const AfdaSelectedTableGroup: React.FC = () => {
 
   const searchState = useTaskbarDownloadStore((s) => s.searchState);
 
-  const [sortColumn] = useState('dateAdded');
-  const [sortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortColumn, setSortColumn] = useState('dateAdded');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const handleSortClick = useCallback(
+    (columnId: string) => {
+      if (columnId === sortColumn) {
+        setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      } else {
+        setSortColumn(columnId);
+        setSortDirection('desc');
+      }
+    },
+    [sortColumn],
+  );
+  const { windowHeight } = useWindowSize();
+  const PAGE_SIZE = windowHeight >= 1000 ? 20 : windowHeight >= 800 ? 15 : 10;
   const [currentPage, setCurrentPage] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showBulkRemoveModal, setShowBulkRemoveModal] = useState(false);
@@ -132,6 +152,7 @@ const AfdaSelectedTableGroup: React.FC = () => {
         status: a.status === 'loading' ? 'downloading' : a.status,
         size: a.fileSize ?? 0,
         DateAdded: a.dateAdded,
+        uploadDate: a.published_at ?? undefined,
         location: a.filePath ?? '',
         videoUrl: a.url,
         downloadName: a.title || a.url,
@@ -165,24 +186,33 @@ const AfdaSelectedTableGroup: React.FC = () => {
   );
 
   const filteredDownloads = useMemo(() => {
-    if (!searchState.isSearchActive || !searchState.searchQuery.trim()) {
-      return downloads;
-    }
-    const query = searchState.searchQuery.toLowerCase();
-    return downloads.filter(
-      (d) =>
-        d.name?.toLowerCase().includes(query) ||
-        d.displayName?.toLowerCase().includes(query) ||
-        d.extractorKey?.toLowerCase().includes(query) ||
-        d.status?.toLowerCase().includes(query) ||
-        d.tags?.some((t) => t.toLowerCase().includes(query)) ||
-        d.category?.some((c) => c.toLowerCase().includes(query)),
-    );
-  }, [downloads, searchState.isSearchActive, searchState.searchQuery]);
+    const base =
+      !searchState.isSearchActive || !searchState.searchQuery.trim()
+        ? downloads
+        : (() => {
+            const query = searchState.searchQuery.toLowerCase();
+            return downloads.filter(
+              (d) =>
+                d.name?.toLowerCase().includes(query) ||
+                d.displayName?.toLowerCase().includes(query) ||
+                d.extractorKey?.toLowerCase().includes(query) ||
+                d.status?.toLowerCase().includes(query) ||
+                d.tags?.some((t) => t.toLowerCase().includes(query)) ||
+                d.category?.some((c) => c.toLowerCase().includes(query)),
+            );
+          })();
+    return sortDownloadsByColumn(base, sortColumn, sortDirection);
+  }, [
+    downloads,
+    searchState.isSearchActive,
+    searchState.searchQuery,
+    sortColumn,
+    sortDirection,
+  ]);
 
   useEffect(() => {
     setCurrentPage(0);
-  }, [filteredDownloads.length]);
+  }, [filteredDownloads.length, PAGE_SIZE]);
 
   const totalPages = Math.ceil(filteredDownloads.length / PAGE_SIZE);
   const pageStart = currentPage * PAGE_SIZE + 1;
@@ -202,6 +232,27 @@ const AfdaSelectedTableGroup: React.FC = () => {
 
   const websiteName = website?.name ?? websiteId ?? '';
   const faviconUrl = getFaviconUrl(website?.url ?? '');
+  const isSocial = website?.kind === 'social';
+  const itemNoun = isSocial ? 'post' : 'article';
+
+  // Save Location / File Naming Format from the Settings tab (AfdaSettings.tsx)
+  // are frontend-only preferences — resolve them here at download time since
+  // that's the only place actual files get written.
+  const resolveDownloadDestination = useCallback(
+    async (title: string | null, dateAdded: string) => {
+      const settings = getAfdaSubscription(websiteId ?? '')?.settings[0];
+      const downloadFolder =
+        settings?.save_location?.trim() ||
+        (await window.downlodrFunctions.getDownloadFolder());
+      const filename = buildArticleFilename(settings?.file_naming_format, {
+        channel: websiteName,
+        title,
+        date: dateAdded,
+      });
+      return { downloadFolder, filename };
+    },
+    [getAfdaSubscription, websiteId, websiteName],
+  );
 
   const handleCheckboxChange = (id: string) => {
     setSelectedRowIds(
@@ -273,35 +324,7 @@ const AfdaSelectedTableGroup: React.FC = () => {
     [updateArticleDownload],
   );
 
-  const handleToggleFavorite = useCallback(
-    (articleId: string) => {
-      const article = articleDownloads.find((a) => a.id === articleId);
-      if (!article) return;
-      if (isFavorited(articleId)) {
-        removeFavorite(articleId);
-      } else {
-        addFavorite({
-          downloadId: article.id,
-          videoUrl: article.url,
-          title: article.title ?? '',
-          displayName: article.title,
-          downloadName: article.title ?? '',
-          location: article.filePath ?? '',
-          channelName: '',
-          thumbnail: undefined,
-          ext: article.format ?? 'docx',
-          duration: 0,
-          size: article.fileSize ?? 0,
-          extractorKey: 'Article',
-          tags: article.tags ?? [],
-          category: article.category ?? [],
-          status: article.status,
-          dateAdded: article.dateAdded ?? '',
-        });
-      }
-    },
-    [articleDownloads, isFavorited, addFavorite, removeFavorite],
-  );
+  const handleToggleFavorite = toggleArticleFavorite;
 
   const handleContextRemove = useCallback(
     (articleId: string) => {
@@ -357,9 +380,10 @@ const AfdaSelectedTableGroup: React.FC = () => {
           articleModel = result;
         }
         const currentFormat = d.format ?? 'docx';
-        const downloadFolder =
-          await window.downlodrFunctions.getDownloadFolder();
-        const filename = sanitizeFilename(articleModel.article_title);
+        const { downloadFolder, filename } = await resolveDownloadDestination(
+          articleModel.article_title,
+          d.DateAdded,
+        );
         let buffer: number[];
         let ext: string;
         if (currentFormat === 'pdf') {
@@ -394,6 +418,8 @@ const AfdaSelectedTableGroup: React.FC = () => {
           filePath,
           fileSize,
           articleData: articleModel,
+          thumbnailDataUrl:
+            articleModel.article_images?.[0]?.url ?? d.thumbnailDataUrl ?? null,
         });
       } catch (err) {
         updateArticleDownload(d.id, {
@@ -402,7 +428,12 @@ const AfdaSelectedTableGroup: React.FC = () => {
         });
       }
     },
-    [downloads, updateArticleDownload, handleCloseContextMenu],
+    [
+      downloads,
+      updateArticleDownload,
+      handleCloseContextMenu,
+      resolveDownloadDestination,
+    ],
   );
 
   const availableTags = useMemo(
@@ -453,7 +484,7 @@ const AfdaSelectedTableGroup: React.FC = () => {
         description: `${toRemove.length} article${
           toRemove.length !== 1 ? 's' : ''
         } removed.`,
-        duration: 3000,
+        duration: 5000,
       });
     },
     [downloads, selectedRowIds, setSelectedRowIds, removeArticleDownload],
@@ -468,7 +499,7 @@ const AfdaSelectedTableGroup: React.FC = () => {
         variant: 'destructive',
         title: 'No articles to download',
         description: 'Select articles with "for download" status.',
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
@@ -482,8 +513,11 @@ const AfdaSelectedTableGroup: React.FC = () => {
         const numericId = parseInt(d.id.replace('afda-article-', ''), 10);
         const isSubscriptionArticle =
           !isNaN(numericId) && d.id.startsWith('afda-article-');
+        const isSocialPost = d.id.startsWith('social-post-');
 
-        if (isSubscriptionArticle) {
+        if (isSocialPost) {
+          articleModel = await fetchSocialPostModel(d.id, d.subscriptionId);
+        } else if (isSubscriptionArticle) {
           const bridge =
             typeof window !== 'undefined'
               ? (
@@ -513,9 +547,10 @@ const AfdaSelectedTableGroup: React.FC = () => {
         }
 
         const currentFormat = d.format ?? 'docx';
-        const downloadFolder =
-          await window.downlodrFunctions.getDownloadFolder();
-        const filename = sanitizeFilename(articleModel.article_title);
+        const { downloadFolder, filename } = await resolveDownloadDestination(
+          articleModel.article_title,
+          d.DateAdded,
+        );
 
         let buffer: number[];
         let ext: string;
@@ -555,6 +590,8 @@ const AfdaSelectedTableGroup: React.FC = () => {
           filePath,
           fileSize,
           articleData: articleModel,
+          thumbnailDataUrl:
+            articleModel.article_images?.[0]?.url ?? d.thumbnailDataUrl ?? null,
         });
       } catch (err) {
         updateArticleDownload(d.id, {
@@ -563,7 +600,13 @@ const AfdaSelectedTableGroup: React.FC = () => {
         });
       }
     }
-  }, [downloads, selectedRowIds, setSelectedRowIds, updateArticleDownload]);
+  }, [
+    downloads,
+    selectedRowIds,
+    setSelectedRowIds,
+    updateArticleDownload,
+    resolveDownloadDestination,
+  ]);
 
   const handleExportCsv = useCallback(() => {
     const toExport = articleDownloads.filter((a) =>
@@ -636,9 +679,10 @@ const AfdaSelectedTableGroup: React.FC = () => {
       csvEscape(a.sectionId ?? ''),
     ]);
 
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join(
-      '\n',
-    );
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((r) => r.join(',')),
+    ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -653,8 +697,10 @@ const AfdaSelectedTableGroup: React.FC = () => {
     toast({
       variant: 'success',
       title: 'Exported',
-      description: `${toExport.length} article${toExport.length !== 1 ? 's' : ''} exported to CSV.`,
-      duration: 3000,
+      description: `${toExport.length} article${
+        toExport.length !== 1 ? 's' : ''
+      } exported to CSV.`,
+      duration: 5000,
     });
   }, [articleDownloads, selectedRowIds, websiteName]);
 
@@ -693,7 +739,11 @@ const AfdaSelectedTableGroup: React.FC = () => {
           </button>
           <span>/</span>
           <button
-            onClick={() => navigate('/status/articles')}
+            onClick={() =>
+              navigate('/status/all', {
+                state: { presetTypeFilter: 'articles' },
+              })
+            }
             className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors font-medium"
           >
             Article Fetcher
@@ -742,7 +792,10 @@ const AfdaSelectedTableGroup: React.FC = () => {
               </Button>
             </TooltipWrapper>
             {selectedRowIds.length > 0 && (
-              <TooltipWrapper content="Export selected articles to CSV" side="bottom">
+              <TooltipWrapper
+                content="Export selected articles to CSV"
+                side="bottom"
+              >
                 <Button
                   variant="transparent"
                   size="icon"
@@ -792,7 +845,7 @@ const AfdaSelectedTableGroup: React.FC = () => {
                 </div>
                 <div className="flex gap-1.5 items-center">
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {downloads.length} article
+                    {downloads.length} {itemNoun}
                     {downloads.length !== 1 ? 's' : ''}
                   </div>
                   <div className="font-extrabold text-gray-700 dark:text-gray-100 text-[8px]">
@@ -841,7 +894,7 @@ const AfdaSelectedTableGroup: React.FC = () => {
                           ),
                         )
                       }
-                      onSortClick={() => {}}
+                      onSortClick={handleSortClick}
                       onResizeStart={() => {}}
                       startDragging={() => {}}
                       onDragOver={() => {}}
@@ -876,8 +929,8 @@ const AfdaSelectedTableGroup: React.FC = () => {
                           >
                             {searchState.isSearchActive &&
                             searchState.searchQuery.trim()
-                              ? `No articles matched "${searchState.searchQuery}"`
-                              : 'No articles found'}
+                              ? `No ${itemNoun}s matched "${searchState.searchQuery}"`
+                              : `No ${itemNoun}s found`}
                           </td>
                         </tr>
                       )}
@@ -930,7 +983,7 @@ const AfdaSelectedTableGroup: React.FC = () => {
                 onRetry={handleRetry}
                 onDownload={handleContextDownload}
                 onToggleFavorite={handleToggleFavorite}
-                isFavorited={isFavorited(activeContextArticle.id)}
+                isFavorited={!!activeContextArticle.favorited}
                 onAddTag={(articleId, tag) => addArticleTag(articleId, tag)}
                 onRemoveTag={(articleId, tag) =>
                   removeArticleTag(articleId, tag)

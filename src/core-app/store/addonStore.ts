@@ -2,6 +2,12 @@ import { create } from 'zustand';
 
 export type PackName = 'afda-backend' | 'video-nemesis-toolkit';
 
+/** Maps each PackName to the corresponding key on AddonStore's per-pack state. */
+export const PACK_STORE_KEY: Record<PackName, 'afda' | 'skedulosa'> = {
+  'afda-backend': 'afda',
+  'video-nemesis-toolkit': 'skedulosa',
+};
+
 export type AddonPackStatus =
   | 'not-installed'
   | 'ready'
@@ -40,7 +46,7 @@ export const useAddonStore = create<AddonStore>((set) => ({
 
   setPackState: (pack, state) =>
     set((s) => {
-      const key = pack === 'afda-backend' ? 'afda' : 'skedulosa';
+      const key = PACK_STORE_KEY[pack];
       return { [key]: { ...s[key], ...state } };
     }),
 
@@ -57,7 +63,7 @@ export const useAddonStore = create<AddonStore>((set) => ({
     window.addonBridge?.cancel(pack)?.catch((err) => {
       console.error('[addonStore] cancelDownload IPC failed:', err);
     });
-    const key = pack === 'afda-backend' ? 'afda' : 'skedulosa';
+    const key = PACK_STORE_KEY[pack];
     set((s) => ({
       [key]: { ...s[key], status: 'not-installed', progress: undefined },
     }));
@@ -83,13 +89,16 @@ export const useAddonStore = create<AddonStore>((set) => ({
     });
 
     bridge.on.progress(({ pack, percent }) => {
-      const key = pack === 'afda-backend' ? 'afda' : 'skedulosa';
-      set((s) => ({ [key]: { ...s[key], status: 'downloading', progress: percent } }));
+      const key = PACK_STORE_KEY[pack];
+      set((s) => ({
+        [key]: { ...s[key], status: 'downloading', progress: percent },
+      }));
     });
 
     bridge.on.complete(({ pack, success, error }) => {
-      const key = pack === 'afda-backend' ? 'afda' : 'skedulosa';
-      if (!success) console.error(`[addonStore] download failed for ${pack}:`, error);
+      const key = PACK_STORE_KEY[pack];
+      if (!success)
+        console.error(`[addonStore] download failed for ${pack}:`, error);
       set((s) => ({
         needsRestart: success ? true : s.needsRestart,
         [key]: success

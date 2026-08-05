@@ -444,7 +444,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             variant: 'destructive',
             title: 'No Download Found',
             description: 'No active download found to pause',
-            duration: 3000,
+            duration: 5000,
           });
           return false;
         }
@@ -508,6 +508,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             channelName: currentDownload.channelName ?? '',
             timeLeft: currentDownload.timeLeft ?? '',
             DateAdded: new Date().toISOString(),
+            uploadDate: currentDownload.uploadDate,
             progress: currentDownload.progress,
             location: currentDownload.location ?? '',
             status: 'downloading',
@@ -523,6 +524,8 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             getThumbnail: currentDownload.getThumbnail || false,
             duration: currentDownload.duration || 60,
             isCreateFolder: false,
+            tags: currentDownload.tags,
+            category: currentDownload.category,
           });
 
           deleteDownloading(currentDownload.id);
@@ -574,7 +577,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           variant: 'destructive',
           title: 'Error',
           description: 'An unexpected error occurred',
-          duration: 3000,
+          duration: 5000,
         });
         return false;
       }
@@ -659,6 +662,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             channelName: currentDownload.channelName ?? '',
             timeLeft: currentDownload.timeLeft ?? '',
             DateAdded: new Date().toISOString(),
+            uploadDate: currentDownload.uploadDate,
             progress: currentDownload.progress,
             location: currentDownload.location ?? '',
             status: 'downloading',
@@ -674,6 +678,8 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             getThumbnail: currentDownload.getThumbnail || false,
             duration: currentDownload.duration || 60,
             isCreateFolder: false,
+            tags: currentDownload.tags,
+            category: currentDownload.category,
           });
 
           deleteDownloading(currentDownload.id);
@@ -856,6 +862,7 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             channelName: currentDownload.channelName ?? '',
             timeLeft: currentDownload.timeLeft ?? '',
             DateAdded: new Date().toISOString(),
+            uploadDate: currentDownload.uploadDate,
             progress: currentDownload.progress,
             location: currentDownload.location ?? '',
             status: 'downloading',
@@ -871,6 +878,8 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
             getThumbnail: currentDownload.getThumbnail || false,
             duration: currentDownload.duration || 60,
             isCreateFolder: false,
+            tags: currentDownload.tags,
+            category: currentDownload.category,
           });
 
           deleteDownloading(currentDownload.id);

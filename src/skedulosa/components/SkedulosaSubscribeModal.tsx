@@ -2,11 +2,6 @@ import graph from '@/assets/skedulosa/images/graph.svg';
 import Input from '@/core-app/components/shadcn/components/ui/input';
 import { ToggleGroup } from '@/core-app/components/shadcn/components/ui/toggle-group';
 import { showSkedulosaError } from '@/skedulosa/error-mapping/skedulosaErrors';
-import {
-  getMissingAddonMessage,
-  isMissingHandlerError,
-  openAddonManager,
-} from '@/core-app/utils/missingAddonError';
 import { useSettingStore } from '@/core-app/store/settingsStore';
 import BaseModal from '@/downlodr/components/modal/BaseModal';
 import {
@@ -40,6 +35,32 @@ const isYouTubeUrl = (url: string): boolean =>
       return false;
     }
   });
+
+const YOUTUBE_CHANNEL_TAB_SUFFIXES = [
+  '/featured',
+  '/videos',
+  '/streams',
+  '/playlists',
+  '/community',
+  '/about',
+];
+
+/** Strips a trailing channel-tab segment (e.g. /featured) so we're left with the canonical channel URL. */
+const stripYouTubeChannelTab = (url: string): string => {
+  if (!isYouTubeUrl(url)) return url;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
+  }
+  const pathname = parsed.pathname.replace(/\/+$/, '');
+  const lower = pathname.toLowerCase();
+  const suffix = YOUTUBE_CHANNEL_TAB_SUFFIXES.find((s) => lower.endsWith(s));
+  if (!suffix) return url;
+  parsed.pathname = pathname.slice(0, -suffix.length) || '/';
+  return parsed.toString();
+};
 
 type ChannelAnalysisResult = {
   intelligentPrediction: {
@@ -599,7 +620,7 @@ const SkedulosaSubscribeModal = ({
   // Pre-fill sourceURL when modal opens with an initialUrl (e.g. from taskbar channel detection)
   useEffect(() => {
     if (isOpen && initialUrl) {
-      setSourceURL(initialUrl);
+      setSourceURL(stripYouTubeChannelTab(initialUrl));
     }
   }, [isOpen, initialUrl]);
 
@@ -615,6 +636,15 @@ const SkedulosaSubscribeModal = ({
       return;
     }
 
+    // Normalize channel tab links (e.g. /featured, /videos) to the canonical
+    // channel URL before validating/analyzing. Setting sourceURL here re-runs
+    // this effect with the cleaned value.
+    const cleanedUrl = stripYouTubeChannelTab(url);
+    if (cleanedUrl !== url) {
+      setSourceURL(cleanedUrl);
+      return;
+    }
+
     // Run format check immediately — don't wait for the bridge
     const formatError = validateUrlFormat(url);
     if (formatError === '__redirect_to_download__') {
@@ -623,7 +653,7 @@ const SkedulosaSubscribeModal = ({
       toast({
         title: 'Video link detected',
         description: 'Sending to the download input for you.',
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }
@@ -689,12 +719,10 @@ const SkedulosaSubscribeModal = ({
         if (analysisGeneration.current !== gen) return;
         capturedDetails = details;
         setChannelDetails(details);
-      } catch (err) {
+      } catch {
         // Non-fatal — channel info panel just won't show avatar/subs
         if (analysisGeneration.current !== gen) return;
         setChannelDetails(null);
-        const message = err instanceof Error ? err.message : String(err);
-        if (isMissingHandlerError(message)) openAddonManager('skedulosa');
       }
 
       if (analysisGeneration.current !== gen) return;
@@ -738,17 +766,11 @@ const SkedulosaSubscribeModal = ({
         if (analysisGeneration.current !== gen) return;
         setChannelAnalysis(null);
         setIsValidUrl(false);
-        const rawMessage = err instanceof Error ? err.message : String(err);
-        if (isMissingHandlerError(rawMessage)) {
-          openAddonManager('skedulosa');
-          setUrlError(getMissingAddonMessage('skedulosa'));
-        } else {
-          setUrlError(
-            err instanceof Error
-              ? err.message
-              : t('subscribeModal.errors.analyzeFailed'),
-          );
-        }
+        setUrlError(
+          err instanceof Error
+            ? err.message
+            : t('subscribeModal.errors.analyzeFailed'),
+        );
       } finally {
         if (analysisGeneration.current === gen) finishChannelAnalysis();
       }
@@ -902,7 +924,7 @@ const SkedulosaSubscribeModal = ({
       title: t('subscribeModal.toast.queued'),
       description: t('subscribeModal.toast.queuedDesc'),
       variant: 'default',
-      duration: 3000,
+      duration: 5000,
     });
     if (!onSubscriptionCreated) {
       navigate('/skedulosa/subscription');

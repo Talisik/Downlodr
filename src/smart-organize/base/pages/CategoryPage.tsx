@@ -17,6 +17,7 @@ const CategoryPage: React.FC = () => {
     (state) => state.finishedDownloads,
   );
   const forDownloads = useDownloadStore((state) => state.forDownloads);
+  const queuedDownloads = useDownloadStore((state) => state.queuedDownloads);
   const articleDownloads = useArticleDownloadStore((s) => s.articleDownloads);
 
   const downloads = useMemo(() => {
@@ -24,6 +25,7 @@ const CategoryPage: React.FC = () => {
       ...downloading,
       ...finishedDownloads,
       ...forDownloads,
+      ...queuedDownloads,
     ];
 
     const articlesMapped = articleDownloads.map((a) => ({
@@ -68,7 +70,14 @@ const CategoryPage: React.FC = () => {
       (download) =>
         download.category?.includes(decodeURIComponent(categoryId || '')),
     );
-  }, [categoryId, downloading, finishedDownloads, forDownloads, articleDownloads]);
+  }, [
+    categoryId,
+    downloading,
+    finishedDownloads,
+    forDownloads,
+    queuedDownloads,
+    articleDownloads,
+  ]);
 
   return (
     <div className="w-full h-full">

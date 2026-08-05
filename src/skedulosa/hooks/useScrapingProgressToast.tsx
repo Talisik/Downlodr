@@ -86,7 +86,7 @@ export function useScrapingProgressToast() {
           toast({
             title: 'Subscription Scraping',
             description: `Scraping completed but no new videos were added to the Downloads tab. Will try again on the next scheduled run.`,
-            duration: 7000,
+            duration: 5000,
           });
         }
 

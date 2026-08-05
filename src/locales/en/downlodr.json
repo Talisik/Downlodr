@@ -3,6 +3,7 @@
     "pause": "Pause",
     "resume": "Resume",
     "stop": "Stop",
+    "finishRecording": "Finish Recording",
     "forceStart": "Force Start",
     "remove": "Remove",
     "rename": "Rename",
@@ -38,6 +39,7 @@
     "speed": "Speed",
     "source": "Source",
     "dateAdded": "Date Added",
+    "uploadedOn": "Uploaded On",
     "transcript": "Closed Captions",
     "status": "Status",
     "action": "Actions",
@@ -139,7 +141,10 @@
       "clickToRetry": "Click to retry download",
       "viewVideo": "View video",
       "openFolder": "Open folder",
-      "viewPreview": "View preview"
+      "viewPreview": "View preview",
+      "liveStopRecording": "Live — click to stop recording",
+      "liveFinishRecording": "Live — click to finish recording",
+      "liveFinishing": "Finishing…"
     },
     "format": {
       "unknown": "Unknown"
@@ -199,6 +204,8 @@
       "noDownloadsFoundDesc": "No current downloads to stop",
       "downloadStoppedTitle": "Download Stopped",
       "downloadStoppedDesc": "Download has been stopped successfully",
+      "recordingFinishedTitle": "Finishing Recording",
+      "recordingFinishedDesc": "Wrapping up the live recording — it will appear as finished once done",
       "stopErrorTitle": "Stop Download Error",
       "stopErrorCouldNotDesc": "Could not stop download with controller {{controllerId}}",
       "stopErrorDesc": "Error stopping download with controller {{controllerId}}",
@@ -254,12 +261,18 @@
   },
   "downloadController": {
     "downloadStarted": "Download Started from Queue",
-    "downloadStartedDesc": "\"{{name}}\" has started downloading."
+    "downloadStartedDesc": "\"{{name}}\" has started downloading.",
+    "insufficientStorage": "Not Enough Disk Space",
+    "insufficientStorageDesc": "\"{{name}}\" needs about {{needed}} free, but only {{free}} is available. Free up space or choose a different download location."
   },
   "downloadButton": {
     "tooltip": "Download video",
     "toastTitle": "Download Added to Queue",
     "toastDesc": "\"{{name}}\" added to queue. The download controller will start it automatically."
+  },
+  "formatHint": {
+    "toastTitle": "Tip: Pick your own format",
+    "toastDesc": "Downlodr grabs the best quality automatically. If you'd like to choose a specific format or resolution first, click Download again to continue."
   },
   "statusHandler": {
     "transcriptRedownloaded": "Transcript Redownloaded",
@@ -275,6 +288,10 @@
     "pauseError": "Failed to pause download",
     "cannotPauseYet": "Cannot Pause Yet",
     "cannotPauseYetDesc": "The download is still initializing. Please try again.",
+    "stopFailed": "Stop Failed",
+    "stopFailedDesc": "Could not stop the download. It may have already finished — refresh and check its status.",
+    "cannotStopYet": "Cannot Stop Yet",
+    "cannotStopYetDesc": "The download is still initializing. Please try again.",
     "noDownloadLocation": "No Download Location",
     "invalidDownloadLocation": "Invalid Download Location",
     "fileNotFound": "File Not Found",
@@ -284,7 +301,9 @@
     "failedToViewFolder": "Failed to view folder",
     "missingFolder": "Missing Folder",
     "missingFolderDesc": "The download folder does not exist yet",
-    "error": "Error"
+    "error": "Error",
+    "savingLivestream": "Saving Livestream",
+    "savingLivestreamDesc": "Finishing up the recording — this may take a moment."
   },
   "dropdownBar": {
     "menus": {
@@ -553,7 +572,11 @@
       "searchPlaceholder": "Search transcript",
       "noTranscript": "No transcript available",
       "copyTitle": "Copy transcript",
-      "downloadTitle": "Download transcript"
+      "downloadTitle": "Download transcript",
+      "hideTimestampsTitle": "Hide timestamps",
+      "showTimestampsTitle": "Show timestamps",
+      "timestampsShown": "Timestamps shown",
+      "timestampsHidden": "Timestamps hidden"
     },
     "chapters": {
       "title": "Chapters",

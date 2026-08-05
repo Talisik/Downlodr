@@ -1,7 +1,7 @@
 /* Handler for developer tools of base app such as opening dev tools, etc. */
 /* Handler for window behavior of base app such as closing, minimizing, maximizing, etc. */
 
-import { execFileSync, execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { BrowserWindow, app, ipcMain } from 'electron';
 import fs, { existsSync } from 'fs';
 import os from 'os';
@@ -13,15 +13,6 @@ import { getBundledBinaryPath } from './appInfoHandler';
  * @returns void
  */
 
-function getDurationMs(filePath: string): number {
-  // Note: ffprobe.exe is not bundled, using system PATH
-  // If you need bundled ffprobe, add './ffprobe.exe' to extraResource in forge.config.ts
-  const output = execSync(
-    `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
-  );
-  return Math.floor(parseFloat(output.toString().trim()) * 1000);
-}
-
 /**
  * Whisper models are trained on 16kHz mono PCM audio. The whisper filter will
  * resample internally if fed something else, but that internal conversion is
@@ -32,9 +23,7 @@ function getDurationMs(filePath: string): number {
 function resampleTo16kMono(ffmpegPath: string, inputFile: string): string {
   const tempFilePath = path.join(
     os.tmpdir(),
-    `downlodr-whisper-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2)}.wav`,
+    `downlodr-whisper-${Date.now()}-${Math.random().toString(36).slice(2)}.wav`,
   );
 
   execFileSync(ffmpegPath, [
@@ -502,10 +491,37 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
   function getDurationMs(filePath: string): number {
     // Note: ffprobe.exe is not bundled, using system PATH
     // If you need bundled ffprobe, add './ffprobe.exe' to extraResource in forge.config.ts
-    const output = execSync(
-      `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
-    );
+    const output = execFileSync('ffprobe', [
+      '-v',
+      'error',
+      '-show_entries',
+      'format=duration',
+      '-of',
+      'default=noprint_wrappers=1:nokey=1',
+      filePath,
+    ]);
     return Math.floor(parseFloat(output.toString().trim()) * 1000);
+  }
+
+  /**
+   * Some downloaded videos (e.g. muted/template TikTok clips) have no audio
+   * stream at all, which makes the later ffmpeg resample-to-WAV step fail
+   * with an opaque "Output file does not contain any stream" error. Check
+   * up front so we can surface a clear message instead.
+   */
+  function hasAudioStream(filePath: string): boolean {
+    const output = execFileSync('ffprobe', [
+      '-v',
+      'error',
+      '-select_streams',
+      'a',
+      '-show_entries',
+      'stream=index',
+      '-of',
+      'csv=p=0',
+      filePath,
+    ]);
+    return output.toString().trim().length > 0;
   }
 
   // handler to execute FFmpeg with Whisper transcription
@@ -581,6 +597,22 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
             if (!existsSync(options.inputFile)) {
               reject(new Error(`Input file not found: ${options.inputFile}`));
               return;
+            }
+
+            try {
+              if (!hasAudioStream(options.inputFile)) {
+                reject(
+                  new Error(
+                    'This video has no audio track, so there is nothing to transcribe.',
+                  ),
+                );
+                return;
+              }
+            } catch (error) {
+              console.warn(
+                'Failed to check for audio stream, proceeding anyway:',
+                error,
+              );
             }
 
             if (!existsSync(options.modelPath)) {

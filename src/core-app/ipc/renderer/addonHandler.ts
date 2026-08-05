@@ -23,5 +23,10 @@ contextBridge.exposeInMainWorld('addonBridge', {
       ipcRenderer.on('addon:complete', wrapped);
       return () => ipcRenderer.removeListener('addon:complete', wrapped);
     },
+    servicesReady: (cb: () => void) => {
+      const wrapped = () => cb();
+      ipcRenderer.on('addons:services-ready', wrapped);
+      return () => ipcRenderer.removeListener('addons:services-ready', wrapped);
+    },
   },
 });

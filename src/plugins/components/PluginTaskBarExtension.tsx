@@ -139,7 +139,7 @@ const PluginTaskBarExtension: React.FC = () => {
         variant: 'destructive',
         title: 'No Downloads Selected',
         description: 'Please select downloads to use plugin',
-        duration: 3000,
+        duration: 5000,
       });
       return;
     }

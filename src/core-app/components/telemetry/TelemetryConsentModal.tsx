@@ -44,7 +44,7 @@ const TelemetryConsentModal: React.FC<TelemetryConsentModalProps> = ({
       title: 'Telemetry Enabled',
       description:
         'Thank you for helping improve Downlodr! You can change this setting anytime in application behavior.',
-      duration: 4000,
+      duration: 5000,
     });
 
     onClose();
@@ -58,7 +58,7 @@ const TelemetryConsentModal: React.FC<TelemetryConsentModalProps> = ({
       title: 'Telemetry Disabled',
       description:
         'No telemetry data will be collected. You can enable this later in settings.',
-      duration: 4000,
+      duration: 5000,
     });
 
     onClose();

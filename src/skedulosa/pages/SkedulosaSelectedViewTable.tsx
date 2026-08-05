@@ -165,14 +165,14 @@ const SkedulosaSelectedViewTable = () => {
         toast({
           title: 'Scraper already running',
           description: 'Please wait for the current scrape to finish.',
-          duration: 2500,
+          duration: 5000,
         });
       }
       if (blockedByCooldown) {
         toast({
           title: 'Fetch now is on cooldown',
           description: 'Please wait a few minutes, then try again.',
-          duration: 2500,
+          duration: 5000,
         });
       }
 

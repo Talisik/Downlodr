@@ -21,6 +21,7 @@ export interface ArticleDownload {
   thumbnailDataUrl: string | null;
   tags: string[];
   category: string[];
+  favorited?: boolean;
 }
 
 export interface AfdaArticleInput {
@@ -54,6 +55,7 @@ interface ArticleDownloadStore {
   removeArticleTag: (id: string, tag: string) => void;
   addArticleCategory: (id: string, category: string) => void;
   removeArticleCategory: (id: string, category: string) => void;
+  toggleArticleFavorite: (id: string) => void;
 }
 
 export const useArticleDownloadStore = create<ArticleDownloadStore>()(
@@ -62,25 +64,31 @@ export const useArticleDownloadStore = create<ArticleDownloadStore>()(
       articleDownloads: [],
 
       addArticleDownload: (id, url) =>
-        set((state) => ({
-          articleDownloads: [
-            {
-              id,
-              title: '',
-              url,
-              status: 'for_download',
-              format: 'docx',
-              filePath: null,
-              fileSize: null,
-              dateAdded: new Date().toISOString(),
-              articleData: null,
-              thumbnailDataUrl: null,
-              tags: [],
-              category: [],
-            },
-            ...state.articleDownloads,
-          ],
-        })),
+        set((state) => {
+          const alreadyPending = state.articleDownloads.some(
+            (d) => d.url === url && d.status !== 'finished',
+          );
+          if (alreadyPending) return state;
+          return {
+            articleDownloads: [
+              {
+                id,
+                title: '',
+                url,
+                status: 'for_download',
+                format: 'docx',
+                filePath: null,
+                fileSize: null,
+                dateAdded: new Date().toISOString(),
+                articleData: null,
+                thumbnailDataUrl: null,
+                tags: [],
+                category: [],
+              },
+              ...state.articleDownloads,
+            ],
+          };
+        }),
 
       addAfdaArticle: (
         id,
@@ -193,6 +201,13 @@ export const useArticleDownloadStore = create<ArticleDownloadStore>()(
               : d,
           ),
         })),
+
+      toggleArticleFavorite: (id) =>
+        set((state) => ({
+          articleDownloads: state.articleDownloads.map((d) =>
+            d.id === id ? { ...d, favorited: !d.favorited } : d,
+          ),
+        })),
     }),
     {
       name: 'article-downloads-storage',
@@ -220,6 +235,19 @@ export const useArticleDownloadStore = create<ArticleDownloadStore>()(
               ...d,
               tags: d.tags ?? [],
               category: d.category ?? [],
+              // JSON round-tripping through IndexedDB turns Date fields into
+              // strings; revive them so consumers can call Date methods
+              // (e.g. ArticleSidePanel's toLocaleDateString) without checking.
+              articleData: d.articleData
+                ? {
+                    ...d.articleData,
+                    article_publish_date: d.articleData.article_publish_date
+                      ? new Date(d.articleData.article_publish_date)
+                      : null,
+                    date_updated: new Date(d.articleData.date_updated),
+                    date_parsed: new Date(d.articleData.date_parsed),
+                  }
+                : d.articleData,
             }),
           ),
         };

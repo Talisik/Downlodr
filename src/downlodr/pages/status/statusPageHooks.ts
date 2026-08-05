@@ -41,7 +41,7 @@ export function useErrorTransitionMonitor(
           description: `${errorExplanation}`,
           variant: 'destructive',
           expandable: true,
-          duration: 5500,
+          duration: 5000,
         });
       }
     });
@@ -208,8 +208,16 @@ export interface PlaylistAutoSelectOptions {
   setSelectedDownloads: (downloads: unknown[]) => void;
 }
 
+/**
+ * Ids already auto-selected once this session. Module-scoped (not a ref) so a
+ * user's deselect isn't overridden when StatusPage remounts on navigation.
+ */
+const autoSelectedPlaylistIds = new Set<string>();
+
 /** Auto-select new playlist downloads when they appear in forDownloads */
-export function usePlaylistAutoSelect(options: PlaylistAutoSelectOptions): void {
+export function usePlaylistAutoSelect(
+  options: PlaylistAutoSelectOptions,
+): void {
   const {
     forDownloads,
     selectedRowIds,
@@ -226,11 +234,13 @@ export function usePlaylistAutoSelect(options: PlaylistAutoSelectOptions): void 
       (download) =>
         download.isFromPlaylist &&
         download.status === 'to download' &&
+        !autoSelectedPlaylistIds.has(download.id) &&
         !selectedRowIds.includes(download.id),
     );
 
     if (playlistDownloads.length > 0) {
       const playlistDownloadIds = playlistDownloads.map((d) => d.id);
+      playlistDownloadIds.forEach((id) => autoSelectedPlaylistIds.add(id));
       const newSelectedIds = [...selectedRowIds, ...playlistDownloadIds];
       setSelectedRowIds(newSelectedIds);
 

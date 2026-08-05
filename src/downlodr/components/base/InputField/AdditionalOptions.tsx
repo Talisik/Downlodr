@@ -1,50 +1,19 @@
 import Input from '@/core-app/components/shadcn/components/ui/input';
-import PlaylistSkeleton from '@/core-app/components/shadcn/components/ui/playlistSkeleton';
 import { cn } from '@/core-app/components/shadcn/lib/utils';
-import { isValidUrl } from '@/core-app/utils/urlValidation';
-import {
-  useTaskbarDownloadStore,
-  Video,
-} from '@/downlodr/store/taskbarDownloadStore';
-import { useState } from 'react';
+import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
 import { useTranslation } from 'react-i18next';
 import { MdOutlineInfo } from 'react-icons/md';
 
-interface AdditionalOptionsProps {
-  // isOpenOptions: boolean;
-  isPlaylist: boolean;
-  isLoading: boolean;
-  selectAll: boolean;
-  handleSelectAll: () => void;
-  videoTitle: string | null;
-  playlistVideos: Video[];
-  selectedVideos: Set<string>;
-  handleVideoSelect: (id: string) => void;
-}
-
-const AdditionalOptions = ({
-  // isOpenOptions,
-  isPlaylist,
-  isLoading,
-  selectAll,
-  handleSelectAll,
-  videoTitle,
-  playlistVideos,
-  selectedVideos,
-  handleVideoSelect,
-}: AdditionalOptionsProps) => {
+const AdditionalOptions = () => {
   const { t } = useTranslation('additionalOptions');
   const { getTranscript, setGetTranscript, getThumbnail, setGetThumbnail } =
     useTaskbarDownloadStore();
-  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div
       id="additional-options-modal"
       className={cn(
-        'absolute top-full mt-1 right-10 max-w-[450px] min-w-0 h-fit z-[100] bg-white dark:bg-darkModeDropdown border border-divider dark:border-darkModeCompliment rounded-lg shadow-lg p-4',
-        isPlaylist && 'max-w-[800px] flex gap-4',
-        !isPlaylist && 'w-full',
+        'absolute top-full mt-1 right-10 max-w-[450px] min-w-0 h-fit w-full z-[100] bg-white dark:bg-darkModeDropdown border border-divider dark:border-darkModeCompliment rounded-lg shadow-lg p-4',
       )}
     >
       <div className="flex flex-col gap-2 w-fit">
@@ -103,12 +72,7 @@ const AdditionalOptions = ({
           </div>
         </div>
 
-        <hr
-          className={cn(
-            'border-t-1 border-divider dark:border-gray-700 my-2',
-            !isPlaylist && 'flex-grow',
-          )}
-        />
+        <hr className="border-t-1 border-divider dark:border-gray-700 my-2 flex-grow" />
 
         <div className="flex items-center gap-1.5">
           <MdOutlineInfo className="size-4 text-darkModeDarkGray dark:text-darkModeLight" />
@@ -119,93 +83,6 @@ const AdditionalOptions = ({
           </div>
         </div>
       </div>
-
-      {isPlaylist && isValidUrl && (
-        <div className="w-3/5 border-l border-divider dark:border-gray-700 pl-4">
-          {isLoading ? (
-            <PlaylistSkeleton />
-          ) : (
-            <div className="video-section">
-              <div className="sticky top-0 bg-white dark:bg-darkModeDropdown pb-4 z-10 mt-1">
-                <div className="select-all flex items-center justify-between">
-                  <div className="select-all flex items-center">
-                    <Input
-                      type="checkbox"
-                      id={`select-all`}
-                      checked={selectAll}
-                      onChange={handleSelectAll}
-                      style={{
-                        ...(document.documentElement.classList.contains(
-                          'dark',
-                        ) && {
-                          backgroundColor: selectAll ? '#F45513' : '#09090B',
-                          borderColor: selectAll ? '#F45513' : '#27272ACC',
-                          accentColor: '#ffffff',
-                        }),
-                      }}
-                      className="mr-2"
-                    />
-                    <label htmlFor={`select-all`}>
-                      <p className="dark:text-darkModeLight font-medium px-2">
-                        {videoTitle != null && videoTitle.length > 50
-                          ? `${videoTitle.slice(0, 50)}...`
-                          : videoTitle ?? ''}
-                      </p>
-                    </label>
-                  </div>
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t('selected', { count: selectedVideos.size })}
-                  </span>
-                </div>
-              </div>
-              <div className="space-y-3 max-h-[180px] overflow-y-auto">
-                {playlistVideos.map((video) => (
-                  <div
-                    key={video.id}
-                    className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-darkModeHover rounded-lg"
-                  >
-                    <input
-                      type="checkbox"
-                      id={`select-all-${video.id}`}
-                      checked={selectedVideos.has(video.id)}
-                      onChange={() => handleVideoSelect(video.id)}
-                      style={{
-                        ...(document.documentElement.classList.contains(
-                          'dark',
-                        ) && {
-                          backgroundColor: selectedVideos.has(video.id)
-                            ? '#F45513'
-                            : '#09090B',
-                          borderColor: selectedVideos.has(video.id)
-                            ? '#F45513'
-                            : '#27272ACC',
-                          accentColor: '#ffffff',
-                        }),
-                      }}
-                      className="flex-none"
-                    />
-                    <img
-                      src={video.thumbnail}
-                      alt={video.title}
-                      className="w-24 h-16 object-cover rounded"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <label htmlFor={`select-all-${video.id}`}>
-                        <h1 className="text-xs font-medium dark:text-darkModeLight truncate break-all">
-                          {video.title}
-                        </h1>
-                        <p className="text-xxs text-gray-500 dark:text-gray-400">
-                          {video.channel}
-                        </p>
-                      </label>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

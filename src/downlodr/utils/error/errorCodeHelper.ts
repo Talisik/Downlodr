@@ -745,6 +745,20 @@ const ERROR_CODE_MAP: Record<string, ErrorCodeInfo> = {
       'Update yt-dlp and retry',
     ],
   },
+  parse_error: {
+    code: 'PARSE_ERROR',
+    title: 'Could Not Read Video Data',
+    description:
+      "yt-dlp couldn't find the expected video data in this page — often because the video is private, restricted, or age-gated, or because the site changed its page layout",
+    category: 'ytdlp',
+    severity: 'medium',
+    canRetry: true,
+    suggestions: [
+      'Check that the video is public and not age-restricted or friends-only',
+      'Update yt-dlp to the latest version',
+      'Retry — the site may have changed its page layout temporarily',
+    ],
+  },
 };
 
 /**
@@ -801,6 +815,13 @@ export function parseErrorCodeFromLog(
     return 'youtube_format_unavailable';
   }
 
+  // Look for generic yt-dlp extractor parse failures (e.g.
+  // "[facebook] 123: Cannot parse data; please report this issue...") —
+  // not specific to any one site, so match on the message alone.
+  if (logMessage.includes('Cannot parse data')) {
+    return 'parse_error';
+  }
+
   // Look for HTTPS connection pool errors first (most specific)
   if (logMessage.includes('HTTPSConnectionPool')) {
     if (
@@ -825,6 +846,15 @@ export function parseErrorCodeFromLog(
     }
   }
 
+  // Look for errno pattern first — it names a specific OS/system error (e.g.
+  // "[Errno 28] No space left on device") and must win over the generic
+  // "exited with code" trailer that's appended to every completion log
+  // regardless of why the process actually failed.
+  const errnoMatch = logMessage.match(/errno[:\s]+(-?\d+)/i);
+  if (errnoMatch) {
+    return parseInt(errnoMatch[1], 10);
+  }
+
   // Look for exit code pattern
   const exitCodeMatch = logMessage.match(/exited with code[:\s]+(\d+)/i);
   if (exitCodeMatch) {
@@ -835,12 +865,6 @@ export function parseErrorCodeFromLog(
   const errorCodeMatch = logMessage.match(/error[:\s]+(\d+)/i);
   if (errorCodeMatch) {
     return parseInt(errorCodeMatch[1], 10);
-  }
-
-  // Look for errno pattern
-  const errnoMatch = logMessage.match(/errno[:\s]+(-?\d+)/i);
-  if (errnoMatch) {
-    return parseInt(errnoMatch[1], 10);
   }
 
   // Look for HTTP error pattern

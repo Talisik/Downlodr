@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FiPlayCircle } from 'react-icons/fi';
 import DemoShell from '../shared/DemoShell';
 import { DUMMY_CHANNEL, OnboardingFeature } from '../../types/onboardingTypes';
 
@@ -71,10 +72,8 @@ const YtChannelDemo: React.FC<Props> = ({ started, onReset }) => {
                   transition={{ delay: i * 0.12 }}
                   className="rounded-lg border border-divider dark:border-darkModeCompliment bg-white dark:bg-darkModeTable overflow-hidden"
                 >
-                  <div className="w-full h-20 bg-black flex items-center justify-center">
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                      <span className="text-white text-xs">▶</span>
-                    </div>
+                  <div className="w-full h-20 flex items-center justify-center bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.6)_0%,transparent_40%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.5)_0%,transparent_45%),radial-gradient(circle_at_45%_80%,rgba(255,255,255,0.4)_0%,transparent_35%),linear-gradient(135deg,#ffa42e,#fec77d,#ffa42e,#fec170)]">
+                    <FiPlayCircle size={22} color="#F45513" />
                   </div>
                   <div className="p-2">
                     <p className="text-[11px] font-medium dark:text-darkModeLight line-clamp-2">

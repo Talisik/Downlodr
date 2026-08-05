@@ -195,7 +195,12 @@ export const fileHandler = (mainWindow: BrowserWindow) => {
   });
 
   ipcMain.handle('file-exists', async (_event, path) => {
-    return existsSync(path);
+    try {
+      await fs.promises.access(path);
+      return true;
+    } catch {
+      return false;
+    }
   });
 
   ipcMain.handle('openVideo', async (event, filePath) => {
@@ -325,6 +330,17 @@ export const fileHandler = (mainWindow: BrowserWindow) => {
       }
     } catch (error) {
       return false;
+    }
+  });
+
+  // Free space (in bytes) available on the volume containing dirPath, or
+  // null if it can't be determined (caller should fail open, not block).
+  ipcMain.handle('get-free-disk-space', async (_event, dirPath: string) => {
+    try {
+      const stats = await fs.promises.statfs(dirPath);
+      return stats.bavail * stats.bsize;
+    } catch (error) {
+      return null;
     }
   });
 };

@@ -72,7 +72,7 @@ export const isValidUrl = (url: string): boolean => {
         '(' +
         '((([a-zA-Z\\d]([a-zA-Z\\d-]*[a-zA-Z\\d])*)\\.)+[a-zA-Z]{2,}|' +
         '((\\d{1,3}\\.){3}\\d{1,3}))' +
-        '(\\:\\d+)?(\\/[-a-zA-Z\\d%_.~+@]*)*' +
+        '(\\:\\d+)?(\\/[-a-zA-Z\\d%_.~+@:]*)*' +
         '(\\?[;&a-zA-Z\\d%_.~+@=-]*)?' +
         '(\\#[-a-zA-Z\\d_]*)?' +
         ')$',
@@ -84,7 +84,7 @@ export const isValidUrl = (url: string): boolean => {
         variant: 'destructive',
         title: 'Invalid URL Format',
         description: `The URL format is not valid`,
-        duration: 3000,
+        duration: 5000,
       });
       return false;
     }
@@ -116,7 +116,7 @@ export const isValidUrl = (url: string): boolean => {
         variant: 'destructive',
         title: 'Invalid URL Format',
         description: `The URL format is not valid: ${err}`,
-        duration: 3000,
+        duration: 5000,
       });
       return false;
     }
@@ -125,7 +125,7 @@ export const isValidUrl = (url: string): boolean => {
       variant: 'destructive',
       title: 'Invalid URL Format',
       description: 'The URL format is not valid',
-      duration: 3000,
+      duration: 5000,
     });
     return false;
   }

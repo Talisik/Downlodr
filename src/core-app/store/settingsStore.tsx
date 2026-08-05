@@ -28,6 +28,7 @@ interface DownloadSettings {
   language: string; // UI language code, e.g. 'en', 'es'
   addonOnboardingShown: boolean; // Whether the addon manager modal has been shown on first launch
   onboardingShown: boolean;
+  hasSeenFormatHint: boolean; // Whether the one-time "you can pick a format" download hint has been shown
 }
 
 // Main interface for the main store
@@ -51,10 +52,11 @@ interface SettingsStore {
   updateLanguage: (lang: string) => void;
   updateAddonOnboardingShown: (shown: boolean) => void;
   updateOnboardingShown: (shown: boolean) => void;
+  setHasSeenFormatHint: (shown: boolean) => void;
 }
 
 // version constant for migration tracking
-const MAIN_SETTINGS_VERSION = 3; // Incremented for onboarding flag
+const MAIN_SETTINGS_VERSION = 6; // Incremented: added hasSeenFormatHint one-time download hint flag
 
 // Interface for legacy persisted state structure
 interface LegacyPersistedState {
@@ -87,6 +89,7 @@ const migrateMainStore = (persistedState: unknown, version: number) => {
         language: 'en',
         addonOnboardingShown: false,
         onboardingShown: false,
+        hasSeenFormatHint: false,
       },
     };
 
@@ -135,6 +138,36 @@ const migrateMainStore = (persistedState: unknown, version: number) => {
     };
   }
 
+  if (version === 3) {
+    return {
+      ...(persistedState as any),
+      settings: {
+        ...(persistedState as any).settings,
+        // Existing users already had Smart Organize working before the
+        // pretend-add-on gate was introduced — don't lock them out.
+        smartOrganizeDownloaded: true,
+      },
+    };
+  }
+
+  // Version 4 → 5: smartOrganizeDownloaded is removed. No-op — the stale
+  // key (if present from version 3's migration) is simply left unused in
+  // the persisted blob; nothing reads it anymore.
+  if (version === 4) {
+    return persistedState;
+  }
+
+  // Version 5 → 6: add hasSeenFormatHint for the one-time download format hint.
+  if (version === 5) {
+    return {
+      ...(persistedState as any),
+      settings: {
+        ...(persistedState as any).settings,
+        hasSeenFormatHint: false,
+      },
+    };
+  }
+
   // If version is already current or newer, return as-is
   if (version >= MAIN_SETTINGS_VERSION) {
     return persistedState;
@@ -163,6 +196,7 @@ export const useSettingStore = create<SettingsStore>()(
         language: 'en',
         addonOnboardingShown: false,
         onboardingShown: false,
+        hasSeenFormatHint: false,
       },
       isDownloadModalOpen: false,
       setIsDownloadModalOpen: (isOpen: boolean) =>
@@ -233,6 +267,11 @@ export const useSettingStore = create<SettingsStore>()(
       updateOnboardingShown: (shown: boolean) =>
         set((state) => ({
           settings: { ...state.settings, onboardingShown: shown },
+        })),
+
+      setHasSeenFormatHint: (shown: boolean) =>
+        set((state) => ({
+          settings: { ...state.settings, hasSeenFormatHint: shown },
         })),
     }),
     {

@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld('fileInfoBridge', {
   getFileSize: (path: string) => ipcRenderer.invoke('get-file-size', path),
   getDirectorySize: (path: string) =>
     ipcRenderer.invoke('get-directory-size', path),
+  getFreeDiskSpace: (path: string) =>
+    ipcRenderer.invoke('get-free-disk-space', path),
 });
 
 contextBridge.exposeInMainWorld('fileFunctionsBridge', {

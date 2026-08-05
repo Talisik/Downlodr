@@ -1,4 +1,5 @@
 import DownlodrLoader from '@/downlodr/components/audioWaveform/DownlodrLoader.gif';
+import Hls from 'hls.js';
 import PlayerControlsBar from '@/downlodr/components/panel/PlayerControlsBar';
 import { formatDuration } from '@/downlodr/utils/formatDuration';
 import React, {
@@ -8,11 +9,14 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { resolveVideoSource } from '@/downlodr/utils/resolveVideoSource';
+import {
+  blobUrlFromVideoFile,
+  resolveVideoSource,
+} from '@/downlodr/utils/resolveVideoSource';
 import { getExtractorIcon } from '@/downlodr/utils/icons/iconMapper';
 import { FaHeart, FaRegHeart } from 'react-icons/fa6';
 import type { ChapterInfo, ForDownload } from '@/downlodr/store/download/types';
-import { useFavoritesStore } from '@/downlodr/store/favoritesStore';
+import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import { Separator } from '@/core-app/components/shadcn/components/ui/separator';
 import { FcFolder } from 'react-icons/fc';
 import {
@@ -37,6 +41,7 @@ import { Copy, Check, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { VscPlayCircle } from 'react-icons/vsc';
 import { FiPlayCircle } from 'react-icons/fi';
+import { TbClockCheck, TbClockCancel } from 'react-icons/tb';
 
 type PlayerState = 'loading' | 'ready' | 'buffering' | 'error';
 
@@ -285,8 +290,17 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
     null,
   );
   const [transcriptCopied, setTranscriptCopied] = useState(false);
+  const [showTimestamps, setShowTimestamps] = useState(true);
   const generationRef = useRef(0);
+  const panelIdRef = useRef(crypto.randomUUID());
   const localBlobRef = useRef<string | null>(null);
+  // Tracks the in-flight temp-file fallback download (used when a site's CDN
+  // rejects direct-URL playback, e.g. TikTok) so a fast video switch can
+  // cancel it instead of leaving it running for a video no longer shown.
+  // The downloaded file itself is read into localBlobRef (below) and
+  // deleted immediately — no separate temp-file cleanup needed.
+  const previewRequestIdRef = useRef<string | null>(null);
+  const usedPreviewFallbackRef = useRef(false);
   const rafRef = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const transcriptListRef = useRef<HTMLUListElement>(null);
@@ -328,11 +342,27 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
   const isAudioMode = Boolean(ext && AUDIO_ONLY_EXTS.has(ext.toLowerCase()));
   const { t } = useTranslation('downlodr');
 
-  const isFavorited = useFavoritesStore((s) =>
-    downloadId ? s.isFavorited(downloadId) : false,
+  const isArticle = extractorKey === 'Article';
+  const videoFavorited = useDownloadStore((s) => {
+    if (!downloadId || isArticle) return false;
+    const all = [
+      ...s.downloading,
+      ...s.finishedDownloads,
+      ...s.historyDownloads,
+      ...s.forDownloads,
+      ...s.queuedDownloads,
+    ];
+    return !!all.find((d) => d.id === downloadId)?.favorited;
+  });
+  const articleFavorited = useArticleDownloadStore((s) => {
+    if (!downloadId || !isArticle) return false;
+    return !!s.articleDownloads.find((d) => d.id === downloadId)?.favorited;
+  });
+  const isFavorited = isArticle ? articleFavorited : videoFavorited;
+  const toggleFavorite = useDownloadStore((s) => s.toggleFavorite);
+  const toggleArticleFavorite = useArticleDownloadStore(
+    (s) => s.toggleArticleFavorite,
   );
-  const addFavorite = useFavoritesStore((s) => s.addFavorite);
-  const removeFavorite = useFavoritesStore((s) => s.removeFavorite);
 
   const openFolderWithFallback = async (
     folderPath: string,
@@ -492,31 +522,10 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
 
   const handleToggleFavorite = () => {
     if (!downloadId) return;
-    if (isFavorited) {
-      removeFavorite(downloadId);
+    if (isArticle) {
+      toggleArticleFavorite(downloadId);
     } else {
-      addFavorite({
-        downloadId,
-        videoUrl: videoUrl ?? '',
-        title: title ?? '',
-        displayName,
-        downloadName: downloadName ?? '',
-        location: location ?? '',
-        channelName: channelName ?? '',
-        thumbnail,
-        ext: ext ?? '',
-        duration: duration ?? 0,
-        size: size ?? 0,
-        extractorKey: extractorKey ?? '',
-        tags: tags ?? [],
-        category: category ?? [],
-        description,
-        chapters,
-        status: status ?? '',
-        autoCaptionLocation,
-        transcriptLocation,
-        dateAdded: dateAdded ?? '',
-      });
+      toggleFavorite(downloadId);
     }
   };
 
@@ -527,10 +536,112 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
     }
   };
 
+  // HLS manifests (e.g. Twitch VODs) can't be played natively by Chromium's
+  // <video> element — attach them through hls.js (MediaSource) instead.
+  const isHlsSource = useMemo(
+    () => !!directUrl && /\.m3u8(\?|$)/.test(directUrl),
+    [directUrl],
+  );
+
+  useEffect(() => {
+    if (!isHlsSource || !directUrl || isAudioMode) return;
+    const video = videoRef.current;
+    if (!video) return;
+    if (!Hls.isSupported()) {
+      setPlayerState('error');
+      return;
+    }
+    const hls = new Hls();
+    hls.loadSource(directUrl);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.ERROR, (_event, data) => {
+      if (!data.fatal) return;
+      switch (data.type) {
+        case Hls.ErrorTypes.NETWORK_ERROR:
+          hls.startLoad();
+          break;
+        case Hls.ErrorTypes.MEDIA_ERROR:
+          hls.recoverMediaError();
+          break;
+        default:
+          hls.destroy();
+          setPlayerState('error');
+      }
+    });
+    return () => {
+      hls.destroy();
+    };
+  }, [directUrl, isHlsSource, isAudioMode]);
+
+  // Cancels an in-flight temp-file fallback download. Called whenever the
+  // selected video changes (or the panel closes) so switching quickly
+  // between videos never leaves a download running for a video no longer
+  // shown. The downloaded file itself (once complete) is read into a blob
+  // and deleted immediately — see attemptPreviewFallback — so there's no
+  // separate temp-file state to release here.
+  const releasePreviewResources = useCallback(() => {
+    if (previewRequestIdRef.current) {
+      window.ytdlp.cancelPreviewDownload(previewRequestIdRef.current);
+      previewRequestIdRef.current = null;
+    }
+  }, []);
+
+  // Fallback for when direct-URL playback fails (e.g. TikTok's CDN 403s
+  // even with correct cookies/headers — see ytdlpHandler.ts). `file://` URLs
+  // are blocked by Electron's webSecurity, so instead of pointing <video> at
+  // the temp file directly, this reads it into a blob: URL the same way the
+  // existing "finished download" playback path already does.
+  const attemptPreviewFallback = useCallback(
+    (gen: number) => {
+      if (gen !== generationRef.current || !videoUrl) return;
+      const requestId = `${panelIdRef.current}-${gen}`;
+      previewRequestIdRef.current = requestId;
+      setPlayerState('loading');
+      window.ytdlp
+        .downloadPreview(requestId, videoUrl)
+        .then(async (tempPath) => {
+          previewRequestIdRef.current = null;
+          try {
+            if (gen !== generationRef.current) return;
+            const blobUrl = await blobUrlFromVideoFile(tempPath);
+            if (gen !== generationRef.current) {
+              if (blobUrl) URL.revokeObjectURL(blobUrl);
+              return;
+            }
+            if (!blobUrl) {
+              // null covers both read failures and getVideoBlob's 'stream'
+              // shape for files ≥ 2GB, which blob playback can't consume.
+              throw new Error(
+                'Preview download produced no readable data (file may exceed the 2GB blob playback limit)',
+              );
+            }
+            revokeLocalBlob();
+            localBlobRef.current = blobUrl;
+            setDirectUrl(localBlobRef.current);
+            setPlayerState('ready');
+          } finally {
+            window.ytdlp.releasePreviewFile(tempPath);
+          }
+        })
+        .catch((err) => {
+          console.error(
+            '[VideoPlayerPanel] preview download fallback failed:',
+            err,
+          );
+          previewRequestIdRef.current = null;
+          if (gen !== generationRef.current) return;
+          setPlayerState('error');
+        });
+    },
+    [videoUrl],
+  );
+
   const fetchUrl = useCallback(() => {
     if (!videoUrl && !location) return;
     generationRef.current += 1;
     const gen = generationRef.current;
+    usedPreviewFallbackRef.current = false;
+    releasePreviewResources();
     setPlayerState('loading');
     setIsWaveSurferReady(false);
     setDirectUrl(null);
@@ -546,11 +657,12 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
         setDirectUrl(url);
         setPlayerState('ready');
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('[VideoPlayerPanel] resolveVideoSource failed:', err);
         if (gen !== generationRef.current) return;
         setPlayerState('error');
       });
-  }, [videoUrl, status, location, downloadName]);
+  }, [videoUrl, status, location, downloadName, releasePreviewResources]);
 
   useEffect(() => {
     if (!isOpen || (!videoUrl && !location)) return;
@@ -558,12 +670,13 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
     return () => {
       generationRef.current += 1;
       revokeLocalBlob();
+      releasePreviewResources();
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
     };
-  }, [isOpen, videoUrl, location, status, fetchUrl]);
+  }, [isOpen, videoUrl, location, status, fetchUrl, releasePreviewResources]);
 
   useEffect(() => {
     const captionPath = transcriptLocation ?? autoCaptionLocation ?? null;
@@ -596,9 +709,9 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
           objectUrl = URL.createObjectURL(blob);
           setCaptionBlobUrl(objectUrl);
         })
-        .catch(() => {});
+        .catch(() => undefined);
     } else if (videoUrl) {
-      (window.ytdlp.getInfo(videoUrl) as Promise<VideoInfo>)
+      (window.ytdlp.getInfo(videoUrl) as unknown as Promise<VideoInfo>)
         .then((info) => {
           if (cancelled) return;
           const langMap =
@@ -644,7 +757,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
               setCaptionBlobUrl(objectUrl);
             });
         })
-        .catch(() => {});
+        .catch(() => undefined);
     }
 
     return () => {
@@ -1464,7 +1577,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                         activeCueIndex >= 0 &&
                         transcriptCues[activeCueIndex] && (
                           <div
-                            className="absolute z-20 cursor-grab active:cursor-grabbing"
+                            className="absolute z-20 cursor-grab active:cursor-grabbing w-[95%]"
                             style={
                               captionPos
                                 ? {
@@ -1480,7 +1593,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                             }
                             onMouseDown={handleCaptionDragStart}
                           >
-                            <span className="bg-black/70 text-[16px] leading-snug px-3 py-1 rounded text-center select-none whitespace-nowrap">
+                            <span className="block w-full bg-black/70 text-[16px] leading-snug px-3 py-1 rounded text-center select-none whitespace-normal">
                               {(() => {
                                 const cue = transcriptCues[activeCueIndex];
                                 if (cue.words.length > 0) {
@@ -1546,7 +1659,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                     <>
                       <video
                         ref={videoRef}
-                        src={directUrl}
+                        src={isHlsSource ? undefined : directUrl}
                         autoPlay
                         className="w-full h-full"
                         onWaiting={() => setPlayerState('buffering')}
@@ -1555,7 +1668,39 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                           setIsVideoPlaying(true);
                         }}
                         onCanPlay={() => setPlayerState('ready')}
-                        onError={() => setPlayerState('error')}
+                        onError={(e) => {
+                          const err = e.currentTarget.error;
+                          console.error(
+                            '[VideoPlayerPanel] <video> error:',
+                            err?.code,
+                            err?.message,
+                            'src:',
+                            directUrl,
+                          );
+                          // A CDN rejecting the direct URL (e.g. TikTok's
+                          // TLS-fingerprinting 403) surfaces as a demux/
+                          // format failure on load — DECODE or
+                          // SRC_NOT_SUPPORTED. Aborts and network blips are
+                          // transient; re-downloading the video can't fix
+                          // those, so don't burn a full yt-dlp download on
+                          // them. HLS errors are handled by hls.js's own
+                          // recovery path, not this fallback.
+                          const isCdnRejectionShape =
+                            err?.code === MediaError.MEDIA_ERR_DECODE ||
+                            err?.code ===
+                              MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED;
+                          const canFallback =
+                            isCdnRejectionShape &&
+                            !isHlsSource &&
+                            !usedPreviewFallbackRef.current &&
+                            status !== 'finished';
+                          if (canFallback) {
+                            usedPreviewFallbackRef.current = true;
+                            attemptPreviewFallback(generationRef.current);
+                            return;
+                          }
+                          setPlayerState('error');
+                        }}
                         onPlay={() => setIsVideoPlaying(true)}
                         onPause={() => setIsVideoPlaying(false)}
                         onEnded={() => {
@@ -1592,7 +1737,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                         activeCueIndex >= 0 &&
                         transcriptCues[activeCueIndex] && (
                           <div
-                            className="absolute z-20 cursor-grab active:cursor-grabbing"
+                            className="absolute z-20 cursor-grab active:cursor-grabbing w-[95%]"
                             style={
                               captionPos
                                 ? {
@@ -1608,7 +1753,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                             }
                             onMouseDown={handleCaptionDragStart}
                           >
-                            <span className="bg-black/70 text-[16px] leading-snug px-3 py-1 rounded text-center select-none whitespace-nowrap">
+                            <span className="block w-full bg-black/70 text-[16px] leading-snug px-3 py-1 rounded text-center select-none whitespace-normal">
                               {(() => {
                                 const cue = transcriptCues[activeCueIndex];
                                 if (cue.words.length > 0) {
@@ -1735,10 +1880,42 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                       </div>
                       <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                         <button
+                          title={
+                            showTimestamps
+                              ? t('videoPlayer.transcript.hideTimestampsTitle')
+                              : t('videoPlayer.transcript.showTimestampsTitle')
+                          }
+                          onClick={() =>
+                            setShowTimestamps((prev) => {
+                              const next = !prev;
+                              toast({
+                                description: next
+                                  ? t('videoPlayer.transcript.timestampsShown')
+                                  : t(
+                                      'videoPlayer.transcript.timestampsHidden',
+                                    ),
+                                duration: 5000,
+                              });
+                              return next;
+                            })
+                          }
+                          className="hover:text-gray-700 dark:hover:text-gray-200"
+                        >
+                          {showTimestamps ? (
+                            <TbClockCheck size={15} />
+                          ) : (
+                            <TbClockCancel size={15} />
+                          )}
+                        </button>
+                        <button
                           title={t('videoPlayer.transcript.copyTitle')}
                           onClick={() => {
                             const text = transcriptCues
-                              .map((c) => `${c.time}  ${c.text}`)
+                              .map((c) =>
+                                showTimestamps
+                                  ? `${c.time}  ${c.text}`
+                                  : c.text,
+                              )
                               .join('\n');
                             navigator.clipboard.writeText(text).then(() => {
                               setTranscriptCopied(true);
@@ -1773,7 +1950,11 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                           title={t('videoPlayer.transcript.downloadTitle')}
                           onClick={() => {
                             const text = transcriptCues
-                              .map((c) => `${c.time}  ${c.text}`)
+                              .map((c) =>
+                                showTimestamps
+                                  ? `${c.time}  ${c.text}`
+                                  : c.text,
+                              )
                               .join('\n');
                             const blob = new Blob([text], {
                               type: 'text/plain',

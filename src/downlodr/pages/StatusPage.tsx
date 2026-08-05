@@ -14,7 +14,6 @@ import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore
 import ColumnHeaderContextMenu from '@/downlodr/components/contextMenu/ColumnHeaderContextMenu';
 import DownloadContextMenu from '@/downlodr/components/contextMenu/DownloadContextMenu';
 import ArticleContextMenu from '@/afda/components/contextMenu/ArticleContextMenu';
-import { useFavoritesStore } from '@/downlodr/store/favoritesStore';
 import {
   fetchArticle,
   isArticleModel,
@@ -53,12 +52,13 @@ import ActivityTracker from '@/downlodr/components/download/log/ActivityTracker'
 import DownloadLogs from '@/downlodr/components/download/log/DownloadLogs';
 import PluginSidePanelManager from '@/plugins/components/PluginSidePanelManager';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import { useAfdaStore } from '@/afda/store/afdaStore';
 import type {
   ArticleSearchableDownload,
   SearchableDownload,
+  TypeFilter,
 } from '../store/taskbarDownloadStore';
 import {
   mapArticleToSearchable,
@@ -70,6 +70,8 @@ export { formatFileSize } from '@/downlodr/pages/status/statusPageUtils';
 const StatusSpecificDownloads = () => {
   const { status } = useParams<{ status: string }>();
   const currentStatus = status ? statusMapping[status] || status : '';
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useStatusPageTitle(currentStatus);
   const { windowWidth, windowHeight } = useWindowSize();
@@ -112,9 +114,9 @@ const StatusSpecificDownloads = () => {
     () => [...new Set(articleDownloads.flatMap((a) => a.category ?? []))],
     [articleDownloads],
   );
-  const isFavorited = useFavoritesStore((s) => s.isFavorited);
-  const addFavorite = useFavoritesStore((s) => s.addFavorite);
-  const removeFavorite = useFavoritesStore((s) => s.removeFavorite);
+  const toggleArticleFavorite = useArticleDownloadStore(
+    (s) => s.toggleArticleFavorite,
+  );
   const deleteDownload = useDownloadStore((state) => state.deleteDownload);
 
   const handleArticleDownload = useCallback(
@@ -187,6 +189,8 @@ const StatusSpecificDownloads = () => {
           filePath,
           fileSize,
           articleData: articleModel,
+          thumbnailDataUrl:
+            articleModel.article_images?.[0]?.url ?? d.thumbnailDataUrl ?? null,
         });
       } catch (err) {
         updateArticleDownload(d.id, {
@@ -275,15 +279,26 @@ const StatusSpecificDownloads = () => {
   const { isSearchActive, searchQuery, searchResults } = searchState;
   const activeTypeFilters = useTaskbarDownloadStore((s) => s.activeTypeFilters);
   const clearTypeFilters = useTaskbarDownloadStore((s) => s.clearTypeFilters);
+  const toggleTypeFilter = useTaskbarDownloadStore((s) => s.toggleTypeFilter);
 
   // Clear selection when the filter context changes (different status or search query).
   useEffect(() => {
     clearAllSelections();
   }, [currentStatus, isSearchActive, searchQuery]);
 
-  // Clear type filters when navigating to a different status page.
+  // Sync type filters when navigating to a different status page. A caller can
+  // preset a chip (e.g. the "Subscriptions" breadcrumb) by navigating here with
+  // `state: { presetTypeFilter }`; otherwise the chips reset to none.
   useEffect(() => {
+    const presetTypeFilter = (
+      location.state as { presetTypeFilter?: TypeFilter } | null
+    )?.presetTypeFilter;
     clearTypeFilters();
+    if (presetTypeFilter) {
+      toggleTypeFilter(presetTypeFilter);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStatus]);
 
   const transitionTimeoutRef = useTransitionTimeoutRef();
@@ -444,11 +459,12 @@ const StatusSpecificDownloads = () => {
         : selectedDownloads;
       // Check each download to see if it exists
       for (const download of downloadsToCheck) {
-        if (download.status === 'finished' && download.location) {
+        const fileName = download.downloadName || download.name;
+        if (download.status === 'finished' && download.location && fileName) {
           const fullDownloadLocation =
             await window.downlodrFunctions.joinDownloadPath(
               download.location,
-              download.displayName,
+              fileName,
             );
           const exists = await window.downlodrFunctions.fileExists(
             fullDownloadLocation,
@@ -1039,6 +1055,8 @@ const StatusSpecificDownloads = () => {
                 onViewFolder={statusHandlers.handleViewFolder}
                 onRetry={statusHandlers.handleRetry}
                 onPause={statusHandlers.handlePause}
+                onStop={statusHandlers.handleStop}
+                onFinishRecording={statusHandlers.handleFinishRecording}
                 onRedownloadTranscript={
                   statusHandlers.handleRedownloadTranscript
                 }
@@ -1186,32 +1204,8 @@ const StatusSpecificDownloads = () => {
                   })
                 }
                 onDownload={handleArticleDownload}
-                onToggleFavorite={(articleId) => {
-                  const a = articleDownloads.find((x) => x.id === articleId);
-                  if (!a) return;
-                  if (isFavorited(articleId)) {
-                    removeFavorite(articleId);
-                  } else {
-                    addFavorite({
-                      downloadId: articleId,
-                      videoUrl: a.url,
-                      title: a.title || a.url,
-                      displayName: a.title || undefined,
-                      downloadName: a.title || a.url,
-                      location: a.filePath ?? '',
-                      channelName: '',
-                      ext: a.format ?? 'docx',
-                      duration: 0,
-                      size: a.fileSize ?? 0,
-                      extractorKey: 'Article',
-                      tags: a.tags ?? [],
-                      category: a.category ?? [],
-                      status: a.status,
-                      dateAdded: a.dateAdded,
-                    });
-                  }
-                }}
-                isFavorited={isFavorited(article.id)}
+                onToggleFavorite={toggleArticleFavorite}
+                isFavorited={!!article.favorited}
                 onAddTag={addArticleTag}
                 onRemoveTag={removeArticleTag}
                 currentTags={article.tags ?? []}
@@ -1249,6 +1243,7 @@ const StatusSpecificDownloads = () => {
               onRename={handleRename}
               onShowRemoveModal={handleShowRemoveModal}
               onShowStopModal={handleShowStopModal}
+              onFinishRecording={statusHandlers.handleFinishRecording}
               onViewEmbed={(
                 videoUrl,
                 title,

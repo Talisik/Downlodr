@@ -6,16 +6,24 @@
 
 const MAX_STORE_LOG_BYTES = 51200; // 50 KB — matches main-process cap
 
+// Live-download auto-retry: fixed delay between attempts (no backoff
+// growth) and a hard cap so a permanently dead/removed stream doesn't
+// retry forever. See docs/superpowers/specs/2026-07-30-live-download-auto-retry-design.md
+const LIVE_RETRY_DELAY_MS = 10000;
+const MAX_LIVE_RETRIES = 5;
+
 function appendLog(existing: string | undefined, incoming: string): string {
   const next = existing ? `${existing}${incoming}` : incoming;
   return next.length > MAX_STORE_LOG_BYTES
     ? next.slice(next.length - MAX_STORE_LOG_BYTES)
     : next;
 }
+import { enqueueTier1, enqueueTier2 } from '@/auto-tag/queue/autoTagQueue';
 import { config } from '@/core-app/client/config';
 import { TelemetryService } from '@/core-app/telemetry/utils/telemetryService';
 import { subscriptionDownloadSync } from '@/skedulosa/services/subscriptionDownloadSync';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
+import { DownloadController } from '../controller';
 import type {
   Downloading,
   DownloadStoreState,
@@ -40,7 +48,7 @@ type GetState = () => {
 
 /** Shape of payloads passed to updateDownload from the download engine */
 interface UpdateDownloadResult {
-  type?: 'controller' | 'completion';
+  type?: 'controller' | 'completion' | 'stream_ended';
   controllerId?: string;
   data?: {
     log?: string;
@@ -57,6 +65,126 @@ interface UpdateDownloadResult {
     };
   };
   completeLog?: string;
+}
+
+/**
+ * Fire subscription-sync + best-effort telemetry for a download that just
+ * failed. Shared by the 'completion' (non-zero exit code) and 'stream_ended'
+ * (process never cleanly exited) paths so both report failures the same way.
+ */
+function notifyDownloadFailed(
+  id: string,
+  downloading: Downloading,
+  completeLog: string,
+): void {
+  // Sync failure to subscription store
+  subscriptionDownloadSync.onDownloadCompleted(id, 'failed');
+
+  // 📊 TELEMETRY: Send error report when download fails
+  // Non-blocking background telemetry - won't interfere with store updates
+  setTimeout(async () => {
+    try {
+      const telemetryService = new TelemetryService({
+        apiEndpoint: config.telemetry.endpoint,
+      });
+      await telemetryService.init();
+
+      const success = await telemetryService.sendDownloadError({
+        error: new Error(`Download failed: ${downloading.status || 'failed'}`),
+        logMessage: completeLog || '',
+        downloadContext: {
+          url: downloading.videoUrl || '',
+          format: downloading.formatId || downloading.audioFormatId || 'unknown',
+          quality:
+            downloading.formatId || downloading.audioFormatId || 'unknown',
+          downloadName: downloading.name || 'Unknown Download',
+          downloadId: downloading.id,
+          progress: downloading.progress || 0,
+          location: downloading.location || '',
+          fileExtension: downloading.ext || downloading.audioExt,
+          sessionDurationSeconds: downloading.elapsed || 0,
+        },
+      });
+
+      console.log(
+        success
+          ? `📊 Auto-telemetry sent for failed download: ${downloading.name}`
+          : `⚠️ Auto-telemetry failed for download: ${downloading.name}`,
+      );
+    } catch (error) {
+      console.error('Error sending auto-telemetry from store:', error);
+      // Don't throw - telemetry failures shouldn't break the app
+    }
+  }, 0); // Non-blocking async execution
+}
+
+/**
+ * Schedules one auto-retry attempt for a live download that just errored.
+ * Waits LIVE_RETRY_DELAY_MS, re-checks the stream is still live, then either
+ * restarts the process under the same row id or — if the stream has ended,
+ * or the row is gone because the user stopped/paused it in the meantime —
+ * falls through to the normal failed/telemetry path.
+ */
+function scheduleLiveRetry(
+  id: string,
+  attemptNumber: number,
+  set: SetState,
+  get: GetState,
+): void {
+  setTimeout(async () => {
+    const downloading = get().downloading.find((d) => d.id === id);
+    // Row is gone (user stopped it) or no longer in a retryable state —
+    // nothing to do.
+    if (!downloading || downloading.status !== 'downloading') return;
+
+    // Distinguish a confirmed "stream ended" result from an indeterminate
+    // one (the getInfo call threw — e.g. a network blip, the very scenario
+    // this feature exists to retry through). Only give up on a confirmed
+    // not-live result; an indeterminate result falls through to the restart
+    // path below, still consuming one of the MAX_LIVE_RETRIES attempts via
+    // the normal attemptNumber/liveRetryCount bookkeeping.
+    let confirmedNotLive = false;
+    try {
+      const info = (await window.ytdlp.getInfo(downloading.videoUrl)) as {
+        data?: { is_live?: boolean };
+      } | null;
+      confirmedNotLive = !!info?.data && !info.data.is_live;
+    } catch (error) {
+      console.error('Live-retry: failed to re-check stream status:', error);
+    }
+
+    if (confirmedNotLive) {
+      const completeLog = appendLog(
+        downloading.log,
+        '\nLive stream has ended — stopping auto-retry.',
+      );
+      notifyDownloadFailed(id, downloading, completeLog);
+      set((state) => ({
+        downloading: state.downloading.map((d) =>
+          d.id === id
+            ? {
+                ...d,
+                status: 'failed',
+                log: completeLog,
+                progress: 100,
+                completionCount: Math.max(2, d.completionCount || 0),
+              }
+            : d,
+        ),
+      }));
+      setTimeout(() => {
+        get().checkFinishedDownloads();
+      }, 100);
+      return;
+    }
+
+    set((state) => ({
+      downloading: state.downloading.map((d) =>
+        d.id === id ? { ...d, liveRetryCount: attemptNumber } : d,
+      ),
+    }));
+    DownloadController.getInstance().restartLiveDownload(id);
+  }, LIVE_RETRY_DELAY_MS);
 }
 
 export function createLifecycleActions(set: SetState, get: GetState) {
@@ -85,16 +213,47 @@ export function createLifecycleActions(set: SetState, get: GetState) {
         const completeLog = result.data.completeLog || completionMessage;
         const exitCode = result.data.exitCode || 0;
 
+        // Set inside the map() below when a live download's error is
+        // eligible for auto-retry — read after set() to schedule the retry
+        // without doing async work inside the Zustand updater.
+        let scheduleRetryFor: { id: string; attemptNumber: number } | null =
+          null;
+
         set((state) => ({
           downloading: state.downloading.map((downloading) => {
             if (downloading.id !== id) return downloading;
 
-            // Don't override paused status with completion messages
-            if (downloading.status === 'paused') {
+            // Don't override paused (or pausing) status with completion
+            // messages — the process exiting because we asked it to
+            // gracefully stop for a pause looks identical to a real crash
+            // (non-zero exit code) and would otherwise flip the download to
+            // 'failed' right before handlePause's own kill-await sets it to
+            // 'paused'.
+            if (
+              downloading.status === 'paused' ||
+              downloading.status === 'pausing'
+            ) {
               return {
                 ...downloading,
                 log: completeLog, // Still update log for debugging
               };
+            }
+
+            // Live downloads get a limited number of silent auto-retries
+            // instead of being marked 'failed' on the first transient
+            // error. Status stays 'downloading' — only the log is updated
+            // so the error is still visible in the download's activity log.
+            // See docs/superpowers/specs/2026-07-30-live-download-auto-retry-design.md
+            if (
+              exitCode !== 0 &&
+              downloading.isLive &&
+              (downloading.liveRetryCount || 0) < MAX_LIVE_RETRIES
+            ) {
+              scheduleRetryFor = {
+                id,
+                attemptNumber: (downloading.liveRetryCount || 0) + 1,
+              };
+              return { ...downloading, log: completeLog };
             }
 
             const updates: Partial<Downloading> = {
@@ -109,62 +268,67 @@ export function createLifecycleActions(set: SetState, get: GetState) {
               subscriptionDownloadSync.onDownloadCompleted(id, 'finished');
             } else {
               updates.status = 'failed';
-              // Sync failure to subscription store
-              subscriptionDownloadSync.onDownloadCompleted(id, 'failed');
-
-              // 📊 TELEMETRY: Send error report when download fails
-              // Non-blocking background telemetry - won't interfere with store updates
-              setTimeout(async () => {
-                try {
-                  const telemetryService = new TelemetryService({
-                    apiEndpoint: config.telemetry.endpoint,
-                  });
-                  await telemetryService.init();
-
-                  const success = await telemetryService.sendDownloadError({
-                    error: new Error(
-                      `Download failed: ${downloading.status || 'failed'}`,
-                    ),
-                    logMessage: completeLog || '',
-                    downloadContext: {
-                      url: downloading.videoUrl || '',
-                      format:
-                        downloading.formatId ||
-                        downloading.audioFormatId ||
-                        'unknown',
-                      quality:
-                        downloading.formatId ||
-                        downloading.audioFormatId ||
-                        'unknown',
-                      downloadName: downloading.name || 'Unknown Download',
-                      downloadId: downloading.id,
-                      progress: downloading.progress || 0,
-                      location: downloading.location || '',
-                      fileExtension: downloading.ext || downloading.audioExt,
-                      sessionDurationSeconds: downloading.elapsed || 0,
-                    },
-                  });
-
-                  console.log(
-                    success
-                      ? `📊 Auto-telemetry sent for failed download: ${downloading.name}`
-                      : `⚠️ Auto-telemetry failed for download: ${downloading.name}`,
-                  );
-                } catch (error) {
-                  console.error(
-                    'Error sending auto-telemetry from store:',
-                    error,
-                  );
-                  // Don't throw - telemetry failures shouldn't break the app
-                }
-              }, 0); // Non-blocking async execution
+              notifyDownloadFailed(id, downloading, completeLog);
             }
 
             return { ...downloading, ...updates };
           }),
         }));
 
+        if (scheduleRetryFor) {
+          scheduleLiveRetry(
+            scheduleRetryFor.id,
+            scheduleRetryFor.attemptNumber,
+            set,
+            get,
+          );
+          return;
+        }
+
         // Trigger finished downloads check
+        setTimeout(() => {
+          get().checkFinishedDownloads();
+        }, 100);
+        return;
+      }
+
+      // Handle the fallback sent when the yt-dlp process's stream ended
+      // without ever firing a process 'exit'/'close' event (e.g. it hung
+      // after a disk-full write error). Without this, a download that
+      // never gets a 'completion' message would sit at its last progress
+      // forever with no status change and no error shown.
+      if (result.type === 'stream_ended') {
+        const streamEndedLog = result.data?.log || 'Download stream ended unexpectedly';
+
+        set((state) => ({
+          downloading: state.downloading.map((downloading) => {
+            if (downloading.id !== id) return downloading;
+
+            // Already resolved by a 'completion' event or user action —
+            // nothing to do.
+            if (
+              downloading.status === 'paused' ||
+              downloading.status === 'pausing' ||
+              downloading.status === 'failed' ||
+              downloading.status === 'finished'
+            ) {
+              return downloading;
+            }
+
+            const completeLog = appendLog(downloading.log, `\n${streamEndedLog}`);
+
+            notifyDownloadFailed(id, downloading, completeLog);
+
+            return {
+              ...downloading,
+              log: completeLog,
+              status: 'failed',
+              progress: 100,
+              completionCount: Math.max(2, downloading.completionCount || 0),
+            };
+          }),
+        }));
+
         setTimeout(() => {
           get().checkFinishedDownloads();
         }, 100);
@@ -177,9 +341,10 @@ export function createLifecycleActions(set: SetState, get: GetState) {
           downloading: state.downloading.map((downloading) => {
             if (downloading.id !== id) return downloading;
 
-            // Don't process progress updates for paused, failed, or finished downloads
+            // Don't process progress updates for paused, pausing, failed, or finished downloads
             if (
               downloading.status === 'paused' ||
+              downloading.status === 'pausing' ||
               downloading.status === 'failed' ||
               downloading.status === 'finished'
             ) {
@@ -431,6 +596,14 @@ export function createLifecycleActions(set: SetState, get: GetState) {
                 ),
               };
             });
+
+            // Auto-tag: metadata is available now -> tier 1. If a transcript was
+            // already resolved at completion (getTranscript path above), also tier 2.
+            // The queue serializes this; merge appends tier 2 onto tier 1.
+            enqueueTier1(download.id);
+            if (transcriptLocation && transcriptLocation.trim() !== '') {
+              enqueueTier2(download.id);
+            }
 
             // Sync final video location and confirmed size to skedulosa subscription record.
             // The sync service maps are already cleaned up at this point so we write directly.

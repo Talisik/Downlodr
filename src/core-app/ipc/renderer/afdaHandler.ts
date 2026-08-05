@@ -115,6 +115,31 @@ const afdaChannels = {
   'auth:open-login': () => ipcRenderer.invoke('auth:open-login'),
   'auth:get-status': () => ipcRenderer.invoke('auth:get-status'),
   'auth:clear': () => ipcRenderer.invoke('auth:clear'),
+
+  // Social sources (X / Reddit / Facebook / YouTube)
+  'social:detect_platform': (payload: { url: string }) =>
+    ipcRenderer.invoke('social:detect_platform', payload),
+  'social:scrape': (payload: any) =>
+    ipcRenderer.invoke('social:scrape', payload),
+  'social:sources:list': () => ipcRenderer.invoke('social:sources:list'),
+  'social:sources:get': (payload: { id: number }) =>
+    ipcRenderer.invoke('social:sources:get', payload),
+  'social:sources:add': (payload: any) =>
+    ipcRenderer.invoke('social:sources:add', payload),
+  'social:sources:update': (payload: any) =>
+    ipcRenderer.invoke('social:sources:update', payload),
+  'social:sources:delete': (payload: { id: number }) =>
+    ipcRenderer.invoke('social:sources:delete', payload),
+  'social:sources:scrape_now': (payload: { id: number }) =>
+    ipcRenderer.invoke('social:sources:scrape_now', payload),
+  'social:posts:list': (payload: any) =>
+    ipcRenderer.invoke('social:posts:list', payload),
+  'social:schedule:assign': (payload: any) =>
+    ipcRenderer.invoke('social:schedule:assign', payload),
+  'social:schedule:pause': (payload: { id: number }) =>
+    ipcRenderer.invoke('social:schedule:pause', payload),
+  'social:schedule:resume': (payload: { id: number }) =>
+    ipcRenderer.invoke('social:schedule:resume', payload),
 };
 
 // Group by category for better organization
@@ -149,6 +174,16 @@ contextBridge.exposeInMainWorld('afdaBridge', {
       const wrapped = (_: any, data: any) => cb(data);
       ipcRenderer.on('scrape:article_saved', wrapped);
       return () => ipcRenderer.removeListener('scrape:article_saved', wrapped);
+    },
+    manualArticleSaved: (cb: (data: any) => void) => {
+      const wrapped = (_: any, data: any) => cb(data);
+      ipcRenderer.on('manual_article:saved', wrapped);
+      return () => ipcRenderer.removeListener('manual_article:saved', wrapped);
+    },
+    storeHydrate: (cb: (data: { websites: any[] }) => void) => {
+      const wrapped = (_: any, data: any) => cb(data);
+      ipcRenderer.on('store:hydrate', wrapped);
+      return () => ipcRenderer.removeListener('store:hydrate', wrapped);
     },
   },
 
@@ -241,5 +276,26 @@ contextBridge.exposeInMainWorld('afdaBridge', {
     openLogin: afdaChannels['auth:open-login'],
     getStatus: afdaChannels['auth:get-status'],
     clear: afdaChannels['auth:clear'],
+  },
+
+  social: {
+    detectPlatform: afdaChannels['social:detect_platform'],
+    scrape: afdaChannels['social:scrape'],
+    sources: {
+      list: afdaChannels['social:sources:list'],
+      get: afdaChannels['social:sources:get'],
+      add: afdaChannels['social:sources:add'],
+      update: afdaChannels['social:sources:update'],
+      delete: afdaChannels['social:sources:delete'],
+      scrapeNow: afdaChannels['social:sources:scrape_now'],
+    },
+    posts: {
+      list: afdaChannels['social:posts:list'],
+    },
+    schedule: {
+      assign: afdaChannels['social:schedule:assign'],
+      pause: afdaChannels['social:schedule:pause'],
+      resume: afdaChannels['social:schedule:resume'],
+    },
   },
 });

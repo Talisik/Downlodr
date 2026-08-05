@@ -372,14 +372,14 @@ const ArticleContextMenu: React.FC<ArticleContextMenuProps> = ({
                         variant: 'destructive',
                         title: 'Duplicate Tag',
                         description: `This article already has tag "${newTag}".`,
-                        duration: 2000,
+                        duration: 5000,
                       });
                     } else {
                       onAddTag(article.id, newTag);
                       toast({
                         title: 'Tag Added',
                         description: `Tag "${newTag}" has been added.`,
-                        duration: 2000,
+                        duration: 5000,
                       });
                     }
                     target.value = '';
@@ -452,7 +452,7 @@ const ArticleContextMenu: React.FC<ArticleContextMenuProps> = ({
                         variant: 'destructive',
                         title: 'Duplicate Category',
                         description: `This article already has category "${newCategory}".`,
-                        duration: 2000,
+                        duration: 5000,
                       });
                     } else {
                       if (currentCategories.length > 0) {
@@ -462,7 +462,7 @@ const ArticleContextMenu: React.FC<ArticleContextMenuProps> = ({
                       toast({
                         title: 'Category Added',
                         description: `Category "${newCategory}" has been added.`,
-                        duration: 2000,
+                        duration: 5000,
                       });
                     }
                     target.value = '';

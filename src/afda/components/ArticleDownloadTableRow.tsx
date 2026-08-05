@@ -14,12 +14,12 @@ import {
 } from '@/afda/backend/dummy/dummyArticleService';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import {
+  fetchSocialPostModel,
   generateArticleDocx,
   generateArticleHtml,
   normalizeArticleRow,
   sanitizeFilename,
 } from '@/afda/utils/articleDocxGenerator';
-import { useFavoritesStore } from '@/downlodr/store/favoritesStore';
 import { Separator } from '@radix-ui/react-separator';
 import React, { useCallback, useState } from 'react';
 import {
@@ -38,38 +38,14 @@ import ArticleViewButton from '@/afda/components/ArticleViewButton';
 const ArticleFavoriteButton: React.FC<{
   download: ArticleSearchableDownload;
 }> = ({ download }) => {
-  const isFavorited = useFavoritesStore((s) => s.isFavorited(download.id));
-  const addFavorite = useFavoritesStore((s) => s.addFavorite);
-  const removeFavorite = useFavoritesStore((s) => s.removeFavorite);
+  const isFavorited = !!download.favorited;
+  const toggleArticleFavorite = useArticleDownloadStore(
+    (s) => s.toggleArticleFavorite,
+  );
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isFavorited) {
-      removeFavorite(download.id);
-    } else {
-      addFavorite({
-        downloadId: download.id,
-        videoUrl: download.videoUrl ?? '',
-        title: download.name ?? '',
-        displayName: download.displayName,
-        downloadName: download.downloadName ?? '',
-        location: download.location ?? '',
-        channelName: download.channelName ?? '',
-        thumbnail: undefined,
-        ext: download.ext ?? '',
-        duration: download.duration ?? 0,
-        size: download.size ?? 0,
-        extractorKey: download.extractorKey ?? '',
-        tags: download.tags ?? [],
-        category: download.category ?? [],
-        description: download.description,
-        chapters: download.chapters,
-        status: download.status ?? '',
-        autoCaptionLocation: download.autoCaptionLocation,
-        transcriptLocation: download.transcriptLocation,
-        dateAdded: download.DateAdded ?? '',
-      });
-    }
+    toggleArticleFavorite(download.id);
   };
 
   return (
@@ -156,8 +132,14 @@ export const ArticleDownloadTableRow: React.FC<
         );
         const isSubscriptionArticle =
           !isNaN(numericId) && download.id.startsWith('afda-article-');
+        const isSocialPost = download.id.startsWith('social-post-');
 
-        if (isSubscriptionArticle) {
+        if (isSocialPost) {
+          articleModel = await fetchSocialPostModel(
+            download.id,
+            download.subscriptionId,
+          );
+        } else if (isSubscriptionArticle) {
           const bridge =
             typeof window !== 'undefined'
               ? (window as any).afdaBridge
@@ -220,6 +202,10 @@ export const ArticleDownloadTableRow: React.FC<
           filePath,
           fileSize,
           articleData: articleModel,
+          thumbnailDataUrl:
+            articleModel.article_images?.[0]?.url ??
+            download.thumbnailDataUrl ??
+            null,
         });
       } catch (err) {
         updateArticleDownload(download.id, {
@@ -397,7 +383,7 @@ export const ArticleDownloadTableRow: React.FC<
               <td
                 key={column.id}
                 style={{ width: column.width }}
-                className="px-2 py-2 dark:text-gray-200 text-left"
+                className="px-2 py-2 dark:text-gray-200 text-center"
               >
                 <span className="whitespace-nowrap overflow-hidden">
                   {download.status === 'finished' && download.size
@@ -445,6 +431,26 @@ export const ArticleDownloadTableRow: React.FC<
                 >
                   <div>{formatRelativeTime(download.DateAdded)}</div>
                 </TooltipWrapper>
+              </td>
+            );
+
+          case 'uploadedOn':
+            return (
+              <td
+                key={column.id}
+                style={{ width: column.width }}
+                className="p-2 dark:text-gray-200 ml-2 justify-center text-center"
+              >
+                {download.uploadDate ? (
+                  <TooltipWrapper
+                    content={new Date(download.uploadDate).toLocaleDateString()}
+                    side="bottom"
+                  >
+                    <div>{formatRelativeTime(download.uploadDate)}</div>
+                  </TooltipWrapper>
+                ) : (
+                  <div>—</div>
+                )}
               </td>
             );
 

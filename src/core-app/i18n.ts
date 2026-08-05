@@ -11,6 +11,7 @@ import enNavbar from '@/locales/en/navbar.json';
 import enAdditionalOptions from '@/locales/en/additionalOptions.json';
 import enFolderDirectory from '@/locales/en/folderDirectory.json';
 import enDownloadLogs from '@/locales/en/downloadLogs.json';
+import enPlaylistSelection from '@/locales/en/playlistSelection.json';
 
 import esCommon from '@/locales/es/common.json';
 import esSettings from '@/locales/es/settings.json';
@@ -22,6 +23,7 @@ import esNavbar from '@/locales/es/navbar.json';
 import esAdditionalOptions from '@/locales/es/additionalOptions.json';
 import esFolderDirectory from '@/locales/es/folderDirectory.json';
 import esDownloadLogs from '@/locales/es/downloadLogs.json';
+import esPlaylistSelection from '@/locales/es/playlistSelection.json';
 
 import ptCommon from '@/locales/pt/common.json';
 import ptSettings from '@/locales/pt/settings.json';
@@ -33,6 +35,7 @@ import ptNavbar from '@/locales/pt/navbar.json';
 import ptAdditionalOptions from '@/locales/pt/additionalOptions.json';
 import ptFolderDirectory from '@/locales/pt/folderDirectory.json';
 import ptDownloadLogs from '@/locales/pt/downloadLogs.json';
+import ptPlaylistSelection from '@/locales/pt/playlistSelection.json';
 
 import koCommon from '@/locales/ko/common.json';
 import koSettings from '@/locales/ko/settings.json';
@@ -44,6 +47,7 @@ import koNavbar from '@/locales/ko/navbar.json';
 import koAdditionalOptions from '@/locales/ko/additionalOptions.json';
 import koFolderDirectory from '@/locales/ko/folderDirectory.json';
 import koDownloadLogs from '@/locales/ko/downloadLogs.json';
+import koPlaylistSelection from '@/locales/ko/playlistSelection.json';
 
 import jaCommon from '@/locales/ja/common.json';
 import jaSettings from '@/locales/ja/settings.json';
@@ -55,6 +59,7 @@ import jaNavbar from '@/locales/ja/navbar.json';
 import jaAdditionalOptions from '@/locales/ja/additionalOptions.json';
 import jaFolderDirectory from '@/locales/ja/folderDirectory.json';
 import jaDownloadLogs from '@/locales/ja/downloadLogs.json';
+import jaPlaylistSelection from '@/locales/ja/playlistSelection.json';
 
 import deCommon from '@/locales/de/common.json';
 import deSettings from '@/locales/de/settings.json';
@@ -66,6 +71,7 @@ import deNavbar from '@/locales/de/navbar.json';
 import deAdditionalOptions from '@/locales/de/additionalOptions.json';
 import deFolderDirectory from '@/locales/de/folderDirectory.json';
 import deDownloadLogs from '@/locales/de/downloadLogs.json';
+import dePlaylistSelection from '@/locales/de/playlistSelection.json';
 
 import zhTWCommon from '@/locales/zh-TW/common.json';
 import zhTWSettings from '@/locales/zh-TW/settings.json';
@@ -77,6 +83,7 @@ import zhTWNavbar from '@/locales/zh-TW/navbar.json';
 import zhTWAdditionalOptions from '@/locales/zh-TW/additionalOptions.json';
 import zhTWFolderDirectory from '@/locales/zh-TW/folderDirectory.json';
 import zhTWDownloadLogs from '@/locales/zh-TW/downloadLogs.json';
+import zhTWPlaylistSelection from '@/locales/zh-TW/playlistSelection.json';
 
 import zhCNCommon from '@/locales/zh-CN/common.json';
 import zhCNSettings from '@/locales/zh-CN/settings.json';
@@ -88,6 +95,7 @@ import zhCNNavbar from '@/locales/zh-CN/navbar.json';
 import zhCNAdditionalOptions from '@/locales/zh-CN/additionalOptions.json';
 import zhCNFolderDirectory from '@/locales/zh-CN/folderDirectory.json';
 import zhCNDownloadLogs from '@/locales/zh-CN/downloadLogs.json';
+import zhCNPlaylistSelection from '@/locales/zh-CN/playlistSelection.json';
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -102,6 +110,7 @@ i18n.use(initReactI18next).init({
       additionalOptions: enAdditionalOptions,
       folderDirectory: enFolderDirectory,
       downloadLogs: enDownloadLogs,
+      playlistSelection: enPlaylistSelection,
     },
     es: {
       common: esCommon,
@@ -114,6 +123,7 @@ i18n.use(initReactI18next).init({
       additionalOptions: esAdditionalOptions,
       folderDirectory: esFolderDirectory,
       downloadLogs: esDownloadLogs,
+      playlistSelection: esPlaylistSelection,
     },
     pt: {
       common: ptCommon,
@@ -126,6 +136,7 @@ i18n.use(initReactI18next).init({
       additionalOptions: ptAdditionalOptions,
       folderDirectory: ptFolderDirectory,
       downloadLogs: ptDownloadLogs,
+      playlistSelection: ptPlaylistSelection,
     },
     ko: {
       common: koCommon,
@@ -138,6 +149,7 @@ i18n.use(initReactI18next).init({
       additionalOptions: koAdditionalOptions,
       folderDirectory: koFolderDirectory,
       downloadLogs: koDownloadLogs,
+      playlistSelection: koPlaylistSelection,
     },
     ja: {
       common: jaCommon,
@@ -150,6 +162,7 @@ i18n.use(initReactI18next).init({
       additionalOptions: jaAdditionalOptions,
       folderDirectory: jaFolderDirectory,
       downloadLogs: jaDownloadLogs,
+      playlistSelection: jaPlaylistSelection,
     },
     de: {
       common: deCommon,
@@ -162,6 +175,7 @@ i18n.use(initReactI18next).init({
       additionalOptions: deAdditionalOptions,
       folderDirectory: deFolderDirectory,
       downloadLogs: deDownloadLogs,
+      playlistSelection: dePlaylistSelection,
     },
     'zh-TW': {
       common: zhTWCommon,
@@ -174,6 +188,7 @@ i18n.use(initReactI18next).init({
       additionalOptions: zhTWAdditionalOptions,
       folderDirectory: zhTWFolderDirectory,
       downloadLogs: zhTWDownloadLogs,
+      playlistSelection: zhTWPlaylistSelection,
     },
     'zh-CN': {
       common: zhCNCommon,
@@ -186,6 +201,7 @@ i18n.use(initReactI18next).init({
       additionalOptions: zhCNAdditionalOptions,
       folderDirectory: zhCNFolderDirectory,
       downloadLogs: zhCNDownloadLogs,
+      playlistSelection: zhCNPlaylistSelection,
     },
   },
   lng: 'en',
@@ -201,6 +217,7 @@ i18n.use(initReactI18next).init({
     'additionalOptions',
     'folderDirectory',
     'downloadLogs',
+    'playlistSelection',
   ],
   defaultNS: 'common',
   interpolation: {

@@ -1,15 +1,11 @@
 import { useAfdaStore } from '@/afda/store/afdaStore';
 import { formatArticleSections } from '@/afda/utils/articleFormatter';
-import {
-  getMissingAddonMessage,
-  isMissingHandlerError,
-  openAddonManager,
-} from '@/core-app/utils/missingAddonError';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { IoPersonCircleSharp } from 'react-icons/io5';
 import { LuCopy, LuDot } from 'react-icons/lu';
 import { FaFacebook } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
+import { AiOutlineFileWord } from 'react-icons/ai';
 
 interface ArticleSidePanelProps {
   isOpen: boolean;
@@ -25,12 +21,6 @@ const ArticleSidePanel: React.FC<ArticleSidePanelProps> = ({
   const articleError = useAfdaStore((state) => state.articleError);
   const articleUrl = useAfdaStore((state) => state.articleUrl);
   const close = useAfdaStore((state) => state.close);
-
-  useEffect(() => {
-    if (isMissingHandlerError(articleError?.article_error_status)) {
-      openAddonManager('afda');
-    }
-  }, [articleError]);
 
   const handleClose = () => {
     close();
@@ -137,7 +127,9 @@ const ArticleSidePanel: React.FC<ArticleSidePanelProps> = ({
                       }}
                     />
                   ) : (
-                    <div className="w-28 h-28 bg-gray-100 dark:bg-gray-800 rounded-md" />
+                    <div className="w-28 h-28 flex items-center justify-center rounded-md bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.6)_0%,transparent_40%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.5)_0%,transparent_45%),radial-gradient(circle_at_45%_80%,rgba(255,255,255,0.4)_0%,transparent_35%),linear-gradient(135deg,#ffa42e,#fec77d,#ffa42e,#fec170)]">
+                      <AiOutlineFileWord size={32} color="#F45513" />
+                    </div>
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
@@ -276,9 +268,7 @@ const ArticleSidePanel: React.FC<ArticleSidePanelProps> = ({
               Parse error
             </p>
             <p className="text-xs text-red-500 dark:text-red-300">
-              {isMissingHandlerError(articleError.article_error_status)
-                ? getMissingAddonMessage('afda')
-                : articleError.article_error_status ?? 'Unknown error'}
+              {articleError.article_error_status ?? 'Unknown error'}
             </p>
           </div>
         )}

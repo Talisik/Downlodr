@@ -5,16 +5,15 @@ import { FiSearch } from 'react-icons/fi';
 import { LuCalendar, LuCopy, LuDot } from 'react-icons/lu';
 import articlePlaceholder from '@/assets/afda/article-placeholder.svg';
 import { IoPersonCircleSharp } from 'react-icons/io5';
-import type {
-  Website,
-  WebsiteSection,
-} from '@/afda/backend/afda-backend/src/types';
-import { useAfdaWebsitesStore } from '@/afda/store/afdaWebsitesStore';
+import type { WebsiteSection } from '@/afda/backend/afda-backend/src/types';
+import {
+  useAfdaWebsitesStore,
+  type WebsiteListItem,
+} from '@/afda/store/afdaWebsitesStore';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import type { ArticleDownload } from '@/afda/store/articleDownloadStore';
 import { BiSortAZ, BiSortZA } from 'react-icons/bi';
 import ArticleContextMenu from '@/afda/components/contextMenu/ArticleContextMenu';
-import { useFavoritesStore } from '@/downlodr/store/favoritesStore';
 
 interface ArticleRow {
   id: number;
@@ -27,7 +26,7 @@ interface ArticleRow {
 }
 
 interface AfdaDownloadsProps {
-  website: Website | undefined;
+  website: WebsiteListItem | undefined;
 }
 
 const lastCrumb = (name: string) => name.split('/').at(-1) ?? name;
@@ -88,9 +87,9 @@ const AfdaDownloads = ({ website }: AfdaDownloadsProps) => {
   const addArticleCategory = useArticleDownloadStore((s) => s.addArticleCategory);
   const removeArticleCategory = useArticleDownloadStore((s) => s.removeArticleCategory);
 
-  const isFavorited = useFavoritesStore((s) => s.isFavorited);
-  const addFavorite = useFavoritesStore((s) => s.addFavorite);
-  const removeFavorite = useFavoritesStore((s) => s.removeFavorite);
+  const toggleArticleFavorite = useArticleDownloadStore(
+    (s) => s.toggleArticleFavorite,
+  );
 
   // Articles for the selected section — derived from the persistent store
   const sectionArticles = useMemo(
@@ -653,37 +652,8 @@ const AfdaDownloads = ({ website }: AfdaDownloadsProps) => {
               useArticleDownloadStore.getState().updateArticleDownload(id, { status: 'for_download' });
             }
           }}
-          onToggleFavorite={(id) => {
-            const a = allArticleDownloads.find((d) => d.id === id);
-            if (!a) return;
-            if (isFavorited(id)) {
-              removeFavorite(id);
-            } else {
-              addFavorite({
-                downloadId: a.id,
-                videoUrl: a.url,
-                title: a.title ?? '',
-                displayName: a.title ?? '',
-                downloadName: a.title ?? '',
-                location: a.filePath ?? '',
-                channelName: '',
-                thumbnail: undefined,
-                ext: '',
-                duration: 0,
-                size: a.fileSize ?? 0,
-                extractorKey: '',
-                tags: a.tags,
-                category: a.category,
-                description: undefined,
-                chapters: undefined,
-                status: a.status,
-                autoCaptionLocation: undefined,
-                transcriptLocation: undefined,
-                dateAdded: a.dateAdded,
-              });
-            }
-          }}
-          isFavorited={contextMenu ? isFavorited(contextMenu.article.id) : false}
+          onToggleFavorite={toggleArticleFavorite}
+          isFavorited={!!contextMenu?.article.favorited}
           onAddTag={addArticleTag}
           onRemoveTag={removeArticleTag}
           currentTags={contextMenu?.article.tags ?? []}

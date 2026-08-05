@@ -11,6 +11,8 @@ export interface DisplayColumn {
   width: number;
   minWidth?: number;
   displayIndex?: number;
+  /** Overrides the shared i18n label for this column, for this page only. */
+  label?: string;
 }
 
 export interface FormatSelectData {
@@ -32,6 +34,8 @@ export interface StatusPageRowHandlers {
   onViewFolder: (location?: string, filePath?: string) => void;
   onRetry: (downloadId: string) => void;
   onPause: (downloadId: string) => void;
+  onStop: (downloadId: string) => void;
+  onFinishRecording: (downloadId: string) => void;
   onRedownloadTranscript: (downloadId: string) => void;
   onFormatSelect: (formatData: FormatSelectData) => void;
   onViewEmbed: (download: SearchableDownload) => void;
