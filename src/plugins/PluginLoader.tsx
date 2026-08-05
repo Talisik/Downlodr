@@ -1,5 +1,5 @@
-import { createPluginAPI } from '@/plugins/pluginAPI';
 import React, { useEffect, useState } from 'react';
+import { createPluginAPI } from './pluginAPI';
 
 export const PluginLoader: React.FC = () => {
   const [, setEnabledPlugins] = useState<Record<string, boolean>>({});

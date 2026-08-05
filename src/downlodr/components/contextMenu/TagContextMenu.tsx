@@ -1,0 +1,160 @@
+/**
+ * A custom React component
+ * A React component that displays a context menu for managing tags.
+ * It provides options to rename and delete tags.
+ *
+ * @param TagContextMenuProps
+ *   @param position - An object containing the x and y coordinates for positioning the menu.
+ *   @param tagName - The name of the tag being acted upon.
+ *   @param onClose - A function to call when the menu should be closed.
+ *   @param onRename - A function that takes the old and new tag names to handle renaming.
+ *   @param onDelete - A function that takes the tag name to handle deletion.
+ *
+ * @returns JSX.Element - The rendered context menu component.
+ */
+
+import React, { useState } from 'react';
+import { MdDelete, MdEdit } from 'react-icons/md';
+
+import BaseContextMenu from './BaseContextMenu';
+
+interface TagContextMenuProps {
+  position: { x: number; y: number }; // Position of the context menu
+  tagName: string; // Name of the tag
+  onClose: () => void; // Function to close the menu
+  onRename: (oldName: string, newName: string) => void; // Function to rename the tag
+  onDelete: (tag: string) => void; // Function to delete the tag
+}
+
+interface RenameModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onRename: (newName: string) => void;
+  currentName: string;
+}
+
+const RenameModal: React.FC<RenameModalProps> = ({
+  isOpen,
+  onClose,
+  onRename,
+  currentName,
+}) => {
+  const [newName, setNewName] = useState(currentName);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newName.trim() && newName.trim().length <= 120) {
+      onRename(newName.trim());
+      onClose();
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div
+        className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-[15px] font-medium mb-3 dark:text-gray-200">
+          Rename Tag
+        </h3>
+        <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            maxLength={120}
+            className="w-full p-2 border rounded mb-1 dark:bg-darkMode dark:border-inputDarkModeBorder outline-none dark:text-gray-200"
+            autoFocus
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            {newName.length}/120 characters
+          </div>
+
+          <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="px-4 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              onClick={(e) => e.stopPropagation()}
+              className="px-4 py-1 bg-primary text-white rounded disabled:opacity-50 hover:opacity-90 dark:hover:opacity-75"
+              disabled={!newName.trim() || newName.trim().length > 120}
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const MENU_ITEM_CLASS =
+  'text-xs w-full text-left px-1.5 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200';
+
+const TagContextMenu: React.FC<TagContextMenuProps> = ({
+  position,
+  tagName,
+  onClose,
+  onRename,
+  onDelete,
+}) => {
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+
+  const handleRename = (newName: string) => {
+    onRename(tagName, newName);
+    setIsRenameModalOpen(false);
+    onClose();
+  };
+
+  return (
+    <>
+      <BaseContextMenu
+        position={position}
+        onClose={onClose}
+        dataAttribute="data-tag-context-menu"
+      >
+        <button
+          onClick={() => setIsRenameModalOpen(true)}
+          className={MENU_ITEM_CLASS}
+        >
+          <MdEdit className="text-gray-600 dark:text-gray-400" />
+          <span>Rename</span>
+        </button>
+        <button
+          onClick={() => {
+            onDelete(tagName);
+            onClose();
+          }}
+          className={`${MENU_ITEM_CLASS} text-red-600 dark:text-red-400`}
+        >
+          <MdDelete />
+          <span>Delete</span>
+        </button>
+      </BaseContextMenu>
+
+      <RenameModal
+        isOpen={isRenameModalOpen}
+        onClose={() => setIsRenameModalOpen(false)}
+        onRename={handleRename}
+        currentName={tagName}
+      />
+    </>
+  );
+};
+
+export default TagContextMenu;

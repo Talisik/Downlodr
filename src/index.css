@@ -1,5 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
+/* Lato is self-hosted (@fontsource, bundled by Vite) so the UI font is
+   available instantly and offline — the previous Google Fonts @imports
+   fetched CSS + woff2 from the network on every launch, which delayed
+   styling at startup and left the fallback font on screen. Open Sans and
+   Roboto were imported but never referenced, so they were dropped. */
+@import '@fontsource/lato/300.css';
+@import '@fontsource/lato/400.css';
+@import '@fontsource/lato/700.css';
+@import '@fontsource/lato/900.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,14 +17,14 @@
 }
 
 html.dark {
-  --card-bg: #09090B;
+  --card-bg: #1D1D1D;
   --card-text: #a1a1aa;
 }
 
 /* body */
 
 body {
-  font-family: Lato;
+  font-family: Lato, sans-serif;
   font-size: 13px;
 }
 
@@ -48,6 +55,17 @@ body {
 /* Hide scrollbar buttons */
 ::-webkit-scrollbar-button {
   display: none;
+}
+
+/* Hover-only scrollbar — thumb is invisible until the user hovers the container */
+.hover-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+.hover-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: #888;
+}
+.hover-scrollbar:hover::-webkit-scrollbar-thumb:hover {
+  background: #666;
 }
 
 /* end of custom scroll bar */
@@ -84,7 +102,7 @@ body {
 
 .nav-link:not(.active):hover {
   @apply bg-titleBar;
-  @apply dark:bg-darkModeCompliment;
+  @apply dark:bg-[#3D3D3D];
   @apply rounded w-[95%];
 }
 
@@ -168,37 +186,4 @@ html.dark input[type='checkbox'].custom-white-checkmark:not(.sr-only):checked::a
 input[type='checkbox']:not(.sr-only):focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(244, 85, 19, 0.2);
-}
-
-/* Red placeholder text */
-.red-placeholder::placeholder {
-  color: #f45513;
-}
-
-/* Small checkbox variant */
-input[type='checkbox'].checkbox-small:not(.sr-only) {
-  width: 12px;
-  height: 12px;
-}
-
-html.dark input[type='checkbox'].checkbox-small:not(.sr-only) {
-  width: 12px;
-  height: 12px;
-}
-
-input[type='checkbox'].checkbox-small:not(.sr-only):checked::after {
-  left: 3px;
-  top: 1px;
-  width: 4px;
-  height: 7px;
-  border-width: 0 2px 2px 0;
-}
-
-/* Hide scrollbar utility */
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
 }

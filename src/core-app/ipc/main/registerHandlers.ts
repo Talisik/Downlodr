@@ -1,0 +1,245 @@
+import { app, BrowserWindow } from 'electron';
+import path from 'path';
+import { appBehaviorHandler } from './appBehaviorHandler';
+import { appInfoHandler } from './appInfoHandler';
+import { appPerformanceHandler } from './appPerformanceHandler';
+import { browserHandler } from './browserHandler';
+import { clipboardHandler } from './clipboardHandler';
+import { devHandler } from './devHandler';
+import { fileHandler } from './fileHandler';
+import { pluginFunctionsHandler } from './pluginFunctionsHandler';
+import { pluginHandler } from './pluginHandler';
+import { startAfdaWorker } from './afdaWorkerProxy';
+import { skedulosaHandler } from './skedulosaHandler';
+import {
+  addonManagerHandler,
+  applyPendingDeletes,
+  detectAddon,
+  resolveAddonPath,
+  seedBuiltInPacks,
+  type SeedProgress,
+} from './addonManager';
+import { telemetryHandler } from './telemetryHandler';
+import { transcriptHandler } from './transcriptHandler';
+import { trayHandler, TrayHandlerOptions } from './trayHandler';
+import { vadHandler } from './vadHandler';
+import { videoHandler } from './videoHandler';
+import { ytdlpHandler, runYtdlpCheckAndUpdate } from './ytdlpHandler';
+import { autoTagHandler } from '../../../auto-tag/ipc/main/tagHandler';
+
+let handlersRegistered = false;
+
+export type RegisterHandlersOptions = {
+  tray?: TrayHandlerOptions;
+};
+
+export interface AppCleanup {
+  /** Run all registered cleanup functions. Call once in the app's before-quit handler. */
+  cleanup(): void;
+}
+
+/** User-facing names for the built-in packs, shown on the boot splash. */
+const PACK_LABELS: Record<string, string> = {
+  'afda-backend': 'Installing article services…',
+  'video-nemesis-toolkit': 'Installing channel scheduler…',
+};
+
+export async function registerMainIpcHandlers(
+  mainWindow: BrowserWindow,
+  options?: RegisterHandlersOptions,
+): Promise<AppCleanup> {
+  if (handlersRegistered) {
+    return { cleanup: () => {} };
+  }
+  handlersRegistered = true;
+
+  const cleanups: (() => void)[] = [];
+
+  const collect = (fn: (() => void) | void) => {
+    if (typeof fn === 'function') cleanups.push(fn);
+  };
+
+  // ── Phase 1: cheap synchronous registrations ──────────────────────────
+  // These are plain ipcMain.handle calls (microseconds each) and MUST all be
+  // registered before the renderer runs so core bridges never hit
+  // "No handler registered".
+  collect(addonManagerHandler(mainWindow));
+  collect(appInfoHandler());
+  collect(appBehaviorHandler(mainWindow));
+  collect(appPerformanceHandler(mainWindow));
+  collect(browserHandler(mainWindow));
+  collect(clipboardHandler(mainWindow));
+  collect(devHandler(mainWindow));
+  collect(fileHandler(mainWindow));
+  collect(pluginFunctionsHandler(mainWindow));
+  collect(pluginHandler(mainWindow));
+  collect(telemetryHandler(mainWindow));
+  collect(transcriptHandler(mainWindow));
+  collect(vadHandler(mainWindow));
+  collect(trayHandler(mainWindow, options?.tray));
+  collect(videoHandler(mainWindow));
+  collect(ytdlpHandler(mainWindow));
+  collect(autoTagHandler());
+
+  // ── Phase 1.5: built-in pack seeding + AFDA worker fork ───────────────
+  // Deliberately separate from Phase 1: on a first packaged launch this
+  // copies ~700MB, which is why it must not sit ahead of loadFile().
+  const initBuiltInPacks = async () => {
+    // Stale add-on dirs must be gone before detectAddon inspects them — this
+    // is cheap fs I/O (no-op when nothing is pending). Without this, a pending
+    // afda-backend delete/update (from the addon manager) would let the worker
+    // fork against the stale directory and then lock its files, breaking
+    // Phase 2's later cleanup.
+    await applyPendingDeletes();
+
+    // Seeds afda-backend/video-nemesis-toolkit into userData on first launch
+    // of a packaged build (no-op in dev, no-op once already seeded) — see
+    // seedBuiltInPacks()'s own comment for why they can't just be required
+    // directly from the asar-bundled extraResource location.
+    const sendProgress = (p: SeedProgress) => {
+      if (mainWindow.isDestroyed()) return;
+      mainWindow.webContents.send('boot:progress', {
+        label: PACK_LABELS[p.packName] ?? 'Installing add-ons…',
+        copiedBytes: p.copiedBytes,
+        totalBytes: p.totalBytes,
+        step: p.step,
+        totalSteps: p.totalSteps,
+      });
+    };
+
+    try {
+      await seedBuiltInPacks(sendProgress);
+    } finally {
+      // Always tear the bar down, even if seeding threw, so the splash falls
+      // back to the spinner + boot:status text and boot continues.
+      if (!mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('boot:progress-done');
+      }
+    }
+
+    const afdaState = detectAddon('afda-backend');
+    const addonPathAfda =
+      afdaState.status === 'ready'
+        ? resolveAddonPath('afda-backend')
+        : undefined;
+    if (addonPathAfda || !app.isPackaged) {
+      if (!mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('boot:status', 'Loading article services…');
+      }
+      const afdaDbPath = path.join(app.getPath('userData'), 'afda.db');
+      // Safe to push after registerMainIpcHandlers has returned: the returned
+      // cleanup() iterates `cleanups` at call time rather than snapshotting it.
+      collect(startAfdaWorker(mainWindow, afdaDbPath, addonPathAfda));
+    } else {
+      console.log(
+        `[addons] afda-backend not ready (${afdaState.status}) — skipping worker start`,
+      );
+    }
+  };
+
+  // ── Phase 2: heavy add-on init, deferred until after first paint ──────
+  // skedulosaHandler dynamically imports a multi-MB add-on
+  // bundles and open SQLite synchronously (better-sqlite3). Running them
+  // before loadFile left the window white and unpumped ("Not responding"),
+  // so they wait for did-finish-load — the splash in index.html is on
+  // screen first. AFDA no longer participates in this deferred path — it
+  // now forks into a utilityProcess worker in Phase 1 above (startAfdaWorker),
+  // so nothing about its init can block the main thread at all.
+  // The renderer keeps its boot splash up until this event arrives, so it
+  // must be (re)sent on every page load once services are up — a reload
+  // would otherwise wait on an event that already fired.
+  let servicesReady = false;
+  const announceServicesReady = () => {
+    if (!mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('addons:services-ready');
+    }
+  };
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (servicesReady) announceServicesReady();
+  });
+
+  // Push a boot-stage message to the splash, then yield one tick so the IPC
+  // message flushes to the renderer before the caller blocks the main
+  // process on a heavy synchronous chunk (bundle import / SQLite open).
+  const sendBootStatus = async (message: string) => {
+    if (!mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('boot:status', message);
+    }
+    await new Promise<void>((resolve) => setImmediate(resolve));
+  };
+
+  const registerAddonHandlers = async () => {
+    await sendBootStatus('Preparing add-ons…');
+    // Stale add-on dirs must be gone before detectAddon inspects them.
+    await applyPendingDeletes();
+
+    await sendBootStatus('Loading channel scheduler…');
+    const skedulosaState = detectAddon('video-nemesis-toolkit');
+    const addonPathSkedulosa = skedulosaState.status === 'ready' ? resolveAddonPath('video-nemesis-toolkit') : undefined;
+    if (addonPathSkedulosa || !app.isPackaged) {
+      try {
+        collect(await skedulosaHandler(mainWindow, addonPathSkedulosa));
+      } catch (err) {
+        console.error(`[addons] skedulosaHandler failed (addonPath: ${addonPathSkedulosa ?? 'undefined'}):`, err);
+      }
+    } else {
+      console.log(`[addons] video-nemesis-toolkit not ready (${skedulosaState.status}) — skipping handler registration`);
+    }
+
+    await sendBootStatus('Finishing up…');
+    // Renderer hooks that raced ahead of this registration re-run on this
+    // event (scraper start, AFDA website/social-source loads).
+    servicesReady = true;
+    announceServicesReady();
+    console.log('[addons] deferred add-on registration complete');
+  };
+
+  // Trigger on first paint (ready-to-show), not did-finish-load: Phase 1.5's
+  // pack copy is ~700MB on a first packaged launch and the add-on import in
+  // Phase 2 blocks the main process ~1.3s+ in one atomic module evaluation.
+  // did-finish-load fires right when the renderer becomes interactive — the
+  // worst moment to freeze. At ready-to-show the splash is painted but the
+  // renderer is still parsing its own bundle, so the work overlaps time the
+  // user is already waiting anyway. did-finish-load stays as a fallback in
+  // case ready-to-show never fires (already-shown window edge cases).
+  //
+  // Phase 1.5 is awaited before Phase 2 rather than run alongside it: Phase 2
+  // calls detectAddon('video-nemesis-toolkit') and must observe the seeded
+  // directory, and both phases call applyPendingDeletes(), which must not run
+  // concurrently with itself.
+  let bootWorkStarted = false;
+  const startBootWork = () => {
+    if (bootWorkStarted) return;
+    bootWorkStarted = true;
+    void (async () => {
+      try {
+        await initBuiltInPacks();
+      } catch (err) {
+        console.error('[addons] built-in pack seeding failed:', err);
+      }
+      try {
+        await registerAddonHandlers();
+      } catch (err) {
+        console.error('[addons] deferred registration failed:', err);
+      }
+    })();
+  };
+  mainWindow.once('ready-to-show', startBootWork);
+  mainWindow.webContents.once('did-finish-load', startBootWork);
+
+  setTimeout(() => {
+    void runYtdlpCheckAndUpdate();
+  }, 5000);
+
+  return {
+    cleanup() {
+      for (const fn of cleanups) {
+        try {
+          fn();
+        } catch (err) {
+          console.error('[cleanup] handler cleanup failed:', err);
+        }
+      }
+    },
+  };
+}
