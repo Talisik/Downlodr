@@ -1,5 +1,5 @@
 // src/plugins/registry.ts
-import { MenuItem, NotifItem, TaskBarItem } from './types';
+import { MenuItem, NotifItem, TaskBarItem } from '../plugins/schema/types';
 
 // TypeScript schemas for registry data
 type ContextData = Record<string, unknown> | string | number | null | undefined;

@@ -2,7 +2,7 @@
 import { app, ipcMain, shell } from 'electron';
 import fs from 'fs';
 import path from 'path';
-import { extractPlugin, validatePlugin } from './security';
+import { extractPlugin, validatePlugin } from '../plugins/security';
 
 export class PluginManager {
   private pluginsDir: string;
@@ -584,3 +584,6 @@ export class PluginManager {
     return this.enabledPlugins;
   }
 }
+
+/** Singleton instance for use by IPC handlers and other main-process code. */
+export const pluginManager = new PluginManager();
