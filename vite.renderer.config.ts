@@ -12,6 +12,8 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, 'src'),
       },
+      // Ensure a single React instance so Radix UI (e.g. Slider) hooks work correctly
+      dedupe: ['react', 'react-dom'],
     },
     esbuild: {
       drop: mode === 'production' ? ['console', 'debugger'] : [],
@@ -33,7 +35,7 @@ export default defineConfig(({ mode }) => {
         env.VITE_TELEMETRY_RETRY_ATTEMPTS || '3',
       ),
       __TELEMETRY_SCHEMA_URL__: JSON.stringify(
-        env.VITE_TELEMETRY_SCHEMA_URL || 'https://endpoint',
+        env.VITE_TELEMETRY_SCHEMA_URL || 'https://opentelemetry.io/schemas/1.9.0',
       ),
     },
   };

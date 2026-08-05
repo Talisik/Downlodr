@@ -17,6 +17,9 @@ module.exports = {
       'sm': '640px',
       'md': '950px',
       'lg': '980px',
+      'xl': '1200px',
+      '1xl': '1350px',
+      '1.5xl': '1500px',
       '2xl': '1400px',
       // Height-based breakpoints
       'h-sm1': { 'raw': '(max-height: 630px)' },
@@ -36,6 +39,9 @@ module.exports = {
       },
     },
     extend: {
+      fontSize: {
+        xxxs: ['10px', '16px'],
+      },
       keyframes: {
         'accordion-down': {
           from: { height: '0' },
@@ -52,6 +58,7 @@ module.exports = {
       },
       colors: {
         ...colors, // Spread the default colors
+        offWhite: '#FFFFFF',
         titleBar: {
           DEFAULT: '#F9FAF7',
           dark: '#09090B',
@@ -69,7 +76,8 @@ module.exports = {
         divider: '#D1D5DB',
         tabs: '#fef9f4',
         lightGray: '#EDEDED',
-        darkMode: '#09090B',
+        darkMode: '#191919', 
+        oldDarkMode: '#09090B',
         darkModeCompliment: '#272727',
         darkModeNavigation: '#191919',
         darkModeBorderColor: '#434347',
@@ -88,9 +96,17 @@ module.exports = {
         darkModeNotAvailableStatus: '#C6C6C6',
         darkModeButtonDefault: '#71717A',
         darkModeButtonActive: '#E4E4E7',
-
-        // Toast
-        destructiveToast: '#FF3B30',
+        buttonBg: '#FCFDFD',
+        FooterBg: '#F9F9F9',
+        buttonBorder: '#E8E8E8',
+        toggleGroupBaseColor: '#F3F3F3',
+        appBG: '#FCFCFC',
+        recurringTag: '#F3F3F3',
+        lightOrangeTag: '#FDDDD0',
+        grayTag: '#E6E6E6',
+        darkModeTable: '#272727',
+        darkModeTableBorder: '#474747',
+        titleBarBorder: '#F9F9F9',
       },
     },
   },
