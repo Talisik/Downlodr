@@ -32,6 +32,11 @@ TEST*.xml
 # Exception for specific exe file
 !yt-dlp.exe
 
+# macOS/Linux yt-dlp binaries — not bundled by forge.config.ts and not used
+# by CI; ytdlpHandler downloads them into userData at runtime
+yt-dlp_macos
+yt-dlp_linux
+
 # Large media files
 *.mp4
 *.tiff
