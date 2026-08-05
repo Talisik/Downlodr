@@ -1,0 +1,17 @@
+{
+  "title": "Videos zum Herunterladen auswählen",
+  "subtitle": "Wählen Sie aus, welche Videos aus dieser Playlist heruntergeladen werden sollen.",
+  "getClosedCaptions": "Untertitel abrufen",
+  "getThumbnail": "Vorschaubild abrufen",
+  "videos_one": "{{count}} Video",
+  "videos_other": "{{count}} Videos",
+  "selected": "{{count}} von {{total}} ausgewählt",
+  "cancel": "Abbrechen",
+  "downloadSelected": "Ausgewählte herunterladen ({{count}})",
+  "toast": {
+    "selectionErrorTitle": "Keine Videos ausgewählt",
+    "selectionErrorDesc": "Wählen Sie mindestens ein Video zum Herunterladen aus.",
+    "downloadQueuedTitle": "Download in Warteschlange",
+    "downloadQueuedDesc": "Ihre ausgewählten Videos wurden zur Download-Warteschlange hinzugefügt."
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "downloads": "Downloads",
+  "plugins": "Plugins",
+  "skedulosa": "Nome da assinatura",
+  "addPlugin": "Adicionar plugin",
+  "toast": {
+    "installSuccess": "O plugin foi instalado com sucesso",
+    "installSuccessTitle": "Sucesso",
+    "alreadyInstalledTitle": "Plugin já instalado",
+    "alreadyInstalled": "Este plugin já está instalado",
+    "invalidDirTitle": "Diretório de plugin inválido",
+    "invalidDir": "O diretório selecionado não contém uma estrutura de plugin válida",
+    "installFailedTitle": "Falha na instalação",
+    "installFailedDefault": "Ocorreu um erro inesperado ao instalar o plugin"
+  }
+}

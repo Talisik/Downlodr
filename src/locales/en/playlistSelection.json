@@ -1,0 +1,17 @@
+{
+  "title": "Select videos to download",
+  "subtitle": "Choose which videos from this playlist you want to download.",
+  "getClosedCaptions": "Get Closed Captions",
+  "getThumbnail": "Get Thumbnail",
+  "videos_one": "{{count}}  Video",
+  "videos_other": "{{count}}  Videos",
+  "selected": "{{count}} of {{total}} selected",
+  "cancel": "Cancel",
+  "downloadSelected": "Download Selected ({{count}})",
+  "toast": {
+    "selectionErrorTitle": "No videos selected",
+    "selectionErrorDesc": "Select at least one video to download.",
+    "downloadQueuedTitle": "Download queued",
+    "downloadQueuedDesc": "Your selected videos have been added to the download queue."
+  }
+}

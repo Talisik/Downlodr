@@ -1,0 +1,409 @@
+{
+  "nav": {
+    "home": "Startseite",
+    "subscription": "Abonnement",
+    "subscriptions": "Abonnements",
+    "scheduled": "Geplant",
+    "schedule": "Zeitplan",
+    "history": "Verlauf",
+    "playground": "Spielwiese"
+  },
+  "sections": {
+    "status": "Status",
+    "categories": "Kategorien"
+  },
+  "statusFilter": {
+    "all": "Alle",
+    "active": "Aktiv",
+    "paused": "Pausiert",
+    "needs-attention": "Benötigt Aufmerksamkeit",
+    "error": "Fehler vorhanden"
+  },
+  "categoryFilter": {
+    "all": "Alle",
+    "youtube": "YouTube",
+    "afda": "Artikel"
+  },
+  "collapse": "Seitenleiste einklappen",
+  "expand": "Seitenleiste ausklappen",
+  "subscriptionPage": {
+    "columns": {
+      "subscription": "Abonnement",
+      "status": "Status",
+      "checked": "Geprüft",
+      "downloads": "Downloads",
+      "source": "Quelle",
+      "storage": "Größe"
+    },
+    "emptyState": {
+      "altText": "Keine Abonnements",
+      "title": "Noch keine Abonnements für den Filter \"{{filter}}\"",
+      "description": "Abonnieren Sie YouTube-Kanäle, Playlists oder RSS-Feeds und Subscription lädt automatisch neue Inhalte nach Ihrem Zeitplan herunter – auch wenn Downlodr geschlossen ist."
+    },
+    "status": {
+      "active": "Aktiv",
+      "paused": "Pausiert",
+      "error": "Fehler"
+    },
+    "ago": "vor",
+    "source": {
+      "youtube": "YouTube"
+    },
+    "confirmDelete": {
+      "title": "Abonnement \"{{name}}\" löschen?",
+      "message": "Dadurch werden das gesamte Abonnement und die Zeitplaninformationen entfernt. Dies kann nicht rückgängig gemacht werden.",
+      "confirmLabel": "Löschen"
+    }
+  },
+  "historyPage": {
+    "columns": {
+      "title": "Titel",
+      "subscription": "Abonnement",
+      "size": "Größe",
+      "speed": "Geschwindigkeit",
+      "status": "Status",
+      "date": "Hinzugefügt am",
+      "actions": "Aktionen"
+    },
+    "emptyState": {
+      "altText": "Kein Verlauf",
+      "title": "Noch kein Verlauf",
+      "description": "Ihre Downloads und Aktivitäten werden hier angezeigt. Abonnieren Sie einen Kanal, um mit dem Herunterladen zu beginnen."
+    },
+    "status": {
+      "completed": "Fertig",
+      "downloading": "In Bearbeitung",
+      "queued": "In der Warteschlange",
+      "failed": "Fehlgeschlagen"
+    },
+    "menu": {
+      "viewFile": "Datei anzeigen",
+      "delete": "Löschen"
+    },
+    "confirmDelete": {
+      "title": "Download \"{{name}}\" löschen",
+      "message": "Dadurch wird die heruntergeladene Datei von Ihrem Gerät entfernt. Dies kann nicht rückgängig gemacht werden.",
+      "confirmLabel": "Löschen"
+    }
+  },
+  "scheduledPage": {
+    "columns": {
+      "channel": "Kanal",
+      "type": "Typ",
+      "schedule": "Zeitplan",
+      "lastrun": "Letzter Lauf",
+      "nextrun": "Nächster Lauf",
+      "source": "Quelle",
+      "progress": "Fortschritt",
+      "status": "Status"
+    },
+    "emptyState": {
+      "altText": "Kein Zeitplan",
+      "title": "Noch keine Zeitpläne für den Filter \"{{filter}}\"",
+      "description": "Abonnieren Sie YouTube-Kanäle, Playlists oder RSS-Feeds und Subscription lädt automatisch neue Inhalte nach Ihrem Zeitplan herunter – auch wenn Downlodr geschlossen ist."
+    },
+    "type": {
+      "recurring": "Wiederkehrend",
+      "oneTime": "Einmalig"
+    },
+    "status": {
+      "downloading": "Wird heruntergeladen",
+      "failed": "Fehlgeschlagen",
+      "running": "Läuft",
+      "missed": "Verpasst",
+      "pending": "Ausstehend",
+      "active": "Aktiv",
+      "paused": "Pausiert",
+      "error": "Fehler"
+    },
+    "source": {
+      "youtube": "YouTube"
+    },
+    "ago": "vor",
+    "confirmDelete": {
+      "title": "Abonnement \"{{name}}\" löschen?",
+      "message": "Dadurch werden das gesamte Abonnement und die Zeitplaninformationen entfernt. Dies kann nicht rückgängig gemacht werden.",
+      "confirmLabel": "Löschen"
+    }
+  },
+  "taskbar": {
+    "sort": {
+      "label": "Sortieren",
+      "nameAZ": "Name A → Z",
+      "nameZA": "Name Z → A",
+      "newestFirst": "Neueste zuerst",
+      "oldestFirst": "Älteste zuerst",
+      "mostDownloads": "Meiste Downloads",
+      "fewestDownloads": "Wenigste Downloads"
+    },
+    "stats": {
+      "today": "heute",
+      "thisWeek": "diese Woche",
+      "used": "verwendet",
+      "nextCheckIn": "Nächste Prüfung in"
+    },
+    "search": {
+      "placeholder": "Suchen...",
+      "open": "Suchen",
+      "close": "Suche schließen"
+    },
+    "subscribe": "Abonnieren",
+    "bulk": {
+      "downloadsSelected_one": "{{count}} Download ausgewählt",
+      "downloadsSelected_other": "{{count}} Downloads ausgewählt",
+      "deleteSelectedDownloads": "Ausgewählte Downloads löschen",
+      "pauseSelectedSubscriptions": "Ausgewählte Abonnements pausieren",
+      "resumeSelectedSubscriptions": "Ausgewählte Abonnements fortsetzen",
+      "editSubscription": "Abonnement bearbeiten",
+      "deleteSelectedSubscriptions": "Ausgewählte Abonnements löschen",
+      "pause": "Pausieren",
+      "resume": "Fortsetzen",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "clearSelection": "Auswahl aufheben"
+    },
+    "confirmDelete": {
+      "singleDownloadTitle": "\"{{name}}\" löschen?",
+      "multiDownloadTitle": "{{count}} Downloads löschen?",
+      "downloadMessage": "Dadurch werden alle ausgewählten Downloads von Ihrem Gerät entfernt. Dies kann nicht rückgängig gemacht werden.",
+      "singleSubscriptionTitle": "Abonnement \"{{name}}\" löschen?",
+      "multiSubscriptionTitle": "{{count}} Abonnements löschen?",
+      "subscriptionMessage": "Dadurch werden alle ausgewählten Abonnements und deren Zeitplaninformationen entfernt. Dies kann nicht rückgängig gemacht werden.",
+      "confirmLabel": "Löschen"
+    }
+  },
+  "scanningModal": {
+    "title": "Quelle abonnieren",
+    "cancel": "Abbrechen",
+    "runInBackground": "Im Hintergrund ausführen",
+    "channelScanned": "Kanal gescannt!",
+    "scanningChannel": "Kanal wird gescannt",
+    "analyzingArticle": "Artikel wird analysiert",
+    "readyToSubscribe": "Bereit zum Abonnieren",
+    "discoveringSections": "Abschnitte werden erkannt",
+    "youtubeMsg0": "Upload-Häufigkeit wird geprüft",
+    "youtubeMsg1": "Analyse der Upload-Häufigkeit dieses Kanals",
+    "youtubeMsg2": "Upload-Muster des Kanals wird gelesen",
+    "youtubeMsg3": "Upload-Verlauf wird abgerufen",
+    "scanningChannelToast": "Kanal wird gescannt...",
+    "viewProgress": "Fortschritt anzeigen"
+  },
+  "subscribeModal": {
+    "title": "Quelle abonnieren",
+    "cancel": "Abbrechen",
+    "subscribe": "Abonnieren",
+    "channelNameLabel": "Kanalname",
+    "sourceUrlLabel": "Quell-URL",
+    "whatCanSubscribe": "Was kann ich abonnieren?",
+    "supportedSources": "Unterstützte Quellen",
+    "youtubeChannels": "YouTube-Kanäle",
+    "articleWebsites": "Artikel-Webseiten wie: GMA, CNN, BBC, usw.",
+    "basicConfig": "GRUNDKONFIGURATION",
+    "checkFrequency": "Prüfhäufigkeit",
+    "auto": "Automatisch",
+    "manual": "Manuell",
+    "toast": {
+      "queued": "Abonnement in Warteschlange",
+      "queuedDesc": "Ihr Abonnement wurde zur Warteschlange hinzugefügt und wird in Kürze eingerichtet."
+    },
+    "errors": {
+      "invalidUrl": "Bitte geben Sie eine gültige URL ein (z. B. https://www.youtube.com/@kanal).",
+      "unsupportedProtocol": "Nur http- und https-URLs werden unterstützt.",
+      "unsupportedPlatform": "Nicht unterstützte Plattform. Derzeit werden nur YouTube-Kanäle und Playlists unterstützt.",
+      "videoLink": "YouTube-Video-Links werden nicht unterstützt. Bitte geben Sie eine YouTube-Kanal-URL ein (z. B. https://www.youtube.com/@kanal).",
+      "shortsLink": "YouTube-Shorts-Links werden nicht unterstützt. Bitte geben Sie eine YouTube-Kanal-URL ein (z. B. https://www.youtube.com/@kanal).",
+      "alreadySubscribed": "Dieser Kanal ist bereits abonniert. Sie können ihn über den Subscription-Tab verwalten.",
+      "bridgeUnavailable": "Subscription-Bridge ist nicht verfügbar. Bitte starten Sie die App neu.",
+      "analyzeFailedGeneric": "Kanal konnte nicht analysiert werden – siehe obige Benachrichtigung.",
+      "noVideosShorts": "Keine Videos auf dem Videos-Tab dieses Kanals gefunden. Wenn nur Shorts gepostet werden, versuchen Sie \"/shorts\" zur URL hinzuzufügen (z. B. https://www.youtube.com/@kanal/shorts).",
+      "noVideos": "Keine Videos für diesen Kanal gefunden. Prüfen Sie die URL und versuchen Sie es erneut.",
+      "analyzeFailed": "Kanal konnte nicht analysiert werden. Bitte versuchen Sie es erneut."
+    },
+    "channelInfo": {
+      "channelType": "{{siteType}}-Kanal",
+      "channelFallback": "Kanal",
+      "subscriberCount": "{{formatted}} Abonnenten",
+      "videoCount": "{{count}} Videos",
+      "downloadLast": "Die letzten",
+      "videosLabel": "Videos herunterladen",
+      "scrapeAllLabel": "Alle ({{count}})",
+      "ramWarning": "Das Herunterladen von mehr als 3 Videos kann RAM-intensiv sein."
+    },
+    "autoDetect": {
+      "basedOn": "Basierend auf den letzten {{count}} Videos des Veröffentlichungsverlaufs",
+      "usingFrequency": "Vorgeschlagene Häufigkeit wird verwendet —",
+      "confidence": "{{percent}}% Konfidenz"
+    },
+    "advancedOptions": {
+      "title": "Erweiterte Optionen",
+      "description": "Hier können weitere Einstellungen hinzugefügt werden.",
+      "showButton": "Erweiterte Optionen anzeigen"
+    },
+    "manualFrequency": {
+      "daysToCheck": "Zu prüfende Tage:",
+      "checkAt": "Prüfen um:",
+      "timezone": "Zeitzone:",
+      "schedulePrefix": "Subscription prüft alle",
+      "scheduleMid": "Tage um",
+      "qualityPreset": "Qualitätsvoreinstellung",
+      "saveTo": "Speichern in:",
+      "saveToPlaceholder": "Speicherort auswählen",
+      "browseFolderTooltip": "Ordner durchsuchen",
+      "days": {
+        "mon": "Mo",
+        "tue": "Di",
+        "wed": "Mi",
+        "thu": "Do",
+        "fri": "Fr",
+        "sat": "Sa",
+        "sun": "So"
+      },
+      "quality": {
+        "lowest": "Niedrigste Qualität",
+        "low": "Niedrige Qualität",
+        "best": "Beste Qualität"
+      }
+    }
+  },
+  "contextMenu": {
+    "edit": "Bearbeiten",
+    "pause": "Pausieren",
+    "resume": "Fortsetzen",
+    "delete": "Löschen"
+  },
+  "editModal": {
+    "title": "Abonnement bearbeiten",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "channelName": "Kanalname",
+    "channelNameRequired": "Kanalname ist erforderlich.",
+    "channelUrl": "Kanal-URL",
+    "statusLabel": "Status",
+    "recurring": "Wiederkehrend",
+    "scheduleDays": "Zeitplantage",
+    "downloadQuality": "Download-Qualität",
+    "saveLocation": "Speicherort",
+    "lookbackPeriod": "Aufbewahrungszeitraum",
+    "days": {
+      "mon": "Mo",
+      "tue": "Di",
+      "wed": "Mi",
+      "thu": "Do",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "So"
+    },
+    "quality": {
+      "lowest": "Niedrigste Qualität",
+      "low": "Niedrige Qualität",
+      "best": "Beste Qualität"
+    },
+    "status": {
+      "active": "Aktiv",
+      "paused": "Pausiert",
+      "error": "Fehler",
+      "needsAttention": "Aufmerksamkeit erforderlich"
+    }
+  },
+  "activityLog": {
+    "showingResults": "Aktivitätsergebnisse werden angezeigt",
+    "noActivity": "Noch keine Aktivität.",
+    "filters": {
+      "all": "Alle",
+      "downloads": "Downloads",
+      "checks": "Prüfungen",
+      "errors": "Fehler"
+    }
+  },
+  "analytics": {
+    "days": {
+      "monday": "Montag",
+      "tuesday": "Dienstag",
+      "wednesday": "Mittwoch",
+      "thursday": "Donnerstag",
+      "friday": "Freitag",
+      "saturday": "Samstag",
+      "sunday": "Sonntag"
+    },
+    "timeBands": {
+      "earlyMorning": "Früher Morgen",
+      "earlyMorningSub": "0:00 - 6:00 Uhr",
+      "morning": "Morgen",
+      "morningSub": "6:00 - 12:00 Uhr",
+      "afternoon": "Nachmittag",
+      "afternoonSub": "12:00 - 18:00 Uhr",
+      "evening": "Abend",
+      "eveningSub": "18:00 - 0:00 Uhr"
+    },
+    "timeRange": {
+      "last30": "Letzte 30 Tage",
+      "last60": "Letzte 60 Tage",
+      "last90": "Letzte 90 Tage"
+    },
+    "stats": {
+      "downloadRate": "Download-Rate",
+      "uploadCadence": "Upload-Kadenz",
+      "avgFileSize": "Durchschn. Dateigröße",
+      "successOver30d": "Erfolg in 30 Tagen",
+      "noDownloads": "Noch keine Downloads",
+      "videosPerWeek": "Videos pro Woche (Ø)",
+      "perVideo": "pro Video"
+    },
+    "heatmap": {
+      "title": "Bester Upload-Tag + Uhrzeit",
+      "less": "Weniger",
+      "more": "Mehr",
+      "peak": "Spitze",
+      "noData": "Noch keine Daten",
+      "failedToLoad": "Laden fehlgeschlagen",
+      "loading": "Laden…"
+    },
+    "trends": {
+      "title": "Trends der letzten 30 Tage",
+      "successRate": "Erfolgsrate",
+      "storageGrowth": "Speicherwachstum",
+      "failedDownloads": "Fehlgeschlagene Downloads",
+      "failedBadge": "{{pct}}% fehlgeschlagen"
+    },
+    "tooltip": {
+      "avgUploadTime": "Durchschn. Upload-Zeit:",
+      "avgUploads": "Durchschn. Uploads:",
+      "videosPerWeek": "Videos/Woche"
+    }
+  },
+  "selectedSubscriptionView": {
+    "emptyState": {
+      "title": "Zeitplan",
+      "description": "Noch keine geplanten Kanäle. Füge einen Kanal auf der Startseite hinzu, um Einträge hier zu sehen."
+    },
+    "channelNav": {
+      "header": "Kanal"
+    },
+    "stats": {
+      "downloads": "Downloads",
+      "storage": "Speicher",
+      "created": "Erstellt",
+      "lastChecked": "Zuletzt geprüft"
+    },
+    "selectChannel": "Wähle einen Kanal aus der Liste.",
+    "tabs": {
+      "downloads": "Downloads",
+      "analytics": "Analyse",
+      "activity-log": "Aktivitätsprotokoll",
+      "settings": "Einstellungen"
+    }
+  },
+  "settingsTab": {
+    "channelInfo": "Kanalinformationen",
+    "downloadBehavior": "Download-Verhalten",
+    "noChannelSelected": "Kein Kanal ausgewählt.",
+    "channelNameRequired": "Kanalname ist erforderlich.",
+    "daysToCheck": "Zu prüfende Tage:",
+    "toast": {
+      "saved": "Einstellungen gespeichert",
+      "savedDesc": "Ihre Abonnementeinstellungen wurden aktualisiert.",
+      "failed": "Speichern fehlgeschlagen",
+      "failedDesc": "Beim Speichern ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
+    }
+  }
+}

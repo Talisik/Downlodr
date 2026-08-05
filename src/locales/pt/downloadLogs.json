@@ -1,0 +1,35 @@
+{
+  "title": "Registros de download",
+  "status": "Status",
+  "progress": "Progresso",
+  "noLogs": "Nenhum registro disponível para este download.",
+  "tooltip": {
+    "copyActive": "Não é possível copiar durante um download ativo",
+    "copy": "Copiar registro",
+    "saveActive": "Não é possível salvar durante um download ativo",
+    "save": "Baixar registro",
+    "errorReportActive": "Não é possível enviar relatório de erro durante um download ativo",
+    "errorReportSending": "Enviando relatório de erro...",
+    "errorReportSent": "Relatório de erro enviado com sucesso",
+    "errorReportFailed": "Falha ao enviar: {{error}}",
+    "errorReport": "Enviar relatório de erro para ajudar a melhorar o aplicativo",
+    "close": "Fechar registro"
+  },
+  "toast": {
+    "copyFailedTitle": "Falha ao copiar",
+    "copyFailedDesc": "Falha ao copiar o registro de atividade para a área de transferência",
+    "logsSavedTitle": "Registros de download salvos",
+    "logsSavedDesc": "Registros salvos na pasta de downloads",
+    "logsSavedPathDesc": "Registros salvos em {{path}}",
+    "logsFailedTitle": "Falha nos registros de download",
+    "logsFailedPathDesc": "Falha ao salvar registros em {{path}}",
+    "logsFailedDesc": "Falha ao salvar registros",
+    "activityCopiedTitle": "Registro de atividade copiado",
+    "activityCopiedDesc": "Registro de atividade copiado para a área de transferência",
+    "activityCopyFailedTitle": "Falha ao copiar registro de atividade",
+    "activityCopyFailedDesc": "Falha ao copiar o registro de atividade",
+    "errorReportSentTitle": "Relatório de erro enviado",
+    "errorReportSentDesc": "As informações de erro foram enviadas para ajudar a melhorar o aplicativo",
+    "errorReportFailedTitle": "Falha no relatório de erro"
+  }
+}

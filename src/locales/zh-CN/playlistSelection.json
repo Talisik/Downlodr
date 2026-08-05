@@ -1,0 +1,16 @@
+{
+  "title": "选择要下载的视频",
+  "subtitle": "选择此播放列表中要下载的视频。",
+  "getClosedCaptions": "获取字幕",
+  "getThumbnail": "获取缩略图",
+  "videos_other": "{{count}} 个视频",
+  "selected": "已选择 {{count}}/{{total}}",
+  "cancel": "取消",
+  "downloadSelected": "下载所选 ({{count}})",
+  "toast": {
+    "selectionErrorTitle": "未选择视频",
+    "selectionErrorDesc": "请至少选择一个要下载的视频。",
+    "downloadQueuedTitle": "下载已加入队列",
+    "downloadQueuedDesc": "所选视频已添加到下载队列。"
+  }
+}

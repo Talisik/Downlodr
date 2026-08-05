@@ -1,0 +1,16 @@
+{
+  "downloads": "Herunterladen",
+  "plugins": "Erweiterungen",
+  "skedulosa": "Abonnementname",
+  "addPlugin": "Plugin hinzufügen",
+  "toast": {
+    "installSuccess": "Plugin wurde erfolgreich installiert",
+    "installSuccessTitle": "Erfolg",
+    "alreadyInstalledTitle": "Plugin bereits installiert",
+    "alreadyInstalled": "Dieses Plugin ist bereits installiert",
+    "invalidDirTitle": "Ungültiges Plugin-Verzeichnis",
+    "invalidDir": "Das ausgewählte Verzeichnis enthält keine gültige Plugin-Struktur",
+    "installFailedTitle": "Installation fehlgeschlagen",
+    "installFailedDefault": "Beim Installieren des Plugins ist ein unerwarteter Fehler aufgetreten"
+  }
+}

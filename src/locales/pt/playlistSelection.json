@@ -1,0 +1,17 @@
+{
+  "title": "Selecione os vídeos para baixar",
+  "subtitle": "Escolha quais vídeos desta playlist você quer baixar.",
+  "getClosedCaptions": "Obter Legendas",
+  "getThumbnail": "Obter Miniatura",
+  "videos_one": "{{count}} Vídeo",
+  "videos_other": "{{count}} Vídeos",
+  "selected": "{{count}} de {{total}} selecionados",
+  "cancel": "Cancelar",
+  "downloadSelected": "Baixar selecionados ({{count}})",
+  "toast": {
+    "selectionErrorTitle": "Nenhum vídeo selecionado",
+    "selectionErrorDesc": "Selecione pelo menos um vídeo para baixar.",
+    "downloadQueuedTitle": "Download na fila",
+    "downloadQueuedDesc": "Os vídeos selecionados foram adicionados à fila de downloads."
+  }
+}

@@ -1,0 +1,550 @@
+{
+  "contextMenu": {
+    "pause": "일시정지",
+    "resume": "재개",
+    "stop": "중지",
+    "forceStart": "강제 시작",
+    "remove": "제거",
+    "rename": "이름 변경",
+    "viewFolder": "폴더 열기",
+    "viewEmbedded": "임베드로 보기",
+    "retry": "재시도",
+    "showLog": "로그 보기",
+    "activityTracker": "활동 추적기",
+    "tags": "태그",
+    "categories": "카테고리",
+    "addTag": "태그 추가",
+    "addCategory": "카테고리 추가",
+    "plugins": "플러그인",
+    "copyLink": "링크 복사",
+    "openBrowser": "브라우저에서 열기",
+    "start": "시작",
+    "playDownload": "다운로드 재생"
+  },
+  "status": {
+    "queued": "대기 중",
+    "downloading": "다운로드 중",
+    "finished": "완료",
+    "error": "오류",
+    "paused": "일시정지됨",
+    "stopped": "중지됨",
+    "converting": "변환 중",
+    "gettingInfo": "정보 가져오는 중"
+  },
+  "table": {
+    "title": "제목",
+    "format": "형식",
+    "size": "크기",
+    "speed": "속도",
+    "source": "출처",
+    "dateAdded": "추가된 날짜",
+    "uploadedOn": "업로드 날짜",
+    "transcript": "자막",
+    "status": "상태",
+    "action": "작업",
+    "noDownloads": "아직 다운로드 없음",
+    "tags": "태그",
+    "categories": "카테고리",
+    "noTags": "태그 없음",
+    "noCategories": "카테고리 없음"
+  },
+  "itemsSelected_one": "{{count}}개 항목 선택됨",
+  "itemsSelected_other": "{{count}}개 항목 선택됨",
+  "timeAgo": {
+    "minutes": "{{count}}분 전",
+    "hour_one": "{{count}}시간 전",
+    "hour_other": "{{count}}시간 전",
+    "day_one": "{{count}}일 전",
+    "day_other": "{{count}}일 전",
+    "week_one": "{{count}}주 전",
+    "week_other": "{{count}}주 전",
+    "month_one": "{{count}}개월 전",
+    "month_other": "{{count}}개월 전",
+    "year_one": "{{count}}년 전",
+    "year_other": "{{count}}년 전"
+  },
+  "fileSize": {
+    "gb": "{{value}} GB",
+    "mb": "{{value}} MB",
+    "kb": "{{value}} KB",
+    "bytes": "{{count}} 바이트",
+    "unknown": "—"
+  },
+  "modals": {
+    "about": {
+      "title": "정보",
+      "visitSite": "공식 사이트 방문",
+      "version": "버전 {{version}}",
+      "developedForYou": "당신을 위해 개발되었습니다.",
+      "features": {
+        "title": "기능",
+        "downloadVideos": {
+          "title": "즐겨찾는 모든 사이트에서 동영상 다운로드",
+          "item1": "YouTube, Twitch, Twitter, TikTok 및 수백 개 사이트 지원",
+          "item2": "채널 또는 재생목록 전체를 한 번의 클릭으로 다운로드",
+          "item3": "라이브 스트림, 쇼츠, 스토리 저장",
+          "item4": "선호하는 동영상 화질 선택"
+        },
+        "easyToUse": {
+          "title": "사용하기 쉬움",
+          "item1": "파일 저장 위치 맞춤 설정",
+          "item2": "파일 이름 지정 방식 선택",
+          "item3": "자동으로 최신 버전으로 업데이트"
+        },
+        "advancedMedia": {
+          "title": "고급 미디어 옵션",
+          "item1": "다운로드와 함께 동영상 썸네일 보관",
+          "item2": "재생목록에서 선택한 부분만 다운로드"
+        }
+      }
+    },
+    "help": {
+      "title": "도움말"
+    },
+    "stop": {
+      "title": "다운로드 중지",
+      "message": "이 다운로드를 중지하시겠습니까?",
+      "confirm": "중지",
+      "cancel": "취소"
+    }
+  },
+  "shareButton": {
+    "tooltip": "동영상 공유",
+    "title": "동영상 공유",
+    "videoFallback": "동영상",
+    "copyLink": "링크 복사",
+    "emailLink": "이메일로 공유",
+    "facebook": "Facebook",
+    "twitter": "X (Twitter)",
+    "disclaimer": "이 동영상을 공유하면 공개적으로 표시되며 다른 사람들이 해당 콘텐츠에 접근할 수 있다는 점을 유의하세요.",
+    "emailSubject": "이 동영상을 확인해 보세요: {{name}}",
+    "emailBody": "이 동영상이 마음에 드실 것 같아요: {{link}}",
+    "twitterText": "이 동영상을 확인해 보세요: {{name}}",
+    "toast": {
+      "errorTitle": "오류",
+      "errorDesc": "공유 가능한 링크를 생성할 수 없습니다",
+      "copiedTitle": "링크 복사됨",
+      "copiedDesc": "링크가 클립보드에 복사되었습니다.",
+      "copyFailedTitle": "복사 실패",
+      "copyFailedDesc": "링크를 클립보드에 복사할 수 없습니다. 다시 시도해 주세요."
+    }
+  },
+  "statusPage": {
+    "thumbnail": {
+      "viewFull": "전체 썸네일 보기",
+      "notDownloaded": "썸네일이 다운로드되지 않음",
+      "notAvailable": "썸네일을 사용할 수 없음",
+      "unableToLoad": "불러올 수 없음"
+    },
+    "status": {
+      "clickToRetry": "다운로드 재시도하려면 클릭",
+      "viewVideo": "동영상 보기",
+      "openFolder": "폴더 열기",
+      "viewPreview": "미리보기"
+    },
+    "format": {
+      "unknown": "알 수 없음"
+    }
+  },
+  "taskbarInput": {
+    "placeholder": "다운로드 검색 또는 URL 입력",
+    "tooltip": {
+      "copy": "복사",
+      "settings": "다운로드와 함께 자막 및 썸네일을 가져옵니다.",
+      "download": "다운로드",
+      "openArticle": "기사 설치 프로그램 열기"
+    },
+    "toast": {
+      "playlistErrorTitle": "재생목록 오류",
+      "playlistErrorDesc": "재생목록 정보를 가져오지 못했습니다",
+      "channelDetectedTitle": "채널 링크 감지됨",
+      "channelDetectedDesc": "이 채널에 대한 구독을 설정하기 위해 Skedulosa로 전송 중입니다.",
+      "playlistDetectedTitle": "재생목록 링크 감지됨",
+      "playlistDetectedDesc": "다운로드를 위한 재생목록 정보를 가져오는 중... 잠시 시간이 걸릴 수 있습니다.",
+      "invalidUrlTitle": "유효하지 않은 URL",
+      "invalidUrlDesc": "유효한 URL을 입력해 주세요",
+      "invalidUrlFormatTitle": "유효하지 않은 URL 형식",
+      "invalidUrlFormatDesc": "URL 형식이 올바르지 않습니다",
+      "selectionErrorTitle": "선택 오류",
+      "selectionErrorDesc": "다운로드할 동영상을 하나 이상 선택해 주세요",
+      "downloadQueuedTitle": "다운로드 대기열에 추가됨",
+      "downloadQueuedDesc": "다운로드를 위한 동영상 메타데이터를 가져오는 중...",
+      "noInternetTitle": "인터넷 연결 없음",
+      "noInternetDesc": "인터넷 연결을 확인하고 다시 시도해 주세요",
+      "errorTitle": "오류",
+      "errorDesc": "다운로드 대기열에 추가하지 못했습니다",
+      "copiedTitle": "클립보드에 복사됨",
+      "copiedDesc": "URL이 클립보드에 복사되었습니다",
+      "copyFailedTitle": "URL 복사 실패",
+      "copyFailedDesc": "URL을 클립보드에 복사할 수 없습니다"
+    }
+  },
+  "toolbar": {
+    "tooltip": {
+      "startDisabled": "다운로드를 시작하려면 대기 중인 항목을 선택하세요",
+      "startEnabled": "선택한 다운로드 시작",
+      "stopEnabled": "선택한 다운로드 중지",
+      "stopDisabled": "중지하려면 다운로드 중인 항목을 선택하세요",
+      "stopAllDisabled": "중지할 활성 다운로드 없음",
+      "stopAll": "모두 중지",
+      "generateCaptions": "자막 생성",
+      "generateCaptionsDisabled": "자막 없이 완료된 동영상을 선택하여 자막을 생성하세요",
+      "remove": "제거"
+    },
+    "toast": {
+      "noDownloadsSelectedTitle": "선택된 다운로드 없음",
+      "noDownloadsSelectedStop": "중지할 다운로드를 선택하세요",
+      "noDownloadsSelectedPlay": "재생할 다운로드를 선택하세요",
+      "noDownloadsSelectedRemove": "제거할 다운로드를 선택하세요",
+      "noDownloadsFoundTitle": "다운로드를 찾을 수 없음",
+      "noDownloadsFoundDesc": "중지할 현재 다운로드가 없습니다",
+      "downloadStoppedTitle": "다운로드 중지됨",
+      "downloadStoppedDesc": "다운로드가 성공적으로 중지되었습니다",
+      "stopErrorTitle": "다운로드 중지 오류",
+      "stopErrorCouldNotDesc": "컨트롤러 {{controllerId}}로 다운로드를 중지할 수 없습니다",
+      "stopErrorDesc": "컨트롤러 {{controllerId}}로 다운로드 중지 중 오류 발생",
+      "noValidDownloadsTitle": "유효한 다운로드 없음",
+      "noValidDownloadsDesc": "시작할 준비가 된 다운로드를 선택하세요",
+      "addedToQueueTitle": "다운로드 대기열에 추가됨",
+      "addedToQueueDesc": "{{count}}개의 다운로드가 대기열에 추가되었습니다. 다운로드 컨트롤러가 한도에 따라 자동으로 시작합니다.",
+      "downloadDeletedTitle": "다운로드 삭제됨",
+      "downloadDeletedDesc": "다운로드가 성공적으로 삭제되었습니다",
+      "folderDeletedTitle": "폴더 삭제됨",
+      "folderDeletedDesc": "폴더와 그 내용이 성공적으로 삭제되었습니다",
+      "folderDeleteErrorTitle": "오류",
+      "folderDeleteErrorDesc": "폴더 삭제에 실패했습니다. 존재하지 않거나 사용 중일 수 있습니다.",
+      "fileDeletedTitle": "파일 삭제됨",
+      "fileDeletedDesc": "파일이 성공적으로 삭제되었습니다",
+      "downloadRemovedTitle": "다운로드 제거됨",
+      "pendingRemovedDesc": "대기 중인 다운로드가 성공적으로 제거되었습니다",
+      "failedRemovedDesc": "실패한 다운로드가 성공적으로 제거되었습니다",
+      "cancelledRemovedDesc": "취소된 다운로드가 성공적으로 제거되었습니다",
+      "pausedRemovedDesc": "일시정지된 다운로드가 성공적으로 제거되었습니다",
+      "initializingRemovedDesc": "초기화 중인 다운로드가 성공적으로 제거되었습니다",
+      "queuedRemovedDesc": "대기열의 다운로드가 성공적으로 제거되었습니다",
+      "noEligibleTitle": "적합한 다운로드 없음",
+      "noEligibleDesc": "선택한 다운로드에 이미 자막이 있거나 완료되지 않았습니다.",
+      "batchStartedTitle": "일괄 자막 생성 시작됨",
+      "batchStartedDesc": "{{count}}개의 다운로드에 대해 순차적으로 자막을 생성 중입니다.",
+      "transcriptionFailedTitle": "자막 생성 실패",
+      "transcriptionFailedDefault": "자막을 생성할 수 없습니다",
+      "batchCompleteTitle": "일괄 자막 생성 완료",
+      "batchCompleteDesc": "{{successCount}}개 성공, {{failCount}}개 실패.",
+      "selectOneTitle": "다운로드 하나 선택",
+      "selectOneDesc": "링크를 가져오려면 정확히 하나의 다운로드를 선택하세요"
+    },
+    "settingsButton": "설정",
+    "deleteLabel": "삭제"
+  },
+  "removeModal": {
+    "title": "선택한 항목 제거",
+    "message": "이 다운로드를 다운로드 목록에서 제거하시겠습니까?",
+    "alsoDeleteFolder": "다운로드된 폴더와 파일도 함께 삭제"
+  },
+  "categorySearchBar": {
+    "placeholder": "{{fields}} 검색...",
+    "filterTooltip": "필드 필터",
+    "clearTooltip": "지우기",
+    "fields": {
+      "title": "제목",
+      "tags": "태그",
+      "categories": "카테고리",
+      "status": "상태",
+      "source": "출처"
+    }
+  },
+  "downloadController": {
+    "downloadStarted": "대기열에서 다운로드 시작됨",
+    "downloadStartedDesc": "\"{{name}}\"이(가) 다운로드를 시작했습니다."
+  },
+  "downloadButton": {
+    "tooltip": "동영상 다운로드",
+    "toastTitle": "다운로드가 대기열에 추가됨",
+    "toastDesc": "\"{{name}}\"이(가) 대기열에 추가되었습니다. 다운로드 컨트롤러가 자동으로 시작합니다."
+  },
+  "statusHandler": {
+    "transcriptRedownloaded": "자막 재다운로드 완료",
+    "transcriptRedownloadedDesc": "자막이 성공적으로 재다운로드되었습니다",
+    "downloadRetried": "다운로드 재시도",
+    "downloadRetriedDesc": "다운로드가 성공적으로 재시도되었습니다",
+    "downloadResumed": "다운로드 재개됨",
+    "downloadResumedDesc": "다운로드가 성공적으로 재개되었습니다",
+    "downloadPaused": "다운로드 일시정지됨",
+    "downloadPausedDesc": "다운로드가 성공적으로 일시정지되었습니다",
+    "pauseFailed": "일시정지 실패",
+    "pauseFailedDesc": "다운로드를 일시정지할 수 없습니다. 다시 시도해 주세요.",
+    "pauseError": "다운로드 일시정지 오류",
+    "cannotPauseYet": "아직 일시정지할 수 없음",
+    "cannotPauseYetDesc": "다운로드가 아직 초기화 중입니다. 다시 시도해 주세요.",
+    "noDownloadLocation": "다운로드 위치 없음",
+    "invalidDownloadLocation": "유효하지 않은 다운로드 위치",
+    "fileNotFound": "파일을 찾을 수 없음",
+    "fileNotFoundDesc": "지정된 위치에 파일이 존재하지 않습니다",
+    "failedToViewDownload": "다운로드 보기 실패",
+    "failedToStopDownload": "다운로드 중지 실패",
+    "failedToViewFolder": "폴더 보기 실패",
+    "missingFolder": "폴더 없음",
+    "missingFolderDesc": "다운로드 폴더가 아직 존재하지 않습니다",
+    "error": "오류"
+  },
+  "dropdownBar": {
+    "menus": {
+      "file": "파일",
+      "settings": "설정",
+      "help": "도움말"
+    },
+    "file": {
+      "history": "기록",
+      "exit": "종료"
+    },
+    "help": {
+      "guide": "가이드",
+      "appUpdates": "앱 업데이트",
+      "about": "정보"
+    },
+    "search": {
+      "placeholder": "다운로드 검색...",
+      "noResults": "다운로드를 찾을 수 없음"
+    },
+    "toast": {
+      "downloadStartedTitle": "다운로드 시작됨",
+      "downloadStartedDesc": "파일이 다운로드 중입니다. 파일 크기와 연결 속도에 따라 몇 분이 걸릴 수 있습니다.",
+      "errorOpeningFileTitle": "파일 열기 오류",
+      "checkingConnectionTitle": "연결 확인 중",
+      "checkingConnectionDesc": "인터넷 연결을 확인하는 중...",
+      "noInternetTitle": "인터넷 연결 없음",
+      "noInternetDesc": "인터넷 연결을 확인하고 다시 시도해 주세요",
+      "checkingUpdatesTitle": "업데이트 확인 중",
+      "checkingUpdatesDesc": "새 업데이트를 확인하는 중입니다. 잠시 기다려 주세요",
+      "upToDateTitle": "최신 버전입니다!",
+      "upToDateDesc": "최신 버전(v{{version}})을 사용 중입니다.",
+      "updateCheckFailedTitle": "업데이트 확인 실패",
+      "updateCheckFailedDesc": "업데이트를 확인할 수 없습니다. 나중에 다시 시도해 주세요.",
+      "retry": "다시 시도"
+    }
+  },
+  "helpModal": {
+    "title": "도움말 가이드",
+    "tabs": {
+      "guide": "다운로드 가이드",
+      "common": "자주 묻는 질문",
+      "advanced": "문제 해결 및 고급 팁",
+      "subscription": "구독"
+    },
+    "guide": {
+      "downloadSteps": {
+        "title": "다운로드 단계",
+        "s1": "\"URL 추가\" 섹션을 엽니다.",
+        "s2": "유효한 동영상 URL을 붙여넣고 다운로드 대상을 선택합니다.",
+        "s3": "\"다운로드\" 버튼을 클릭합니다.",
+        "s4": "\"다운로드 중\" 또는 \"전체 다운로드\" 상태 페이지로 이동합니다.",
+        "s5": "동영상 메타데이터가 처리될 때까지 기다립니다.",
+        "s6": "준비가 되면 상태 섹션의 재생 버튼을 클릭합니다.",
+        "s7": "다운로드가 완료될 때까지 기다립니다.",
+        "s8": "완료 후 항목을 마우스 오른쪽 버튼으로 클릭하면 추가 옵션을 볼 수 있습니다:",
+        "s8a": "다운로드 세부 정보 보기",
+        "s8b": "다운로드 폴더 열기",
+        "s8c": "다운로드 삭제",
+        "s8d": "태그 및 카테고리 조정",
+        "s9": "행을 클릭하면 다운로드에 대한 자세한 정보를 볼 수 있습니다.",
+        "s10": "다운로드 로그는 기록에 향후 참조를 위해 저장됩니다."
+      },
+      "pauseStop": {
+        "title": "다운로드 일시정지, 중지, 제거 및 시작",
+        "s1": "각 다운로드에는 상태 열과 컨텍스트 메뉴에 제어 버튼이 있습니다",
+        "s1a": "재생 버튼 - 다운로드를 시작하거나 재개합니다",
+        "s1b": "일시정지 버튼 - 다운로드를 일시적으로 중단합니다",
+        "s1c": "중지 버튼 - 다운로드를 완전히 중지하고 제거합니다",
+        "s2": "다운로드 제어 버튼은 작업 표시줄과 작업 드롭다운에서도 사용 가능합니다",
+        "s2a": "사용자는 여러 다운로드를 선택하여 재생하거나 중지할 수 있습니다",
+        "s2b": "사용자는 전체 옵션을 사용하여 현재 다운로드 중인 모든 동영상을 제어할 수 있습니다",
+        "s3": "다운로드 제거",
+        "s3a": "다운로드 제거는 완료된 다운로드에 영향을 미칩니다. 이 작업은 장치에서 다운로드된 파일을 삭제하고 기록에서 항목을 제거합니다.",
+        "s3b": "대기 중인 다운로드의 경우, 다운로드 기록만 저장되며 아직 드라이브에 파일이 저장되지 않았습니다."
+      }
+    },
+    "common": {
+      "whatIsHistory": {
+        "title": "기록이란 무엇인가요",
+        "s1": "기록은 모든 과거 다운로드의 기록입니다",
+        "s2": "상태 페이지와 달리 기록은:",
+        "s2a": "다운로드 진행 상황이나 제어 기능을 표시하지 않습니다",
+        "s2b": "다운로드한 항목만 추적합니다",
+        "s2c": "파일이 기기에 아직 존재하는지 표시합니다",
+        "s3": "기록을 사용하여 동영상을 다시 다운로드하거나 과거 다운로드를 확인할 수 있습니다"
+      },
+      "viewVideos": {
+        "title": "동영상 보는 방법",
+        "s1": "상태 페이지에서 동영상 행을 마우스 오른쪽 버튼으로 클릭하여 컨텍스트 메뉴를 열고 동영상 보기에 액세스하세요"
+      },
+      "contextMenus": {
+        "title": "컨텍스트 메뉴 사용 방법",
+        "s1": "다운로드를 마우스 오른쪽 버튼으로 클릭하면 추가 옵션에 액세스할 수 있습니다:",
+        "s1a": "다운로드된 동영상 보기",
+        "s1b": "포함 폴더 열기",
+        "s1c": "다운로드 상태 제어",
+        "s1d": "목록에서 제거"
+      }
+    },
+    "advanced": {
+      "stuckInitializing": {
+        "title": "다운로드가 초기화 중에 멈춤",
+        "s1": "인터넷 연결을 확인하세요",
+        "s2": "동영상 URL이 아직 유효한지 확인하세요",
+        "s3": "다운로드를 다시 시작하세요:",
+        "s3a": "다운로드를 일시정지하세요",
+        "s3b": "폴더로 이동하여 남아있는 부분 파일을 삭제하세요",
+        "s3c": "다운로드를 재개하세요"
+      },
+      "failedDelete": {
+        "title": "동영상 삭제 실패",
+        "s1": "동영상을 삭제할 수 없는 경우:",
+        "s1a": "동영상 파일을 사용 중인 앱을 닫으세요",
+        "s1b": "앱을 다시 시작하세요",
+        "s1c": "해당 위치에서 파일을 삭제할 권한이 있는지 확인하세요"
+      },
+      "slowSpeed": {
+        "title": "다운로드 속도가 느림",
+        "s1": "다운로드 속도를 향상시키려면:",
+        "s1a": "인터넷 연결을 확인하세요",
+        "s1b": "동시 다운로드 수를 줄이세요",
+        "s1c": "설정에서 속도 제한이 활성화된 경우 조정하세요"
+      },
+      "permissionErrors": {
+        "title": "권한 오류 (EPERM)",
+        "s1": "권한 오류가 표시되는 경우:",
+        "s1a": "관리자 권한으로 앱을 실행하세요",
+        "s1b": "폴더 권한을 확인하세요",
+        "s1c": "다른 다운로드 위치를 선택하세요"
+      }
+    },
+    "subscription": {
+      "howToAdd": {
+        "title": "구독 추가 방법",
+        "s1": "사이드바에서 구독 섹션으로 이동합니다.",
+        "s2": "구독 모달을 열려면 구독 버튼을 클릭합니다.",
+        "s3": "소스 URL 필드에 YouTube 채널 URL을 붙여넣습니다.",
+        "s3a": "채널 또는 재생목록 URL이어야 합니다 — 단일 동영상이나 Shorts 링크는 불가합니다.",
+        "s3b": "현재는 YouTube 채널만 지원됩니다.",
+        "s4": "채널 분석이 완료될 때까지 기다립니다 — 채널의 업로드 패턴을 자동으로 감지합니다.",
+        "s5": "분석이 완료되면 구독을 설정합니다:",
+        "s5a": "자동 — 감지된 업로드 패턴을 사용하여 확인 일정을 설정합니다.",
+        "s5b": "수동 — 특정 요일, 확인 시간 및 시간대를 선택합니다.",
+        "s5c": "화질 프리셋(최저, 낮음 또는 최고)을 선택합니다.",
+        "s5d": "다운로드된 동영상의 저장 폴더를 선택합니다.",
+        "s6": "\"마지막 N개 동영상 다운로드\" 드롭다운을 사용하여 첫 실행 시 채널의 기존 동영상을 몇 개 다운로드할지 설정합니다.",
+        "s7": "구독을 클릭하여 확인 — 구독이 대기열에 추가되고 백그라운드에서 처리됩니다."
+      },
+      "whatHappensAfter": {
+        "title": "구독 후 발생하는 일",
+        "s1": "구독이 대기열에 추가되고 백그라운드에서 설정됩니다 — 구독 목록에 나타납니다.",
+        "s2": "첫 실행 시 구독은 선택한 한도까지 최신 동영상을 다운로드합니다.",
+        "s3": "초기 스크래핑 후, 구독은 설정된 일정(매일, 매주 또는 감지된 대로)에 따라 자동으로 새 업로드를 확인합니다.",
+        "s4": "새로 감지된 동영상은 다운로드 대기열에 추가되어 일반 다운로드처럼 처리됩니다.",
+        "s5": "각 구독의 세부 페이지에서 활동, 다운로드 기록 및 분석을 확인할 수 있습니다.",
+        "s6": "구독은 컨텍스트 메뉴 또는 구독 설정 탭에서 언제든지 일시정지, 편집 또는 삭제할 수 있습니다."
+      },
+      "commonErrors": {
+        "title": "일반적인 오류 및 해결 방법",
+        "invalidUrl": {
+          "title": "유효하지 않은 URL / 지원되지 않는 프로토콜",
+          "s1": "URL이 https://로 시작하는지 확인하세요.",
+          "s2": "브라우저 주소창에서 URL을 직접 복사하세요."
+        },
+        "unsupportedPlatform": {
+          "title": "지원되지 않는 플랫폼",
+          "s1": "현재는 YouTube 채널 URL만 지원됩니다.",
+          "s2": "다른 플랫폼의 URL은 검증을 통과하지 못합니다."
+        },
+        "videoOrShorts": {
+          "title": "동영상 또는 Shorts 링크 감지됨",
+          "s1": "구독은 개별 동영상이 아닌 채널을 구독합니다.",
+          "s2": "단일 동영상 URL에는 기본 다운로드 기능을 사용하세요.",
+          "s3": "채널의 경우 채널 페이지로 이동하여 URL을 복사하세요."
+        },
+        "alreadySubscribed": {
+          "title": "이미 구독됨",
+          "s1": "이 채널에 대한 구독이 이미 존재합니다.",
+          "s2": "구독 목록에서 찾아 관리하세요."
+        },
+        "noVideos": {
+          "title": "동영상을 찾을 수 없음 / 채널이 비어 있는 것 같음",
+          "s1": "채널에 Shorts만 있을 수 있습니다 — 채널의 기본 동영상 탭 URL을 시도해 보세요.",
+          "s2": "채널이 비공개이거나 공개 업로드가 없을 수 있습니다."
+        },
+        "analysisFailed": {
+          "title": "분석 실패",
+          "s1": "인터넷 연결을 확인하세요.",
+          "s2": "채널 URL이 변경되었을 수 있습니다 — 브라우저에서 확인하세요.",
+          "s3": "오류가 지속되면 앱을 재시작하고 다시 시도하세요."
+        }
+      }
+    }
+  },
+  "videoPlayer": {
+    "fallbackTitle": "비디오",
+    "fallbackVideoPreview": "비디오 미리보기",
+    "floatButton": "플로트",
+    "floatWindowTitle": "플로팅 창",
+    "backTitle": "뒤로",
+    "downloadButtonTitle": "다운로드",
+    "error": {
+      "couldNotLoadStream": "비디오 스트림을 불러올 수 없습니다.",
+      "retry": "다시 시도"
+    },
+    "floating": {
+      "message": "플로팅 창에서 재생 중",
+      "returnToPanel": "패널로 돌아가기"
+    },
+    "menu": {
+      "openFolder": "폴더 열기",
+      "viewSource": "소스 보기",
+      "shareVideo": "비디오 공유",
+      "generateCaption": "캡션 생성",
+      "download": "다운로드",
+      "captions": "자막",
+      "pictureInPicture": "화면 속 화면",
+      "playbackSpeed": "재생 속도",
+      "normal": "보통"
+    },
+    "transcript": {
+      "title": "자막",
+      "auto": "자동",
+      "manual": "수동",
+      "platformFallback": "플랫폼",
+      "searchPlaceholder": "자막 검색",
+      "noTranscript": "사용 가능한 자막이 없습니다",
+      "copyTitle": "자막 복사",
+      "downloadTitle": "자막 다운로드"
+    },
+    "chapters": {
+      "title": "챕터",
+      "count": "{{count}} 챕터",
+      "searchPlaceholder": "챕터 검색",
+      "noChapters": "사용 가능한 챕터가 없습니다"
+    },
+    "description": {
+      "noDescription": "설명이 없습니다",
+      "categories": "카테고리:",
+      "tags": "태그:",
+      "openWith": "다음으로 열기"
+    },
+    "favorites": {
+      "add": "즐겨찾기에 추가",
+      "remove": "즐겨찾기에서 제거"
+    },
+    "tabs": {
+      "description": "설명",
+      "transcript": "자막",
+      "chapters": "챕터"
+    },
+    "duration": {
+      "total": "전체",
+      "current": "현재"
+    },
+    "transcription": {
+      "failed": "자막 생성 실패",
+      "failedDesc": "자막을 생성할 수 없습니다"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "buttons": {
+    "okay": "Ok",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "save": "Salvar",
+    "retry": "Tentar novamente",
+    "stop": "Parar",
+    "pause": "Pausar",
+    "resume": "Retomar",
+    "remove": "Remover",
+    "rename": "Renomear",
+    "open": "Abrir",
+    "edit": "Editar",
+    "forceStart": "Forçar início"
+  },
+  "status": {
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso"
+  }
+}

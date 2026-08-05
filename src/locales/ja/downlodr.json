@@ -1,0 +1,550 @@
+{
+  "contextMenu": {
+    "pause": "一時停止",
+    "resume": "再開",
+    "stop": "停止",
+    "forceStart": "強制開始",
+    "remove": "削除",
+    "rename": "名前変更",
+    "viewFolder": "フォルダを開く",
+    "viewEmbedded": "埋め込みで表示",
+    "retry": "再試行",
+    "showLog": "ログを表示",
+    "activityTracker": "アクティビティトラッカー",
+    "tags": "タグ",
+    "categories": "カテゴリー",
+    "addTag": "タグを追加",
+    "addCategory": "カテゴリーを追加",
+    "plugins": "プラグイン",
+    "copyLink": "リンクをコピー",
+    "openBrowser": "ブラウザで開く",
+    "start": "開始",
+    "playDownload": "ダウンロードを再生"
+  },
+  "status": {
+    "queued": "待機中",
+    "downloading": "ダウンロード中",
+    "finished": "完了",
+    "error": "エラー",
+    "paused": "一時停止中",
+    "stopped": "停止",
+    "converting": "変換中",
+    "gettingInfo": "情報取得中"
+  },
+  "table": {
+    "title": "タイトル",
+    "format": "フォーマット",
+    "size": "サイズ",
+    "speed": "速度",
+    "source": "ソース",
+    "dateAdded": "追加日",
+    "uploadedOn": "アップロード日",
+    "transcript": "字幕",
+    "status": "ステータス",
+    "action": "操作",
+    "noDownloads": "ダウンロードはまだありません",
+    "tags": "タグ",
+    "categories": "カテゴリー",
+    "noTags": "タグなし",
+    "noCategories": "カテゴリーなし"
+  },
+  "itemsSelected_one": "{{count}} 件選択中",
+  "itemsSelected_other": "{{count}} 件選択中",
+  "timeAgo": {
+    "minutes": "{{count}} 分前",
+    "hour_one": "{{count}} 時間前",
+    "hour_other": "{{count}} 時間前",
+    "day_one": "{{count}} 日前",
+    "day_other": "{{count}} 日前",
+    "week_one": "{{count}} 週間前",
+    "week_other": "{{count}} 週間前",
+    "month_one": "{{count}} ヶ月前",
+    "month_other": "{{count}} ヶ月前",
+    "year_one": "{{count}} 年前",
+    "year_other": "{{count}} 年前"
+  },
+  "fileSize": {
+    "gb": "{{value}} GB",
+    "mb": "{{value}} MB",
+    "kb": "{{value}} KB",
+    "bytes": "{{count}} バイト",
+    "unknown": "—"
+  },
+  "modals": {
+    "about": {
+      "title": "このアプリについて",
+      "visitSite": "公式サイトを見る",
+      "version": "バージョン {{version}}",
+      "developedForYou": "あなたのために開発されました。",
+      "features": {
+        "title": "機能",
+        "downloadVideos": {
+          "title": "お気に入りのサイトから動画をダウンロード",
+          "item1": "YouTube、Twitch、Twitter、TikTokなど数百のサイトに対応",
+          "item2": "チャンネルやプレイリスト全体をワンクリックでダウンロード",
+          "item3": "ライブ配信、ショート、ストーリーを保存",
+          "item4": "好みの動画画質を選択"
+        },
+        "easyToUse": {
+          "title": "使いやすい",
+          "item1": "ファイルの保存場所をカスタマイズ",
+          "item2": "ファイルの命名方法を選択",
+          "item3": "最新バージョンに自動更新"
+        },
+        "advancedMedia": {
+          "title": "高度なメディアオプション",
+          "item1": "ダウンロードとともに動画サムネイルを保存",
+          "item2": "プレイリストの選択した部分をダウンロード"
+        }
+      }
+    },
+    "help": {
+      "title": "ヘルプ"
+    },
+    "stop": {
+      "title": "ダウンロードを停止",
+      "message": "このダウンロードを停止してもよろしいですか？",
+      "confirm": "停止",
+      "cancel": "キャンセル"
+    }
+  },
+  "shareButton": {
+    "tooltip": "動画をシェア",
+    "title": "動画をシェア",
+    "videoFallback": "動画",
+    "copyLink": "リンクをコピー",
+    "emailLink": "メールでリンクを送る",
+    "facebook": "Facebook",
+    "twitter": "X (Twitter)",
+    "disclaimer": "この動画をシェアすると公開され、他のユーザーがその内容にアクセスできる場合があります。",
+    "emailSubject": "この動画をチェック: {{name}}",
+    "emailBody": "この動画が気に入ると思います: {{link}}",
+    "twitterText": "この動画をチェック: {{name}}",
+    "toast": {
+      "errorTitle": "エラー",
+      "errorDesc": "共有リンクを生成できませんでした",
+      "copiedTitle": "リンクをコピーしました",
+      "copiedDesc": "リンクがクリップボードにコピーされました。",
+      "copyFailedTitle": "コピー失敗",
+      "copyFailedDesc": "リンクをクリップボードにコピーできませんでした。もう一度お試しください。"
+    }
+  },
+  "statusPage": {
+    "thumbnail": {
+      "viewFull": "サムネイルをフルサイズで表示",
+      "notDownloaded": "サムネイルはダウンロードされていません",
+      "notAvailable": "サムネイルは利用できません",
+      "unableToLoad": "読み込めません"
+    },
+    "status": {
+      "clickToRetry": "クリックしてダウンロードを再試行",
+      "viewVideo": "動画を見る",
+      "openFolder": "フォルダを開く",
+      "viewPreview": "プレビューを表示"
+    },
+    "format": {
+      "unknown": "不明"
+    }
+  },
+  "taskbarInput": {
+    "placeholder": "ダウンロードを検索またはURLを入力",
+    "tooltip": {
+      "copy": "コピー",
+      "settings": "ダウンロードと一緒に字幕とサムネイルを取得します。",
+      "download": "ダウンロード",
+      "openArticle": "記事インストーラーを開く"
+    },
+    "toast": {
+      "playlistErrorTitle": "プレイリストエラー",
+      "playlistErrorDesc": "プレイリスト情報の取得に失敗しました",
+      "channelDetectedTitle": "チャンネルリンクを検出",
+      "channelDetectedDesc": "このチャンネルのサブスクリプションを設定するためSkedulosaに送信しています。",
+      "playlistDetectedTitle": "プレイリストリンクを検出",
+      "playlistDetectedDesc": "ダウンロード用のプレイリスト情報を取得中です... しばらくかかることがあります。",
+      "invalidUrlTitle": "無効なURL",
+      "invalidUrlDesc": "有効なURLを入力してください",
+      "invalidUrlFormatTitle": "URLフォーマットが無効",
+      "invalidUrlFormatDesc": "URLのフォーマットが正しくありません",
+      "selectionErrorTitle": "選択エラー",
+      "selectionErrorDesc": "ダウンロードする動画を少なくとも1つ選択してください",
+      "downloadQueuedTitle": "ダウンロードをキューに追加しました",
+      "downloadQueuedDesc": "動画のメタデータを取得中...",
+      "noInternetTitle": "インターネット接続なし",
+      "noInternetDesc": "インターネット接続を確認してもう一度お試しください",
+      "errorTitle": "エラー",
+      "errorDesc": "ダウンロードキューへの追加に失敗しました",
+      "copiedTitle": "クリップボードにコピーしました",
+      "copiedDesc": "URLがクリップボードにコピーされました",
+      "copyFailedTitle": "URLのコピーに失敗",
+      "copyFailedDesc": "URLをクリップボードにコピーできませんでした"
+    }
+  },
+  "toolbar": {
+    "tooltip": {
+      "startDisabled": "開始するダウンロード待機中のアイテムを選択してください",
+      "startEnabled": "選択したダウンロードを開始",
+      "stopEnabled": "選択したダウンロードを停止",
+      "stopDisabled": "停止するダウンロード中のアイテムを選択してください",
+      "stopAllDisabled": "停止するアクティブなダウンロードはありません",
+      "stopAll": "すべて停止",
+      "generateCaptions": "字幕を生成",
+      "generateCaptionsDisabled": "字幕のない完了済み動画を選択して字幕を生成してください",
+      "remove": "削除"
+    },
+    "toast": {
+      "noDownloadsSelectedTitle": "ダウンロードが選択されていません",
+      "noDownloadsSelectedStop": "停止するダウンロードを選択してください",
+      "noDownloadsSelectedPlay": "再生するダウンロードを選択してください",
+      "noDownloadsSelectedRemove": "削除するダウンロードを選択してください",
+      "noDownloadsFoundTitle": "ダウンロードが見つかりません",
+      "noDownloadsFoundDesc": "停止する現在のダウンロードはありません",
+      "downloadStoppedTitle": "ダウンロードを停止しました",
+      "downloadStoppedDesc": "ダウンロードが正常に停止されました",
+      "stopErrorTitle": "ダウンロード停止エラー",
+      "stopErrorCouldNotDesc": "コントローラー {{controllerId}} でダウンロードを停止できませんでした",
+      "stopErrorDesc": "コントローラー {{controllerId}} でダウンロード停止中にエラーが発生しました",
+      "noValidDownloadsTitle": "有効なダウンロードなし",
+      "noValidDownloadsDesc": "開始準備ができたダウンロードを選択してください",
+      "addedToQueueTitle": "ダウンロードをキューに追加しました",
+      "addedToQueueDesc": "{{count}} 件のダウンロードをキューに追加しました。ダウンロードコントローラーが上限に基づき自動的に開始します。",
+      "downloadDeletedTitle": "ダウンロードを削除しました",
+      "downloadDeletedDesc": "ダウンロードが正常に削除されました",
+      "folderDeletedTitle": "フォルダを削除しました",
+      "folderDeletedDesc": "フォルダとその内容が正常に削除されました",
+      "folderDeleteErrorTitle": "エラー",
+      "folderDeleteErrorDesc": "フォルダの削除に失敗しました。存在しないか使用中の可能性があります。",
+      "fileDeletedTitle": "ファイルを削除しました",
+      "fileDeletedDesc": "ファイルが正常に削除されました",
+      "downloadRemovedTitle": "ダウンロードを除去しました",
+      "pendingRemovedDesc": "保留中のダウンロードが正常に除去されました",
+      "failedRemovedDesc": "失敗したダウンロードが正常に除去されました",
+      "cancelledRemovedDesc": "キャンセルされたダウンロードが正常に除去されました",
+      "pausedRemovedDesc": "一時停止中のダウンロードが正常に除去されました",
+      "initializingRemovedDesc": "初期化中のダウンロードが正常に除去されました",
+      "queuedRemovedDesc": "待機中のダウンロードが正常に除去されました",
+      "noEligibleTitle": "対象ダウンロードなし",
+      "noEligibleDesc": "選択したダウンロードはすでに字幕があるか完了していません。",
+      "batchStartedTitle": "一括文字起こしを開始しました",
+      "batchStartedDesc": "{{count}} 件のダウンロードの字幕を順次生成しています。",
+      "transcriptionFailedTitle": "文字起こし失敗",
+      "transcriptionFailedDefault": "字幕を作成できませんでした",
+      "batchCompleteTitle": "一括文字起こし完了",
+      "batchCompleteDesc": "{{successCount}} 件成功、{{failCount}} 件失敗。",
+      "selectOneTitle": "ダウンロードを1件選択",
+      "selectOneDesc": "リンクを取得するには1件のダウンロードを正確に選択してください"
+    },
+    "settingsButton": "設定",
+    "deleteLabel": "削除"
+  },
+  "removeModal": {
+    "title": "選択したアイテムを削除",
+    "message": "これらのダウンロードをダウンロードリストから削除してもよろしいですか？",
+    "alsoDeleteFolder": "ダウンロードされたフォルダとそのファイルも削除する"
+  },
+  "categorySearchBar": {
+    "placeholder": "{{fields}}で検索...",
+    "filterTooltip": "フィールドをフィルター",
+    "clearTooltip": "クリア",
+    "fields": {
+      "title": "タイトル",
+      "tags": "タグ",
+      "categories": "カテゴリ",
+      "status": "ステータス",
+      "source": "ソース"
+    }
+  },
+  "downloadController": {
+    "downloadStarted": "キューからダウンロードを開始しました",
+    "downloadStartedDesc": "「{{name}}」のダウンロードが開始されました。"
+  },
+  "downloadButton": {
+    "tooltip": "動画をダウンロード",
+    "toastTitle": "ダウンロードをキューに追加しました",
+    "toastDesc": "「{{name}}」がキューに追加されました。ダウンロードコントローラーが自動的に開始します。"
+  },
+  "statusHandler": {
+    "transcriptRedownloaded": "字幕を再ダウンロードしました",
+    "transcriptRedownloadedDesc": "字幕が正常に再ダウンロードされました",
+    "downloadRetried": "ダウンロードを再試行しました",
+    "downloadRetriedDesc": "ダウンロードが正常に再試行されました",
+    "downloadResumed": "ダウンロードを再開しました",
+    "downloadResumedDesc": "ダウンロードが正常に再開されました",
+    "downloadPaused": "ダウンロードを一時停止しました",
+    "downloadPausedDesc": "ダウンロードが正常に一時停止されました",
+    "pauseFailed": "一時停止に失敗しました",
+    "pauseFailedDesc": "ダウンロードを一時停止できませんでした。もう一度お試しください。",
+    "pauseError": "ダウンロードの一時停止中にエラーが発生しました",
+    "cannotPauseYet": "まだ一時停止できません",
+    "cannotPauseYetDesc": "ダウンロードはまだ初期化中です。もう一度お試しください。",
+    "noDownloadLocation": "ダウンロード先がありません",
+    "invalidDownloadLocation": "無効なダウンロード先",
+    "fileNotFound": "ファイルが見つかりません",
+    "fileNotFoundDesc": "指定された場所にファイルが存在しません",
+    "failedToViewDownload": "ダウンロードを表示できませんでした",
+    "failedToStopDownload": "ダウンロードを停止できませんでした",
+    "failedToViewFolder": "フォルダを表示できませんでした",
+    "missingFolder": "フォルダが見つかりません",
+    "missingFolderDesc": "ダウンロードフォルダがまだ存在しません",
+    "error": "エラー"
+  },
+  "dropdownBar": {
+    "menus": {
+      "file": "ファイル",
+      "settings": "設定",
+      "help": "ヘルプ"
+    },
+    "file": {
+      "history": "履歴",
+      "exit": "終了"
+    },
+    "help": {
+      "guide": "ガイド",
+      "appUpdates": "アップデート",
+      "about": "アプリについて"
+    },
+    "search": {
+      "placeholder": "ダウンロードを検索...",
+      "noResults": "ダウンロードが見つかりません"
+    },
+    "toast": {
+      "downloadStartedTitle": "ダウンロード開始",
+      "downloadStartedDesc": "ファイルをダウンロード中です。ファイルサイズと接続速度によって数分かかる場合があります。",
+      "errorOpeningFileTitle": "ファイルを開く際にエラーが発生しました",
+      "checkingConnectionTitle": "接続を確認中",
+      "checkingConnectionDesc": "インターネット接続を確認しています...",
+      "noInternetTitle": "インターネット接続なし",
+      "noInternetDesc": "インターネット接続を確認してから再試行してください",
+      "checkingUpdatesTitle": "アップデートを確認中",
+      "checkingUpdatesDesc": "新しいアップデートを確認しています。しばらお待ちください",
+      "upToDateTitle": "最新版です！",
+      "upToDateDesc": "最新バージョン（v{{version}}）を使用しています。",
+      "updateCheckFailedTitle": "アップデート確認に失敗しました",
+      "updateCheckFailedDesc": "アップデートを確認できませんでした。後でもう一度お試しください。",
+      "retry": "再試行"
+    }
+  },
+  "helpModal": {
+    "title": "ヘルプガイド",
+    "tabs": {
+      "guide": "ダウンロードガイド",
+      "common": "よくある質問",
+      "advanced": "トラブルシューティングと高度なヒント",
+      "subscription": "サブスクリプション"
+    },
+    "guide": {
+      "downloadSteps": {
+        "title": "ダウンロード手順",
+        "s1": "「URL追加」セクションを開きます。",
+        "s2": "有効な動画URLを貼り付け、ダウンロード先を選択します。",
+        "s3": "「ダウンロード」ボタンをクリックします。",
+        "s4": "「ダウンロード中」または「すべてのダウンロード」ステータスページに移動します。",
+        "s5": "動画のメタデータが処理されるまで待ちます。",
+        "s6": "準備ができたら、ステータスセクションの再生ボタンをクリックします。",
+        "s7": "ダウンロードが完了するまで待ちます。",
+        "s8": "完了後、エントリを右クリックすると追加オプションが表示されます。できること：",
+        "s8a": "ダウンロードの詳細を表示",
+        "s8b": "ダウンロードフォルダを開く",
+        "s8c": "ダウンロードを削除",
+        "s8d": "タグとカテゴリを調整",
+        "s9": "行をクリックするとダウンロードの詳細情報が表示されます。",
+        "s10": "ダウンロードログは履歴に保存され、後で参照できます。"
+      },
+      "pauseStop": {
+        "title": "ダウンロードの一時停止・停止・削除・開始",
+        "s1": "各ダウンロードにはステータス列とコンテキストメニューに操作ボタンがあります",
+        "s1a": "再生ボタン - ダウンロードを開始または再開します",
+        "s1b": "一時停止ボタン - ダウンロードを一時的に停止します",
+        "s1c": "停止ボタン - ダウンロードを完全に停止し削除します",
+        "s2": "ダウンロード操作ボタンはタスクバーとタスクドロップダウンからも利用できます",
+        "s2a": "複数のダウンロードを選択して再生または停止できます",
+        "s2b": "すべてのオプションを使用して現在ダウンロード中の動画をまとめて操作できます",
+        "s3": "ダウンロードの削除",
+        "s3a": "ダウンロードの削除は完了したダウンロードに影響します。この操作はデバイスからダウンロードファイルを削除し、履歴からレコードを削除します。",
+        "s3b": "保留中のダウンロードの場合、ダウンロードレコードのみが保存され、まだドライブにファイルは保存されていません。"
+      }
+    },
+    "common": {
+      "whatIsHistory": {
+        "title": "履歴とは",
+        "s1": "履歴はすべての過去のダウンロードの記録です",
+        "s2": "ステータスページとは異なり、履歴では：",
+        "s2a": "ダウンロードの進行状況や操作は表示されません",
+        "s2b": "ダウンロードしたものだけが記録されます",
+        "s2c": "ファイルがデバイスに存在するかどうかが表示されます",
+        "s3": "履歴を使用して動画を再ダウンロードしたり、過去のダウンロードを確認したりできます"
+      },
+      "viewVideos": {
+        "title": "動画の視聴方法",
+        "s1": "ステータスページの動画行を右クリックしてコンテキストメニューを開き、動画表示にアクセスしてください"
+      },
+      "contextMenus": {
+        "title": "コンテキストメニューの使い方",
+        "s1": "ダウンロードを右クリックすると追加オプションにアクセスできます：",
+        "s1a": "ダウンロードした動画を視聴",
+        "s1b": "含まれているフォルダを開く",
+        "s1c": "ダウンロードの状態を制御",
+        "s1d": "リストから削除"
+      }
+    },
+    "advanced": {
+      "stuckInitializing": {
+        "title": "ダウンロードが初期化中で止まっている",
+        "s1": "インターネット接続を確認してください",
+        "s2": "動画のURLがまだ有効かどうか確認してください",
+        "s3": "ダウンロードを再起動してください：",
+        "s3a": "ダウンロードを一時停止する",
+        "s3b": "フォルダに移動して残っている部分ファイルを削除する",
+        "s3c": "ダウンロードを再開する"
+      },
+      "failedDelete": {
+        "title": "動画の削除に失敗しました",
+        "s1": "動画を削除できない場合：",
+        "s1a": "動画ファイルを使用しているアプリを閉じてください",
+        "s1b": "アプリを再起動してください",
+        "s1c": "その場所のファイルを削除する権限があるか確認してください"
+      },
+      "slowSpeed": {
+        "title": "ダウンロード速度が遅い",
+        "s1": "ダウンロード速度を改善するには：",
+        "s1a": "インターネット接続を確認してください",
+        "s1b": "同時ダウンロード数を減らしてください",
+        "s1c": "設定で速度制限が有効な場合は調整してください"
+      },
+      "permissionErrors": {
+        "title": "権限エラー (EPERM)",
+        "s1": "権限エラーが表示される場合：",
+        "s1a": "管理者としてアプリを実行してください",
+        "s1b": "フォルダの権限を確認してください",
+        "s1c": "別のダウンロード場所を選択してください"
+      }
+    },
+    "subscription": {
+      "howToAdd": {
+        "title": "サブスクリプションの追加方法",
+        "s1": "サイドバーからサブスクリプションセクションに移動します。",
+        "s2": "サブスクリプションモーダルを開くには「登録」ボタンをクリックします。",
+        "s3": "ソースURLフィールドにYouTubeチャンネルのURLを貼り付けます。",
+        "s3a": "チャンネルまたはプレイリストのURLが必要です — 単一の動画やShortsリンクは不可です。",
+        "s3b": "現時点ではYouTubeチャンネルのみがサポートされています。",
+        "s4": "チャンネル分析が完了するまで待ちます — チャンネルのアップロードパターンを自動的に検出します。",
+        "s5": "分析が完了したら、サブスクリプションを設定します：",
+        "s5a": "自動 — 検出されたアップロードパターンを使用してチェックスケジュールを設定します。",
+        "s5b": "手動 — 特定の曜日、チェック時刻、タイムゾーンを選択します。",
+        "s5c": "画質プリセット（最低、低、最高）を選択します。",
+        "s5d": "ダウンロードした動画の保存フォルダを選択します。",
+        "s6": "「最後のN件の動画をダウンロード」ドロップダウンを使用して、初回実行時にダウンロードするチャンネルの既存動画数を設定します。",
+        "s7": "「登録」をクリックして確定 — サブスクリプションはキューに入れられ、バックグラウンドで処理されます。"
+      },
+      "whatHappensAfter": {
+        "title": "登録後に起こること",
+        "s1": "サブスクリプションはキューに入れられ、バックグラウンドで設定されます — サブスクリプションリストに表示されます。",
+        "s2": "初回実行時、サブスクリプションは選択した上限まで最新の動画をダウンロードします。",
+        "s3": "初回スクレイピング後、設定したスケジュール（毎日、毎週、または自動検出）に従って自動的に新しいアップロードを確認します。",
+        "s4": "新たに検出された動画はダウンロードキューに追加され、通常のダウンロードと同様に処理されます。",
+        "s5": "各サブスクリプションの詳細ページから、アクティビティ、ダウンロード履歴、分析を確認できます。",
+        "s6": "サブスクリプションは、コンテキストメニューまたはサブスクリプション設定タブからいつでも一時停止、編集、削除できます。"
+      },
+      "commonErrors": {
+        "title": "よくあるエラーと対処法",
+        "invalidUrl": {
+          "title": "無効なURL / 非対応のプロトコル",
+          "s1": "URLがhttps://で始まっていることを確認してください。",
+          "s2": "ブラウザのアドレスバーから直接URLをコピーしてください。"
+        },
+        "unsupportedPlatform": {
+          "title": "非対応のプラットフォーム",
+          "s1": "現時点ではYouTubeチャンネルのURLのみがサポートされています。",
+          "s2": "他のプラットフォームのURLは検証を通過しません。"
+        },
+        "videoOrShorts": {
+          "title": "動画またはShortsリンクが検出されました",
+          "s1": "サブスクリプションは個別の動画ではなくチャンネルに登録します。",
+          "s2": "単一の動画URLには通常のダウンロード機能を使用してください。",
+          "s3": "チャンネルの場合、チャンネルページに移動してそのURLをコピーしてください。"
+        },
+        "alreadySubscribed": {
+          "title": "既に登録済み",
+          "s1": "このチャンネルのサブスクリプションは既に存在します。",
+          "s2": "サブスクリプションリストから見つけて管理してください。"
+        },
+        "noVideos": {
+          "title": "動画が見つかりません / チャンネルが空のようです",
+          "s1": "チャンネルにShortsしかない可能性があります — チャンネルのメイン動画タブURLを試してください。",
+          "s2": "チャンネルが非公開であるか、公開されているアップロードがない可能性があります。"
+        },
+        "analysisFailed": {
+          "title": "分析に失敗しました",
+          "s1": "インターネット接続を確認してください。",
+          "s2": "チャンネルURLが変更されている可能性があります — ブラウザで確認してください。",
+          "s3": "エラーが続く場合はアプリを再起動して再試行してください。"
+        }
+      }
+    }
+  },
+  "videoPlayer": {
+    "fallbackTitle": "動画",
+    "fallbackVideoPreview": "動画プレビュー",
+    "floatButton": "フロート",
+    "floatWindowTitle": "フローティングウィンドウ",
+    "backTitle": "戻る",
+    "downloadButtonTitle": "ダウンロード",
+    "error": {
+      "couldNotLoadStream": "動画ストリームを読み込めませんでした。",
+      "retry": "再試行"
+    },
+    "floating": {
+      "message": "フローティングウィンドウで再生中",
+      "returnToPanel": "パネルに戻る"
+    },
+    "menu": {
+      "openFolder": "フォルダを開く",
+      "viewSource": "ソースを表示",
+      "shareVideo": "動画を共有",
+      "generateCaption": "字幕を生成",
+      "download": "ダウンロード",
+      "captions": "字幕",
+      "pictureInPicture": "ピクチャーインピクチャー",
+      "playbackSpeed": "再生速度",
+      "normal": "標準"
+    },
+    "transcript": {
+      "title": "文字起こし",
+      "auto": "自動",
+      "manual": "手動",
+      "platformFallback": "プラットフォーム",
+      "searchPlaceholder": "文字起こしを検索",
+      "noTranscript": "文字起こしがありません",
+      "copyTitle": "文字起こしをコピー",
+      "downloadTitle": "文字起こしをダウンロード"
+    },
+    "chapters": {
+      "title": "チャプター",
+      "count": "{{count}} チャプター",
+      "searchPlaceholder": "チャプターを検索",
+      "noChapters": "チャプターがありません"
+    },
+    "description": {
+      "noDescription": "説明がありません",
+      "categories": "カテゴリ:",
+      "tags": "タグ:",
+      "openWith": "で開く"
+    },
+    "favorites": {
+      "add": "お気に入りに追加",
+      "remove": "お気に入りから削除"
+    },
+    "tabs": {
+      "description": "説明",
+      "transcript": "文字起こし",
+      "chapters": "チャプター"
+    },
+    "duration": {
+      "total": "合計",
+      "current": "現在"
+    },
+    "transcription": {
+      "failed": "文字起こし失敗",
+      "failedDesc": "文字起こしを作成できませんでした"
+    }
+  }
+}

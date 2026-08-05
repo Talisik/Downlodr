@@ -1,0 +1,409 @@
+{
+  "nav": {
+    "home": "首页",
+    "subscription": "订阅",
+    "subscriptions": "订阅",
+    "scheduled": "已计划",
+    "schedule": "计划",
+    "history": "历史记录",
+    "playground": "实验场"
+  },
+  "sections": {
+    "status": "状态",
+    "categories": "分类"
+  },
+  "statusFilter": {
+    "all": "全部",
+    "active": "活动中",
+    "paused": "已暂停",
+    "needs-attention": "需要注意",
+    "error": "有错误"
+  },
+  "categoryFilter": {
+    "all": "全部",
+    "youtube": "Youtube",
+    "afda": "文章"
+  },
+  "collapse": "收起侧边栏",
+  "expand": "展开侧边栏",
+  "subscriptionPage": {
+    "columns": {
+      "subscription": "订阅",
+      "status": "状态",
+      "checked": "已检查",
+      "downloads": "下载",
+      "source": "来源",
+      "storage": "大小"
+    },
+    "emptyState": {
+      "altText": "无订阅",
+      "title": "此「{{filter}}」筛选条件下暂无订阅",
+      "description": "订阅 YouTube 频道、播放列表或 RSS 订阅源，Skedulosa 将按照您的计划自动下载新内容——即使 Downlodr 已关闭。"
+    },
+    "status": {
+      "active": "活动中",
+      "paused": "已暂停",
+      "error": "错误"
+    },
+    "ago": "前",
+    "source": {
+      "youtube": "Youtube"
+    },
+    "confirmDelete": {
+      "title": "删除 {{name}} 订阅？",
+      "message": "这将移除整个订阅及其计划信息，此操作无法撤销。",
+      "confirmLabel": "删除"
+    }
+  },
+  "historyPage": {
+    "columns": {
+      "title": "标题",
+      "subscription": "订阅",
+      "size": "大小",
+      "speed": "速度",
+      "status": "状态",
+      "date": "添加日期",
+      "actions": "操作"
+    },
+    "emptyState": {
+      "altText": "无历史记录",
+      "title": "暂无历史记录",
+      "description": "您的下载和活动将在此显示，订阅频道以开始下载。"
+    },
+    "status": {
+      "completed": "完成",
+      "downloading": "进行中",
+      "queued": "排队中",
+      "failed": "失败"
+    },
+    "menu": {
+      "viewFile": "查看文件",
+      "delete": "删除"
+    },
+    "confirmDelete": {
+      "title": "删除 {{name}} 下载",
+      "message": "这将从您的设备移除已下载的文件，此操作无法撤销。",
+      "confirmLabel": "删除"
+    }
+  },
+  "scheduledPage": {
+    "columns": {
+      "channel": "频道",
+      "type": "类型",
+      "schedule": "计划",
+      "lastrun": "上次运行",
+      "nextrun": "下次运行",
+      "source": "来源",
+      "progress": "进度",
+      "status": "状态"
+    },
+    "emptyState": {
+      "altText": "无计划",
+      "title": "此「{{filter}}」筛选条件下暂无计划",
+      "description": "订阅 YouTube 频道、播放列表或 RSS 订阅源，Skedulosa 将按照您的计划自动下载新内容——即使 Downlodr 已关闭。"
+    },
+    "type": {
+      "recurring": "定期",
+      "oneTime": "单次"
+    },
+    "status": {
+      "downloading": "下载中",
+      "failed": "失败",
+      "running": "运行中",
+      "missed": "已错过",
+      "pending": "待处理",
+      "active": "活动中",
+      "paused": "已暂停",
+      "error": "错误"
+    },
+    "source": {
+      "youtube": "Youtube"
+    },
+    "ago": "前",
+    "confirmDelete": {
+      "title": "删除 {{name}} 订阅？",
+      "message": "这将移除整个订阅及其计划信息，此操作无法撤销。",
+      "confirmLabel": "删除"
+    }
+  },
+  "taskbar": {
+    "sort": {
+      "label": "排序",
+      "nameAZ": "名称 A → Z",
+      "nameZA": "名称 Z → A",
+      "newestFirst": "最新优先",
+      "oldestFirst": "最旧优先",
+      "mostDownloads": "最多下载",
+      "fewestDownloads": "最少下载"
+    },
+    "stats": {
+      "today": "今天",
+      "thisWeek": "本周",
+      "used": "已使用",
+      "nextCheckIn": "下次检查"
+    },
+    "search": {
+      "placeholder": "搜索...",
+      "open": "搜索",
+      "close": "关闭搜索"
+    },
+    "subscribe": "订阅",
+    "bulk": {
+      "downloadsSelected_one": "已选择 {{count}} 个下载",
+      "downloadsSelected_other": "已选择 {{count}} 个下载",
+      "deleteSelectedDownloads": "删除选中的下载",
+      "pauseSelectedSubscriptions": "暂停选中的订阅",
+      "resumeSelectedSubscriptions": "继续选中的订阅",
+      "editSubscription": "编辑订阅",
+      "deleteSelectedSubscriptions": "删除选中的订阅",
+      "pause": "暂停",
+      "resume": "继续",
+      "edit": "编辑",
+      "delete": "删除",
+      "clearSelection": "清除选择"
+    },
+    "confirmDelete": {
+      "singleDownloadTitle": "删除「{{name}}」？",
+      "multiDownloadTitle": "删除 {{count}} 个下载？",
+      "downloadMessage": "这将从您的设备移除所有选中的下载，此操作无法撤销。",
+      "singleSubscriptionTitle": "删除 {{name}} 订阅？",
+      "multiSubscriptionTitle": "删除 {{count}} 个订阅？",
+      "subscriptionMessage": "这将移除所有选中的订阅及其计划信息，此操作无法撤销。",
+      "confirmLabel": "删除"
+    }
+  },
+  "scanningModal": {
+    "title": "订阅来源",
+    "cancel": "取消",
+    "runInBackground": "在后台运行",
+    "channelScanned": "频道扫描完成！",
+    "scanningChannel": "正在扫描频道",
+    "analyzingArticle": "正在分析文章",
+    "readyToSubscribe": "准备好订阅",
+    "discoveringSections": "正在探索部分",
+    "youtubeMsg0": "检查上传频率",
+    "youtubeMsg1": "分析此频道的发布频率",
+    "youtubeMsg2": "读取频道的上传模式",
+    "youtubeMsg3": "获取上传历史记录",
+    "scanningChannelToast": "正在扫描频道...",
+    "viewProgress": "查看进度"
+  },
+  "subscribeModal": {
+    "title": "订阅来源",
+    "cancel": "取消",
+    "subscribe": "订阅",
+    "channelNameLabel": "频道名称",
+    "sourceUrlLabel": "来源网址",
+    "whatCanSubscribe": "我可以订阅什么？",
+    "supportedSources": "支持的来源",
+    "youtubeChannels": "YouTube 频道",
+    "articleWebsites": "新闻文章网站，例如：GMA、CNN、BBC 等",
+    "basicConfig": "基本配置",
+    "checkFrequency": "检查频率",
+    "auto": "自动",
+    "manual": "手动",
+    "toast": {
+      "queued": "订阅已加入队列",
+      "queuedDesc": "您的订阅已加入队列，即将完成设置。"
+    },
+    "errors": {
+      "invalidUrl": "请输入有效的网址（例如 https://www.youtube.com/@channel）。",
+      "unsupportedProtocol": "仅支持 http 和 https 网址。",
+      "unsupportedPlatform": "不支持的平台，目前仅支持 YouTube 频道和播放列表。",
+      "videoLink": "不支持 YouTube 视频链接，请输入 YouTube 频道网址（例如 https://www.youtube.com/@channel）。",
+      "shortsLink": "不支持 YouTube Shorts 链接，请输入 YouTube 频道网址（例如 https://www.youtube.com/@channel）。",
+      "alreadySubscribed": "此频道已订阅，您可以从 Subscription 标签页管理它。",
+      "bridgeUnavailable": "Subscription 桥接不可用，请重新启动应用程序。",
+      "analyzeFailedGeneric": "无法分析频道——请查看上方通知。",
+      "noVideosShorts": "此频道的视频标签页中未找到视频。如果它只发布 Shorts，请尝试在网址后加上「/shorts」（例如 https://www.youtube.com/@channel/shorts）。",
+      "noVideos": "未找到此频道的视频，请检查网址后重试。",
+      "analyzeFailed": "分析频道失败，请重试。"
+    },
+    "channelInfo": {
+      "channelType": "{{siteType}} 频道",
+      "channelFallback": "频道",
+      "subscriberCount": "{{formatted}} 位订阅者",
+      "videoCount": "{{count}} 个视频",
+      "downloadLast": "下载最后",
+      "videosLabel": "个视频",
+      "scrapeAllLabel": "全部 ({{count}})",
+      "ramWarning": "下载超过 3 个视频可能会占用大量内存。"
+    },
+    "autoDetect": {
+      "basedOn": "根据最后 {{count}} 个视频的发布历史",
+      "usingFrequency": "使用建议频率——",
+      "confidence": "{{percent}}% 置信度"
+    },
+    "advancedOptions": {
+      "title": "高级选项",
+      "description": "可在此添加其他设置。",
+      "showButton": "显示高级选项"
+    },
+    "manualFrequency": {
+      "daysToCheck": "检查日：",
+      "checkAt": "检查时间：",
+      "timezone": "时区：",
+      "schedulePrefix": "Subscription 将每",
+      "scheduleMid": "天在",
+      "qualityPreset": "质量预设",
+      "saveTo": "保存至：",
+      "saveToPlaceholder": "选择保存位置",
+      "browseFolderTooltip": "浏览文件夹",
+      "days": {
+        "mon": "周一",
+        "tue": "周二",
+        "wed": "周三",
+        "thu": "周四",
+        "fri": "周五",
+        "sat": "周六",
+        "sun": "周日"
+      },
+      "quality": {
+        "lowest": "最低质量",
+        "low": "低质量",
+        "best": "最佳质量"
+      }
+    }
+  },
+  "contextMenu": {
+    "edit": "编辑",
+    "pause": "暂停",
+    "resume": "继续",
+    "delete": "删除"
+  },
+  "editModal": {
+    "title": "编辑订阅",
+    "cancel": "取消",
+    "save": "保存",
+    "channelName": "频道名称",
+    "channelNameRequired": "频道名称为必填项。",
+    "channelUrl": "频道网址",
+    "statusLabel": "状态",
+    "recurring": "定期",
+    "scheduleDays": "计划日",
+    "downloadQuality": "下载质量",
+    "saveLocation": "保存位置",
+    "lookbackPeriod": "保留期限",
+    "days": {
+      "mon": "周一",
+      "tue": "周二",
+      "wed": "周三",
+      "thu": "周四",
+      "fri": "周五",
+      "sat": "周六",
+      "sun": "周日"
+    },
+    "quality": {
+      "lowest": "最低质量",
+      "low": "低质量",
+      "best": "最佳质量"
+    },
+    "status": {
+      "active": "活动中",
+      "paused": "已暂停",
+      "error": "错误",
+      "needsAttention": "需要注意"
+    }
+  },
+  "activityLog": {
+    "showingResults": "显示活动结果",
+    "noActivity": "暂无活动记录。",
+    "filters": {
+      "all": "全部",
+      "downloads": "下载",
+      "checks": "检查",
+      "errors": "错误"
+    }
+  },
+  "analytics": {
+    "days": {
+      "monday": "周一",
+      "tuesday": "周二",
+      "wednesday": "周三",
+      "thursday": "周四",
+      "friday": "周五",
+      "saturday": "周六",
+      "sunday": "周日"
+    },
+    "timeBands": {
+      "earlyMorning": "深夜",
+      "earlyMorningSub": "00:00 - 06:00",
+      "morning": "上午",
+      "morningSub": "06:00 - 12:00",
+      "afternoon": "下午",
+      "afternoonSub": "12:00 - 18:00",
+      "evening": "晚上",
+      "eveningSub": "18:00 - 00:00"
+    },
+    "timeRange": {
+      "last30": "最近 30 天",
+      "last60": "最近 60 天",
+      "last90": "最近 90 天"
+    },
+    "stats": {
+      "downloadRate": "下载成功率",
+      "uploadCadence": "上传频率",
+      "avgFileSize": "平均文件大小",
+      "successOver30d": "30 天内成功率",
+      "noDownloads": "暂无下载",
+      "videosPerWeek": "每周视频数（平均）",
+      "perVideo": "每个视频"
+    },
+    "heatmap": {
+      "title": "最佳上传日期与时段",
+      "less": "较少",
+      "more": "较多",
+      "peak": "高峰",
+      "noData": "暂无数据",
+      "failedToLoad": "加载失败",
+      "loading": "加载中…"
+    },
+    "trends": {
+      "title": "30 天趋势",
+      "successRate": "成功率",
+      "storageGrowth": "存储空间增长",
+      "failedDownloads": "失败下载",
+      "failedBadge": "{{pct}}% 失败"
+    },
+    "tooltip": {
+      "avgUploadTime": "平均上传时间：",
+      "avgUploads": "平均上传数：",
+      "videosPerWeek": "视频/周"
+    }
+  },
+  "selectedSubscriptionView": {
+    "emptyState": {
+      "title": "计划",
+      "description": "暂无已计划的频道。从主页添加频道以在此查看条目。"
+    },
+    "channelNav": {
+      "header": "频道"
+    },
+    "stats": {
+      "downloads": "下载",
+      "storage": "存储空间",
+      "created": "创建日期",
+      "lastChecked": "最后检查"
+    },
+    "selectChannel": "从列表中选择频道。",
+    "tabs": {
+      "downloads": "下载",
+      "analytics": "分析",
+      "activity-log": "活动日志",
+      "settings": "设置"
+    }
+  },
+  "settingsTab": {
+    "channelInfo": "频道信息",
+    "downloadBehavior": "下载设置",
+    "noChannelSelected": "未选择频道。",
+    "channelNameRequired": "频道名称为必填项。",
+    "daysToCheck": "检查日：",
+    "toast": {
+      "saved": "设置已保存",
+      "savedDesc": "您的订阅设置已更新。",
+      "failed": "保存失败",
+      "failedDesc": "保存时发生错误，请重试。"
+    }
+  }
+}

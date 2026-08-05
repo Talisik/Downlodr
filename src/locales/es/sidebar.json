@@ -1,0 +1,35 @@
+{
+  "sections": {
+    "status": "Estado",
+    "categories": "Categorías",
+    "tags": "Etiquetas"
+  },
+  "status": {
+    "all": "Todos",
+    "fetchingMetadata": "Obteniendo metadatos",
+    "startDownload": "Iniciar descarga",
+    "queued": "En cola",
+    "downloading": "Descargando",
+    "paused": "Pausado",
+    "initializing": "Inicializando",
+    "failed": "Fallido",
+    "finished": "Finalizado"
+  },
+  "subscriptions": "Suscripciones",
+  "categories": {
+    "all": "Todos",
+    "uncategorized": "Sin categoría"
+  },
+  "tags": {
+    "all": "Todos",
+    "untagged": "Sin etiqueta"
+  },
+  "collapse": "Contraer barra lateral",
+  "expand": "Expandir barra lateral",
+  "toast": {
+    "categorized": "Descarga categorizada",
+    "categorizedDesc": "Establecido en \"{{category}}\"",
+    "tagged": "Descarga etiquetada",
+    "taggedDesc": "Etiquetado con \"{{tag}}\""
+  }
+}

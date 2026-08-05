@@ -1,0 +1,102 @@
+{
+  "nav": {
+    "plugins": "Plugins"
+  },
+  "card": {
+    "install": "Instalar",
+    "uninstall": "Desinstalar",
+    "update": "Actualizar"
+  },
+  "pluginButtons": {
+    "details": "Detalles",
+    "remove": "Eliminar",
+    "moreDetails": "Más detalles",
+    "checkForUpdates": "Buscar actualizaciones",
+    "updating": "Actualizando...",
+    "install": "Instalar",
+    "installing": "Instalando...",
+    "version": "Versión {{version}}",
+    "unknownSize": "Desconocido"
+  },
+  "pluginDescriptions": {
+    "cc-to-markdown": "Convierte subtítulos de video en documentos markdown.",
+    "cc-to-markdown-downlodr": "Convierte subtítulos de video en documentos markdown.",
+    "format-converter": "Convierte videos a diferentes formatos con configuraciones personalizables de calidad.",
+    "format-converter-downlodr": "Convierte videos a diferentes formatos con configuraciones personalizables de calidad.",
+    "metadata-exporter": "Visualiza y edita metadatos de video con potentes herramientas de procesamiento por lotes.",
+    "metadata-exporter-downlodr": "Visualiza y edita metadatos de video con potentes herramientas de procesamiento por lotes.",
+    "fall-back-plugin": "Visualiza y edita metadatos de video con potentes herramientas de procesamiento por lotes."
+  },
+  "pluginNames": {
+    "cc-to-markdown": "CC a Markdown",
+    "cc-to-markdown-downlodr": "CC a Markdown",
+    "format-converter": "Convertidor de Formato",
+    "format-converter-downlodr": "Convertidor de Formato",
+    "metadata-exporter": "Exportador de Metadatos",
+    "metadata-exporter-downlodr": "Exportador de Metadatos",
+    "fall-back-plugin": "Plugin de Respaldo"
+  },
+  "githubPlugin": {
+    "noDescription": "Sin descripción disponible",
+    "pluginFrom": "Plugin de {{releaseName}}"
+  },
+  "page": {
+    "tabs": {
+      "installed": "Plugins instalados",
+      "browse": "Explorar plugins"
+    },
+    "tooltip": {
+      "refresh": "Actualizar plugins destacados"
+    },
+    "search": {
+      "placeholder": "Buscar",
+      "noResults": "No se encontraron plugins"
+    },
+    "noPluginsAlt": "No hay plugins disponibles",
+    "thisPlugin": "este plugin",
+    "installed": {
+      "loading": "Cargando plugins...",
+      "emptyTitle": "No has instalado ningún plugin",
+      "addPlugin": "Agregar plugin"
+    },
+    "browse": {
+      "loading": "Cargando plugins desde GitHub...",
+      "emptyTitle": "No se encontraron plugins. Intenta actualizar la lista.",
+      "refreshButton": "Actualizar plugins"
+    },
+    "confirmUninstall": {
+      "title": "Eliminar plugin",
+      "message": "¿Estás seguro de que deseas eliminar \"{{name}}\"? Esta acción no se puede deshacer."
+    },
+    "toast": {
+      "loadFailed": "Error al cargar plugins",
+      "loadFailedDesc": "Usando datos de respaldo de plugins",
+      "refreshed": "Plugins actualizados",
+      "refreshedGithub": "Datos de plugins actualizados desde GitHub",
+      "refreshedFallback": "Usando datos de respaldo debido a problemas con la API de GitHub",
+      "refreshFailed": "Error al actualizar",
+      "refreshFailedDesc": "No se pudieron actualizar los datos de plugins",
+      "installSuccess": "Éxito",
+      "installSuccessDesc": "El plugin se instaló correctamente",
+      "alreadyInstalled": "Plugin ya instalado",
+      "alreadyInstalledDesc": "Este plugin ya está instalado",
+      "invalidDir": "Directorio de plugin no válido",
+      "invalidDirDesc": "El directorio seleccionado no contiene una estructura de plugin válida",
+      "installFailed": "Error de instalación",
+      "installFailedDefault": "Ocurrió un error inesperado al instalar el plugin",
+      "removed": "Plugin eliminado",
+      "removedDesc": "{{name}} se eliminó correctamente",
+      "removeFailed": "Error al eliminar plugin",
+      "removeFailedDesc": "No se pudo eliminar {{name}}. Inténtalo de nuevo.",
+      "removeError": "Error",
+      "removeErrorDesc": "Ocurrió un error al eliminar {{name}}",
+      "noUpdates": "No hay actualizaciones disponibles",
+      "noUpdatesDesc": "{{name}} ya está actualizado (v{{version}})",
+      "updateCheckFailed": "Error al verificar actualizaciones",
+      "updateSuccess": "Actualización exitosa",
+      "updateSuccessDesc": "{{name}} se actualizó correctamente",
+      "updateFailed": "Error al actualizar",
+      "updateFailedDesc": "No se pudo actualizar {{name}}"
+    }
+  }
+}
