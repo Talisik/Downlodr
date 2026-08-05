@@ -1,0 +1,50 @@
+{
+  "title": "設定",
+  "language": "言語",
+  "downloadLocation": "ダウンロード場所",
+  "speedLimit": "速度制限",
+  "noLimit": "制限なし",
+  "connectionLimits": "接続制限",
+  "maxActiveDownloads": "最大同時ダウンロード数",
+  "appBehavior": "アプリの動作",
+  "runInBackground": "ウィンドウを閉じてもバックグラウンドで実行",
+  "runInBackgroundDesc": "無効にすると、ウィンドウを閉じるとアプリが完全に終了します",
+  "clipboardMonitoring": "クリップボードのリンクを自動的にダウンロード",
+  "clipboardMonitoringDesc": "有効にすると、Downlodrがコピーされたリンクを検出して自動的にダウンロードします",
+  "telemetry": "Downlodrのアプリデータ利用",
+  "telemetryDesc": "アプリ改善のために匿名のエラーレポートとパフォーマンス指標を送信します。",
+  "appUpdates": "アプリ更新通知を表示",
+  "visibleColumns": "表示列",
+  "required": "(必須)",
+  "directoryInProgress": "ディレクトリ選択中",
+  "directoryInProgressDesc": "続行する前にディレクトリ選択ダイアログを完了してください。",
+  "toast": {
+    "clipboardEnabled": "クリップボード監視が有効になります",
+    "clipboardDisabled": "クリップボード監視が無効になります",
+    "clipboardDesc": "「OK」をクリックしてこの設定を保存し、変更を適用してください。",
+    "telemetryEnabled": "テレメトリーが有効になります",
+    "telemetryDisabled": "テレメトリーが無効になります",
+    "telemetryEnabledDesc": "Downlodrの改善のために匿名の使用データとエラーレポートが送信されます。",
+    "telemetryDisabledDesc": "テレメトリーデータは収集されません。",
+    "appUpdatesEnabled": "アプリ更新通知が有効になりました",
+    "appUpdatesDisabled": "アプリ更新通知が無効になりました",
+    "appUpdatesEnabledDesc": "アプリの更新が利用可能になると通知が届きます。",
+    "appUpdatesDisabledDesc": "アプリ更新通知が無効化されました。"
+  },
+  "speedUnits": {
+    "kb": "キロバイト (KB)",
+    "mb": "メガバイト (MB)",
+    "gb": "ギガバイト (GB)"
+  },
+  "columns": {
+    "format": "フォーマット",
+    "size": "サイズ",
+    "speed": "速度",
+    "source": "ソース",
+    "name": "タイトル",
+    "dateAdded": "追加日",
+    "transcript": "字幕",
+    "status": "ステータス",
+    "action": "操作"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "title": "설정",
+  "language": "언어",
+  "downloadLocation": "다운로드 위치",
+  "speedLimit": "속도 제한",
+  "noLimit": "제한 없음",
+  "connectionLimits": "연결 제한",
+  "maxActiveDownloads": "최대 활성 다운로드 수",
+  "appBehavior": "애플리케이션 동작",
+  "runInBackground": "창이 닫힐 때 백그라운드에서 실행",
+  "runInBackgroundDesc": "비활성화 시 창을 닫으면 애플리케이션이 완전히 종료됩니다",
+  "clipboardMonitoring": "클립보드의 링크 자동 다운로드",
+  "clipboardMonitoringDesc": "활성화 시 Downlodr가 복사된 URL을 감지하여 자동으로 다운로드합니다",
+  "telemetry": "Downlodr 앱 데이터 사용",
+  "telemetryDesc": "앱 개선을 위해 익명 오류 보고서 및 성능 지표를 전송합니다.",
+  "appUpdates": "앱 업데이트 알림 표시",
+  "visibleColumns": "표시 열",
+  "required": "(필수)",
+  "directoryInProgress": "디렉터리 선택 진행 중",
+  "directoryInProgressDesc": "계속하기 전에 디렉터리 선택 대화상자를 완료하세요.",
+  "toast": {
+    "clipboardEnabled": "클립보드 모니터링이 활성화됩니다",
+    "clipboardDisabled": "클립보드 모니터링이 비활성화됩니다",
+    "clipboardDesc": "\"확인\"을 클릭하여 이 설정을 저장하고 변경사항을 적용하세요.",
+    "telemetryEnabled": "텔레메트리가 활성화됩니다",
+    "telemetryDisabled": "텔레메트리가 비활성화됩니다",
+    "telemetryEnabledDesc": "익명 사용 데이터 및 오류 보고서가 Downlodr 개선을 위해 전송됩니다.",
+    "telemetryDisabledDesc": "텔레메트리 데이터가 수집되지 않습니다.",
+    "appUpdatesEnabled": "앱 업데이트 알림 활성화됨",
+    "appUpdatesDisabled": "앱 업데이트 알림 비활성화됨",
+    "appUpdatesEnabledDesc": "앱 업데이트가 가능할 때 알림을 받습니다.",
+    "appUpdatesDisabledDesc": "앱 업데이트 알림이 비활성화되었습니다."
+  },
+  "speedUnits": {
+    "kb": "킬로바이트 (KB)",
+    "mb": "메가바이트 (MB)",
+    "gb": "기가바이트 (GB)"
+  },
+  "columns": {
+    "format": "형식",
+    "size": "크기",
+    "speed": "속도",
+    "source": "출처",
+    "name": "제목",
+    "dateAdded": "추가된 날짜",
+    "transcript": "자막",
+    "status": "상태",
+    "action": "작업"
+  }
+}

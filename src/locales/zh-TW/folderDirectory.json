@@ -1,0 +1,10 @@
+{
+  "title": "儲存檔案至",
+  "subtitle": "選擇儲存檔案的位置。",
+  "placeholder": "下載目的地資料夾",
+  "folderTooltip": "資料夾",
+  "toast": {
+    "errorTitle": "錯誤",
+    "errorDesc": "無法選擇目錄"
+  }
+}

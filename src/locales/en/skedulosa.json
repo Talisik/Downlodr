@@ -1,0 +1,415 @@
+{
+  "nav": {
+    "home": "Home",
+    "subscription": "Subscriptions",
+    "subscriptions": "Subscriptions",
+    "scheduled": "Scheduled",
+    "schedule": "Schedule",
+    "history": "History",
+    "playground": "Playground"
+  },
+  "sections": {
+    "status": "Status",
+    "categories": "Categories"
+  },
+  "statusFilter": {
+    "all": "All",
+    "active": "Active",
+    "paused": "Paused",
+    "needs-attention": "Needs Attention",
+    "error": "Has Error"
+  },
+  "categoryFilter": {
+    "all": "All",
+    "youtube": "Youtube",
+    "afda": "Articles"
+  },
+  "collapse": "Collapse sidebar",
+  "expand": "Expand sidebar",
+  "subscriptionPage": {
+    "columns": {
+      "subscription": "Subscriptions",
+      "status": "Status",
+      "checked": "Checked",
+      "downloads": "Downloads",
+      "source": "Source",
+      "storage": "Size"
+    },
+    "emptyState": {
+      "altText": "No Subscriptions",
+      "title": "No Subscriptions yet for this \"{{filter}}\" filter",
+      "titleAll": "No Subscriptions Yet",
+      "description": "Subscribe to YouTube channels, playlists, or RSS feeds and Subscriptions will automatically download new content on your schedule — even when Downlodr is closed.",
+      "addFirstButton": "Add your first subscription"
+    },
+    "status": {
+      "active": "Active",
+      "paused": "Paused",
+      "error": "Error"
+    },
+    "ago": "ago",
+    "source": {
+      "youtube": "Youtube"
+    },
+    "confirmDelete": {
+      "title": "Delete {{name}} subscription?",
+      "message": "This will remove the entire subscription and their schedule information. This cannot be undone.",
+      "confirmLabel": "Delete"
+    }
+  },
+  "historyPage": {
+    "columns": {
+      "title": "Title",
+      "subscription": "Subscriptions",
+      "size": "Size",
+      "speed": "Speed",
+      "status": "Status",
+      "date": "Date Added",
+      "actions": "Actions"
+    },
+    "emptyState": {
+      "altText": "No History",
+      "title": "No history yet",
+      "description": "Your downloads and activities will be displayed here. Subscribe to a channel to start downloading."
+    },
+    "status": {
+      "completed": "Done",
+      "downloading": "In Progress",
+      "queued": "Queued",
+      "failed": "Failed"
+    },
+    "menu": {
+      "viewFile": "View file",
+      "delete": "Delete"
+    },
+    "confirmDelete": {
+      "title": "Delete {{name}} download",
+      "message": "This will remove the downloaded file from your device. This cannot be undone.",
+      "confirmLabel": "Delete"
+    }
+  },
+  "scheduledPage": {
+    "columns": {
+      "channel": "Channel",
+      "type": "Type",
+      "schedule": "Schedule",
+      "lastrun": "Last Run",
+      "nextrun": "Next Run",
+      "source": "Source",
+      "progress": "Progress",
+      "status": "Status"
+    },
+    "emptyState": {
+      "altText": "No Schedule",
+      "title": "No Schedules yet for this \"{{filter}}\" filter",
+      "titleAll": "No Schedules Yet",
+      "description": "Subscribe to YouTube channels, playlists, or RSS feeds and Subscriptions will automatically download new content on your schedule — even when Downlodr is closed.",
+      "addFirstButton": "Add your first subscription"
+    },
+    "type": {
+      "recurring": "Recurring",
+      "oneTime": "One-time"
+    },
+    "status": {
+      "downloading": "Downloading",
+      "failed": "Failed",
+      "running": "Running",
+      "missed": "Missed",
+      "pending": "Pending",
+      "active": "Active",
+      "paused": "Paused",
+      "error": "Error"
+    },
+    "source": {
+      "youtube": "Youtube"
+    },
+    "ago": "ago",
+    "confirmDelete": {
+      "title": "Delete {{name}} subscription?",
+      "message": "This will remove the entire subscription and their schedule information. This cannot be undone.",
+      "confirmLabel": "Delete"
+    }
+  },
+  "taskbar": {
+    "sort": {
+      "label": "Sort",
+      "nameAZ": "Name A → Z",
+      "nameZA": "Name Z → A",
+      "newestFirst": "Newest first",
+      "oldestFirst": "Oldest first",
+      "mostDownloads": "Most downloads",
+      "fewestDownloads": "Fewest downloads"
+    },
+    "stats": {
+      "today": "today",
+      "thisWeek": "this week",
+      "used": "used",
+      "nextCheckIn": "Next check in"
+    },
+    "search": {
+      "placeholder": "Search...",
+      "open": "Search",
+      "close": "Close search"
+    },
+    "subscribe": "Subscribe",
+    "bulk": {
+      "downloadsSelected_one": "{{count}} download selected",
+      "downloadsSelected_other": "{{count}} downloads selected",
+      "deleteSelectedDownloads": "Delete selected downloads",
+      "pauseSelectedSubscriptions": "Pause selected subscriptions",
+      "resumeSelectedSubscriptions": "Resume selected subscriptions",
+      "editSubscription": "Edit subscription",
+      "deleteSelectedSubscriptions": "Delete selected subscriptions",
+      "pause": "Pause",
+      "resume": "Resume",
+      "edit": "Edit",
+      "delete": "Delete",
+      "clearSelection": "Clear selection"
+    },
+    "confirmDelete": {
+      "singleDownloadTitle": "Delete \"{{name}}\"?",
+      "multiDownloadTitle": "Delete {{count}} downloads?",
+      "downloadMessage": "This will remove all selected downloads from your device. This cannot be undone.",
+      "singleSubscriptionTitle": "Delete {{name}} subscription?",
+      "multiSubscriptionTitle": "Delete {{count}} subscriptions?",
+      "subscriptionMessage": "This will remove all selected subscriptions and their schedule information. This cannot be undone.",
+      "confirmLabel": "Delete"
+    }
+  },
+  "scanningModal": {
+    "title": "Subscribe to a source",
+    "cancel": "Cancel",
+    "runInBackground": "Run in background",
+    "channelScanned": "Channel scanned!",
+    "scanningChannel": "Scanning Channel",
+    "analyzingArticle": "Analyzing Article",
+    "readyToSubscribe": "Ready to subscribe",
+    "discoveringSections": "Discovering sections",
+    "youtubeMsg0": "Checking Upload Frequency",
+    "youtubeMsg1": "Analyzing how often this channel posts",
+    "youtubeMsg2": "Reading the channel's upload pattern",
+    "youtubeMsg3": "Pulling upload history",
+    "scanningChannelToast": "Scanning channel...",
+    "viewProgress": "View Progress"
+  },
+  "subscribeModal": {
+    "title": "Subscribe to a source",
+    "cancel": "Cancel",
+    "subscribe": "Subscribe",
+    "channelNameLabel": "Channel Name",
+    "sourceUrlLabel": "Source URL",
+    "whatCanSubscribe": "What can I subscribe to?",
+    "supportedSources": "Supported Sources",
+    "youtubeChannels": "YouTube channels",
+    "articleWebsites": "Article websites like: GMA, CNN, BBC, etc.",
+    "basicConfig": "BASIC CONFIGURATION",
+    "checkFrequency": "Check Frequency",
+    "auto": "Auto",
+    "manual": "Manual",
+    "toast": {
+      "queued": "Subscriptions queued",
+      "queuedDesc": "Your subscription has been added to the queue and will be set up shortly."
+    },
+    "errors": {
+      "invalidUrl": "Please enter a valid URL (e.g. https://www.youtube.com/@channel).",
+      "unsupportedProtocol": "Only http and https URLs are supported.",
+      "unsupportedPlatform": "Unsupported platform. Currently only YouTube channels and playlists are supported.",
+      "videoLink": "YouTube video links are not supported. Please enter a YouTube channel URL (e.g. https://www.youtube.com/@channel).",
+      "shortsLink": "YouTube Shorts links are not supported. Please enter a YouTube channel URL (e.g. https://www.youtube.com/@channel).",
+      "alreadySubscribed": "This channel is already subscribed. You can manage it from the Subscriptions tab.",
+      "bridgeUnavailable": "Subscriptions bridge is unavailable. Please restart the app.",
+      "analyzeFailedGeneric": "Could not analyze channel — see notification above.",
+      "noVideosShorts": "No videos found on this channel's Videos tab. If it only posts Shorts, try adding \"/shorts\" to the URL (e.g. https://www.youtube.com/@channel/shorts).",
+      "noVideos": "No videos found for this channel. Check the URL and try again.",
+      "analyzeFailed": "Failed to analyze the channel. Please try again."
+    },
+    "channelInfo": {
+      "channelType": "{{siteType}} Channel",
+      "channelFallback": "Channel",
+      "subscriberCount": "{{formatted}} subscribers",
+      "videoCount": "{{count}} videos",
+      "downloadLast": "Download the last",
+      "videosLabel": "videos",
+      "scrapeAllLabel": "All ({{count}})",
+      "ramWarning": "Downloading more than 3 videos may be RAM intensive."
+    },
+    "autoDetect": {
+      "basedOn": "Based on the last {{count}} videos of publish history",
+      "usingFrequency": "Using suggested frequency —",
+      "confidence": "{{percent}}% confidence"
+    },
+    "advancedOptions": {
+      "title": "Advanced Options",
+      "description": "Additional settings can be added here.",
+      "showButton": "Show advanced options"
+    },
+    "manualFrequency": {
+      "daysToCheck": "Days to check:",
+      "checkAt": "Check at:",
+      "timezone": "Timezone:",
+      "schedulePrefix": "Subscriptions will check every",
+      "scheduleMid": "days at",
+      "qualityPreset": "Quality Preset",
+      "saveTo": "Save to:",
+      "saveToPlaceholder": "Pick a location to save",
+      "browseFolderTooltip": "Browse folder",
+      "days": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      },
+      "quality": {
+        "lowest": "Lowest Quality",
+        "low": "Low Quality",
+        "best": "Best Quality"
+      }
+    }
+  },
+  "contextMenu": {
+    "edit": "Edit",
+    "pause": "Pause",
+    "resume": "Resume",
+    "delete": "Delete"
+  },
+  "editModal": {
+    "title": "Edit Subscriptions",
+    "cancel": "Cancel",
+    "save": "Save",
+    "channelName": "Channel Name",
+    "channelNameRequired": "Channel name is required.",
+    "channelUrl": "Channel URL",
+    "statusLabel": "Status",
+    "recurring": "Recurring",
+    "scheduleDays": "Schedule Days",
+    "downloadQuality": "Download Quality",
+    "saveLocation": "Save Location",
+    "lookbackPeriod": "Lookback Period",
+    "days": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "quality": {
+      "lowest": "Lowest Quality",
+      "low": "Low Quality",
+      "best": "Best Quality"
+    },
+    "status": {
+      "active": "Active",
+      "paused": "Paused",
+      "error": "Error",
+      "needsAttention": "Needs Attention"
+    }
+  },
+  "activityLog": {
+    "showingResults": "Showing activity results",
+    "noActivity": "No activity yet.",
+    "filters": {
+      "all": "All",
+      "downloads": "Downloads",
+      "checks": "Checks",
+      "errors": "Errors"
+    }
+  },
+  "analytics": {
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "timeBands": {
+      "earlyMorning": "Early Morning",
+      "earlyMorningSub": "12:00 AM - 6:00 AM",
+      "morning": "Morning",
+      "morningSub": "6:00 AM - 12:00 PM",
+      "afternoon": "Afternoon",
+      "afternoonSub": "12:00 PM - 6:00 PM",
+      "evening": "Evening",
+      "eveningSub": "6:00 PM - 12:00 AM"
+    },
+    "timeRange": {
+      "last30": "Last 30 days",
+      "last60": "Last 60 days",
+      "last90": "Last 90 days"
+    },
+    "stats": {
+      "downloadRate": "Download Rate",
+      "uploadCadence": "Upload Cadence",
+      "avgFileSize": "Avg File Size",
+      "successOver30d": "success over 30d",
+      "noDownloads": "No downloads yet",
+      "videosPerWeek": "Videos per week (avg)",
+      "perVideo": "per video"
+    },
+    "heatmap": {
+      "title": "Best Upload Day + Hour",
+      "less": "Less",
+      "more": "More",
+      "peak": "Peak",
+      "noData": "No data yet",
+      "failedToLoad": "Failed to load",
+      "loading": "Loading…"
+    },
+    "trends": {
+      "title": "Trends Over 30 Days",
+      "successRate": "Success Rate",
+      "storageGrowth": "Storage Growth",
+      "failedDownloads": "Failed Downloads",
+      "failedBadge": "{{pct}}% failed"
+    },
+    "tooltip": {
+      "avgUploadTime": "Avg upload time:",
+      "avgUploads": "Avg uploads:",
+      "videosPerWeek": "videos/week"
+    }
+  },
+  "selectedSubscriptionView": {
+    "emptyState": {
+      "title": "Schedule",
+      "description": "No scheduled channels yet. Add a channel from the home page to see entries here.",
+      "addFirstButton": "Add your first subscription"
+    },
+    "channelNav": {
+      "header": "Channel"
+    },
+    "stats": {
+      "downloads": "Downloads",
+      "storage": "Storage",
+      "created": "Created",
+      "lastChecked": "Last checked"
+    },
+    "selectChannel": "Select a channel from the list.",
+    "tabs": {
+      "downloads": "Downloads",
+      "analytics": "Analytics",
+      "activity-log": "Activity Log",
+      "settings": "Settings"
+    }
+  },
+  "settingsTab": {
+    "channelInfo": "Channel Information",
+    "downloadBehavior": "Download Behavior",
+    "noChannelSelected": "No channel selected.",
+    "channelNameRequired": "Channel name is required.",
+    "daysToCheck": "Days to check:",
+    "checkAtHour": "Check at hour:",
+    "toast": {
+      "saved": "Settings Saved",
+      "savedDesc": "Your subscription settings have been updated.",
+      "failed": "Save Failed",
+      "failedDesc": "Something went wrong while saving. Please try again."
+    }
+  }
+}

@@ -1,0 +1,611 @@
+{
+  "contextMenu": {
+    "pause": "Pause",
+    "resume": "Resume",
+    "stop": "Stop",
+    "finishRecording": "Finish Recording",
+    "forceStart": "Force Start",
+    "remove": "Remove",
+    "rename": "Rename",
+    "viewFolder": "Open Folder",
+    "viewEmbedded": "View via Embed",
+    "retry": "Retry",
+    "showLog": "Show Log",
+    "activityTracker": "Activity Tracker",
+    "tags": "Tags",
+    "categories": "Categories",
+    "addTag": "Add Tag",
+    "addCategory": "Add Category",
+    "plugins": "Plugins",
+    "copyLink": "Copy Link",
+    "openBrowser": "Open in Browser",
+    "start": "Start",
+    "playDownload": "Play Download"
+  },
+  "status": {
+    "queued": "Queued",
+    "downloading": "Downloading",
+    "finished": "Finished",
+    "error": "Error",
+    "paused": "Paused",
+    "stopped": "Stopped",
+    "converting": "Converting",
+    "gettingInfo": "Getting Info"
+  },
+  "table": {
+    "title": "Title",
+    "format": "Format",
+    "size": "Size",
+    "speed": "Speed",
+    "source": "Source",
+    "dateAdded": "Date Added",
+    "uploadedOn": "Uploaded On",
+    "transcript": "Closed Captions",
+    "status": "Status",
+    "action": "Actions",
+    "noDownloads": "No downloads yet",
+    "tags": "Tags",
+    "categories": "Categories",
+    "noTags": "No tags",
+    "noCategories": "No categories"
+  },
+  "itemsSelected_one": "{{count}} item selected",
+  "itemsSelected_other": "{{count}} items selected",
+  "timeAgo": {
+    "minutes": "{{count}} m ago",
+    "hour_one": "{{count}} hr ago",
+    "hour_other": "{{count}} hrs ago",
+    "day_one": "{{count}} day ago",
+    "day_other": "{{count}} days ago",
+    "week_one": "{{count}} wk ago",
+    "week_other": "{{count}} wks ago",
+    "month_one": "{{count}} mo ago",
+    "month_other": "{{count}} mos ago",
+    "year_one": "{{count}} yr ago",
+    "year_other": "{{count}} yrs ago"
+  },
+  "fileSize": {
+    "gb": "{{value}} GB",
+    "mb": "{{value}} MB",
+    "kb": "{{value}} KB",
+    "bytes": "{{count}} bytes",
+    "unknown": "—"
+  },
+  "modals": {
+    "about": {
+      "title": "About",
+      "visitSite": "Visit official site",
+      "version": "Version {{version}}",
+      "developedForYou": "Developed for you.",
+      "features": {
+        "title": "Features",
+        "downloadVideos": {
+          "title": "Download Videos from All Your Favorite Sites",
+          "item1": "Works with YouTube, Twitch, Twitter, TikTok, and hundreds more",
+          "item2": "Download entire channels or playlists with one click",
+          "item3": "Save live streams, shorts, and stories",
+          "item4": "Choose your preferred video quality"
+        },
+        "easyToUse": {
+          "title": "Easy to Use",
+          "item1": "Customize where your files are saved",
+          "item2": "Choose how files are named",
+          "item3": "Update to the latest version automatically"
+        },
+        "advancedMedia": {
+          "title": "Advanced Media Options",
+          "item1": "Keep video thumbnails with your downloads",
+          "item2": "Download selected parts of playlists"
+        }
+      }
+    },
+    "help": {
+      "title": "Help"
+    },
+    "stop": {
+      "title": "Stop Download",
+      "message": "Are you sure you want to stop this download?",
+      "confirm": "Stop",
+      "cancel": "Cancel"
+    }
+  },
+  "shareButton": {
+    "tooltip": "Share video",
+    "title": "Share video",
+    "videoFallback": "Video",
+    "copyLink": "Copy Link",
+    "emailLink": "Email Link",
+    "facebook": "Facebook",
+    "twitter": "X (Twitter)",
+    "disclaimer": "Kindly be aware that if you choose to share this video, it will become visible to the public, and others might be able to access its contents.",
+    "emailSubject": "Check out this video: {{name}}",
+    "emailBody": "I thought you might enjoy this video: {{link}}",
+    "twitterText": "Check out this video: {{name}}",
+    "toast": {
+      "errorTitle": "Error",
+      "errorDesc": "Could not generate shareable link",
+      "copiedTitle": "Link Copied",
+      "copiedDesc": "Link has been copied to clipboard.",
+      "copyFailedTitle": "Copy Failed",
+      "copyFailedDesc": "Could not copy link to clipboard. Please try again."
+    }
+  },
+  "statusPage": {
+    "thumbnail": {
+      "viewFull": "View full thumbnail",
+      "notDownloaded": "Thumbnail not downloaded",
+      "notAvailable": "Thumbnail not available",
+      "unableToLoad": "Unable to load"
+    },
+    "status": {
+      "clickToRetry": "Click to retry download",
+      "viewVideo": "View video",
+      "openFolder": "Open folder",
+      "viewPreview": "View preview",
+      "liveStopRecording": "Live — click to stop recording",
+      "liveFinishRecording": "Live — click to finish recording",
+      "liveFinishing": "Finishing…"
+    },
+    "format": {
+      "unknown": "Unknown"
+    }
+  },
+  "taskbarInput": {
+    "placeholder": "Search downloads or type a URL",
+    "tooltip": {
+      "copy": "Copy",
+      "settings": "Get the transcript and Thumbnail along with your download.",
+      "download": "Download",
+      "openArticle": "Open Article Installer"
+    },
+    "toast": {
+      "playlistErrorTitle": "Playlist Error",
+      "playlistErrorDesc": "Failed to fetch playlist information",
+      "channelDetectedTitle": "Channel link detected",
+      "channelDetectedDesc": "Sending to Subscription to set up a subscription for this channel.",
+      "playlistDetectedTitle": "Playlist link detected",
+      "playlistDetectedDesc": "Getting playlist information for download... This may take a while.",
+      "invalidUrlTitle": "Invalid URL",
+      "invalidUrlDesc": "Please enter a valid URL",
+      "invalidUrlFormatTitle": "Invalid URL Format",
+      "invalidUrlFormatDesc": "The URL format is not valid",
+      "selectionErrorTitle": "Selection Error",
+      "selectionErrorDesc": "Please select at least one video to download",
+      "downloadQueuedTitle": "Download Queued",
+      "downloadQueuedDesc": "Fetching video metadata for download...",
+      "noInternetTitle": "No Internet Connection",
+      "noInternetDesc": "Please check your internet connection and try again",
+      "errorTitle": "Error",
+      "errorDesc": "Failed to Add to Download Queue",
+      "copiedTitle": "Copied to clipboard",
+      "copiedDesc": "The URL has been copied to your clipboard",
+      "copyFailedTitle": "Copy URL Failed",
+      "copyFailedDesc": "Unable to copy URL to clipboard"
+    }
+  },
+  "toolbar": {
+    "tooltip": {
+      "startDisabled": "Select queued download items to start download",
+      "startEnabled": "Start selected downloads",
+      "stopEnabled": "Stop selected downloads",
+      "stopDisabled": "Select currently downloading items to stop",
+      "stopAllDisabled": "No active downloads to stop",
+      "stopAll": "Stop All",
+      "generateCaptions": "Generate Captions",
+      "generateCaptionsDisabled": "Select finished videos without captions to generate transcripts",
+      "remove": "Remove"
+    },
+    "toast": {
+      "noDownloadsSelectedTitle": "No Downloads Selected",
+      "noDownloadsSelectedStop": "Please select downloads to stop",
+      "noDownloadsSelectedPlay": "Please select downloads to play",
+      "noDownloadsSelectedRemove": "Please select downloads to remove",
+      "noDownloadsFoundTitle": "No Downloads Found",
+      "noDownloadsFoundDesc": "No current downloads to stop",
+      "downloadStoppedTitle": "Download Stopped",
+      "downloadStoppedDesc": "Download has been stopped successfully",
+      "recordingFinishedTitle": "Finishing Recording",
+      "recordingFinishedDesc": "Wrapping up the live recording — it will appear as finished once done",
+      "stopErrorTitle": "Stop Download Error",
+      "stopErrorCouldNotDesc": "Could not stop download with controller {{controllerId}}",
+      "stopErrorDesc": "Error stopping download with controller {{controllerId}}",
+      "noValidDownloadsTitle": "No Valid Downloads",
+      "noValidDownloadsDesc": "Please select downloads that are ready to start",
+      "addedToQueueTitle": "Downloads Added to Queue",
+      "addedToQueueDesc": "{{count}} download(s) added to queue. The download controller will start them automatically based on your limit.",
+      "downloadDeletedTitle": "Download Deleted",
+      "downloadDeletedDesc": "Download has been deleted successfully",
+      "folderDeletedTitle": "Folder Deleted",
+      "folderDeletedDesc": "Folder and its contents have been deleted successfully",
+      "folderDeleteErrorTitle": "Error",
+      "folderDeleteErrorDesc": "Failed to delete folder. It may not exist or be in use.",
+      "fileDeletedTitle": "File Deleted",
+      "fileDeletedDesc": "File has been deleted successfully",
+      "downloadRemovedTitle": "Download Removed",
+      "pendingRemovedDesc": "Pending download has been removed successfully",
+      "failedRemovedDesc": "Failed download has been removed successfully",
+      "cancelledRemovedDesc": "Cancelled download has been removed successfully",
+      "pausedRemovedDesc": "Paused download has been removed successfully",
+      "initializingRemovedDesc": "Initializing download has been removed successfully",
+      "queuedRemovedDesc": "Queued download has been removed successfully",
+      "noEligibleTitle": "No Eligible Downloads",
+      "noEligibleDesc": "Selected downloads either already have transcripts or are not finished.",
+      "batchStartedTitle": "Batch Transcription Started",
+      "batchStartedDesc": "Generating captions for {{count}} download(s) sequentially.",
+      "transcriptionFailedTitle": "Transcription Failed",
+      "transcriptionFailedDefault": "Could not create transcript",
+      "batchCompleteTitle": "Batch Transcription Complete",
+      "batchCompleteDesc": "{{successCount}} succeeded, {{failCount}} failed.",
+      "selectOneTitle": "Select One Download",
+      "selectOneDesc": "Please select exactly one download to get the link"
+    },
+    "settingsButton": "Settings",
+    "deleteLabel": "Delete"
+  },
+  "removeModal": {
+    "title": "Remove selected item",
+    "message": "Are you sure you want to remove these downloads from the download list?",
+    "alsoDeleteFolder": "Also remove the downloaded folder and its files"
+  },
+  "categorySearchBar": {
+    "placeholder": "Search by {{fields}}...",
+    "filterTooltip": "Filter fields",
+    "clearTooltip": "Clear",
+    "fields": {
+      "title": "Title",
+      "tags": "Tags",
+      "categories": "Categories",
+      "status": "Status",
+      "source": "Source"
+    }
+  },
+  "downloadController": {
+    "downloadStarted": "Download Started from Queue",
+    "downloadStartedDesc": "\"{{name}}\" has started downloading.",
+    "insufficientStorage": "Not Enough Disk Space",
+    "insufficientStorageDesc": "\"{{name}}\" needs about {{needed}} free, but only {{free}} is available. Free up space or choose a different download location."
+  },
+  "downloadButton": {
+    "tooltip": "Download video",
+    "toastTitle": "Download Added to Queue",
+    "toastDesc": "\"{{name}}\" added to queue. The download controller will start it automatically."
+  },
+  "formatHint": {
+    "toastTitle": "Tip: Pick your own format",
+    "toastDesc": "Downlodr grabs the best quality automatically. If you'd like to choose a specific format or resolution first, click Download again to continue."
+  },
+  "statusHandler": {
+    "transcriptRedownloaded": "Transcript Redownloaded",
+    "transcriptRedownloadedDesc": "Transcript has been redownloaded successfully",
+    "downloadRetried": "Download Retried",
+    "downloadRetriedDesc": "Download has been retried successfully",
+    "downloadResumed": "Download Resumed",
+    "downloadResumedDesc": "Download has been resumed successfully",
+    "downloadPaused": "Download Paused",
+    "downloadPausedDesc": "Download has been paused successfully",
+    "pauseFailed": "Pause Failed",
+    "pauseFailedDesc": "Could not pause the download. Please try again.",
+    "pauseError": "Failed to pause download",
+    "cannotPauseYet": "Cannot Pause Yet",
+    "cannotPauseYetDesc": "The download is still initializing. Please try again.",
+    "stopFailed": "Stop Failed",
+    "stopFailedDesc": "Could not stop the download. It may have already finished — refresh and check its status.",
+    "cannotStopYet": "Cannot Stop Yet",
+    "cannotStopYetDesc": "The download is still initializing. Please try again.",
+    "noDownloadLocation": "No Download Location",
+    "invalidDownloadLocation": "Invalid Download Location",
+    "fileNotFound": "File Not Found",
+    "fileNotFoundDesc": "The file does not exist at the specified location",
+    "failedToViewDownload": "Failed to view download",
+    "failedToStopDownload": "Failed to stop download",
+    "failedToViewFolder": "Failed to view folder",
+    "missingFolder": "Missing Folder",
+    "missingFolderDesc": "The download folder does not exist yet",
+    "error": "Error",
+    "savingLivestream": "Saving Livestream",
+    "savingLivestreamDesc": "Finishing up the recording — this may take a moment."
+  },
+  "dropdownBar": {
+    "menus": {
+      "file": "File",
+      "settings": "Settings",
+      "help": "Help"
+    },
+    "file": {
+      "history": "History",
+      "exit": "Exit"
+    },
+    "help": {
+      "guide": "Guide",
+      "appUpdates": "App Updates",
+      "about": "About"
+    },
+    "search": {
+      "placeholder": "Search downloads...",
+      "noResults": "No downloads found"
+    },
+    "toast": {
+      "downloadStartedTitle": "Download Started",
+      "downloadStartedDesc": "Your file is being downloaded. This may take a few minutes depending on the file size and your connection speed.",
+      "errorOpeningFileTitle": "Error Opening File",
+      "checkingConnectionTitle": "Checking connection",
+      "checkingConnectionDesc": "Verifying internet connectivity...",
+      "noInternetTitle": "No internet connection",
+      "noInternetDesc": "Please check your internet connection and try again",
+      "checkingUpdatesTitle": "Checking for updates",
+      "checkingUpdatesDesc": "Currently checking for new updates, please wait",
+      "upToDateTitle": "You're up to date!",
+      "upToDateDesc": "You're using the latest version (v{{version}}).",
+      "updateCheckFailedTitle": "Update Check Failed",
+      "updateCheckFailedDesc": "Unable to check for updates. Please try again later.",
+      "retry": "Retry"
+    }
+  },
+  "helpModal": {
+    "title": "Help Guide",
+    "tabs": {
+      "guide": "Downloading Guide",
+      "common": "Frequently Asked Questions",
+      "advanced": "Troubleshooting",
+      "subscription": "Subscriptions",
+      "afda": "Article Fetcher"
+    },
+    "guide": {
+      "downloadSteps": {
+        "title": "Download Steps",
+        "s1": "Open the \"Add URL\" section.",
+        "s2": "Paste a valid video URL and select the download destination.",
+        "s3": "Click the \"Download\" button.",
+        "s4": "Navigate to the \"Downloading\" or \"All Downloads\" status page.",
+        "s5": "Wait for the video metadata to be processed.",
+        "s6": "Once ready, click the play button in the status section.",
+        "s7": "Allow the download to finish.",
+        "s8": "After completion, right-click on the entry for additional options. You can:",
+        "s8a": "View the download details",
+        "s8b": "Open the download folder",
+        "s8c": "Delete the download",
+        "s8d": "Adjust tags and categories",
+        "s9": "Click on a row to view detailed information about your download.",
+        "s10": "Your download logs will be saved for future reference in the history."
+      },
+      "pauseStop": {
+        "title": "Pausing, Stopping, Removing and Starting downloads",
+        "s1": "Each download has control buttons on the status columns and the context menu",
+        "s1a": "Play button - Starts or resumes the download",
+        "s1b": "Pause button - Temporarily pauses the download",
+        "s1c": "Stop button - Completely stops and removes the download",
+        "s2": "Download control buttons are also available within the task bar and task dropdown",
+        "s2a": "Users can select multiple downloads to either play or stop",
+        "s2b": "Users may also use the all option to control all currently downloading videos",
+        "s3": "Removing Downloads",
+        "s3a": "Removing downloads affects currently finished downloads. This action deletes the downloaded file from your device and removes the record from history.",
+        "s3b": "For pending downloads, only the download record is saved; no file has been saved to the drive yet."
+      }
+    },
+    "common": {
+      "whatIsHistory": {
+        "title": "What is History",
+        "s1": "History is a record of all your past downloads",
+        "s2": "Unlike status pages, History:",
+        "s2a": "Doesn't show download progress or controls",
+        "s2b": "Only keeps track of what you've downloaded",
+        "s2c": "Shows if files still exist on your device",
+        "s3": "You can use History to redownload videos or check your past downloads"
+      },
+      "viewVideos": {
+        "title": "How to view videos",
+        "s1": "Right-click a video row in status pages to open the context menu and access the video view"
+      },
+      "contextMenus": {
+        "title": "How to use context menus",
+        "s1": "Right-click any download to access additional options:",
+        "s1a": "View downloaded video",
+        "s1b": "Open containing folder",
+        "s1c": "Control download status",
+        "s1d": "Remove from list"
+      }
+    },
+    "advanced": {
+      "stuckInitializing": {
+        "title": "Download is stuck in initializing",
+        "s1": "Check your internet connection",
+        "s2": "Verify the video URL is still valid",
+        "s3": "Restart the download:",
+        "s3a": "Pause the download",
+        "s3b": "Go to the folder and delete any lingering part file",
+        "s3c": "Resume the download"
+      },
+      "failedDelete": {
+        "title": "Failed to delete video",
+        "s1": "If you can't delete a video:",
+        "s1a": "Close any applications using the video file",
+        "s1b": "Restart the application",
+        "s1c": "Check if you have permission to delete files in that location"
+      },
+      "slowSpeed": {
+        "title": "Download speed is slow",
+        "s1": "To improve download speed:",
+        "s1a": "Check your internet connection",
+        "s1b": "Reduce the number of simultaneous downloads",
+        "s1c": "Adjust the speed limit in settings if enabled"
+      },
+      "permissionErrors": {
+        "title": "Permission (EPERM) errors",
+        "s1": "If you see permission errors:",
+        "s1a": "Run the application as administrator",
+        "s1b": "Check folder permissions",
+        "s1c": "Choose a different download location"
+      }
+    },
+    "afda": {
+      "whatIsAfda": {
+        "title": "What is Article Fetcher",
+        "s1": "Article Fetcher finds and saves article content from news and blog websites.",
+        "s2": "Two modes are available:",
+        "s2a": "Single article download — paste one article URL and download it immediately.",
+        "s2b": "Website subscription — add a news site and have new articles downloaded automatically on a schedule.",
+        "s3": "Articles are saved as DOCX files to a folder of your choice."
+      },
+      "singleArticle": {
+        "title": "Downloading a Single Article",
+        "s1": "Paste an article URL into the search bar at the top of the app.",
+        "s2": "Article Fetcher detects the URL as an article automatically.",
+        "s3": "Click the Article Installer button (document icon) that appears.",
+        "s4": "Choose a save folder if prompted.",
+        "s5": "The article is downloaded and saved as a DOCX file."
+      },
+      "websiteSubscription": {
+        "title": "Setting Up a Website Subscription",
+        "s1": "Navigate to the Article Fetcher section from the sidebar.",
+        "s2": "Click \"Add Website\" to open the setup modal.",
+        "s3": "Paste the URL of the news or blog website.",
+        "s4": "Wait for the frequency analysis to complete — it detects how often the site publishes.",
+        "s5": "Configure your subscription:",
+        "s5a": "Interval — Every 15 minutes, Every 1 hour, Every 6 hours, or Daily.",
+        "s5b": "Category — News, Sports, Technology, and more.",
+        "s5c": "Save folder — choose where downloaded articles are stored.",
+        "s6": "Click Confirm — the website is added and monitoring begins."
+      },
+      "managingSubscriptions": {
+        "title": "Managing Your Subscriptions",
+        "s1": "Pause or resume a subscription from the context menu or the subscription detail page.",
+        "s2": "Edit the check interval, category, or save folder from the Settings tab inside the subscription detail.",
+        "s3": "Delete a subscription from the context menu — this removes monitoring but does not delete already-downloaded files.",
+        "s4": "View per-subscription download history from the Downloads tab.",
+        "s5": "View check history and activity from the Activity Log tab."
+      }
+    },
+    "subscription": {
+      "howToAdd": {
+        "title": "How to Add a Subscription",
+        "s1": "Navigate to the Subscription section from the sidebar.",
+        "s2": "Click the Subscribe button to open the subscription modal.",
+        "s3": "Paste a YouTube channel URL into the source URL field.",
+        "s3a": "Must be a channel or playlist URL — not a single video or Shorts link.",
+        "s3b": "Only YouTube channels are supported at this time.",
+        "s4": "Wait for the channel analysis to finish — it detects the channel's upload pattern automatically.",
+        "s5": "Once the analysis completes, configure your subscription:",
+        "s5a": "Auto — uses the detected upload pattern to set the check schedule.",
+        "s5b": "Manual — choose specific days of the week, a check time, and timezone.",
+        "s5c": "Select a quality preset (Lowest, Low, or Best).",
+        "s5d": "Choose a save-to folder for downloaded videos.",
+        "s6": "Set how many of the channel's existing videos to download on the first run using the \"Download last N videos\" dropdown.",
+        "s7": "Click Subscribe to confirm — the subscription is queued and processed in the background."
+      },
+      "whatHappensAfter": {
+        "title": "What Happens After Subscribing",
+        "s1": "The subscription is queued and set up in the background — you'll see it appear in the Subscription list.",
+        "s2": "On the first run, Subscription downloads the most recent videos up to the limit you selected.",
+        "s3": "After the initial scrape, Subscription automatically checks for new uploads on your configured schedule (daily, weekly, or as detected).",
+        "s4": "Any newly detected videos are added to the download queue and processed like regular downloads.",
+        "s5": "You can view activity, download history, and analytics for each subscription from its detail page.",
+        "s6": "Subscriptions can be paused, edited, or deleted at any time from the context menu or the subscription settings tab."
+      },
+      "commonErrors": {
+        "title": "Common Errors & What to Do",
+        "invalidUrl": {
+          "title": "Invalid URL / Unsupported protocol",
+          "s1": "Make sure the URL starts with https://.",
+          "s2": "Copy the URL directly from the browser address bar."
+        },
+        "unsupportedPlatform": {
+          "title": "Unsupported platform",
+          "s1": "Only YouTube channel URLs are currently supported.",
+          "s2": "URLs from other platforms will not pass validation."
+        },
+        "videoOrShorts": {
+          "title": "Video or Shorts link detected",
+          "s1": "Subscription subscribes to channels, not individual videos.",
+          "s2": "Use the main download feature for single video URLs.",
+          "s3": "For a channel, navigate to the channel page and copy its URL."
+        },
+        "alreadySubscribed": {
+          "title": "Already subscribed",
+          "s1": "A subscription for this channel already exists.",
+          "s2": "Find and manage it from the Subscription list."
+        },
+        "noVideos": {
+          "title": "No videos found / Channel appears empty",
+          "s1": "The channel may only have Shorts — try the channel's main videos tab URL.",
+          "s2": "The channel may be private or have no public uploads."
+        },
+        "analysisFailed": {
+          "title": "Analysis failed",
+          "s1": "Check your internet connection.",
+          "s2": "The channel URL may have changed — verify it in your browser.",
+          "s3": "Restart the app and try again if the error persists."
+        }
+      }
+    }
+  },
+  "videoPlayer": {
+    "fallbackTitle": "Video",
+    "fallbackVideoPreview": "Video Preview",
+    "floatButton": "Float",
+    "floatWindowTitle": "Float window",
+    "backTitle": "Back",
+    "downloadButtonTitle": "Download",
+    "error": {
+      "couldNotLoadStream": "Could not load video stream.",
+      "retry": "Retry"
+    },
+    "floating": {
+      "message": "Playing in floating window",
+      "returnToPanel": "Return to panel"
+    },
+    "menu": {
+      "openFolder": "Open Folder",
+      "viewSource": "View Source",
+      "shareVideo": "Share Video",
+      "generateCaption": "Generate Caption",
+      "download": "Download",
+      "captions": "Captions",
+      "pictureInPicture": "Picture in Picture",
+      "playbackSpeed": "Playback speed",
+      "normal": "Normal"
+    },
+    "transcript": {
+      "title": "Transcriptions",
+      "auto": "Auto",
+      "manual": "Manual",
+      "platformFallback": "platform",
+      "searchPlaceholder": "Search transcript",
+      "noTranscript": "No transcript available",
+      "copyTitle": "Copy transcript",
+      "downloadTitle": "Download transcript",
+      "hideTimestampsTitle": "Hide timestamps",
+      "showTimestampsTitle": "Show timestamps",
+      "timestampsShown": "Timestamps shown",
+      "timestampsHidden": "Timestamps hidden"
+    },
+    "chapters": {
+      "title": "Chapters",
+      "count": "{{count}} Chapters",
+      "searchPlaceholder": "Search chapters",
+      "noChapters": "No chapters available"
+    },
+    "description": {
+      "noDescription": "No description available",
+      "categories": "Categories:",
+      "tags": "Tags:",
+      "openWith": "Open with"
+    },
+    "favorites": {
+      "add": "Add to favorites",
+      "remove": "Remove from favorites"
+    },
+    "tabs": {
+      "description": "Description",
+      "transcript": "Transcript",
+      "chapters": "Chapters"
+    },
+    "duration": {
+      "total": "total",
+      "current": "current"
+    },
+    "transcription": {
+      "failed": "Transcription failed",
+      "failedDesc": "Could not create transcript"
+    }
+  }
+}

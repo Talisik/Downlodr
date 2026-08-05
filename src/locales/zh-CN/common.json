@@ -1,0 +1,22 @@
+{
+  "buttons": {
+    "okay": "确定",
+    "cancel": "取消",
+    "close": "关闭",
+    "save": "保存",
+    "retry": "重试",
+    "stop": "停止",
+    "pause": "暂停",
+    "resume": "继续",
+    "remove": "移除",
+    "rename": "重命名",
+    "open": "打开",
+    "edit": "编辑",
+    "forceStart": "强制开始"
+  },
+  "status": {
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功"
+  }
+}

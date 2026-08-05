@@ -1,0 +1,550 @@
+{
+  "contextMenu": {
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "stop": "Detener",
+    "forceStart": "Forzar inicio",
+    "remove": "Eliminar",
+    "rename": "Renombrar",
+    "viewFolder": "Abrir carpeta",
+    "viewEmbedded": "Ver mediante incrustación",
+    "retry": "Reintentar",
+    "showLog": "Mostrar registro",
+    "activityTracker": "Seguimiento de actividad",
+    "tags": "Etiquetas",
+    "categories": "Categorías",
+    "addTag": "Agregar etiqueta",
+    "addCategory": "Agregar categoría",
+    "plugins": "Plugins",
+    "copyLink": "Copiar enlace",
+    "openBrowser": "Abrir en el navegador",
+    "start": "Iniciar",
+    "playDownload": "Reproducir descarga"
+  },
+  "status": {
+    "queued": "En cola",
+    "downloading": "Descargando",
+    "finished": "Finalizado",
+    "error": "Error",
+    "paused": "Pausado",
+    "stopped": "Detenido",
+    "converting": "Convirtiendo",
+    "gettingInfo": "Obteniendo información"
+  },
+  "table": {
+    "title": "Título",
+    "format": "Formato",
+    "size": "Tamaño",
+    "speed": "Velocidad",
+    "source": "Fuente",
+    "dateAdded": "Fecha de agregado",
+    "uploadedOn": "Fecha de subida",
+    "transcript": "Subtítulos",
+    "status": "Estado",
+    "action": "Acción",
+    "noDownloads": "Aún no hay descargas",
+    "tags": "Etiquetas",
+    "categories": "Categorías",
+    "noTags": "Sin etiquetas",
+    "noCategories": "Sin categorías"
+  },
+  "itemsSelected_one": "{{count}} elemento seleccionado",
+  "itemsSelected_other": "{{count}} elementos seleccionados",
+  "timeAgo": {
+    "minutes": "hace {{count}} min",
+    "hour_one": "hace {{count}} hora",
+    "hour_other": "hace {{count}} horas",
+    "day_one": "hace {{count}} día",
+    "day_other": "hace {{count}} días",
+    "week_one": "hace {{count}} semana",
+    "week_other": "hace {{count}} semanas",
+    "month_one": "hace {{count}} mes",
+    "month_other": "hace {{count}} meses",
+    "year_one": "hace {{count}} año",
+    "year_other": "hace {{count}} años"
+  },
+  "fileSize": {
+    "gb": "{{value}} GB",
+    "mb": "{{value}} MB",
+    "kb": "{{value}} KB",
+    "bytes": "{{count}} bytes",
+    "unknown": "—"
+  },
+  "modals": {
+    "about": {
+      "title": "Acerca de",
+      "visitSite": "Visitar sitio oficial",
+      "version": "Version {{version}}",
+      "developedForYou": "Desarrollado para ti.",
+      "features": {
+        "title": "Características",
+        "downloadVideos": {
+          "title": "Descarga videos de todos tus sitios favoritos",
+          "item1": "Compatible con YouTube, Twitch, Twitter, TikTok y cientos más",
+          "item2": "Descarga canales o listas de reproducción completas con un clic",
+          "item3": "Guarda transmisiones en vivo, shorts e historias",
+          "item4": "Elige tu calidad de video preferida"
+        },
+        "easyToUse": {
+          "title": "Fácil de usar",
+          "item1": "Personaliza dónde se guardan tus archivos",
+          "item2": "Elige cómo se nombran los archivos",
+          "item3": "Actualiza a la última versión automáticamente"
+        },
+        "advancedMedia": {
+          "title": "Opciones multimedia avanzadas",
+          "item1": "Conserva las miniaturas de video con tus descargas",
+          "item2": "Descarga partes seleccionadas de listas de reproducción"
+        }
+      }
+    },
+    "help": {
+      "title": "Ayuda"
+    },
+    "stop": {
+      "title": "Detener descarga",
+      "message": "¿Estás seguro de que deseas detener esta descarga?",
+      "confirm": "Detener",
+      "cancel": "Cancelar"
+    }
+  },
+  "shareButton": {
+    "tooltip": "Compartir video",
+    "title": "Compartir video",
+    "videoFallback": "Video",
+    "copyLink": "Copiar enlace",
+    "emailLink": "Enviar por email",
+    "facebook": "Facebook",
+    "twitter": "X (Twitter)",
+    "disclaimer": "Ten en cuenta que si decides compartir este video, será visible para el público y otros podrán acceder a su contenido.",
+    "emailSubject": "Mira este video: {{name}}",
+    "emailBody": "Creo que te podría gustar este video: {{link}}",
+    "twitterText": "Mira este video: {{name}}",
+    "toast": {
+      "errorTitle": "Error",
+      "errorDesc": "No se pudo generar un enlace para compartir",
+      "copiedTitle": "Enlace copiado",
+      "copiedDesc": "El enlace ha sido copiado al portapapeles.",
+      "copyFailedTitle": "Error al copiar",
+      "copyFailedDesc": "No se pudo copiar el enlace al portapapeles. Por favor intenta de nuevo."
+    }
+  },
+  "statusPage": {
+    "thumbnail": {
+      "viewFull": "Ver miniatura completa",
+      "notDownloaded": "Miniatura no descargada",
+      "notAvailable": "Miniatura no disponible",
+      "unableToLoad": "No se puede cargar"
+    },
+    "status": {
+      "clickToRetry": "Clic para reintentar la descarga",
+      "viewVideo": "Ver video",
+      "openFolder": "Abrir carpeta",
+      "viewPreview": "Ver vista previa"
+    },
+    "format": {
+      "unknown": "Desconocido"
+    }
+  },
+  "taskbarInput": {
+    "placeholder": "Buscar descargas o escribir una URL",
+    "tooltip": {
+      "copy": "Copiar",
+      "settings": "Obtén la transcripción y la miniatura junto con tu descarga.",
+      "download": "Descargar",
+      "openArticle": "Abrir instalador de artículos"
+    },
+    "toast": {
+      "playlistErrorTitle": "Error de lista de reproducción",
+      "playlistErrorDesc": "No se pudo obtener la información de la lista de reproducción",
+      "channelDetectedTitle": "Enlace de canal detectado",
+      "channelDetectedDesc": "Enviando a Subscription para configurar una suscripción para este canal.",
+      "playlistDetectedTitle": "Enlace de lista de reproducción detectado",
+      "playlistDetectedDesc": "Obteniendo información de la lista de reproducción... Esto puede tardar un momento.",
+      "invalidUrlTitle": "URL inválida",
+      "invalidUrlDesc": "Por favor ingresa una URL válida",
+      "invalidUrlFormatTitle": "Formato de URL inválido",
+      "invalidUrlFormatDesc": "El formato de la URL no es válido",
+      "selectionErrorTitle": "Error de selección",
+      "selectionErrorDesc": "Por favor selecciona al menos un video para descargar",
+      "downloadQueuedTitle": "Descarga en cola",
+      "downloadQueuedDesc": "Obteniendo metadatos del video para descargar...",
+      "noInternetTitle": "Sin conexión a internet",
+      "noInternetDesc": "Por favor verifica tu conexión a internet e intenta de nuevo",
+      "errorTitle": "Error",
+      "errorDesc": "No se pudo agregar a la cola de descarga",
+      "copiedTitle": "Copiado al portapapeles",
+      "copiedDesc": "La URL ha sido copiada a tu portapapeles",
+      "copyFailedTitle": "Error al copiar URL",
+      "copyFailedDesc": "No se pudo copiar la URL al portapapeles"
+    }
+  },
+  "toolbar": {
+    "tooltip": {
+      "startDisabled": "Selecciona elementos en cola para iniciar la descarga",
+      "startEnabled": "Iniciar descargas seleccionadas",
+      "stopEnabled": "Detener descargas seleccionadas",
+      "stopDisabled": "Selecciona elementos en descarga para detener",
+      "stopAllDisabled": "No hay descargas activas para detener",
+      "stopAll": "Detener todo",
+      "generateCaptions": "Generar subtítulos",
+      "generateCaptionsDisabled": "Selecciona videos finalizados sin subtítulos para generar transcripciones",
+      "remove": "Eliminar"
+    },
+    "toast": {
+      "noDownloadsSelectedTitle": "Sin descargas seleccionadas",
+      "noDownloadsSelectedStop": "Por favor selecciona descargas para detener",
+      "noDownloadsSelectedPlay": "Por favor selecciona descargas para reproducir",
+      "noDownloadsSelectedRemove": "Por favor selecciona descargas para eliminar",
+      "noDownloadsFoundTitle": "Sin descargas encontradas",
+      "noDownloadsFoundDesc": "No hay descargas actuales para detener",
+      "downloadStoppedTitle": "Descarga detenida",
+      "downloadStoppedDesc": "La descarga se ha detenido exitosamente",
+      "stopErrorTitle": "Error al detener descarga",
+      "stopErrorCouldNotDesc": "No se pudo detener la descarga con el controlador {{controllerId}}",
+      "stopErrorDesc": "Error al detener la descarga con el controlador {{controllerId}}",
+      "noValidDownloadsTitle": "Sin descargas válidas",
+      "noValidDownloadsDesc": "Por favor selecciona descargas que estén listas para iniciar",
+      "addedToQueueTitle": "Descargas añadidas a la cola",
+      "addedToQueueDesc": "{{count}} descarga(s) añadida(s) a la cola. El controlador de descargas las iniciará automáticamente según tu límite.",
+      "downloadDeletedTitle": "Descarga eliminada",
+      "downloadDeletedDesc": "La descarga se ha eliminado exitosamente",
+      "folderDeletedTitle": "Carpeta eliminada",
+      "folderDeletedDesc": "La carpeta y su contenido se han eliminado exitosamente",
+      "folderDeleteErrorTitle": "Error",
+      "folderDeleteErrorDesc": "No se pudo eliminar la carpeta. Es posible que no exista o esté en uso.",
+      "fileDeletedTitle": "Archivo eliminado",
+      "fileDeletedDesc": "El archivo se ha eliminado exitosamente",
+      "downloadRemovedTitle": "Descarga removida",
+      "pendingRemovedDesc": "La descarga pendiente se ha removido exitosamente",
+      "failedRemovedDesc": "La descarga fallida se ha removido exitosamente",
+      "cancelledRemovedDesc": "La descarga cancelada se ha removido exitosamente",
+      "pausedRemovedDesc": "La descarga pausada se ha removido exitosamente",
+      "initializingRemovedDesc": "La descarga en inicialización se ha removido exitosamente",
+      "queuedRemovedDesc": "La descarga en cola se ha removido exitosamente",
+      "noEligibleTitle": "Sin descargas elegibles",
+      "noEligibleDesc": "Las descargas seleccionadas ya tienen transcripciones o no están finalizadas.",
+      "batchStartedTitle": "Transcripción en lote iniciada",
+      "batchStartedDesc": "Generando subtítulos para {{count}} descarga(s) secuencialmente.",
+      "transcriptionFailedTitle": "Transcripción fallida",
+      "transcriptionFailedDefault": "No se pudo crear la transcripción",
+      "batchCompleteTitle": "Transcripción en lote completada",
+      "batchCompleteDesc": "{{successCount}} exitosa(s), {{failCount}} fallida(s).",
+      "selectOneTitle": "Selecciona una descarga",
+      "selectOneDesc": "Por favor selecciona exactamente una descarga para obtener el enlace"
+    },
+    "settingsButton": "Configuración",
+    "deleteLabel": "Eliminar"
+  },
+  "removeModal": {
+    "title": "Eliminar elemento seleccionado",
+    "message": "¿Estás seguro de que deseas eliminar estas descargas de la lista de descargas?",
+    "alsoDeleteFolder": "Eliminar también la carpeta descargada y sus archivos"
+  },
+  "categorySearchBar": {
+    "placeholder": "Buscar por {{fields}}...",
+    "filterTooltip": "Filtrar campos",
+    "clearTooltip": "Limpiar",
+    "fields": {
+      "title": "Título",
+      "tags": "Etiquetas",
+      "categories": "Categorías",
+      "status": "Estado",
+      "source": "Fuente"
+    }
+  },
+  "downloadController": {
+    "downloadStarted": "Descarga iniciada desde la cola",
+    "downloadStartedDesc": "\"{{name}}\" ha comenzado a descargarse."
+  },
+  "downloadButton": {
+    "tooltip": "Descargar video",
+    "toastTitle": "Descarga añadida a la cola",
+    "toastDesc": "\"{{name}}\" añadido a la cola. El controlador de descargas lo iniciará automáticamente."
+  },
+  "statusHandler": {
+    "transcriptRedownloaded": "Transcripción re-descargada",
+    "transcriptRedownloadedDesc": "La transcripción se ha re-descargado correctamente",
+    "downloadRetried": "Descarga reintentada",
+    "downloadRetriedDesc": "La descarga se ha reintentado correctamente",
+    "downloadResumed": "Descarga reanudada",
+    "downloadResumedDesc": "La descarga se ha reanudado correctamente",
+    "downloadPaused": "Descarga pausada",
+    "downloadPausedDesc": "La descarga se ha pausado correctamente",
+    "pauseFailed": "Error al pausar",
+    "pauseFailedDesc": "No se pudo pausar la descarga. Por favor, inténtalo de nuevo.",
+    "pauseError": "Error al pausar la descarga",
+    "cannotPauseYet": "No se puede pausar aún",
+    "cannotPauseYetDesc": "La descarga aún se está inicializando. Por favor, inténtalo de nuevo.",
+    "noDownloadLocation": "Sin ubicación de descarga",
+    "invalidDownloadLocation": "Ubicación de descarga no válida",
+    "fileNotFound": "Archivo no encontrado",
+    "fileNotFoundDesc": "El archivo no existe en la ubicación especificada",
+    "failedToViewDownload": "Error al ver la descarga",
+    "failedToStopDownload": "Error al detener la descarga",
+    "failedToViewFolder": "Error al ver la carpeta",
+    "missingFolder": "Carpeta no encontrada",
+    "missingFolderDesc": "La carpeta de descarga aún no existe",
+    "error": "Error"
+  },
+  "dropdownBar": {
+    "menus": {
+      "file": "Archivo",
+      "settings": "Configuración",
+      "help": "Ayuda"
+    },
+    "file": {
+      "history": "Historial",
+      "exit": "Salir"
+    },
+    "help": {
+      "guide": "Guía",
+      "appUpdates": "Actualizaciones",
+      "about": "Acerca de"
+    },
+    "search": {
+      "placeholder": "Buscar descargas...",
+      "noResults": "No se encontraron descargas"
+    },
+    "toast": {
+      "downloadStartedTitle": "Descarga iniciada",
+      "downloadStartedDesc": "Tu archivo se está descargando. Esto puede tardar unos minutos dependiendo del tamaño del archivo y tu velocidad de conexión.",
+      "errorOpeningFileTitle": "Error al abrir el archivo",
+      "checkingConnectionTitle": "Verificando conexión",
+      "checkingConnectionDesc": "Verificando la conectividad a internet...",
+      "noInternetTitle": "Sin conexión a internet",
+      "noInternetDesc": "Por favor, verifica tu conexión a internet e inténtalo de nuevo",
+      "checkingUpdatesTitle": "Buscando actualizaciones",
+      "checkingUpdatesDesc": "Buscando nuevas actualizaciones, por favor espera",
+      "upToDateTitle": "¡Estás actualizado!",
+      "upToDateDesc": "Estás usando la última versión (v{{version}}).",
+      "updateCheckFailedTitle": "Error al verificar actualizaciones",
+      "updateCheckFailedDesc": "No se pueden verificar las actualizaciones. Por favor, inténtalo de nuevo más tarde.",
+      "retry": "Reintentar"
+    }
+  },
+  "helpModal": {
+    "title": "Guía de ayuda",
+    "tabs": {
+      "guide": "Guía de descarga",
+      "common": "Preguntas frecuentes",
+      "advanced": "Solución de problemas y consejos avanzados",
+      "subscription": "Suscripción"
+    },
+    "guide": {
+      "downloadSteps": {
+        "title": "Pasos para descargar",
+        "s1": "Abre la sección \"Agregar URL\".",
+        "s2": "Pega una URL de video válida y selecciona el destino de descarga.",
+        "s3": "Haz clic en el botón \"Descargar\".",
+        "s4": "Navega a la página de estado \"Descargando\" o \"Todas las descargas\".",
+        "s5": "Espera a que se procesen los metadatos del video.",
+        "s6": "Una vez listo, haz clic en el botón de reproducción en la sección de estado.",
+        "s7": "Espera a que finalice la descarga.",
+        "s8": "Al completarse, haz clic derecho en la entrada para ver opciones adicionales. Puedes:",
+        "s8a": "Ver los detalles de la descarga",
+        "s8b": "Abrir la carpeta de descarga",
+        "s8c": "Eliminar la descarga",
+        "s8d": "Ajustar etiquetas y categorías",
+        "s9": "Haz clic en una fila para ver información detallada de tu descarga.",
+        "s10": "Tus registros de descarga se guardarán para referencia futura en el historial."
+      },
+      "pauseStop": {
+        "title": "Pausar, detener, eliminar e iniciar descargas",
+        "s1": "Cada descarga tiene botones de control en las columnas de estado y en el menú contextual",
+        "s1a": "Botón de reproducción - Inicia o reanuda la descarga",
+        "s1b": "Botón de pausa - Pausa temporalmente la descarga",
+        "s1c": "Botón de detención - Detiene y elimina completamente la descarga",
+        "s2": "Los botones de control de descarga también están disponibles en la barra de tareas y el menú desplegable",
+        "s2a": "Los usuarios pueden seleccionar múltiples descargas para reproducir o detener",
+        "s2b": "Los usuarios también pueden usar la opción todo para controlar todos los videos en descarga",
+        "s3": "Eliminar descargas",
+        "s3a": "Eliminar descargas afecta las descargas completadas. Esta acción elimina el archivo descargado de tu dispositivo y borra el registro del historial.",
+        "s3b": "Para descargas pendientes, solo se guarda el registro; aún no se ha guardado ningún archivo en el disco."
+      }
+    },
+    "common": {
+      "whatIsHistory": {
+        "title": "¿Qué es el historial?",
+        "s1": "El historial es un registro de todas tus descargas pasadas",
+        "s2": "A diferencia de las páginas de estado, el Historial:",
+        "s2a": "No muestra el progreso ni los controles de descarga",
+        "s2b": "Solo lleva un seguimiento de lo que has descargado",
+        "s2c": "Muestra si los archivos aún existen en tu dispositivo",
+        "s3": "Puedes usar el Historial para volver a descargar videos o revisar tus descargas anteriores"
+      },
+      "viewVideos": {
+        "title": "Cómo ver videos",
+        "s1": "Haz clic derecho en una fila de video en las páginas de estado para abrir el menú contextual y acceder a la vista de video"
+      },
+      "contextMenus": {
+        "title": "Cómo usar los menús contextuales",
+        "s1": "Haz clic derecho en cualquier descarga para acceder a opciones adicionales:",
+        "s1a": "Ver video descargado",
+        "s1b": "Abrir carpeta contenedora",
+        "s1c": "Controlar estado de descarga",
+        "s1d": "Eliminar de la lista"
+      }
+    },
+    "advanced": {
+      "stuckInitializing": {
+        "title": "La descarga está atascada en inicialización",
+        "s1": "Verifica tu conexión a internet",
+        "s2": "Comprueba que la URL del video siga siendo válida",
+        "s3": "Reinicia la descarga:",
+        "s3a": "Pausa la descarga",
+        "s3b": "Ve a la carpeta y elimina cualquier archivo parcial restante",
+        "s3c": "Reanuda la descarga"
+      },
+      "failedDelete": {
+        "title": "Error al eliminar el video",
+        "s1": "Si no puedes eliminar un video:",
+        "s1a": "Cierra las aplicaciones que estén usando el archivo de video",
+        "s1b": "Reinicia la aplicación",
+        "s1c": "Verifica si tienes permiso para eliminar archivos en esa ubicación"
+      },
+      "slowSpeed": {
+        "title": "La velocidad de descarga es lenta",
+        "s1": "Para mejorar la velocidad de descarga:",
+        "s1a": "Verifica tu conexión a internet",
+        "s1b": "Reduce el número de descargas simultáneas",
+        "s1c": "Ajusta el límite de velocidad en la configuración si está activado"
+      },
+      "permissionErrors": {
+        "title": "Errores de permisos (EPERM)",
+        "s1": "Si ves errores de permisos:",
+        "s1a": "Ejecuta la aplicación como administrador",
+        "s1b": "Verifica los permisos de la carpeta",
+        "s1c": "Elige una ubicación de descarga diferente"
+      }
+    },
+    "subscription": {
+      "howToAdd": {
+        "title": "Cómo agregar una suscripción",
+        "s1": "Navega a la sección Suscripción desde la barra lateral.",
+        "s2": "Haz clic en el botón Suscribirse para abrir el modal de suscripción.",
+        "s3": "Pega una URL de canal de YouTube en el campo de URL de origen.",
+        "s3a": "Debe ser una URL de canal o lista de reproducción — no un video individual ni un enlace de Shorts.",
+        "s3b": "Solo se admiten canales de YouTube en este momento.",
+        "s4": "Espera a que finalice el análisis del canal — detecta automáticamente el patrón de subida del canal.",
+        "s5": "Una vez completado el análisis, configura tu suscripción:",
+        "s5a": "Automático — usa el patrón de subida detectado para establecer el horario de verificación.",
+        "s5b": "Manual — elige días específicos de la semana, una hora de verificación y zona horaria.",
+        "s5c": "Selecciona un ajuste de calidad (Más baja, Baja o Mejor).",
+        "s5d": "Elige una carpeta de destino para los videos descargados.",
+        "s6": "Establece cuántos videos existentes del canal descargar en la primera ejecución usando el menú desplegable \"Descargar últimos N videos\".",
+        "s7": "Haz clic en Suscribirse para confirmar — la suscripción se pone en cola y se procesa en segundo plano."
+      },
+      "whatHappensAfter": {
+        "title": "Qué sucede después de suscribirse",
+        "s1": "La suscripción se pone en cola y se configura en segundo plano — la verás aparecer en la lista de suscripciones.",
+        "s2": "En la primera ejecución, la suscripción descarga los videos más recientes hasta el límite que seleccionaste.",
+        "s3": "Después del scraping inicial, la suscripción verifica automáticamente nuevas subidas según tu horario configurado (diario, semanal o según lo detectado).",
+        "s4": "Los videos recién detectados se agregan a la cola de descarga y se procesan como descargas regulares.",
+        "s5": "Puedes ver la actividad, el historial de descargas y el análisis de cada suscripción desde su página de detalles.",
+        "s6": "Las suscripciones pueden pausarse, editarse o eliminarse en cualquier momento desde el menú contextual o la pestaña de configuración de suscripción."
+      },
+      "commonErrors": {
+        "title": "Errores comunes y qué hacer",
+        "invalidUrl": {
+          "title": "URL inválida / Protocolo no admitido",
+          "s1": "Asegúrate de que la URL comience con https://.",
+          "s2": "Copia la URL directamente desde la barra de direcciones del navegador."
+        },
+        "unsupportedPlatform": {
+          "title": "Plataforma no admitida",
+          "s1": "Solo se admiten URLs de canales de YouTube actualmente.",
+          "s2": "Las URLs de otras plataformas no pasarán la validación."
+        },
+        "videoOrShorts": {
+          "title": "Enlace de video o Shorts detectado",
+          "s1": "La suscripción se suscribe a canales, no a videos individuales.",
+          "s2": "Usa la función de descarga principal para URLs de videos individuales.",
+          "s3": "Para un canal, navega a la página del canal y copia su URL."
+        },
+        "alreadySubscribed": {
+          "title": "Ya suscrito",
+          "s1": "Ya existe una suscripción para este canal.",
+          "s2": "Encuéntrala y adminístrala desde la lista de suscripciones."
+        },
+        "noVideos": {
+          "title": "No se encontraron videos / El canal parece vacío",
+          "s1": "El canal puede tener solo Shorts — prueba la URL de la pestaña de videos principales del canal.",
+          "s2": "El canal puede ser privado o no tener subidas públicas."
+        },
+        "analysisFailed": {
+          "title": "Análisis fallido",
+          "s1": "Verifica tu conexión a internet.",
+          "s2": "La URL del canal puede haber cambiado — verifícala en tu navegador.",
+          "s3": "Reinicia la aplicación e inténtalo de nuevo si el error persiste."
+        }
+      }
+    }
+  },
+  "videoPlayer": {
+    "fallbackTitle": "Video",
+    "fallbackVideoPreview": "Vista previa del video",
+    "floatButton": "Flotar",
+    "floatWindowTitle": "Ventana flotante",
+    "backTitle": "Atrás",
+    "downloadButtonTitle": "Descargar",
+    "error": {
+      "couldNotLoadStream": "No se pudo cargar el flujo de video.",
+      "retry": "Reintentar"
+    },
+    "floating": {
+      "message": "Reproduciendo en ventana flotante",
+      "returnToPanel": "Volver al panel"
+    },
+    "menu": {
+      "openFolder": "Abrir carpeta",
+      "viewSource": "Ver fuente",
+      "shareVideo": "Compartir video",
+      "generateCaption": "Generar subtítulos",
+      "download": "Descargar",
+      "captions": "Subtítulos",
+      "pictureInPicture": "Imagen en imagen",
+      "playbackSpeed": "Velocidad de reproducción",
+      "normal": "Normal"
+    },
+    "transcript": {
+      "title": "Transcripciones",
+      "auto": "Auto",
+      "manual": "Manual",
+      "platformFallback": "plataforma",
+      "searchPlaceholder": "Buscar transcripción",
+      "noTranscript": "No hay transcripción disponible",
+      "copyTitle": "Copiar transcripción",
+      "downloadTitle": "Descargar transcripción"
+    },
+    "chapters": {
+      "title": "Capítulos",
+      "count": "{{count}} Capítulos",
+      "searchPlaceholder": "Buscar capítulos",
+      "noChapters": "No hay capítulos disponibles"
+    },
+    "description": {
+      "noDescription": "No hay descripción disponible",
+      "categories": "Categorías:",
+      "tags": "Etiquetas:",
+      "openWith": "Abrir con"
+    },
+    "favorites": {
+      "add": "Añadir a favoritos",
+      "remove": "Eliminar de favoritos"
+    },
+    "tabs": {
+      "description": "Descripción",
+      "transcript": "Transcripción",
+      "chapters": "Capítulos"
+    },
+    "duration": {
+      "total": "total",
+      "current": "actual"
+    },
+    "transcription": {
+      "failed": "Transcripción fallida",
+      "failedDesc": "No se pudo crear la transcripción"
+    }
+  }
+}

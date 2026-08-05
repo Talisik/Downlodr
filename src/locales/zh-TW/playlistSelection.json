@@ -1,0 +1,16 @@
+{
+  "title": "選擇要下載的影片",
+  "subtitle": "選擇此播放清單中要下載的影片。",
+  "getClosedCaptions": "取得字幕",
+  "getThumbnail": "取得縮圖",
+  "videos_other": "{{count}} 部影片",
+  "selected": "已選擇 {{count}}/{{total}}",
+  "cancel": "取消",
+  "downloadSelected": "下載所選 ({{count}})",
+  "toast": {
+    "selectionErrorTitle": "未選擇影片",
+    "selectionErrorDesc": "請至少選擇一部要下載的影片。",
+    "downloadQueuedTitle": "下載已加入佇列",
+    "downloadQueuedDesc": "所選影片已加入下載佇列。"
+  }
+}

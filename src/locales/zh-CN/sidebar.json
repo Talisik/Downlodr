@@ -1,0 +1,35 @@
+{
+  "sections": {
+    "status": "状态",
+    "categories": "分类",
+    "tags": "标签"
+  },
+  "status": {
+    "all": "全部",
+    "fetchingMetadata": "获取元数据",
+    "startDownload": "开始下载",
+    "queued": "排队中",
+    "downloading": "下载中",
+    "paused": "已暂停",
+    "initializing": "初始化中",
+    "failed": "失败",
+    "finished": "已完成"
+  },
+  "subscriptions": "订阅",
+  "categories": {
+    "all": "全部",
+    "uncategorized": "未分类"
+  },
+  "tags": {
+    "all": "全部",
+    "untagged": "未标记"
+  },
+  "collapse": "收起侧边栏",
+  "expand": "展开侧边栏",
+  "toast": {
+    "categorized": "下载已分类",
+    "categorizedDesc": "设置为「{{category}}」",
+    "tagged": "下载已标记",
+    "taggedDesc": "已标记为「{{tag}}」"
+  }
+}

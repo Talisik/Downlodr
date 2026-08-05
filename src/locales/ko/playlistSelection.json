@@ -1,0 +1,16 @@
+{
+  "title": "다운로드할 동영상 선택",
+  "subtitle": "이 재생목록에서 다운로드할 동영상을 선택하세요.",
+  "getClosedCaptions": "자막 가져오기",
+  "getThumbnail": "썸네일 가져오기",
+  "videos_other": "동영상 {{count}}개",
+  "selected": "{{total}}개 중 {{count}}개 선택됨",
+  "cancel": "취소",
+  "downloadSelected": "선택 항목 다운로드 ({{count}})",
+  "toast": {
+    "selectionErrorTitle": "선택된 동영상 없음",
+    "selectionErrorDesc": "다운로드할 동영상을 하나 이상 선택하세요.",
+    "downloadQueuedTitle": "다운로드 대기열에 추가됨",
+    "downloadQueuedDesc": "선택한 동영상이 다운로드 대기열에 추가되었습니다."
+  }
+}

@@ -1,0 +1,552 @@
+﻿{
+  "contextMenu": {
+    "pause": "暫停",
+    "resume": "繼續",
+    "stop": "停止",
+    "forceStart": "強制開始",
+    "remove": "移除",
+    "rename": "重新命名",
+    "viewFolder": "開啟資料夾",
+    "viewEmbedded": "透過嵌入檢視",
+    "retry": "重試",
+    "showLog": "顯示記錄",
+    "activityTracker": "活動追蹤器",
+    "tags": "標籤",
+    "categories": "分類",
+    "addTag": "新增標籤",
+    "addCategory": "新增分類",
+    "plugins": "外掛",
+    "copyLink": "複製連結",
+    "openBrowser": "在瀏覽器中開啟",
+    "start": "開始",
+    "playDownload": "播放下載"
+  },
+  "status": {
+    "queued": "排隊中",
+    "downloading": "下載中",
+    "finished": "已完成",
+    "error": "錯誤",
+    "paused": "已暫停",
+    "stopped": "已停止",
+    "converting": "轉換中",
+    "gettingInfo": "取得資訊中"
+  },
+  "table": {
+    "title": "標題",
+    "format": "格式",
+    "size": "大小",
+    "speed": "速度",
+    "source": "來源",
+    "dateAdded": "新增日期",
+    "uploadedOn": "上傳日期",
+    "transcript": "字幕",
+    "status": "狀態",
+    "action": "操作",
+    "noDownloads": "尚無下載",
+    "tags": "標籤",
+    "categories": "分類",
+    "noTags": "無標籤",
+    "noCategories": "無分類"
+  },
+  "itemsSelected_one": "已選擇 {{count}} 個項目",
+  "itemsSelected_other": "已選擇 {{count}} 個項目",
+  "timeAgo": {
+    "minutes": "{{count}} 分鐘前",
+    "hour_one": "{{count}} 小時前",
+    "hour_other": "{{count}} 小時前",
+    "day_one": "{{count}} 天前",
+    "day_other": "{{count}} 天前",
+    "week_one": "{{count}} 週前",
+    "week_other": "{{count}} 週前",
+    "month_one": "{{count}} 個月前",
+    "month_other": "{{count}} 個月前",
+    "year_one": "{{count}} 年前",
+    "year_other": "{{count}} 年前"
+  },
+  "fileSize": {
+    "gb": "{{value}} GB",
+    "mb": "{{value}} MB",
+    "kb": "{{value}} KB",
+    "bytes": "{{count}} 位元組",
+    "unknown": "—"
+  },
+  "modals": {
+    "about": {
+      "title": "關於",
+      "visitSite": "造訪官方網站",
+      "version": "版本 {{version}}",
+      "developedForYou": "專為您開發。",
+      "features": {
+        "title": "功能",
+        "downloadVideos": {
+          "title": "從您最喜愛的網站下載影片",
+          "item1": "支援 YouTube、Twitch、Twitter、TikTok 及數百個網站",
+          "item2": "一鍵下載整個頻道或播放清單",
+          "item3": "儲存直播、短影片和限時動態",
+          "item4": "選擇您偏好的影片畫質"
+        },
+        "easyToUse": {
+          "title": "簡單易用",
+          "item1": "自訂檔案儲存位置",
+          "item2": "自訂檔案命名方式",
+          "item3": "自動更新至最新版本"
+        },
+        "advancedMedia": {
+          "title": "進階媒體選項",
+          "item1": "隨下載保留影片縮圖",
+          "item2": "下載播放清單的指定部分"
+        }
+      }
+    },
+    "help": {
+      "title": "說明"
+    },
+    "stop": {
+      "title": "停止下載",
+      "message": "確定要停止此下載嗎？",
+      "confirm": "停止",
+      "cancel": "取消"
+    }
+  },
+  "shareButton": {
+    "tooltip": "分享影片",
+    "title": "分享影片",
+    "videoFallback": "影片",
+    "copyLink": "複製連結",
+    "emailLink": "以電子郵件傳送連結",
+    "facebook": "Facebook",
+    "twitter": "X (Twitter)",
+    "disclaimer": "請注意，若您選擇分享此影片，它將對公眾可見，其他人可能能夠存取其內容。",
+    "emailSubject": "查看這個影片：{{name}}",
+    "emailBody": "我認為您可能會喜歡這個影片：{{link}}",
+    "twitterText": "查看這個影片：{{name}}",
+    "toast": {
+      "errorTitle": "錯誤",
+      "errorDesc": "無法產生可分享的連結",
+      "copiedTitle": "連結已複製",
+      "copiedDesc": "連結已複製到剪貼簿。",
+      "copyFailedTitle": "複製失敗",
+      "copyFailedDesc": "無法複製連結到剪貼簿，請重試。"
+    }
+  },
+  "statusPage": {
+    "thumbnail": {
+      "viewFull": "檢視完整縮圖",
+      "notDownloaded": "縮圖未下載",
+      "notAvailable": "縮圖不可用",
+      "unableToLoad": "無法載入"
+    },
+    "status": {
+      "clickToRetry": "點擊以重試下載",
+      "viewVideo": "檢視影片",
+      "openFolder": "開啟資料夾",
+      "viewPreview": "檢視預覽"
+    },
+    "format": {
+      "unknown": "未知"
+    }
+  },
+  "taskbarInput": {
+    "placeholder": "搜尋下載或輸入網址",
+    "tooltip": {
+      "copy": "複製",
+      "settings": "下載時同時取得字幕和縮圖。",
+      "download": "下載",
+      "openArticle": "開啟文章安裝器"
+    },
+    "toast": {
+      "playlistErrorTitle": "播放清單錯誤",
+      "playlistErrorDesc": "無法擷取播放清單資訊",
+      "channelDetectedTitle": "偵測到頻道連結",
+      "channelDetectedDesc": "正在傳送至 Subscription 以設定此頻道的訂閱。",
+      "playlistDetectedTitle": "偵測到播放清單連結",
+      "playlistDetectedDesc": "正在取得播放清單下載資訊，這可能需要一些時間。",
+      "invalidUrlTitle": "無效的網址",
+      "invalidUrlDesc": "請輸入有效的網址",
+      "invalidUrlFormatTitle": "無效的網址格式",
+      "invalidUrlFormatDesc": "網址格式無效",
+      "selectionErrorTitle": "選擇錯誤",
+      "selectionErrorDesc": "請至少選擇一個要下載的影片",
+      "downloadQueuedTitle": "下載已加入佇列",
+      "downloadQueuedDesc": "正在擷取影片中繼資料以進行下載...",
+      "noInternetTitle": "無網際網路連線",
+      "noInternetDesc": "請檢查您的網際網路連線後重試",
+      "errorTitle": "錯誤",
+      "errorDesc": "無法新增至下載佇列",
+      "copiedTitle": "已複製到剪貼簿",
+      "copiedDesc": "網址已複製到您的剪貼簿",
+      "copyFailedTitle": "複製網址失敗",
+      "copyFailedDesc": "無法複製網址到剪貼簿"
+    }
+  },
+  "toolbar": {
+    "tooltip": {
+      "startDisabled": "選擇排隊中的下載項目以開始下載",
+      "startEnabled": "開始選取的下載",
+      "stopEnabled": "停止選取的下載",
+      "stopDisabled": "選擇目前下載中的項目以停止",
+      "stopAllDisabled": "沒有活動的下載可停止",
+      "stopAll": "全部停止",
+      "generateCaptions": "產生字幕",
+      "generateCaptionsDisabled": "選擇無字幕的已完成影片以產生逐字稿",
+      "remove": "移除"
+    },
+    "toast": {
+      "noDownloadsSelectedTitle": "未選擇下載",
+      "noDownloadsSelectedStop": "請選擇要停止的下載",
+      "noDownloadsSelectedPlay": "請選擇要播放的下載",
+      "noDownloadsSelectedRemove": "請選擇要移除的下載",
+      "noDownloadsFoundTitle": "找不到下載",
+      "noDownloadsFoundDesc": "沒有目前的下載可停止",
+      "downloadStoppedTitle": "下載已停止",
+      "downloadStoppedDesc": "下載已成功停止",
+      "stopErrorTitle": "停止下載錯誤",
+      "stopErrorCouldNotDesc": "無法使用控制器 {{controllerId}} 停止下載",
+      "stopErrorDesc": "使用控制器 {{controllerId}} 停止下載時發生錯誤",
+      "noValidDownloadsTitle": "沒有有效的下載",
+      "noValidDownloadsDesc": "請選擇準備好開始的下載",
+      "addedToQueueTitle": "下載已加入佇列",
+      "addedToQueueDesc": "{{count}} 個下載已加入佇列，下載控制器將根據您的限制自動開始。",
+      "downloadDeletedTitle": "下載已刪除",
+      "downloadDeletedDesc": "下載已成功刪除",
+      "folderDeletedTitle": "資料夾已刪除",
+      "folderDeletedDesc": "資料夾及其內容已成功刪除",
+      "folderDeleteErrorTitle": "錯誤",
+      "folderDeleteErrorDesc": "無法刪除資料夾，它可能不存在或正在使用中。",
+      "fileDeletedTitle": "檔案已刪除",
+      "fileDeletedDesc": "檔案已成功刪除",
+      "downloadRemovedTitle": "下載已移除",
+      "pendingRemovedDesc": "待處理的下載已成功移除",
+      "failedRemovedDesc": "失敗的下載已成功移除",
+      "cancelledRemovedDesc": "已取消的下載已成功移除",
+      "pausedRemovedDesc": "已暫停的下載已成功移除",
+      "initializingRemovedDesc": "初始化中的下載已成功移除",
+      "queuedRemovedDesc": "排隊中的下載已成功移除",
+      "noEligibleTitle": "沒有符合條件的下載",
+      "noEligibleDesc": "選取的下載已有字幕或尚未完成。",
+      "batchStartedTitle": "批次字幕產生已開始",
+      "batchStartedDesc": "正在依序為 {{count}} 個下載產生字幕。",
+      "transcriptionFailedTitle": "字幕產生失敗",
+      "transcriptionFailedDefault": "無法建立逐字稿",
+      "batchCompleteTitle": "批次字幕產生完成",
+      "batchCompleteDesc": "{{successCount}} 個成功，{{failCount}} 個失敗。",
+      "selectOneTitle": "選擇一個下載",
+      "selectOneDesc": "請選擇一個下載以取得連結"
+    },
+    "settingsButton": "設定",
+    "deleteLabel": "刪除"
+  },
+  "removeModal": {
+    "title": "移除選取的項目",
+    "message": "您確定要將這些下載從下載清單中移除嗎？",
+    "alsoDeleteFolder": "同時刪除已下載的資料夾及其檔案"
+  },
+  "categorySearchBar": {
+    "placeholder": "依 {{fields}} 搜尋...",
+    "filterTooltip": "篩選欄位",
+    "clearTooltip": "清除",
+    "fields": {
+      "title": "標題",
+      "tags": "標籤",
+      "categories": "分類",
+      "status": "狀態",
+      "source": "來源"
+    }
+  },
+  "downloadController": {
+    "downloadStarted": "已從佇列開始下載",
+    "downloadStartedDesc": "「{{name}}」已開始下載。"
+  },
+  "downloadButton": {
+    "tooltip": "下載影片",
+    "toastTitle": "下載已加入佇列",
+    "toastDesc": "「{{name}}」已加入佇列。下載控制器將自動開始。"
+  },
+  "statusHandler": {
+    "transcriptRedownloaded": "字幕重新下載完成",
+    "transcriptRedownloadedDesc": "字幕已成功重新下載",
+    "downloadRetried": "下載已重試",
+    "downloadRetriedDesc": "下載已成功重試",
+    "downloadResumed": "下載已繼續",
+    "downloadResumedDesc": "下載已成功繼續",
+    "downloadPaused": "下載已暫停",
+    "downloadPausedDesc": "下載已成功暫停",
+    "pauseFailed": "暫停失敗",
+    "pauseFailedDesc": "無法暫停下載，請重試。",
+    "pauseError": "暫停下載時發生錯誤",
+    "cannotPauseYet": "目前無法暫停",
+    "cannotPauseYetDesc": "下載仍在初始化中，請重試。",
+    "noDownloadLocation": "無下載位置",
+    "invalidDownloadLocation": "無效的下載位置",
+    "fileNotFound": "找不到檔案",
+    "fileNotFoundDesc": "指定位置中不存在該檔案",
+    "failedToViewDownload": "無法查看下載",
+    "failedToStopDownload": "無法停止下載",
+    "failedToViewFolder": "無法查看資料夾",
+    "missingFolder": "找不到資料夾",
+    "missingFolderDesc": "下載資料夾尚不存在",
+    "error": "錯誤"
+  }
+,
+  "dropdownBar": {
+    "menus": {
+      "file": "檔案",
+      "settings": "設定",
+      "help": "說明"
+    },
+    "file": {
+      "history": "歷史記錄",
+      "exit": "結束"
+    },
+    "help": {
+      "guide": "指南",
+      "appUpdates": "應用程式更新",
+      "about": "關於"
+    },
+    "search": {
+      "placeholder": "搜尋下載...",
+      "noResults": "找不到下載"
+    },
+    "toast": {
+      "downloadStartedTitle": "下載已開始",
+      "downloadStartedDesc": "您的檔案正在下載中。根據檔案大小和連綫速度，可能需要幾分鐘。",
+      "errorOpeningFileTitle": "開啟檔案時發生錯誤",
+      "checkingConnectionTitle": "正在檢查連綫",
+      "checkingConnectionDesc": "正在驗證網際網路連綫...",
+      "noInternetTitle": "無網際網路連綫",
+      "noInternetDesc": "請檢查您的網際網路連綫後重試",
+      "checkingUpdatesTitle": "正在檢查更新",
+      "checkingUpdatesDesc": "正在檢查新更新，請稍候",
+      "upToDateTitle": "您已是最新版本！",
+      "upToDateDesc": "您正在使用最新版本（v{{version}}）。",
+      "updateCheckFailedTitle": "檢查更新失敗",
+      "updateCheckFailedDesc": "無法檢查更新，請稍後重試。",
+      "retry": "重試"
+    }
+  }
+,
+  "helpModal": {
+    "title": "說明指南",
+    "tabs": {
+      "guide": "下載指南",
+      "common": "常見問題",
+      "advanced": "疑難排解與進階技巧",
+      "subscription": "訂閱"
+    },
+    "guide": {
+      "downloadSteps": {
+        "title": "下載步驟",
+        "s1": "開啟「新增網址」區域。",
+        "s2": "貼上有效的影片網址並選擇下載目的地。",
+        "s3": "點擊「下載」按鈕。",
+        "s4": "前往「下載中」或「所有下載」狀態頁面。",
+        "s5": "等待影片中繼資料處理完成。",
+        "s6": "準備就緒後，點擊狀態區域中的播放按鈕。",
+        "s7": "等待下載完成。",
+        "s8": "完成後，在項目上按滑鼠右鍵可查看其他選項。您可以：",
+        "s8a": "查看下載詳細資訊",
+        "s8b": "開啟下載資料夾",
+        "s8c": "刪除下載",
+        "s8d": "調整標籤和分類",
+        "s9": "點擊列可查看下載的詳細資訊。",
+        "s10": "您的下載記錄將儲存在歷史記錄中供日後參考。"
+      },
+      "pauseStop": {
+        "title": "暫停、停止、移除和開始下載",
+        "s1": "每個下載在狀態欄和右鍵選單中都有控制按鈕",
+        "s1a": "播放按鈕 - 開始或繼續下載",
+        "s1b": "暫停按鈕 - 暫時暫停下載",
+        "s1c": "停止按鈕 - 完全停止並移除下載",
+        "s2": "下載控制按鈕也可在工作列和工作下拉選單中使用",
+        "s2a": "使用者可選擇多個下載項目進行播放或停止",
+        "s2b": "使用者也可使用全部選項控制所有正在下載的影片",
+        "s3": "移除下載",
+        "s3a": "移除下載會影響已完成的下載。此操作會從裝置刪除已下載的檔案，並從歷史記錄中移除該項目。",
+        "s3b": "對於待處理的下載，只儲存下載記錄；尚未有任何檔案儲存到磁碟。"
+      }
+    },
+    "common": {
+      "whatIsHistory": {
+        "title": "什麼是歷史記錄",
+        "s1": "歷史記錄是您所有過去下載的記錄",
+        "s2": "與狀態頁面不同，歷史記錄：",
+        "s2a": "不顯示下載進度或控制項",
+        "s2b": "只追蹤您已下載的內容",
+        "s2c": "顯示檔案是否仍存在於您的裝置上",
+        "s3": "您可以使用歷史記錄重新下載影片或查看過去的下載"
+      },
+      "viewVideos": {
+        "title": "如何查看影片",
+        "s1": "在狀態頁面中的影片列上按滑鼠右鍵，開啟右鍵選單並從中存取影片檢視"
+      },
+      "contextMenus": {
+        "title": "如何使用右鍵選單",
+        "s1": "在任何下載項目上按滑鼠右鍵以存取其他選項：",
+        "s1a": "查看已下載的影片",
+        "s1b": "開啟包含資料夾",
+        "s1c": "控制下載狀態",
+        "s1d": "從清單中移除"
+      }
+    },
+    "advanced": {
+      "stuckInitializing": {
+        "title": "下載卡在初始化中",
+        "s1": "檢查您的網路連線",
+        "s2": "確認影片網址仍然有效",
+        "s3": "重新開始下載：",
+        "s3a": "暫停下載",
+        "s3b": "前往資料夾並刪除任何殘留的部分檔案",
+        "s3c": "繼續下載"
+      },
+      "failedDelete": {
+        "title": "刪除影片失敗",
+        "s1": "如果無法刪除影片：",
+        "s1a": "關閉正在使用影片檔案的應用程式",
+        "s1b": "重新啟動應用程式",
+        "s1c": "檢查您是否有權限刪除該位置的檔案"
+      },
+      "slowSpeed": {
+        "title": "下載速度緩慢",
+        "s1": "改善下載速度的方法：",
+        "s1a": "檢查您的網路連線",
+        "s1b": "減少同時下載的數量",
+        "s1c": "如果已啟用，在設定中調整速度限制"
+      },
+      "permissionErrors": {
+        "title": "權限錯誤 (EPERM)",
+        "s1": "如果看到權限錯誤：",
+        "s1a": "以系統管理員身分執行應用程式",
+        "s1b": "檢查資料夾權限",
+        "s1c": "選擇不同的下載位置"
+      }
+    },
+    "subscription": {
+      "howToAdd": {
+        "title": "如何新增訂閱",
+        "s1": "從側邊欄導覽至訂閱部分。",
+        "s2": "點擊訂閱按鈕以開啟訂閱對話框。",
+        "s3": "將 YouTube 頻道網址貼入來源網址欄位。",
+        "s3a": "必須是頻道或播放清單網址 — 不能是單一影片或 Shorts 連結。",
+        "s3b": "目前僅支援 YouTube 頻道。",
+        "s4": "等待頻道分析完成 — 系統會自動偵測頻道的上傳規律。",
+        "s5": "分析完成後，設定您的訂閱：",
+        "s5a": "自動 — 使用偵測到的上傳規律設定檢查排程。",
+        "s5b": "手動 — 選擇特定的星期幾、檢查時間和時區。",
+        "s5c": "選擇畫質預設（最低、低或最佳）。",
+        "s5d": "選擇下載影片的儲存資料夾。",
+        "s6": "使用「下載最近 N 部影片」下拉選單設定首次執行時下載頻道現有影片的數量。",
+        "s7": "點擊訂閱以確認 — 訂閱將加入佇列並在背景處理。"
+      },
+      "whatHappensAfter": {
+        "title": "訂閱後會發生什麼",
+        "s1": "訂閱將加入佇列並在背景設定 — 您會看到它出現在訂閱清單中。",
+        "s2": "首次執行時，訂閱會下載不超過您所選限制的最新影片。",
+        "s3": "初始抓取後，訂閱會根據您設定的排程（每日、每週或自動偵測）自動檢查新上傳。",
+        "s4": "新偵測到的影片將加入下載佇列，並像一般下載一樣處理。",
+        "s5": "您可以從每個訂閱的詳情頁面查看活動、下載歷史和分析資料。",
+        "s6": "訂閱可隨時從右鍵選單或訂閱設定頁籤中暫停、編輯或刪除。"
+      },
+      "commonErrors": {
+        "title": "常見錯誤及處理方法",
+        "invalidUrl": {
+          "title": "無效網址 / 不支援的協定",
+          "s1": "請確保網址以 https:// 開頭。",
+          "s2": "直接從瀏覽器網址列複製網址。"
+        },
+        "unsupportedPlatform": {
+          "title": "不支援的平台",
+          "s1": "目前僅支援 YouTube 頻道網址。",
+          "s2": "其他平台的網址將無法通過驗證。"
+        },
+        "videoOrShorts": {
+          "title": "偵測到影片或 Shorts 連結",
+          "s1": "訂閱是針對頻道的，而非單一影片。",
+          "s2": "單一影片網址請使用主下載功能。",
+          "s3": "對於頻道，請導覽至頻道頁面並複製其網址。"
+        },
+        "alreadySubscribed": {
+          "title": "已訂閱",
+          "s1": "該頻道的訂閱已存在。",
+          "s2": "請從訂閱清單中尋找並管理它。"
+        },
+        "noVideos": {
+          "title": "找不到影片 / 頻道似乎為空",
+          "s1": "該頻道可能只有 Shorts — 請嘗試頻道主影片頁籤的網址。",
+          "s2": "該頻道可能是私密的或沒有公開上傳。"
+        },
+        "analysisFailed": {
+          "title": "分析失敗",
+          "s1": "檢查您的網路連線。",
+          "s2": "頻道網址可能已更改 — 請在瀏覽器中驗證。",
+          "s3": "如果錯誤持續存在，請重新啟動應用程式後重試。"
+        }
+      }
+    }
+  },
+  "videoPlayer": {
+    "fallbackTitle": "影片",
+    "fallbackVideoPreview": "影片預覽",
+    "floatButton": "浮動",
+    "floatWindowTitle": "浮動視窗",
+    "backTitle": "返回",
+    "downloadButtonTitle": "下載",
+    "error": {
+      "couldNotLoadStream": "無法載入影片串流。",
+      "retry": "重試"
+    },
+    "floating": {
+      "message": "正在浮動視窗中播放",
+      "returnToPanel": "返回面板"
+    },
+    "menu": {
+      "openFolder": "開啟資料夾",
+      "viewSource": "檢視來源",
+      "shareVideo": "分享影片",
+      "generateCaption": "生成字幕",
+      "download": "下載",
+      "captions": "字幕",
+      "pictureInPicture": "子母畫面",
+      "playbackSpeed": "播放速度",
+      "normal": "正常"
+    },
+    "transcript": {
+      "title": "轉錄",
+      "auto": "自動",
+      "manual": "手動",
+      "platformFallback": "平台",
+      "searchPlaceholder": "搜尋轉錄",
+      "noTranscript": "沒有可用的轉錄",
+      "copyTitle": "複製轉錄",
+      "downloadTitle": "下載轉錄"
+    },
+    "chapters": {
+      "title": "章節",
+      "count": "{{count}} 章節",
+      "searchPlaceholder": "搜尋章節",
+      "noChapters": "沒有可用的章節"
+    },
+    "description": {
+      "noDescription": "沒有可用的描述",
+      "categories": "分類：",
+      "tags": "標籤：",
+      "openWith": "開啟方式"
+    },
+    "favorites": {
+      "add": "加入收藏",
+      "remove": "從收藏中移除"
+    },
+    "tabs": {
+      "description": "描述",
+      "transcript": "轉錄",
+      "chapters": "章節"
+    },
+    "duration": {
+      "total": "總計",
+      "current": "當前"
+    },
+    "transcription": {
+      "failed": "轉錄失敗",
+      "failedDesc": "無法建立轉錄"
+    }
+  }
+}

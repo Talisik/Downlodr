@@ -1,0 +1,550 @@
+{
+  "contextMenu": {
+    "pause": "Pausieren",
+    "resume": "Fortsetzen",
+    "stop": "Stoppen",
+    "forceStart": "Erzwungener Start",
+    "remove": "Entfernen",
+    "rename": "Umbenennen",
+    "viewFolder": "Ordner öffnen",
+    "viewEmbedded": "Via Einbettung anzeigen",
+    "retry": "Wiederholen",
+    "showLog": "Protokoll anzeigen",
+    "activityTracker": "Aktivitäts-Tracker",
+    "tags": "Tags",
+    "categories": "Kategorien",
+    "addTag": "Tag hinzufügen",
+    "addCategory": "Kategorie hinzufügen",
+    "plugins": "Plugins",
+    "copyLink": "Link kopieren",
+    "openBrowser": "Im Browser öffnen",
+    "start": "Starten",
+    "playDownload": "Download abspielen"
+  },
+  "status": {
+    "queued": "In der Warteschlange",
+    "downloading": "Wird heruntergeladen",
+    "finished": "Abgeschlossen",
+    "error": "Fehler",
+    "paused": "Pausiert",
+    "stopped": "Gestoppt",
+    "converting": "Wird konvertiert",
+    "gettingInfo": "Informationen abrufen"
+  },
+  "table": {
+    "title": "Titel",
+    "format": "Format",
+    "size": "Größe",
+    "speed": "Geschwindigkeit",
+    "source": "Quelle",
+    "dateAdded": "Hinzugefügt am",
+    "uploadedOn": "Hochgeladen am",
+    "transcript": "Untertitel",
+    "status": "Status",
+    "action": "Aktion",
+    "noDownloads": "Noch keine Downloads",
+    "tags": "Tags",
+    "categories": "Kategorien",
+    "noTags": "Keine Tags",
+    "noCategories": "Keine Kategorien"
+  },
+  "itemsSelected_one": "{{count}} Element ausgewählt",
+  "itemsSelected_other": "{{count}} Elemente ausgewählt",
+  "timeAgo": {
+    "minutes": "vor {{count}} Min.",
+    "hour_one": "vor {{count}} Std.",
+    "hour_other": "vor {{count}} Std.",
+    "day_one": "vor {{count}} Tag",
+    "day_other": "vor {{count}} Tagen",
+    "week_one": "vor {{count}} Woche",
+    "week_other": "vor {{count}} Wochen",
+    "month_one": "vor {{count}} Monat",
+    "month_other": "vor {{count}} Monaten",
+    "year_one": "vor {{count}} Jahr",
+    "year_other": "vor {{count}} Jahren"
+  },
+  "fileSize": {
+    "gb": "{{value}} GB",
+    "mb": "{{value}} MB",
+    "kb": "{{value}} KB",
+    "bytes": "{{count}} Bytes",
+    "unknown": "—"
+  },
+  "modals": {
+    "about": {
+      "title": "Über",
+      "visitSite": "Offizielle Website besuchen",
+      "version": "Version {{version}}",
+      "developedForYou": "Für Sie entwickelt.",
+      "features": {
+        "title": "Funktionen",
+        "downloadVideos": {
+          "title": "Videos von all Ihren Lieblingsseiten herunterladen",
+          "item1": "Kompatibel mit YouTube, Twitch, Twitter, TikTok und Hunderten mehr",
+          "item2": "Ganze Kanäle oder Playlists mit einem Klick herunterladen",
+          "item3": "Livestreams, Shorts und Stories speichern",
+          "item4": "Bevorzugte Videoqualität auswählen"
+        },
+        "easyToUse": {
+          "title": "Einfach zu bedienen",
+          "item1": "Speicherort für Dateien anpassen",
+          "item2": "Dateibenennungsformat wählen",
+          "item3": "Automatisch auf die neueste Version aktualisieren"
+        },
+        "advancedMedia": {
+          "title": "Erweiterte Medienoptionen",
+          "item1": "Video-Vorschaubilder zusammen mit Downloads behalten",
+          "item2": "Ausgewählte Teile von Playlists herunterladen"
+        }
+      }
+    },
+    "help": {
+      "title": "Hilfe"
+    },
+    "stop": {
+      "title": "Download stoppen",
+      "message": "Möchten Sie diesen Download wirklich stoppen?",
+      "confirm": "Stoppen",
+      "cancel": "Abbrechen"
+    }
+  },
+  "shareButton": {
+    "tooltip": "Video teilen",
+    "title": "Video teilen",
+    "videoFallback": "Video",
+    "copyLink": "Link kopieren",
+    "emailLink": "Link per E-Mail senden",
+    "facebook": "Facebook",
+    "twitter": "X (Twitter)",
+    "disclaimer": "Bitte beachten Sie, dass das Video öffentlich zugänglich wird und andere Personen auf dessen Inhalte zugreifen können, wenn Sie es teilen.",
+    "emailSubject": "Schau dir dieses Video an: {{name}}",
+    "emailBody": "Ich dachte, dir könnte dieses Video gefallen: {{link}}",
+    "twitterText": "Schau dir dieses Video an: {{name}}",
+    "toast": {
+      "errorTitle": "Fehler",
+      "errorDesc": "Freigabelink konnte nicht erstellt werden",
+      "copiedTitle": "Link kopiert",
+      "copiedDesc": "Link wurde in die Zwischenablage kopiert.",
+      "copyFailedTitle": "Kopieren fehlgeschlagen",
+      "copyFailedDesc": "Link konnte nicht in die Zwischenablage kopiert werden. Bitte versuchen Sie es erneut."
+    }
+  },
+  "statusPage": {
+    "thumbnail": {
+      "viewFull": "Vollständiges Vorschaubild anzeigen",
+      "notDownloaded": "Vorschaubild nicht heruntergeladen",
+      "notAvailable": "Vorschaubild nicht verfügbar",
+      "unableToLoad": "Laden nicht möglich"
+    },
+    "status": {
+      "clickToRetry": "Zum Wiederholen klicken",
+      "viewVideo": "Video anzeigen",
+      "openFolder": "Ordner öffnen",
+      "viewPreview": "Vorschau ansehen"
+    },
+    "format": {
+      "unknown": "Unbekannt"
+    }
+  },
+  "taskbarInput": {
+    "placeholder": "Downloads suchen oder URL eingeben",
+    "tooltip": {
+      "copy": "Kopieren",
+      "settings": "Transkript und Vorschaubild zusammen mit dem Download abrufen.",
+      "download": "Herunterladen",
+      "openArticle": "Artikel-Installer öffnen"
+    },
+    "toast": {
+      "playlistErrorTitle": "Playlist-Fehler",
+      "playlistErrorDesc": "Playlist-Informationen konnten nicht abgerufen werden",
+      "channelDetectedTitle": "Kanal-Link erkannt",
+      "channelDetectedDesc": "Wird an Subscription gesendet, um ein Abonnement für diesen Kanal einzurichten.",
+      "playlistDetectedTitle": "Playlist-Link erkannt",
+      "playlistDetectedDesc": "Playlist-Informationen für den Download werden abgerufen... Dies kann einen Moment dauern.",
+      "invalidUrlTitle": "Ungültige URL",
+      "invalidUrlDesc": "Bitte geben Sie eine gültige URL ein",
+      "invalidUrlFormatTitle": "Ungültiges URL-Format",
+      "invalidUrlFormatDesc": "Das URL-Format ist nicht gültig",
+      "selectionErrorTitle": "Auswahlfehler",
+      "selectionErrorDesc": "Bitte wählen Sie mindestens ein Video zum Herunterladen aus",
+      "downloadQueuedTitle": "Download in Warteschlange",
+      "downloadQueuedDesc": "Video-Metadaten für den Download werden abgerufen...",
+      "noInternetTitle": "Keine Internetverbindung",
+      "noInternetDesc": "Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut",
+      "errorTitle": "Fehler",
+      "errorDesc": "Hinzufügen zur Download-Warteschlange fehlgeschlagen",
+      "copiedTitle": "In Zwischenablage kopiert",
+      "copiedDesc": "Die URL wurde in Ihre Zwischenablage kopiert",
+      "copyFailedTitle": "URL kopieren fehlgeschlagen",
+      "copyFailedDesc": "URL konnte nicht in die Zwischenablage kopiert werden"
+    }
+  },
+  "toolbar": {
+    "tooltip": {
+      "startDisabled": "Warteschlangen-Elemente auswählen, um den Download zu starten",
+      "startEnabled": "Ausgewählte Downloads starten",
+      "stopEnabled": "Ausgewählte Downloads stoppen",
+      "stopDisabled": "Aktive Downloads auswählen, um sie zu stoppen",
+      "stopAllDisabled": "Keine aktiven Downloads zum Stoppen",
+      "stopAll": "Alle stoppen",
+      "generateCaptions": "Untertitel generieren",
+      "generateCaptionsDisabled": "Abgeschlossene Videos ohne Untertitel auswählen, um Transkripte zu generieren",
+      "remove": "Entfernen"
+    },
+    "toast": {
+      "noDownloadsSelectedTitle": "Keine Downloads ausgewählt",
+      "noDownloadsSelectedStop": "Bitte Downloads zum Stoppen auswählen",
+      "noDownloadsSelectedPlay": "Bitte Downloads zum Abspielen auswählen",
+      "noDownloadsSelectedRemove": "Bitte Downloads zum Entfernen auswählen",
+      "noDownloadsFoundTitle": "Keine Downloads gefunden",
+      "noDownloadsFoundDesc": "Keine aktuellen Downloads zum Stoppen",
+      "downloadStoppedTitle": "Download gestoppt",
+      "downloadStoppedDesc": "Download wurde erfolgreich gestoppt",
+      "stopErrorTitle": "Fehler beim Stoppen des Downloads",
+      "stopErrorCouldNotDesc": "Download mit Controller {{controllerId}} konnte nicht gestoppt werden",
+      "stopErrorDesc": "Fehler beim Stoppen des Downloads mit Controller {{controllerId}}",
+      "noValidDownloadsTitle": "Keine gültigen Downloads",
+      "noValidDownloadsDesc": "Bitte Downloads auswählen, die startbereit sind",
+      "addedToQueueTitle": "Downloads zur Warteschlange hinzugefügt",
+      "addedToQueueDesc": "{{count}} Download(s) zur Warteschlange hinzugefügt. Der Download-Controller startet sie automatisch basierend auf Ihrem Limit.",
+      "downloadDeletedTitle": "Download gelöscht",
+      "downloadDeletedDesc": "Download wurde erfolgreich gelöscht",
+      "folderDeletedTitle": "Ordner gelöscht",
+      "folderDeletedDesc": "Ordner und dessen Inhalt wurden erfolgreich gelöscht",
+      "folderDeleteErrorTitle": "Fehler",
+      "folderDeleteErrorDesc": "Ordner konnte nicht gelöscht werden. Er existiert möglicherweise nicht oder wird verwendet.",
+      "fileDeletedTitle": "Datei gelöscht",
+      "fileDeletedDesc": "Datei wurde erfolgreich gelöscht",
+      "downloadRemovedTitle": "Download entfernt",
+      "pendingRemovedDesc": "Ausstehender Download wurde erfolgreich entfernt",
+      "failedRemovedDesc": "Fehlgeschlagener Download wurde erfolgreich entfernt",
+      "cancelledRemovedDesc": "Abgebrochener Download wurde erfolgreich entfernt",
+      "pausedRemovedDesc": "Pausierter Download wurde erfolgreich entfernt",
+      "initializingRemovedDesc": "Initialisierender Download wurde erfolgreich entfernt",
+      "queuedRemovedDesc": "Download in der Warteschlange wurde erfolgreich entfernt",
+      "noEligibleTitle": "Keine geeigneten Downloads",
+      "noEligibleDesc": "Ausgewählte Downloads haben bereits Transkripte oder sind nicht abgeschlossen.",
+      "batchStartedTitle": "Stapeltranskription gestartet",
+      "batchStartedDesc": "Untertitel für {{count}} Download(s) werden sequenziell generiert.",
+      "transcriptionFailedTitle": "Transkription fehlgeschlagen",
+      "transcriptionFailedDefault": "Transkript konnte nicht erstellt werden",
+      "batchCompleteTitle": "Stapeltranskription abgeschlossen",
+      "batchCompleteDesc": "{{successCount}} erfolgreich, {{failCount}} fehlgeschlagen.",
+      "selectOneTitle": "Einen Download auswählen",
+      "selectOneDesc": "Bitte genau einen Download auswählen, um den Link zu erhalten"
+    },
+    "settingsButton": "Einstellungen",
+    "deleteLabel": "Löschen"
+  },
+  "removeModal": {
+    "title": "Ausgewähltes Element entfernen",
+    "message": "Möchten Sie diese Downloads wirklich aus der Download-Liste entfernen?",
+    "alsoDeleteFolder": "Auch den heruntergeladenen Ordner und dessen Dateien entfernen"
+  },
+  "categorySearchBar": {
+    "placeholder": "Suchen nach {{fields}}...",
+    "filterTooltip": "Felder filtern",
+    "clearTooltip": "Löschen",
+    "fields": {
+      "title": "Titel",
+      "tags": "Tags",
+      "categories": "Kategorien",
+      "status": "Status",
+      "source": "Quelle"
+    }
+  },
+  "downloadController": {
+    "downloadStarted": "Download aus Warteschlange gestartet",
+    "downloadStartedDesc": "\"{{name}}\" hat mit dem Herunterladen begonnen."
+  },
+  "downloadButton": {
+    "tooltip": "Video herunterladen",
+    "toastTitle": "Download zur Warteschlange hinzugefügt",
+    "toastDesc": "\"{{name}}\" zur Warteschlange hinzugefügt. Der Download-Controller startet es automatisch."
+  },
+  "statusHandler": {
+    "transcriptRedownloaded": "Transkript neu heruntergeladen",
+    "transcriptRedownloadedDesc": "Transkript wurde erfolgreich neu heruntergeladen",
+    "downloadRetried": "Download wiederholt",
+    "downloadRetriedDesc": "Download wurde erfolgreich wiederholt",
+    "downloadResumed": "Download fortgesetzt",
+    "downloadResumedDesc": "Download wurde erfolgreich fortgesetzt",
+    "downloadPaused": "Download pausiert",
+    "downloadPausedDesc": "Download wurde erfolgreich pausiert",
+    "pauseFailed": "Pausieren fehlgeschlagen",
+    "pauseFailedDesc": "Download konnte nicht pausiert werden. Bitte versuchen Sie es erneut.",
+    "pauseError": "Fehler beim Pausieren des Downloads",
+    "cannotPauseYet": "Kann noch nicht pausiert werden",
+    "cannotPauseYetDesc": "Der Download wird noch initialisiert. Bitte versuchen Sie es erneut.",
+    "noDownloadLocation": "Kein Download-Speicherort",
+    "invalidDownloadLocation": "Ungültiger Download-Speicherort",
+    "fileNotFound": "Datei nicht gefunden",
+    "fileNotFoundDesc": "Die Datei existiert nicht am angegebenen Speicherort",
+    "failedToViewDownload": "Download konnte nicht angezeigt werden",
+    "failedToStopDownload": "Download konnte nicht gestoppt werden",
+    "failedToViewFolder": "Ordner konnte nicht angezeigt werden",
+    "missingFolder": "Fehlender Ordner",
+    "missingFolderDesc": "Der Download-Ordner existiert noch nicht",
+    "error": "Fehler"
+  },
+  "dropdownBar": {
+    "menus": {
+      "file": "Datei",
+      "settings": "Einstellungen",
+      "help": "Hilfe"
+    },
+    "file": {
+      "history": "Verlauf",
+      "exit": "Beenden"
+    },
+    "help": {
+      "guide": "Anleitung",
+      "appUpdates": "App-Updates",
+      "about": "Über"
+    },
+    "search": {
+      "placeholder": "Downloads suchen...",
+      "noResults": "Keine Downloads gefunden"
+    },
+    "toast": {
+      "downloadStartedTitle": "Download gestartet",
+      "downloadStartedDesc": "Ihre Datei wird heruntergeladen. Dies kann je nach Dateigröße und Verbindungsgeschwindigkeit einige Minuten dauern.",
+      "errorOpeningFileTitle": "Fehler beim Öffnen der Datei",
+      "checkingConnectionTitle": "Verbindung wird überprüft",
+      "checkingConnectionDesc": "Internetverbindung wird überprüft...",
+      "noInternetTitle": "Keine Internetverbindung",
+      "noInternetDesc": "Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut",
+      "checkingUpdatesTitle": "Auf Updates prüfen",
+      "checkingUpdatesDesc": "Auf neue Updates wird geprüft, bitte warten",
+      "upToDateTitle": "Sie sind auf dem neuesten Stand!",
+      "upToDateDesc": "Sie verwenden die neueste Version (v{{version}}).",
+      "updateCheckFailedTitle": "Update-Prüfung fehlgeschlagen",
+      "updateCheckFailedDesc": "Updates konnten nicht überprüft werden. Bitte versuchen Sie es später erneut.",
+      "retry": "Wiederholen"
+    }
+  },
+  "helpModal": {
+    "title": "Hilfeleitfaden",
+    "tabs": {
+      "guide": "Download-Anleitung",
+      "common": "Häufig gestellte Fragen",
+      "advanced": "Fehlerbehebung & Erweiterte Tipps",
+      "subscription": "Abonnement"
+    },
+    "guide": {
+      "downloadSteps": {
+        "title": "Download-Schritte",
+        "s1": "Öffnen Sie den Bereich \"URL hinzufügen\".",
+        "s2": "Fügen Sie eine gültige Video-URL ein und wählen Sie das Download-Ziel.",
+        "s3": "Klicken Sie auf die Schaltfläche \"Herunterladen\".",
+        "s4": "Navigieren Sie zur Statusseite \"Wird heruntergeladen\" oder \"Alle Downloads\".",
+        "s5": "Warten Sie, bis die Video-Metadaten verarbeitet wurden.",
+        "s6": "Sobald bereit, klicken Sie auf die Wiedergabetaste im Statusbereich.",
+        "s7": "Warten Sie, bis der Download abgeschlossen ist.",
+        "s8": "Nach Abschluss klicken Sie mit der rechten Maustaste auf den Eintrag für weitere Optionen. Sie können:",
+        "s8a": "Die Download-Details anzeigen",
+        "s8b": "Den Download-Ordner öffnen",
+        "s8c": "Den Download löschen",
+        "s8d": "Tags und Kategorien anpassen",
+        "s9": "Klicken Sie auf eine Zeile, um detaillierte Informationen zu Ihrem Download anzuzeigen.",
+        "s10": "Ihre Download-Protokolle werden für zukünftige Referenzen im Verlauf gespeichert."
+      },
+      "pauseStop": {
+        "title": "Downloads pausieren, stoppen, entfernen und starten",
+        "s1": "Jeder Download verfügt über Steuertasten in den Statusspalten und im Kontextmenü",
+        "s1a": "Wiedergabe-Schaltfläche - Startet oder setzt den Download fort",
+        "s1b": "Pause-Schaltfläche - Pausiert den Download vorübergehend",
+        "s1c": "Stopp-Schaltfläche - Stoppt und entfernt den Download vollständig",
+        "s2": "Download-Steuerelemente sind auch in der Taskleiste und im Aufgaben-Dropdown verfügbar",
+        "s2a": "Benutzer können mehrere Downloads zum Abspielen oder Stoppen auswählen",
+        "s2b": "Benutzer können auch die Alle-Option verwenden, um alle aktuell laufenden Downloads zu steuern",
+        "s3": "Downloads entfernen",
+        "s3a": "Das Entfernen von Downloads betrifft abgeschlossene Downloads. Diese Aktion löscht die heruntergeladene Datei vom Gerät und entfernt den Eintrag aus dem Verlauf.",
+        "s3b": "Für ausstehende Downloads wird nur der Download-Eintrag gespeichert; es wurde noch keine Datei auf dem Laufwerk gespeichert."
+      }
+    },
+    "common": {
+      "whatIsHistory": {
+        "title": "Was ist der Verlauf",
+        "s1": "Der Verlauf ist eine Aufzeichnung aller Ihrer vergangenen Downloads",
+        "s2": "Im Gegensatz zu Statusseiten zeigt der Verlauf:",
+        "s2a": "Keinen Download-Fortschritt oder Steuerelemente",
+        "s2b": "Nur eine Übersicht dessen, was Sie heruntergeladen haben",
+        "s2c": "Ob Dateien noch auf Ihrem Gerät vorhanden sind",
+        "s3": "Sie können den Verlauf nutzen, um Videos erneut herunterzuladen oder vergangene Downloads zu überprüfen"
+      },
+      "viewVideos": {
+        "title": "Wie Videos anzeigen",
+        "s1": "Klicken Sie mit der rechten Maustaste auf eine Videozeile in den Statusseiten, um das Kontextmenü zu öffnen und auf die Videoansicht zuzugreifen"
+      },
+      "contextMenus": {
+        "title": "Wie Kontextmenüs verwendet werden",
+        "s1": "Klicken Sie mit der rechten Maustaste auf einen Download für weitere Optionen:",
+        "s1a": "Heruntergeladenes Video ansehen",
+        "s1b": "Enthaltenden Ordner öffnen",
+        "s1c": "Download-Status steuern",
+        "s1d": "Aus der Liste entfernen"
+      }
+    },
+    "advanced": {
+      "stuckInitializing": {
+        "title": "Download steckt in der Initialisierung fest",
+        "s1": "Überprüfen Sie Ihre Internetverbindung",
+        "s2": "Überprüfen Sie, ob die Video-URL noch gültig ist",
+        "s3": "Download neu starten:",
+        "s3a": "Download pausieren",
+        "s3b": "Zum Ordner gehen und verbleibende Teildateien löschen",
+        "s3c": "Download fortsetzen"
+      },
+      "failedDelete": {
+        "title": "Video konnte nicht gelöscht werden",
+        "s1": "Wenn Sie ein Video nicht löschen können:",
+        "s1a": "Schließen Sie Anwendungen, die die Videodatei verwenden",
+        "s1b": "Starten Sie die Anwendung neu",
+        "s1c": "Überprüfen Sie, ob Sie die Berechtigung haben, Dateien an diesem Ort zu löschen"
+      },
+      "slowSpeed": {
+        "title": "Download-Geschwindigkeit ist langsam",
+        "s1": "So verbessern Sie die Download-Geschwindigkeit:",
+        "s1a": "Überprüfen Sie Ihre Internetverbindung",
+        "s1b": "Reduzieren Sie die Anzahl gleichzeitiger Downloads",
+        "s1c": "Passen Sie das Geschwindigkeitslimit in den Einstellungen an, falls aktiviert"
+      },
+      "permissionErrors": {
+        "title": "Berechtigungsfehler (EPERM)",
+        "s1": "Wenn Sie Berechtigungsfehler sehen:",
+        "s1a": "Führen Sie die Anwendung als Administrator aus",
+        "s1b": "Überprüfen Sie die Ordnerberechtigungen",
+        "s1c": "Wählen Sie einen anderen Download-Speicherort"
+      }
+    },
+    "subscription": {
+      "howToAdd": {
+        "title": "So fügen Sie ein Abonnement hinzu",
+        "s1": "Navigieren Sie über die Seitenleiste zum Abonnement-Bereich.",
+        "s2": "Klicken Sie auf die Schaltfläche Abonnieren, um das Abonnement-Modal zu öffnen.",
+        "s3": "Fügen Sie eine YouTube-Kanal-URL in das Quell-URL-Feld ein.",
+        "s3a": "Es muss eine Kanal- oder Playlist-URL sein — kein einzelnes Video oder Shorts-Link.",
+        "s3b": "Derzeit werden nur YouTube-Kanäle unterstützt.",
+        "s4": "Warten Sie, bis die Kanalanalyse abgeschlossen ist — sie erkennt automatisch das Upload-Muster des Kanals.",
+        "s5": "Sobald die Analyse abgeschlossen ist, konfigurieren Sie Ihr Abonnement:",
+        "s5a": "Automatisch — verwendet das erkannte Upload-Muster, um den Überprüfungszeitplan festzulegen.",
+        "s5b": "Manuell — wählen Sie bestimmte Wochentage, eine Überprüfungszeit und Zeitzone.",
+        "s5c": "Wählen Sie eine Qualitätsvoreinstellung (Niedrigste, Niedrig oder Beste).",
+        "s5d": "Wählen Sie einen Speicherordner für heruntergeladene Videos.",
+        "s6": "Legen Sie mit dem Dropdown \"Letzte N Videos herunterladen\" fest, wie viele vorhandene Videos des Kanals beim ersten Durchlauf heruntergeladen werden sollen.",
+        "s7": "Klicken Sie zur Bestätigung auf Abonnieren — das Abonnement wird in die Warteschlange gestellt und im Hintergrund verarbeitet."
+      },
+      "whatHappensAfter": {
+        "title": "Was passiert nach dem Abonnieren",
+        "s1": "Das Abonnement wird in die Warteschlange gestellt und im Hintergrund eingerichtet — Sie sehen es in der Abonnementliste erscheinen.",
+        "s2": "Beim ersten Durchlauf lädt das Abonnement die neuesten Videos bis zu dem von Ihnen festgelegten Limit herunter.",
+        "s3": "Nach dem ersten Abruf prüft das Abonnement automatisch auf neue Uploads gemäß Ihrem konfigurierten Zeitplan (täglich, wöchentlich oder wie erkannt).",
+        "s4": "Neu erkannte Videos werden der Download-Warteschlange hinzugefügt und wie reguläre Downloads verarbeitet.",
+        "s5": "Sie können Aktivitäten, Download-Verlauf und Analysen für jedes Abonnement von seiner Detailseite aus einsehen.",
+        "s6": "Abonnements können jederzeit über das Kontextmenü oder die Abonnement-Einstellungsregisterkarte pausiert, bearbeitet oder gelöscht werden."
+      },
+      "commonErrors": {
+        "title": "Häufige Fehler & Was zu tun ist",
+        "invalidUrl": {
+          "title": "Ungültige URL / Nicht unterstütztes Protokoll",
+          "s1": "Stellen Sie sicher, dass die URL mit https:// beginnt.",
+          "s2": "Kopieren Sie die URL direkt aus der Browser-Adressleiste."
+        },
+        "unsupportedPlatform": {
+          "title": "Nicht unterstützte Plattform",
+          "s1": "Derzeit werden nur YouTube-Kanal-URLs unterstützt.",
+          "s2": "URLs von anderen Plattformen bestehen die Validierung nicht."
+        },
+        "videoOrShorts": {
+          "title": "Video- oder Shorts-Link erkannt",
+          "s1": "Das Abonnement abonniert Kanäle, keine einzelnen Videos.",
+          "s2": "Verwenden Sie die Haupt-Download-Funktion für einzelne Video-URLs.",
+          "s3": "Für einen Kanal navigieren Sie zur Kanalseite und kopieren Sie dessen URL."
+        },
+        "alreadySubscribed": {
+          "title": "Bereits abonniert",
+          "s1": "Ein Abonnement für diesen Kanal existiert bereits.",
+          "s2": "Finden und verwalten Sie es in der Abonnementliste."
+        },
+        "noVideos": {
+          "title": "Keine Videos gefunden / Kanal erscheint leer",
+          "s1": "Der Kanal hat möglicherweise nur Shorts — versuchen Sie die Haupt-Videos-Tab-URL des Kanals.",
+          "s2": "Der Kanal ist möglicherweise privat oder hat keine öffentlichen Uploads."
+        },
+        "analysisFailed": {
+          "title": "Analyse fehlgeschlagen",
+          "s1": "Überprüfen Sie Ihre Internetverbindung.",
+          "s2": "Die Kanal-URL hat sich möglicherweise geändert — überprüfen Sie sie in Ihrem Browser.",
+          "s3": "Starten Sie die App neu und versuchen Sie es erneut, falls der Fehler weiterhin besteht."
+        }
+      }
+    }
+  },
+  "videoPlayer": {
+    "fallbackTitle": "Video",
+    "fallbackVideoPreview": "Videovorschau",
+    "floatButton": "Schweben",
+    "floatWindowTitle": "Schwebendes Fenster",
+    "backTitle": "Zurück",
+    "downloadButtonTitle": "Herunterladen",
+    "error": {
+      "couldNotLoadStream": "Videostream konnte nicht geladen werden.",
+      "retry": "Wiederholen"
+    },
+    "floating": {
+      "message": "Wiedergabe in schwebendem Fenster",
+      "returnToPanel": "Zurück zum Panel"
+    },
+    "menu": {
+      "openFolder": "Ordner öffnen",
+      "viewSource": "Quelle anzeigen",
+      "shareVideo": "Video teilen",
+      "generateCaption": "Untertitel generieren",
+      "download": "Herunterladen",
+      "captions": "Untertitel",
+      "pictureInPicture": "Bild im Bild",
+      "playbackSpeed": "Wiedergabegeschwindigkeit",
+      "normal": "Normal"
+    },
+    "transcript": {
+      "title": "Transkriptionen",
+      "auto": "Auto",
+      "manual": "Manuell",
+      "platformFallback": "Plattform",
+      "searchPlaceholder": "Transkription suchen",
+      "noTranscript": "Kein Transkript verfügbar",
+      "copyTitle": "Transkription kopieren",
+      "downloadTitle": "Transkription herunterladen"
+    },
+    "chapters": {
+      "title": "Kapitel",
+      "count": "{{count}} Kapitel",
+      "searchPlaceholder": "Kapitel suchen",
+      "noChapters": "Keine Kapitel verfügbar"
+    },
+    "description": {
+      "noDescription": "Keine Beschreibung verfügbar",
+      "categories": "Kategorien:",
+      "tags": "Tags:",
+      "openWith": "Öffnen mit"
+    },
+    "favorites": {
+      "add": "Zu Favoriten hinzufügen",
+      "remove": "Aus Favoriten entfernen"
+    },
+    "tabs": {
+      "description": "Beschreibung",
+      "transcript": "Transkription",
+      "chapters": "Kapitel"
+    },
+    "duration": {
+      "total": "Gesamt",
+      "current": "Aktuell"
+    },
+    "transcription": {
+      "failed": "Transkription fehlgeschlagen",
+      "failedDesc": "Transkript konnte nicht erstellt werden"
+    }
+  }
+}
