@@ -1,0 +1,12 @@
+{
+  "afda-backend": {
+    "version": "1.2.0",
+    "fileId": "id",
+    "downloadUrl": "files/afda-backend-1.2.0.zip"
+  },
+  "video-nemesis-toolkit": {
+    "version": "1.0.0",
+    "fileId": "id",
+    "downloadUrl": "files/video-nemesis-toolkit-1.0.0.zip"
+  }
+}

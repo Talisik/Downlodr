@@ -5,9 +5,92 @@
     <meta http-equiv="Content-Security-Policy">
     <link href="./src/index.css" rel="stylesheet">
     <title>Downlodr</title>
+    <style>
+      body { margin: 0; background: #0f0f0f; }
+      #splash {
+        position: fixed; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        background: #0f0f0f; color: #888; font-family: sans-serif;
+        font-size: 14px; gap: 16px; z-index: 9999;
+        transition: opacity 0.3s;
+      }
+      #splash.hidden { opacity: 0; pointer-events: none; }
+      .spinner {
+        width: 32px; height: 32px;
+        border: 3px solid #2a2a2a; border-top-color: #666;
+        border-radius: 50%; animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      #splash-progress { display: none; width: 280px; flex-direction: column; align-items: center; gap: 8px; }
+      #splash-progress.visible { display: flex; }
+      #splash-track { width: 100%; height: 4px; background: #2a2a2a; border-radius: 2px; overflow: hidden; }
+      #splash-fill { width: 0%; height: 100%; background: #666; border-radius: 2px; transition: width 0.2s linear; }
+      #splash-detail { font-size: 12px; color: #666; }
+      .spinner.hidden-spinner { display: none; }
+    </style>
   </head>
   <body>
+    <div id="splash">
+      <img src="./src/assets/logo/downlodr_icon.svg" width="64" height="64" alt="Downlodr" style="margin-bottom:4px;" />
+      <div class="spinner"></div>
+      <span>Starting Downlodr…</span>
+      <div id="splash-progress">
+        <div id="splash-track"><div id="splash-fill"></div></div>
+        <div id="splash-detail"></div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/renderer.tsx"></script>
+    <script>
+      // Hide the splash once React has mounted
+      window.__hideSplash = function() {
+        var el = document.getElementById('splash');
+        if (el) { el.classList.add('hidden'); setTimeout(function(){ el.remove(); }, 350); }
+      };
+      // Show real boot stages pushed by the main process (boot:status).
+      // If the preload bridge is unavailable, the static text stays.
+      if (window.bootStatusBridge) {
+        window.bootStatusBridge.onStatus(function (msg) {
+          var el = document.querySelector('#splash span');
+          if (el) el.textContent = msg;
+        });
+
+        var formatMB = function (bytes) {
+          return Math.round(bytes / 1048576) + ' MB';
+        };
+
+        // While the ~700MB built-in packs are copying, swap the indeterminate
+        // spinner for a real measured bar. Everything is null-guarded because
+        // these events can arrive after the splash has been removed from the DOM.
+        window.bootStatusBridge.onProgress(function (p) {
+          var label = document.querySelector('#splash span');
+          var spinner = document.querySelector('#splash .spinner');
+          var progress = document.getElementById('splash-progress');
+          var fill = document.getElementById('splash-fill');
+          var detail = document.getElementById('splash-detail');
+          if (!progress || !fill || !detail) return;
+
+          if (label) label.textContent = p.label;
+          if (spinner) spinner.classList.add('hidden-spinner');
+          progress.classList.add('visible');
+
+          var percent = p.totalBytes > 0 ? (p.copiedBytes / p.totalBytes) * 100 : 0;
+          fill.style.width = percent.toFixed(1) + '%';
+          detail.textContent =
+            formatMB(p.copiedBytes) + ' / ' + formatMB(p.totalBytes) +
+            ' · step ' + p.step + ' of ' + p.totalSteps;
+        });
+
+        // Copying finished (or failed) — restore the plain spinner so the
+        // existing boot:status stage messages take over unchanged.
+        window.bootStatusBridge.onProgressDone(function () {
+          var spinner = document.querySelector('#splash .spinner');
+          var progress = document.getElementById('splash-progress');
+          if (spinner) spinner.classList.remove('hidden-spinner');
+          if (progress) progress.remove();
+        });
+      }
+    </script>
   </body>
 </html>
