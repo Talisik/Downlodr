@@ -6,6 +6,7 @@ import type { ForgeConfig } from '@electron-forge/shared-types';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import { MakerAppX } from '@electron-forge/maker-appx';
 import MakerNSIS from '@felixrieseberg/electron-forge-maker-nsis';
+import { existsSync } from 'fs';
 import { spawn } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
@@ -29,7 +30,7 @@ const projectRoot = process.cwd();
 const addonResources = [
  './src/afda/backend/afda-backend__hidden',
  './src/skedulosa/backend/video-nemesis-toolkit__hidden',
-];
+].filter(existsSync);
 const extraResource =
  process.platform === 'darwin'
   ? [
@@ -443,6 +444,22 @@ const config: ForgeConfig = {
 
   postPackage: async (forgeConfig, packageResult) => {
    for (const outputPath of packageResult.outputPaths) {
+    // Electron-packager's outputPath is the directory CONTAINING the .app
+    // bundle (e.g. out/Downlodr-darwin-arm64), not the bundle itself — the
+    // real Resources dir is <outputPath>/<Name>.app/Contents/Resources.
+    // Pre-existing bug: this used to join 'Resources' directly onto
+    // outputPath, which silently no-ops the copy/sign below (caught by the
+    // try/catch as a warning, never failing the build) so packaged macOS
+    // builds shipped without yt-dlp bundled into Resources.
+    async function resolveMacResourcesPath(
+     outputPath: string,
+    ): Promise<string | null> {
+     const entries = await fs.readdir(outputPath).catch(() => []);
+     const appDir = entries.find((entry) => entry.endsWith('.app'));
+     if (!appDir) return null;
+     return path.join(outputPath, appDir, 'Contents', 'Resources');
+    }
+
     // ----- macOS: bundle + sign yt-dlp and FFmpeg binaries -----
     if (process.platform === 'darwin') {
      try {
@@ -469,11 +486,18 @@ const config: ForgeConfig = {
       }
 
       if (sourceBinaryPath) {
-       const resourcesPath = path.join(outputPath, 'Resources');
-       const destinationPaths = [
-        path.join(resourcesPath, 'yt-dlp'),
-        path.join(resourcesPath, macBinaryName),
-       ];
+       const resourcesPath = await resolveMacResourcesPath(outputPath);
+       const destinationPaths = resourcesPath
+        ? [
+         path.join(resourcesPath, 'yt-dlp'),
+         path.join(resourcesPath, macBinaryName),
+        ]
+        : [];
+       if (!resourcesPath) {
+        console.warn(
+         `⚠️  Could not locate .app bundle under ${outputPath} — skipping yt-dlp bundling`,
+        );
+       }
 
        for (const destPath of destinationPaths) {
         try {
@@ -510,12 +534,14 @@ const config: ForgeConfig = {
 
      // Sign FFmpeg binaries when signing is enabled.
      if (process.env.APPLE_IDENTITY && !process.env.SKIP_CODE_SIGNING) {
-      const resourcesPath = path.join(outputPath, 'Resources');
-      const ffmpegCandidates = [
-       { name: 'ffmpeg-arm64', path: path.join(resourcesPath, 'ffmpeg-arm64') },
-       { name: 'ffmpeg-x64', path: path.join(resourcesPath, 'ffmpeg-x64') },
-       { name: 'ffmpeg', path: path.join(resourcesPath, 'ffmpeg') },
-      ];
+      const resourcesPath = await resolveMacResourcesPath(outputPath);
+      const ffmpegCandidates = resourcesPath
+       ? [
+        { name: 'ffmpeg-arm64', path: path.join(resourcesPath, 'ffmpeg-arm64') },
+        { name: 'ffmpeg-x64', path: path.join(resourcesPath, 'ffmpeg-x64') },
+        { name: 'ffmpeg', path: path.join(resourcesPath, 'ffmpeg') },
+       ]
+       : [];
 
       for (const candidate of ffmpegCandidates) {
        if (
