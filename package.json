@@ -111,7 +111,8 @@
     "@electron-forge/shared-types": "7.6.0",
     "@electron-forge/tracer": "7.6.0",
     "@electron-forge/core-utils": "7.6.0",
-    "@electron-forge/maker-base": "7.6.0"
+    "@electron-forge/maker-base": "7.6.0",
+    "sanitize-html": "2.17.3"
   },
   "dependencies": {
     "@extractus/article-extractor": "^8.0.20",
