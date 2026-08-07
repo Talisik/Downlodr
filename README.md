@@ -26,7 +26,13 @@
    - ask dev for copy  of ytdlp helper package
    - replace installed ytdlp helper package via 
 
-5. You're good to go!
+5. Add Nemesis Package
+   - ask dev for copy  of nemesis package
+   - install other packages
+       - better-sqlite3
+       - other one
+
+6. You're good to go!
 
 ### Running the Application
 
@@ -41,6 +47,19 @@ To build and package the application:
    ```
 yarn make
    ```
+
+### Building for macOS
+
+In addition to `yarn make`, macOS-specific production build scripts are
+available (see `forge.config.ts` for the underlying packaging/signing logic):
+   ```
+yarn build:dmg     # arm64 signed DMG via scripts/build-with-create-dmg.sh
+yarn build:intel   # Intel signed DMG via scripts/build-with-create-dmg-intel.sh
+yarn build:quick   # unsigned package, no DMG — scripts/build-and-package.sh
+   ```
+Signing requires `APPLE_IDENTITY` (and, for the installer, `APPLE_INSTALLER_IDENTITY`)
+set in the environment or a local `.env` file — see `.github/workflows/macos-build.yml`
+for the full set of secrets a CI signing run needs.
 
 
 ## Contributing
