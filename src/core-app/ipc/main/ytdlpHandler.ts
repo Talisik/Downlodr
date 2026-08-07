@@ -2,8 +2,10 @@
 /* Handler for window behavior of base app such as closing, minimizing, maximizing, etc. */
 
 import { app, BrowserWindow, ipcMain, session } from 'electron';
-import { existsSync } from 'fs';
+import { constants, existsSync } from 'fs';
 import {
+ access,
+ chmod,
  copyFile,
  mkdir,
  readFile,
@@ -107,7 +109,14 @@ function getYtdlpBinaryPath(): string {
  * via downloadYtdlpUpdateSafely.
  */
 async function ensureYtdlpSeeded(targetPath: string): Promise<void> {
- if (!app.isPackaged || existsSync(targetPath)) return;
+ if (!app.isPackaged) return;
+ // Not just existsSync: an existing file that isn't executable (e.g. a
+ // stale copy seeded before the executable-bit fix below shipped) must be
+ // repaired too, not skipped.
+ const isExecutable = await access(targetPath, constants.X_OK)
+  .then(() => true)
+  .catch(() => false);
+ if (isExecutable) return;
  // Windows: forge.config.ts's postPackage hook copies yt-dlp.exe next to
  // the installed executable. macOS: it copies (and codesigns) yt-dlp_macos
  // into Contents/Resources/ instead — app.getPath('exe') on darwin resolves
@@ -130,6 +139,11 @@ async function ensureYtdlpSeeded(targetPath: string): Promise<void> {
  try {
   await mkdir(path.dirname(targetPath), { recursive: true });
   await copyFile(bundled, targetPath);
+  // fs.copyFile does not preserve the source's executable bit — without
+  // this, spawn() on the seeded userData copy fails with EACCES on every
+  // yt-dlp call (metadata fetch, download, version check, etc.) even
+  // though the bundled Resources copy is correctly chmod'd 755.
+  await chmod(targetPath, 0o755);
   console.log(`[ytdlp] seeded ${targetPath} from ${bundled}`);
  } catch (error) {
   console.error(
@@ -171,6 +185,10 @@ async function downloadYtdlpUpdateSafely(version: string): Promise<void> {
   if (downloaded.size === 0) {
    throw new Error('Downloaded yt-dlp binary is empty');
   }
+  // yt-dlp-helper's downloadYTDLP only chmods +x on Linux (linuxPatch) —
+  // on macOS/Windows the freshly downloaded file keeps the default
+  // (non-executable) mode fs.createWriteStream writes with.
+  await chmod(tempPath, 0o755);
   await withBusyRetry(() => swapInNewBinary(tempPath, targetPath, oldPath));
   // Best-effort: fails while a process still runs from the moved-aside
   // binary; the unlink at the top of the next update sweeps it then.
