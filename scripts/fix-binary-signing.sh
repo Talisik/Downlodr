@@ -127,34 +127,13 @@ for BINARY_PATH in "${FFMPEG_BINARIES[@]}"; do
     fi
 done
 
-# Re-sign the main app to ensure everything is properly signed
-echo "🔐 Re-signing main application with production entitlements..."
-codesign \
-    --sign "$APPLE_IDENTITY" \
-    --force \
-    --options runtime \
-    --entitlements "./entitlements-production.plist" \
-    --deep \
-    --strict \
-    "$APP_PATH"
-
-if [ $? -eq 0 ]; then
-    echo "✅ Main application re-signed successfully"
-    
-    # Verify the app signature
-    echo "🔍 Verifying app signature..."
-    codesign --verify --deep --strict "$APP_PATH"
-    if [ $? -eq 0 ]; then
-        echo "✅ App signature verified"
-    else
-        echo "⚠️  App signature verification failed"
-    fi
-else
-    echo "❌ Failed to re-sign main application"
-    exit 1
-fi
-
-# Sign ALL Electron Framework components for notarization compliance
+# Sign ALL Electron Framework components for notarization compliance.
+# This MUST happen before the final whole-app re-sign below: codesign's
+# --deep --strict seal on the .app records the state of every nested
+# component at that moment, so signing Frameworks/Helper apps/third-party
+# frameworks AFTER that seal invalidates it ("nested code is modified or
+# invalid" on codesign --verify --deep --strict). Sign every inner
+# component first, then seal the whole bundle last.
 echo "🔧 Comprehensive Electron Framework signing..."
 
 FRAMEWORKS_PATH="$APP_PATH/Contents/Frameworks"
@@ -271,6 +250,36 @@ for FRAMEWORK in "${THIRD_PARTY_FRAMEWORKS[@]}"; do
         sign_electron_component "$FRAMEWORK_PATH" "$FRAMEWORK" false
     fi
 done
+
+# Re-sign the main app LAST so its --deep --strict seal covers every
+# component signed above (yt-dlp/ffmpeg binaries, Electron Framework,
+# Helper apps, third-party frameworks). Signing anything inside the
+# bundle after this point invalidates the seal.
+echo "🔐 Re-signing main application with production entitlements..."
+codesign \
+    --sign "$APPLE_IDENTITY" \
+    --force \
+    --options runtime \
+    --entitlements "./entitlements-production.plist" \
+    --deep \
+    --strict \
+    "$APP_PATH"
+
+if [ $? -eq 0 ]; then
+    echo "✅ Main application re-signed successfully"
+    
+    # Verify the app signature
+    echo "🔍 Verifying app signature..."
+    codesign --verify --deep --strict "$APP_PATH"
+    if [ $? -eq 0 ]; then
+        echo "✅ App signature verified"
+    else
+        echo "⚠️  App signature verification failed"
+    fi
+else
+    echo "❌ Failed to re-sign main application"
+    exit 1
+fi
 
 echo "🎉 Comprehensive binary signing completed successfully!"
 
