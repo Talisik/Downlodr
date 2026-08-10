@@ -45,6 +45,92 @@ const BINARY_LOCK_CODES = new Set(['EBUSY', 'EPERM', 'EACCES']);
 // letting it grow into multi-minute waits.
 const BUSY_RETRY_MAX_DELAY_MS = 10_000;
 
+// --- FFmpeg/ffprobe resolution -------------------------------------------
+// yt-dlp's postprocessor (merge, remux, mp3/m4a extraction, thumbnail
+// embedding, etc.) needs ffmpeg AND ffprobe. Neither yt-dlp-helper's own
+// `--ffmpeg-location` auto-detection (yt-dlp-helper's getFFmpegLocation()
+// only checks PATH) nor yt-dlp's own PATH search finds our bundled binaries
+// unless they're on PATH under their exact expected names (`ffmpeg`/
+// `ffmpeg.exe`, `ffprobe`/`ffprobe.exe`). On Windows the bundled binaries
+// already have the right names, so the Resources dir can go on PATH as-is.
+// On macOS they ship arch-suffixed (ffmpeg-arm64/ffmpeg-x64, per
+// forge.config.ts's darwin extraResource list) to support both Apple
+// Silicon and Intel from one build — those need staging under the exact
+// name before yt-dlp/ffbinaries can find them at all. Without this, a
+// clean machine with no system ffmpeg on PATH gets exactly the reported
+// "ffprobe and ffmpeg not found" postprocessing failure regardless of what
+// forge.config.ts bundles, because nothing ever pointed yt-dlp at it.
+//
+// binaries/ffmpeg-arm64 is a genuinely native arm64 static build (see
+// download-static-ffmpeg.sh). No native arm64 ffprobe is committed to this
+// repo or obtainable from evermeet.cx (its "getrelease" endpoint only ever
+// serves x86_64 builds — verified by inspecting the downloaded binary's
+// Mach-O header, despite the arm64-suggesting URL path). On Apple Silicon,
+// resolveBundledSourceNames() falls back to the x64 build for any tool
+// whose arm64-named resource is missing; Rosetta 2 makes that correct,
+// just not native-speed.
+let ffmpegOnPathReady: Promise<void> | null = null;
+
+/** Ordered candidate Resources filenames for `tool`, most-preferred first. */
+function bundledSourceCandidates(tool: 'ffmpeg' | 'ffprobe'): string[] {
+ if (process.platform === 'win32') return [`${tool}.exe`]; // shipped pre-named
+ if (process.platform === 'darwin') {
+  return process.arch === 'arm64'
+   ? [`${tool}-arm64`, `${tool}-x64`] // fall back to x64-under-Rosetta if no native arm64 build is bundled
+   : [`${tool}-x64`];
+ }
+ return []; // linux: nothing bundled today, fall back to system PATH
+}
+
+async function ensureFfmpegOnPath(): Promise<void> {
+ if (!app.isPackaged || !process.resourcesPath) return; // dev: rely on system ffmpeg, as before
+
+ let pathAdditionDir: string | null = null;
+
+ if (process.platform === 'win32') {
+  // Already named ffmpeg.exe/ffprobe.exe in Resources — no staging needed.
+  pathAdditionDir = process.resourcesPath;
+ } else if (process.platform === 'darwin') {
+  const resourcesPath = process.resourcesPath;
+  const stageDir = path.join(app.getPath('userData'), 'ffmpeg-bin');
+  await mkdir(stageDir, { recursive: true }).catch(() => undefined);
+
+  for (const tool of ['ffmpeg', 'ffprobe'] as const) {
+   const candidates = bundledSourceCandidates(tool);
+   const sourceName = candidates.find((name) =>
+    existsSync(path.join(resourcesPath, name)),
+   );
+   if (!sourceName) {
+    console.warn(
+     `[ffmpeg] Bundled ${tool} not found (tried ${candidates.join(', ') || '<none>'} in ${resourcesPath}) — ${tool}-dependent postprocessing will fail unless the user has ${tool} on PATH.`,
+    );
+    continue;
+   }
+   const sourcePath = path.join(resourcesPath, sourceName);
+   const destPath = path.join(stageDir, tool);
+
+   try {
+    const srcStat = await stat(sourcePath);
+    const destStat = await stat(destPath).catch(() => null);
+    if (!destStat || srcStat.mtimeMs > destStat.mtimeMs) {
+     await copyFile(sourcePath, destPath);
+     await chmod(destPath, 0o755);
+    }
+   } catch (error) {
+    console.error(`[ffmpeg] Failed to stage bundled ${tool}:`, error);
+   }
+  }
+
+  pathAdditionDir = stageDir;
+ }
+
+ if (!pathAdditionDir) return;
+ const existingPath = process.env.PATH || '';
+ if (!existingPath.split(path.delimiter).includes(pathAdditionDir)) {
+  process.env.PATH = `${pathAdditionDir}${path.delimiter}${existingPath}`;
+ }
+}
+
 /**
  * Retries an fs/download operation while Windows reports the yt-dlp binary
  * as locked. The lock holder is usually the `--version` probe that
@@ -291,6 +377,10 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
  // exists) but only fires 5s after handlers are registered — seed here too
  // so a download/info call made in that window doesn't hit a missing binary.
  void ensureYtdlpSeeded(ytdlpPath);
+
+ // Stage/PATH bundled ffmpeg+ffprobe as early as possible so the first
+ // download's postprocessing doesn't race the copy — see ensureFfmpegOnPath.
+ ffmpegOnPathReady = ensureFfmpegOnPath();
 
  // Tracks IDs of yt-dlp controllers that are currently downloading.
  // Used by the cleanup function to SIGKILL orphaned processes on app quit.
@@ -976,6 +1066,9 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
  // download video from link
  ipcMain.handle('ytdlp:download', async (e, id, args) => {
   try {
+   // Postprocessing (merge/remux/mp3-m4a extraction) needs ffmpeg+ffprobe
+   // resolvable on PATH before yt-dlp starts — wait for the one-time staging.
+   await (ffmpegOnPathReady ??= ensureFfmpegOnPath());
    const controller = await YTDLP.download({
     ytdlpDownloadDestination: ytdlpPath,
     // args needed for download

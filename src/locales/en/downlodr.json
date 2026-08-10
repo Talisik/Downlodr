@@ -148,6 +148,9 @@
     },
     "format": {
       "unknown": "Unknown"
+    },
+    "name": {
+      "fileMissing": "{{title}} — file not found at its saved location. It may have been moved, renamed, or deleted outside Downlodr."
     }
   },
   "taskbarInput": {

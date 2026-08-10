@@ -192,7 +192,9 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
         download.fileMissing
           ? 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
           : `hover:bg-gray-50 dark:hover:bg-darkModeHover ${
-              isSelectedDownload ? 'bg-blue-50  dark:bg-darkMode' : 'dark:bg-darkMode'
+              isSelectedDownload
+                ? 'bg-blue-50  dark:bg-darkMode'
+                : 'dark:bg-darkMode'
             } ${
               isGrouped
                 ? 'bg-gray-50 dark:bg-darkModeTable'
@@ -319,7 +321,13 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                     <div className="line-clamp-2 break-words flex justify-start items-start min-w-0 flex-1">
                       <div className="w-full justify-start items-start">
                         <TooltipWrapper
-                          content={download.displayName || download.name}
+                          content={
+                            download.fileMissing
+                              ? t('statusPage.name.fileMissing', {
+                                  title: download.displayName || download.name,
+                                })
+                              : download.displayName || download.name
+                          }
                           side="bottom"
                           contentClassname="text-start justify-start"
                         >
@@ -369,18 +377,29 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                         </div>
                       </TooltipWrapper>
                     </div>
-                    <span
-                      className={`${
+                    <TooltipWrapper
+                      content={
                         download.fileMissing
-                          ? 'line-through text-gray-400 dark:text-gray-500'
-                          : ''
-                      } line-clamp-1 break-words break-all font-semibold min-w-0 flex-1`}
+                          ? t('statusPage.name.fileMissing', {
+                              title: download.displayName || download.name,
+                            })
+                          : download.displayName || download.name
+                      }
+                      side="bottom"
                     >
-                      {highlightText(
-                        download.displayName || download.name,
-                        searchQuery,
-                      )}
-                    </span>
+                      <span
+                        className={`${
+                          download.fileMissing
+                            ? 'line-through text-gray-400 dark:text-gray-500'
+                            : ''
+                        } line-clamp-1 break-words break-all font-semibold min-w-0 flex-1`}
+                      >
+                        {highlightText(
+                          download.displayName || download.name,
+                          searchQuery,
+                        )}
+                      </span>
+                    </TooltipWrapper>
                   </div>
                 )}
               </td>
@@ -573,7 +592,8 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                   </div>
                 ) : download.status === 'downloading' && download.isLive ? (
                   <div className="ml-2 flex items-center justify-center">
-                    {(download as { isFinishingRecording?: boolean }).isFinishingRecording ? (
+                    {(download as { isFinishingRecording?: boolean })
+                      .isFinishingRecording ? (
                       <FinishingRecordingIndicator />
                     ) : (
                       <LiveRecordingButton
@@ -748,12 +768,19 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
             );
           case 'eye':
             return (
-              <td key={column.id} style={{ width: column.width }} className="p-2 text-center">
+              <td
+                key={column.id}
+                style={{ width: column.width }}
+                className="p-2 text-center"
+              >
                 <TooltipProvider delayDuration={300}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex justify-center cursor-default">
-                        <LuEye size={14} className="text-gray-400 dark:text-gray-500" />
+                        <LuEye
+                          size={14}
+                          className="text-gray-400 dark:text-gray-500"
+                        />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="left" className="p-2">
@@ -761,25 +788,33 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                         {hiddenColumnIds.includes('speed') && (
                           <div className="flex gap-4 justify-between">
                             <span className="text-gray-400">Speed</span>
-                            <span className="font-medium">{download.speed || '—'}</span>
+                            <span className="font-medium">
+                              {download.speed || '—'}
+                            </span>
                           </div>
                         )}
                         {hiddenColumnIds.includes('dateAdded') && (
                           <div className="flex gap-4 justify-between">
                             <span className="text-gray-400">Added</span>
-                            <span className="font-medium">{formatRelativeTime(download.DateAdded)}</span>
+                            <span className="font-medium">
+                              {formatRelativeTime(download.DateAdded)}
+                            </span>
                           </div>
                         )}
                         {hiddenColumnIds.includes('source') && (
                           <div className="flex gap-4 justify-between">
                             <span className="text-gray-400">Source</span>
-                            <span className="font-medium">{download.extractorKey ?? '—'}</span>
+                            <span className="font-medium">
+                              {download.extractorKey ?? '—'}
+                            </span>
                           </div>
                         )}
                         {hiddenColumnIds.includes('transcript') && (
                           <div className="flex gap-4 justify-between">
                             <span className="text-gray-400">Transcript</span>
-                            <span className="font-medium">{download.transcriptLocation ? 'Available' : '—'}</span>
+                            <span className="font-medium">
+                              {download.transcriptLocation ? 'Available' : '—'}
+                            </span>
                           </div>
                         )}
                       </div>

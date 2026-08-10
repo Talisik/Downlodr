@@ -20,6 +20,11 @@ const projectRoot = process.cwd();
 // Platform-conditional extra resources. A missing extraResource path fails
 // packaging, so each platform lists only the binaries it actually ships.
 // - darwin: bundled mac yt-dlp + static ffmpeg (arm64/x64) — all tracked in repo.
+//   ffprobe-arm64/ffprobe-x64 are NOT currently tracked in the repo (yt-dlp
+//   postprocessing — mp3/m4a extraction, thumbnail embedding — needs both
+//   ffmpeg AND ffprobe; see ytdlpHandler.ts's ensureFfmpegOnPath). They're
+//   existsSync-gated below so packaging doesn't fail while they're missing,
+//   and will be picked up automatically the moment they're added to binaries/.
 // - win32:  Windows binaries (ffmpeg/ffprobe/ggml) are fetched at build time.
 // All platforms also ship afda-backend/video-nemesis-toolkit as plain folders
 // outside the asar — copied into userData/downlodr-add-ons/<pack> on first
@@ -31,6 +36,10 @@ const addonResources = [
  './src/afda/backend/afda-backend__hidden',
  './src/skedulosa/backend/video-nemesis-toolkit__hidden',
 ].filter(existsSync);
+const darwinFfprobeResources = [
+ './binaries/ffprobe-arm64',
+ './binaries/ffprobe-x64',
+].filter(existsSync);
 const extraResource =
  process.platform === 'darwin'
   ? [
@@ -38,6 +47,7 @@ const extraResource =
    './yt-dlp_macos',
    './binaries/ffmpeg-arm64',
    './binaries/ffmpeg-x64',
+   ...darwinFfprobeResources,
    ...addonResources,
   ]
   : process.platform === 'win32'
@@ -540,6 +550,9 @@ const config: ForgeConfig = {
         { name: 'ffmpeg-arm64', path: path.join(resourcesPath, 'ffmpeg-arm64') },
         { name: 'ffmpeg-x64', path: path.join(resourcesPath, 'ffmpeg-x64') },
         { name: 'ffmpeg', path: path.join(resourcesPath, 'ffmpeg') },
+        { name: 'ffprobe-arm64', path: path.join(resourcesPath, 'ffprobe-arm64') },
+        { name: 'ffprobe-x64', path: path.join(resourcesPath, 'ffprobe-x64') },
+        { name: 'ffprobe', path: path.join(resourcesPath, 'ffprobe') },
        ]
        : [];
 

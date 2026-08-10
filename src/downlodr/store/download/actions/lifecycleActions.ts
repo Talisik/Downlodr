@@ -22,6 +22,7 @@ import { enqueueTier1, enqueueTier2 } from '@/auto-tag/queue/autoTagQueue';
 import { config } from '@/core-app/client/config';
 import { TelemetryService } from '@/core-app/telemetry/utils/telemetryService';
 import { subscriptionDownloadSync } from '@/skedulosa/services/subscriptionDownloadSync';
+import { scheduleFileIntegrityRecheck } from '@/downlodr/utils/download/fileIntegrityChecker';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
 import { DownloadController } from '../controller';
 import type {
@@ -572,6 +573,7 @@ export function createLifecycleActions(set: SetState, get: GetState) {
                 }),
                 status: 'finished',
                 size: actualSize,
+                fileMissing: false,
                 transcriptLocation:
                   liveDownload?.autoCaptionLocation?.trim()
                     ? liveDownload.autoCaptionLocation
@@ -582,7 +584,11 @@ export function createLifecycleActions(set: SetState, get: GetState) {
                 finishedDownloads: state.finishedDownloads.some(
                   (fd) => fd.id === download.id,
                 )
-                  ? state.finishedDownloads
+                  ? state.finishedDownloads.map((fd) =>
+                      fd.id === download.id
+                        ? { ...fd, fileMissing: false }
+                        : fd,
+                    )
                   : [...state.finishedDownloads, finishedDownload],
 
                 historyDownloads: state.historyDownloads.some(
@@ -596,6 +602,11 @@ export function createLifecycleActions(set: SetState, get: GetState) {
                 ),
               };
             });
+
+            // The file was just written to disk — a probe run right this instant
+            // can transiently miss it (still being flushed/renamed). Re-check
+            // shortly instead of waiting for the next 10-minute background tick.
+            scheduleFileIntegrityRecheck();
 
             // Auto-tag: metadata is available now -> tier 1. If a transcript was
             // already resolved at completion (getTranscript path above), also tier 2.

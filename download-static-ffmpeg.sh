@@ -1,79 +1,109 @@
 #!/bin/bash
 
-# Download static FFmpeg binaries for macOS (targets FFmpeg 8.0+).
-# These are dependency-free static builds that can be bundled with the app.
+# Refresh the static x64 FFmpeg/ffprobe binaries for macOS (targets 8.0+).
 #
-# Resilient by design: if the download fails (e.g. network/CI hiccup), the
-# previously committed binaries are restored and the script exits 0 so the
-# core build still succeeds with whatever FFmpeg is already in binaries/.
+# evermeet.cx's "getrelease" endpoint only serves x86_64 static builds
+# (verified: `file` on the downloaded binary reports "Mach-O 64-bit
+# executable x86_64", not arm64) — despite older naming in this repo that
+# implied otherwise. binaries/ffmpeg-arm64 is a genuinely native arm64
+# static build from a separate source and is committed to the repo; this
+# script does NOT touch it, since overwriting it with a mislabeled x64
+# binary would silently downgrade every Apple Silicon build to running
+# ffmpeg under Rosetta 2. It only refreshes the *-x64 binaries, which are
+# correctly sourced from evermeet. Apple Silicon machines fall back to the
+# x64 build (via Rosetta 2) for any tool with no native arm64 build
+# available (see ensureFfmpegOnPath() in ytdlpHandler.ts) — notably
+# ffprobe, for which no arm64 static build is committed to this repo.
+#
+# Resilient by design: if a download fails (e.g. network/CI hiccup), the
+# previously committed x64 binary for that tool is restored and the script
+# exits 0 so the core build still succeeds with whatever is already in
+# binaries/. FFmpeg and ffprobe are independent — a failure fetching one
+# does not block the other.
 
 set -u
 
-# evermeet.cx "getrelease" always serves the latest stable FFmpeg (currently 8.x).
 FFMPEG_URL="https://evermeet.cx/ffmpeg/getrelease/ffmpeg/zip"
-
-echo "📦 Downloading static FFmpeg binaries for macOS (target 8.0+)..."
+FFPROBE_URL="https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip"
 
 mkdir -p binaries
 
-# Backup existing (committed) binaries so we can fall back on failure.
-[ -f "binaries/ffmpeg-arm64" ] && cp binaries/ffmpeg-arm64 binaries/ffmpeg-arm64.backup
-[ -f "binaries/ffmpeg-x64" ] && cp binaries/ffmpeg-x64 binaries/ffmpeg-x64.backup
+# fetch_x64_tool <tool-name> <url>
+# Downloads a single evermeet.cx static (x86_64) binary and installs it as
+# binaries/<tool>-x64. Backs up and restores the previously committed
+# binary on any failure so a bad fetch never leaves binaries/ in a
+# half-updated state.
+fetch_x64_tool() {
+  local tool="$1"
+  local url="$2"
+  local x64_path="binaries/${tool}-x64"
+  local zip_path="/tmp/${tool}-x64.zip"
+  local extract_dir="/tmp/${tool}-x64-extract"
 
-restore_backup() {
-  echo "⚠️  Falling back to existing committed FFmpeg binaries."
-  [ -f "binaries/ffmpeg-arm64.backup" ] && mv -f binaries/ffmpeg-arm64.backup binaries/ffmpeg-arm64
-  [ -f "binaries/ffmpeg-x64.backup" ] && mv -f binaries/ffmpeg-x64.backup binaries/ffmpeg-x64
-  chmod +x binaries/ffmpeg-arm64 binaries/ffmpeg-x64 2>/dev/null || true
-  exit 0
+  echo ""
+  echo "📦 Downloading static ${tool} (x86_64) for macOS (target 8.0+)..."
+
+  [ -f "$x64_path" ] && cp "$x64_path" "${x64_path}.backup"
+
+  restore_backup() {
+    echo "⚠️  Falling back to existing committed ${tool}-x64 binary."
+    [ -f "${x64_path}.backup" ] && mv -f "${x64_path}.backup" "$x64_path"
+    chmod +x "$x64_path" 2>/dev/null || true
+  }
+
+  if ! curl -fL "$url" -o "$zip_path"; then
+    echo "❌ Download failed."
+    restore_backup
+    return 0
+  fi
+
+  if ! unzip -o -q "$zip_path" -d "$extract_dir"; then
+    echo "❌ Unzip failed."
+    rm -f "$zip_path"
+    restore_backup
+    return 0
+  fi
+
+  # evermeet zips contain a bare binary named after the tool.
+  if [ ! -f "$extract_dir/$tool" ]; then
+    echo "❌ Extracted archive did not contain a ${tool} binary."
+    rm -rf "$zip_path" "$extract_dir"
+    restore_backup
+    return 0
+  fi
+
+  local arch
+  arch=$(file -b "$extract_dir/$tool" 2>/dev/null || true)
+  if [[ "$arch" != *x86_64* ]]; then
+    echo "❌ Downloaded ${tool} is not x86_64 as expected (got: ${arch}) — refusing to install it under the -x64 name."
+    rm -rf "$zip_path" "$extract_dir"
+    restore_backup
+    return 0
+  fi
+
+  mv -f "$extract_dir/$tool" "$x64_path"
+  rm -rf "$zip_path" "$extract_dir"
+  chmod +x "$x64_path"
+
+  echo "Verifying ${tool}-x64..."
+  local version_line
+  version_line=$("./$x64_path" -version 2>/dev/null | head -1 || true)
+  echo "  $version_line"
+  local major
+  major=$(echo "$version_line" | sed -nE "s/.*${tool} version ([0-9]+).*/\\1/p")
+  if [ -n "$major" ] && [ "$major" -lt 8 ]; then
+    echo "⚠️  Downloaded ${tool} is older than 8.0 — some features may be limited."
+  fi
+
+  rm -f "${x64_path}.backup"
 }
 
-echo ""
-echo "Downloading FFmpeg for Apple Silicon (arm64) from evermeet.cx..."
-if ! curl -fL "$FFMPEG_URL" -o /tmp/ffmpeg-arm64.zip; then
-  echo "❌ Download failed."
-  restore_backup
-fi
-
-if ! unzip -o -q /tmp/ffmpeg-arm64.zip -d /tmp/ffmpeg-extract; then
-  echo "❌ Unzip failed."
-  rm -f /tmp/ffmpeg-arm64.zip
-  restore_backup
-fi
-
-# evermeet zips contain a bare `ffmpeg` binary.
-if [ ! -f /tmp/ffmpeg-extract/ffmpeg ]; then
-  echo "❌ Extracted archive did not contain an ffmpeg binary."
-  rm -rf /tmp/ffmpeg-arm64.zip /tmp/ffmpeg-extract
-  restore_backup
-fi
-
-mv -f /tmp/ffmpeg-extract/ffmpeg binaries/ffmpeg-arm64
-rm -rf /tmp/ffmpeg-arm64.zip /tmp/ffmpeg-extract
-
-# evermeet.cx provides arm64 static builds; Intel Macs run it via Rosetta 2.
-echo ""
-echo "For Intel (x64): reusing the arm64 static build (runs under Rosetta 2)."
-cp -f binaries/ffmpeg-arm64 binaries/ffmpeg-x64
-
-chmod +x binaries/ffmpeg-arm64 binaries/ffmpeg-x64
-
-# Verify version; warn (non-fatal) if older than 8.0.
-echo ""
-echo "Verifying FFmpeg..."
-VERSION_LINE=$(./binaries/ffmpeg-arm64 -version 2>/dev/null | head -1 || true)
-echo "  $VERSION_LINE"
-MAJOR=$(echo "$VERSION_LINE" | sed -nE 's/.*ffmpeg version ([0-9]+).*/\1/p')
-if [ -n "$MAJOR" ] && [ "$MAJOR" -lt 8 ]; then
-  echo "⚠️  Downloaded FFmpeg is older than 8.0 — transcription (Whisper) may be limited."
-fi
-
-# Clean up backups on success.
-rm -f binaries/ffmpeg-arm64.backup binaries/ffmpeg-x64.backup
+fetch_x64_tool ffmpeg "$FFMPEG_URL"
+fetch_x64_tool ffprobe "$FFPROBE_URL"
 
 echo ""
 echo "File sizes:"
-ls -lh binaries/ffmpeg-* 2>/dev/null
+ls -lh binaries/ffmpeg-* binaries/ffprobe-* 2>/dev/null
 
 echo ""
-echo "✅ Static FFmpeg binaries ready."
+echo "✅ Static x64 FFmpeg/ffprobe binaries refreshed. arm64 ffmpeg is untouched (committed native build); arm64 ffprobe has no committed native build and falls back to ffprobe-x64 under Rosetta 2 at runtime."

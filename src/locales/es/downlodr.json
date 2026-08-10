@@ -144,6 +144,9 @@
     },
     "format": {
       "unknown": "Desconocido"
+    },
+    "name": {
+      "fileMissing": "{{title}} — archivo no encontrado en su ubicación guardada. Puede haber sido movido, renombrado o eliminado fuera de Downlodr."
     }
   },
   "taskbarInput": {
