@@ -1,7 +1,7 @@
 {
   "name": "downlodr",
   "productName": "Downlodr",
-  "version": "1.17.7-mac-stable",
+  "version": "1.17.8-mac-stable",
   "description": "Downlodr is a powerful, user-friendly video downloading solution that supports over 1,800 platforms",
   "main": ".vite/build/main.js",
   "downlodrAddons": {
