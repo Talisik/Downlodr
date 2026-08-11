@@ -1,4 +1,6 @@
 import { Button } from '@/core-app/components/shadcn/components/ui/button';
+import { renderIcon } from '@/plugins/utils/pluginIconHelper';
+import { isSvgString } from '@/core-app/utils/stringHelper';
 import { useToast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { cn } from '@/core-app/components/shadcn/lib/utils';
 import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
@@ -24,9 +26,6 @@ const PluginTaskBarExtension: React.FC = () => {
   );
 
   // Helper function to check if a string is an SVG
-  const isSvgString = (str: string): boolean => {
-    return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
-  };
 
   const fetchTaskBarItems = async () => {
     try {
@@ -100,33 +99,6 @@ const PluginTaskBarExtension: React.FC = () => {
   }
 
   // Render icon helper function
-  const renderIcon = (
-    icon: string | React.ReactNode,
-    size: 'sm' | 'md' = 'sm',
-  ) => {
-    const sizeClass = size === 'md' ? 'w-6 h-6' : 'w-5 h-5';
-
-    if (typeof icon === 'string' && isSvgString(icon)) {
-      return (
-        <div
-          dangerouslySetInnerHTML={{ __html: icon }}
-          className={`${sizeClass} flex items-center justify-center rounded-sm [&>svg]:w-full [&>svg]:h-full`}
-        />
-      );
-    } else if (icon) {
-      return <span>{icon}</span>;
-    } else {
-      return (
-        <div
-          className={`${sizeClass} bg-gray-300 dark:bg-gray-600 rounded-sm flex items-center justify-center`}
-        >
-          <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
-            P
-          </span>
-        </div>
-      );
-    }
-  };
 
   const handleItemClick = (item: TaskBarItem) => {
     if (item.actionType === 'multiple' && !selectedDownloads.length) {
@@ -217,7 +189,7 @@ const PluginTaskBarExtension: React.FC = () => {
                     />
                   ) : (
                     <span className="text-black dark:text-white">
-                      {renderIcon(item.icon, 'sm')}
+                      {renderIcon(item.icon, 'sm', item.label, 'w-4 h-4')}
                     </span>
                   )}
                 </span>

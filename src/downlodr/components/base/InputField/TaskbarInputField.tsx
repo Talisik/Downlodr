@@ -12,7 +12,10 @@ import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { cn } from '@/core-app/components/shadcn/lib/utils';
 import { waitForStoreRehydration } from '@/core-app/hooks/useStoreRehydration';
 import { useSettingStore } from '@/core-app/store/settingsStore';
-import { cleanRawLink } from '@/core-app/utils/urlValidation';
+import {
+  cleanRawLink,
+  isEnumerableYouTubePlaylist,
+} from '@/core-app/utils/urlValidation';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import { processFileName } from '@/downlodr/utils/download/filterName';
 import {
@@ -153,11 +156,33 @@ const TaskbarInputField = () => {
     try {
       const info = await window.ytdlp.getPlaylistInfo(url);
 
+      // yt-dlp does not always return an `entries` array: private, deleted, or
+      // region-blocked lists resolve with metadata but no items. Reading
+      // `.entries` straight off the payload threw a TypeError that landed in
+      // the catch below and surfaced as the same generic "failed to fetch"
+      // toast as a network error — indistinguishable in a bug report.
+      const entries = info?.data?.entries;
+      if (!Array.isArray(entries) || entries.length === 0) {
+        console.warn(
+          '[playlist] no entries returned for',
+          url,
+          '- payload:',
+          info,
+        );
+        toast({
+          variant: 'destructive',
+          title: t('taskbarInput.toast.playlistEmptyTitle'),
+          description: t('taskbarInput.toast.playlistEmptyDesc'),
+          duration: 5000,
+        });
+        return;
+      }
+
       // Ensure no duplicate videos in the playlist
       const uniqueVideos = new Map();
 
       // Iterates through each video link inside playlist and saves to unique videos
-      info.data.entries.forEach((video: PlaylistInfoEntry) => {
+      entries.forEach((video: PlaylistInfoEntry) => {
         if (!uniqueVideos.has(video.id)) {
           uniqueVideos.set(video.id, {
             url: video.url,
@@ -176,6 +201,10 @@ const TaskbarInputField = () => {
         playlistVideos: videos,
       });
     } catch (error) {
+      // Previously swallowed entirely: the underlying yt-dlp message only ever
+      // reached the main-process console, so a field report could never say
+      // *why* the fetch failed. Log it renderer-side too.
+      console.error('[playlist] getPlaylistInfo failed for', url, error);
       toast({
         variant: 'destructive',
         title: t('taskbarInput.toast.playlistErrorTitle'),
@@ -187,30 +216,32 @@ const TaskbarInputField = () => {
     }
   };
 
-  // URL validation with playlist check
+  // URL validation with playlist check.
+  //
+  // Order matters. The youtu.be short-link branch rewrites the URL through
+  // cleanRawLink(), which drops the query string — so it must run *after* the
+  // playlist check, otherwise `youtu.be/<id>?list=PL…` would silently lose its
+  // list and import as a single video. Playlist classification itself is
+  // delegated to the shared helper so this and urlValidation.isYouTubeLink
+  // can't drift apart (they previously disagreed: the same logical link was a
+  // playlist via /watch?v=…&list=… but a plain video via youtu.be/…?list=…).
   const isYouTubeLink = (url: string): 'playlist' | 'video' | 'invalid' => {
-    const videoPattern = /^https:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/;
-    const playlistPattern =
-      /^https:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+$/;
     const channelPattern =
       /^https:\/\/(?:www\.)?youtube\.com\/(?:@[\w.-]+|c\/[\w.-]+|user\/[\w.-]+|channel\/[\w-]+)(?:\/[^?]*)?(?:\?.*)?$/;
 
-    if (RAW_YOUTUBE_PATTERN.test(url)) {
-      const cleanedUrl = cleanRawLink(url);
-      setVideoUrl(cleanedUrl);
-      return 'video';
-    }
     // Reject YouTube channel URLs — yt-dlp cannot handle them as single downloads
     if (channelPattern.test(url)) {
       return 'invalid';
     }
-    // If the URL matches a video URL and has a "list" query, it's part of a playlist
-    if (videoPattern.test(url) && url.includes('list=')) {
+    // Real, enumerable playlist (PL…/UU…). Mixes (RD…) and private lists
+    // (WL/LL) are intentionally NOT playlists — they fall through to 'video'.
+    if (isEnumerableYouTubePlaylist(url)) {
       return 'playlist';
     }
-    // If it's a direct playlist URL
-    else if (playlistPattern.test(url)) {
-      return 'playlist';
+    if (RAW_YOUTUBE_PATTERN.test(url)) {
+      const cleanedUrl = cleanRawLink(url);
+      setVideoUrl(cleanedUrl);
+      return 'video';
     }
     return 'video';
   };

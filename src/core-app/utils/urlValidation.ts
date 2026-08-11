@@ -27,19 +27,64 @@ export const cleanRawLink = (url: string): string => {
   return url;
 };
 
+/**
+ * Reads the `list` query parameter off a YouTube URL, in any of its forms
+ * (`youtube.com/watch?v=…&list=…`, `youtube.com/playlist?list=…`, or the
+ * `youtu.be/<id>?list=…` short link). Returns null when there is no usable
+ * list id.
+ */
+export const getYouTubeListId = (url: string): string | null => {
+  try {
+    const parsed = new URL(url.trim());
+    const host = parsed.hostname.replace(/^www\./, '');
+    if (host !== 'youtube.com' && host !== 'm.youtube.com' && host !== 'youtu.be') {
+      return null;
+    }
+    const listId = parsed.searchParams.get('list');
+    return listId && listId.trim() ? listId.trim() : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * True when a `list` id refers to a real, enumerable playlist.
+ *
+ * Not every `list=` value is a playlist yt-dlp can expand:
+ *  - `RD…`  auto-generated radio / "Mix" — endless and personalised, so it has
+ *           no fixed entry list to import. This is what a "Play all"/autoplay
+ *           link carries, e.g. `?list=RD<videoId>`.
+ *  - `WL`   Watch Later, `LL` Liked videos — private to the signed-in account,
+ *           so an unauthenticated fetch returns nothing.
+ * Everything else (`PL…`, `UU…`, `OL…`, `FL…`) is a normal playlist.
+ *
+ * Treating a mix as a playlist is what produced the "Failed to fetch playlist
+ * information" toast: yt-dlp cannot flat-extract it, so the fetch threw and
+ * the user got a generic error for a link that is really just a single video.
+ */
+export const isEnumerableYouTubeListId = (listId: string): boolean => {
+  if (/^RD/i.test(listId)) return false; // radio / mix
+  if (/^(WL|LL)$/i.test(listId)) return false; // private, per-account
+  return true;
+};
+
+/**
+ * True when `url` points at a playlist whose contents can actually be fetched.
+ * Mixes and private pseudo-playlists return false and should be handled as a
+ * plain single-video download instead.
+ */
+export const isEnumerableYouTubePlaylist = (url: string): boolean => {
+  const listId = getYouTubeListId(url);
+  return listId != null && isEnumerableYouTubeListId(listId);
+};
+
 export const isYouTubeLink = (
   url: string,
 ): 'playlist' | 'video' | 'invalid' => {
-  const videoPattern = /^https:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/;
-  const playlistPattern =
-    /^https:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+$/;
-
-  // If the URL matches a video URL and has a "list" query, it's part of a playlist
-  if (videoPattern.test(url) && url.includes('list=')) {
-    return 'playlist';
-  }
-  // If it's a direct playlist URL
-  else if (playlistPattern.test(url)) {
+  // A real, enumerable `list=` makes this a playlist regardless of whether the
+  // URL is a /watch, /playlist, or youtu.be short link. Mixes (RD…) and
+  // private lists (WL/LL) deliberately fall through to 'video'.
+  if (isEnumerableYouTubePlaylist(url)) {
     return 'playlist';
   }
   return 'video';

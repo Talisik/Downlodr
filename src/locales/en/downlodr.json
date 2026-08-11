@@ -162,6 +162,8 @@
       "openArticle": "Open Article Installer"
     },
     "toast": {
+      "playlistEmptyTitle": "Playlist is empty",
+      "playlistEmptyDesc": "No videos could be read from this playlist. It may be private, region-blocked, or contain no items.",
       "playlistErrorTitle": "Playlist Error",
       "playlistErrorDesc": "Failed to fetch playlist information",
       "channelDetectedTitle": "Channel link detected",

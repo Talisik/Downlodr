@@ -5,6 +5,7 @@ import { Outlet } from 'react-router-dom';
 import { SkedulosaNavigation } from '../components/SkedulosaNavigation';
 import { SubscriptionQueueProvider } from '../context/SubscriptionQueueContext';
 import { SubscriptionQueueBanner } from '../components/SubscriptionQueueBanner';
+import AddonGate from '@/core-app/components/AddonGate';
 
 // Error Boundary component
 class ErrorBoundary extends Component<
@@ -75,8 +76,18 @@ const SkedulosaLayout = () => {
               toggleCollapse={toggleNavCollapse}
             />
             <main className="flex-1 overflow-auto bg-white dark:bg-darkMode rounded-md">
-              <SubscriptionQueueBanner />
-              <Outlet />
+              {/* The whole Subscriptions feature is backed by the
+                  video-nemesis-toolkit add-on pack. Without it every
+                  `toolkit:*` IPC channel is unregistered in the main process,
+                  so the UI would render normally and then fail with a raw
+                  "No handler registered for ..." error on first use. Gate the
+                  content here so an absent pack shows the install prompt
+                  instead. Nav/taskbar stay mounted so the tab is still
+                  discoverable and the user can navigate away. */}
+              <AddonGate packName="video-nemesis-toolkit">
+                <SubscriptionQueueBanner />
+                <Outlet />
+              </AddonGate>
             </main>
           </div>
         </div>

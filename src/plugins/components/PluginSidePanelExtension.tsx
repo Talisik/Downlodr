@@ -2,6 +2,8 @@ import {
   PluginSidePanelOptions,
   PluginSidePanelResult,
 } from '@/plugins/schema/types';
+import { renderIcon } from '@/plugins/utils/pluginIconHelper';
+import { isSvgString } from '@/core-app/utils/stringHelper';
 import React, { useEffect, useRef, useState } from 'react';
 
 function usePanelWidth(): number {
@@ -61,9 +63,8 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
           --accent-primary: #F45513;
           --accent-hover: #e56c10;
           --bg-accent: #FEF9F4;
-          --bg-accent-hover: ${
-            isDark ? 'rgba(254, 249, 244, 0.8)' : 'rgba(252, 242, 236, 1)'
-          };
+          --bg-accent-hover: ${isDark ? 'rgba(254, 249, 244, 0.8)' : 'rgba(252, 242, 236, 1)'
+      };
           --text-on-accent: #fff;
           --bg-hover: ${isDark ? '#3E3E46' : 'rgb(227, 227, 227)'};
           --bg-disabled: ${isDark ? '#27272a' : '#cccccc'};
@@ -76,12 +77,10 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
           --bg-progress-track: ${isDark ? '#272727' : '#D1D5DB'};
           --bg-tooltip: ${isDark ? '#18181B' : '#FEF9F4'};
           --text-tooltip: ${isDark ? '#a1a1aa' : '#fff'};
-          --shadow-primary: ${
-            isDark ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)'
-          };
-          --shadow-success: ${
-            isDark ? 'rgba(34, 197, 94, 0.3)' : 'rgba(16, 185, 129, 0.3)'
-          };
+          --shadow-primary: ${isDark ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)'
+      };
+          --shadow-success: ${isDark ? 'rgba(34, 197, 94, 0.3)' : 'rgba(16, 185, 129, 0.3)'
+      };
           --scrollbar-thumb: ${isDark ? '#52525b' : '#888'};
           --scrollbar-thumb-hover: ${isDark ? '#71717a' : '#666'};
           --border-subtle: ${isDark ? '#2a2a2e' : '#EDEDED'};
@@ -199,9 +198,6 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
   }, [options.callbacks, onClose]);
 
   // Helper function to check if a string is an SVG
-  const isSvgString = (str: string): boolean => {
-    return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
-  };
 
   if (!isOpen) return null;
 
@@ -222,7 +218,7 @@ const PluginSidePanelExtension: React.FC<PluginSidePanelExtensionProps> = ({
                 />
               ) : (
                 <span className="text-blue-500 dark:text-blue-400">
-                  {options.icon}
+                  {renderIcon(options.icon, 'sm', options.title, 'w-5 h-5')}
                 </span>
               )}
             </span>

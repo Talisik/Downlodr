@@ -38,6 +38,8 @@ import { BaseDownload, useDownloadStore } from '@/downlodr/store/downloadStore';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import { processFileName } from '@/downlodr/utils/download/filterName';
 import { usePluginState } from '@/plugins/hook/usePluginState';
+import { renderIcon } from '@/plugins/utils/pluginIconHelper';
+import { isSvgString } from '@/core-app/utils/stringHelper';
 import { MenuItem } from '@/plugins/schema/types';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -334,9 +336,6 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   }, [pluginMenuItems.length, showPluginMenu]);
 
   // Helper function to check if a string is an SVG
-  const isSvgString = (str: string): boolean => {
-    return str.trim().startsWith('<svg') && str.trim().endsWith('</svg>');
-  };
 
   useEffect(() => {
     if (menuRef.current) {
@@ -813,7 +812,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                       className="text-black dark:text-white inline-flex w-4 h-4"
                     />
                   ) : (
-                    <span>{item.icon}</span>
+                    renderIcon(item.icon, 'sm', item.label, 'w-4 h-4')
                   )
                 ) : (
                   <span className="w-4 h-4" />
@@ -1106,7 +1105,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                       className="text-black dark:text-white inline-flex w-4 h-4"
                     />
                   ) : (
-                    <span>{item.icon}</span>
+                    renderIcon(item.icon, 'sm', item.label, 'w-4 h-4')
                   )
                 ) : (
                   <span className="w-4 h-4" />

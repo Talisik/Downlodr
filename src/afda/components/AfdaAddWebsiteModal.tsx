@@ -16,6 +16,26 @@ import type {
   MapperResult,
 } from '@/afda/types/mapperTypes';
 import { FiCheck } from 'react-icons/fi';
+import AddonGate from '@/core-app/components/AddonGate';
+import { useAddonStore } from '@/core-app/store/addonStore';
+
+/**
+ * Turns an exception from an afdaBridge call into copy a user can act on.
+ *
+ * Electron stringifies a missing `ipcMain.handle` as
+ * "Error invoking remote method 'mapper:run': Error: No handler registered
+ * for 'mapper:run'". Surfacing that verbatim leaks an internal channel name
+ * and tells the user nothing. The realistic cause is that the Article
+ * Fetcher add-on pack isn't installed, so its main-process handlers were
+ * never registered — point at that instead.
+ */
+function friendlyBridgeError(err: unknown, fallback: string): string {
+  const raw = err instanceof Error ? err.message : String(err ?? '');
+  if (/No handler registered for/i.test(raw)) {
+    return 'Article Fetcher is not installed, so this action is unavailable. Install it from Add-ons, then try again.';
+  }
+  return raw || fallback;
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -331,6 +351,19 @@ const AfdaAddWebsiteModal = ({
   const [socialPreset, setSocialPreset] = useState<string>('every_1h');
   const [socialAccount, setSocialAccount] = useState<string>('');
 
+  // URL the run effect should actually use. Normally null (meaning: use the
+  // `initialUrl` prop), but the error-state Source URL field writes the user's
+  // corrected value here so Retry resubmits what they can actually see, rather
+  // than silently replaying the original prop.
+  const retryUrlRef = useRef<string | null>(null);
+
+  // Article Fetcher backend lives in a downloadable add-on pack. When it isn't
+  // installed, none of the `mapper:*` handlers exist in the main process, so
+  // every invoke rejects with a raw "No handler registered" error. Gate the
+  // modal body on the pack instead of firing IPC into the void.
+  const afdaPackStatus = useAddonStore((s) => s.afda.status);
+  const afdaPackReady = afdaPackStatus === 'ready';
+
   const setBridgeError = useCallback((message: string) => {
     setErrorMsg(message);
     setPhase('error');
@@ -386,12 +419,16 @@ const AfdaAddWebsiteModal = ({
 
   useEffect(() => {
     if (!isOpen || !initialUrl) return;
+    // Pack missing → the gate renders instead of the form; don't invoke IPC.
+    if (!afdaPackReady) return;
 
-    const url = initialUrl.trim();
+    // Prefer the value the user corrected in the error state over the prop.
+    const url = (retryUrlRef.current ?? initialUrl).trim();
     const fqdn = extractFqdn(url);
     if (!url || !fqdn) {
+      setWebsiteUrl(url);
       setPhase('error');
-      setErrorMsg('Invalid URL provided');
+      setErrorMsg('That does not look like a valid URL. Check it and retry.');
       return;
     }
 
@@ -401,7 +438,9 @@ const AfdaAddWebsiteModal = ({
     const bridge =
       typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
     if (!bridge) {
-      setErrorMsg('Article Fetcher is not available. Please restart Downlodr.');
+      setErrorMsg(
+        'Article Fetcher is not available. Install it from Add-ons, then try again.',
+      );
       setPhase('error');
       return;
     }
@@ -468,11 +507,9 @@ const AfdaAddWebsiteModal = ({
       .catch((err: unknown) => {
         analysisStarted.current = false;
         finishChannelAnalysis();
-        setBridgeError(
-          err instanceof Error ? err.message : 'Failed to start mapper',
-        );
+        setBridgeError(friendlyBridgeError(err, 'Failed to start mapper'));
       });
-  }, [isOpen, initialUrl, retryKey, setBridgeError]);
+  }, [isOpen, initialUrl, retryKey, setBridgeError, afdaPackReady]);
 
   // ── Consume mapper results stashed by GlobalAfdaMapperListener ─────────────
   // Fires both while the modal stays open and on re-mount after the user
@@ -597,7 +634,7 @@ const AfdaAddWebsiteModal = ({
     } catch (err) {
       setPhase('error');
       setErrorMsg(
-        err instanceof Error ? err.message : 'Failed to add social source',
+        friendlyBridgeError(err, 'Failed to add social source'),
       );
     }
   }, [
@@ -774,9 +811,7 @@ const AfdaAddWebsiteModal = ({
         initialScrapeGuard.delete(id);
       }
       guardedSectionIds.clear();
-      setBridgeError(
-        err instanceof Error ? err.message : 'Failed to save website',
-      );
+      setBridgeError(friendlyBridgeError(err, 'Failed to save website'));
     }
   }, [
     mapperResult,
@@ -836,8 +871,17 @@ const AfdaAddWebsiteModal = ({
           {phase === 'error' ? (
             <button
               type="button"
-              onClick={() => setRetryKey((k) => k + 1)}
-              className="flex-1 max-w-[300px] bg-primary hover:opacity-90 text-white py-1.5 rounded-md text-sm"
+              onClick={() => {
+                // Resubmit exactly what the field shows, not the original prop.
+                retryUrlRef.current = websiteUrl.trim();
+                setRetryKey((k) => k + 1);
+              }}
+              disabled={!websiteUrl.trim()}
+              className={`flex-1 max-w-[300px] text-white py-1.5 rounded-md text-sm ${
+                websiteUrl.trim()
+                  ? 'bg-primary hover:opacity-90'
+                  : 'bg-primary/50 cursor-not-allowed'
+              }`}
             >
               Retry
             </button>
@@ -880,19 +924,57 @@ const AfdaAddWebsiteModal = ({
       maxHeight="max-h-[95vh]"
       contentClassName="overflow-y-auto"
       containerClassName="bg-white dark:bg-darkMode"
-      footer={footer}
+      footer={afdaPackReady ? footer : undefined}
     >
-      {/* ── Error ── */}
-      {phase === 'error' && errorMsg && (
-        <div className="flex flex-col gap-4 pt-1">
+      {/* Pack missing → show the install prompt instead of a form that can
+          only fail. AddonGate renders its own download/progress UI. */}
+      {!afdaPackReady && (
+        <div className="p-4">
+          <AddonGate packName="afda-backend">{null}</AddonGate>
+        </div>
+      )}
+
+      {/* ── Error ──
+          The Source URL field stays mounted here on purpose. This used to
+          render the banner alone, which unmounted every form block: the user
+          could not see what they had submitted, could not correct it, and
+          Retry silently replayed the original prop. Keeping the field visible
+          and editable makes Retry act on what is actually on screen. */}
+      {afdaPackReady && phase === 'error' && errorMsg && (
+        <div className="flex flex-col gap-3 pt-1 p-4">
           <div className="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-md px-3 py-2">
             {errorMsg}
+          </div>
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="afda-source-url"
+              className="text-xs text-gray-600 dark:text-gray-300"
+            >
+              Source URL
+            </label>
+            <input
+              id="afda-source-url"
+              type="text"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && websiteUrl.trim()) {
+                  retryUrlRef.current = websiteUrl.trim();
+                  setRetryKey((k) => k + 1);
+                }
+              }}
+              spellCheck={false}
+              autoComplete="off"
+              placeholder="https://example.com"
+              className="w-full bg-[#0000000D] dark:bg-darkModeCompliment border border-[#E8E8E8] dark:border-darkModeCompliment text-black dark:text-gray-100 px-2.5 py-1.5 rounded-md h-8 text-sm"
+            />
           </div>
         </div>
       )}
 
       {/* ── Social source form ── */}
-      {(phase === 'social' || (phase === 'saving' && socialPlatform)) && (
+      {afdaPackReady &&
+        (phase === 'social' || (phase === 'saving' && socialPlatform)) && (
         <div className="flex flex-col gap-3 pt-0 p-4">
           {/* Detected platform banner */}
           <div className="flex items-center gap-2 text-xs bg-primary/10 text-primary rounded-md px-3 py-2">
@@ -962,7 +1044,8 @@ const AfdaAddWebsiteModal = ({
       )}
 
       {/* ── Section picker ── */}
-      {(phase === 'sections' || phase === 'saving') && mapperResult && (
+      {afdaPackReady &&
+        (phase === 'sections' || phase === 'saving') && mapperResult && (
         <div className="flex flex-col gap-3 pt-0 p-4 ">
           {/* Subscription name */}
           <div className="flex flex-col gap-1">

@@ -158,6 +158,8 @@
       "openArticle": "Abrir instalador de artículos"
     },
     "toast": {
+      "playlistEmptyTitle": "La lista de reproducción está vacía",
+      "playlistEmptyDesc": "No se pudo leer ningún video de esta lista. Puede ser privada, estar bloqueada por región o no tener elementos.",
       "playlistErrorTitle": "Error de lista de reproducción",
       "playlistErrorDesc": "No se pudo obtener la información de la lista de reproducción",
       "channelDetectedTitle": "Enlace de canal detectado",
