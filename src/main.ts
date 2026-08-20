@@ -6,7 +6,7 @@
  * application lifecycle events.
  */
 import './core-app/ipc/main/electronPathsInit';
-import { app, BrowserWindow, session } from 'electron';
+import { app, BrowserWindow, ipcMain, session } from 'electron';
 import started from 'electron-squirrel-startup';
 import http from 'http';
 import path from 'path';
@@ -63,6 +63,7 @@ let forceQuit = false;
 let appCleanup: (() => void) | null = null;
 let extensionServer: http.Server | null = null;
 
+
 // Function to create the main application window
 const createWindow = async () => {
   // Create the browser window.
@@ -73,10 +74,6 @@ const createWindow = async () => {
     autoHideMenuBar: true,
     minWidth: 1200,
     minHeight: 600,
-    // Matches index.html's #splash background — without this, Electron paints
-    // the native window white the instant it's created, before any HTML has
-    // loaded, so there's a white flash ahead of the dark splash screen.
-    backgroundColor: '#0f0f0f',
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
@@ -153,6 +150,7 @@ const createWindow = async () => {
   mainWindow.webContents.on('will-navigate', (event, url) => {
     event.preventDefault();
   });
+
 };
 
 process.on('unhandledRejection', (reason) => {
@@ -270,17 +268,14 @@ app.on('ready', async () => {
     if (e.code === 'EADDRINUSE') console.warn('Port 57000 already in use');
   });
 
-  // Periodic update check every 4 hours (renderer handles the startup check).
-  // Skipped for Microsoft Store builds, which the Store updates itself.
+  // Periodic update check every 4 hours (renderer handles the startup check)
   const UPDATE_CHECK_INTERVAL = 1000 * 60 * 60 * 4;
-  if (!process.windowsStore) {
-    setInterval(async () => {
-      const updateInfo = await checkForUpdates();
-      if (updateInfo.hasUpdate && updateInfo.downloadUrl) {
-        autoDownloadUpdate(updateInfo.downloadUrl, updateInfo);
-      }
-    }, UPDATE_CHECK_INTERVAL);
-  }
+  setInterval(async () => {
+    const updateInfo = await checkForUpdates();
+    if (updateInfo.hasUpdate && updateInfo.downloadUrl) {
+      autoDownloadUpdate(updateInfo.downloadUrl, updateInfo);
+    }
+  }, UPDATE_CHECK_INTERVAL);
 });
 
 // Change this to keep app running in background

@@ -3,15 +3,7 @@
 
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import { existsSync } from 'fs';
-import {
-  copyFile,
-  mkdir,
-  readFile,
-  rename,
-  rm,
-  stat,
-  unlink,
-} from 'fs/promises';
+import { mkdir, readFile, rename, rm, stat, unlink } from 'fs/promises';
 import path from 'path';
 import * as YTDLP from 'yt-dlp-helper';
 import { DownloadOptions } from '../../../downlodr/schema/ytdlpSchema';
@@ -23,6 +15,7 @@ import {
   setCachedVersion,
 } from './githubHandler';
 import { notifyTrayDownloadComplete } from './trayHandler';
+import { isYtdlpUpgrade } from './ytdlpVersion';
 import { spawn } from 'child_process';
 
 // How often progress chunks are forwarded to the renderer (ms).
@@ -82,49 +75,6 @@ const YTDLP_BINARY_NAME =
     : 'yt-dlp_linux';
 
 /**
- * Resolves the one writable location yt-dlp is downloaded to, updated in,
- * and spawned from.
- *
- * Packaged builds must not use process.cwd()/process.resourcesPath (the
- * install directory) — under MSIX/Store packaging that directory is
- * read-only, so any self-update or first-download write would fail.
- * userData is always writable and is the same directory used for the
- * rest of the app's persisted state.
- */
-function getYtdlpBinaryPath(): string {
-  if (app.isPackaged) {
-    return path.join(app.getPath('userData'), YTDLP_BINARY_NAME);
-  }
-  const devPath = path.join(app.getAppPath(), YTDLP_BINARY_NAME);
-  return existsSync(devPath) ? devPath : YTDLP_BINARY_NAME;
-}
-
-/**
- * Seeds the writable userData copy from the binary forge.config.ts's
- * postPackage hook drops next to the installed executable, so downloads
- * work on first launch before the startup check-and-update completes.
- * No-op once the userData copy exists — later updates replace it in place
- * via downloadYtdlpUpdateSafely.
- */
-async function ensureYtdlpSeeded(targetPath: string): Promise<void> {
-  if (!app.isPackaged || existsSync(targetPath)) return;
-  const bundled = path.join(
-    path.dirname(app.getPath('exe')),
-    YTDLP_BINARY_NAME,
-  );
-  try {
-    await mkdir(path.dirname(targetPath), { recursive: true });
-    await copyFile(bundled, targetPath);
-    console.log(`[ytdlp] seeded ${targetPath} from ${bundled}`);
-  } catch (error) {
-    console.error(
-      '[ytdlp] failed to seed bundled binary into userData:',
-      error,
-    );
-  }
-}
-
-/**
  * Updates the yt-dlp binary to `version` without writing over the live exe.
  *
  * yt-dlp-helper's downloadYTDLP() streams the new binary directly onto
@@ -140,7 +90,7 @@ async function ensureYtdlpSeeded(targetPath: string): Promise<void> {
  * live exe is a rename we control and can retry.
  */
 async function downloadYtdlpUpdateSafely(version: string): Promise<void> {
-  const targetPath = getYtdlpBinaryPath();
+  const targetPath = path.resolve(process.cwd(), YTDLP_BINARY_NAME);
   const tempPath = `${targetPath}.download`;
   const oldPath = `${targetPath}.old`;
   // A leftover .old from a previous update can linger while its lock holder
@@ -204,15 +154,14 @@ async function swapInNewBinary(
  */
 export async function runYtdlpCheckAndUpdate(): Promise<void> {
   try {
-    const ytdlpPath = getYtdlpBinaryPath();
-    await ensureYtdlpSeeded(ytdlpPath);
-
     // Sweep any .old left behind by a previous swap whose lock holder
     // outlived the update — deletion fails (silently) while a process still
     // runs from it, and the in-update sweep only fires on the next release.
-    await unlink(`${ytdlpPath}.old`).catch(() => undefined);
+    await unlink(path.resolve(process.cwd(), `${YTDLP_BINARY_NAME}.old`)).catch(
+      () => undefined,
+    );
 
-    const currentVersion = await YTDLP.getYTDLPVersion(ytdlpPath);
+    const currentVersion = await YTDLP.getYTDLPVersion();
 
     let latestVersion = getCachedVersion();
 
@@ -230,11 +179,14 @@ export async function runYtdlpCheckAndUpdate(): Promise<void> {
     }
 
     if (!currentVersion) {
-      await withBusyRetry(() => YTDLP.downloadYTDLP({ filePath: ytdlpPath }));
+      await withBusyRetry(() => YTDLP.downloadYTDLP());
       return;
     }
 
-    if (latestVersion && currentVersion !== latestVersion) {
+    // Only ever move forward. A plain inequality check treats a manually
+    // installed nightly (2026.08.17.073947) as "not the latest stable"
+    // and force-downgrades it on every launch.
+    if (latestVersion && isYtdlpUpgrade(currentVersion, latestVersion)) {
       await downloadYtdlpUpdateSafely(latestVersion);
     }
   } catch (error) {
@@ -250,15 +202,6 @@ export async function runYtdlpCheckAndUpdate(): Promise<void> {
 export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   // Set once at initialisation — not on every info call (fix #9)
   YTDLP.Config.log = true;
-
-  // The single writable path every YTDLP.* call below downloads to, updates
-  // in, and spawns from — see getYtdlpBinaryPath() for why this can't be
-  // the install directory once the app is packaged.
-  const ytdlpPath = getYtdlpBinaryPath();
-  // runYtdlpCheckAndUpdate() also seeds this (and is a no-op once the file
-  // exists) but only fires 5s after handlers are registered — seed here too
-  // so a download/info call made in that window doesn't hit a missing binary.
-  void ensureYtdlpSeeded(ytdlpPath);
 
   // Tracks IDs of yt-dlp controllers that are currently downloading.
   // Used by the cleanup function to SIGKILL orphaned processes on app quit.
@@ -280,7 +223,6 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
         const info = await YTDLP.getPlaylistInfo({
           url,
           cookiesFromBrowser: '',
-          ytdlpDownloadDestination: ytdlpPath,
         });
         return info;
       } catch (error) {
@@ -298,12 +240,27 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
       }
       // Disable Chrome cookies to avoid "Could not copy Chrome cookie database" error
       // YouTube content is typically public and doesn't require authentication
-      const info = await YTDLP.getInfo(
-        url,
-        { cookiesFromBrowser: '' },
-        ytdlpPath,
-      );
+      // noPlaylist: this handler describes one video — playlists come in
+      // through ytdlp:playlist:info. Without it, a URL whose extractor
+      // resolves to a container (bilibili multi-part 分P videos, viu:ott
+      // series) makes --dump-json emit one object per entry, and getInfo's
+      // single JSON.parse rejects the concatenation and returns { ok: false }.
+      const info = await YTDLP.getInfo(url, {
+        cookiesFromBrowser: '',
+        noPlaylist: true,
+      });
       if (!info?.ok) {
+        // The URL is genuinely a container with no single video attached — a
+        // bilibili.tv season (/play/{season} with no episode id), a YouTube
+        // playlist page. --no-playlist above is a no-op for these, so yt-dlp
+        // still describes every entry and getInfo reports isPlaylist. Nothing
+        // is wrong with the URL; it just belongs to ytdlp:playlist:info, so
+        // say so and skip the diagnostic re-run below.
+        if (info?.isPlaylist) {
+          throw new Error(
+            `PLAYLIST_URL:${info.entryCount ?? ''}: This URL is a playlist or series, not a single video.`,
+          );
+        }
         // getInfo() swallows yt-dlp's stderr on failure — it tries to
         // JSON.parse the process output and just returns { ok: false } when
         // that fails, discarding the actual reason. Re-run through the raw
@@ -313,7 +270,6 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
         // generic metadata-fetch failure.
         const diagnostic = await YTDLP.invoke({
           args: ['--no-warnings', '--simulate', url],
-          ytdlpDownloadDestination: ytdlpPath,
         }).catch(() => null);
         if (diagnostic?.data && /Unsupported URL/i.test(diagnostic.data)) {
           throw new Error(
@@ -350,7 +306,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   // Get current YT-DLP version
   ipcMain.handle('ytdlp:getCurrentVersion', async () => {
     try {
-      const version = await YTDLP.getYTDLPVersion(ytdlpPath);
+      const version = await YTDLP.getYTDLPVersion();
       return { success: true, version };
     } catch (error) {
       console.error('Error getting current YT-DLP version:', error);
@@ -415,7 +371,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   // Check and update YT-DLP
   ipcMain.handle('ytdlp:checkAndUpdate', async () => {
     try {
-      const currentVersion = await YTDLP.getYTDLPVersion(ytdlpPath);
+      const currentVersion = await YTDLP.getYTDLPVersion();
 
       // Check if we have a cached version first
       let latestVersion = getCachedVersion();
@@ -458,7 +414,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
       }
 
       if (!currentVersion) {
-        await YTDLP.downloadYTDLP({ filePath: ytdlpPath });
+        await YTDLP.downloadYTDLP();
         return {
           success: true,
           action: 'downloaded',
@@ -468,7 +424,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
         };
       }
 
-      if (latestVersion && currentVersion !== latestVersion) {
+      if (latestVersion && isYtdlpUpgrade(currentVersion, latestVersion)) {
         await downloadYtdlpUpdateSafely(latestVersion);
         return {
           success: true,
@@ -481,7 +437,10 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
         return {
           success: true,
           action: 'up-to-date',
-          message: 'YT-DLP is already up to date',
+          message:
+            latestVersion && currentVersion !== latestVersion
+              ? `YT-DLP is newer than the latest release (${currentVersion} > ${latestVersion}); keeping it.`
+              : 'YT-DLP is already up to date',
           currentVersion,
           latestVersion,
         };
@@ -521,12 +480,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
           downloadOptions.filePath = filePath;
         }
       }
-      // If no filePath provided, use the writable userData path instead of
-      // letting YTDLP fall back to its cwd-relative default (unwritable
-      // once packaged under MSIX).
-      if (!downloadOptions.filePath) {
-        downloadOptions.filePath = ytdlpPath;
-      }
+      // If no filePath provided, let YTDLP use its default location
 
       // Handle version
       if (
@@ -729,8 +683,18 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
     );
   }
 
+  function resolveYtdlpBinaryPath(): string {
+    const binaryName = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+    if (app.isPackaged && process.resourcesPath) {
+      const bundled = path.join(process.resourcesPath, binaryName);
+      return existsSync(bundled) ? bundled : binaryName;
+    }
+    const devPath = path.join(app.getAppPath(), binaryName);
+    return existsSync(devPath) ? devPath : binaryName;
+  }
+
   ipcMain.handle('ytdlp:getDirectUrl', async (_e, url: string) => {
-    const binaryPath = ytdlpPath;
+    const binaryPath = resolveYtdlpBinaryPath();
 
     return new Promise<string>((resolve, reject) => {
       // -j (not -g): direct URLs on some sites are only valid together with
@@ -851,7 +815,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
         previewTempDir,
         `${sanitizePreviewRequestId(requestId)}-${Date.now()}.mp4`,
       );
-      const binaryPath = ytdlpPath;
+      const binaryPath = resolveYtdlpBinaryPath();
 
       return new Promise<string>((resolve, reject) => {
         // The renderer plays the result back through getVideoBlob, whose
@@ -930,7 +894,6 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   ipcMain.handle('ytdlp:download', async (e, id, args) => {
     try {
       const controller = await YTDLP.download({
-        ytdlpDownloadDestination: ytdlpPath,
         // args needed for download
         args: {
           url: args.url,
@@ -940,6 +903,13 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
           audioFormat: args.audioExt,
           audioQuality: args.audioFormatId,
           limitRate: args.limitRate,
+          // Every download here is exactly one video: playlists are expanded
+          // up front via getPlaylistInfo and queued one URL at a time
+          // (see startPlaylistDownload). Without this, extractors that resolve
+          // a single-item URL to its whole container — viu:ott returns every
+          // episode of a series for a /vod/{episode_id}/ URL — pull the entire
+          // list instead of the requested item.
+          noPlaylist: true,
         },
       });
 

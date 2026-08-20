@@ -2,13 +2,21 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 
 const sizeMap = { sm: 48, md: 80, lg: 120 };
+
+type AnimationSize = keyof typeof sizeMap;
+
+interface AnimationProps {
+  size?: AnimationSize;
+  color?: string;
+}
+
 const BRAND = { primary: '#F45513', accent: '#FF7A45', dark: '#C43E0A' };
 const LOGO =
   'M17.2344 0C17.8295 2.6016e-08 18.3125 0.484511 18.3125 1.08203V5.71094H5.6875V15.1543L11.5518 18.3564L11.6934 18.4326C11.8194 18.5004 11.9024 18.5425 11.9678 18.5703C11.9806 18.5758 11.9915 18.5798 12 18.583C12.0084 18.5799 12.0187 18.5756 12.0313 18.5703C12.0966 18.5425 12.1796 18.5004 12.3057 18.4326L12.4473 18.3564L18.3125 15.1543V5.71094H23.4609C23.7585 5.71094 24 5.95321 24 6.25195V13.2021C24 13.5996 23.7828 13.9653 23.4346 14.1543L20.4092 15.7939C20.3986 15.8012 20.3899 15.8116 20.3789 15.8184L20.3438 15.8379L13.2012 19.7373L13.0576 19.8154C12.915 19.8922 12.7762 19.9638 12.6475 20.0186C12.4656 20.0959 12.2507 20.164 12 20.1641C11.7491 20.1641 11.5336 20.096 11.3516 20.0186C11.2229 19.9638 11.0839 19.8922 10.9414 19.8154L10.7979 19.7373L3.65527 15.8379C3.6265 15.8222 3.59923 15.8048 3.57324 15.7861L0.56543 14.1543C0.217168 13.9653 -1.73729e-08 13.5996 0 13.2021V6.25195C3.75906e-05 5.95321 0.241487 5.71094 0.539063 5.71094H5.6875V1.08203C5.68754 0.484511 6.17045 -2.60138e-08 6.76563 0H17.2344Z';
 
 const CK = 'M4 11L9.5 16.5L20 4.5';
 
-function mkBurst(cx, cy, count) {
+function mkBurst(cx: number, cy: number, count: number) {
   return Array.from({ length: count }, (_, i) => {
     const a = (i / count) * Math.PI * 2;
     return {
@@ -19,7 +27,10 @@ function mkBurst(cx, cy, count) {
   });
 }
 
-export function DownloadPulse({ size = 'md', color = BRAND.primary }) {
+export function DownloadPulse({
+  size = 'md',
+  color = BRAND.primary,
+}: AnimationProps) {
   const d = sizeMap[size],
     h = (d * 21) / 24;
   const fid = useMemo(() => 'pf' + Math.random().toString(36).slice(2, 7), []);
@@ -52,7 +63,10 @@ export function DownloadPulse({ size = 'md', color = BRAND.primary }) {
   );
 }
 
-export function DownloadBounce({ size = 'md', color = BRAND.primary }) {
+export function DownloadBounce({
+  size = 'md',
+  color = BRAND.primary,
+}: AnimationProps) {
   const d = sizeMap[size],
     h = (d * 28) / 24;
   return (
@@ -99,7 +113,10 @@ export function DownloadBounce({ size = 'md', color = BRAND.primary }) {
   );
 }
 
-export function DownloadProgress({ size = 'md', color = BRAND.primary }) {
+export function DownloadProgress({
+  size = 'md',
+  color = BRAND.primary,
+}: AnimationProps) {
   const d = sizeMap[size],
     h = (d * 21) / 24;
   const cid = useMemo(() => 'cp' + Math.random().toString(36).slice(2, 7), []);
@@ -150,7 +167,10 @@ export function DownloadProgress({ size = 'md', color = BRAND.primary }) {
   );
 }
 
-export function DownloadOrbit({ size = 'md', color = BRAND.primary }) {
+export function DownloadOrbit({
+  size = 'md',
+  color = BRAND.primary,
+}: AnimationProps) {
   const d = sizeMap[size],
     h = (d * 21) / 24;
   const ps = [
@@ -188,7 +208,10 @@ export function DownloadOrbit({ size = 'md', color = BRAND.primary }) {
   );
 }
 
-export function DownloadStream({ size = 'md', color = BRAND.primary }) {
+export function DownloadStream({
+  size = 'md',
+  color = BRAND.primary,
+}: AnimationProps) {
   const d = sizeMap[size],
     h = (d * 28) / 24;
   const pkts = useMemo(
@@ -233,8 +256,10 @@ export function DownloadStream({ size = 'md', color = BRAND.primary }) {
   );
 }
 
-
-export function DownloadComplete({ size = 'md', color = BRAND.primary }) {
+export function DownloadComplete({
+  size = 'md',
+  color = BRAND.primary,
+}: AnimationProps) {
   const d = sizeMap[size],
     h = (d * 21) / 24;
   const bp = useMemo(() => mkBurst(12, 10.5, 10), []);

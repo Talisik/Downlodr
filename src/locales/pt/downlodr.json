@@ -189,7 +189,16 @@
       "stopAll": "Parar tudo",
       "generateCaptions": "Gerar legendas",
       "generateCaptionsDisabled": "Selecione vídeos finalizados sem legendas para gerar transcrições",
-      "remove": "Remover"
+      "remove": "Remover",
+      "bulkTag": "Marcar downloads selecionados",
+      "bulkCategory": "Categorizar downloads selecionados"
+    },
+    "bulkMenu": {
+      "addNewTag": "Adicionar nova tag...",
+      "addNewCategory": "Adicionar nova categoria...",
+      "maxChars": "Máx. {{max}} caracteres",
+      "noTags": "Ainda não há tags",
+      "noCategories": "Ainda não há categorias"
     },
     "toast": {
       "noDownloadsSelectedTitle": "Nenhum download selecionado",
@@ -231,10 +240,25 @@
       "batchCompleteTitle": "Transcrição em lote concluída",
       "batchCompleteDesc": "{{successCount}} bem-sucedido(s), {{failCount}} com falha.",
       "selectOneTitle": "Selecione um download",
-      "selectOneDesc": "Por favor selecione exatamente um download para obter o link"
+      "selectOneDesc": "Por favor selecione exatamente um download para obter o link",
+      "bulkNoTargetsDesc": "Nenhum dos itens selecionados pode receber tag ou categoria",
+      "duplicateTagTitle": "Tag duplicada",
+      "duplicateTagDesc": "A tag \"{{value}}\" já existe.",
+      "duplicateCategoryTitle": "Categoria duplicada",
+      "duplicateCategoryDesc": "A categoria \"{{value}}\" já existe.",
+      "bulkTagAppliedTitle": "Tag aplicada",
+      "bulkTagAppliedDesc": "Tag \"{{value}}\" adicionada a {{count}} download(s).",
+      "bulkTagRemovedTitle": "Tag removida",
+      "bulkTagRemovedDesc": "Tag \"{{value}}\" removida de {{count}} download(s).",
+      "bulkCategoryAppliedTitle": "Categoria aplicada",
+      "bulkCategoryAppliedDesc": "Categoria \"{{value}}\" adicionada a {{count}} download(s).",
+      "bulkCategoryRemovedTitle": "Categoria removida",
+      "bulkCategoryRemovedDesc": "Categoria \"{{value}}\" removida de {{count}} download(s)."
     },
     "settingsButton": "Configurações",
-    "deleteLabel": "Excluir"
+    "deleteLabel": "Excluir",
+    "tagLabel": "Tag",
+    "categoryLabel": "Categoria"
   },
   "removeModal": {
     "title": "Remover item selecionado",

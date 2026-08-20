@@ -554,9 +554,6 @@ export interface UpdateInfo {
   releaseNotes?: string;
   downloadUrl?: string;
   publishedAt?: Date;
-  message?: string;
-  /** Set when updates come from the Microsoft Store instead of this app. */
-  managedExternally?: boolean;
 }
 
 // TypeScript interfaces for GitHub API responses

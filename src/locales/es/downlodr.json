@@ -189,7 +189,16 @@
       "stopAll": "Detener todo",
       "generateCaptions": "Generar subtítulos",
       "generateCaptionsDisabled": "Selecciona videos finalizados sin subtítulos para generar transcripciones",
-      "remove": "Eliminar"
+      "remove": "Eliminar",
+      "bulkTag": "Etiquetar descargas seleccionadas",
+      "bulkCategory": "Categorizar descargas seleccionadas"
+    },
+    "bulkMenu": {
+      "addNewTag": "Añadir nueva etiqueta...",
+      "addNewCategory": "Añadir nueva categoría...",
+      "maxChars": "Máx. {{max}} caracteres",
+      "noTags": "Aún no hay etiquetas",
+      "noCategories": "Aún no hay categorías"
     },
     "toast": {
       "noDownloadsSelectedTitle": "Sin descargas seleccionadas",
@@ -231,10 +240,25 @@
       "batchCompleteTitle": "Transcripción en lote completada",
       "batchCompleteDesc": "{{successCount}} exitosa(s), {{failCount}} fallida(s).",
       "selectOneTitle": "Selecciona una descarga",
-      "selectOneDesc": "Por favor selecciona exactamente una descarga para obtener el enlace"
+      "selectOneDesc": "Por favor selecciona exactamente una descarga para obtener el enlace",
+      "bulkNoTargetsDesc": "Ninguno de los elementos seleccionados se puede etiquetar ni categorizar",
+      "duplicateTagTitle": "Etiqueta duplicada",
+      "duplicateTagDesc": "La etiqueta \"{{value}}\" ya existe.",
+      "duplicateCategoryTitle": "Categoría duplicada",
+      "duplicateCategoryDesc": "La categoría \"{{value}}\" ya existe.",
+      "bulkTagAppliedTitle": "Etiqueta aplicada",
+      "bulkTagAppliedDesc": "Etiqueta \"{{value}}\" añadida a {{count}} descarga(s).",
+      "bulkTagRemovedTitle": "Etiqueta eliminada",
+      "bulkTagRemovedDesc": "Etiqueta \"{{value}}\" eliminada de {{count}} descarga(s).",
+      "bulkCategoryAppliedTitle": "Categoría aplicada",
+      "bulkCategoryAppliedDesc": "Categoría \"{{value}}\" añadida a {{count}} descarga(s).",
+      "bulkCategoryRemovedTitle": "Categoría eliminada",
+      "bulkCategoryRemovedDesc": "Categoría \"{{value}}\" eliminada de {{count}} descarga(s)."
     },
     "settingsButton": "Configuración",
-    "deleteLabel": "Eliminar"
+    "deleteLabel": "Eliminar",
+    "tagLabel": "Etiqueta",
+    "categoryLabel": "Categoría"
   },
   "removeModal": {
     "title": "Eliminar elemento seleccionado",

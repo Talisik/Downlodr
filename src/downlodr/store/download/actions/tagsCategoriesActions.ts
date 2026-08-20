@@ -12,8 +12,6 @@ import {
     updateDownloadCategories,
     updateDownloadTags
 } from '../utils';
-import { mergeTierResult } from '@/auto-tag/merge';
-import type { TagResult } from '@/auto-tag/types';
   
 
 /** Zustand setter: accepts partial state or updater function */
@@ -51,40 +49,6 @@ interface UpdateDownloadResult {
 export function createTagsCategoriesActions(set: SetState, get: GetState) {
   return {
 
-    /**
-     * Apply auto-tag results (from the auto-tag IPC) across all download lists.
-     * For each result, merges the tier's tags into the download's existing tags
-     * using the accumulate rules (manual + other tier preserved; this tier's
-     * tags refreshed), tracking per-tag source in `tagSource`.
-     */
-    applyAutoTags: (results: TagResult[]) => {
-      const byId = new Map(results.map((r) => [r.id, r] as const));
-
-      const applyToList = <T extends BaseDownload>(list: T[]): T[] =>
-        list.map((d) => {
-          const result = byId.get(d.id);
-          if (!result) return d;
-          const merged = mergeTierResult(
-            { tags: d.tags ?? [], tagSource: d.tagSource },
-            result,
-          );
-          return { ...d, tags: merged.tags, tagSource: merged.tagSource };
-        });
-
-      set((state) => {
-        const available = new Set(state.availableTags);
-        for (const r of results) for (const t of r.tags) available.add(t);
-
-        return {
-          ...state,
-          availableTags: [...available],
-          downloading: applyToList(state.downloading),
-          finishedDownloads: applyToList(state.finishedDownloads),
-          historyDownloads: applyToList(state.historyDownloads),
-          forDownloads: applyToList(state.forDownloads),
-        };
-      });
-    },
 
     addTag: (downloadId: string, tag: string) => {
         set((state) => {

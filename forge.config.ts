@@ -2,7 +2,6 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
-import { MakerAppX } from '@electron-forge/maker-appx';
 import MakerNSIS from '@felixrieseberg/electron-forge-maker-nsis';
 import fs from 'fs/promises';
 import path from 'path';
@@ -23,16 +22,8 @@ const config: ForgeConfig = {
       './src/assets/logo',
       './ffmpeg.exe',
       './ggml-small.bin',
+      './ggml-silero-v5.1.2.bin',
       './ffprobe.exe',
-      // afda-backend and video-nemesis-toolkit, bundled as plain folders
-      // outside the asar — copied into userData/downlodr-add-ons/<pack> on
-      // first launch (see addonManager.ts's seedBuiltInPacks) so they load
-      // exactly like a downloaded add-on does. Requiring node_modules from
-      // inside an asar (even unpacked) breaks directory-listing-based
-      // resolution for non-native deps; a plain disk folder doesn't have
-      // that problem.
-      './src/afda/backend/afda-backend__hidden',
-      './src/skedulosa/backend/video-nemesis-toolkit__hidden',
     ],
     ignore: (filePath: string) => {
       if (!filePath) return false;
@@ -49,7 +40,11 @@ const config: ForgeConfig = {
       // Exclude local dev-tooling config — also avoids a packaging race when the
       // build is launched from a tool that rewrites these files mid-package.
       if (/^\/\.claude($|\/)/.test(filePath)) return true;
-      if (/^\/\.superpowers($|\/)/.test(filePath)) return true;
+
+      // Exclude nested git worktrees (.worktrees/<branch>/…). Each one is a full
+      // second checkout with its own node_modules living inside the project root,
+      // so packager crawls it into the asar — bloating the build and crashing on
+      // ENOENT when a file there changes mid-copy.
       if (/^\/\.worktrees($|\/)/.test(filePath)) return true;
 
       // Exclude forge output and Vite dev caches (but NOT .vite/build — that's the compiled app)
@@ -57,33 +52,10 @@ const config: ForgeConfig = {
       if (/^\/\.vite\/deps($|\/)/.test(filePath)) return true;
       if (/^\/dist($|\/)/.test(filePath)) return true;
 
-      // downlodr-mcp is a standalone CLI package developed alongside the app
-      // (npm-linked separately per CLAUDE.md) — the packaged app never
-      // requires it at runtime, it only talks to it over the local MCP
-      // bridge HTTP/WS server. website/ is the separate Docusaurus docs
-      // site. Neither belongs in the shipped binary.
-      if (/^\/downlodr-mcp($|\/)/.test(filePath)) return true;
-      if (/^\/website($|\/)/.test(filePath)) return true;
-
-      // ffmpeg.exe, ffprobe.exe, and ggml-small.bin are shipped via
-      // extraResource above; yt-dlp's binary is copied next to the exe by
-      // the postPackage hook below. None of them are ever read from inside
-      // the asar, so bundling them here would just duplicate the copies
-      // that extraResource/postPackage already place on disk.
-      if (/^\/(ffmpeg\.exe|ffprobe\.exe|ggml-small\.bin|yt-dlp\.exe|yt-dlp_macos|yt-dlp_linux)$/.test(filePath))
-        return true;
-
-      // .env holds only build-time Vite config (already inlined into the
-      // compiled bundle by Vite) and has no reason to ship as a loose file;
-      // .gitmodules/.gitignore/package-lock.json are pure dev metadata.
-      if (/^\/(\.env|\.gitmodules|\.gitignore|package-lock\.json)$/.test(filePath))
-        return true;
-
       // Exclude entire src/ tree — Vite compiled everything into .vite/build/.
-      // afda-backend and video-nemesis-toolkit ship as extraResource (see
-      // above) instead of living inside /src in the packaged app; smart-organize-backend
-      // is still downloaded separately by the add-on manager.
-      if (filePath === '/src' || filePath.startsWith('/src/')) return true;
+      // Backend add-ons (afda, skedulosa) are downloaded separately by the add-on manager.
+      if (filePath === '/src') return true;
+      if (filePath.startsWith('/src/')) return true;
 
       // Exclude dev/test artifacts that land in the project root
       if (/\.(mp4|mkv|avi|mov|webm|mp3|wav|flac)$/i.test(filePath)) return true;
@@ -100,6 +72,44 @@ const config: ForgeConfig = {
       if (/^\/task-plan($|\/)/.test(filePath)) return true;
       if (/^\/docs($|\/)/.test(filePath)) return true;
       if (/\.(md|txt)$/.test(filePath) && !/^\/src\//.test(filePath))
+        return true;
+
+      // Root-level runtime binaries. ffmpeg/ffprobe/ggml-small ship via
+      // extraResource and yt-dlp.exe via the postPackage hook, so all of them
+      // already land in resources/ (or beside the exe), which is where
+      // getBundledBinaryPath() resolves them from via process.resourcesPath.
+      // Nothing here excluded them before, so packager ALSO swept them into
+      // app.asar — duplicating ~900MB into every build. yt-dlp_macos is never
+      // used on win32 at all.
+      //
+      // The trailing catch-all is anchored to the root (/^\/[^/]+$/) on
+      // purpose: better-sqlite3's .node binary lives deep inside node_modules
+      // and must keep shipping. Do not widen this to all paths.
+      if (/^\/(ffmpeg|ffprobe)\.exe$/.test(filePath)) return true;
+      if (/^\/yt-dlp(\.exe|_macos)$/.test(filePath)) return true;
+      if (
+        /\.(bin|exe|dll|node|pdb)$/i.test(filePath) &&
+        /^\/[^/]+$/.test(filePath)
+      )
+        return true;
+
+      // Agent/dev scratch dirs and root dev config — none of it is read at
+      // runtime. .superpowers alone was 14.6MB of stored review diffs.
+      if (/^\/\.superpowers($|\/)/.test(filePath)) return true;
+      if (/^\/(website|extensions|patches)($|\/)/.test(filePath)) return true;
+      if (/^\/\.env/.test(filePath)) return true;
+      if (/^\/err\.log$/.test(filePath)) return true;
+      if (
+        /^\/(forge\.config|forge\.env\.d|vite\..*|tsconfig|declaration\.d)\./.test(
+          filePath,
+        )
+      )
+        return true;
+      if (
+        /^\/(\.eslintrc\.json|\.prettierrc|\.gitmodules|package-lock\.json|components\.json)$/.test(
+          filePath,
+        )
+      )
         return true;
 
       // Exclude all node_modules except the packages below. Vite bundles every
@@ -128,16 +138,6 @@ const config: ForgeConfig = {
   rebuildConfig: {},
 
   makers: [
-    new MakerAppX({
-      publisher: 'CN=EF31CD96-46EA-4C50-A4B3-5EF690CDB5A8',
-      packageName: 'Talisik.Downlodr',
-      packageDisplayName: 'Downlodr',
-      packageDescription:
-        'Downlodr is a powerful, user-friendly video downloading solution that supports over 1,800 platforms',
-      assets: './appx-assets',
-      makeVersionWinStoreCompatible: true,
-      manifest: path.join(process.cwd(), 'appx-assets/AppXManifest.xml'),
-    }),
     new MakerNSIS({
       async getAppBuilderConfig() {
         return {
@@ -163,101 +163,53 @@ const config: ForgeConfig = {
   ],
 
   hooks: {
-    preMake: async () => {
-      const pkg = JSON.parse(
-        await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf8'),
-      );
-      const semver = pkg.version.split('-')[0];
-      const version = `${semver}.0`;
-      const manifest = `<?xml version="1.0" encoding="utf-8"?>
-<Package
-   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
-   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
-   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
-  <Identity Name="Talisik.Downlodr"
-    ProcessorArchitecture="x64"
-    Publisher="CN=EF31CD96-46EA-4C50-A4B3-5EF690CDB5A8"
-    Version="${version}" />
-  <Properties>
-    <DisplayName>Downlodr</DisplayName>
-    <PublisherDisplayName>Talisik</PublisherDisplayName>
-    <Description>Downlodr is a powerful, user-friendly video downloading solution that supports over 1,800 platforms</Description>
-    <Logo>Assets\\StoreLogo.png</Logo>
-  </Properties>
-  <Resources>
-    <Resource Language="en-us" />
-  </Resources>
-  <Dependencies>
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
-  </Dependencies>
-  <Capabilities>
-    <rescap:Capability Name="runFullTrust"/>
-  </Capabilities>
-  <Applications>
-    <Application Id="Downlodr" Executable="app\\Downlodr.exe" EntryPoint="Windows.FullTrustApplication">
-      <uap:VisualElements
-       BackgroundColor="#464646"
-       DisplayName="Downlodr"
-       Square150x150Logo="Assets\\Square150x150Logo.png"
-       Square44x44Logo="Assets\\Square44x44Logo.png"
-       Description="Downlodr is a powerful, user-friendly video downloading solution that supports over 1,800 platforms">
-        <uap:DefaultTile Wide310x150Logo="Assets\\Wide310x150Logo.png" />
-      </uap:VisualElements>
-    </Application>
-  </Applications>
-</Package>`;
-      await fs.writeFile(
-        path.join(process.cwd(), 'appx-assets/AppXManifest.xml'),
-        manifest,
-        'utf8',
-      );
-      console.log(
-        `✓ Generated AppXManifest.xml (v${version}, MinVersion 10.0.17763.0)`,
-      );
-    },
-
-    postMake: async (forgeConfig, makeResults) => {
-      for (const result of makeResults) {
-        result.artifacts = await Promise.all(
-          result.artifacts.map(async (artifact) => {
-            if (artifact.endsWith('.appx')) {
-              const msixPath = artifact.replace(/\.appx$/, '.msix');
-              await fs.rename(artifact, msixPath);
-              console.log(
-                `✓ Renamed ${path.basename(artifact)} → ${path.basename(
-                  msixPath,
-                )}`,
-              );
-              return msixPath;
-            }
-            return artifact;
-          }),
-        );
-      }
-      return makeResults;
-    },
-
     prePackage: async () => {
-      // Verify FFmpeg version
+      // Verify FFmpeg version.
+      //
+      // The minimum is 8.0.1, not 8.0: the whisper filter in 8.0.0 strips one
+      // byte from the start of every cue. Whisper prefixes each segment with an
+      // ASCII space, so Latin-script output looks fine and the bug is invisible
+      // in English testing — but CJK segments carry no leading space, so every
+      // cue loses the first byte of a multi-byte character. That shipped once
+      // already because this check only compared the major version.
       const ffmpegPath = path.resolve(__dirname, 'ffmpeg.exe');
+      let versionOutput: string | undefined;
       try {
         const { execSync } = await import('child_process');
-        const versionOutput = execSync(`"${ffmpegPath}" -version`, {
+        versionOutput = execSync(`"${ffmpegPath}" -version`, {
           encoding: 'utf-8',
         });
-        const versionMatch = versionOutput.match(/ffmpeg version (\d+)\.(\d+)/);
-        if (versionMatch) {
-          const majorVersion = parseInt(versionMatch[1], 10);
-          const version = `${versionMatch[1]}.${versionMatch[2]}`;
-          if (majorVersion < 8) {
-            throw new Error(
-              `FFmpeg ${version} is too old. FFmpeg 8.0+ is required.`,
-            );
-          }
-          console.log(`✓ FFmpeg ${version} verified`);
-        }
-      } catch (error) {
+      } catch {
+        // Only an inability to *run* ffmpeg is tolerated with a warning;
+        // an actual version failure below must fail the build.
         console.warn('⚠ Could not verify FFmpeg version');
+      }
+
+      if (versionOutput) {
+        const versionMatch = versionOutput.match(
+          /ffmpeg version (\d+)\.(\d+)(?:\.(\d+))?/,
+        );
+        if (!versionMatch) {
+          throw new Error('Could not parse the bundled FFmpeg version.');
+        }
+        const [major, minor, patch] = [
+          parseInt(versionMatch[1], 10),
+          parseInt(versionMatch[2], 10),
+          parseInt(versionMatch[3] ?? '0', 10),
+        ];
+        const version = `${major}.${minor}.${patch}`;
+        const tooOld = major < 8 || (major === 8 && minor === 0 && patch < 1);
+        if (tooOld) {
+          throw new Error(
+            `FFmpeg ${version} is too old — 8.0.1+ is required (8.0.0 corrupts the first character of every transcript cue).`,
+          );
+        }
+        if (!/enable-whisper/.test(versionOutput)) {
+          throw new Error(
+            `The bundled FFmpeg ${version} was built without --enable-whisper, so transcription cannot work.`,
+          );
+        }
+        console.log(`✓ FFmpeg ${version} (whisper enabled) verified`);
       }
     },
 

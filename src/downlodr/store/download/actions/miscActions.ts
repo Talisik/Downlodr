@@ -3,7 +3,6 @@
  * Misc actions: updateDownloadTranscript, testLocalStorage.
  * Receives Zustand set/get from the store.
  */
-import { enqueueTier2 } from '@/auto-tag/queue/autoTagQueue';
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { checkIndexedDBUsage, checkLocalStorageUsage } from '../storage';
 import type { DownloadStoreState } from '../types';
@@ -44,12 +43,6 @@ export function createMiscActions(set: SetState, _get: GetState) {
               : download,
           ),
         }));
-
-        // Auto-tag: transcript now available -> tier 2 (appended onto tier 1).
-        const loc = (transcriptLocation ?? '').trim();
-        if (loc !== '' && loc !== 'iu' && loc !== 'fu') {
-          enqueueTier2(id);
-        }
       },
 
     testLocalStorage: async () => {

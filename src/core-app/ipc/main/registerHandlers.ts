@@ -10,22 +10,15 @@ import { fileHandler } from './fileHandler';
 import { pluginFunctionsHandler } from './pluginFunctionsHandler';
 import { pluginHandler } from './pluginHandler';
 import { startAfdaWorker } from './afdaWorkerProxy';
+import { coreDownloadBridgeHandler } from './coreDownloadBridgeHandler';
 import { skedulosaHandler } from './skedulosaHandler';
-import {
-  addonManagerHandler,
-  applyPendingDeletes,
-  detectAddon,
-  resolveAddonPath,
-  seedBuiltInPacks,
-  type SeedProgress,
-} from './addonManager';
+import { addonManagerHandler, applyPendingDeletes, detectAddon, resolveAddonPath } from './addonManager';
 import { telemetryHandler } from './telemetryHandler';
 import { transcriptHandler } from './transcriptHandler';
 import { trayHandler, TrayHandlerOptions } from './trayHandler';
 import { vadHandler } from './vadHandler';
 import { videoHandler } from './videoHandler';
 import { ytdlpHandler, runYtdlpCheckAndUpdate } from './ytdlpHandler';
-import { autoTagHandler } from '../../../auto-tag/ipc/main/tagHandler';
 
 let handlersRegistered = false;
 
@@ -37,12 +30,6 @@ export interface AppCleanup {
   /** Run all registered cleanup functions. Call once in the app's before-quit handler. */
   cleanup(): void;
 }
-
-/** User-facing names for the built-in packs, shown on the boot splash. */
-const PACK_LABELS: Record<string, string> = {
-  'afda-backend': 'Installing article services…',
-  'video-nemesis-toolkit': 'Installing channel scheduler…',
-};
 
 export async function registerMainIpcHandlers(
   mainWindow: BrowserWindow,
@@ -79,66 +66,36 @@ export async function registerMainIpcHandlers(
   collect(trayHandler(mainWindow, options?.tray));
   collect(videoHandler(mainWindow));
   collect(ytdlpHandler(mainWindow));
-  collect(autoTagHandler());
+  // Core download list bridge (list_downloads/stop_download/etc. via the chat
+  // CLI) — must run unconditionally, NOT gated behind the Subscriptions
+  // add-on the way skedulosaHandler() below is. It has no relation to it.
+  coreDownloadBridgeHandler(mainWindow);
 
-  // ── Phase 1.5: built-in pack seeding + AFDA worker fork ───────────────
-  // Deliberately separate from Phase 1: on a first packaged launch this
-  // copies ~700MB, which is why it must not sit ahead of loadFile().
-  const initBuiltInPacks = async () => {
-    // Stale add-on dirs must be gone before detectAddon inspects them — this
-    // is cheap fs I/O (no-op when nothing is pending). Without this, a pending
-    // afda-backend delete/update (from the addon manager) would let the worker
-    // fork against the stale directory and then lock its files, breaking
-    // Phase 2's later cleanup.
-    await applyPendingDeletes();
-
-    // Seeds afda-backend/video-nemesis-toolkit into userData on first launch
-    // of a packaged build (no-op in dev, no-op once already seeded) — see
-    // seedBuiltInPacks()'s own comment for why they can't just be required
-    // directly from the asar-bundled extraResource location.
-    const sendProgress = (p: SeedProgress) => {
-      if (mainWindow.isDestroyed()) return;
-      mainWindow.webContents.send('boot:progress', {
-        label: PACK_LABELS[p.packName] ?? 'Installing add-ons…',
-        copiedBytes: p.copiedBytes,
-        totalBytes: p.totalBytes,
-        step: p.step,
-        totalSteps: p.totalSteps,
-      });
-    };
-
-    try {
-      await seedBuiltInPacks(sendProgress);
-    } finally {
-      // Always tear the bar down, even if seeding threw, so the splash falls
-      // back to the spinner + boot:status text and boot continues.
-      if (!mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('boot:progress-done');
-      }
+  // Fork the AFDA worker immediately, in parallel with window load — this
+  // is what actually removes the "not responding" freeze for AFDA: nothing
+  // heavy runs on the main thread, so the window stays responsive no matter
+  // how long the worker's init takes.
+  // Stale add-on dirs must be gone before detectAddon inspects them — this
+  // is cheap fs I/O (no-op when nothing is pending), unlike the heavy
+  // imports Phase 2 defers, so awaiting it here doesn't reintroduce a
+  // startup freeze. Without this, a pending afda-backend delete/update
+  // (from the addon manager) would let the worker fork against the stale
+  // directory and then lock its files, breaking Phase 2's later cleanup.
+  await applyPendingDeletes();
+  const afdaState = detectAddon('afda-backend');
+  const addonPathAfda = afdaState.status === 'ready' ? resolveAddonPath('afda-backend') : undefined;
+  if (addonPathAfda || !app.isPackaged) {
+    if (!mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('boot:status', 'Loading article services…');
     }
-
-    const afdaState = detectAddon('afda-backend');
-    const addonPathAfda =
-      afdaState.status === 'ready'
-        ? resolveAddonPath('afda-backend')
-        : undefined;
-    if (addonPathAfda || !app.isPackaged) {
-      if (!mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('boot:status', 'Loading article services…');
-      }
-      const afdaDbPath = path.join(app.getPath('userData'), 'afda.db');
-      // Safe to push after registerMainIpcHandlers has returned: the returned
-      // cleanup() iterates `cleanups` at call time rather than snapshotting it.
-      collect(startAfdaWorker(mainWindow, afdaDbPath, addonPathAfda));
-    } else {
-      console.log(
-        `[addons] afda-backend not ready (${afdaState.status}) — skipping worker start`,
-      );
-    }
-  };
+    const afdaDbPath = path.join(app.getPath('userData'), 'afda.db');
+    collect(startAfdaWorker(mainWindow, afdaDbPath, addonPathAfda));
+  } else {
+    console.log(`[addons] afda-backend not ready (${afdaState.status}) — skipping worker start`);
+  }
 
   // ── Phase 2: heavy add-on init, deferred until after first paint ──────
-  // skedulosaHandler dynamically imports a multi-MB add-on
+  // skedulosaHandler dynamically imports multi-MB add-on
   // bundles and open SQLite synchronously (better-sqlite3). Running them
   // before loadFile left the window white and unpumped ("Not responding"),
   // so they wait for did-finish-load — the splash in index.html is on
@@ -194,38 +151,23 @@ export async function registerMainIpcHandlers(
     console.log('[addons] deferred add-on registration complete');
   };
 
-  // Trigger on first paint (ready-to-show), not did-finish-load: Phase 1.5's
-  // pack copy is ~700MB on a first packaged launch and the add-on import in
-  // Phase 2 blocks the main process ~1.3s+ in one atomic module evaluation.
+  // Trigger on first paint (ready-to-show), not did-finish-load: the add-on
+  // import blocks the main process ~1.3s+ in one atomic module evaluation, and
   // did-finish-load fires right when the renderer becomes interactive — the
   // worst moment to freeze. At ready-to-show the splash is painted but the
-  // renderer is still parsing its own bundle, so the work overlaps time the
+  // renderer is still parsing its own bundle, so the block overlaps time the
   // user is already waiting anyway. did-finish-load stays as a fallback in
   // case ready-to-show never fires (already-shown window edge cases).
-  //
-  // Phase 1.5 is awaited before Phase 2 rather than run alongside it: Phase 2
-  // calls detectAddon('video-nemesis-toolkit') and must observe the seeded
-  // directory, and both phases call applyPendingDeletes(), which must not run
-  // concurrently with itself.
-  let bootWorkStarted = false;
-  const startBootWork = () => {
-    if (bootWorkStarted) return;
-    bootWorkStarted = true;
-    void (async () => {
-      try {
-        await initBuiltInPacks();
-      } catch (err) {
-        console.error('[addons] built-in pack seeding failed:', err);
-      }
-      try {
-        await registerAddonHandlers();
-      } catch (err) {
-        console.error('[addons] deferred registration failed:', err);
-      }
-    })();
+  let phase2Started = false;
+  const startPhase2 = () => {
+    if (phase2Started) return;
+    phase2Started = true;
+    registerAddonHandlers().catch((err) =>
+      console.error('[addons] deferred registration failed:', err),
+    );
   };
-  mainWindow.once('ready-to-show', startBootWork);
-  mainWindow.webContents.once('did-finish-load', startBootWork);
+  mainWindow.once('ready-to-show', startPhase2);
+  mainWindow.webContents.once('did-finish-load', startPhase2);
 
   setTimeout(() => {
     void runYtdlpCheckAndUpdate();

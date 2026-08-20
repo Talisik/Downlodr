@@ -326,18 +326,35 @@ const AfdaSelectedTableGroup: React.FC = () => {
 
   const handleToggleFavorite = toggleArticleFavorite;
 
-  const handleContextRemove = useCallback(
-    (articleId: string) => {
+  /**
+   * Delete an article's file and drop it from the store.
+   *
+   * An article is a single file with no folder of its own, so this only ever
+   * deletes the file — never its parent directory, which is the shared AFDA
+   * output folder. `filePath` on the store record is the source of truth; the
+   * `location` field on the table rows is just a mapping of it.
+   */
+  const removeArticleWithFile = useCallback(
+    async (articleId: string) => {
       const article = articleDownloads.find((a) => a.id === articleId);
       if (article?.filePath) {
-        window.downlodrFunctions
-          .deleteFile(article.filePath)
-          .catch(() => undefined);
+        try {
+          await window.downlodrFunctions.deleteFile(article.filePath);
+        } catch {
+          /* ignore fs errors — the row goes away either way */
+        }
       }
       removeArticleDownload(articleId);
+    },
+    [articleDownloads, removeArticleDownload],
+  );
+
+  const handleContextRemove = useCallback(
+    (articleId: string) => {
+      void removeArticleWithFile(articleId);
       handleCloseContextMenu();
     },
-    [articleDownloads, removeArticleDownload, handleCloseContextMenu],
+    [removeArticleWithFile, handleCloseContextMenu],
   );
 
   const handleContextDownload = useCallback(
@@ -451,44 +468,26 @@ const AfdaSelectedTableGroup: React.FC = () => {
     ? articleDownloads.find((a) => a.id === contextMenu.articleId) ?? null
     : null;
 
-  const handleBulkRemove = useCallback(
-    async (deleteFolder?: boolean) => {
-      const toRemove = downloads.filter((d) => selectedRowIds.includes(d.id));
-      setSelectedRowIds([]);
+  // No `deleteFolder` option here on purpose: an article's parent directory is
+  // the shared AFDA output folder, so there is never a folder that belongs to
+  // one article and would be safe to remove with it.
+  const handleBulkRemove = useCallback(async () => {
+    const toRemove = downloads.filter((d) => selectedRowIds.includes(d.id));
+    setSelectedRowIds([]);
 
-      for (const d of toRemove) {
-        if (d.location) {
-          try {
-            if (deleteFolder) {
-              const folderPath = d.location.substring(
-                0,
-                Math.max(
-                  d.location.lastIndexOf('/'),
-                  d.location.lastIndexOf('\\'),
-                ),
-              );
-              await window.downlodrFunctions.deleteFolder(folderPath);
-            } else {
-              await window.downlodrFunctions.deleteFile(d.location);
-            }
-          } catch {
-            /* ignore fs errors */
-          }
-        }
-        removeArticleDownload(d.id);
-      }
+    for (const d of toRemove) {
+      await removeArticleWithFile(d.id);
+    }
 
-      toast({
-        variant: 'success',
-        title: 'Removed',
-        description: `${toRemove.length} article${
-          toRemove.length !== 1 ? 's' : ''
-        } removed.`,
-        duration: 5000,
-      });
-    },
-    [downloads, selectedRowIds, setSelectedRowIds, removeArticleDownload],
-  );
+    toast({
+      variant: 'success',
+      title: 'Removed',
+      description: `${toRemove.length} article${
+        toRemove.length !== 1 ? 's' : ''
+      } removed.`,
+      duration: 5000,
+    });
+  }, [downloads, selectedRowIds, setSelectedRowIds, removeArticleWithFile]);
 
   const handleBulkDownload = useCallback(async () => {
     const toDownload = downloads.filter(
@@ -791,27 +790,30 @@ const AfdaSelectedTableGroup: React.FC = () => {
                 Delete
               </Button>
             </TooltipWrapper>
-            {selectedRowIds.length > 0 && (
-              <TooltipWrapper
-                content="Export selected articles to CSV"
-                side="bottom"
+            <TooltipWrapper
+              content={
+                selectedRowIds.length > 0
+                  ? 'Export selected articles to CSV'
+                  : 'No articles selected'
+              }
+              side="bottom"
+            >
+              <Button
+                variant="transparent"
+                size="icon"
+                className="text-[12px] text-white rounded-md h-6 flex items-center justify-center px-2 py-[2px] bg-primary hover:bg-primary/80"
+                onClick={handleExportCsv}
+                disabled={selectedRowIds.length === 0}
+                icon={
+                  <LuFileSpreadsheet
+                    size={13}
+                    className="text-white dark:text-white"
+                  />
+                }
               >
-                <Button
-                  variant="transparent"
-                  size="icon"
-                  className="text-[12px] text-white rounded-md h-6 flex items-center justify-center px-2 py-[2px] bg-primary hover:bg-primary/80"
-                  onClick={handleExportCsv}
-                  icon={
-                    <LuFileSpreadsheet
-                      size={13}
-                      className="text-white dark:text-white"
-                    />
-                  }
-                >
-                  Export CSV
-                </Button>
-              </TooltipWrapper>
-            )}
+                Export CSV
+              </Button>
+            </TooltipWrapper>
             <div className="mr-3 w-[550px] [&>div]:max-w-full">
               <TaskbarInputField />
             </div>
@@ -964,8 +966,8 @@ const AfdaSelectedTableGroup: React.FC = () => {
             <RemoveModal
               isOpen={showBulkRemoveModal}
               onClose={() => setShowBulkRemoveModal(false)}
-              onConfirm={(deleteFolder) => {
-                handleBulkRemove(deleteFolder);
+              onConfirm={() => {
+                handleBulkRemove();
                 setShowBulkRemoveModal(false);
               }}
               allowFolderDeletion={false}

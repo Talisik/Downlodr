@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Play,
   Pause,
+  Volume1,
   Volume2,
   VolumeX,
   Maximize,
@@ -17,6 +18,7 @@ interface PlayerControlsBarProps {
   isAudioMode: boolean;
   isPlaying: boolean;
   isMuted: boolean;
+  volume: number;
   currentTime: number;
   duration: number;
   playbackRate: number;
@@ -27,6 +29,7 @@ interface PlayerControlsBarProps {
   showPiP?: boolean;
   onPlayPause: () => void;
   onMute: () => void;
+  onVolumeChange: (volume: number) => void;
   onSeek: (ratio: number) => void;
   onCaptionToggle: () => void;
   onPlaybackRate: (rate: number) => void;
@@ -40,6 +43,7 @@ const PlayerControlsBar: React.FC<PlayerControlsBarProps> = ({
   isAudioMode,
   isPlaying,
   isMuted,
+  volume,
   currentTime,
   duration,
   playbackRate,
@@ -50,6 +54,7 @@ const PlayerControlsBar: React.FC<PlayerControlsBarProps> = ({
   showPiP,
   onPlayPause,
   onMute,
+  onVolumeChange,
   onSeek,
   onCaptionToggle,
   onPlaybackRate,
@@ -83,10 +88,37 @@ const PlayerControlsBar: React.FC<PlayerControlsBarProps> = ({
           )}
         </button>
 
-        {/* Mute */}
-        <button onClick={onMute} className="text-white flex-shrink-0">
-          {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-        </button>
+        {/* Mute + volume slider (slider expands on hover / focus) */}
+        <div className="group/volume flex items-center flex-shrink-0">
+          <button
+            onClick={onMute}
+            className="text-white flex-shrink-0"
+            title={
+              isMuted
+                ? t('videoPlayer.menu.unmute', 'Unmute')
+                : t('videoPlayer.menu.mute', 'Mute')
+            }
+          >
+            {isMuted || volume === 0 ? (
+              <VolumeX size={14} />
+            ) : volume < 0.5 ? (
+              <Volume1 size={14} />
+            ) : (
+              <Volume2 size={14} />
+            )}
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={isMuted ? 0 : volume}
+            onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+            aria-label={t('videoPlayer.menu.volume', 'Volume')}
+            title={t('videoPlayer.menu.volume', 'Volume')}
+            className="h-1 min-w-0 w-0 opacity-0 cursor-pointer accent-orange-500 transition-all duration-200 group-hover/volume:w-16 group-hover/volume:opacity-100 group-hover/volume:ml-2 focus:w-16 focus:opacity-100 focus:ml-2"
+          />
+        </div>
 
         {/* Time display */}
         <span className="text-white text-[11px] tabular-nums flex-shrink-0">

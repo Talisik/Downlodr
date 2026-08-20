@@ -19,9 +19,12 @@ interface AfdaTableGroupProps {
   displayColumns: DisplayColumn[];
   selectedRowIds: string[];
   selectedDownloadId: string | null;
-  onCheckboxChange: (id: string) => void;
   onRowClick: (id: string) => void;
-  onGroupCheckboxChange: (ids: string[]) => void;
+  /**
+   * The group's checkbox was clicked. `shiftKey` asks the page to select the
+   * range from the last clicked row — this group counts as a single row.
+   */
+  onGroupCheckboxChange: (shiftKey?: boolean) => void;
   onClosePluginSidebar: () => void;
 }
 
@@ -55,11 +58,6 @@ const AfdaTableGroup = React.memo(
       [downloads, selectedSet, isAllSelected],
     );
 
-    const groupDownloadIds = useMemo(
-      () => downloads.map((d) => d.id),
-      [downloads],
-    );
-
     const checkboxRef = useCallback(
       (node: HTMLInputElement | null) => {
         if (node) node.indeterminate = isIndeterminate;
@@ -83,7 +81,18 @@ const AfdaTableGroup = React.memo(
 
     return (
       <tr
-        onClick={() => navigate(`/status/group/afda/${websiteId}`)}
+        // Shift-click extends the selection instead of opening the group.
+        onClick={(e) => {
+          if (e.shiftKey) {
+            onGroupCheckboxChange(true);
+            return;
+          }
+          navigate(`/status/group/afda/${websiteId}`);
+        }}
+        // Shift-click otherwise highlights the text between the two rows.
+        onMouseDown={(e) => {
+          if (e.shiftKey) e.preventDefault();
+        }}
         className="pl-4 border-b dark:border-darkModeTableBorder cursor-pointer"
       >
         <td className="w-8 p-2">
@@ -97,7 +106,7 @@ const AfdaTableGroup = React.memo(
             }}
             onClick={(e) => {
               e.stopPropagation();
-              onGroupCheckboxChange(groupDownloadIds);
+              onGroupCheckboxChange(e.shiftKey);
             }}
           />
         </td>

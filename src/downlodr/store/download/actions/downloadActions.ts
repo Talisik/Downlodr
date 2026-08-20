@@ -7,6 +7,11 @@ import { ToastAction, ToastActionElement } from '@/core-app/components/shadcn/co
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { uuidv4 } from '@/core-app/utils/uuid';
 import { type VideoInfo } from '@/downlodr/schema/metadataSchema';
+import { usePlaylistSelectionStore } from '@/downlodr/store/playlistSelectionStore';
+import {
+  acquireInfoFetchSlot,
+  releaseInfoFetchSlot,
+} from '@/downlodr/utils/download/infoFetchQueue';
 import { FormatService } from '@/downlodr/utils/metadata/formatService';
 import { RefreshCw } from 'lucide-react';
 import React from 'react';
@@ -38,10 +43,6 @@ type GetState = () => {
   addQueue: (payload: AddQueuePayload) => void;
 };
 
-// Semaphore to throttle concurrent yt-dlp metadata fetches (Fix 2)
-let activeInfoFetches = 0;
-const MAX_CONCURRENT_INFO_FETCHES = 3;
-const infoFetchQueue: Array<() => void> = [];
 
 export function createDownloadActions(set: SetState, get: GetState) {
   return {
@@ -162,11 +163,10 @@ export function createDownloadActions(set: SetState, get: GetState) {
           ],
         }));
 
-        // Throttle concurrent yt-dlp info fetches to avoid spawn storms on playlists
-        if (activeInfoFetches >= MAX_CONCURRENT_INFO_FETCHES) {
-          await new Promise<void>((resolve) => infoFetchQueue.push(resolve));
-        }
-        activeInfoFetches++;
+        // Throttle concurrent yt-dlp info fetches to avoid spawn storms on
+        // playlists. The gate prefers rows the user can currently see, so a
+        // 100-entry playlist fills page 1 before the off-screen pages.
+        await acquireInfoFetchSlot(downloadId);
 
         try {
           // Fetch metadata in background (ytdlp returns Record<string, unknown>)
@@ -178,7 +178,7 @@ export function createDownloadActions(set: SetState, get: GetState) {
           const channelName = info.data?.channel || info.data?.uploader || '';
           const description = info.data?.description ?? '';
           const uploadDate = parseYtdlpUploadDate(info.data?.upload_date);
-          // auto-tag: native category (routing) + structured music fields
+          // Native category + structured music fields from yt-dlp metadata
           const nativeCategory = info.data?.categories?.[0];
           const musicArtist =
             info.data?.artist ||
@@ -315,6 +315,28 @@ export function createDownloadActions(set: SetState, get: GetState) {
           const isUnsupportedSite = errorMessage.includes('UNSUPPORTED_SITE');
           const isParseError = errorMessage.includes('PARSE_ERROR');
           const parseErrorSite = errorMessage.match(/PARSE_ERROR:(\w+)?:/)?.[1];
+          const isPlaylistUrl = errorMessage.includes('PLAYLIST_URL');
+          const playlistEntryCount = errorMessage.match(
+            /PLAYLIST_URL:(\d+)?:/,
+          )?.[1];
+
+          // Not an error: the URL is a playlist/series that the paste-time
+          // classifier (YouTube-syntax only) could not recognise as one, so it
+          // arrived here as a single download. Hand it to the selection page
+          // rather than failing — GlobalPlaylistRedirectListener navigates.
+          if (isPlaylistUrl) {
+            usePlaylistSelectionStore.getState().setPendingPlaylistUrl(videoUrl);
+            toast({
+              title: 'Playlist Detected',
+              description: playlistEntryCount
+                ? `This link is a playlist or series with ${playlistEntryCount} items. Opening the selection page.`
+                : 'This link is a playlist or series. Opening the selection page.',
+              duration: 5000,
+            });
+            get().removeFromForDownloads(downloadId);
+            return downloadId;
+          }
+
           if (!hasInternetConnection) {
             toast({
               variant: 'destructive',
@@ -380,10 +402,7 @@ export function createDownloadActions(set: SetState, get: GetState) {
             ),
           }));
         } finally {
-          activeInfoFetches--;
-          if (infoFetchQueue.length > 0) {
-            infoFetchQueue.shift()!();
-          }
+          releaseInfoFetchSlot();
         }
 
         return downloadId;

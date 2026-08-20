@@ -1,7 +1,7 @@
 /**
  * A custom React fixed component
  * A Fixed element in the header portion of Downlodr, displays common header
- * actions such as opening the AI chat, settings, and help.
+ * actions such as opening the AI chat, add-ons manager, settings, and help.
  *
  * Note: bulk download actions (Remove/Stop/Start) live in Toolbar.tsx, not here.
  *
@@ -12,6 +12,7 @@
 import { ToastAction } from '@/core-app/components/shadcn/components/ui/toast';
 import { useToast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { cn } from '@/core-app/components/shadcn/lib/utils';
+import { useAddonStore } from '@/core-app/store/addonStore';
 import AboutModal from '@/downlodr/components/modal/custom/AboutModal';
 import HelpModal from '@/downlodr/components/modal/custom/HelpModal';
 // import PluginTaskBarExtension from '@/plugins/components/PluginTaskBarExtension';
@@ -23,6 +24,7 @@ import { FiBook } from 'react-icons/fi';
 import { RxUpdate } from 'react-icons/rx';
 import { useDropdownAnimation } from '@/core-app/hooks/animation/useDropdownAnimation';
 import SettingsModal from '../modal/custom/SettingsModal';
+import AddonManagerModal from '../modal/custom/AddonManagerModal';
 
 interface TaskBarProps {
   className?: string;
@@ -32,6 +34,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
   const { t } = useTranslation('downlodr');
   const { toast } = useToast();
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const showAddonModal = useAddonStore((s) => s.isAddonManagerOpen);
+  const setAddonManagerOpen = useAddonStore((s) => s.setAddonManagerOpen);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showHelpMenu, setShowHelpMenu] = useState(false);
@@ -122,7 +126,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       <div className={cn('flex items-center justify-between', className)}>
         <div className="flex items-center h-full px-2 space-x-0 md:space-x-2">
           <div className="gap-1 flex mr-2">
-            <PageNavigation />
+            <PageNavigation
+              onAddonRequired={() => setAddonManagerOpen(true)}
+              isAddonModalOpen={showAddonModal}
+            />
           </div>
         </div>
 
@@ -132,52 +139,15 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
           </div>
 
           <div className="flex items-center justify-end">
-            {/* AI Chat Button 
             <button
-              className="px-3 py-1 rounded font-semibold hover:bg-gray-100 dark:hover:bg-darkModeNavigation flex items-center gap-1.5"
+              className="px-3 py-1 rounded font-semibold hover:bg-gray-100 dark:hover:bg-darkModeNavigation"
               onClick={(e) => {
                 e.stopPropagation();
-                window.appBehaviorBridge.invoke('open-chat-window');
+                setAddonManagerOpen(true);
               }}
-              title="Open Downlodr AI"
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-blue-500"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                <circle
-                  cx="9"
-                  cy="10"
-                  r="1"
-                  fill="currentColor"
-                  stroke="none"
-                />
-                <circle
-                  cx="12"
-                  cy="10"
-                  r="1"
-                  fill="currentColor"
-                  stroke="none"
-                />
-                <circle
-                  cx="15"
-                  cy="10"
-                  r="1"
-                  fill="currentColor"
-                  stroke="none"
-                />
-              </svg>
-              AI
+              Add-ons
             </button>
-            */}
             <button
               className="px-3 py-1 rounded font-semibold hover:bg-gray-100 dark:hover:bg-darkModeNavigation "
               onClick={(e) => {
@@ -257,6 +227,10 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
+      />
+      <AddonManagerModal
+        isOpen={showAddonModal}
+        onClose={() => setAddonManagerOpen(false)}
       />
       <HelpModal
         isOpen={showHelpModal}

@@ -7,6 +7,10 @@ import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import { DownloadItem } from '@/downlodr/schema/componentSchema';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import type { SearchableDownload } from '@/downlodr/store/taskbarDownloadStore';
+import {
+  deletePerDownloadFolder,
+  isPerDownloadFolder,
+} from '@/downlodr/utils/download/downloadFolder';
 import { redownloadTranscript } from '@/downlodr/utils/transcription/ffmpegWhisperTranscriber';
 import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -109,7 +113,9 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
       inputFile: inputLocation,
       outputFile: outputLocation,
       modelPath: 'ggml-small.bin',
-      language: 'en',
+      // 'auto', not 'en': forcing English makes Whisper *translate* non-English
+      // audio into English rather than transcribe it in its own language.
+      language: 'auto',
       format: 'srt',
     });
     toast({
@@ -519,7 +525,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
 
   /* eslint-disable @typescript-eslint/no-unused-vars -- signatures match context menu callbacks */
   const handleStop = useCallback(
-    (
+    async (
       downloadId: string,
       _downloadLocation?: string | undefined,
       _controllerId?: string | undefined,
@@ -537,6 +543,9 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
       const currentForDownload = forDownloads.find((d) => d.id === downloadId);
 
       if (currentDownload?.status === 'paused') {
+        // Stop discards the record outright, so unlike Pause there is no
+        // Resume left to reuse the folder — it only holds `.part` files now.
+        await deletePerDownloadFolder(currentDownload);
         deleteDownloading(downloadId);
         toast({
           variant: 'success',
@@ -545,6 +554,10 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
           duration: 5000,
         });
       } else if (currentForDownload?.status === 'to download') {
+        // Usually a no-op (the controller hasn't made a folder yet), but a
+        // retried download is re-queued with `location` already pointing at
+        // the folder its first attempt created.
+        await deletePerDownloadFolder(currentForDownload);
         removeFromForDownloads(downloadId);
         toast({
           variant: 'success',
@@ -558,8 +571,11 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
         if (cid && cid !== '---') {
           window.ytdlp
             .killController(cid)
-            .then((result: unknown) => {
+            .then(async (result: unknown) => {
               if (result) {
+                // Only after the kill resolves: trashing the folder while
+                // yt-dlp still holds a handle fails on Windows.
+                await deletePerDownloadFolder(currentDownload);
                 deleteDownloading(currentDownload.id);
                 toast({
                   variant: 'success',
@@ -757,6 +773,9 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
             : download.status === 'initializing'
             ? 'toolbar.toast.initializingRemovedDesc'
             : 'toolbar.toast.failedRemovedDesc';
+        // The download never finished, so its own folder only holds partial
+        // files — remove it whether or not "also delete folder" was ticked.
+        await deletePerDownloadFolder(download);
         deleteDownload(downloadId);
         setSelectedRowIds([]);
         setSelectedDownloads([]);
@@ -808,7 +827,15 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
             )
           : downloadLocation;
 
-        if (deleteFolder) {
+        // "Also delete folder" only ever removes the folder this download
+        // owns. `downloadLocation` is the directory the file sits in, which is
+        // not the same thing — for a plugin's output it is a shared
+        // FormatConverter/ folder holding every conversion of one video. When
+        // the guard declines, fall through to deleting just the file.
+        if (
+          deleteFolder &&
+          isPerDownloadFolder(downloadLocation, download.name)
+        ) {
           const folderExists = await window.downlodrFunctions.fileExists(
             downloadLocation,
           );
@@ -847,6 +874,26 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
             });
           }
         } else {
+          // A download stopped mid-flight has no final file yet, only
+          // yt-dlp's `.part` files inside the folder it owns — so drop the
+          // whole folder instead of deleting a filename that isn't there.
+          if (download.status !== 'finished') {
+            const folderRemoved = await deletePerDownloadFolder(download);
+            if (folderRemoved) {
+              deleteDownload(downloadId);
+              setSelectedRowIds([]);
+              setSelectedDownloads([]);
+              toast({
+                variant: 'success',
+                title: tRef.current('toolbar.toast.folderDeletedTitle'),
+                description: tRef.current('toolbar.toast.folderDeletedDesc'),
+                duration: 5000,
+              });
+              closeContextMenu(setContextMenu);
+              return;
+            }
+          }
+
           const success = await window.downlodrFunctions.deleteFile(
             fullFilePath,
           );

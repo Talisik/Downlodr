@@ -125,6 +125,12 @@ export default defineConfig(({ mode }) => ({
     // as `false` in production builds, which eliminates the dev-only dynamic import branches in
     // afdaHandler.ts and skedulosaHandler.ts from the production bundle entirely.
     'process.env.NODE_ENV': JSON.stringify(mode),
+    // otel-logs.js is imported by both main and renderer, so the same define
+    // must exist in both builds. Empty by default — telemetry stays off unless
+    // an endpoint is configured. See .env.example.
+    __TELEMETRY_ENDPOINT__: JSON.stringify(
+      process.env.VITE_TELEMETRY_ENDPOINT || '',
+    ),
   },
   resolve: {
     alias: {

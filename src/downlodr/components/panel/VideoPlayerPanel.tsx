@@ -323,10 +323,12 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [audioDuration, setAudioDuration] = useState(0);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [audioVolume, setAudioVolume] = useState(1);
   const [audioPlaybackRate, setAudioPlaybackRate] = useState(1);
 
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(false);
+  const [videoVolume, setVideoVolume] = useState(1);
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoPlaybackRate, setVideoPlaybackRate] = useState(1);
   const [isCaptionsEnabled, setIsCaptionsEnabled] = useState(true);
@@ -427,7 +429,9 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
         inputFile: inputLocation,
         outputFile: outputLocation,
         modelPath: 'ggml-small.bin',
-        language: 'en',
+        // 'auto', not 'en': forcing English makes Whisper *translate* non-English
+        // audio into English rather than transcribe it in its own language.
+        language: 'auto',
         format: 'srt',
       },
       {
@@ -796,6 +800,15 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
     }
   }, [audioPlaybackRate]);
 
+  // Re-apply volume whenever the media element is (re)created for a new source.
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = audioVolume;
+  }, [audioVolume, directUrl, isAudioMode]);
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.volume = videoVolume;
+  }, [videoVolume, directUrl, isAudioMode]);
+
   useEffect(() => {
     if (
       !isAudioMode ||
@@ -991,16 +1004,42 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
       } else if (e.code === 'KeyF' && !isAudioMode) {
         e.preventDefault();
         handleFullscreen();
+      } else if (e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+        e.preventDefault();
+        const delta = e.code === 'ArrowUp' ? 0.05 : -0.05;
+        if (isAudioMode) handleAudioVolume(audioVolume + delta);
+        else handleVideoVolume(videoVolume + delta);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isAudioMode, isVideoPlaying, isAudioPlaying]);
+  }, [
+    isAudioMode,
+    isVideoPlaying,
+    isAudioPlaying,
+    audioVolume,
+    videoVolume,
+    isAudioMuted,
+    isVideoMuted,
+  ]);
 
   const handleVideoMute = () => {
     if (!videoRef.current) return;
-    videoRef.current.muted = !isVideoMuted;
-    setIsVideoMuted(!isVideoMuted);
+    const nextMuted = !isVideoMuted;
+    // Unmuting at zero volume would stay silent — restore an audible level.
+    if (!nextMuted && videoVolume === 0) setVideoVolume(0.5);
+    videoRef.current.muted = nextMuted;
+    setIsVideoMuted(nextMuted);
+  };
+
+  const handleVideoVolume = (volume: number) => {
+    const next = Math.max(0, Math.min(1, volume));
+    setVideoVolume(next);
+    // Dragging the slider off zero implies "unmute".
+    if (next > 0 && isVideoMuted) {
+      if (videoRef.current) videoRef.current.muted = false;
+      setIsVideoMuted(false);
+    }
   };
 
   const handleVideoSeek = (ratio: number) => {
@@ -1010,8 +1049,19 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
 
   const handleAudioMute = () => {
     if (!audioRef.current) return;
-    audioRef.current.muted = !isAudioMuted;
-    setIsAudioMuted(!isAudioMuted);
+    const nextMuted = !isAudioMuted;
+    if (!nextMuted && audioVolume === 0) setAudioVolume(0.5);
+    audioRef.current.muted = nextMuted;
+    setIsAudioMuted(nextMuted);
+  };
+
+  const handleAudioVolume = (volume: number) => {
+    const next = Math.max(0, Math.min(1, volume));
+    setAudioVolume(next);
+    if (next > 0 && isAudioMuted) {
+      if (audioRef.current) audioRef.current.muted = false;
+      setIsAudioMuted(false);
+    }
   };
 
   const handleAudioSeek = (ratio: number) => {
@@ -1822,6 +1872,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                     isAudioMode={true}
                     isPlaying={isAudioPlaying}
                     isMuted={isAudioMuted}
+                    volume={audioVolume}
                     currentTime={currentTime}
                     duration={audioDuration}
                     playbackRate={audioPlaybackRate}
@@ -1830,6 +1881,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                     controlsVisible={controlsVisible}
                     onPlayPause={handleAudioPlayPause}
                     onMute={handleAudioMute}
+                    onVolumeChange={handleAudioVolume}
                     onSeek={handleAudioSeek}
                     onCaptionToggle={handleCaptionToggle}
                     onPlaybackRate={handleAudioPlaybackRate}
@@ -1841,6 +1893,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                     isAudioMode={false}
                     isPlaying={isVideoPlaying}
                     isMuted={isVideoMuted}
+                    volume={videoVolume}
                     currentTime={currentTime}
                     duration={videoDuration}
                     playbackRate={videoPlaybackRate}
@@ -1851,6 +1904,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                     controlsVisible={controlsVisible}
                     onPlayPause={handleVideoPlayPause}
                     onMute={handleVideoMute}
+                    onVolumeChange={handleVideoVolume}
                     onSeek={handleVideoSeek}
                     onCaptionToggle={handleCaptionToggle}
                     onPlaybackRate={handleVideoPlaybackRate}

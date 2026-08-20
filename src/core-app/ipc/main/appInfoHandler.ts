@@ -69,7 +69,7 @@ export async function autoDownloadUpdate(downloadUrl: string, updateInfo?: Updat
       response.data.pipe(writer);
       writer.on('finish', resolve);
       writer.on('error', (err) => { writer.destroy(); reject(err); });
-      response.data.on('error', (err) => { writer.destroy(); reject(err); });
+      response.data.on('error', (err: Error) => { writer.destroy(); reject(err); });
     });
 
     autoUpdateState = { status: 'ready', filePath: destPath, updateInfo };
@@ -101,9 +101,12 @@ export function getBundledBinaryPath(binaryName: string): string | null {
     }
   }
 
-  // In development, resolve ggml-small.bin from app directory or cwd
-  // so it works regardless of where the process was started from
-  if (!isPackaged && binaryName === 'ggml-small.bin') {
+  // In development the bundled binaries all sit in the repo root, so resolve
+  // any of them from the app directory or cwd regardless of where the process
+  // was started from. This used to special-case ggml-small.bin and return null
+  // for every other name, which silently sent ffprobe.exe back to a bare-name
+  // PATH lookup that only worked by accident.
+  if (!isPackaged) {
     const appDirPath = path.join(app.getAppPath(), binaryName);
     if (existsSync(appDirPath)) {
       return appDirPath;
@@ -245,7 +248,7 @@ export const appInfoHandler = () => {
         response.data.pipe(writer);
         writer.on('finish', resolve);
         writer.on('error', (err) => { writer.destroy(); reject(err); });
-        response.data.on('error', (err) => { writer.destroy(); reject(err); });
+        response.data.on('error', (err: Error) => { writer.destroy(); reject(err); });
       });
 
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('download-complete', { filePath: destPath });

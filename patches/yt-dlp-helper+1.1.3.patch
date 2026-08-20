@@ -1,0 +1,197 @@
+diff --git a/node_modules/yt-dlp-helper/dist/index.cjs b/node_modules/yt-dlp-helper/dist/index.cjs
+index 9b9a4d7..b1d828c 100644
+--- a/node_modules/yt-dlp-helper/dist/index.cjs
++++ b/node_modules/yt-dlp-helper/dist/index.cjs
+@@ -615,6 +615,9 @@ function getDefaultMetadataOptionsForUrl(url) {
+ }
+ function getMetadataArgs(options) {
+   const args = [];
++  if (options == null ? void 0 : options.noPlaylist) {
++    args.push("--no-playlist");
++  }
+   if (options == null ? void 0 : options.cookiesFromBrowser) {
+     args.push("--cookies-from-browser", options.cookiesFromBrowser);
+   }
+@@ -631,9 +634,13 @@ function getArgs({
+   audioQuality,
+   remuxVideo,
+   limitRate,
+-  cookiesFromBrowser
++  cookiesFromBrowser,
++  noPlaylist
+ }) {
+   const args = [url, ...BASE_ARGS];
++  if (noPlaylist) {
++    args.push("--no-playlist");
++  }
+   if (output) {
+     args.push("-o", output);
+   }
+@@ -948,10 +955,34 @@ function getInfo(url, options, ytdlpDownloadDestination) {
+         data: JSON.parse(data || "")
+       };
+     } catch (e) {
+-      return { ok: false };
+     }
++    return parseDumpJson(data);
+   });
+ }
++function parseDumpJson(data) {
++  const entries = [];
++  for (const line of (data || "").split("\n")) {
++    const trimmed = line.trim();
++    if (!trimmed.startsWith("{")) continue;
++    try {
++      entries.push(JSON.parse(trimmed));
++    } catch (e) {
++      return { ok: false };
++    }
++  }
++  if (entries.length === 1) {
++    return { ok: true, data: entries[0] };
++  }
++  if (entries.length > 1) {
++    return {
++      ok: false,
++      isPlaylist: true,
++      entryCount: entries.length,
++      data: entries[0]
++    };
++  }
++  return { ok: false };
++}
+ function manualDownloadLatestYTDLP() {
+   return __async(this, arguments, function* ({
+     filePath,
+diff --git a/node_modules/yt-dlp-helper/dist/index.js b/node_modules/yt-dlp-helper/dist/index.js
+index 9260e08..069e8d6 100644
+--- a/node_modules/yt-dlp-helper/dist/index.js
++++ b/node_modules/yt-dlp-helper/dist/index.js
+@@ -568,6 +568,9 @@ function getDefaultMetadataOptionsForUrl(url) {
+ }
+ function getMetadataArgs(options) {
+   const args = [];
++  if (options == null ? void 0 : options.noPlaylist) {
++    args.push("--no-playlist");
++  }
+   if (options == null ? void 0 : options.cookiesFromBrowser) {
+     args.push("--cookies-from-browser", options.cookiesFromBrowser);
+   }
+@@ -584,9 +587,13 @@ function getArgs({
+   audioQuality,
+   remuxVideo,
+   limitRate,
+-  cookiesFromBrowser
++  cookiesFromBrowser,
++  noPlaylist
+ }) {
+   const args = [url, ...BASE_ARGS];
++  if (noPlaylist) {
++    args.push("--no-playlist");
++  }
+   if (output) {
+     args.push("-o", output);
+   }
+@@ -901,10 +908,34 @@ function getInfo(url, options, ytdlpDownloadDestination) {
+         data: JSON.parse(data || "")
+       };
+     } catch (e) {
+-      return { ok: false };
+     }
++    return parseDumpJson(data);
+   });
+ }
++function parseDumpJson(data) {
++  const entries = [];
++  for (const line of (data || "").split("\n")) {
++    const trimmed = line.trim();
++    if (!trimmed.startsWith("{")) continue;
++    try {
++      entries.push(JSON.parse(trimmed));
++    } catch (e) {
++      return { ok: false };
++    }
++  }
++  if (entries.length === 1) {
++    return { ok: true, data: entries[0] };
++  }
++  if (entries.length > 1) {
++    return {
++      ok: false,
++      isPlaylist: true,
++      entryCount: entries.length,
++      data: entries[0]
++    };
++  }
++  return { ok: false };
++}
+ function manualDownloadLatestYTDLP() {
+   return __async(this, arguments, function* ({
+     filePath,
+diff --git a/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts b/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts
+index 5e77e76..750a1f1 100644
+--- a/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts
++++ b/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts
+@@ -44,6 +44,15 @@ export interface Args {
+      * The cookies from the browser to be used for the download.
+      */
+     cookiesFromBrowser?: string;
++    /**
++     * Download only the video the URL points at, never the playlist or series
++     * it belongs to. Passed to yt-dlp as --no-playlist.
++     *
++     * Needed for extractors that resolve a single-item URL to its whole
++     * container (e.g. viu:ott returns every episode of a series for a
++     * /vod/{episode_id}/ URL).
++     */
++    noPlaylist?: boolean;
+ }
+ /**
+  * Options for metadata fetch operations (getInfo, getPlaylistInfo).
+@@ -61,4 +70,17 @@ export interface MetadataOptions {
+      * Passed to yt-dlp as --user-agent.
+      */
+     userAgent?: string;
++    /**
++     * Describe only the video the URL points at, never the playlist or series
++     * it belongs to. Passed to yt-dlp as --no-playlist.
++     *
++     * Set this on getInfo for any single-video lookup. --dump-json emits one
++     * JSON object per entry, so a URL that resolves to a container (a bilibili
++     * multi-part video, a viu:ott series) produces N concatenated objects that
++     * JSON.parse rejects, and getInfo degrades to { ok: false }.
++     *
++     * Has no effect on URLs that are genuinely a playlist or series with no
++     * single video attached — those must go through getPlaylistInfo.
++     */
++    noPlaylist?: boolean;
+ }
+diff --git a/node_modules/yt-dlp-helper/dist/yt-dlp-helper.d.ts b/node_modules/yt-dlp-helper/dist/yt-dlp-helper.d.ts
+index 5ecc5d5..33a9523 100644
+--- a/node_modules/yt-dlp-helper/dist/yt-dlp-helper.d.ts
++++ b/node_modules/yt-dlp-helper/dist/yt-dlp-helper.d.ts
+@@ -24,12 +24,22 @@ import { Args, MetadataOptions } from "./interfaces/args.js";
+  *   Defaults to the platform-specific binary in the current working directory, falling back
+  *   to `yt-dlp` on PATH.
+  *
+- * @returns {Promise<{ok: boolean, data: any}>} - A promise that resolves with an object
+- * indicating whether the operation was successful and the video information.
++ * @returns {Promise<{ok: boolean, data?: any, isPlaylist?: boolean, entryCount?: number}>} -
++ * A promise that resolves with an object indicating whether the operation was
++ * successful and the video information.
++ *
++ * `--dump-json` emits one JSON object per entry, so a URL whose extractor
++ * resolves to a container yields N concatenated objects rather than one.
++ * When that happens the result is `ok: false` with `isPlaylist: true` and
++ * `entryCount` set, and `data` holding the first entry — enough for a caller
++ * to report what the URL actually is and route it to getPlaylistInfo.
++ * `ok: false` with no `isPlaylist` remains an ordinary failure.
+  */
+ export declare function getInfo(url: string, options?: MetadataOptions, ytdlpDownloadDestination?: string): Promise<{
+     ok: boolean;
+     data?: any;
++    isPlaylist?: boolean;
++    entryCount?: number;
+ }>;
+ /**
+  * Manually downloads the latest yt-dlp.exe from the official GitHub repository.

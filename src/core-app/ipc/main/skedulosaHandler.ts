@@ -9,7 +9,6 @@ import {
   registerSkedulosaServices,
   registerBridgeHandler,
   registerRendererSender,
-  registerRendererQuery,
 } from './mcpBridgeServer';
 
 /**
@@ -56,14 +55,18 @@ export const skedulosaHandler = async (
   let registerVideoNemesisIpcHandlers: any;
 
   if (addonPath) {
-    const indexUrl = pathToFileURL(path.join(addonPath, 'dist', 'index.js')).href;
+    const indexUrl = pathToFileURL(
+      path.join(addonPath, 'dist', 'index.js'),
+    ).href;
     const mod = await import(/* @vite-ignore */ indexUrl);
     registerVideoNemesisIpcHandlers = mod.registerVideoNemesisIpcHandlers;
   } else if (process.env.NODE_ENV !== 'production') {
     // Dev only: Vite-bundled imports from source.
     // Guarded by NODE_ENV so Rollup eliminates this branch (and the toolkit require())
     // from the production bundle entirely.
-    const mod = await import('@/skedulosa/backend/video-nemesis-toolkit__hidden/dist/index');
+    const mod = await import(
+      '@/skedulosa/backend/video-nemesis-toolkit__hidden/dist/index'
+    );
     registerVideoNemesisIpcHandlers = mod.registerVideoNemesisIpcHandlers;
   }
 
@@ -80,42 +83,10 @@ export const skedulosaHandler = async (
     }
   });
 
-  // Request/response round-trip to the main window's renderer, which owns the
-  // core download Zustand store. Used by the bridge's /downloads/* routes to
-  // read and mutate the download list (state the main process can't see directly).
-  let _rendererReqSeq = 0;
-  registerRendererQuery((kind, payload, timeoutMs) => {
-    return new Promise((resolve, reject) => {
-      if (mainWindow.isDestroyed()) {
-        reject(new Error('Main window is not available.'));
-        return;
-      }
-      const requestId = `dlq_${Date.now()}_${_rendererReqSeq++}`;
-      const replyChannel = `downloads:reply:${requestId}`;
-      const timer = setTimeout(() => {
-        ipcMain.removeAllListeners(replyChannel);
-        reject(
-          new Error(
-            'The app did not respond in time (download list unavailable).',
-          ),
-        );
-      }, timeoutMs);
-      ipcMain.once(
-        replyChannel,
-        (_event, reply: { ok: boolean; result?: unknown; error?: string }) => {
-          clearTimeout(timer);
-          if (reply && reply.ok) resolve(reply.result);
-          else reject(new Error(reply?.error || 'Download request failed.'));
-        },
-      );
-      // kind === 'query' → downloads:query, kind === 'command' → downloads:command
-      mainWindow.webContents.send(`downloads:${kind}`, {
-        requestId,
-        replyChannel,
-        payload,
-      });
-    });
-  });
+  // NOTE: the core download list's request/response round-trip
+  // (registerRendererQuery) is registered unconditionally in
+  // coreDownloadBridgeHandler.ts / registerHandlers.ts, not here — it has no
+  // dependency on this add-on and must work even when this handler never runs.
 
   const _origLog = console.log;
   console.log = (...args: unknown[]) => {
@@ -137,7 +108,7 @@ export const skedulosaHandler = async (
     {
       dbPath,
       ytDlpPath,
-      sendToRenderer: (channel, payload) => {
+      sendToRenderer: (channel: string, payload: unknown) => {
         try {
           if (!mainWindow.isDestroyed()) {
             mainWindow.webContents.send(channel, payload);
@@ -153,11 +124,17 @@ export const skedulosaHandler = async (
         }
       },
     },
-    (channel, handler) => {
+    (
+      channel: string,
+      handler: (
+        event: Electron.IpcMainInvokeEvent,
+        ...args: unknown[]
+      ) => unknown,
+    ) => {
       ipcMain.handle(channel, handler);
       registerBridgeHandler(
         channel,
-        handler as (event: null, ...args: unknown[]) => unknown,
+        handler as unknown as (event: null, ...args: unknown[]) => unknown,
       );
     },
   );

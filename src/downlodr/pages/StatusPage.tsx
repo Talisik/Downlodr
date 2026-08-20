@@ -42,16 +42,24 @@ import {
 } from '@/downlodr/pages/status/statusPageHooks';
 import {
   getColumnOptions,
+  resolveRowSelection,
   sortDownloadsByColumn,
   statusMapping,
 } from '@/downlodr/pages/status/statusPageUtils';
+import type { SelectableRow } from '@/downlodr/pages/status/statusPageTypes';
 import { DownloadItem } from '@/downlodr/schema/componentSchema';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import { usePluginStore } from '@/plugins/store/pluginStore';
 import ActivityTracker from '@/downlodr/components/download/log/ActivityTracker';
 import DownloadLogs from '@/downlodr/components/download/log/DownloadLogs';
 import PluginSidePanelManager from '@/plugins/components/PluginSidePanelManager';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import { useAfdaStore } from '@/afda/store/afdaStore';
@@ -155,7 +163,8 @@ const StatusSpecificDownloads = () => {
           articleModel = result;
         }
         const currentFormat = d.format ?? 'docx';
-        const downloadFolder = await window.downlodrFunctions.getDownloadFolder();
+        const downloadFolder =
+          await window.downlodrFunctions.getDownloadFolder();
         const filename = sanitizeFilename(articleModel.article_title);
         let buffer: number[];
         let ext: string;
@@ -257,6 +266,8 @@ const StatusSpecificDownloads = () => {
   const clearAllSelections = useSelectedDownloadStore(
     (state) => state.clearAllSelections,
   );
+  // Last row clicked — the anchor a following shift-click ranges from.
+  const selectionAnchorRef = useRef<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     downloadId: string | null;
     x: number;
@@ -284,6 +295,7 @@ const StatusSpecificDownloads = () => {
   // Clear selection when the filter context changes (different status or search query).
   useEffect(() => {
     clearAllSelections();
+    selectionAnchorRef.current = null;
   }, [currentStatus, isSearchActive, searchQuery]);
 
   // Sync type filters when navigating to a different status page. A caller can
@@ -559,11 +571,17 @@ const StatusSpecificDownloads = () => {
   // state to track menu transitions
   const [isTransitioning, setIsTransitioning] = useState(false);
 
+  // Handles both a single download row and a collapsed group row (a
+  // subscription or website), which selects all of its downloads at once.
   const handleCheckboxChange = useCallback(
-    (downloadId: string) => {
-      const newSelected = selectedRowIds.includes(downloadId)
-        ? selectedRowIds.filter((id) => id !== downloadId)
-        : [...selectedRowIds, downloadId];
+    (row: SelectableRow, orderedRows?: SelectableRow[]) => {
+      const newSelected = resolveRowSelection(
+        selectedRowIds,
+        row,
+        orderedRows,
+        selectionAnchorRef.current,
+      );
+      selectionAnchorRef.current = row.key;
 
       setSelectedRowIds(newSelected);
 
@@ -587,41 +605,6 @@ const StatusSpecificDownloads = () => {
       });
 
       // Resolve all promises before updating state
-      Promise.all(promises).then((resolvedData) => {
-        setSelectedDownloads(resolvedData);
-      });
-    },
-    [selectedRowIds, allDownloads, setSelectedRowIds, setSelectedDownloads],
-  );
-
-  const handleGroupCheckboxChange = useCallback(
-    (downloadIds: string[]) => {
-      const selectedSet = new Set(selectedRowIds);
-      const allSelected = downloadIds.every((id) => selectedSet.has(id));
-      const newSelected = allSelected
-        ? selectedRowIds.filter((id) => !downloadIds.includes(id))
-        : [...new Set([...selectedRowIds, ...downloadIds])];
-
-      setSelectedRowIds(newSelected);
-
-      const promises = newSelected.map(async (id) => {
-        const download = allDownloads.find((d) => d.id === id);
-        return {
-          id,
-          controllerId: download?.controllerId,
-          videoUrl: download?.videoUrl,
-          downloadName: download?.displayName,
-          status: download?.status,
-          download: download,
-          location: download?.location
-            ? await window.downlodrFunctions.joinDownloadPath(
-                download.location,
-                download.name,
-              )
-            : undefined,
-        };
-      });
-
       Promise.all(promises).then((resolvedData) => {
         setSelectedDownloads(resolvedData);
       });
@@ -913,114 +896,117 @@ const StatusSpecificDownloads = () => {
           />
         )}
         {videoPlayerState.isOpen ? (
-          <div className="flex flex-row flex-1 min-h-0 overflow-hidden" style={{ minHeight: 0 }}>
+          <div
+            className="flex flex-row flex-1 min-h-0 overflow-hidden"
+            style={{ minHeight: 0 }}
+          >
             <VideoPlayerPanel
-                isOpen={true}
-                onClose={() =>
-                  setVideoPlayerState({
-                    isOpen: false,
-                    videoUrl: '',
-                    title: '',
-                    autoCaptionLocation: undefined,
-                    transcriptLocation: undefined,
-                    displayName: undefined,
-                    dateAdded: undefined,
-                    location: undefined,
-                    tags: undefined,
-                    category: undefined,
-                    description: undefined,
-                    chapters: undefined,
-                    channelName: undefined,
-                    thumbnail: undefined,
-                    ext: undefined,
-                    duration: undefined,
-                    size: undefined,
-                    extractorKey: undefined,
-                    downloadId: undefined,
-                  })
-                }
-                videoUrl={videoPlayerState.videoUrl}
-                title={videoPlayerState.title}
-                autoCaptionLocation={videoPlayerState.autoCaptionLocation}
-                transcriptLocation={videoPlayerState.transcriptLocation}
-                displayName={videoPlayerState.displayName}
-                dateAdded={videoPlayerState.dateAdded}
-                location={videoPlayerState.location}
-                tags={videoPlayerState.tags}
-                category={videoPlayerState.category}
-                status={videoPlayerState.status}
-                downloadName={videoPlayerState.downloadName}
-                description={videoPlayerState.description}
-                chapters={videoPlayerState.chapters}
-                channelName={videoPlayerState.channelName}
-                thumbnail={videoPlayerState.thumbnail}
-                ext={videoPlayerState.ext}
-                duration={videoPlayerState.duration}
-                size={videoPlayerState.size}
-                extractorKey={videoPlayerState.extractorKey}
-                downloadId={videoPlayerState.downloadId}
-                width={100}
-                onWidthChange={setPanelWidth}
-                allDownloads={allDownloads}
-                thumbnailDataUrls={thumbnailDataUrls}
-                activeDownloadId={videoPlayerState.downloadId}
-                onSelectDownload={(download) => {
-                  setVideoPlayerState({
-                    isOpen: true,
-                    videoUrl: download.videoUrl ?? '',
-                    title:
-                      'displayName' in download && download.displayName
-                        ? download.displayName
-                        : download.name ?? '',
-                    autoCaptionLocation:
-                      'autoCaptionLocation' in download
-                        ? download.autoCaptionLocation
-                        : undefined,
-                    transcriptLocation:
-                      'transcriptLocation' in download
-                        ? download.transcriptLocation
-                        : undefined,
-                    displayName:
-                      'displayName' in download
-                        ? download.displayName
-                        : undefined,
-                    dateAdded:
-                      'DateAdded' in download ? download.DateAdded : undefined,
-                    location:
-                      'location' in download ? download.location : undefined,
-                    tags: 'tags' in download ? download.tags : undefined,
-                    category:
-                      'category' in download ? download.category : undefined,
-                    status: download.status,
-                    downloadName: download.name,
-                    description:
-                      'description' in download
-                        ? download.description
-                        : undefined,
-                    chapters:
-                      'chapters' in download ? download.chapters : undefined,
-                    channelName:
-                      'channelName' in download
-                        ? download.channelName
-                        : undefined,
-                    thumbnail:
-                      'thumbnails' in download &&
-                      typeof download.thumbnails === 'string' &&
-                      download.thumbnails !== '—'
-                        ? download.thumbnails
-                        : undefined,
-                    ext: 'ext' in download ? download.ext : undefined,
-                    duration:
-                      'duration' in download ? download.duration : undefined,
-                    size: 'size' in download ? download.size : undefined,
-                    extractorKey:
-                      'extractorKey' in download
-                        ? download.extractorKey
-                        : undefined,
-                    downloadId: download.id,
-                  });
-                }}
-              />
+              isOpen={true}
+              onClose={() =>
+                setVideoPlayerState({
+                  isOpen: false,
+                  videoUrl: '',
+                  title: '',
+                  autoCaptionLocation: undefined,
+                  transcriptLocation: undefined,
+                  displayName: undefined,
+                  dateAdded: undefined,
+                  location: undefined,
+                  tags: undefined,
+                  category: undefined,
+                  description: undefined,
+                  chapters: undefined,
+                  channelName: undefined,
+                  thumbnail: undefined,
+                  ext: undefined,
+                  duration: undefined,
+                  size: undefined,
+                  extractorKey: undefined,
+                  downloadId: undefined,
+                })
+              }
+              videoUrl={videoPlayerState.videoUrl}
+              title={videoPlayerState.title}
+              autoCaptionLocation={videoPlayerState.autoCaptionLocation}
+              transcriptLocation={videoPlayerState.transcriptLocation}
+              displayName={videoPlayerState.displayName}
+              dateAdded={videoPlayerState.dateAdded}
+              location={videoPlayerState.location}
+              tags={videoPlayerState.tags}
+              category={videoPlayerState.category}
+              status={videoPlayerState.status}
+              downloadName={videoPlayerState.downloadName}
+              description={videoPlayerState.description}
+              chapters={videoPlayerState.chapters}
+              channelName={videoPlayerState.channelName}
+              thumbnail={videoPlayerState.thumbnail}
+              ext={videoPlayerState.ext}
+              duration={videoPlayerState.duration}
+              size={videoPlayerState.size}
+              extractorKey={videoPlayerState.extractorKey}
+              downloadId={videoPlayerState.downloadId}
+              width={100}
+              onWidthChange={setPanelWidth}
+              allDownloads={allDownloads}
+              thumbnailDataUrls={thumbnailDataUrls}
+              activeDownloadId={videoPlayerState.downloadId}
+              onSelectDownload={(download) => {
+                setVideoPlayerState({
+                  isOpen: true,
+                  videoUrl: download.videoUrl ?? '',
+                  title:
+                    'displayName' in download && download.displayName
+                      ? download.displayName
+                      : download.name ?? '',
+                  autoCaptionLocation:
+                    'autoCaptionLocation' in download
+                      ? download.autoCaptionLocation
+                      : undefined,
+                  transcriptLocation:
+                    'transcriptLocation' in download
+                      ? download.transcriptLocation
+                      : undefined,
+                  displayName:
+                    'displayName' in download
+                      ? download.displayName
+                      : undefined,
+                  dateAdded:
+                    'DateAdded' in download ? download.DateAdded : undefined,
+                  location:
+                    'location' in download ? download.location : undefined,
+                  tags: 'tags' in download ? download.tags : undefined,
+                  category:
+                    'category' in download ? download.category : undefined,
+                  status: download.status,
+                  downloadName: download.name,
+                  description:
+                    'description' in download
+                      ? download.description
+                      : undefined,
+                  chapters:
+                    'chapters' in download ? download.chapters : undefined,
+                  channelName:
+                    'channelName' in download
+                      ? download.channelName
+                      : undefined,
+                  thumbnail:
+                    'thumbnails' in download &&
+                    typeof download.thumbnails === 'string' &&
+                    download.thumbnails !== '—'
+                      ? download.thumbnails
+                      : undefined,
+                  ext: 'ext' in download ? download.ext : undefined,
+                  duration:
+                    'duration' in download ? download.duration : undefined,
+                  size: 'size' in download ? download.size : undefined,
+                  extractorKey:
+                    'extractorKey' in download
+                      ? download.extractorKey
+                      : undefined,
+                  downloadId: download.id,
+                });
+              }}
+            />
           </div>
         ) : (
           <div className="flex flex-1 min-h-0 overflow-hidden gap-2 -mr-2">
@@ -1067,7 +1053,6 @@ const StatusSpecificDownloads = () => {
                   settingsPlugin.isOpenPluginSidebar
                 }
                 onClosePluginSidebar={() => updateIsOpenPluginSidebar(false)}
-                onGroupCheckboxChange={handleGroupCheckboxChange}
                 onViewEmbed={(download) => {
                   setVideoPlayerState({
                     isOpen: true,
@@ -1192,7 +1177,9 @@ const StatusSpecificDownloads = () => {
                 onRemove={(articleId) => {
                   const a = articleDownloads.find((x) => x.id === articleId);
                   if (a?.filePath) {
-                    window.downlodrFunctions.deleteFile(a.filePath).catch(() => {});
+                    window.downlodrFunctions
+                      .deleteFile(a.filePath)
+                      .catch(() => {});
                   }
                   removeArticleDownload(articleId);
                   handleCloseContextMenu();

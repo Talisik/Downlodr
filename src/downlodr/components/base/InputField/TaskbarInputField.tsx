@@ -21,7 +21,6 @@ import {
   useTaskbarDownloadStore,
 } from '@/downlodr/store/taskbarDownloadStore';
 import { usePlaylistSelectionStore } from '@/downlodr/store/playlistSelectionStore';
-import type { PlaylistInfoEntry } from '@/global';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -141,49 +140,14 @@ const TaskbarInputField = () => {
   // playlistSelectionStore so the full-page /playlist-selection route
   // (rendered outside this component) can read it once we navigate there.
   const fetchPlaylistInfo = async (url: string) => {
-    const playlistStore = usePlaylistSelectionStore.getState();
-    // Clear out any previous playlist immediately so a failed fetch doesn't
-    // leave the selection page showing stale data.
-    playlistStore.setPlaylistData({
-      playlistUrl: url,
-      videoTitle: null,
-      playlistVideos: [],
-    });
-    playlistStore.setIsLoading(true);
-    try {
-      const info = await window.ytdlp.getPlaylistInfo(url);
-
-      // Ensure no duplicate videos in the playlist
-      const uniqueVideos = new Map();
-
-      // Iterates through each video link inside playlist and saves to unique videos
-      info.data.entries.forEach((video: PlaylistInfoEntry) => {
-        if (!uniqueVideos.has(video.id)) {
-          uniqueVideos.set(video.id, {
-            url: video.url,
-            id: video.id,
-            title: video.title,
-            thumbnail: video.thumbnails[0]?.url || '',
-            channel: video.channel,
-          });
-        }
-      });
-
-      const videos = Array.from(uniqueVideos.values());
-      usePlaylistSelectionStore.getState().setPlaylistData({
-        playlistUrl: url,
-        videoTitle: info.data.title,
-        playlistVideos: videos,
-      });
-    } catch (error) {
+    const ok = await usePlaylistSelectionStore.getState().loadPlaylist(url);
+    if (!ok) {
       toast({
         variant: 'destructive',
         title: t('taskbarInput.toast.playlistErrorTitle'),
         description: t('taskbarInput.toast.playlistErrorDesc'),
         duration: 5000,
       });
-    } finally {
-      usePlaylistSelectionStore.getState().setIsLoading(false);
     }
   };
 

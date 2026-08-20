@@ -13,7 +13,6 @@ import StoreRehydrationLoader from '@/core-app/components/loader/StoreRehydratio
 import UpdateNotification from '@/core-app/components/notification/UpdateNotification';
 import { Toaster } from '@/core-app/components/shadcn/components/ui/toaster';
 import TelemetryConsentModal from '@/core-app/components/telemetry/TelemetryConsentModal';
-import { useAppReady } from '@/core-app/hooks/useAppReady';
 import AddonManagerModal from '@/downlodr/components/modal/custom/AddonManagerModal';
 import { ThemeProvider } from '@/core-app/components/ThemeProvider';
 import NotFound from '@/core-app/pages/NotFound';
@@ -43,7 +42,7 @@ import MainLayout from './core-app/layout/DownloadLayout';
 import OnboardingPage from './onboarding/pages/OnboardingPage';
 import History from './downlodr/pages/History';
 import { PluginInitialize } from './plugins/components/PluginInitialize';
-import PluginLayout from './plugins/layout/PluginLayout';
+import PluginLayout from './plugins/layout/pluginLayout';
 import PluginDetail from './plugins/pages/PluginDetail';
 import PluginPage from './plugins/pages/PluginPage';
 import SkedulosaLayout from './skedulosa/layout/SkedulosaLayout';
@@ -68,30 +67,26 @@ import { useAddonStore } from '@/core-app/store/addonStore';
 import SkedulosaRouteGuard from './skedulosa/utils/routeGuard';
 import GlobalScanningModal from './skedulosa/components/GlobalScanningModal';
 import GlobalAfdaMapperListener from '@/afda/components/GlobalAfdaMapperListener';
+import GlobalPlaylistRedirectListener from '@/downlodr/components/playlist/GlobalPlaylistRedirectListener';
 import GlobalAddonDownloadToast from '@/core-app/components/GlobalAddonDownloadToast';
-import CategoryPage from './smart-organize/base/pages/CategoryPage';
-import TagPage from './smart-organize/base/pages/TagPage';
+import CategoryPage from './downlodr/pages/CategoryPage';
+import TagPage from './downlodr/pages/TagPage';
 import AfdaSelectedTableGroup from './afda/pages/AfdaSelectedTableGroup';
 import SubscriptionSelectedTableGroup from './skedulosa/pages/SubscriptionSelectedTableGroup';
 import { useScrapingProgressToast } from './skedulosa/hooks/useScrapingProgressToast';
 
 function OnboardingNavigator(): null {
   const navigate = useNavigate();
-  const appReady = useAppReady();
   const onboardingShown = useSettingStore((s) => s.settings.onboardingShown);
   const telemetryConsentShown = useTelemetryStore(
     (s) => s.settings.telemetryConsentShown,
   );
 
   useEffect(() => {
-    // Wait for boot to finish: for a user who already consented but hasn't
-    // done onboarding, this condition is true on mount, which would otherwise
-    // put the tour picker on screen while the splash is still covering the app.
-    if (!appReady) return;
     if (telemetryConsentShown && !onboardingShown) {
       navigate('/onboarding');
     }
-  }, [appReady, telemetryConsentShown, onboardingShown]);
+  }, [telemetryConsentShown, onboardingShown]);
 
   return null;
 }
@@ -150,25 +145,21 @@ const App = () => {
   const { updateTelemetryConsentShown, settings: telemetrySettings } =
     useTelemetryStore();
 
-  // True once the boot splash has hidden and faded out.
-  const appReady = useAppReady();
-
   const [showTelemetryConsentModal, setShowTelemetryConsentModal] =
     useState(false);
 
-  // Check if we should show telemetry consent modal (only once, after rehydration).
-  // Gated on appReady rather than a fixed timer: the splash stays up until the
-  // main process finishes its deferred add-on init (and, on a first packaged
-  // launch, a ~700MB pack copy), which is far longer than any delay we could
-  // guess — the old 1s timer put this modal on top of the splash.
+  // Check if we should show telemetry consent modal (only once, after rehydration)
   useEffect(() => {
     if (telemetrySettings.telemetryConsentShown) {
       setShowTelemetryConsentModal(false);
       return;
     }
-    if (!appReady) return;
-    setShowTelemetryConsentModal(true);
-  }, [telemetrySettings.telemetryConsentShown, appReady]);
+    // Small delay to allow app to fully load
+    const timer = setTimeout(() => {
+      setShowTelemetryConsentModal(true);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [telemetrySettings.telemetryConsentShown]);
 
   // Handle telemetry consent modal close
   const handleTelemetryConsentClose = () => {
@@ -414,6 +405,7 @@ const App = () => {
           </Routes>
           <GlobalScanningModal />
           <GlobalAfdaMapperListener />
+          <GlobalPlaylistRedirectListener />
           <GlobalAddonDownloadToast />
         </Router>
         <Toaster />

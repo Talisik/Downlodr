@@ -39,7 +39,6 @@ export interface SkedulosaTableGroupProps {
   selectedDownloadId: string | null;
   onContextMenu: (e: React.MouseEvent, download: SearchableDownload) => void;
   onRowClick: (downloadId: string) => void;
-  onCheckboxChange: (downloadId: string) => void;
   onViewFile: (location?: string, downloadId?: string) => void;
   onViewDownload: (location?: string, downloadId?: string) => void;
   onViewFolder: (location?: string, filePath?: string) => void;
@@ -48,7 +47,11 @@ export interface SkedulosaTableGroupProps {
   onRedownloadTranscript: (downloadId: string) => void;
   onFormatSelect: (formatData: FormatSelectData) => void;
   onClosePluginSidebar: () => void;
-  onGroupCheckboxChange: (downloadIds: string[]) => void;
+  /**
+   * The group's checkbox was clicked. `shiftKey` asks the page to select the
+   * range from the last clicked row — this group counts as a single row.
+   */
+  onGroupCheckboxChange: (shiftKey?: boolean) => void;
   onViewEmbed: (download: SearchableDownload) => void;
   pendingCount?: number;
 }
@@ -93,11 +96,6 @@ const SkedulosaTableGroup = React.memo(
       [downloads, selectedSet, isAllSelected],
     );
 
-    const groupDownloadIds = useMemo(
-      () => downloads.map((d) => d.id),
-      [downloads],
-    );
-
     const checkboxRef = useCallback(
       (node: HTMLInputElement | null) => {
         if (node) node.indeterminate = isIndeterminate;
@@ -134,7 +132,18 @@ const SkedulosaTableGroup = React.memo(
 
     return (
       <tr
-        onClick={() => navigate(`/status/group/subscription/${subscriptionId}`)}
+        // Shift-click extends the selection instead of opening the subscription.
+        onClick={(e) => {
+          if (e.shiftKey) {
+            onGroupCheckboxChange(true);
+            return;
+          }
+          navigate(`/status/group/subscription/${subscriptionId}`);
+        }}
+        // Shift-click otherwise highlights the text between the two rows.
+        onMouseDown={(e) => {
+          if (e.shiftKey) e.preventDefault();
+        }}
         className="pl-4 border-b dark:border-darkModeTableBorder cursor-pointer"
       >
         <td className="w-8 p-2">
@@ -148,7 +157,7 @@ const SkedulosaTableGroup = React.memo(
             }}
             onClick={(e) => {
               e.stopPropagation();
-              onGroupCheckboxChange(groupDownloadIds);
+              onGroupCheckboxChange(e.shiftKey);
             }}
           />
         </td>
@@ -278,7 +287,11 @@ const SkedulosaTableGroup = React.memo(
               return <td key={column.id} style={{ width: column.width }} />;
             case 'eye':
               return (
-                <td key={column.id} style={{ width: column.width }} className="p-2 text-center">
+                <td
+                  key={column.id}
+                  style={{ width: column.width }}
+                  className="p-2 text-center"
+                >
                   <TooltipProvider delayDuration={300}>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -286,7 +299,10 @@ const SkedulosaTableGroup = React.memo(
                           className="flex justify-center cursor-default"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <LuEye size={14} className="text-gray-400 dark:text-gray-500" />
+                          <LuEye
+                            size={14}
+                            className="text-gray-400 dark:text-gray-500"
+                          />
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="left" className="p-2">
@@ -297,12 +313,20 @@ const SkedulosaTableGroup = React.memo(
                           </div>
                           <div className="flex gap-4 justify-between">
                             <span className="text-gray-400">Size</span>
-                            <span className="font-medium">{aggregatedSize ? formatFileSize(aggregatedSize) : '—'}</span>
+                            <span className="font-medium">
+                              {aggregatedSize
+                                ? formatFileSize(aggregatedSize)
+                                : '—'}
+                            </span>
                           </div>
                           {lastChecked && (
                             <div className="flex gap-4 justify-between">
-                              <span className="text-gray-400">Last checked</span>
-                              <span className="font-medium">{formatRelativeTime(lastChecked)}</span>
+                              <span className="text-gray-400">
+                                Last checked
+                              </span>
+                              <span className="font-medium">
+                                {formatRelativeTime(lastChecked)}
+                              </span>
                             </div>
                           )}
                           <div className="flex gap-4 justify-between">

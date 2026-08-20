@@ -73,6 +73,33 @@ export const usePluginStore = create<PluginStore>()(
     {
       name: 'download-plugin-storage', // Name of the storage
       storage: createJSONStorage(() => localStorage), // Use local storage for persistence
+      // isOpenPluginSidebar is session state, not a setting. The panel's content
+      // lives in PluginSidePanelManager's local `currentRequest`, which is always
+      // null on a fresh mount - so restoring the flag as `true` leaves an open
+      // panel with nothing to render: an empty panel area beside a StatusPage
+      // table stuck in its collapsed eye-column layout, with no way back (the
+      // manager only self-closes when `currentRequest` exists). A force-quit or
+      // reload while a plugin panel was open is enough to write that `true`.
+      //
+      // merge is the load-bearing half - it forces the flag off on the read path,
+      // which also heals installs that already have `true` on disk. partialize
+      // keeps it from being written again. Everything else still persists.
+      partialize: (state) => ({
+        ...state,
+        settingsPlugin: { ...state.settingsPlugin, isOpenPluginSidebar: false },
+      }),
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState ?? {}) as Partial<PluginStore>;
+        return {
+          ...currentState,
+          ...persisted,
+          settingsPlugin: {
+            ...currentState.settingsPlugin,
+            ...persisted.settingsPlugin,
+            isOpenPluginSidebar: false,
+          },
+        };
+      },
     },
   ),
 );

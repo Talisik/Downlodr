@@ -193,7 +193,16 @@
       "stopAll": "Stop All",
       "generateCaptions": "Generate Captions",
       "generateCaptionsDisabled": "Select finished videos without captions to generate transcripts",
-      "remove": "Remove"
+      "remove": "Remove",
+      "bulkTag": "Tag selected downloads",
+      "bulkCategory": "Categorize selected downloads"
+    },
+    "bulkMenu": {
+      "addNewTag": "Add new tag...",
+      "addNewCategory": "Add new category...",
+      "maxChars": "Max {{max}} characters",
+      "noTags": "No tags yet",
+      "noCategories": "No categories yet"
     },
     "toast": {
       "noDownloadsSelectedTitle": "No Downloads Selected",
@@ -237,10 +246,25 @@
       "batchCompleteTitle": "Batch Transcription Complete",
       "batchCompleteDesc": "{{successCount}} succeeded, {{failCount}} failed.",
       "selectOneTitle": "Select One Download",
-      "selectOneDesc": "Please select exactly one download to get the link"
+      "selectOneDesc": "Please select exactly one download to get the link",
+      "bulkNoTargetsDesc": "None of the selected items can be tagged or categorized",
+      "duplicateTagTitle": "Duplicate Tag",
+      "duplicateTagDesc": "Tag \"{{value}}\" already exists.",
+      "duplicateCategoryTitle": "Duplicate Category",
+      "duplicateCategoryDesc": "Category \"{{value}}\" already exists.",
+      "bulkTagAppliedTitle": "Tag Applied",
+      "bulkTagAppliedDesc": "Tag \"{{value}}\" added to {{count}} download(s).",
+      "bulkTagRemovedTitle": "Tag Removed",
+      "bulkTagRemovedDesc": "Tag \"{{value}}\" removed from {{count}} download(s).",
+      "bulkCategoryAppliedTitle": "Category Applied",
+      "bulkCategoryAppliedDesc": "Category \"{{value}}\" added to {{count}} download(s).",
+      "bulkCategoryRemovedTitle": "Category Removed",
+      "bulkCategoryRemovedDesc": "Category \"{{value}}\" removed from {{count}} download(s)."
     },
     "settingsButton": "Settings",
-    "deleteLabel": "Delete"
+    "deleteLabel": "Delete",
+    "tagLabel": "Tag",
+    "categoryLabel": "Category"
   },
   "removeModal": {
     "title": "Remove selected item",
@@ -562,7 +586,10 @@
       "captions": "Captions",
       "pictureInPicture": "Picture in Picture",
       "playbackSpeed": "Playback speed",
-      "normal": "Normal"
+      "normal": "Normal",
+      "volume": "Volume",
+      "mute": "Mute",
+      "unmute": "Unmute"
     },
     "transcript": {
       "title": "Transcriptions",

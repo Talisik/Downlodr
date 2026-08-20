@@ -10,6 +10,7 @@ lerna-debug.log*
 CLAUDE.md
 corrections.txt
 .claude/
+docs/
 
 # Maven
 target/
@@ -32,11 +33,6 @@ TEST*.xml
 # Exception for specific exe file
 !yt-dlp.exe
 
-# macOS/Linux yt-dlp binaries — not bundled by forge.config.ts and not used
-# by CI; ytdlpHandler downloads them into userData at runtime
-yt-dlp_macos
-yt-dlp_linux
-
 # Large media files
 *.mp4
 *.tiff
@@ -50,12 +46,14 @@ yt-dlp_linux
 # Package files
 *.jar
 src/skedulosa/backend/video-nemesis-toolkit/
-src/skedulosa/backend/video-nemesis-toolkit__hidden/
 src/skedulosa/backend/1/
 src/skedulosa/backend/examples/
 src/afda/backend/afda-backend/
-src/afda/backend/afda-backend__hidden/
-src/smart-organize/backend/smart-organize-backend__hidden/
+# Vendored backend clones (see package.json "downlodrDev"). Matched at any depth
+# so stale copies parked under dummy/, old/, etc. are ignored too.
+**/afda-backend__hidden/
+**/video-nemesis-toolkit__hidden/
+**/smart-organize-backend__hidden/
 src/assets/logo/old/
 
 # AFDA desktop UI
@@ -117,22 +115,6 @@ typings/
 .env
 .env.test
 
-# private dev packages — cloned locally, never committed
-src/afda/backend/dummy/afda-backend__hidden/
-src/afda/backend/afda-backend__hidden/
-src/skedulosa/backend/
-src/smart-organize/backend/
-
-# internal engineering notes — describe private backend internals
-BUILD_FIX_NOTES.md
-docs/video-nemesis-toolkit-cleanup-fix.md
-src/skedulosa/docs/
-updates-to-backend.md
-ytdlp-spawn-fixes.md
-
-# lint/tooling output — contains absolute local paths
-lint-output.txt
-
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 
@@ -179,3 +161,19 @@ src/auto-tag/.temp/
 /.worktrees/
 
 .superpowers/
+
+# whisper.cpp CLI runtime binaries (fetched via yarn binaries:setup, not in git)
+/whisper-cli/
+
+# Internal working notes — not for public distribution.
+# Untracked deliberately; the files still exist locally.
+lint-output.txt
+claude-merge-prompt.md
+code-review-findings.md
+BUILD_FIX_NOTES.md
+updates-to-backend.md
+ytdlp-spawn-fixes.md
+VAD_INTEGRATION.md
+
+# Public-release scrub guide — lists internal hostnames, must not ship publicly
+docs/public-release-scrub.md

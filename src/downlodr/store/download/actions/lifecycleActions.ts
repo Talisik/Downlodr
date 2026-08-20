@@ -18,7 +18,6 @@ function appendLog(existing: string | undefined, incoming: string): string {
     ? next.slice(next.length - MAX_STORE_LOG_BYTES)
     : next;
 }
-import { enqueueTier1, enqueueTier2 } from '@/auto-tag/queue/autoTagQueue';
 import { config } from '@/core-app/client/config';
 import { TelemetryService } from '@/core-app/telemetry/utils/telemetryService';
 import { subscriptionDownloadSync } from '@/skedulosa/services/subscriptionDownloadSync';
@@ -596,14 +595,6 @@ export function createLifecycleActions(set: SetState, get: GetState) {
                 ),
               };
             });
-
-            // Auto-tag: metadata is available now -> tier 1. If a transcript was
-            // already resolved at completion (getTranscript path above), also tier 2.
-            // The queue serializes this; merge appends tier 2 onto tier 1.
-            enqueueTier1(download.id);
-            if (transcriptLocation && transcriptLocation.trim() !== '') {
-              enqueueTier2(download.id);
-            }
 
             // Sync final video location and confirmed size to skedulosa subscription record.
             // The sync service maps are already cleaned up at this point so we write directly.

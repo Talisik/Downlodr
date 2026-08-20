@@ -54,7 +54,6 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 // Import from extracted modules
-import { enqueueBackfill } from '@/auto-tag/queue/autoTagQueue';
 import { transcriptActions } from '@/transcript/store/transcriptStore';
 import {
   createCrudActions,
@@ -109,7 +108,6 @@ interface DownloadStore extends DownloadStoreState {
   removeTag: (downloadId: string, tag: string) => void;
   toggleFavorite: (downloadId: string) => void;
   setFavorited: (downloadId: string, favorited: boolean) => void;
-  applyAutoTags: (results: import('@/auto-tag/types').TagResult[]) => void;
   addCategory: (downloadId: string, category: string) => void;
   removeCategory: (downloadId: string, category: string) => void;
   renameCategory: (oldName: string, newName: string) => void;
@@ -251,10 +249,6 @@ const useDownloadStore = create<DownloadStore>()(
                 ],
               };
             });
-
-            // Auto-tag: back-fill pre-existing downloads that are missing tags.
-            // Per-tier guard inside makes this a no-op for already-tagged items.
-            enqueueBackfill();
           }
         };
       },

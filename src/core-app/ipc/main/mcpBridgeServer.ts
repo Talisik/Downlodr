@@ -379,7 +379,13 @@ async function handleRequest(
     if (method === 'GET' && p === '/downloads/info') {
       const videoUrl = url.searchParams.get('url');
       if (!videoUrl) return json(res, 400, { error: 'url param required' });
-      const info = await YTDLP.getInfo(videoUrl, { cookiesFromBrowser: '' });
+      // noPlaylist: same reason as the ytdlp:info handler — /downloads/playlist
+      // is the container endpoint, so this one must stay a single-video lookup
+      // or --dump-json's per-entry output breaks getInfo's JSON.parse.
+      const info = await YTDLP.getInfo(videoUrl, {
+        cookiesFromBrowser: '',
+        noPlaylist: true,
+      });
       return json(res, 200, info);
     }
 

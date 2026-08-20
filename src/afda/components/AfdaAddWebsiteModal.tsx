@@ -1,4 +1,9 @@
 import BaseModal from '@/downlodr/components/modal/BaseModal';
+import {
+  getMissingAddonMessage,
+  isMissingHandlerError,
+  openAddonManager,
+} from '@/core-app/utils/missingAddonError';
 import { initialScrapeGuard } from '@/afda/hooks/initialScrapeGuard';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -332,7 +337,12 @@ const AfdaAddWebsiteModal = ({
   const [socialAccount, setSocialAccount] = useState<string>('');
 
   const setBridgeError = useCallback((message: string) => {
-    setErrorMsg(message);
+    if (isMissingHandlerError(message)) {
+      openAddonManager('afda');
+      setErrorMsg(getMissingAddonMessage('afda'));
+    } else {
+      setErrorMsg(message);
+    }
     setPhase('error');
   }, []);
 
@@ -401,7 +411,8 @@ const AfdaAddWebsiteModal = ({
     const bridge =
       typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
     if (!bridge) {
-      setErrorMsg('Article Fetcher is not available. Please restart Downlodr.');
+      openAddonManager('afda');
+      setErrorMsg(getMissingAddonMessage('afda'));
       setPhase('error');
       return;
     }
@@ -618,7 +629,8 @@ const AfdaAddWebsiteModal = ({
     const bridge =
       typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
     if (!bridge) {
-      setErrorMsg('Article Fetcher is not available. Please restart Downlodr.');
+      openAddonManager('afda');
+      setErrorMsg(getMissingAddonMessage('afda'));
       setPhase('error');
       return;
     }

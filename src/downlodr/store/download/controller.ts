@@ -7,6 +7,7 @@ import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 import i18n from '@/core-app/i18n';
 import { useSettingStore } from '@/core-app/store/settingsStore';
 import { formatFileSize } from '@/downlodr/pages/status/statusPageUtils';
+import { toDownloadUrl } from '@/downlodr/utils/download/toDownloadUrl';
 import { MetadataService } from '@/downlodr/utils/metadata/metadataService';
 import { subscriptionDownloadSync } from '@/skedulosa/services/subscriptionDownloadSync';
 import { Downloading, QueuedDownload, SpeedDataPoint } from './types';
@@ -282,7 +283,7 @@ export class DownloadController {
     // Start the actual download
     const downloadId = (window as any).ytdlp.download(
       {
-        url: download.videoUrl,
+        url: toDownloadUrl(download.videoUrl),
         outputFilepath: finalLocation,
         videoFormat: download.formatId,
         remuxVideo: download.ext,
@@ -516,7 +517,7 @@ export class DownloadController {
 
     (window as any).ytdlp.download(
       {
-        url: download.videoUrl,
+        url: toDownloadUrl(download.videoUrl),
         outputFilepath,
         videoFormat: download.formatId,
         remuxVideo: download.ext,

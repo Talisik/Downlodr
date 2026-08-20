@@ -90,26 +90,6 @@ declare global {
   interface Window {
     // ========== Actual IPC bridges (exposed by renderer handlers) ==========
 
-    /** Auto-tagging (tagBridge) — see src/auto-tag */
-    autoTagBridge: {
-      run: (
-        inputs: {
-          id: string;
-          title: string;
-          description?: string;
-          channel?: string;
-          category?: string;
-          artist?: string;
-          track?: string;
-          album?: string;
-          transcriptLocation?: string;
-        }[],
-      ) => Promise<
-        | { ok: true; results: { id: string; tags: string[]; tier: 1 | 2 }[] }
-        | { ok: false; message: string }
-      >;
-    };
-
     /** App window behavior & generic invoke (baseAppHandler) */
     appBehaviorBridge: {
       invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
@@ -310,6 +290,8 @@ declare global {
         modelPath: string;
         language?: string;
         format?: string;
+        /** Tags this job's progress events; see the main-process handler. */
+        jobId?: string;
       }) => Promise<{ success: boolean; outputFile: string; stdout: string; stderr: string }>;
       onFFmpegProgress: (callback: (progress: string) => void) => () => void;
     };
@@ -361,6 +343,8 @@ declare global {
         modelPath: string;
         language?: string;
         format?: string;
+        /** Tags this job's progress events; see the main-process handler. */
+        jobId?: string;
       }) => Promise<{ success: boolean; outputFile: string; stdout: string; stderr: string }>;
       onFFmpegProgress: (callback: (progress: string) => void) => () => void;
       selectVideoFile: () => Promise<string | null>;
@@ -481,16 +465,6 @@ declare global {
     // ─── Boot status bridge (splash screen only) ──────────────────────────
     bootStatusBridge: {
       onStatus: (cb: (message: string) => void) => () => void;
-      onProgress: (
-        cb: (progress: {
-          label: string;
-          copiedBytes: number;
-          totalBytes: number;
-          step: number;
-          totalSteps: number;
-        }) => void,
-      ) => () => void;
-      onProgressDone: (cb: () => void) => () => void;
     };
 
     // ─── Skedulosa (video-nemesis-toolkit) bridge ─────────────────────────

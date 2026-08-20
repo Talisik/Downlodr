@@ -15,6 +15,8 @@ interface OnboardingTourProps {
   demoAnalyzed?: boolean;
   demoCompleted?: boolean;
   enabled?: boolean;
+  /** Bump to restart the tour for the same feature (run latches off when a tour finishes). */
+  restartKey?: number;
   onStepChange?: (index: number) => void;
 }
 
@@ -24,7 +26,7 @@ const isRequiresInteraction = (s: unknown) =>
 const isRequiresAnalyzed = (s: unknown) =>
   (s as { data?: { requiresAnalyzed?: boolean } }).data?.requiresAnalyzed === true;
 
-const OnboardingTour: React.FC<OnboardingTourProps> = ({ active, demoStarted, demoAnalyzed = false, demoCompleted = false, enabled = true, onStepChange }) => {
+const OnboardingTour: React.FC<OnboardingTourProps> = ({ active, demoStarted, demoAnalyzed = false, demoCompleted = false, enabled = true, restartKey = 0, onStepChange }) => {
   const steps = TOUR_STEPS[active] ?? [];
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
@@ -46,12 +48,13 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ active, demoStarted, de
   // Find requiresAnalyzed step index (URL paste step)
   const analyzedIdx = useMemo(() => steps.findIndex(isRequiresAnalyzed), [steps]);
 
-  // Reset and start tour when the active feature changes
+  // Reset and start tour when the active feature changes, or when the tour is
+  // re-requested for the feature that's already active (restartKey bump)
   useEffect(() => {
     const featureSteps = TOUR_STEPS[active] ?? [];
     setStepIndex(0);
     setRun(featureSteps.length > 0 && enabled);
-  }, [active, enabled]);
+  }, [active, enabled, restartKey]);
 
   // Auto-advance past the 1st requiresInteraction step when the demo starts
   useEffect(() => {
@@ -75,6 +78,13 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ active, demoStarted, de
     const { action, index, status, type } = data;
 
     if (([STATUS.FINISHED, STATUS.SKIPPED] as string[]).includes(status)) {
+      setRun(false);
+      return;
+    }
+
+    // The tooltip's × emits STEP_AFTER with ACTIONS.CLOSE — without this it
+    // falls through below and advances the tour instead of closing it
+    if (action === ACTIONS.CLOSE) {
       setRun(false);
       return;
     }

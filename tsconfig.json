@@ -13,6 +13,14 @@
     "resolveJsonModule": true,
     "jsx": "react-jsx",
     "paths": {
+      // The backend add-ons are gitignored clones that dev-packages.mjs checks
+      // out into "<name>__hidden" (see package.json "downlodrDev"). App code
+      // imports them without the suffix, so map it here. Type resolution only —
+      // the renderer bundle uses vite.renderer.config.ts's alias, and the
+      // packaged app loads these backends from the add-on folder at runtime.
+      "@/afda/backend/afda-backend/*": [
+        "./src/afda/backend/afda-backend__hidden/*"
+      ],
       "@/*": ["./src/*"]
     }
   },
@@ -22,6 +30,15 @@
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    // Vendored backend clones — third-party code we don't own. Their own test
+    // and verify files are not part of this app's typecheck. Matched at any
+    // depth so stale duplicates (e.g. dummy/, old/) are covered too.
+    "src/**/afda-backend__hidden",
+    "src/**/video-nemesis-toolkit__hidden",
+    // No test runner is wired up in package.json yet; these don't typecheck
+    // against any installed test globals.
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
   ]
 }

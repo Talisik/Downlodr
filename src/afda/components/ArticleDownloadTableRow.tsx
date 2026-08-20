@@ -69,7 +69,8 @@ interface ArticleDownloadTableRowProps {
   isChecked: boolean;
   isSelectedDownload: boolean;
   index: number;
-  onCheckboxChange: () => void;
+  /** `shiftKey` asks the page to select the range from the last clicked row. */
+  onCheckboxChange: (shiftKey?: boolean) => void;
   onRowClick: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
   isGrouped?: boolean;
@@ -100,9 +101,9 @@ export const ArticleDownloadTableRow: React.FC<
   );
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const handleRowClick = () => {
+  const handleRowClick = (e: React.MouseEvent) => {
     onRowClick();
-    onCheckboxChange();
+    onCheckboxChange(e.shiftKey);
   };
 
   const handleFormatChange = useCallback(
@@ -255,6 +256,10 @@ export const ArticleDownloadTableRow: React.FC<
           : 'dark:bg-darkModeTable'
       }`}
       onClick={handleRowClick}
+      // Shift-click otherwise highlights the text between the two rows.
+      onMouseDown={(e) => {
+        if (e.shiftKey) e.preventDefault();
+      }}
       onContextMenu={onContextMenu}
       data-download-id={download.id}
     >
@@ -263,9 +268,12 @@ export const ArticleDownloadTableRow: React.FC<
           type="checkbox"
           className="ml-2 mt-1 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
           checked={isChecked}
-          onChange={(e) => {
+          onChange={() => {
+            /* handled via onClick, which carries the shift modifier */
+          }}
+          onClick={(e) => {
             e.stopPropagation();
-            onCheckboxChange();
+            onCheckboxChange(e.shiftKey);
           }}
         />
       </td>
@@ -525,6 +533,32 @@ export const ArticleDownloadTableRow: React.FC<
                     </TooltipTrigger>
                     <TooltipContent side="left" className="p-2">
                       <div className="space-y-1 text-xs">
+                        {hiddenColumnIds.includes('status') && (
+                          <div className="flex gap-4 justify-between">
+                            <span className="text-gray-400">Status</span>
+                            <span className="font-medium capitalize">
+                              {download.status.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                        )}
+                        {hiddenColumnIds.includes('format') && (
+                          <div className="flex gap-4 justify-between">
+                            <span className="text-gray-400">Format</span>
+                            <span className="font-medium uppercase">
+                              {download.format ?? 'docx'}
+                            </span>
+                          </div>
+                        )}
+                        {hiddenColumnIds.includes('uploadedOn') && (
+                          <div className="flex gap-4 justify-between">
+                            <span className="text-gray-400">Uploaded</span>
+                            <span className="font-medium">
+                              {download.uploadDate
+                                ? formatRelativeTime(download.uploadDate)
+                                : '—'}
+                            </span>
+                          </div>
+                        )}
                         {hiddenColumnIds.includes('dateAdded') && (
                           <div className="flex gap-4 justify-between">
                             <span className="text-gray-400">Added</span>
@@ -538,7 +572,7 @@ export const ArticleDownloadTableRow: React.FC<
                             <div className="flex gap-4 justify-between">
                               <span className="text-gray-400">Source</span>
                               <span className="font-medium truncate max-w-[120px]">
-                                {download.extractorKey ?? '—'}
+                                {siteName ?? download.extractorKey ?? '—'}
                               </span>
                             </div>
                           )}

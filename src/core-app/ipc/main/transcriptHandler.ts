@@ -20,12 +20,11 @@ import { getBundledBinaryPath } from './appInfoHandler';
  * explicit pre-conversion pass (matches the whisper.cpp CLI workflow, which
  * always runs `ffmpeg -ar 16000 -ac 1 -c:a pcm_s16le` before transcribing).
  */
-function resampleTo16kMono(ffmpegPath: string, inputFile: string): string {
-  const tempFilePath = path.join(
-    os.tmpdir(),
-    `downlodr-whisper-${Date.now()}-${Math.random().toString(36).slice(2)}.wav`,
-  );
-
+function resampleTo16kMono(
+  ffmpegPath: string,
+  inputFile: string,
+  outputPath: string,
+): string {
   execFileSync(ffmpegPath, [
     '-y',
     '-i',
@@ -36,11 +35,143 @@ function resampleTo16kMono(ffmpegPath: string, inputFile: string): string {
     '1',
     '-c:a',
     'pcm_s16le',
-    tempFilePath,
+    outputPath,
   ]);
 
-  return tempFilePath;
+  return outputPath;
 }
+
+/**
+ * Fixed, filter-safe basenames used inside the whisper working directory.
+ *
+ * FFmpeg unescapes a filtergraph twice (once parsing the graph, once parsing
+ * each filter's arguments), and no quoting form survives both passes for a
+ * path containing an apostrophe — a very common character in video titles.
+ * The old code wrapped paths in single quotes and escaped only the drive
+ * colon, so `Don't Stop.srt` reached the filter as `Dont Stop.srt`: it either
+ * wrote the transcript to the wrong path (exit 0, silent data loss) or, when
+ * the apostrophe was in a *folder* name, failed to open the destination and
+ * exited -2 — which the error handler below then misreported as a bad model
+ * path.
+ *
+ * Rather than escape user text, we keep it out of the filtergraph entirely:
+ * ffmpeg runs with cwd set to a private working directory and every path in
+ * the filter is one of these generated basenames.
+ */
+const WHISPER_WORK_INPUT = 'in.wav';
+const WHISPER_WORK_MODEL = 'model.bin';
+const WHISPER_WORK_VAD = 'vad.bin';
+
+/** Silero VAD weights, fetched into the repo root by scripts/binaries.mjs. */
+const VAD_MODEL_NAME = 'ggml-silero-v5.1.2.bin';
+
+/**
+ * OFF pending investigation — do not enable without re-running the comparison
+ * below.
+ *
+ * VAD is meant to make the filter cut on detected silence instead of on the
+ * clock, which would stop windows splitting mid-sentence. Measured on 120s of
+ * Mandarin drama audio (ggml-small, queue=30) it instead truncated the
+ * transcript: 44 cues / 329 chars covering the full two minutes without VAD,
+ * against 7 cues / 49 chars stopping dead at 00:00:15 with it. ffmpeg read the
+ * whole file and exited 0 either way, so this is silent data loss, and the
+ * apparent 16% speedup was only the cost of the ~87% of the audio it skipped.
+ * The VAD run also emitted overlapping cues (7.87->13.37 alongside
+ * 9.69->10.69), which is malformed SRT irrespective of coverage.
+ *
+ * Suspected cause is af_whisper.c transcribing nothing when VAD reports no
+ * segments and letting the buffer keep filling — plausible on dialogue mixed
+ * under music, which this clip is. Unconfirmed. vad_threshold (default 0.5)
+ * and its interaction with queue are the next things to rule out.
+ */
+const VAD_ENABLED = false;
+
+/**
+ * Creates the private working directory. Its own path may contain anything
+ * (the user's Windows account name can hold an apostrophe too) — that is fine,
+ * because it is passed via `cwd`, never through the filtergraph.
+ */
+function createWhisperWorkDir(): string {
+  const workDir = path.join(
+    os.tmpdir(),
+    `downlodr-whisper-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+  fs.mkdirSync(workDir, { recursive: true });
+  return workDir;
+}
+
+/**
+ * Places the model inside workDir under WHISPER_WORK_MODEL. Hardlinks first —
+ * the model is ~490MB and a hardlink costs nothing — falling back to a copy
+ * only when the model and the temp dir sit on different volumes.
+ */
+function linkModelInto(workDir: string, modelPath: string): void {
+  const target = path.join(workDir, WHISPER_WORK_MODEL);
+  try {
+    fs.linkSync(modelPath, target);
+  } catch {
+    fs.copyFileSync(modelPath, target);
+  }
+}
+
+/**
+ * Locates the Silero VAD weights, or null when they are not installed.
+ *
+ * VAD is an enhancement, not a requirement: a missing file degrades to
+ * fixed-window slicing rather than failing the job, so an install that
+ * predates `yarn binaries:setup` fetching it still transcribes.
+ */
+function findVadModel(): string | null {
+  if (!VAD_ENABLED) return null;
+
+  const bundled = getBundledBinaryPath(VAD_MODEL_NAME);
+  if (bundled && existsSync(bundled)) return bundled;
+
+  const cwdPath = path.join(process.cwd(), VAD_MODEL_NAME);
+  return existsSync(cwdPath) ? cwdPath : null;
+}
+
+/**
+ * Window size handed to the whisper filter.
+ *
+ * The filter fills a `queue`-second buffer, transcribes it, discards it and
+ * refills — the windows do not overlap and no decoder context carries across
+ * them, so any word straddling a boundary is split and each half is decoded
+ * blind. Whisper also pads every window to a 30s mel spectrogram regardless of
+ * how much audio it holds, so a small window costs the same inference as a
+ * large one and simply spends the difference decoding silence, which is the
+ * regime where it hallucinates and emits `[Music]`.
+ *
+ * This was a hardcoded 30 until c20f8e4 replaced it with
+ * `max(3, min(30, duration/4000))`, scaling the window down to as little as 3s
+ * so that a short-form clip got several windows instead of being collapsed
+ * into a single `[Music]` cue by a window longer than the clip itself. That
+ * fixed the symptom by making every window worse: up to 10x the inferences,
+ * each mostly padding, and the language auto-detect (which runs once, on the
+ * first window) left guessing from 3 seconds of intro. Note it only ever
+ * shrank below 30 for clips under two minutes.
+ *
+ * 30 is whisper's own native window, so it is the one value that wastes no
+ * padding at all. Measured against the old scaling on Mandarin drama audio:
+ *
+ *   30s clip   q=7  49.5s   vs  q=30  19.2s  — better text as well as faster
+ *                                              (caught a line q=7 missed, and
+ *                                               got 酒瓶子 where q=7 had 九瓶子)
+ *   60s clip   q=15 48.5s   vs  q=30  37.3s  — equivalent text
+ *   10s clip   q=3  46.5s   vs  q=30  12.1s  — WORSE text: q=30 lost the line
+ *                                              "好 上来 小林子" entirely
+ *
+ * So this is a deliberate trade, not a free win: clips under roughly fifteen
+ * seconds transcribe worse than they did before, and everything above that
+ * transcribes better and 1.3-2.6x faster. It is the right default because
+ * typical downloads are minutes long, but short-form is a real regression.
+ *
+ * VAD was meant to remove the trade by cutting on detected silence instead of
+ * on the clock. It does not work — see VAD_ENABLED above — so the short-clip
+ * case is currently unprotected. Restoring a floor here (never below ~10s)
+ * would recover it; that is unmeasured.
+ */
+const WHISPER_QUEUE_SECONDS = 30;
 
 export const transcriptHandler = (mainWindow: BrowserWindow) => {
   /**
@@ -488,10 +619,19 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
     });
   }
 
+  /**
+   * ffprobe.exe *is* bundled (see forge.config.ts extraResource). Resolving it
+   * matters: these probes previously invoked a bare `ffprobe` from PATH, which
+   * most users do not have, so getDurationMs always threw and the caller fell
+   * back to a zero duration — which in turn pinned the whisper window to its
+   * shortest setting for every video.
+   */
+  function ffprobePath(): string {
+    return getBundledBinaryPath('ffprobe.exe') ?? 'ffprobe';
+  }
+
   function getDurationMs(filePath: string): number {
-    // Note: ffprobe.exe is not bundled, using system PATH
-    // If you need bundled ffprobe, add './ffprobe.exe' to extraResource in forge.config.ts
-    const output = execFileSync('ffprobe', [
+    const output = execFileSync(ffprobePath(), [
       '-v',
       'error',
       '-show_entries',
@@ -510,7 +650,7 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
    * up front so we can surface a clear message instead.
    */
   function hasAudioStream(filePath: string): boolean {
-    const output = execFileSync('ffprobe', [
+    const output = execFileSync(ffprobePath(), [
       '-v',
       'error',
       '-select_streams',
@@ -535,6 +675,15 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
         modelPath: string;
         language?: string;
         format?: string;
+        /**
+         * Correlates progress events with the caller that started them.
+         * 'ffmpeg:progress' is one channel shared by every concurrent
+         * transcription (transcriptQueue runs two at a time, and the UI
+         * buttons start jobs outside the queue entirely), so without this
+         * every listener saw every job's events: a new job's first progress
+         * event reset an already-running job's bar from its real value to 0.
+         */
+        jobId?: string;
       },
     ) => {
       return (async () => {
@@ -554,44 +703,58 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
             totalDurationMs = 0;
           }
 
-          // Send total duration to renderer once at the start
-          if (totalDurationMs > 0) {
+          // Every emission on this shared channel is stamped with jobId so
+          // listeners can discard other transcriptions' events.
+          const jobId = options.jobId;
+          const sendProgress = (payload: Record<string, unknown>): void => {
             event.sender.send(
               'ffmpeg:progress',
-              JSON.stringify({
-                type: 'duration',
-                totalDurationMs,
-              }),
+              JSON.stringify({ ...payload, jobId }),
             );
+          };
+
+          // Send total duration to renderer once at the start
+          if (totalDurationMs > 0) {
+            sendProgress({ type: 'duration', totalDurationMs });
           }
 
           // Function to parse progress from FFmpeg output
           function parseLine(line: string): void {
             const match = line.match(/run transcription at (\d+) ms/);
-            if (match && totalDurationMs > 0) {
+            if (!match) return;
+
+            if (totalDurationMs > 0) {
               const currentMs = parseInt(match[1], 10);
               let percent = (currentMs / totalDurationMs) * 100;
               if (percent > 100) percent = 100;
               process.stdout.write(`\rProgress: ${percent.toFixed(2)}%`);
 
-              // Send structured progress data to renderer
-              event.sender.send(
-                'ffmpeg:progress',
-                JSON.stringify({
-                  type: 'progress',
-                  currentMs,
-                  totalDurationMs,
-                  percent: percent.toFixed(2),
-                  raw: line.trim(),
-                }),
-              );
-            } else if (match) {
-              // If we don't have total duration, just send the raw line
-              event.sender.send('ffmpeg:progress', line);
+              sendProgress({
+                type: 'progress',
+                currentMs,
+                totalDurationMs,
+                percent: percent.toFixed(2),
+                raw: line.trim(),
+              });
+            } else {
+              // Duration unknown, so there is no percentage to report — but
+              // this still has to be a tagged payload, not a bare string, or
+              // it lands in every other job's listener uncorrelated.
+              sendProgress({ type: 'raw', raw: line.trim() });
             }
           }
 
-          let resampledInputPath: string | undefined;
+          let workDir: string | undefined;
+
+          /** Removes the working directory (resampled audio, linked model, transcript). */
+          const cleanupWorkDir = (): void => {
+            if (!workDir) return;
+            try {
+              fs.rmSync(workDir, { recursive: true, force: true });
+            } catch {
+              /* best-effort cleanup of temp working directory */
+            }
+          };
 
           try {
             if (!existsSync(options.inputFile)) {
@@ -751,41 +914,47 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
               return;
             }
 
-            // Build the filter - use absolute paths
             const language = options.language || 'auto';
             const format = options.format || 'srt';
+            const workOutputName = `out.${format}`;
 
-            // Normalize paths for FFmpeg filter syntax on Windows
-            // Convert backslashes to forward slashes
-            let normalizedModelPath = modelPath.replace(/\\/g, '/');
-            let normalizedOutputPath = outputFilePath.replace(/\\/g, '/');
-
-            // Escape the colon in drive letters (C: becomes C\:)
-            // Then wrap in single quotes for FFmpeg filter syntax
-            normalizedModelPath = normalizedModelPath.replace(
-              /^([A-Za-z]):/,
-              '$1\\:',
-            );
-            normalizedOutputPath = normalizedOutputPath.replace(
-              /^([A-Za-z]):/,
-              '$1\\:',
-            );
-
-            // Build filter complex - use single quotes with escaped colon, forward slashes
-            const filterComplex = `[0:a]whisper=model='${normalizedModelPath}':language=${language}:queue=30:destination='${normalizedOutputPath}':format=${format}`;
+            // Stage the model and the resampled audio in a private working
+            // directory under generated basenames, so the filtergraph below
+            // contains no user-controlled text at all. See WHISPER_WORK_INPUT.
+            workDir = createWhisperWorkDir();
+            linkModelInto(workDir, modelPath);
 
             // Resample to 16kHz mono PCM before transcribing, matching the
             // known-good whisper.cpp CLI workflow rather than relying on the
             // whisper filter's implicit internal conversion.
-            resampledInputPath = resampleTo16kMono(
+            resampleTo16kMono(
               ffmpegPath,
               options.inputFile,
+              path.join(workDir, WHISPER_WORK_INPUT),
             );
+
+            // Stage the VAD weights alongside the model when they are present,
+            // under a generated basename for the same filtergraph-escaping
+            // reason. 864KB, so a plain copy is cheap enough.
+            const vadModelPath = findVadModel();
+            if (vadModelPath) {
+              fs.copyFileSync(
+                vadModelPath,
+                path.join(workDir, WHISPER_WORK_VAD),
+              );
+            }
+
+            // Every path here is a bare generated basename, resolved against
+            // the process cwd set on spawn() below.
+            const vadArgs = vadModelPath
+              ? `:vad_model='${WHISPER_WORK_VAD}'`
+              : '';
+            const filterComplex = `[0:a]whisper=model='${WHISPER_WORK_MODEL}':language=${language}:queue=${WHISPER_QUEUE_SECONDS}${vadArgs}:destination='${workOutputName}':format=${format}`;
 
             // Build FFmpeg arguments
             const args = [
               '-i',
-              resampledInputPath,
+              WHISPER_WORK_INPUT,
               '-filter_complex',
               filterComplex,
               '-f',
@@ -793,9 +962,11 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
               '-',
             ];
 
-            // Spawn the FFmpeg process
+            // cwd is what resolves the bare basenames in `args` and in the
+            // filtergraph, keeping user-controlled paths out of both.
             const ffmpegProcess = spawn(ffmpegPath, args, {
               stdio: ['pipe', 'pipe', 'pipe'],
+              cwd: workDir,
             });
 
             let stdout = '';
@@ -827,85 +998,86 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
 
             // Handle process completion
             ffmpegProcess.on('close', (code) => {
-              if (resampledInputPath && existsSync(resampledInputPath)) {
-                fs.unlink(resampledInputPath, () => {
-                  /* best-effort cleanup of temp resampled audio */
-                });
-              }
-              if (code === 0) {
-                // FFmpeg's whisper filter writes plain UTF-8 with no BOM, which
-                // causes editors/viewers that don't auto-detect UTF-8 (e.g.
-                // Notepad) to misread non-ASCII transcripts as mojibake. Prepend
-                // a BOM so those tools recognize the encoding; readCaptionFile
-                // strips it back off before parsing.
+              const producedPath = workDir
+                ? path.join(workDir, workOutputName)
+                : '';
+
+              if (code === 0 && producedPath && existsSync(producedPath)) {
                 try {
+                  // FFmpeg writes plain UTF-8 with no BOM, which causes
+                  // editors/viewers that don't auto-detect UTF-8 (e.g.
+                  // Notepad) to misread non-ASCII transcripts as mojibake.
+                  // Prepend a BOM so those tools recognize the encoding;
+                  // readCaptionFile strips it back off before parsing.
                   const UTF8_BOM = '\uFEFF';
-                  const contents = fs.readFileSync(outputFilePath, 'utf-8');
-                  if (!contents.startsWith(UTF8_BOM)) {
-                    fs.writeFileSync(
-                      outputFilePath,
-                      UTF8_BOM + contents,
-                      'utf-8',
-                    );
-                  }
-                } catch (bomError) {
-                  console.error(
-                    'Failed to add UTF-8 BOM to transcript file:',
-                    bomError,
+                  const contents = fs.readFileSync(producedPath, 'utf-8');
+                  const withBom = contents.startsWith(UTF8_BOM)
+                    ? contents
+                    : UTF8_BOM + contents;
+
+                  // Write to the real destination, which may contain any
+                  // characters \u2014 unlike the filtergraph, this path is ours.
+                  fs.mkdirSync(path.dirname(outputFilePath), {
+                    recursive: true,
+                  });
+                  fs.writeFileSync(outputFilePath, withBom, 'utf-8');
+                } catch (writeError) {
+                  cleanupWorkDir();
+                  reject(
+                    new Error(
+                      `Transcription succeeded but the transcript could not be written to ${outputFilePath}: ${
+                        writeError instanceof Error
+                          ? writeError.message
+                          : String(writeError)
+                      }`,
+                    ),
                   );
+                  return;
                 }
+
+                cleanupWorkDir();
                 resolve({
                   success: true,
                   outputFile: outputFilePath,
                   stdout,
                   stderr,
                 });
-              } else {
-                // Extract more detailed error information from stderr
-                let errorDetails = stderr;
-
-                // Look for specific error patterns
-                if (stderr.includes('No such filter')) {
-                  errorDetails =
-                    'Whisper filter not found in FFmpeg build. Please install FFmpeg 8.0+ with Whisper support.';
-                } else if (
-                  stderr.includes('No such file') ||
-                  stderr.includes('not found')
-                ) {
-                  errorDetails = `File not found. Check model path: ${modelPath}`;
-                } else if (stderr.includes('Invalid argument')) {
-                  errorDetails = `Invalid argument. Check paths:\nModel: ${modelPath}\nOutput: ${outputFilePath}\n\nFFmpeg error: ${stderr.substring(
-                    0,
-                    500,
-                  )}`;
-                } else if (stderr.includes('Permission denied')) {
-                  errorDetails = `Permission denied. Check write permissions for output: ${outputFilePath}`;
-                }
-                reject(
-                  new Error(
-                    `FFmpeg process exited with code ${code}.\n${errorDetails}`,
-                  ),
-                );
+                return;
               }
+
+              // Exiting 0 without producing a file means the filter silently
+              // wrote nowhere \u2014 treat it as the failure it is rather than
+              // reporting success for a transcript that does not exist.
+              const tail = stderr.trim().split('\n').slice(-12).join('\n');
+              let errorDetails: string;
+              if (stderr.includes('No such filter')) {
+                errorDetails =
+                  'Whisper filter not found in FFmpeg build. Please install FFmpeg 8.0+ with Whisper support.';
+              } else if (code === 0) {
+                errorDetails = `FFmpeg reported success but wrote no transcript.\n\nFFmpeg output:\n${tail}`;
+              } else {
+                // Always surface the real stderr; guessing a cause from a
+                // substring match previously reported a bad destination as a
+                // missing model and sent debugging in the wrong direction.
+                errorDetails = `FFmpeg output:\n${tail}`;
+              }
+              cleanupWorkDir();
+              reject(
+                new Error(
+                  `FFmpeg process exited with code ${code}.\n${errorDetails}`,
+                ),
+              );
             });
 
             // Handle process errors
             ffmpegProcess.on('error', (error) => {
-              if (resampledInputPath && existsSync(resampledInputPath)) {
-                fs.unlink(resampledInputPath, () => {
-                  /* best-effort cleanup of temp resampled audio */
-                });
-              }
+              cleanupWorkDir();
               reject(
                 new Error(`Failed to start FFmpeg process: ${error.message}`),
               );
             });
           } catch (error) {
-            if (resampledInputPath && existsSync(resampledInputPath)) {
-              fs.unlink(resampledInputPath, () => {
-                /* best-effort cleanup of temp resampled audio */
-              });
-            }
+            cleanupWorkDir();
             const errorMessage =
               error instanceof Error ? error.message : String(error);
             reject(new Error(`FFmpeg execution failed: ${errorMessage}`));

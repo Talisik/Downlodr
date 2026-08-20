@@ -7,10 +7,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { initComposedWindowApi } from './core-app/ipc/composeWindowApi';
-import {
-  APP_READY_EVENT,
-  type AppReadyWindow,
-} from './core-app/hooks/useAppReady';
 import App from './App';
 import './index.css';
 import '@/core-app/i18n';
@@ -49,14 +45,6 @@ const hideSplashOnce = (reason: string) => {
   unsubReady?.();
   console.log(`[boot] hiding splash (${reason})`);
   requestAnimationFrame(hideSplash);
-
-  // Boot-time modals (telemetry consent, onboarding tour picker) must not
-  // appear while the splash still covers the app. This is the single place
-  // that knows boot is over — including the failsafe and no-bridge paths
-  // above — so it broadcasts rather than letting React re-derive readiness
-  // and risk the two disagreeing. See useAppReady().
-  (window as AppReadyWindow).__appReady = true;
-  window.dispatchEvent(new Event(APP_READY_EVENT));
 };
 
 unsubReady = window.addonBridge?.on?.servicesReady?.(() =>

@@ -74,7 +74,7 @@ export function socialSourceToWebsite(row: SocialSourceRow): WebsiteListItem {
       lastLoginAt: null,
       lastValidatedAt: null,
       validateUrl: null,
-      replayMode: 'off',
+      replayMode: 'disabled',
       hasRecording: false,
       recordingStepCount: null,
       recordingRecordedAt: null,

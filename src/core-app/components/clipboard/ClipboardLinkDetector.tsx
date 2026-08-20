@@ -17,10 +17,7 @@ const ClipboardLinkDetector: React.FC = () => {
   const { toast } = useToast();
   const { setDownload } = useDownloadStore();
   const { settings, isDownloadModalOpen } = useSettingStore();
-  // Read live from the store — a useState snapshot freezes the empty initial
-  // value on a fresh install, since defaultLocation is populated by an async
-  // IPC after rehydration completes.
-  const downloadFolder = settings.defaultLocation;
+  const [downloadFolder] = useState<string>(settings.defaultLocation);
   const maxDownload =
     settings.defaultDownloadSpeed === 0
       ? ''
@@ -128,18 +125,13 @@ const ClipboardLinkDetector: React.FC = () => {
     ],
   );
 
-  // The IPC listener below is registered once (ipcRenderer.on) and the effect
-  // that registers it only re-runs on enableClipboardMonitoring, so it would
-  // otherwise keep calling the mount-time closure with stale settings.
-  const processClipboardRef = useRef(processClipboard);
-  useEffect(() => {
-    processClipboardRef.current = processClipboard;
-  }, [processClipboard]);
-
   // Handle clipboard changes from main process polling (primary method)
-  const handleClipboardChange = useCallback((clipboardText: string) => {
-    processClipboardRef.current(clipboardText, 'polling');
-  }, []);
+  const handleClipboardChange = useCallback(
+    (clipboardText: string) => {
+      processClipboard(clipboardText, 'polling');
+    },
+    [processClipboard],
+  );
 
   // Handle copy events (backup method for immediate detection when app has focus)
   const handleCopyEvent = useCallback(async () => {

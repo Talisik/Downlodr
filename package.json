@@ -1,26 +1,50 @@
 {
   "name": "downlodr",
   "productName": "Downlodr",
-  "version": "1.17.5",
+  "version": "1.17.8-exp",
   "description": "Downlodr is a powerful, user-friendly video downloading solution that supports over 1,800 platforms",
   "main": ".vite/build/main.js",
   "downlodrAddons": {
     "afda-backend": "1.2.0",
     "video-nemesis-toolkit": "1.0.3"
   },
+  "downlodrBinaries": {
+    "ffmpeg": {
+      "url": "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-9.0.1-full_build.7z",
+      "sha256": "4b9c814cb07a1f90d05b768ef4eb2abbf89af94bbb924df5b7dbd6e64e1e2b96",
+      "archive": true,
+      "files": [
+        "ffmpeg.exe",
+        "ffprobe.exe"
+      ],
+      "minVersion": "8.0.1"
+    },
+    "whisper-model": {
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
+      "sha256": "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b",
+      "files": [
+        "ggml-small.bin"
+      ]
+    },
+    "whisper-vad": {
+      "url": "https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin",
+      "sha256": "29940d98d42b91fbd05ce489f3ecf7c72f0a42f027e4875919a28fb4c04ea2cf",
+      "files": [
+        "ggml-silero-v5.1.2.bin"
+      ]
+    }
+  },
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx .",
-    "headless": "ts-node --transpile-only -r tsconfig-paths/register src/headless/index.ts"
+    "lint": "eslint --ext .ts,.tsx ."
   },
   "devDependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@electron-forge/cli": "7.6.0",
-    "@electron-forge/maker-appx": "^7.6.0",
     "@electron-forge/maker-deb": "7.6.0",
     "@electron-forge/maker-pkg": "7.6.0",
     "@electron-forge/maker-rpm": "7.6.0",
@@ -41,10 +65,12 @@
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tanstack/react-query": "^4.36.1",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.79",
     "@types/react-dom": "^18.2.25",
+    "@types/ws": "^8.18.1",
     "@types/yauzl": "^2.10.3",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "@typescript-eslint/parser": "^5.0.0",
@@ -70,6 +96,7 @@
     "lucide-react": "^0.471.1",
     "natural": "^8.1.1",
     "p-limit": "^7.2.0",
+    "patch-package": "^8.0.1",
     "playwright": "^1.59.1",
     "postcss": "^8.5.0",
     "prettier": "3.0.0",
