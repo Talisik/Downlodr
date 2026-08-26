@@ -64,7 +64,7 @@ export function ModeToggle() {
       {mounted && (
         <div
           ref={animRef}
-          className="fixed right-[inherit] w-[85px] rounded-md bg-white dark:bg-darkModeCompliment shadow-lg ring-1 ring-black ring-opacity-5 z-[100]"
+          className="absolute right-0 top-full mt-1 w-[85px] rounded-md bg-white dark:bg-darkModeCompliment shadow-lg ring-1 ring-black ring-opacity-5 z-[100]"
         >
           <div className="py-1 gap-1" role="menu">
             <button
