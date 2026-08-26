@@ -1,5 +1,5 @@
 diff --git a/node_modules/yt-dlp-helper/dist/index.cjs b/node_modules/yt-dlp-helper/dist/index.cjs
-index 9b9a4d7..b1d828c 100644
+index 9b9a4d7..745a824 100644
 --- a/node_modules/yt-dlp-helper/dist/index.cjs
 +++ b/node_modules/yt-dlp-helper/dist/index.cjs
 @@ -615,6 +615,9 @@ function getDefaultMetadataOptionsForUrl(url) {
@@ -63,8 +63,52 @@ index 9b9a4d7..b1d828c 100644
  function manualDownloadLatestYTDLP() {
    return __async(this, arguments, function* ({
      filePath,
+@@ -1028,24 +1059,10 @@ function getPlaylistInfo(_0) {
+       return {
+         ok: false
+       };
+-    let value = {
+-      ok: false
+-    };
++    let output = "";
+     try {
+       for (var iter = __forAwait(terminal.listen()), more, temp, error; more = !(temp = yield iter.next()).done; more = false) {
+-        const text = temp.value;
+-        try {
+-          const data = JSON.parse(text);
+-          if (!data) {
+-            continue;
+-          }
+-          value = {
+-            ok: true,
+-            data
+-          };
+-          break;
+-        } catch (e) {
+-        }
++        output += temp.value;
+       }
+     } catch (temp) {
+       error = [temp];
+@@ -1058,7 +1075,15 @@ function getPlaylistInfo(_0) {
+       }
+     }
+     terminal.kill();
+-    return value;
++    try {
++      const data = JSON.parse(output || "");
++      if (!data) {
++        return { ok: false };
++      }
++      return { ok: true, data };
++    } catch (e) {
++      return { ok: false };
++    }
+   });
+ }
+ function downloadValueSelector(text) {
 diff --git a/node_modules/yt-dlp-helper/dist/index.js b/node_modules/yt-dlp-helper/dist/index.js
-index 9260e08..069e8d6 100644
+index 9260e08..f325303 100644
 --- a/node_modules/yt-dlp-helper/dist/index.js
 +++ b/node_modules/yt-dlp-helper/dist/index.js
 @@ -568,6 +568,9 @@ function getDefaultMetadataOptionsForUrl(url) {
@@ -128,6 +172,50 @@ index 9260e08..069e8d6 100644
  function manualDownloadLatestYTDLP() {
    return __async(this, arguments, function* ({
      filePath,
+@@ -981,24 +1012,10 @@ function getPlaylistInfo(_0) {
+       return {
+         ok: false
+       };
+-    let value = {
+-      ok: false
+-    };
++    let output = "";
+     try {
+       for (var iter = __forAwait(terminal.listen()), more, temp, error; more = !(temp = yield iter.next()).done; more = false) {
+-        const text = temp.value;
+-        try {
+-          const data = JSON.parse(text);
+-          if (!data) {
+-            continue;
+-          }
+-          value = {
+-            ok: true,
+-            data
+-          };
+-          break;
+-        } catch (e) {
+-        }
++        output += temp.value;
+       }
+     } catch (temp) {
+       error = [temp];
+@@ -1011,7 +1028,15 @@ function getPlaylistInfo(_0) {
+       }
+     }
+     terminal.kill();
+-    return value;
++    try {
++      const data = JSON.parse(output || "");
++      if (!data) {
++        return { ok: false };
++      }
++      return { ok: true, data };
++    } catch (e) {
++      return { ok: false };
++    }
+   });
+ }
+ function downloadValueSelector(text) {
 diff --git a/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts b/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts
 index 5e77e76..750a1f1 100644
 --- a/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts
