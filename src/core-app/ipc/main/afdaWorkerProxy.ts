@@ -43,6 +43,16 @@ export function isAfdaWorkerReady(): boolean {
   return ready;
 }
 
+// Registered unconditionally at module load — NOT inside startAfdaWorker,
+// which itself is only called when the addon is actually resolvable
+// (`addonPathAfda || !app.isPackaged` in registerHandlers.ts). A packaged
+// build with the add-on not installed never calls startAfdaWorker at all,
+// so if this handler lived there the renderer's initial status query would
+// itself throw "No handler registered" — the exact bug this query exists
+// to avoid. `isAfdaWorkerReady()` safely returns false regardless of
+// whether the worker was ever spawned.
+ipcMain.handle('addon:afda-worker-status', () => isAfdaWorkerReady());
+
 export async function callAfdaService<T = unknown>(
   service: string,
   method: string,
@@ -205,6 +215,16 @@ function handleWorkerMessage(msg: AfdaWorkerOutbound, mainWindow: BrowserWindow)
       }
     }
     console.log(`[AFDA worker] ready with ${msg.channels.length} channels`);
+    // Renderer's afdaPackReady gate combines this with detectAddon()'s file
+    // check — detectAddon only proves the pack's files are on disk, not that
+    // this worker actually finished forking and registering its IPC
+    // handlers (mapper:run among them). Without this signal a URL submitted
+    // between file-check-passes and this message would call mapper.run()
+    // against an unregistered channel and throw the raw Electron
+    // "No handler registered for 'mapper:run'" error.
+    if (!mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('addons:afda-worker-ready');
+    }
     // Feed the existing boot-splash-status mechanism (see index.html /
     // bootStatusHandler.ts) so the splash text reflects real AFDA readiness
     // if it's still on screen when this fires. A no-op once the splash has

@@ -363,7 +363,28 @@ const AfdaAddWebsiteModal = ({
   // every invoke rejects with a raw "No handler registered" error. Gate the
   // modal body on the pack instead of firing IPC into the void.
   const afdaPackStatus = useAddonStore((s) => s.afda.status);
-  const afdaPackReady = afdaPackStatus === 'ready';
+  const afdaWorkerReady = useAddonStore((s) => s.afdaWorkerReady);
+  const refreshAfdaWorkerStatus = useAddonStore(
+    (s) => s.refreshAfdaWorkerStatus,
+  );
+  // afdaWorkerReady is required in addition to status === 'ready': the
+  // pack's files can be on disk (status flips to 'ready') well before the
+  // AFDA utilityProcess worker has actually forked and registered
+  // mapper:run — that fork happens asynchronously in the main process.
+  // Gating on status alone left a real window (worst case: the worker's own
+  // init throws and it never becomes ready at all) where this effect still
+  // fired bridge.mapper.run() at an unregistered channel.
+  const afdaPackReady = afdaPackStatus === 'ready' && afdaWorkerReady;
+
+  // Belt-and-suspenders against initFromMain's one-time query/subscription
+  // missing the worker's ready transition (e.g. this modal is opened long
+  // after app start, or the initial query raced the worker in the other
+  // direction). Cheap no-op once already ready.
+  useEffect(() => {
+    if (isOpen && !afdaWorkerReady) {
+      void refreshAfdaWorkerStatus();
+    }
+  }, [isOpen, afdaWorkerReady, refreshAfdaWorkerStatus]);
 
   const setBridgeError = useCallback((message: string) => {
     setErrorMsg(message);

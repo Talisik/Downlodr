@@ -29,20 +29,38 @@ interface AddonStore {
   needsRestart: boolean;
   isAddonManagerOpen: boolean;
   addonManagerReason: AddonManagerReason;
+  /**
+   * True only once the AFDA utilityProcess worker has actually registered
+   * its mapper:run/afda:* IPC channels. `afda.status === 'ready'` alone
+   * (detectAddon's file check) can be true well before this — the worker
+   * fork + module load happens asynchronously — so a caller that gates on
+   * afda.status alone can still invoke a channel that isn't registered yet
+   * and hit a raw "No handler registered for 'mapper:run'" error.
+   */
+  afdaWorkerReady: boolean;
   setPackState: (pack: PackName, state: Partial<AddonPackState>) => void;
   setAddonManagerOpen: (open: boolean, reason?: AddonManagerReason) => void;
   cancelDownload: (pack: PackName) => void;
   initFromMain: () => Promise<void>;
+  /**
+   * On-demand re-check of afdaWorkerReady, in addition to the initFromMain
+   * query + the push-event subscription. Callers that gate a real user
+   * action (e.g. AfdaAddWebsiteModal opening) should call this too — belt
+   * and suspenders against any signal getting lost between app start and
+   * that action, not just relying on whatever initFromMain observed once.
+   */
+  refreshAfdaWorkerStatus: () => Promise<void>;
 }
 
 const DEFAULT_STATE: AddonPackState = { status: 'not-installed' };
 
-export const useAddonStore = create<AddonStore>((set) => ({
+export const useAddonStore = create<AddonStore>((set, get) => ({
   afda: DEFAULT_STATE,
   skedulosa: DEFAULT_STATE,
   needsRestart: false,
   isAddonManagerOpen: false,
   addonManagerReason: null,
+  afdaWorkerReady: false,
 
   setPackState: (pack, state) =>
     set((s) => {
@@ -106,5 +124,33 @@ export const useAddonStore = create<AddonStore>((set) => ({
           : { ...s[key], status: 'not-installed', progress: undefined },
       }));
     });
+
+    bridge.on.afdaWorkerReady(() => {
+      set({ afdaWorkerReady: true });
+    });
+
+    bridge.on.afdaUnavailable(() => {
+      set({ afdaWorkerReady: false });
+    });
+
+    // The worker can finish forking and registering its channels before this
+    // point — it starts in main.ts's Phase 1, well ahead of the renderer
+    // mounting and reaching this subscription. A push-only signal would miss
+    // that window forever, so seed from a direct query too (listeners above
+    // are already attached, so nothing that fires between them and this
+    // call is lost either).
+    await get().refreshAfdaWorkerStatus();
+  },
+
+  refreshAfdaWorkerStatus: async () => {
+    const bridge = window.addonBridge;
+    if (!bridge) return;
+    try {
+      const workerReady = await bridge.getAfdaWorkerStatus();
+      if (workerReady) set({ afdaWorkerReady: true });
+    } catch {
+      // Query channel unavailable (older main build) — push events remain
+      // the only signal; nothing to do here.
+    }
   },
 }));

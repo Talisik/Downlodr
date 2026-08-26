@@ -450,6 +450,7 @@ declare global {
     afda: { status: string; installedVersion?: string; path: string | null };
     skedulosa: { status: string; installedVersion?: string; path: string | null };
    }>;
+   getAfdaWorkerStatus: () => Promise<boolean>;
    download: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<{ started: boolean }>;
    restart: () => Promise<void>;
    delete: (pack: 'afda-backend' | 'video-nemesis-toolkit') => Promise<{ success: boolean; deferred?: boolean; error?: string }>;
@@ -459,6 +460,10 @@ declare global {
     progress: (cb: (data: { pack: 'afda-backend' | 'video-nemesis-toolkit'; percent: number }) => void) => () => void;
     complete: (cb: (data: { pack: 'afda-backend' | 'video-nemesis-toolkit'; success: boolean; error?: string }) => void) => () => void;
     servicesReady: (cb: () => void) => () => void;
+    /** Fires once the AFDA utilityProcess worker has registered its mapper:run and related IPC channels — detectAddon()'s status check alone only proves the pack's files exist on disk, not that the worker finished starting. */
+    afdaWorkerReady: (cb: () => void) => () => void;
+    /** Fires if the AFDA worker crashed and exhausted its respawn budget for this session. */
+    afdaUnavailable: (cb: () => void) => () => void;
    };
   };
 
