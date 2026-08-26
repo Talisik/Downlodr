@@ -90,6 +90,11 @@ declare global {
  interface Window {
   // ========== Actual IPC bridges (exposed by renderer handlers) ==========
 
+  /** Synchronous platform read (baseAppHandler) — see its own comment for why. */
+  platformInfo: {
+   platform: NodeJS.Platform;
+  };
+
   /** App window behavior & generic invoke (baseAppHandler) */
   appBehaviorBridge: {
    invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;

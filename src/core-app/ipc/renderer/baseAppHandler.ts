@@ -13,6 +13,16 @@ import { contextBridge, ipcRenderer } from 'electron';
 // This should be done before setting up any listeners
 ipcRenderer.setMaxListeners(20);
 
+// Synchronous platform read for layout decisions that can't wait on an IPC
+// round-trip (e.g. TitleBar.tsx reserving space for macOS's native
+// traffic-light buttons before first paint). `process` is only ever
+// reachable here, in the preload script — contextIsolation keeps it out of
+// the page's own JS even with nodeIntegration enabled — so the value is
+// captured once and exposed as plain data, not a live binding.
+contextBridge.exposeInMainWorld('platformInfo', {
+  platform: process.platform,
+});
+
 contextBridge.exposeInMainWorld('appBehaviorBridge', {
   invoke: (channel: any, ...args: any) => ipcRenderer.invoke(channel, ...args),
   showInputContextMenu: () => ipcRenderer.send('show-input-context-menu'),
