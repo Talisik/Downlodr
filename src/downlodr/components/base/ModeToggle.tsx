@@ -48,7 +48,7 @@ export function ModeToggle() {
         className="hover:bg-gray-100 dark:bg-transparent dark:hover:bg-darkModeCompliment hover:opacity-100 active:bg-transparent focus-none p-1 my-4"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="relative flex items-center justify-center">
+        <span className="relative flex items-center justify-center h-4 w-4">
           <Sun
             ref={sunRef}
             className="absolute h-[1rem] w-[1rem] text-text-paragraph"
