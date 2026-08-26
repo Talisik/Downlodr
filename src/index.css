@@ -7,6 +7,10 @@
 @import '@fontsource/lato/400.css';
 @import '@fontsource/lato/700.css';
 @import '@fontsource/lato/900.css';
+/* Manrope: scoped to the add-on gate prompt (AddonGate.tsx) only — see its
+   design spec (dark neutral + orange accent theme, not the app-wide Lato). */
+@import '@fontsource/manrope/400.css';
+@import '@fontsource/manrope/700.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

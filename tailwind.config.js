@@ -42,6 +42,10 @@ module.exports = {
       fontSize: {
         xxxs: ['10px', '16px'],
       },
+      fontFamily: {
+        // Scoped to AddonGate.tsx's add-on prompt — the app default is Lato.
+        manrope: ['Manrope', 'sans-serif'],
+      },
       keyframes: {
         'accordion-down': {
           from: { height: '0' },
@@ -69,7 +73,7 @@ module.exports = {
           DEFAULT: '#F9FAF7',
           dark: '#09090B',
         },
-        body:{
+        body: {
           DEFAULT: '#fff',
           dark: '#09090B',
         },
@@ -78,11 +82,14 @@ module.exports = {
         resizeColumn: '#E4E4E7',
         alternateBlack: '#121212',
         primary: '#F45513',
+        // Exact accent for the AddonGate "not installed" prompt (ticket spec:
+        // #F26522) — deliberately distinct from `primary` (#F45513).
+        addonAccent: '#F26522',
         secondary: '#202020',
         divider: '#D1D5DB',
         tabs: '#fef9f4',
         lightGray: '#EDEDED',
-        darkMode: '#191919', 
+        darkMode: '#191919',
         oldDarkMode: '#09090B',
         darkModeCompliment: '#272727',
         darkModeNavigation: '#191919',
@@ -96,7 +103,7 @@ module.exports = {
         skeleton: '#E8EDF1',
         border: '#E4E4E7',
         detailsTab: '#EDEDED',
-        componentBorder:'#BCBCBC',
+        componentBorder: '#BCBCBC',
         availableStatus: '#34C759', // Status Available and Download Icon
         notAvailableStatus: '#787575',
         darkModeNotAvailableStatus: '#C6C6C6',
