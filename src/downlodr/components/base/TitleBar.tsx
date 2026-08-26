@@ -1,6 +1,9 @@
 /**
  * A custom React fixed component
- * A Fixed element in the header portion of Downlodr, displays the title/logo of Downlodr with the window controls (maximize, minimize, and close)
+ * A Fixed element in the header portion of Downlodr, displays the title/logo
+ * of Downlodr next to the theme toggle. macOS-only build: window controls
+ * (minimize, maximize, close) are the native traffic-light buttons — no
+ * custom Windows-style buttons are rendered here.
  *
  * @param className - for UI of TitleBar
  * @returns JSX.Element - The rendered component displaying a TitleBar
@@ -8,9 +11,6 @@
  */
 
 import React from 'react';
-import { IoMdClose, IoMdRemove } from 'react-icons/io';
-import { PiBrowsers } from 'react-icons/pi';
-import { RxBox } from 'react-icons/rx';
 import DownlodrLogoDark from '../../../assets/logo/downlodr_dark.svg';
 import DownlodrLogoLight from '../../../assets/logo/downlodr_light.svg';
 import { useTheme } from '../../../core-app/components/ThemeProvider';
@@ -21,14 +21,6 @@ interface TitleBarProps {
 
 const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   const { theme } = useTheme();
-  const [isMaximized, setIsMaximized] = React.useState<boolean>(false);
-
-  React.useEffect(() => {
-    window.appBehaviorBridge?.onMaximizeChange(setIsMaximized);
-    return () => {
-      window.appBehaviorBridge?.offMaximizeChange();
-    };
-  }, []);
 
   // Adjust downlodr logo used depending on the light/dark mode
   const logoStyle = { height: '24px', width: 'auto' };
@@ -51,10 +43,10 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   // macOS renders native traffic-light buttons (titleBarStyle: 'hiddenInset'
   // + trafficLightPosition: { x: 12, y: 10 } in main.ts) as an overlay on
   // top of this web content, not as DOM elements — nothing here can push
-  // them aside via z-index. Without a matching left inset the logo painted
-  // directly underneath, covering the yellow/green traffic lights entirely.
-  // 78px clears the ~64px-wide dot cluster (12px x-offset + 3×12px dots +
-  // 2×8px gaps) plus a small margin.
+  // them aside via z-index. Without a matching left inset any content there
+  // paints directly underneath, covering the yellow/green traffic lights
+  // entirely. 78px clears the ~64px-wide dot cluster (12px x-offset + 3×12px
+  // dots + 2×8px gaps) plus a small margin.
   //
   // `process` is NOT available here: contextIsolation keeps Node globals
   // out of the page's own JS regardless of nodeIntegration, so the
@@ -69,39 +61,14 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
           className="flex justify-between items-center h-full px-2"
           style={isDarwin ? { paddingLeft: '78px' } : undefined}
         >
-          {/* Title */}
-          <div className="text-sm flex-1 drag-area">{getLogoSrc()}</div>
+          {/* Empty drag region — clicking/dragging here moves the window.
+              Window controls are the native macOS traffic lights. */}
+          <div className="text-sm flex-1 drag-area" />
 
-          {/* Buttons */}
-          <div className="flex space-x-4 no-drag">
-            {/* Help Button */}
-
-            {/*Dark Mode/Light Mode */}
+          {/* Logo + theme toggle */}
+          <div className="flex items-center space-x-4 no-drag">
+            {getLogoSrc()}
             <ModeToggle />
-
-            {/* Minimize Button */}
-            <button
-              className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
-              onClick={() => window.downlodrFunctions?.minimizeApp()}
-            >
-              <IoMdRemove size={16} />
-            </button>
-
-            {/* Maximize Button with dynamic icon */}
-            <button
-              className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
-              onClick={() => window.downlodrFunctions?.maximizeApp()}
-            >
-              {isMaximized ? <PiBrowsers size={16} /> : <RxBox size={14} />}
-            </button>
-
-            {/* Close Button */}
-            <button
-              className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
-              onClick={() => window.downlodrFunctions?.closeApp()}
-            >
-              <IoMdClose size={16} />
-            </button>
           </div>
         </div>
       </div>
