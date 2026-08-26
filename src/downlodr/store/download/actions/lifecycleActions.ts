@@ -615,7 +615,6 @@ export function createLifecycleActions(set: SetState, get: GetState) {
             if (transcriptLocation && transcriptLocation.trim() !== '') {
               enqueueTier2(download.id);
             }
-
             // Sync final video location and confirmed size to skedulosa subscription record.
             // The sync service maps are already cleaned up at this point so we write directly.
             if (download.subscriptionId) {

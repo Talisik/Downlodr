@@ -2,7 +2,7 @@ import TitleBar from '@/downlodr/components/base/TitleBar';
 import TaskBar from '@/downlodr/components/base/Taskbar';
 import DownloadNavigationBar from '@/downlodr/components/navigation/DownloadNavigationBar';
 import { useMainStore } from '@/core-app/store/mainStore';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   DUMMY_ARTICLE_URL,
   DUMMY_CHANNEL_URL,
@@ -56,19 +56,29 @@ const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
   const [demoAnalyzed, setDemoAnalyzed] = useState(false);
   const [demoCompleted, setDemoCompleted] = useState(false);
   const [playerVideo, setPlayerVideo] = useState<DummyVideo | null>(null);
+  // Bumped on every feature pick so the tour restarts even when the user
+  // re-selects the feature they just finished (active alone wouldn't change).
+  const [tourRunKey, setTourRunKey] = useState(0);
   const { isNavCollapsed, setIsNavCollapsed } = useMainStore();
 
-  // Reset demo state whenever the user switches features
-  useEffect(() => {
+  const resetDemo = useCallback(() => {
     setDemoStarted(false);
     setDemoAnalyzed(false);
     setDemoCompleted(false);
     setPlayerVideo(null);
-  }, [active]);
+  }, []);
+
+  // Reset demo state whenever the user switches features
+  useEffect(() => {
+    resetDemo();
+  }, [active, resetDemo]);
 
   const handleSelect = (f: OnboardingFeature) => {
     setActive(f);
     setVisited((prev) => new Set([...prev, f]));
+    // Covers re-selecting the current feature, where the effect above won't fire
+    resetDemo();
+    setTourRunKey((k) => k + 1);
   };
 
   const handleReset = () => {
@@ -137,6 +147,7 @@ const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
         demoAnalyzed={demoAnalyzed}
         demoCompleted={demoCompleted}
         enabled={tourEnabled}
+        restartKey={tourRunKey}
       />
       <OnboardingPill
         active={active}

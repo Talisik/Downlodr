@@ -284,12 +284,23 @@ export class MetadataService {
       let progressCleanup: (() => void) | null = null;
       let lastReportedProgress = 0;
 
+      // This listener shares 'ffmpeg:progress' with every other running
+      // transcription, so tag our own job and ignore everyone else's events —
+      // otherwise another job's first progress event drove this download's
+      // percentage back to 0 (the branch below deliberately accepts 0).
+      const jobId = `metadata-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`;
+
       if (downloadId && window.downlodrFunctions.onFFmpegProgress) {
         // Wrap the existing progress handler to also update download store
         progressCleanup = window.downlodrFunctions.onFFmpegProgress(
           (progress: string) => {
             try {
               const parsed = JSON.parse(progress);
+              if (parsed.jobId !== jobId) {
+                return;
+              }
               if (
                 parsed.type === 'progress' &&
                 parsed.percent != null &&
@@ -335,8 +346,11 @@ export class MetadataService {
       const transcriptionResult = await FFmpegWhisperTranscriber.transcribe({
         inputFile: videoFilePath,
         outputFile: transcriptionOutputPath,
-        language: 'en',
+        // 'auto', not 'en': forcing English makes Whisper *translate* non-English
+        // audio into English rather than transcribe it in its own language.
+        language: 'auto',
         format: 'srt',
+        jobId,
       });
 
       // Clean up progress listener

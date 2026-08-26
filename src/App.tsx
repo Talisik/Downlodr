@@ -43,7 +43,7 @@ import MainLayout from './core-app/layout/DownloadLayout';
 import OnboardingPage from './onboarding/pages/OnboardingPage';
 import History from './downlodr/pages/History';
 import { PluginInitialize } from './plugins/components/PluginInitialize';
-import PluginLayout from './plugins/layout/PluginLayout';
+import PluginLayout from './plugins/layout/pluginLayout';
 import PluginDetail from './plugins/pages/PluginDetail';
 import PluginPage from './plugins/pages/PluginPage';
 import SkedulosaLayout from './skedulosa/layout/SkedulosaLayout';
@@ -68,9 +68,10 @@ import { useAddonStore } from '@/core-app/store/addonStore';
 import SkedulosaRouteGuard from './skedulosa/utils/routeGuard';
 import GlobalScanningModal from './skedulosa/components/GlobalScanningModal';
 import GlobalAfdaMapperListener from '@/afda/components/GlobalAfdaMapperListener';
+import GlobalPlaylistRedirectListener from '@/downlodr/components/playlist/GlobalPlaylistRedirectListener';
 import GlobalAddonDownloadToast from '@/core-app/components/GlobalAddonDownloadToast';
-import CategoryPage from './smart-organize/base/pages/CategoryPage';
-import TagPage from './smart-organize/base/pages/TagPage';
+import CategoryPage from './downlodr/pages/CategoryPage';
+import TagPage from './downlodr/pages/TagPage';
 import AfdaSelectedTableGroup from './afda/pages/AfdaSelectedTableGroup';
 import SubscriptionSelectedTableGroup from './skedulosa/pages/SubscriptionSelectedTableGroup';
 import { useScrapingProgressToast } from './skedulosa/hooks/useScrapingProgressToast';
@@ -414,6 +415,7 @@ const App = () => {
           </Routes>
           <GlobalScanningModal />
           <GlobalAfdaMapperListener />
+          <GlobalPlaylistRedirectListener />
           <GlobalAddonDownloadToast />
         </Router>
         <Toaster />

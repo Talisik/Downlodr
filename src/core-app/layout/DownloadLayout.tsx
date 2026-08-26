@@ -6,6 +6,7 @@ import ArticleSidePanelManager from '@/afda/components/ArticleSidePanelManager';
 import { Component, ErrorInfo, ReactNode, useRef, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useMainStore } from '../store/mainStore';
+// import { useSlidePanel } from '@/core-app/hooks/animation/useSlidePanel';
 // Error Boundary component
 class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -56,12 +57,17 @@ const MainLayout = () => {
   };
   const location = useLocation();
   const previousMainPathRef = useRef<string | null>(null);
+  // The content row: everything below the titlebar and taskbar.
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Extract the top-level route segment (e.g. "downloads", "plugins", "subscriptions").
   const topSegment = location.pathname.split('/')[1] ?? '';
 
   useEffect(() => {
-    if (previousMainPathRef.current !== null && previousMainPathRef.current !== topSegment) {
+    if (
+      previousMainPathRef.current !== null &&
+      previousMainPathRef.current !== topSegment
+    ) {
       clearAllSelections();
     }
     previousMainPathRef.current = topSegment;
@@ -81,7 +87,10 @@ const MainLayout = () => {
         <TitleBar className="h-8 bg-[#F9F9F9] dark:bg-darkMode" />
         {/*<DropdownBar className="h-11 pl-4 bg-nav-main dark:bg-darkMode border-b-2 border-gray-200 dark:border-darkModeCompliment" />*/}
         <TaskBar className="rounded-md w-full px-6 py-2 pl-[8px] bg-white dark:bg-darkModeTable" />
-        <div className="flex flex-1 overflow-hidden h-[calc(100vh-120px)] gap-2">
+        <div
+          ref={contentRef}
+          className="flex flex-1 overflow-hidden h-[calc(100vh-120px)] gap-2"
+        >
           <DownloadNavigationBar
             className="rounded-md bg-white dark:bg-darkModeTable overflow-y-auto h-full"
             collapsed={isNavCollapsed}

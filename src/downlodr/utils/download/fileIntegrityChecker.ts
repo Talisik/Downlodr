@@ -69,7 +69,6 @@ export async function runFileIntegrityCheck(): Promise<void> {
   for (const id of missStreaks.keys()) {
     if (!liveIds.has(id)) missStreaks.delete(id); // download removed — drop stale counter
   }
-
   const existsResults = await mapWithConcurrency(
     finishedDownloads,
     (download) =>

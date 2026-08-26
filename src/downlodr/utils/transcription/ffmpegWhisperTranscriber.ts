@@ -32,6 +32,12 @@ export interface WhisperTranscriptionOptions {
   format?: 'srt' | 'vtt' | 'txt';
   /** Progress callback function (currently not supported due to IPC limitations) */
   onProgress?: (progress: string) => void;
+  /**
+   * Correlates progress events with this job. Generated automatically when
+   * omitted; pass one only if you register your own onFFmpegProgress listener
+   * and need to recognize this job's events on that shared channel.
+   */
+  jobId?: string;
 }
 
 export interface RedownloadTranscriptionOptions {
@@ -248,6 +254,14 @@ export class FFmpegWhisperTranscriber {
             // Try to parse as structured progress data (JSON)
             try {
               const parsed = JSON.parse(progress);
+
+              // 'ffmpeg:progress' is shared by every concurrent transcription,
+              // so discard anything belonging to a different job. Without this
+              // a newly started job's first event reset this job's bar to 0.
+              if (parsed.jobId !== validatedOptions.jobId) {
+                return;
+              }
+
               if (parsed.type === 'duration') {
                 // Store total duration when received
                 totalDurationMs = parsed.totalDurationMs;
@@ -531,37 +545,39 @@ export class FFmpegWhisperTranscriber {
   }
 
   /**
-   * Get the proper model path for the current environment
-   * In packaged app: uses bundled model from process.resourcesPath
-   * In development: uses model from project root
-   * When the caller passes only the default model filename (e.g. 'ggml-base.bin'),
-   * we resolve it via bundled path so built/packaged app finds the model.
+   * Resolves the model to an absolute path.
+   *
+   * In a packaged app the model lives in process.resourcesPath; in development
+   * it sits in the project root. Any bare filename is resolved through the
+   * bundled-resources lookup — not just DEFAULT_MODEL_NAME, as this previously
+   * did. Under the old rule a caller passing any other bare name got it back
+   * untouched, so it reached FFmpeg as a relative path resolved against the
+   * process cwd and silently failed in built apps.
+   *
+   * A path that already contains a separator is the caller's own and is used
+   * as given.
    */
   private static async getModelPath(providedPath?: string): Promise<string> {
-    // If caller passed exactly the default model name, resolve it (so built app finds bundled model)
-    if (providedPath && providedPath !== this.DEFAULT_MODEL_NAME) {
-      return providedPath;
+    const requested = providedPath || this.DEFAULT_MODEL_NAME;
+
+    if (/[\\/]/.test(requested)) {
+      return requested;
     }
 
-    // Resolve default model: try bundled path first (works in packaged app)
     try {
       const bundledModelPath =
-        await window.downlodrFunctions.getBundledBinaryPath(
-          this.DEFAULT_MODEL_NAME,
-        );
+        await window.downlodrFunctions.getBundledBinaryPath(requested);
       if (bundledModelPath) {
-        console.log(`Using bundled model: ${bundledModelPath}`);
         return bundledModelPath;
       }
     } catch (error) {
       console.warn('Could not get bundled model path:', error);
     }
 
-    // Fallback to default model name (for development or if bundled not found)
-    console.log(
-      `Falling back to default model name: ${this.DEFAULT_MODEL_NAME}`,
-    );
-    return this.DEFAULT_MODEL_NAME;
+    // Not bundled: hand back the bare name. The main process reports a clear
+    // "model not found" rather than this guessing at a substitute.
+    console.warn(`Whisper model "${requested}" is not bundled.`);
+    return requested;
   }
 
   /**
@@ -634,6 +650,11 @@ export class FFmpegWhisperTranscriber {
       modelPath,
       language,
       format,
+      // Callers that run their own progress listener (e.g. metadataService)
+      // pass a jobId so they can filter; everyone else gets a fresh one.
+      jobId:
+        options.jobId ??
+        `whisper-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     };
   }
 

@@ -2,6 +2,11 @@ import graph from '@/assets/skedulosa/images/graph.svg';
 import Input from '@/core-app/components/shadcn/components/ui/input';
 import { ToggleGroup } from '@/core-app/components/shadcn/components/ui/toggle-group';
 import { showSkedulosaError } from '@/skedulosa/error-mapping/skedulosaErrors';
+import {
+  getMissingAddonMessage,
+  isMissingHandlerError,
+  openAddonManager,
+} from '@/core-app/utils/missingAddonError';
 import { useSettingStore } from '@/core-app/store/settingsStore';
 import BaseModal from '@/downlodr/components/modal/BaseModal';
 import {
@@ -719,10 +724,12 @@ const SkedulosaSubscribeModal = ({
         if (analysisGeneration.current !== gen) return;
         capturedDetails = details;
         setChannelDetails(details);
-      } catch {
+      } catch (err) {
         // Non-fatal — channel info panel just won't show avatar/subs
         if (analysisGeneration.current !== gen) return;
         setChannelDetails(null);
+        const message = err instanceof Error ? err.message : String(err);
+        if (isMissingHandlerError(message)) openAddonManager('skedulosa');
       }
 
       if (analysisGeneration.current !== gen) return;
@@ -766,11 +773,17 @@ const SkedulosaSubscribeModal = ({
         if (analysisGeneration.current !== gen) return;
         setChannelAnalysis(null);
         setIsValidUrl(false);
-        setUrlError(
-          err instanceof Error
-            ? err.message
-            : t('subscribeModal.errors.analyzeFailed'),
-        );
+        const rawMessage = err instanceof Error ? err.message : String(err);
+        if (isMissingHandlerError(rawMessage)) {
+          openAddonManager('skedulosa');
+          setUrlError(getMissingAddonMessage('skedulosa'));
+        } else {
+          setUrlError(
+            err instanceof Error
+              ? err.message
+              : t('subscribeModal.errors.analyzeFailed'),
+          );
+        }
       } finally {
         if (analysisGeneration.current === gen) finishChannelAnalysis();
       }

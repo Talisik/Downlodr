@@ -391,23 +391,22 @@ const AfdaSelectedViewTable = () => {
       {/* ── Tabs ─────────────────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 min-h-0">
         <div className="gap-4 flex flex-row border-b border-gray-200 dark:border-gray-700">
-          {(isSocial
-            ? [{ id: 'downloads', label: 'Posts' }]
-            : TABS
-          ).map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-2 pt-2.5 text-md font-medium transition-colors focus-visible:outline-none whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-b-2 border-primary text-gray-900 dark:text-gray-100 text-primary font-semibold'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {(isSocial ? [{ id: 'downloads', label: 'Posts' }] : TABS).map(
+            (tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-3 py-2 pt-2.5 text-md font-medium transition-colors focus-visible:outline-none whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'border-b-2 border-primary text-gray-900 dark:text-gray-100 text-primary font-semibold'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ),
+          )}
         </div>
 
         <div className="flex-1 overflow-hidden hover-scrollbar">

@@ -13,7 +13,9 @@ import type {
 } from '@/downlodr/store/taskbarDownloadStore';
 import EmptySearch from '@/assets/icon/EmptySearch';
 
+import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
+import { setInfoFetchPriority } from '@/downlodr/utils/download/infoFetchQueue';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
 import React, {
   useCallback,
@@ -24,12 +26,18 @@ import React, {
 } from 'react';
 import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import { StatusPageTableHeader } from './StatusPageTableHeader';
-import type { DisplayColumn } from './statusPageTypes';
+import { getMetadataFetchProgress } from './statusPageUtils';
+import type { DisplayColumn, SelectableRow } from './statusPageTypes';
 
 import Toolbar from '@/downlodr/components/base/Toolbar';
 import SkedulosaTableGroup from '@/skedulosa/components/SkedulosaTableGroup';
 import { StatusPageTableRow } from './StatusPageTableRow';
 import { useWindowSize } from './statusPageHooks';
+
+/** Selection keys for collapsed group rows, which have no download id of their own. */
+const subscriptionRowKey = (subscriptionId: string) =>
+  `group:${subscriptionId}`;
+const afdaRowKey = (websiteId: string) => `afda-group:${websiteId}`;
 
 export interface StatusPageTableProps {
   allDownloads: SearchableDownload[];
@@ -55,7 +63,8 @@ export interface StatusPageTableProps {
   cancelDrag: () => void;
   onContextMenu: (e: React.MouseEvent, download: SearchableDownload) => void;
   onRowClick: (downloadId: string) => void;
-  onCheckboxChange: (downloadId: string) => void;
+  /** `orderedRows` is passed on shift-click so the page can select a range. */
+  onCheckboxChange: (row: SelectableRow, orderedRows?: SelectableRow[]) => void;
   onViewFile: (downloadLocation?: string, downloadId?: string) => void;
   onViewDownload: (downloadLocation?: string, downloadId?: string) => void;
   onViewFolder: (downloadLocation?: string, filePath?: string) => void;
@@ -71,7 +80,6 @@ export interface StatusPageTableProps {
     audioFormatId?: string;
   }) => void;
   onClosePluginSidebar: () => void;
-  onGroupCheckboxChange: (downloadIds: string[]) => void;
   onViewEmbed: (download: SearchableDownload) => void;
   isPanelOpen?: boolean;
 }
@@ -111,7 +119,6 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
   onRedownloadTranscript,
   onFormatSelect,
   onClosePluginSidebar,
-  onGroupCheckboxChange,
   onViewEmbed,
   isPanelOpen,
 }) => {
@@ -255,17 +262,50 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
       });
   }, [allVirtualItems, currentPage]);
 
-  const pageRowIds = useMemo(() => {
-    const ids: string[] = [];
-    for (const item of renderItems) {
-      if (item.type === 'ungrouped') ids.push(item.download.id);
-      else if (item.type === 'group')
-        ids.push(...item.downloads.map((d) => d.id));
-      else if (item.type === 'afda-group')
-        ids.push(...item.downloads.map((d) => d.id));
-    }
-    return ids;
-  }, [renderItems]);
+  // The checkable rows on this page, in display order. A collapsed group is
+  // one row here — not one row per download inside it — so a shift-click
+  // range covers what the user actually sees.
+  const pageRows: SelectableRow[] = useMemo(
+    () =>
+      renderItems.map((item) => {
+        if (item.type === 'ungrouped')
+          return { key: item.download.id, ids: [item.download.id] };
+        const key =
+          item.type === 'group'
+            ? subscriptionRowKey(item.subscriptionId)
+            : afdaRowKey(item.websiteId);
+        return { key, ids: item.downloads.map((d) => d.id) };
+      }),
+    [renderItems],
+  );
+
+  const pageRowIds = useMemo(
+    () => pageRows.flatMap((row) => row.ids),
+    [pageRows],
+  );
+
+  // Shift-click needs the on-screen row order, which only this component
+  // knows — hand it to the page so it can fill in the range.
+  const handleRowCheckboxChange = useCallback(
+    (row: SelectableRow, shiftKey?: boolean) => {
+      onCheckboxChange(row, shiftKey ? pageRows : undefined);
+    },
+    [onCheckboxChange, pageRows],
+  );
+
+  // Tell the metadata-fetch queue which rows are on screen, so a large playlist
+  // resolves the visible page before the pages behind it. Re-runs on every page
+  // / sort / filter change, which is what re-aims the queue mid-fetch.
+  useEffect(() => {
+    setInfoFetchPriority(pageRowIds);
+    return () => setInfoFetchPriority([]);
+  }, [pageRowIds]);
+
+  const forDownloads = useDownloadStore((s) => s.forDownloads);
+  const metadataProgress = useMemo(
+    () => getMetadataFetchProgress(forDownloads),
+    [forDownloads],
+  );
 
   const handleSelectAll = useCallback(() => {
     const allPageSelected = pageRowIds.every((id) =>
@@ -275,21 +315,31 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
   }, [pageRowIds, selectedRowIds, onSelectPage]);
 
   const PANEL_COLUMNS = ['name', 'size', 'format', 'status'];
+  // The article panel is the widest side panel (600px), so it leaves room for
+  // the name column only; everything else moves behind the eye tooltip.
+  const ARTICLE_PANEL_COLUMNS = ['name'];
   const EYE_COLUMN: DisplayColumn = { id: 'eye', width: 40 };
 
-  const panelFilteredColumns = isPanelOpen
-    ? displayColumns.filter((c) => PANEL_COLUMNS.includes(c.id))
+  // Every side panel — logs, activity, plugin, article — narrows the
+  // table the same way: keep a few columns, expose the rest via the eye column.
+  const isAnySidePanelOpen =
+    isPanelOpen || isArticlePanelOpen;
+
+  const keptColumnIds = isArticlePanelOpen
+    ? ARTICLE_PANEL_COLUMNS
+    : PANEL_COLUMNS;
+
+  const panelFilteredColumns = isAnySidePanelOpen
+    ? displayColumns.filter((c) => keptColumnIds.includes(c.id))
     : displayColumns;
 
-  const hiddenColumnIds = isPanelOpen
+  const hiddenColumnIds = isAnySidePanelOpen
     ? displayColumns
-        .filter((c) => !PANEL_COLUMNS.includes(c.id))
+        .filter((c) => !keptColumnIds.includes(c.id))
         .map((c) => c.id)
     : [];
 
-  const effectiveDisplayColumns = isArticlePanelOpen
-    ? panelFilteredColumns.filter((c) => c.id === 'name')
-    : isPanelOpen
+  const effectiveDisplayColumns = isAnySidePanelOpen
     ? [...panelFilteredColumns, EYE_COLUMN]
     : panelFilteredColumns;
 
@@ -336,6 +386,32 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
                 cancelDrag={cancelDrag}
               />
               <tbody>
+                {/* Metadata resolution is still running — show it on every
+                    page so a skeleton row reads as "loading", not "stalled". */}
+                {/* 
+                {metadataProgress && (
+                  <tr className="pl-4 border-b-2 dark:border-[#27272ACC] cursor-default bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-50 dark:hover:bg-amber-900/10">
+                    <td className="w-8 p-2" />
+                    <td className="p-2 dark:text-gray-200">
+                      <div className="flex items-center gap-2">
+                        <span className="animate-spin text-amber-500">⟳</span>
+                        <div>
+                          <div className="line-clamp-1 font-semibold py-1">
+                            Fetching metadata
+                          </div>
+                          <div className="text-xs text-amber-600 dark:text-amber-400 -mt-1">
+                            {metadataProgress.done} of {metadataProgress.total}{' '}
+                            ready — items on this page resolve first
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    {effectiveDisplayColumns.map((col) => (
+                      <td key={col.id} style={{ width: col.width }} className="p-2" />
+                    ))}
+                  </tr>
+                )}
+                  */}
                 {/* Render scraping channels at the top */}
                 {Array.from(scrapingChannels.entries()).map(
                   ([channelId, scrapeData]) => (
@@ -367,7 +443,9 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
                     </tr>
                   ),
                 )}
-                {renderItems.map((item) => {
+                {renderItems.map((item, rowIndex) => {
+                  const row = pageRows[rowIndex];
+
                   if (item.type === 'afda-group') {
                     return (
                       <AfdaTableGroup
@@ -377,9 +455,10 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
                         displayColumns={effectiveDisplayColumns}
                         selectedRowIds={selectedRowIds}
                         selectedDownloadId={selectedDownloadId}
-                        onCheckboxChange={onCheckboxChange}
                         onRowClick={onRowClick}
-                        onGroupCheckboxChange={onGroupCheckboxChange}
+                        onGroupCheckboxChange={(shiftKey) =>
+                          handleRowCheckboxChange(row, shiftKey)
+                        }
                         onClosePluginSidebar={onClosePluginSidebar}
                       />
                     );
@@ -402,8 +481,8 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
                           }
                           index={item.index}
                           hiddenColumnIds={hiddenColumnIds}
-                          onCheckboxChange={() =>
-                            onCheckboxChange(articleDownload.id)
+                          onCheckboxChange={(shiftKey) =>
+                            handleRowCheckboxChange(row, shiftKey)
                           }
                           onRowClick={() => {
                             onClosePluginSidebar();
@@ -434,8 +513,8 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
                             onClosePluginSidebar();
                             onRowClick(item.download.id);
                           },
-                          onCheckboxChange: () =>
-                            onCheckboxChange(item.download.id),
+                          onCheckboxChange: (shiftKey) =>
+                            handleRowCheckboxChange(row, shiftKey),
                           onViewFile: (loc?, id?) => onViewFile(loc, id),
                           onViewDownload: (loc?, id?) =>
                             onViewDownload(loc, id),
@@ -467,7 +546,6 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
                       selectedDownloadId={selectedDownloadId}
                       onContextMenu={onContextMenu}
                       onRowClick={onRowClick}
-                      onCheckboxChange={onCheckboxChange}
                       onViewFile={onViewFile}
                       onViewDownload={onViewDownload}
                       onViewFolder={onViewFolder}
@@ -476,7 +554,9 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
                       onRedownloadTranscript={onRedownloadTranscript}
                       onFormatSelect={onFormatSelect}
                       onClosePluginSidebar={onClosePluginSidebar}
-                      onGroupCheckboxChange={onGroupCheckboxChange}
+                      onGroupCheckboxChange={(shiftKey) =>
+                        handleRowCheckboxChange(row, shiftKey)
+                      }
                       onViewEmbed={onViewEmbed}
                     />
                   );

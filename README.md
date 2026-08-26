@@ -61,7 +61,6 @@ Signing requires `APPLE_IDENTITY` (and, for the installer, `APPLE_INSTALLER_IDEN
 set in the environment or a local `.env` file — see `.github/workflows/macos-build.yml`
 for the full set of secrets a CI signing run needs.
 
-
 ## Contributing
 
 We welcome contributions from the community! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on how to get involved.

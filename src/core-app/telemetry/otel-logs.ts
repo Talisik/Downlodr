@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* global __TELEMETRY_ENDPOINT__ */
 // OpenTelemetry Logs Implementation
 // Ported from the macOS-stable branch to complete feat/module's telemetry,
 // which imports `otelLogs` / `logInfo` / `logWarning` / `logError` from here.
@@ -13,6 +14,21 @@ import {
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
 
+// Resolve the OTLP collector endpoint. Bundlers replace __TELEMETRY_ENDPOINT__
+// at build time (see vite.main.config.ts / vite.renderer.config.ts); the
+// process.env fallback covers non-bundled contexts such as the headless entry.
+// Empty is the default and means "telemetry disabled" — never hardcode a
+// collector URL here, it would silently ship every user's logs to it.
+function resolveTelemetryEndpoint() {
+  if (typeof __TELEMETRY_ENDPOINT__ !== 'undefined' && __TELEMETRY_ENDPOINT__) {
+    return __TELEMETRY_ENDPOINT__;
+  }
+  if (typeof process !== 'undefined') {
+    return process.env?.VITE_TELEMETRY_ENDPOINT || '';
+  }
+  return '';
+}
+
 class OpenTelemetryLogs {
   endpoint: string;
   serviceName: string;
@@ -22,20 +38,31 @@ class OpenTelemetryLogs {
   initialized = false;
 
   constructor() {
-    this.endpoint = process.env.OTEL_LOGS_ENDPOINT || 'https://telemetry.log';
-    this.serviceName =
-      process.env.OTEL_SERVICE_NAME || 'downlodr-electron-desktop-app';
-    this.serviceVersion = process.env.OTEL_SERVICE_VERSION || '1.0.0';
+    this.endpoint = resolveTelemetryEndpoint();
+    this.serviceName = 'downlodr-electron-desktop-app';
+    this.serviceVersion = '1.0.0';
+    this.logger = null;
+    this.loggerProvider = null;
+    this.initialized = false;
   }
 
   initialize() {
     try {
+      // No collector configured: stay uninitialized. Every log* method already
+      // no-ops while `initialized` is false, so this cleanly disables export.
+      if (!this.endpoint) {
+        console.log(
+          'OpenTelemetry Logs disabled (no VITE_TELEMETRY_ENDPOINT configured)',
+        );
+        return;
+      }
+
       // Create resource
       const resource = resourceFromAttributes({
         [ATTR_SERVICE_NAME]: this.serviceName,
         [ATTR_SERVICE_VERSION]: this.serviceVersion,
-        'process.type': process.type || 'main',
-        platform: process.platform,
+        'process.type': typeof process !== 'undefined' ? (process.type || 'renderer') : 'renderer',
+        platform: typeof process !== 'undefined' ? process.platform : navigator?.platform || 'unknown',
         'telemetry.sdk.name': 'opentelemetry',
         'telemetry.sdk.language': 'javascript',
         'telemetry.sdk.version': '1.0.0',
@@ -88,7 +115,19 @@ class OpenTelemetryLogs {
     }
   }
 
+  isEnabled() {
+    try {
+      const settings = JSON.parse(
+        localStorage.getItem('download-settings-storage') || '{}',
+      );
+      return settings?.state?.settings?.telemetryEnabled === true;
+    } catch {
+      return false;
+    }
+  }
+
   logInfo(message: string, attributes: Record<string, any> = {}) {
+    if (!this.isEnabled()) return;
     if (!this.initialized || !this.logger) {
       console.log(`[INFO] ${message}`, attributes);
       return;
@@ -114,6 +153,7 @@ class OpenTelemetryLogs {
   }
 
   logWarning(message: string, attributes: Record<string, any> = {}) {
+    if (!this.isEnabled()) return;
     if (!this.initialized || !this.logger) {
       console.warn(`[WARN] ${message}`, attributes);
       return;
@@ -143,6 +183,7 @@ class OpenTelemetryLogs {
     error: any = null,
     attributes: Record<string, any> = {},
   ) {
+    if (!this.isEnabled()) return;
     const errorAttributes: Record<string, any> = { ...attributes };
     if (error) {
       errorAttributes.error_name = error.name;

@@ -3,6 +3,10 @@
  */
 
 import i18n from '@/core-app/i18n';
+import type {
+  RowSelectionTarget,
+  SelectableRow,
+} from '@/downlodr/pages/status/statusPageTypes';
 
 export const formatRelativeTime = (dateString: string): string => {
   const date = new Date(dateString);
@@ -46,6 +50,66 @@ export const formatFileSize = (bytes: number | undefined): string => {
     return i18n.t('downlodr:fileSize.bytes', { count: bytes });
   }
 };
+
+/** A plain download row is its own key; a group row is given `[[key, ids]]`. */
+const asRow = (row: RowSelectionTarget): SelectableRow =>
+  typeof row === 'string' ? { key: row, ids: [row] } : row;
+
+/** A row counts as checked only once every download it stands for is selected. */
+const isRowChecked = (row: SelectableRow, selected: Set<string>): boolean =>
+  row.ids.length > 0 && row.ids.every((id) => selected.has(id));
+
+/**
+ * New selection after a row checkbox / row click.
+ *
+ * A plain click toggles just that row. A shift-click (caller passes the rows
+ * currently on screen, in display order) applies the same thing you just did
+ * to the whole range between the previously clicked row (`anchorKey`) and
+ * this one: if that click checked the anchor, the range is checked; if it
+ * unchecked it, the range is unchecked. Rows outside the range are never
+ * touched.
+ *
+ * Rows that stand for several downloads — a subscription or website group,
+ * which the table draws as one collapsed row — take part as a single unit:
+ * one entry in the range, all of its downloads selected together. Callers
+ * with only plain rows can pass bare download ids.
+ */
+export function resolveRowSelection(
+  selectedIds: string[],
+  clicked: RowSelectionTarget,
+  orderedRows?: RowSelectionTarget[],
+  anchorKey?: string | null,
+): string[] {
+  const clickedRow = asRow(clicked);
+  const selectedSet = new Set(selectedIds);
+
+  if (orderedRows && anchorKey && anchorKey !== clickedRow.key) {
+    const rows = orderedRows.map(asRow);
+    const anchorIndex = rows.findIndex((r) => r.key === anchorKey);
+    const clickedIndex = rows.findIndex((r) => r.key === clickedRow.key);
+    if (anchorIndex !== -1 && clickedIndex !== -1) {
+      const range = rows
+        .slice(
+          Math.min(anchorIndex, clickedIndex),
+          Math.max(anchorIndex, clickedIndex) + 1,
+        )
+        .flatMap((r) => r.ids);
+
+      // to deselect range
+      if (!isRowChecked(rows[anchorIndex], selectedSet)) {
+        const dropped = new Set(range);
+        return selectedIds.filter((id) => !dropped.has(id));
+      }
+      return Array.from(new Set([...selectedIds, ...range]));
+    }
+  }
+
+  if (isRowChecked(clickedRow, selectedSet)) {
+    const dropped = new Set(clickedRow.ids);
+    return selectedIds.filter((id) => !dropped.has(id));
+  }
+  return Array.from(new Set([...selectedIds, ...clickedRow.ids]));
+}
 
 /** Item shape needed for sort comparison */
 export interface SortableDownloadItem {
@@ -116,6 +180,40 @@ export function sortDownloadsByColumn<T extends SortableDownloadItem>(
           : new Date(b.DateAdded).getTime() - new Date(a.DateAdded).getTime();
     }
   });
+}
+
+export interface MetadataFetchProgress {
+  /** Items still waiting on (or running) their metadata fetch. */
+  pending: number;
+  /** Items in the same run that already resolved. */
+  done: number;
+  total: number;
+}
+
+/**
+ * Progress of the in-flight metadata resolution, or null when nothing is
+ * fetching. Playlist entries carry a batch id, which gives a real denominator
+ * ("42 of 100"); one-off pastes have no batch, so they only contribute their
+ * own pending count.
+ */
+export function getMetadataFetchProgress(
+  forDownloads: Array<{ status: string; playlistBatchId?: string }>,
+): MetadataFetchProgress | null {
+  const isPending = (d: { status: string }) => d.status === 'fetching metadata';
+  if (!forDownloads.some(isPending)) return null;
+
+  const activeBatchIds = new Set(
+    forDownloads
+      .filter((d) => isPending(d) && d.playlistBatchId)
+      .map((d) => d.playlistBatchId as string),
+  );
+
+  const scoped = forDownloads.filter((d) =>
+    d.playlistBatchId ? activeBatchIds.has(d.playlistBatchId) : isPending(d),
+  );
+
+  const pending = scoped.filter(isPending).length;
+  return { pending, done: scoped.length - pending, total: scoped.length };
 }
 
 /** Status mapping for URL parameters to actual status values */

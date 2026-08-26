@@ -243,6 +243,7 @@ const TaskbarInputField = () => {
       setVideoUrl(cleanedUrl);
       return 'video';
     }
+
     return 'video';
   };
 

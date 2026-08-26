@@ -189,7 +189,16 @@
       "stopAll": "すべて停止",
       "generateCaptions": "字幕を生成",
       "generateCaptionsDisabled": "字幕のない完了済み動画を選択して字幕を生成してください",
-      "remove": "削除"
+      "remove": "削除",
+      "bulkTag": "選択したダウンロードにタグを付ける",
+      "bulkCategory": "選択したダウンロードを分類する"
+    },
+    "bulkMenu": {
+      "addNewTag": "新しいタグを追加...",
+      "addNewCategory": "新しいカテゴリを追加...",
+      "maxChars": "最大{{max}}文字",
+      "noTags": "タグがまだありません",
+      "noCategories": "カテゴリがまだありません"
     },
     "toast": {
       "noDownloadsSelectedTitle": "ダウンロードが選択されていません",
@@ -231,10 +240,25 @@
       "batchCompleteTitle": "一括文字起こし完了",
       "batchCompleteDesc": "{{successCount}} 件成功、{{failCount}} 件失敗。",
       "selectOneTitle": "ダウンロードを1件選択",
-      "selectOneDesc": "リンクを取得するには1件のダウンロードを正確に選択してください"
+      "selectOneDesc": "リンクを取得するには1件のダウンロードを正確に選択してください",
+      "bulkNoTargetsDesc": "選択した項目にはタグやカテゴリを設定できません",
+      "duplicateTagTitle": "タグの重複",
+      "duplicateTagDesc": "タグ「{{value}}」は既に存在します。",
+      "duplicateCategoryTitle": "カテゴリの重複",
+      "duplicateCategoryDesc": "カテゴリ「{{value}}」は既に存在します。",
+      "bulkTagAppliedTitle": "タグを適用しました",
+      "bulkTagAppliedDesc": "タグ「{{value}}」を{{count}}件のダウンロードに追加しました。",
+      "bulkTagRemovedTitle": "タグを削除しました",
+      "bulkTagRemovedDesc": "タグ「{{value}}」を{{count}}件のダウンロードから削除しました。",
+      "bulkCategoryAppliedTitle": "カテゴリを適用しました",
+      "bulkCategoryAppliedDesc": "カテゴリ「{{value}}」を{{count}}件のダウンロードに追加しました。",
+      "bulkCategoryRemovedTitle": "カテゴリを削除しました",
+      "bulkCategoryRemovedDesc": "カテゴリ「{{value}}」を{{count}}件のダウンロードから削除しました。"
     },
     "settingsButton": "設定",
-    "deleteLabel": "削除"
+    "deleteLabel": "削除",
+    "tagLabel": "タグ",
+    "categoryLabel": "カテゴリ"
   },
   "removeModal": {
     "title": "選択したアイテムを削除",

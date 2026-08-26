@@ -38,3 +38,8 @@ declare module '*.avif' {
   const src: string;
   export default src;
 }
+
+// Build-time constants injected by Vite `define` (see vite.renderer.config.ts
+// and vite.main.config.ts). All default to empty string when the corresponding
+// environment variable is unset — see .env.example.
+declare const __TELEMETRY_ENDPOINT__: string;

@@ -1,7 +1,7 @@
 /* Handler for window behavior of base app such as closing, minimizing, maximizing, etc. */
 
 import { BrowserWindow, ipcMain } from 'electron';
-import { logError, logInfo, logWarning } from '../../telemetry/otel-logs.js';
+import { logError, logInfo, logWarning } from '../../telemetry/otel-logs';
 /**
  * Handles the behavior of the base app such as closing, minimizing, maximizing, etc.
  * @param mainWindow - The main window of the base app

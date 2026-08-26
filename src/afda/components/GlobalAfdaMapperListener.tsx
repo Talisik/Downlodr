@@ -17,7 +17,7 @@ import type { MapperResult } from '@/afda/types/mapperTypes';
  * Instead this component resolves the analysis lifecycle and stashes the
  * result in afdaMapperStore; the modal consumes it whenever it is (re)mounted.
  */
-const GlobalAfdaMapperListener = () => {
+const GlobalAfdaMapperListener = (): null => {
   useEffect(() => {
     const bridge =
       typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;

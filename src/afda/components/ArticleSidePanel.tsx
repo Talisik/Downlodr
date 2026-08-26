@@ -1,6 +1,11 @@
 import { useAfdaStore } from '@/afda/store/afdaStore';
 import { formatArticleSections } from '@/afda/utils/articleFormatter';
-import React from 'react';
+import {
+  getMissingAddonMessage,
+  isMissingHandlerError,
+  openAddonManager,
+} from '@/core-app/utils/missingAddonError';
+import React, { useEffect } from 'react';
 import { IoPersonCircleSharp } from 'react-icons/io5';
 import { LuCopy, LuDot } from 'react-icons/lu';
 import { FaFacebook } from 'react-icons/fa';
@@ -21,6 +26,12 @@ const ArticleSidePanel: React.FC<ArticleSidePanelProps> = ({
   const articleError = useAfdaStore((state) => state.articleError);
   const articleUrl = useAfdaStore((state) => state.articleUrl);
   const close = useAfdaStore((state) => state.close);
+
+  useEffect(() => {
+    if (isMissingHandlerError(articleError?.article_error_status)) {
+      openAddonManager('afda');
+    }
+  }, [articleError]);
 
   const handleClose = () => {
     close();
@@ -268,7 +279,9 @@ const ArticleSidePanel: React.FC<ArticleSidePanelProps> = ({
               Parse error
             </p>
             <p className="text-xs text-red-500 dark:text-red-300">
-              {articleError.article_error_status ?? 'Unknown error'}
+              {isMissingHandlerError(articleError.article_error_status)
+                ? getMissingAddonMessage('afda')
+                : articleError.article_error_status ?? 'Unknown error'}
             </p>
           </div>
         )}

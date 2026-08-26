@@ -189,7 +189,16 @@
       "stopAll": "全部停止",
       "generateCaptions": "生成字幕",
       "generateCaptionsDisabled": "选择无字幕的已完成视频以生成字幕",
-      "remove": "移除"
+      "remove": "移除",
+      "bulkTag": "为所选下载添加标签",
+      "bulkCategory": "为所选下载设置分类"
+    },
+    "bulkMenu": {
+      "addNewTag": "添加新标签...",
+      "addNewCategory": "添加新分类...",
+      "maxChars": "最多 {{max}} 个字符",
+      "noTags": "暂无标签",
+      "noCategories": "暂无分类"
     },
     "toast": {
       "noDownloadsSelectedTitle": "未选择下载",
@@ -231,10 +240,25 @@
       "batchCompleteTitle": "批量字幕生成完成",
       "batchCompleteDesc": "{{successCount}} 个成功，{{failCount}} 个失败。",
       "selectOneTitle": "选择一个下载",
-      "selectOneDesc": "请选择一个下载以获取链接"
+      "selectOneDesc": "请选择一个下载以获取链接",
+      "bulkNoTargetsDesc": "所选项目均无法添加标签或分类",
+      "duplicateTagTitle": "标签重复",
+      "duplicateTagDesc": "标签“{{value}}”已存在。",
+      "duplicateCategoryTitle": "分类重复",
+      "duplicateCategoryDesc": "分类“{{value}}”已存在。",
+      "bulkTagAppliedTitle": "已应用标签",
+      "bulkTagAppliedDesc": "已将标签“{{value}}”添加到 {{count}} 个下载。",
+      "bulkTagRemovedTitle": "已移除标签",
+      "bulkTagRemovedDesc": "已从 {{count}} 个下载中移除标签“{{value}}”。",
+      "bulkCategoryAppliedTitle": "已应用分类",
+      "bulkCategoryAppliedDesc": "已将分类“{{value}}”添加到 {{count}} 个下载。",
+      "bulkCategoryRemovedTitle": "已移除分类",
+      "bulkCategoryRemovedDesc": "已从 {{count}} 个下载中移除分类“{{value}}”。"
     },
     "settingsButton": "设置",
-    "deleteLabel": "删除"
+    "deleteLabel": "删除",
+    "tagLabel": "标签",
+    "categoryLabel": "分类"
   },
   "removeModal": {
     "title": "移除选中的项目",

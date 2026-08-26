@@ -189,7 +189,16 @@
       "stopAll": "Alle stoppen",
       "generateCaptions": "Untertitel generieren",
       "generateCaptionsDisabled": "Abgeschlossene Videos ohne Untertitel auswählen, um Transkripte zu generieren",
-      "remove": "Entfernen"
+      "remove": "Entfernen",
+      "bulkTag": "Ausgewählte Downloads taggen",
+      "bulkCategory": "Ausgewählte Downloads kategorisieren"
+    },
+    "bulkMenu": {
+      "addNewTag": "Neuen Tag hinzufügen...",
+      "addNewCategory": "Neue Kategorie hinzufügen...",
+      "maxChars": "Max. {{max}} Zeichen",
+      "noTags": "Noch keine Tags",
+      "noCategories": "Noch keine Kategorien"
     },
     "toast": {
       "noDownloadsSelectedTitle": "Keine Downloads ausgewählt",
@@ -231,10 +240,25 @@
       "batchCompleteTitle": "Stapeltranskription abgeschlossen",
       "batchCompleteDesc": "{{successCount}} erfolgreich, {{failCount}} fehlgeschlagen.",
       "selectOneTitle": "Einen Download auswählen",
-      "selectOneDesc": "Bitte genau einen Download auswählen, um den Link zu erhalten"
+      "selectOneDesc": "Bitte genau einen Download auswählen, um den Link zu erhalten",
+      "bulkNoTargetsDesc": "Keines der ausgewählten Elemente kann getaggt oder kategorisiert werden",
+      "duplicateTagTitle": "Doppelter Tag",
+      "duplicateTagDesc": "Tag \"{{value}}\" existiert bereits.",
+      "duplicateCategoryTitle": "Doppelte Kategorie",
+      "duplicateCategoryDesc": "Kategorie \"{{value}}\" existiert bereits.",
+      "bulkTagAppliedTitle": "Tag angewendet",
+      "bulkTagAppliedDesc": "Tag \"{{value}}\" zu {{count}} Download(s) hinzugefügt.",
+      "bulkTagRemovedTitle": "Tag entfernt",
+      "bulkTagRemovedDesc": "Tag \"{{value}}\" von {{count}} Download(s) entfernt.",
+      "bulkCategoryAppliedTitle": "Kategorie angewendet",
+      "bulkCategoryAppliedDesc": "Kategorie \"{{value}}\" zu {{count}} Download(s) hinzugefügt.",
+      "bulkCategoryRemovedTitle": "Kategorie entfernt",
+      "bulkCategoryRemovedDesc": "Kategorie \"{{value}}\" von {{count}} Download(s) entfernt."
     },
     "settingsButton": "Einstellungen",
-    "deleteLabel": "Löschen"
+    "deleteLabel": "Löschen",
+    "tagLabel": "Tag",
+    "categoryLabel": "Kategorie"
   },
   "removeModal": {
     "title": "Ausgewähltes Element entfernen",

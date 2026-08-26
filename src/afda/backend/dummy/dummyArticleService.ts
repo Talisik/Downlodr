@@ -6,16 +6,25 @@
  * the same return signature so ArticleSidePanel needs no changes.
  */
 
-import { ArticleModel, ArticleErrorModel, ParserResult, isArticleModel } from '@/afda/backend/schema/articleSchema';
+import {
+  ArticleModel,
+  ArticleErrorModel,
+  ParserResult,
+  isArticleModel,
+} from '@/afda/backend/schema/articleSchema';
 import dummyData from './dummyArticle.json';
 
 /** Simulated network/parsing delay in ms */
 const SIMULATED_DELAY_MS = 1200;
 
 function normalizeManualArticle(article: any): ArticleModel {
-  const images = Array.isArray(article?.images) && article.images.length > 0
-    ? article.images.map((url: string) => ({ url, alt: null }))
-    : [{ url: '', alt: null }];
+  const images =
+    Array.isArray(article?.images) && article.images.length > 0
+      ? article.images.map((url: string) => ({
+          url,
+          alt: null as string | null,
+        }))
+      : [{ url: '', alt: null as string | null }];
 
   const sections = Array.isArray(article?.sections)
     ? article.sections.map((section: any) => ({
@@ -24,13 +33,13 @@ function normalizeManualArticle(article: any): ArticleModel {
       }))
     : [];
 
-  const authors = article?.author
-    ? [{ name: String(article.author) }]
-    : [];
+  const authors = article?.author ? [{ name: String(article.author) }] : [];
 
   return {
     article_title: article?.title ?? null,
-    article_publish_date: article?.publishedAt ? new Date(article.publishedAt) : null,
+    article_publish_date: article?.publishedAt
+      ? new Date(article.publishedAt)
+      : null,
     article_authors: authors,
     article_sections: sections,
     article_content: article?.bodyText ?? null,
@@ -61,14 +70,18 @@ function createParseError(message: string): ArticleErrorModel {
  */
 export async function fetchArticle(url: string): Promise<ParserResult> {
   if (!url.startsWith('http')) {
-    return createParseError(`Invalid URL: "${url}" must start with http or https`);
+    return createParseError(
+      `Invalid URL: "${url}" must start with http or https`,
+    );
   }
 
-  const bridgeParse = typeof window !== 'undefined' && window.afdaBridge?.parseArticle
-    ? window.afdaBridge.parseArticle(url)
-    : typeof window !== 'undefined' && window.afdaBridge?.manualArticles?.parse
-    ? window.afdaBridge.manualArticles.parse({ url })
-    : null;
+  const bridgeParse =
+    typeof window !== 'undefined' && window.afdaBridge?.parseArticle
+      ? window.afdaBridge.parseArticle(url)
+      : typeof window !== 'undefined' &&
+        window.afdaBridge?.manualArticles?.parse
+      ? window.afdaBridge.manualArticles.parse({ url })
+      : null;
 
   if (bridgeParse) {
     try {
@@ -77,7 +90,9 @@ export async function fetchArticle(url: string): Promise<ParserResult> {
       if (result && typeof result === 'object') {
         if ('error' in result && result.error) {
           const errorInfo = result.error as { message?: string; code?: string };
-          return createParseError(errorInfo.message ?? String(errorInfo.code ?? 'Unknown error'));
+          return createParseError(
+            errorInfo.message ?? String(errorInfo.code ?? 'Unknown error'),
+          );
         }
 
         if ('article' in result && result.article) {

@@ -174,14 +174,14 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
   const { t } = useTranslation('downlodr');
   const searchQuery = useTaskbarDownloadStore((s) => s.searchState.searchQuery);
 
-  const handleRowClick = () => {
+  const handleRowClick = (e: React.MouseEvent) => {
     console.log(
       `[StatusPageTableRow] Selected: "${
         download.displayName || download.name
       }" | Status: ${download.status}`,
     );
     onRowClick();
-    onCheckboxChange();
+    onCheckboxChange(e.shiftKey);
   };
 
   return (
@@ -203,6 +203,10 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
       }`}
       onContextMenu={(e) => onContextMenu(e, download)}
       onClick={handleRowClick}
+      // Shift-click otherwise highlights the text between the two rows.
+      onMouseDown={(e) => {
+        if (e.shiftKey) e.preventDefault();
+      }}
       data-download-id={download.id}
       draggable={true}
       onDragStart={(e) => {
@@ -220,9 +224,12 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
           type="checkbox"
           className="ml-2 mt-1 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-500"
           checked={isChecked}
-          onChange={(e) => {
+          onChange={() => {
+            /* handled via onClick, which carries the shift modifier */
+          }}
+          onClick={(e) => {
             e.stopPropagation();
-            onCheckboxChange();
+            onCheckboxChange(e.shiftKey);
           }}
         />
       </td>
@@ -785,6 +792,30 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                     </TooltipTrigger>
                     <TooltipContent side="left" className="p-2">
                       <div className="space-y-1 text-xs">
+                        {hiddenColumnIds.includes('status') && (
+                          <div className="flex gap-4 justify-between">
+                            <span className="text-gray-400">Status</span>
+                            <span className="font-medium capitalize">
+                              {download.status}
+                            </span>
+                          </div>
+                        )}
+                        {hiddenColumnIds.includes('size') && (
+                          <div className="flex gap-4 justify-between">
+                            <span className="text-gray-400">Size</span>
+                            <span className="font-medium">
+                              {formatFileSize(download.size)}
+                            </span>
+                          </div>
+                        )}
+                        {hiddenColumnIds.includes('format') && (
+                          <div className="flex gap-4 justify-between">
+                            <span className="text-gray-400">Format</span>
+                            <span className="font-medium">
+                              {download.ext || download.audioExt || '—'}
+                            </span>
+                          </div>
+                        )}
                         {hiddenColumnIds.includes('speed') && (
                           <div className="flex gap-4 justify-between">
                             <span className="text-gray-400">Speed</span>

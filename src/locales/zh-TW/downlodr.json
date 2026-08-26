@@ -189,7 +189,16 @@
       "stopAll": "全部停止",
       "generateCaptions": "產生字幕",
       "generateCaptionsDisabled": "選擇無字幕的已完成影片以產生逐字稿",
-      "remove": "移除"
+      "remove": "移除",
+      "bulkTag": "為所選下載加上標籤",
+      "bulkCategory": "為所選下載設定分類"
+    },
+    "bulkMenu": {
+      "addNewTag": "新增標籤...",
+      "addNewCategory": "新增分類...",
+      "maxChars": "最多 {{max}} 個字元",
+      "noTags": "尚無標籤",
+      "noCategories": "尚無分類"
     },
     "toast": {
       "noDownloadsSelectedTitle": "未選擇下載",
@@ -231,10 +240,25 @@
       "batchCompleteTitle": "批次字幕產生完成",
       "batchCompleteDesc": "{{successCount}} 個成功，{{failCount}} 個失敗。",
       "selectOneTitle": "選擇一個下載",
-      "selectOneDesc": "請選擇一個下載以取得連結"
+      "selectOneDesc": "請選擇一個下載以取得連結",
+      "bulkNoTargetsDesc": "所選項目皆無法加上標籤或分類",
+      "duplicateTagTitle": "標籤重複",
+      "duplicateTagDesc": "標籤「{{value}}」已存在。",
+      "duplicateCategoryTitle": "分類重複",
+      "duplicateCategoryDesc": "分類「{{value}}」已存在。",
+      "bulkTagAppliedTitle": "已套用標籤",
+      "bulkTagAppliedDesc": "已將標籤「{{value}}」加入 {{count}} 個下載。",
+      "bulkTagRemovedTitle": "已移除標籤",
+      "bulkTagRemovedDesc": "已從 {{count}} 個下載移除標籤「{{value}}」。",
+      "bulkCategoryAppliedTitle": "已套用分類",
+      "bulkCategoryAppliedDesc": "已將分類「{{value}}」加入 {{count}} 個下載。",
+      "bulkCategoryRemovedTitle": "已移除分類",
+      "bulkCategoryRemovedDesc": "已從 {{count}} 個下載移除分類「{{value}}」。"
     },
     "settingsButton": "設定",
-    "deleteLabel": "刪除"
+    "deleteLabel": "刪除",
+    "tagLabel": "標籤",
+    "categoryLabel": "分類"
   },
   "removeModal": {
     "title": "移除選取的項目",

@@ -27,6 +27,7 @@ import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
 import { useMainStore } from '@/core-app/store/mainStore';
 import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore';
 import { useSettingStore } from '@/core-app/store/settingsStore';
+import BulkTagCategoryMenu from '@/downlodr/components/base/BulkTagCategoryMenu';
 import TaskBarInputField from '@/downlodr/components/base/InputField/TaskbarInputField';
 import BulkTranscriptModal from '@/downlodr/components/modal/custom/BulkTranscriptModal';
 import RemoveModal from '@/downlodr/components/modal/custom/RemoveModal';
@@ -34,6 +35,7 @@ import StopModal from '@/downlodr/components/modal/custom/StopModal';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import { DownloadItem } from '@/downlodr/schema/componentSchema';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
+import { deletePerDownloadFolder } from '@/downlodr/utils/download/downloadFolder';
 import { maybeShowFormatHint } from '@/downlodr/utils/formatHint';
 import PluginToolbarExtension from '@/plugins/components/PluginTaskBarExtension';
 import React, { useState } from 'react';
@@ -200,6 +202,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
         );
 
         if (currentDownload?.status === 'paused') {
+          // Stop discards the record outright, so unlike Pause there is no
+          // Resume left to reuse the folder — it only holds `.part` files now.
+          await deletePerDownloadFolder(currentDownload);
           deleteDownloading(download.id);
           toast({
             variant: 'success',
@@ -208,6 +213,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
             duration: 5000,
           });
         } else if (currentForDownload?.status === 'to download') {
+          // Usually a no-op (the controller hasn't made a folder yet), but a
+          // retried download is re-queued with `location` already pointing at
+          // the folder its first attempt created.
+          await deletePerDownloadFolder(currentForDownload);
           removeFromForDownloads(download.id);
           toast({
             variant: 'success',
@@ -221,6 +230,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
               currentDownload.controllerId,
             );
             if (success) {
+              // Only after the kill resolves: trashing the folder while
+              // yt-dlp still holds a handle fails on Windows.
+              await deletePerDownloadFolder(currentDownload);
               deleteDownloading(download.id);
               toast({
                 variant: 'success',
@@ -263,17 +275,24 @@ const Toolbar: React.FC<ToolbarProps> = ({
       } = useDownloadStore.getState();
 
       // Handle all downloads in forDownloads
-      forDownloads.forEach((download) => {
+      for (const download of forDownloads) {
         if (download.status === 'to download') {
+          // Usually a no-op (the controller hasn't made a folder yet), but a
+          // retried download is re-queued with `location` already pointing at
+          // the folder its first attempt created.
+          await deletePerDownloadFolder(download);
           removeFromForDownloads(download.id);
         }
-      });
+      }
       setSelectedRowIds([]);
       setSelectedDownloads([]);
       // Handle all active downloads
       if (downloading && downloading.length > 0) {
         for (const download of downloading) {
           if (download.status === 'paused') {
+            // Stop discards the record outright, so unlike Pause there is no
+            // Resume left to reuse the folder — it only holds `.part` files.
+            await deletePerDownloadFolder(download);
             deleteDownloading(download.id);
             toast({
               variant: 'success',
@@ -287,6 +306,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 download.controllerId,
               );
               if (success) {
+                // Only after the kill resolves: trashing the folder while
+                // yt-dlp still holds a handle fails on Windows.
+                await deletePerDownloadFolder(download);
                 deleteDownloading(download.id);
                 toast({
                   variant: 'success',
@@ -369,8 +391,22 @@ const Toolbar: React.FC<ToolbarProps> = ({
       return;
     }
 
+    // Enqueue oldest-added first so the queue actually behaves FIFO.
+    // `selectedDownloads` follows the order rows were selected in, which for
+    // select-all is the *rendered* order — and the table defaults to
+    // dateAdded/desc (newest first). Feeding that straight into addQueue
+    // appended the newest item at the head of the queue, so the controller
+    // (which correctly pulls queuedDownloads[0]) started the last-added video
+    // first and the queue looked LIFO. Sorting by DateAdded here decouples
+    // enqueue order from however the user has the table sorted.
+    const queueOrder = [...uniqueDownloads].sort((a, b) => {
+      const timeA = new Date(a.download?.DateAdded ?? 0).getTime() || 0;
+      const timeB = new Date(b.download?.DateAdded ?? 0).getTime() || 0;
+      return timeA - timeB;
+    });
+
     // all downloads to queue - let the worker controller handle starting them
-    uniqueDownloads.forEach((selectedDownload) => {
+    queueOrder.forEach((selectedDownload) => {
       const downloadInfo = selectedDownload.download;
       const processedName = downloadInfo.name.replace(/[\\/:*?"<>|]/g, '_');
 
@@ -447,36 +483,45 @@ const Toolbar: React.FC<ToolbarProps> = ({
       removeFromQueue,
     } = useDownloadStore.getState();
 
+    // The rows in `selectedDownloads` are a projection, not the stored record:
+    // StatusPage builds their `location` by joining the name onto the store's
+    // directory, so it is a full file path, and `name`/`isCreateFolder` may be
+    // missing entirely. Folder decisions need the real record.
+    const findRecord = (downloadId: string) => {
+      const {
+        downloading: live,
+        finishedDownloads,
+        failedDownloads,
+        historyDownloads,
+      } = useDownloadStore.getState();
+      return (
+        live.find((d) => d.id === downloadId) ??
+        finishedDownloads.find((d) => d.id === downloadId) ??
+        failedDownloads.find((d) => d.id === downloadId) ??
+        historyDownloads.find((d) => d.id === downloadId)
+      );
+    };
+
+    // An unfinished download owns the folder the controller made for it, and
+    // that folder holds nothing but partial files — so it goes with the row.
+    const removeOwnFolder = async (downloadId: string) => {
+      const record = findRecord(downloadId);
+      if (record) await deletePerDownloadFolder(record);
+    };
+
     // Helper function to handle file deletion
     const deleteFileSafely = async (download: DownloadItem) => {
       try {
         let success = false;
-        if (deleteFolder && download.location) {
-          const folderExists = await window.downlodrFunctions.fileExists(
-            download.location,
-          );
-
-          if (!folderExists) {
-            deleteDownload(download.id);
-            toast({
-              variant: 'success',
-              title: t('toolbar.toast.downloadDeletedTitle'),
-              description: t('toolbar.toast.downloadDeletedDesc'),
-              duration: 5000,
-            });
-            return;
-          }
-          // Get the parent folder path using path.dirname equivalent
-          const folderPath = download.location.substring(
-            0,
-            download.location.lastIndexOf('/') > 0
-              ? download.location.lastIndexOf('/')
-              : download.location.lastIndexOf('\\'),
-          );
-
-          success = await window.downlodrFunctions.deleteFolder(folderPath);
-
-          if (success) {
+        // "Also delete folder" means the folder this download owns — never a
+        // directory it merely sits in. deletePerDownloadFolder checks that on
+        // the stored record (whose `location` is the directory) and declines
+        // for anything shared, e.g. a plugin's FormatConverter/ folder holding
+        // every conversion of one video. When it declines we fall through and
+        // delete just the file, so the row still goes away.
+        if (deleteFolder) {
+          const record = findRecord(download.id);
+          if (record && (await deletePerDownloadFolder(record))) {
             deleteDownload(download.id);
             toast({
               variant: 'success',
@@ -484,34 +529,26 @@ const Toolbar: React.FC<ToolbarProps> = ({
               description: t('toolbar.toast.folderDeletedDesc'),
               duration: 5000,
             });
-          } else {
-            toast({
-              variant: 'destructive',
-              title: t('toolbar.toast.folderDeleteErrorTitle'),
-              description: t('toolbar.toast.folderDeleteErrorDesc'),
-              duration: 5000,
-            });
+            return;
           }
-        } else {
-          // Original file deletion logic
-          success = await window.downlodrFunctions.deleteFile(
-            download.location,
-          );
-
-          // Whether or not the file itself was on disk, the user asked to
-          // delete this download, so the log always goes away.
-          deleteDownload(download.id);
-          toast({
-            variant: 'success',
-            title: success
-              ? t('toolbar.toast.fileDeletedTitle')
-              : t('toolbar.toast.downloadDeletedTitle'),
-            description: success
-              ? t('toolbar.toast.fileDeletedDesc')
-              : t('toolbar.toast.downloadDeletedDesc'),
-            duration: 5000,
-          });
         }
+
+        // `download.location` is the full file path here (see findRecord).
+        success = await window.downlodrFunctions.deleteFile(download.location);
+
+        // Whether or not the file itself was on disk, the user asked to
+        // delete this download, so the log always goes away.
+        deleteDownload(download.id);
+        toast({
+          variant: 'success',
+          title: success
+            ? t('toolbar.toast.fileDeletedTitle')
+            : t('toolbar.toast.downloadDeletedTitle'),
+          description: success
+            ? t('toolbar.toast.fileDeletedDesc')
+            : t('toolbar.toast.downloadDeletedDesc'),
+          duration: 5000,
+        });
       } catch (error) {
         deleteDownload(download.id);
         toast({
@@ -560,8 +597,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
         continue;
       }
 
-      // Handle failed downloads - just remove from list since no file was created
+      // Handle failed downloads - no final file was produced, but the folder
+      // and any partial files it holds still need to go.
       if (download.status === 'failed') {
+        await removeOwnFolder(download.id);
         deleteDownload(download.id);
         toast({
           variant: 'success',
@@ -585,6 +624,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           currentDownload?.status === 'paused' ||
           currentDownload?.status === 'initializing'
         ) {
+          await deletePerDownloadFolder(currentDownload);
           deleteDownloading(download.id);
           toast({
             variant: 'success',
@@ -871,6 +911,15 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   </div>
                 </TooltipWrapper>
               )}
+              {selectedDownloads.length > 0 &&
+                (location.pathname.includes('/status/') ||
+                  location.pathname.includes('/tags/') ||
+                  location.pathname.includes('/category/')) && (
+                  <>
+                    <BulkTagCategoryMenu mode="tag" />
+                    <BulkTagCategoryMenu mode="category" />
+                  </>
+                )}
               {selectedDownloads.length > 0 &&
                 (location.pathname.includes('/status/') ||
                   location.pathname.includes('/tags/') ||

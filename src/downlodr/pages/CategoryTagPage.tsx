@@ -33,8 +33,12 @@ import {
 import { StatusPageTableHeader } from '@/downlodr/pages/status/StatusPageTableHeader';
 import { StatusPageTableRow } from '@/downlodr/pages/status/StatusPageTableRow';
 import type { DisplayColumn } from '@/downlodr/pages/status/statusPageTypes';
-import { getColumnOptions } from '@/downlodr/pages/status/statusPageUtils';
+import {
+  getColumnOptions,
+  resolveRowSelection,
+} from '@/downlodr/pages/status/statusPageUtils';
 import { StatusPageModals } from '@/downlodr/pages/status/StatusPageModals';
+import { deletePerDownloadFolder } from '@/downlodr/utils/download/downloadFolder';
 import { redownloadTranscript } from '@/downlodr/utils/transcription/ffmpegWhisperTranscriber';
 import SidePanels from '@/downlodr/components/panels/SidePanels';
 import { useSidePanels } from '@/downlodr/hooks/useSidePanels';
@@ -156,6 +160,8 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
 
   const [currentPage, setCurrentPage] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Last row clicked — the anchor a following shift-click ranges from.
+  const selectionAnchorRef = useRef<string | null>(null);
 
   const [videoPlayerState, setVideoPlayerState] = useState<{
     isOpen: boolean;
@@ -341,10 +347,14 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
     );
   };
 
-  const handleCheckboxChange = (downloadId: string) => {
-    const newSelected = globalSelectedRowIds.includes(downloadId)
-      ? globalSelectedRowIds.filter((id) => id !== downloadId)
-      : [...globalSelectedRowIds, downloadId];
+  const handleCheckboxChange = (downloadId: string, shiftKey?: boolean) => {
+    const newSelected = resolveRowSelection(
+      globalSelectedRowIds,
+      downloadId,
+      shiftKey ? visiblePageIds : undefined,
+      selectionAnchorRef.current,
+    );
+    selectionAnchorRef.current = downloadId;
     useSelectedDownloadStore.getState().setSelectedRowIds(newSelected);
     buildSelectionPayload(newSelected).then((data) =>
       useSelectedDownloadStore.getState().setSelectedDownloads(data),
@@ -641,7 +651,9 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
         inputFile: inputLocation,
         outputFile: outputLocation,
         modelPath: 'ggml-small.bin',
-        language: 'en',
+        // 'auto', not 'en': forcing English makes Whisper *translate* non-English
+        // audio into English rather than transcribe it in its own language.
+        language: 'auto',
         format: 'srt',
       });
       toast({
@@ -686,7 +698,7 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
   // ── stop / force-start ───────────────────────────────────────────────────
 
   const handleStop = useCallback(
-    (
+    async (
       downloadId: string,
       _downloadLocation?: string,
       _controllerId?: string,
@@ -702,6 +714,9 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
       const currentForDownload = forDownloads.find((d) => d.id === downloadId);
 
       if (currentDownload?.status === 'paused') {
+        // Stop discards the record outright, so unlike Pause there is no
+        // Resume left to reuse the folder — it only holds `.part` files now.
+        await deletePerDownloadFolder(currentDownload);
         deleteDownloading(downloadId);
         toast({
           variant: 'success',
@@ -710,6 +725,10 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
           duration: 5000,
         });
       } else if (currentForDownload?.status === 'to download') {
+        // Usually a no-op (the controller hasn't made a folder yet), but a
+        // retried download is re-queued with `location` already pointing at
+        // the folder its first attempt created.
+        await deletePerDownloadFolder(currentForDownload);
         removeFromForDownloads(downloadId);
         processQueue();
         toast({
@@ -723,8 +742,11 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
         if (cid && cid !== '---') {
           window.ytdlp
             .killController(cid)
-            .then((result) => {
+            .then(async (result) => {
               if (result) {
+                // Only after the kill resolves: trashing the folder while
+                // yt-dlp still holds a handle fails on Windows.
+                await deletePerDownloadFolder(currentDownload);
                 deleteDownloading(downloadId);
                 processQueue();
                 toast({
@@ -841,6 +863,9 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
         dl.status === 'to download' ||
         ['cancelled', 'paused', 'failed'].includes(dl.status)
       ) {
+        // Unfinished download: its own folder holds nothing but partial
+        // files, so it goes with the row.
+        await deletePerDownloadFolder(dl);
         deleteDownload(downloadId);
         processQueue();
         toast({
@@ -911,6 +936,11 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
             });
           }
         } else {
+          // A download stopped mid-flight has no final file yet, only
+          // `.part` files inside the folder it owns — drop the whole folder.
+          if (dl.status !== 'finished') {
+            await deletePerDownloadFolder(dl);
+          }
           // Whether or not the file itself was on disk, the user asked to
           // delete this download, so the log always goes away.
           await window.downlodrFunctions.deleteFile(downloadLocation);
@@ -1233,8 +1263,8 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
                         handlers={{
                           onContextMenu: handleContextMenu,
                           onRowClick: () => handleRowClick(download.id),
-                          onCheckboxChange: () =>
-                            handleCheckboxChange(download.id),
+                          onCheckboxChange: (shiftKey) =>
+                            handleCheckboxChange(download.id, shiftKey),
                           onViewFile: handleViewFile,
                           onViewDownload: handleViewDownload,
                           onViewFolder: handleViewFolder,

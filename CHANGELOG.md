@@ -60,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed missing imports and store mismatches from the Smart Organize integration.
 - Fixed icon mappers crashing on undefined `extractorKey`/status values.
 - Fixed Skedulosa delete resolving the wrong channel or website when IDs collided across data sources.
+
 ## [1.9.14-exp-playground] - develop branch - 2026-04-27
 
 ### Added

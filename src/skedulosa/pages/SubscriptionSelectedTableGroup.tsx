@@ -28,6 +28,7 @@ import {
 } from '@/downlodr/pages/status/statusPageUtils';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
+import { deletePerDownloadFolder } from '@/downlodr/utils/download/downloadFolder';
 import { enqueueTranscript } from '@/downlodr/utils/transcription/transcriptQueue';
 import { usePluginStore } from '@/plugins/store/pluginStore';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
@@ -798,7 +799,16 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
 
     setSelectedRowIds([]);
 
-    for (const d of toQueue) {
+    // Enqueue oldest-added first. `downloads` is the rendered list, which
+    // defaults to dateAdded/desc — enqueuing in that order put the newest item
+    // at the head of the FIFO queue and made downloads start newest-first.
+    const queueOrder = [...toQueue].sort((a, b) => {
+      const timeA = new Date(a.DateAdded ?? 0).getTime() || 0;
+      const timeB = new Date(b.DateAdded ?? 0).getTime() || 0;
+      return timeA - timeB;
+    });
+
+    for (const d of queueOrder) {
       const processedName = d.name.replace(/[\\/:*?"<>|]/g, '_');
       addQueue({
         subscriptionId: d.subscriptionId,
@@ -913,14 +923,23 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
         (d) => d.id === downloadId,
       );
 
+      // Stop discards the record outright, so unlike Pause there is no Resume
+      // left to reuse a per-download folder — it only holds `.part` files now.
+      // The folder always goes after the kill resolves: trashing it while
+      // yt-dlp still holds a handle fails on Windows.
       if (currentDownload?.status === 'paused') {
+        await deletePerDownloadFolder(currentDownload);
         deleteDownloading(downloadId);
       } else if (currentForDownload?.status === 'to download') {
+        await deletePerDownloadFolder(currentForDownload);
         removeFromForDownloads(downloadId);
       } else if (controllerId) {
         try {
           const success = await window.ytdlp.killController(controllerId);
-          if (success) deleteDownloading(downloadId);
+          if (success) {
+            await deletePerDownloadFolder(currentDownload);
+            deleteDownloading(downloadId);
+          }
         } catch {
           /* ignore */
         }
@@ -929,7 +948,10 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
           const success = await window.ytdlp.killController(
             currentDownload.controllerId,
           );
-          if (success) deleteDownloading(downloadId);
+          if (success) {
+            await deletePerDownloadFolder(currentDownload);
+            deleteDownloading(downloadId);
+          }
         } catch {
           /* ignore */
         }
@@ -944,15 +966,20 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
         const currentForDownload = currentForDownloads.find((d) => d.id === id);
 
         if (currentDownload?.status === 'paused') {
+          await deletePerDownloadFolder(currentDownload);
           deleteDownloading(id);
         } else if (currentForDownload?.status === 'to download') {
+          await deletePerDownloadFolder(currentForDownload);
           removeFromForDownloads(id);
         } else if (currentDownload?.controllerId) {
           try {
             const success = await window.ytdlp.killController(
               currentDownload.controllerId,
             );
-            if (success) deleteDownloading(id);
+            if (success) {
+              await deletePerDownloadFolder(currentDownload);
+              deleteDownloading(id);
+            }
           } catch {
             /* ignore */
           }
@@ -962,22 +989,26 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
     } else if (stopAction === 'all') {
       const subscriptionDownloadIds = new Set(downloads.map((d) => d.id));
 
-      currentForDownloads
-        .filter(
-          (d) =>
-            subscriptionDownloadIds.has(d.id) && d.status === 'to download',
-        )
-        .forEach((d) => removeFromForDownloads(d.id));
+      for (const d of currentForDownloads.filter(
+        (d) => subscriptionDownloadIds.has(d.id) && d.status === 'to download',
+      )) {
+        await deletePerDownloadFolder(d);
+        removeFromForDownloads(d.id);
+      }
 
       for (const dl of currentDownloading.filter((d) =>
         subscriptionDownloadIds.has(d.id),
       )) {
         if (dl.status === 'paused') {
+          await deletePerDownloadFolder(dl);
           deleteDownloading(dl.id);
         } else if (dl.controllerId) {
           try {
             const success = await window.ytdlp.killController(dl.controllerId);
-            if (success) deleteDownloading(dl.id);
+            if (success) {
+              await deletePerDownloadFolder(dl);
+              deleteDownloading(dl.id);
+            }
           } catch {
             /* ignore */
           }

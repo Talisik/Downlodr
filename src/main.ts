@@ -63,6 +63,7 @@ let forceQuit = false;
 let appCleanup: (() => void) | null = null;
 let extensionServer: http.Server | null = null;
 
+
 // Function to create the main application window
 const createWindow = async () => {
   // Create the browser window.
@@ -110,6 +111,7 @@ const createWindow = async () => {
       callback({ responseHeaders });
     },
   );
+
   const { cleanup } = await registerMainIpcHandlers(mainWindow, {
     tray: {
       onBeforeQuit: () => {
@@ -121,6 +123,7 @@ const createWindow = async () => {
   appCleanup = cleanup;
 
   startMcpBridgeServer();
+
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
     // Only open DevTools in development
@@ -159,6 +162,7 @@ const createWindow = async () => {
   mainWindow.webContents.on('will-navigate', (event, url) => {
     event.preventDefault();
   });
+
 };
 
 process.on('unhandledRejection', (reason) => {

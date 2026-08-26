@@ -130,7 +130,6 @@ async function ensureFfmpegOnPath(): Promise<void> {
   process.env.PATH = `${pathAdditionDir}${path.delimiter}${existingPath}`;
  }
 }
-
 /**
  * Retries an fs/download operation while Windows reports the yt-dlp binary
  * as locked. The lock holder is usually the `--version` probe that

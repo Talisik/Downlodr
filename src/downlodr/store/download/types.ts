@@ -35,11 +35,11 @@ export interface BaseDownload {
   ext: string; // File extension of the download
   controllerId?: string; // ID of the download controller
   tags: string[]; // Tags associated with the download
-  tagSource?: Record<string, 'manual' | 'tier1' | 'tier2'>; // auto-tag: lowercased tag -> source tier (see src/auto-tag)
-  nativeCategory?: string; // auto-tag: native source category (e.g. yt-dlp "Music") — used for routing
-  musicArtist?: string; // auto-tag: yt-dlp artist (music route)
-  musicTrack?: string; // auto-tag: yt-dlp track (music route)
-  musicAlbum?: string; // auto-tag: yt-dlp album (music route)
+  tagSource?: Record<string, 'manual' | 'tier1' | 'tier2'>; // lowercased tag -> source tier
+  nativeCategory?: string; // native source category from yt-dlp (e.g. "Music")
+  musicArtist?: string; // yt-dlp artist
+  musicTrack?: string; // yt-dlp track
+  musicAlbum?: string; // yt-dlp album
   category: string[]; // Categories associated with the download
   extractorKey: string; // Key for the extractor used
   formatId: string; // ID of the selected format

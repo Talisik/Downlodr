@@ -17,11 +17,12 @@ const RemoveModal: React.FC<RemoveModalProps> = ({
 }) => {
   const { t } = useTranslation('downlodr');
   const { t: tc } = useTranslation('common');
-  const [deleteFolder, setDeleteFolder] = useState(false);
+  // Checked by default — the user must opt out to keep the folder
+  const [deleteFolder, setDeleteFolder] = useState(allowFolderDeletion);
 
   useEffect(() => {
-    if (isOpen) setDeleteFolder(false);
-  }, [isOpen]);
+    if (isOpen) setDeleteFolder(allowFolderDeletion);
+  }, [isOpen, allowFolderDeletion]);
 
   return (
     <BaseModal

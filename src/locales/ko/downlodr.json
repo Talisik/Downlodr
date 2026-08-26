@@ -189,7 +189,16 @@
       "stopAll": "모두 중지",
       "generateCaptions": "자막 생성",
       "generateCaptionsDisabled": "자막 없이 완료된 동영상을 선택하여 자막을 생성하세요",
-      "remove": "제거"
+      "remove": "제거",
+      "bulkTag": "선택한 다운로드에 태그 지정",
+      "bulkCategory": "선택한 다운로드 분류"
+    },
+    "bulkMenu": {
+      "addNewTag": "새 태그 추가...",
+      "addNewCategory": "새 카테고리 추가...",
+      "maxChars": "최대 {{max}}자",
+      "noTags": "아직 태그가 없습니다",
+      "noCategories": "아직 카테고리가 없습니다"
     },
     "toast": {
       "noDownloadsSelectedTitle": "선택된 다운로드 없음",
@@ -231,10 +240,25 @@
       "batchCompleteTitle": "일괄 자막 생성 완료",
       "batchCompleteDesc": "{{successCount}}개 성공, {{failCount}}개 실패.",
       "selectOneTitle": "다운로드 하나 선택",
-      "selectOneDesc": "링크를 가져오려면 정확히 하나의 다운로드를 선택하세요"
+      "selectOneDesc": "링크를 가져오려면 정확히 하나의 다운로드를 선택하세요",
+      "bulkNoTargetsDesc": "선택한 항목 중 태그나 카테고리를 지정할 수 있는 항목이 없습니다",
+      "duplicateTagTitle": "중복된 태그",
+      "duplicateTagDesc": "\"{{value}}\" 태그가 이미 존재합니다.",
+      "duplicateCategoryTitle": "중복된 카테고리",
+      "duplicateCategoryDesc": "\"{{value}}\" 카테고리가 이미 존재합니다.",
+      "bulkTagAppliedTitle": "태그 적용됨",
+      "bulkTagAppliedDesc": "\"{{value}}\" 태그를 {{count}}개 다운로드에 추가했습니다.",
+      "bulkTagRemovedTitle": "태그 제거됨",
+      "bulkTagRemovedDesc": "\"{{value}}\" 태그를 {{count}}개 다운로드에서 제거했습니다.",
+      "bulkCategoryAppliedTitle": "카테고리 적용됨",
+      "bulkCategoryAppliedDesc": "\"{{value}}\" 카테고리를 {{count}}개 다운로드에 추가했습니다.",
+      "bulkCategoryRemovedTitle": "카테고리 제거됨",
+      "bulkCategoryRemovedDesc": "\"{{value}}\" 카테고리를 {{count}}개 다운로드에서 제거했습니다."
     },
     "settingsButton": "설정",
-    "deleteLabel": "삭제"
+    "deleteLabel": "삭제",
+    "tagLabel": "태그",
+    "categoryLabel": "카테고리"
   },
   "removeModal": {
     "title": "선택한 항목 제거",

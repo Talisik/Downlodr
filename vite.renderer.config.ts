@@ -23,11 +23,12 @@ export default defineConfig(({ mode }) => {
         plugins: [require('tailwindcss'), require('autoprefixer')],
       },
     },
-    // Make environment variables available to the renderer process
+    // Make environment variables available to the renderer process.
+    // Service endpoints and credentials default to empty: the features that
+    // use them degrade to a clear "not configured" error rather than shipping
+    // a hostname or key in the bundle. See .env.example.
     define: {
-      __TELEMETRY_ENDPOINT__: JSON.stringify(
-        env.VITE_TELEMETRY_ENDPOINT || 'https://endpoint',
-      ),
+      __TELEMETRY_ENDPOINT__: JSON.stringify(env.VITE_TELEMETRY_ENDPOINT || ''),
       __TELEMETRY_TIMEOUT__: JSON.stringify(
         env.VITE_TELEMETRY_TIMEOUT || '30000',
       ),

@@ -166,21 +166,15 @@ export const trayHandler = (
           }
         },
       },
-      // Store builds are updated by the Microsoft Store, so the manual check
-      // would always be a no-op — leave the entry out entirely.
-      ...(process.windowsStore
-        ? []
-        : [
-            {
-              label: 'Check for Updates',
-              click: async () => {
-                const updateInfo = await checkForUpdates();
-                if (updateInfo.hasUpdate && mainWindow) {
-                  mainWindow.webContents.send('update-available', updateInfo);
-                }
-              },
-            },
-          ]),
+      {
+        label: 'Check for Updates',
+        click: async () => {
+          const updateInfo = await checkForUpdates();
+          if (updateInfo.hasUpdate && mainWindow) {
+            mainWindow.webContents.send('update-available', updateInfo);
+          }
+        },
+      },
       { type: 'separator' },
       {
         label: 'Quit',

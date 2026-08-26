@@ -1,4 +1,5 @@
 import BaseModal from '@/downlodr/components/modal/BaseModal';
+import { openAddonManager } from '@/core-app/utils/missingAddonError';
 import { initialScrapeGuard } from '@/afda/hooks/initialScrapeGuard';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -438,6 +439,7 @@ const AfdaAddWebsiteModal = ({
     const bridge =
       typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
     if (!bridge) {
+      openAddonManager('afda');
       setErrorMsg(
         'Article Fetcher is not available. Install it from Add-ons, then try again.',
       );
@@ -655,6 +657,7 @@ const AfdaAddWebsiteModal = ({
     const bridge =
       typeof window !== 'undefined' ? (window as any).afdaBridge : undefined;
     if (!bridge) {
+      openAddonManager('afda');
       setErrorMsg('Article Fetcher is not available. Please restart Downlodr.');
       setPhase('error');
       return;
