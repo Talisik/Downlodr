@@ -18,12 +18,33 @@ else
     echo "⚠️  .env file not found"
 fi
 
-# Check environment variables
+# Check environment variables. Notarization credentials are required unless
+# the caller explicitly opts into an unnotarized local/dev build — an
+# unnotarized DMG is rejected by Gatekeeper (spctl) on any Mac other than the
+# one that built it, so silently shipping one is a distribution bug, not a
+# degraded-but-usable artifact.
 if [ -z "$APPLE_IDENTITY" ]; then
     echo "❌ APPLE_IDENTITY environment variable is not set"
     echo "Please check your .env file contains:"
     echo "APPLE_IDENTITY=\"Developer ID Application: Your Name (TEAMID)\""
     exit 1
+fi
+
+if [ -z "$ALLOW_UNNOTARIZED" ]; then
+    missing_notarization_vars=0
+    for var in APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+        if [ -z "${!var}" ]; then
+            echo "❌ $var environment variable is not set (required for notarization)"
+            missing_notarization_vars=1
+        fi
+    done
+    if [ "$missing_notarization_vars" -ne 0 ]; then
+        echo "Notarization credentials are required for a distributable build."
+        echo "Set APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID in .env,"
+        echo "or set ALLOW_UNNOTARIZED=1 to explicitly build a local-only,"
+        echo "non-distributable DMG (it will be rejected by Gatekeeper on other Macs)."
+        exit 1
+    fi
 fi
 
 # Check if create-dmg is installed (prefer npm version 7.0.0)
@@ -208,16 +229,21 @@ else
 fi
 echo ""
 
-# Step 5: Submit DMG for notarization (non-fatal). A code-signed DMG is a valid
-# build artifact on its own; notarization additionally requires a current Apple
-# Developer Program License Agreement, which is an account-side prerequisite.
-echo "🍎 Step 5: Submitting DMG for notarization..."
-if xcrun notarytool submit "$DMG_PATH" \
+# Step 5: Submit DMG for notarization. Fatal by default — an unnotarized
+# signed DMG opens fine on this machine (no quarantine flag was ever set
+# here) but is rejected by Gatekeeper on every other Mac, so it is not a
+# usable distribution artifact. ALLOW_UNNOTARIZED=1 opts into a local-only
+# build and skips this step entirely.
+NOTARIZED=0
+if [ -n "$ALLOW_UNNOTARIZED" ]; then
+    echo "🍎 Step 5: Skipping notarization (ALLOW_UNNOTARIZED=1) — local-only build."
+elif xcrun notarytool submit "$DMG_PATH" \
     --apple-id "$APPLE_ID" \
     --password "$APPLE_APP_SPECIFIC_PASSWORD" \
     --team-id "$APPLE_TEAM_ID" \
     --wait; then
     echo "✅ DMG notarization successful"
+    NOTARIZED=1
 
     # Step 6: Staple the notarization ticket to DMG
     echo "📎 Step 6: Stapling notarization ticket to DMG..."
@@ -230,12 +256,25 @@ if xcrun notarytool submit "$DMG_PATH" \
         echo "⚠️  DMG stapling failed (Error 65 - sometimes normal); DMG is still notarized"
     fi
 else
-    echo "⚠️  DMG notarization FAILED — continuing with the signed (un-notarized) DMG."
-    echo "    This is typically an Apple Developer account issue (HTTP 403 = a required"
-    echo "    Program License Agreement must be accepted/renewed at"
-    echo "    https://developer.apple.com/account by the Account Holder)."
-    echo "    The signed DMG at $DMG_PATH is usable for validation; re-run once the"
-    echo "    agreement is in effect to produce a fully notarized build."
+    echo "❌ DMG notarization FAILED — this DMG will be rejected by Gatekeeper on"
+    echo "   any Mac other than this one and MUST NOT be distributed."
+    echo "   This is typically an Apple Developer account issue (HTTP 403 = a required"
+    echo "   Program License Agreement must be accepted/renewed at"
+    echo "   https://developer.apple.com/account by the Account Holder), or an expired"
+    echo "   app-specific password. Fix the underlying issue and re-run this script."
+    echo "   (Set ALLOW_UNNOTARIZED=1 only if you explicitly want a local-only build.)"
+    rm -f "$DMG_PATH"
+    exit 1
+fi
+
+# Final gate: verify Gatekeeper actually accepts the artifact we're about to
+# hand out, instead of trusting that notarytool/stapler succeeding implies it.
+if [ "$NOTARIZED" -eq 1 ]; then
+    if ! spctl --assess --verbose --type install "$DMG_PATH"; then
+        echo "❌ spctl rejects the notarized DMG — do not distribute this build."
+        exit 1
+    fi
+    echo "✅ spctl accepts the DMG for distribution"
 fi
 
 echo ""
@@ -249,11 +288,22 @@ echo "📊 File sizes:"
 ls -lh $APP_PATH
 ls -lh "$DMG_PATH"
 echo ""
-echo "✅ Ready for distribution!"
-echo ""
-echo "🔍 DMG Features:"
-echo "   • Custom app icon and volume name"
-echo "   • Drag & drop to Applications folder"
-echo "   • Professional window layout (800x550)"
-echo "   • Code signed and notarized"
-echo "   • Gatekeeper approved"
+if [ "$NOTARIZED" -eq 1 ]; then
+    echo "✅ Ready for distribution!"
+    echo ""
+    echo "🔍 DMG Features:"
+    echo "   • Custom app icon and volume name"
+    echo "   • Drag & drop to Applications folder"
+    echo "   • Professional window layout (800x550)"
+    echo "   • Code signed and notarized"
+    echo "   • Gatekeeper approved"
+else
+    echo "⚠️  Local-only build (ALLOW_UNNOTARIZED=1) — DO NOT distribute this DMG."
+    echo "    It will be rejected by Gatekeeper on any Mac other than this one."
+    echo ""
+    echo "🔍 DMG Features:"
+    echo "   • Custom app icon and volume name"
+    echo "   • Drag & drop to Applications folder"
+    echo "   • Professional window layout (800x550)"
+    echo "   • Code signed (NOT notarized)"
+fi
