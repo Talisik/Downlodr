@@ -38,6 +38,37 @@ function friendlyBridgeError(err: unknown, fallback: string): string {
   return raw || fallback;
 }
 
+/**
+ * Bounds a bridge call so a hung IPC/backend promise can't leave the UI
+ * stuck forever. `bridge.scrape.runNow` in particular triggers a live fetch
+ * of the target website with no client-side timeout of its own — if the
+ * site is slow/unresponsive or the main-process handler never replies, the
+ * awaited promise simply never settles. Racing it against a timer turns
+ * that silent hang into a rejection the caller can surface or recover from.
+ */
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  message: string,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
+const SAVE_TIMEOUT_MS = 30_000;
+const RUN_NOW_TIMEOUT_MS = 45_000;
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type ScheduleConfig =
@@ -686,10 +717,6 @@ const AfdaAddWebsiteModal = ({
 
     setPhase('saving');
 
-    // Track section ids added to the initial-scrape guard so we can release
-    // them if the save/scrape flow throws before finishInitialScrape runs.
-    const guardedSectionIds = new Set<number>();
-
     const selected_sections = [...selectedSections].map((sectionUrl) => {
       const sectionMode = sectionModes[sectionUrl] ?? 'auto';
       const effectiveInterval =
@@ -705,137 +732,159 @@ const AfdaAddWebsiteModal = ({
       };
     });
 
+    let result: { website?: any } | undefined;
     try {
-      const result = await bridge.websites.save({
-        fqdn: mapperResult.fqdn,
-        website_url: mapperResult.website_url,
-        website_name: websiteName || mapperResult.website_name,
-        website_category: mapperResult.website_category,
-        mapper_raw: mapperResult.mapper_raw,
-        pagination: mapperResult.pagination,
-        selected_sections,
-      });
-      if (result?.website) {
-        addWebsite(result.website);
-        const website = result.website;
-        const sections: Array<{ id: string; enabled: boolean }> =
-          website.sections ?? [];
-        const sectionIds = new Set(
-          sections.filter((s) => s.enabled).map((s) => parseInt(s.id)),
+      result = await withTimeout(
+        bridge.websites.save({
+          fqdn: mapperResult.fqdn,
+          website_url: mapperResult.website_url,
+          website_name: websiteName || mapperResult.website_name,
+          website_category: mapperResult.website_category,
+          mapper_raw: mapperResult.mapper_raw,
+          pagination: mapperResult.pagination,
+          selected_sections,
+        }),
+        SAVE_TIMEOUT_MS,
+        'Saving the website timed out. Please try again.',
+      );
+    } catch (err) {
+      setBridgeError(friendlyBridgeError(err, 'Failed to save website'));
+      return;
+    }
+
+    if (!result?.website) {
+      setBridgeError('Failed to save website');
+      return;
+    }
+
+    // The subscription is durably persisted at this point -- report success
+    // immediately. The initial "run now" scrape below is a best-effort
+    // preview (the section still scrapes on its normal schedule regardless),
+    // so it must not be allowed to block or fail the subscribe flow: a
+    // slow/unresponsive site here previously left the modal stuck on
+    // "Subscribing..." forever with no error and no timeout.
+    const website = result.website;
+    addWebsite(website);
+    const savedName = websiteName || mapperResult.website_name;
+    const savedId = website.id;
+    handleClose();
+    onSaved?.(savedName, savedId);
+
+    const sections: Array<{ id: string; enabled: boolean }> =
+      website.sections ?? [];
+    const sectionIds = new Set(
+      sections.filter((s) => s.enabled).map((s) => parseInt(s.id)),
+    );
+    // Tracks guard entries so they can be released if a section's runNow
+    // call rejects/times out before finishInitialScrape runs for it.
+    const guardedSectionIds = new Set<number>();
+
+    console.log('[AFDA] runNow for section_ids:', [...sectionIds]);
+
+    // Block useAfdaArticleSync from adding articles during the initial scrape
+    for (const id of sectionIds) {
+      initialScrapeGuard.add(id);
+      guardedSectionIds.add(id);
+    }
+
+    // Collect first N scraped articles then stop listening
+    const MAX_ARTICLES = articleLimit;
+    let collected = 0;
+    let unsub: (() => void) | null = null;
+
+    const finishInitialScrape = () => {
+      for (const id of sectionIds) {
+        initialScrapeGuard.delete(id);
+        guardedSectionIds.delete(id);
+        bridge.sections.setMaxArticles({
+          section_id: id,
+          max_articles_per_run: articleLimit,
+        });
+      }
+    };
+
+    const timeout = setTimeout(() => {
+      console.log(
+        '[AFDA] scrapeArticleSaved listener timed out after 60s, collected:',
+        collected,
+      );
+      unsub?.();
+      finishInitialScrape();
+    }, 60_000);
+
+    console.log(
+      '[AFDA] registering scrapeArticleSaved listener, watching section_ids:',
+      [...sectionIds],
+    );
+    unsub = bridge.on.scrapeArticleSaved(
+      async (data: { article_id: number; section_id: number; url: string }) => {
+        console.log(
+          '[AFDA] scrapeArticleSaved event received:',
+          data,
+          '| sectionIds has it:',
+          sectionIds.has(data.section_id),
+          '| collected:',
+          collected,
         );
-
-        console.log('[AFDA] runNow for section_ids:', [...sectionIds]);
-
-        // Block useAfdaArticleSync from adding articles during the initial scrape
-        for (const id of sectionIds) {
-          initialScrapeGuard.add(id);
-          guardedSectionIds.add(id);
-        }
-
-        for (const id of sectionIds) {
-          await bridge.scrape.runNow({ section_id: id });
-        }
-
-        // Collect first N scraped articles then stop listening
-        const MAX_ARTICLES = articleLimit;
-        let collected = 0;
-        let unsub: (() => void) | null = null;
-
-        const finishInitialScrape = () => {
-          for (const id of sectionIds) {
-            initialScrapeGuard.delete(id);
-            guardedSectionIds.delete(id);
-            bridge.sections.setMaxArticles({
-              section_id: id,
-              max_articles_per_run: articleLimit,
-            });
-          }
-        };
-
-        const timeout = setTimeout(() => {
-          console.log(
-            '[AFDA] scrapeArticleSaved listener timed out after 60s, collected:',
-            collected,
-          );
+        if (!sectionIds.has(data.section_id) || collected >= MAX_ARTICLES)
+          return;
+        collected++;
+        if (collected >= MAX_ARTICLES) {
+          clearTimeout(timeout);
           unsub?.();
           finishInitialScrape();
-        }, 60_000);
-
-        console.log(
-          '[AFDA] registering scrapeArticleSaved listener, watching section_ids:',
-          [...sectionIds],
-        );
-        unsub = bridge.on.scrapeArticleSaved(
-          async (data: {
-            article_id: number;
-            section_id: number;
-            url: string;
-          }) => {
+        }
+        try {
+          console.log('[AFDA] fetching article with id:', data.article_id);
+          const article = await bridge.articles.get({
+            article_id: data.article_id,
+          });
+          console.log('[AFDA] article fetch result:', article);
+          if (article) {
             console.log(
-              '[AFDA] scrapeArticleSaved event received:',
-              data,
-              '| sectionIds has it:',
-              sectionIds.has(data.section_id),
-              '| collected:',
-              collected,
+              '[AFDA] calling addAfdaArticle for:',
+              article.title ?? data.url,
             );
-            if (!sectionIds.has(data.section_id) || collected >= MAX_ARTICLES)
-              return;
-            collected++;
-            if (collected >= MAX_ARTICLES) {
-              clearTimeout(timeout);
-              unsub?.();
-              finishInitialScrape();
-            }
-            try {
-              console.log('[AFDA] fetching article with id:', data.article_id);
-              const article = await bridge.articles.get({
-                article_id: data.article_id,
-              });
-              console.log('[AFDA] article fetch result:', article);
-              if (article) {
-                console.log(
-                  '[AFDA] calling addAfdaArticle for:',
-                  article.title ?? data.url,
-                );
-                addAfdaArticle(
-                  `afda-article-${data.article_id}`,
-                  article.title ?? data.url,
-                  data.url,
-                  website.id,
-                  new Date().toISOString(),
-                  article.heroImage ?? null,
-                  String(data.section_id),
-                  article.published_at ?? null,
-                );
-              } else {
-                console.warn(
-                  '[AFDA] article fetch returned null/undefined for id:',
-                  data.article_id,
-                );
-              }
-            } catch (err) {
-              console.error(
-                '[AFDA] failed to fetch article:',
-                data.article_id,
-                err,
-              );
-            }
-          },
-        );
-      }
-      const savedName = websiteName || mapperResult.website_name;
-      const savedId = result.website.id;
-      handleClose();
-      onSaved?.(savedName, savedId);
-    } catch (err) {
-      // Release any guard entries added before the failure, otherwise
-      // useAfdaArticleSync would permanently skip these sections this session.
-      for (const id of guardedSectionIds) {
+            addAfdaArticle(
+              `afda-article-${data.article_id}`,
+              article.title ?? data.url,
+              data.url,
+              website.id,
+              new Date().toISOString(),
+              article.heroImage ?? null,
+              String(data.section_id),
+              article.published_at ?? null,
+            );
+          } else {
+            console.warn(
+              '[AFDA] article fetch returned null/undefined for id:',
+              data.article_id,
+            );
+          }
+        } catch (err) {
+          console.error(
+            '[AFDA] failed to fetch article:',
+            data.article_id,
+            err,
+          );
+        }
+      },
+    );
+
+    // Trigger the immediate scrape for each section in parallel (matches
+    // the documented flow -- sections don't need to wait on each other),
+    // each bounded by its own timeout so one hung site can't wedge the
+    // others or leave the guard permanently held.
+    for (const id of sectionIds) {
+      withTimeout(
+        bridge.scrape.runNow({ section_id: id }),
+        RUN_NOW_TIMEOUT_MS,
+        `scrape.runNow timed out for section ${id}`,
+      ).catch((err) => {
+        console.error('[AFDA] runNow failed for section:', id, err);
         initialScrapeGuard.delete(id);
-      }
-      guardedSectionIds.clear();
-      setBridgeError(friendlyBridgeError(err, 'Failed to save website'));
+        guardedSectionIds.delete(id);
+      });
     }
   }, [
     mapperResult,
