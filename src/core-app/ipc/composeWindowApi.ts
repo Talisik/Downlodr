@@ -55,6 +55,7 @@ export function initComposedWindowApi(): void {
       selectVideoFile: fileFn.selectVideoFile,
       saveBufferToFile: fileFn.saveBufferToFile,
       htmlToPdf: fileFn.htmlToPdf,
+      onFormatConvertComplete: appBehavior.onFormatConvertComplete,
     };
   }
 

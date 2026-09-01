@@ -831,6 +831,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                     ?.duration,
                   size: allDownloads.find((d) => d.id === download.id)?.size,
                   ext: allDownloads.find((d) => d.id === download.id)?.ext,
+                  downloadName: allDownloads.find((d) => d.id === download.id)
+                    ?.downloadName,
                   captionLocation:
                     allDownloads.find((d) => d.id === download.id)
                       ?.transcriptLocation ||
@@ -1124,6 +1126,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                     ?.duration,
                   size: allDownloads.find((d) => d.id === download.id)?.size,
                   ext: allDownloads.find((d) => d.id === download.id)?.ext,
+                  downloadName: allDownloads.find((d) => d.id === download.id)
+                    ?.downloadName,
                   captionLocation:
                     allDownloads.find((d) => d.id === download.id)
                       ?.transcriptLocation ||

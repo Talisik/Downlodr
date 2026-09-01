@@ -130,6 +130,18 @@ async function ensureFfmpegOnPath(): Promise<void> {
   process.env.PATH = `${pathAdditionDir}${path.delimiter}${existingPath}`;
  }
 }
+
+/**
+ * Lazily triggers (or awaits, if already in flight/done) the one-time
+ * ffmpeg/ffprobe PATH staging above. Exported so other main-process
+ * handlers that spawn ffmpeg directly by its bare command name (e.g. a
+ * local format-conversion job, as opposed to yt-dlp's own postprocessor)
+ * can reuse the exact same staging instead of duplicating the
+ * platform-specific resolution logic.
+ */
+export async function ensureFfmpegReady(): Promise<void> {
+ await (ffmpegOnPathReady ??= ensureFfmpegOnPath());
+}
 /**
  * Retries an fs/download operation while Windows reports the yt-dlp binary
  * as locked. The lock holder is usually the `--version` probe that

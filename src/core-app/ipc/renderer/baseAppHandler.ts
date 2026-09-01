@@ -40,6 +40,30 @@ contextBridge.exposeInMainWorld('appBehaviorBridge', {
   offMaximizeChange: () => {
     ipcRenderer.removeAllListeners('window-maximize-change');
   },
+  onFormatConvertComplete: (
+    callback: (data: {
+      jobId: string;
+      success: boolean;
+      outputPath?: string;
+      error?: string;
+    }) => void,
+  ) => {
+    // Per-call subscription (not removeAllListeners) so multiple concurrent
+    // conversions -- e.g. a batch of 5 -- can each register their own
+    // listener and unsubscribe independently by jobId, instead of one
+    // caller's cleanup silently dropping every other in-flight listener.
+    const wrapped = (_event: unknown, data: unknown) =>
+      callback(
+        data as {
+          jobId: string;
+          success: boolean;
+          outputPath?: string;
+          error?: string;
+        },
+      );
+    ipcRenderer.on('format:convertComplete', wrapped);
+    return () => ipcRenderer.removeListener('format:convertComplete', wrapped);
+  },
 });
 
 contextBridge.exposeInMainWorld('appInfoBridge', {

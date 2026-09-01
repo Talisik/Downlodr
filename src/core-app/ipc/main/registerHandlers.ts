@@ -7,6 +7,7 @@ import { browserHandler } from './browserHandler';
 import { clipboardHandler } from './clipboardHandler';
 import { devHandler } from './devHandler';
 import { fileHandler } from './fileHandler';
+import { formatConversionHandler } from './formatConversionHandler';
 import { pluginFunctionsHandler } from './pluginFunctionsHandler';
 import { pluginHandler } from './pluginHandler';
 import { startAfdaWorker } from './afdaWorkerProxy';
@@ -72,6 +73,7 @@ export async function registerMainIpcHandlers(
   collect(clipboardHandler(mainWindow));
   collect(devHandler(mainWindow));
   collect(fileHandler(mainWindow));
+  collect(formatConversionHandler(mainWindow));
   collect(pluginFunctionsHandler(mainWindow));
   collect(pluginHandler(mainWindow));
   collect(telemetryHandler(mainWindow));

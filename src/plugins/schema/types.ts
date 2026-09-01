@@ -161,6 +161,38 @@ export interface UtilityAPI {
   ) => Promise<{ success: boolean; data?: string; error?: string }>;
   getOperatingSystem: () => Promise<'windows' | 'macos' | 'linux' | string>;
   getPathSeparator: () => Promise<string>;
+  /**
+   * Starts a local ffmpeg transcode of an already-downloaded file. Resolves
+   * once the process has spawned (with a jobId), NOT once the conversion
+   * finishes -- subscribe via onConvertFileComplete to know when it's done.
+   * Replaces the old flow of re-downloading the source video via yt-dlp
+   * just to change its container/codec, which required a full yt-dlp
+   * metadata re-fetch before every conversion.
+   */
+  startConvertFile: (options: {
+    inputPath: string;
+    outputPath: string;
+    format: string;
+  }) => Promise<{ jobId: string }>;
+  /** Kills the ffmpeg process for `jobId`. Returns false if not found/already finished. */
+  cancelConvertFile: (jobId: string) => Promise<boolean>;
+  /** SIGSTOP-based pause. Unsupported on Windows -- resolves { success: false, error } there. */
+  pauseConvertFile: (
+    jobId: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  /** SIGCONT-based resume. Unsupported on Windows -- resolves { success: false, error } there. */
+  resumeConvertFile: (
+    jobId: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  /** Fires once per job, success or failure. Returns an unsubscribe function. */
+  onConvertFileComplete: (
+    callback: (data: {
+      jobId: string;
+      success: boolean;
+      outputPath?: string;
+      error?: string;
+    }) => void,
+  ) => () => void;
 }
 
 export interface FormatProvider {
