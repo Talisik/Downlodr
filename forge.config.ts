@@ -25,6 +25,10 @@ const projectRoot = process.cwd();
 //   ffmpeg AND ffprobe; see ytdlpHandler.ts's ensureFfmpegOnPath). They're
 //   existsSync-gated below so packaging doesn't fail while they're missing,
 //   and will be picked up automatically the moment they're added to binaries/.
+//   ggml-small.bin (Whisper model for closed-caption transcription) is
+//   fetched at build time via scripts/download-whisper-model.sh and is
+//   likewise existsSync-gated so packaging doesn't fail if that step
+//   hasn't run yet.
 // - win32:  Windows binaries (ffmpeg/ffprobe/ggml) are fetched at build time.
 // All platforms also ship afda-backend/video-nemesis-toolkit as plain folders
 // outside the asar — copied into userData/downlodr-add-ons/<pack> on first
@@ -40,6 +44,7 @@ const darwinFfprobeResources = [
  './binaries/ffprobe-arm64',
  './binaries/ffprobe-x64',
 ].filter(existsSync);
+const darwinWhisperModelResources = ['./ggml-small.bin'].filter(existsSync);
 const extraResource =
  process.platform === 'darwin'
   ? [
@@ -48,6 +53,7 @@ const extraResource =
    './binaries/ffmpeg-arm64',
    './binaries/ffmpeg-x64',
    ...darwinFfprobeResources,
+   ...darwinWhisperModelResources,
    ...addonResources,
   ]
   : process.platform === 'win32'

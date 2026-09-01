@@ -65,6 +65,20 @@ echo "📱 Apple Developer ID: $APPLE_IDENTITY"
 echo "🛠️  create-dmg available: Homebrew create-dmg $(/opt/homebrew/bin/create-dmg --version 2>/dev/null || echo '1.2.2')"
 echo ""
 
+# Step 0a: Fetch the Whisper model (ggml-small.bin), if not already present
+# and verified. Must run before verify-binaries.sh, which checks for it.
+echo "🎙️  Step 0a: Fetching Whisper model..."
+if [ -f "./scripts/download-whisper-model.sh" ]; then
+    chmod +x ./scripts/download-whisper-model.sh
+    if ! ./scripts/download-whisper-model.sh; then
+        echo "❌ Whisper model fetch failed. Transcription would be broken in this build."
+        exit 1
+    fi
+else
+    echo "⚠️  download-whisper-model.sh not found, skipping fetch"
+fi
+echo ""
+
 # Step 0: Verify binaries are ready
 echo "🔍 Step 0: Verifying binaries..."
 if [ -f "./scripts/verify-binaries.sh" ]; then

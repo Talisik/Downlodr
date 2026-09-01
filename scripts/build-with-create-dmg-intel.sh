@@ -56,6 +56,22 @@ echo "🛠️  create-dmg available: Homebrew create-dmg $(/opt/homebrew/bin/cre
 echo "🎯 Target architecture: Intel x64"
 echo ""
 
+# Step 0: Fetch the Whisper model (ggml-small.bin), if not already present
+# and verified. Without this, transcription unconditionally fails at
+# runtime with "Whisper model not found" -- see
+# scripts/download-whisper-model.sh for details.
+echo "🎙️  Step 0: Fetching Whisper model..."
+if [ -f "./scripts/download-whisper-model.sh" ]; then
+    chmod +x ./scripts/download-whisper-model.sh
+    if ! ./scripts/download-whisper-model.sh; then
+        echo "❌ Whisper model fetch failed. Transcription would be broken in this build."
+        exit 1
+    fi
+else
+    echo "⚠️  download-whisper-model.sh not found, skipping fetch"
+fi
+echo ""
+
 # Step 1: Clean previous builds
 echo "🧹 Step 1: Cleaning previous builds..."
 rm -rf out/

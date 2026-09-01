@@ -157,6 +157,27 @@ if [ -f "binaries/ffmpeg-x64" ]; then
 fi
 echo ""
 
+# Check Whisper model (used by FFmpeg's whisper audio filter for closed
+# captions/transcription; see scripts/download-whisper-model.sh). Missing
+# this ships an app where transcription unconditionally fails at runtime
+# with "Whisper model not found" -- it must be caught here, not by users.
+echo "📦 Checking Whisper model..."
+MIN_WHISPER_MODEL_SIZE_BYTES=100000000
+if [ -f "ggml-small.bin" ]; then
+    WHISPER_SIZE=$(stat -f%z "ggml-small.bin" 2>/dev/null || stat -c%s "ggml-small.bin" 2>/dev/null)
+    if [ "$WHISPER_SIZE" -lt "$MIN_WHISPER_MODEL_SIZE_BYTES" ]; then
+        echo -e "   ${RED}❌ ggml-small.bin is smaller than expected ($WHISPER_SIZE bytes) -- likely truncated/corrupt${NC}"
+        ISSUES_FOUND=1
+    else
+        echo -e "   ${GREEN}✅ ggml-small.bin found ($(du -h ggml-small.bin | cut -f1))${NC}"
+    fi
+else
+    echo -e "   ${RED}❌ ggml-small.bin not found${NC}"
+    echo "   Run: ./scripts/download-whisper-model.sh"
+    ISSUES_FOUND=1
+fi
+echo ""
+
 # Summary
 echo "========================================="
 if [ $ISSUES_FOUND -eq 0 ]; then
