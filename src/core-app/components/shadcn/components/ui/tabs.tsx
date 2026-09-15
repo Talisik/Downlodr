@@ -1,4 +1,4 @@
-import { cn } from '@/Components/SubComponents/shadcn/lib/utils';
+import { cn } from '@/core-app/components/shadcn/lib/utils';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import * as React from 'react';
 
