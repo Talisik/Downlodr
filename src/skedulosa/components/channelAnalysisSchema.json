@@ -1,0 +1,33 @@
+{
+    "intelligentPrediction": {
+        "nextScrapeTime": "2026-04-03T19:00:00.591Z",
+        "pattern": "Erratic Uploader",
+        "confidence": 0.45,
+        "expectedVideos": 1,
+        "isErratic": true
+    },
+    "suggestedSlots": [
+        {
+            "day_of_week": 1,
+            "time_minutes": 1021
+        },
+        {
+            "day_of_week": 3,
+            "time_minutes": 1313
+        },
+        {
+            "day_of_week": 4,
+            "time_minutes": 974
+        },
+        {
+            "day_of_week": 5,
+            "time_minutes": 1137
+        },
+        {
+            "day_of_week": 6,
+            "time_minutes": 1020
+        }
+    ],
+    "videoCount": 50,
+    "message": "Schedule analysis complete"
+}
