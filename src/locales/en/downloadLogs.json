@@ -1,0 +1,35 @@
+{
+  "title": "Download Logs",
+  "status": "Status",
+  "progress": "Progress",
+  "noLogs": "No logs available for this download.",
+  "tooltip": {
+    "copyActive": "Cannot copy during active download",
+    "copy": "Copy log",
+    "saveActive": "Cannot save during active download",
+    "save": "Download log",
+    "errorReportActive": "Cannot send error report during active download",
+    "errorReportSending": "Sending error report...",
+    "errorReportSent": "Error report sent successfully",
+    "errorReportFailed": "Failed to send: {{error}}",
+    "errorReport": "Send error report to help improve the application",
+    "close": "Close log"
+  },
+  "toast": {
+    "copyFailedTitle": "Copy Failed",
+    "copyFailedDesc": "Failed to copy activity log to clipboard",
+    "logsSavedTitle": "Download Logs Saved",
+    "logsSavedDesc": "Logs saved to downloads folder",
+    "logsSavedPathDesc": "Logs saved to {{path}}",
+    "logsFailedTitle": "Download Logs Failed",
+    "logsFailedPathDesc": "Failed to save logs to {{path}}",
+    "logsFailedDesc": "Failed to save logs",
+    "activityCopiedTitle": "Activity Log Copied",
+    "activityCopiedDesc": "Activity log copied to clipboard",
+    "activityCopyFailedTitle": "Activity Log Copy Failed",
+    "activityCopyFailedDesc": "Failed to copy activity log",
+    "errorReportSentTitle": "Error Report Sent",
+    "errorReportSentDesc": "Error information has been sent to help improve the application",
+    "errorReportFailedTitle": "Error Report Failed"
+  }
+}

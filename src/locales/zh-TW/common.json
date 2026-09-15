@@ -1,0 +1,22 @@
+{
+  "buttons": {
+    "okay": "確定",
+    "cancel": "取消",
+    "close": "關閉",
+    "save": "儲存",
+    "retry": "重試",
+    "stop": "停止",
+    "pause": "暫停",
+    "resume": "繼續",
+    "remove": "移除",
+    "rename": "重新命名",
+    "open": "開啟",
+    "edit": "編輯",
+    "forceStart": "強制開始"
+  },
+  "status": {
+    "loading": "載入中...",
+    "error": "錯誤",
+    "success": "成功"
+  }
+}

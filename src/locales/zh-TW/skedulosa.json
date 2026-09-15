@@ -1,0 +1,409 @@
+{
+  "nav": {
+    "home": "首頁",
+    "subscription": "訂閱",
+    "subscriptions": "訂閱",
+    "scheduled": "已排程",
+    "schedule": "排程",
+    "history": "歷史記錄",
+    "playground": "實驗場"
+  },
+  "sections": {
+    "status": "狀態",
+    "categories": "分類"
+  },
+  "statusFilter": {
+    "all": "全部",
+    "active": "活動中",
+    "paused": "已暫停",
+    "needs-attention": "需要注意",
+    "error": "有錯誤"
+  },
+  "categoryFilter": {
+    "all": "全部",
+    "youtube": "Youtube",
+    "afda": "文章"
+  },
+  "collapse": "收合側邊欄",
+  "expand": "展開側邊欄",
+  "subscriptionPage": {
+    "columns": {
+      "subscription": "訂閱",
+      "status": "狀態",
+      "checked": "已檢查",
+      "downloads": "下載",
+      "source": "來源",
+      "storage": "大小"
+    },
+    "emptyState": {
+      "altText": "無訂閱",
+      "title": "此「{{filter}}」篩選條件下尚無訂閱",
+      "description": "訂閱 YouTube 頻道、播放清單或 RSS 摘要，Skedulosa 將根據您的排程自動下載新內容——即使 Downlodr 已關閉。"
+    },
+    "status": {
+      "active": "活動中",
+      "paused": "已暫停",
+      "error": "錯誤"
+    },
+    "ago": "前",
+    "source": {
+      "youtube": "Youtube"
+    },
+    "confirmDelete": {
+      "title": "刪除 {{name}} 訂閱？",
+      "message": "這將移除整個訂閱及其排程資訊，此操作無法復原。",
+      "confirmLabel": "刪除"
+    }
+  },
+  "historyPage": {
+    "columns": {
+      "title": "標題",
+      "subscription": "訂閱",
+      "size": "大小",
+      "speed": "速度",
+      "status": "狀態",
+      "date": "新增日期",
+      "actions": "操作"
+    },
+    "emptyState": {
+      "altText": "無歷史記錄",
+      "title": "尚無歷史記錄",
+      "description": "您的下載和活動將在此顯示，訂閱頻道以開始下載。"
+    },
+    "status": {
+      "completed": "完成",
+      "downloading": "進行中",
+      "queued": "排隊中",
+      "failed": "失敗"
+    },
+    "menu": {
+      "viewFile": "檢視檔案",
+      "delete": "刪除"
+    },
+    "confirmDelete": {
+      "title": "刪除 {{name}} 下載",
+      "message": "這將從您的裝置移除已下載的檔案，此操作無法復原。",
+      "confirmLabel": "刪除"
+    }
+  },
+  "scheduledPage": {
+    "columns": {
+      "channel": "頻道",
+      "type": "類型",
+      "schedule": "排程",
+      "lastrun": "上次執行",
+      "nextrun": "下次執行",
+      "source": "來源",
+      "progress": "進度",
+      "status": "狀態"
+    },
+    "emptyState": {
+      "altText": "無排程",
+      "title": "此「{{filter}}」篩選條件下尚無排程",
+      "description": "訂閱 YouTube 頻道、播放清單或 RSS 摘要，Skedulosa 將根據您的排程自動下載新內容——即使 Downlodr 已關閉。"
+    },
+    "type": {
+      "recurring": "定期",
+      "oneTime": "單次"
+    },
+    "status": {
+      "downloading": "下載中",
+      "failed": "失敗",
+      "running": "執行中",
+      "missed": "已錯過",
+      "pending": "待處理",
+      "active": "活動中",
+      "paused": "已暫停",
+      "error": "錯誤"
+    },
+    "source": {
+      "youtube": "Youtube"
+    },
+    "ago": "前",
+    "confirmDelete": {
+      "title": "刪除 {{name}} 訂閱？",
+      "message": "這將移除整個訂閱及其排程資訊，此操作無法復原。",
+      "confirmLabel": "刪除"
+    }
+  },
+  "taskbar": {
+    "sort": {
+      "label": "排序",
+      "nameAZ": "名稱 A → Z",
+      "nameZA": "名稱 Z → A",
+      "newestFirst": "最新優先",
+      "oldestFirst": "最舊優先",
+      "mostDownloads": "最多下載",
+      "fewestDownloads": "最少下載"
+    },
+    "stats": {
+      "today": "今天",
+      "thisWeek": "本週",
+      "used": "已使用",
+      "nextCheckIn": "下次檢查"
+    },
+    "search": {
+      "placeholder": "搜尋...",
+      "open": "搜尋",
+      "close": "關閉搜尋"
+    },
+    "subscribe": "訂閱",
+    "bulk": {
+      "downloadsSelected_one": "已選擇 {{count}} 個下載",
+      "downloadsSelected_other": "已選擇 {{count}} 個下載",
+      "deleteSelectedDownloads": "刪除選取的下載",
+      "pauseSelectedSubscriptions": "暫停選取的訂閱",
+      "resumeSelectedSubscriptions": "繼續選取的訂閱",
+      "editSubscription": "編輯訂閱",
+      "deleteSelectedSubscriptions": "刪除選取的訂閱",
+      "pause": "暫停",
+      "resume": "繼續",
+      "edit": "編輯",
+      "delete": "刪除",
+      "clearSelection": "清除選取"
+    },
+    "confirmDelete": {
+      "singleDownloadTitle": "刪除「{{name}}」？",
+      "multiDownloadTitle": "刪除 {{count}} 個下載？",
+      "downloadMessage": "這將從您的裝置移除所有選取的下載，此操作無法復原。",
+      "singleSubscriptionTitle": "刪除 {{name}} 訂閱？",
+      "multiSubscriptionTitle": "刪除 {{count}} 個訂閱？",
+      "subscriptionMessage": "這將移除所有選取的訂閱及其排程資訊，此操作無法復原。",
+      "confirmLabel": "刪除"
+    }
+  },
+  "scanningModal": {
+    "title": "訂閱來源",
+    "cancel": "取消",
+    "runInBackground": "在背景執行",
+    "channelScanned": "頻道掃描完成！",
+    "scanningChannel": "正在掃描頻道",
+    "analyzingArticle": "正在分析文章",
+    "readyToSubscribe": "準備好訂閱",
+    "discoveringSections": "正在探索區段",
+    "youtubeMsg0": "檢查上傳頻率",
+    "youtubeMsg1": "分析此頻道的發布頻率",
+    "youtubeMsg2": "讀取頻道的上傳模式",
+    "youtubeMsg3": "擷取上傳歷史記錄",
+    "scanningChannelToast": "正在掃描頻道...",
+    "viewProgress": "檢視進度"
+  },
+  "subscribeModal": {
+    "title": "訂閱來源",
+    "cancel": "取消",
+    "subscribe": "訂閱",
+    "channelNameLabel": "頻道名稱",
+    "sourceUrlLabel": "來源網址",
+    "whatCanSubscribe": "我可以訂閱什麼？",
+    "supportedSources": "支援的來源",
+    "youtubeChannels": "YouTube 頻道",
+    "articleWebsites": "新聞文章網站，例如：GMA、CNN、BBC 等",
+    "basicConfig": "基本設定",
+    "checkFrequency": "檢查頻率",
+    "auto": "自動",
+    "manual": "手動",
+    "toast": {
+      "queued": "訂閱已加入佇列",
+      "queuedDesc": "您的訂閱已加入佇列，即將完成設定。"
+    },
+    "errors": {
+      "invalidUrl": "請輸入有效的網址（例如 https://www.youtube.com/@channel）。",
+      "unsupportedProtocol": "僅支援 http 和 https 網址。",
+      "unsupportedPlatform": "不支援的平台，目前僅支援 YouTube 頻道和播放清單。",
+      "videoLink": "不支援 YouTube 影片連結，請輸入 YouTube 頻道網址（例如 https://www.youtube.com/@channel）。",
+      "shortsLink": "不支援 YouTube Shorts 連結，請輸入 YouTube 頻道網址（例如 https://www.youtube.com/@channel）。",
+      "alreadySubscribed": "此頻道已訂閱，您可以從 Subscription 標籤頁管理它。",
+      "bridgeUnavailable": "Subscription 橋接不可用，請重新啟動應用程式。",
+      "analyzeFailedGeneric": "無法分析頻道——請查看上方通知。",
+      "noVideosShorts": "此頻道的影片標籤頁中找不到影片。如果它只發布 Shorts，請嘗試在網址後加上「/shorts」（例如 https://www.youtube.com/@channel/shorts）。",
+      "noVideos": "找不到此頻道的影片，請檢查網址後重試。",
+      "analyzeFailed": "分析頻道失敗，請重試。"
+    },
+    "channelInfo": {
+      "channelType": "{{siteType}} 頻道",
+      "channelFallback": "頻道",
+      "subscriberCount": "{{formatted}} 位訂閱者",
+      "videoCount": "{{count}} 支影片",
+      "downloadLast": "下載最後",
+      "videosLabel": "支影片",
+      "scrapeAllLabel": "全部 ({{count}})",
+      "ramWarning": "下載超過 3 支影片可能會佔用大量記憶體。"
+    },
+    "autoDetect": {
+      "basedOn": "根據最後 {{count}} 支影片的發布歷史",
+      "usingFrequency": "使用建議頻率——",
+      "confidence": "{{percent}}% 信心度"
+    },
+    "advancedOptions": {
+      "title": "進階選項",
+      "description": "可在此新增其他設定。",
+      "showButton": "顯示進階選項"
+    },
+    "manualFrequency": {
+      "daysToCheck": "檢查日：",
+      "checkAt": "檢查時間：",
+      "timezone": "時區：",
+      "schedulePrefix": "Subscription 將每",
+      "scheduleMid": "天在",
+      "qualityPreset": "品質預設",
+      "saveTo": "儲存至：",
+      "saveToPlaceholder": "選擇儲存位置",
+      "browseFolderTooltip": "瀏覽資料夾",
+      "days": {
+        "mon": "週一",
+        "tue": "週二",
+        "wed": "週三",
+        "thu": "週四",
+        "fri": "週五",
+        "sat": "週六",
+        "sun": "週日"
+      },
+      "quality": {
+        "lowest": "最低品質",
+        "low": "低品質",
+        "best": "最佳品質"
+      }
+    }
+  },
+  "contextMenu": {
+    "edit": "編輯",
+    "pause": "暫停",
+    "resume": "繼續",
+    "delete": "刪除"
+  },
+  "editModal": {
+    "title": "編輯訂閱",
+    "cancel": "取消",
+    "save": "儲存",
+    "channelName": "頻道名稱",
+    "channelNameRequired": "頻道名稱為必填欄位。",
+    "channelUrl": "頻道網址",
+    "statusLabel": "狀態",
+    "recurring": "定期",
+    "scheduleDays": "排程日",
+    "downloadQuality": "下載品質",
+    "saveLocation": "儲存位置",
+    "lookbackPeriod": "保留期間",
+    "days": {
+      "mon": "週一",
+      "tue": "週二",
+      "wed": "週三",
+      "thu": "週四",
+      "fri": "週五",
+      "sat": "週六",
+      "sun": "週日"
+    },
+    "quality": {
+      "lowest": "最低品質",
+      "low": "低品質",
+      "best": "最佳品質"
+    },
+    "status": {
+      "active": "活動中",
+      "paused": "已暫停",
+      "error": "錯誤",
+      "needsAttention": "需要注意"
+    }
+  },
+  "activityLog": {
+    "showingResults": "顯示活動結果",
+    "noActivity": "尚無活動記錄。",
+    "filters": {
+      "all": "全部",
+      "downloads": "下載",
+      "checks": "檢查",
+      "errors": "錯誤"
+    }
+  },
+  "analytics": {
+    "days": {
+      "monday": "週一",
+      "tuesday": "週二",
+      "wednesday": "週三",
+      "thursday": "週四",
+      "friday": "週五",
+      "saturday": "週六",
+      "sunday": "週日"
+    },
+    "timeBands": {
+      "earlyMorning": "深夜",
+      "earlyMorningSub": "00:00 - 06:00",
+      "morning": "上午",
+      "morningSub": "06:00 - 12:00",
+      "afternoon": "下午",
+      "afternoonSub": "12:00 - 18:00",
+      "evening": "晚上",
+      "eveningSub": "18:00 - 00:00"
+    },
+    "timeRange": {
+      "last30": "最近 30 天",
+      "last60": "最近 60 天",
+      "last90": "最近 90 天"
+    },
+    "stats": {
+      "downloadRate": "下載成功率",
+      "uploadCadence": "上傳頻率",
+      "avgFileSize": "平均檔案大小",
+      "successOver30d": "30 天內成功率",
+      "noDownloads": "尚無下載",
+      "videosPerWeek": "每週影片數（平均）",
+      "perVideo": "每支影片"
+    },
+    "heatmap": {
+      "title": "最佳上傳日期與時段",
+      "less": "較少",
+      "more": "較多",
+      "peak": "高峰",
+      "noData": "尚無資料",
+      "failedToLoad": "載入失敗",
+      "loading": "載入中…"
+    },
+    "trends": {
+      "title": "30 天趨勢",
+      "successRate": "成功率",
+      "storageGrowth": "儲存空間增長",
+      "failedDownloads": "失敗下載",
+      "failedBadge": "{{pct}}% 失敗"
+    },
+    "tooltip": {
+      "avgUploadTime": "平均上傳時間：",
+      "avgUploads": "平均上傳數：",
+      "videosPerWeek": "影片/週"
+    }
+  },
+  "selectedSubscriptionView": {
+    "emptyState": {
+      "title": "排程",
+      "description": "尚無已排程的頻道。從首頁新增頻道以在此查看項目。"
+    },
+    "channelNav": {
+      "header": "頻道"
+    },
+    "stats": {
+      "downloads": "下載",
+      "storage": "儲存空間",
+      "created": "建立日期",
+      "lastChecked": "最後檢查"
+    },
+    "selectChannel": "從清單中選擇頻道。",
+    "tabs": {
+      "downloads": "下載",
+      "analytics": "分析",
+      "activity-log": "活動記錄",
+      "settings": "設定"
+    }
+  },
+  "settingsTab": {
+    "channelInfo": "頻道資訊",
+    "downloadBehavior": "下載設定",
+    "noChannelSelected": "未選擇頻道。",
+    "channelNameRequired": "頻道名稱為必填欄位。",
+    "daysToCheck": "檢查日：",
+    "toast": {
+      "saved": "設定已儲存",
+      "savedDesc": "您的訂閱設定已更新。",
+      "failed": "儲存失敗",
+      "failedDesc": "儲存時發生錯誤，請重試。"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Salvar arquivo em",
+  "subtitle": "Escolha um local para salvar seu arquivo.",
+  "placeholder": "Pasta de destino do download",
+  "folderTooltip": "Pasta",
+  "toast": {
+    "errorTitle": "Erro",
+    "errorDesc": "Falha ao selecionar o diretório"
+  }
+}

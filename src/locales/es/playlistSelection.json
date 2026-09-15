@@ -1,0 +1,17 @@
+{
+  "title": "Selecciona los videos para descargar",
+  "subtitle": "Elige qué videos de esta lista de reproducción quieres descargar.",
+  "getClosedCaptions": "Obtener Subtítulos",
+  "getThumbnail": "Obtener Miniatura",
+  "videos_one": "{{count}} Video",
+  "videos_other": "{{count}} Videos",
+  "selected": "{{count}} de {{total}} seleccionados",
+  "cancel": "Cancelar",
+  "downloadSelected": "Descargar seleccionados ({{count}})",
+  "toast": {
+    "selectionErrorTitle": "Ningún video seleccionado",
+    "selectionErrorDesc": "Selecciona al menos un video para descargar.",
+    "downloadQueuedTitle": "Descarga en cola",
+    "downloadQueuedDesc": "Los videos seleccionados se han añadido a la cola de descargas."
+  }
+}

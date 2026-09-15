@@ -1,0 +1,22 @@
+{
+  "buttons": {
+    "okay": "확인",
+    "cancel": "취소",
+    "close": "닫기",
+    "save": "저장",
+    "retry": "재시도",
+    "stop": "중지",
+    "pause": "일시정지",
+    "resume": "재개",
+    "remove": "제거",
+    "rename": "이름 변경",
+    "open": "열기",
+    "edit": "편집",
+    "forceStart": "강제 시작"
+  },
+  "status": {
+    "loading": "로딩 중...",
+    "error": "오류",
+    "success": "성공"
+  }
+}

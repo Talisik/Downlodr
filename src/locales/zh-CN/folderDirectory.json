@@ -1,0 +1,10 @@
+{
+  "title": "保存文件至",
+  "subtitle": "选择保存文件的位置。",
+  "placeholder": "下载目标文件夹",
+  "folderTooltip": "文件夹",
+  "toast": {
+    "errorTitle": "错误",
+    "errorDesc": "无法选择目录"
+  }
+}

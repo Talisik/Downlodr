@@ -1,0 +1,409 @@
+{
+  "nav": {
+    "home": "ホーム",
+    "subscription": "サブスクリプション",
+    "subscriptions": "サブスクリプション",
+    "scheduled": "スケジュール済み",
+    "schedule": "スケジュール",
+    "history": "履歴",
+    "playground": "プレイグラウンド"
+  },
+  "sections": {
+    "status": "ステータス",
+    "categories": "カテゴリー"
+  },
+  "statusFilter": {
+    "all": "すべて",
+    "active": "アクティブ",
+    "paused": "一時停止中",
+    "needs-attention": "要注意",
+    "error": "エラーあり"
+  },
+  "categoryFilter": {
+    "all": "すべて",
+    "youtube": "YouTube",
+    "afda": "記事"
+  },
+  "collapse": "サイドバーを折りたたむ",
+  "expand": "サイドバーを展開",
+  "subscriptionPage": {
+    "columns": {
+      "subscription": "サブスクリプション",
+      "status": "ステータス",
+      "checked": "確認済み",
+      "downloads": "ダウンロード",
+      "source": "ソース",
+      "storage": "サイズ"
+    },
+    "emptyState": {
+      "altText": "サブスクリプションなし",
+      "title": "「{{filter}}」フィルターにはサブスクリプションがまだありません",
+      "description": "YouTubeチャンネル、プレイリスト、RSSフィードを購読すると、Downlodrが閉じている時でもSkedulosaがスケジュールに従って新しいコンテンツを自動的にダウンロードします。"
+    },
+    "status": {
+      "active": "アクティブ",
+      "paused": "一時停止中",
+      "error": "エラー"
+    },
+    "ago": "前",
+    "source": {
+      "youtube": "YouTube"
+    },
+    "confirmDelete": {
+      "title": "{{name}} のサブスクリプションを削除しますか？",
+      "message": "サブスクリプション全体とそのスケジュール情報が削除されます。この操作は元に戻せません。",
+      "confirmLabel": "削除"
+    }
+  },
+  "historyPage": {
+    "columns": {
+      "title": "タイトル",
+      "subscription": "サブスクリプション",
+      "size": "サイズ",
+      "speed": "速度",
+      "status": "ステータス",
+      "date": "追加日",
+      "actions": "操作"
+    },
+    "emptyState": {
+      "altText": "履歴なし",
+      "title": "まだ履歴はありません",
+      "description": "ダウンロードとアクティビティがここに表示されます。チャンネルを購読してダウンロードを開始してください。"
+    },
+    "status": {
+      "completed": "完了",
+      "downloading": "進行中",
+      "queued": "待機中",
+      "failed": "失敗"
+    },
+    "menu": {
+      "viewFile": "ファイルを表示",
+      "delete": "削除"
+    },
+    "confirmDelete": {
+      "title": "{{name}} のダウンロードを削除",
+      "message": "ダウンロードしたファイルがデバイスから削除されます。この操作は元に戻せません。",
+      "confirmLabel": "削除"
+    }
+  },
+  "scheduledPage": {
+    "columns": {
+      "channel": "チャンネル",
+      "type": "種類",
+      "schedule": "スケジュール",
+      "lastrun": "最終実行",
+      "nextrun": "次回実行",
+      "source": "ソース",
+      "progress": "進行状況",
+      "status": "ステータス"
+    },
+    "emptyState": {
+      "altText": "スケジュールなし",
+      "title": "「{{filter}}」フィルターにはスケジュールがまだありません",
+      "description": "YouTubeチャンネル、プレイリスト、RSSフィードを購読すると、Downlodrが閉じている時でもSkedulosaがスケジュールに従って新しいコンテンツを自動的にダウンロードします。"
+    },
+    "type": {
+      "recurring": "定期",
+      "oneTime": "1回のみ"
+    },
+    "status": {
+      "downloading": "ダウンロード中",
+      "failed": "失敗",
+      "running": "実行中",
+      "missed": "スキップ",
+      "pending": "保留中",
+      "active": "アクティブ",
+      "paused": "一時停止中",
+      "error": "エラー"
+    },
+    "source": {
+      "youtube": "YouTube"
+    },
+    "ago": "前",
+    "confirmDelete": {
+      "title": "{{name}} のサブスクリプションを削除しますか？",
+      "message": "サブスクリプション全体とそのスケジュール情報が削除されます。この操作は元に戻せません。",
+      "confirmLabel": "削除"
+    }
+  },
+  "taskbar": {
+    "sort": {
+      "label": "並び替え",
+      "nameAZ": "名前 A → Z",
+      "nameZA": "名前 Z → A",
+      "newestFirst": "新しい順",
+      "oldestFirst": "古い順",
+      "mostDownloads": "ダウンロード数が多い順",
+      "fewestDownloads": "ダウンロード数が少ない順"
+    },
+    "stats": {
+      "today": "今日",
+      "thisWeek": "今週",
+      "used": "使用済み",
+      "nextCheckIn": "次回チェック"
+    },
+    "search": {
+      "placeholder": "検索...",
+      "open": "検索",
+      "close": "検索を閉じる"
+    },
+    "subscribe": "購読",
+    "bulk": {
+      "downloadsSelected_one": "{{count}} 件のダウンロードを選択中",
+      "downloadsSelected_other": "{{count}} 件のダウンロードを選択中",
+      "deleteSelectedDownloads": "選択したダウンロードを削除",
+      "pauseSelectedSubscriptions": "選択したサブスクリプションを一時停止",
+      "resumeSelectedSubscriptions": "選択したサブスクリプションを再開",
+      "editSubscription": "サブスクリプションを編集",
+      "deleteSelectedSubscriptions": "選択したサブスクリプションを削除",
+      "pause": "一時停止",
+      "resume": "再開",
+      "edit": "編集",
+      "delete": "削除",
+      "clearSelection": "選択を解除"
+    },
+    "confirmDelete": {
+      "singleDownloadTitle": "「{{name}}」を削除しますか？",
+      "multiDownloadTitle": "{{count}} 件のダウンロードを削除しますか？",
+      "downloadMessage": "選択したすべてのダウンロードがデバイスから削除されます。この操作は元に戻せません。",
+      "singleSubscriptionTitle": "{{name}} のサブスクリプションを削除しますか？",
+      "multiSubscriptionTitle": "{{count}} 件のサブスクリプションを削除しますか？",
+      "subscriptionMessage": "選択したすべてのサブスクリプションとそのスケジュール情報が削除されます。この操作は元に戻せません。",
+      "confirmLabel": "削除"
+    }
+  },
+  "scanningModal": {
+    "title": "ソースを購読",
+    "cancel": "キャンセル",
+    "runInBackground": "バックグラウンドで実行",
+    "channelScanned": "チャンネルをスキャンしました！",
+    "scanningChannel": "チャンネルをスキャン中",
+    "analyzingArticle": "記事を分析中",
+    "readyToSubscribe": "購読の準備ができました",
+    "discoveringSections": "セクションを探索中",
+    "youtubeMsg0": "投稿頻度を確認中",
+    "youtubeMsg1": "このチャンネルの投稿頻度を分析中",
+    "youtubeMsg2": "チャンネルの投稿パターンを読み取り中",
+    "youtubeMsg3": "投稿履歴を取得中",
+    "scanningChannelToast": "チャンネルをスキャン中...",
+    "viewProgress": "進行状況を表示"
+  },
+  "subscribeModal": {
+    "title": "ソースを購読",
+    "cancel": "キャンセル",
+    "subscribe": "購読",
+    "channelNameLabel": "チャンネル名",
+    "sourceUrlLabel": "ソースURL",
+    "whatCanSubscribe": "何を購読できますか？",
+    "supportedSources": "対応ソース",
+    "youtubeChannels": "YouTubeチャンネル",
+    "articleWebsites": "記事サイト（例：GMA、CNN、BBCなど）",
+    "basicConfig": "基本設定",
+    "checkFrequency": "確認頻度",
+    "auto": "自動",
+    "manual": "手動",
+    "toast": {
+      "queued": "サブスクリプションをキューに追加しました",
+      "queuedDesc": "サブスクリプションがキューに追加されました。まもなく設定されます。"
+    },
+    "errors": {
+      "invalidUrl": "有効なURLを入力してください（例: https://www.youtube.com/@channel）。",
+      "unsupportedProtocol": "httpおよびhttps URLのみ対応しています。",
+      "unsupportedPlatform": "未対応のプラットフォームです。現在はYouTubeチャンネルとプレイリストのみ対応しています。",
+      "videoLink": "YouTube動画リンクには対応していません。YouTubeチャンネルのURLを入力してください（例: https://www.youtube.com/@channel）。",
+      "shortsLink": "YouTubeショートリンクには対応していません。YouTubeチャンネルのURLを入力してください（例: https://www.youtube.com/@channel）。",
+      "alreadySubscribed": "このチャンネルはすでに購読されています。Skedulosaタブから管理できます。",
+      "bridgeUnavailable": "Skedulosaブリッジが利用できません。アプリを再起動してください。",
+      "analyzeFailedGeneric": "チャンネルを分析できませんでした — 上記の通知をご確認ください。",
+      "noVideosShorts": "このチャンネルの動画タブに動画が見つかりませんでした。ショートのみ投稿している場合は、URLに「/shorts」を追加してみてください（例: https://www.youtube.com/@channel/shorts）。",
+      "noVideos": "このチャンネルの動画が見つかりませんでした。URLを確認してもう一度お試しください。",
+      "analyzeFailed": "チャンネルの分析に失敗しました。もう一度お試しください。"
+    },
+    "channelInfo": {
+      "channelType": "{{siteType}} チャンネル",
+      "channelFallback": "チャンネル",
+      "subscriberCount": "{{formatted}} 人のチャンネル登録者",
+      "videoCount": "{{count}} 本の動画",
+      "downloadLast": "最新",
+      "videosLabel": "本をダウンロード",
+      "scrapeAllLabel": "すべて ({{count}})",
+      "ramWarning": "3本を超える動画のダウンロードはRAMを多く消費する可能性があります。"
+    },
+    "autoDetect": {
+      "basedOn": "過去 {{count}} 本の動画の投稿履歴に基づいています",
+      "usingFrequency": "推奨頻度を使用 —",
+      "confidence": "{{percent}}% の信頼度"
+    },
+    "advancedOptions": {
+      "title": "詳細オプション",
+      "description": "追加設定をここで行えます。",
+      "showButton": "詳細オプションを表示"
+    },
+    "manualFrequency": {
+      "daysToCheck": "確認する曜日:",
+      "checkAt": "確認時刻:",
+      "timezone": "タイムゾーン:",
+      "schedulePrefix": "Skedulosaは",
+      "scheduleMid": "日ごとに",
+      "qualityPreset": "画質プリセット",
+      "saveTo": "保存先:",
+      "saveToPlaceholder": "保存場所を選択",
+      "browseFolderTooltip": "フォルダを参照",
+      "days": {
+        "mon": "月",
+        "tue": "火",
+        "wed": "水",
+        "thu": "木",
+        "fri": "金",
+        "sat": "土",
+        "sun": "日"
+      },
+      "quality": {
+        "lowest": "最低画質",
+        "low": "低画質",
+        "best": "最高画質"
+      }
+    }
+  },
+  "contextMenu": {
+    "edit": "編集",
+    "pause": "一時停止",
+    "resume": "再開",
+    "delete": "削除"
+  },
+  "editModal": {
+    "title": "サブスクリプションを編集",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "channelName": "チャンネル名",
+    "channelNameRequired": "チャンネル名は必須です。",
+    "channelUrl": "チャンネルURL",
+    "statusLabel": "ステータス",
+    "recurring": "定期的",
+    "scheduleDays": "スケジュール日",
+    "downloadQuality": "ダウンロード品質",
+    "saveLocation": "保存場所",
+    "lookbackPeriod": "保持期間",
+    "days": {
+      "mon": "月",
+      "tue": "火",
+      "wed": "水",
+      "thu": "木",
+      "fri": "金",
+      "sat": "土",
+      "sun": "日"
+    },
+    "quality": {
+      "lowest": "最低品質",
+      "low": "低品質",
+      "best": "最高品質"
+    },
+    "status": {
+      "active": "アクティブ",
+      "paused": "一時停止",
+      "error": "エラー",
+      "needsAttention": "要注意"
+    }
+  },
+  "activityLog": {
+    "showingResults": "アクティビティ結果を表示中",
+    "noActivity": "まだアクティビティはありません。",
+    "filters": {
+      "all": "すべて",
+      "downloads": "ダウンロード",
+      "checks": "確認",
+      "errors": "エラー"
+    }
+  },
+  "analytics": {
+    "days": {
+      "monday": "月曜日",
+      "tuesday": "火曜日",
+      "wednesday": "水曜日",
+      "thursday": "木曜日",
+      "friday": "金曜日",
+      "saturday": "土曜日",
+      "sunday": "日曜日"
+    },
+    "timeBands": {
+      "earlyMorning": "深夜",
+      "earlyMorningSub": "0:00 - 6:00",
+      "morning": "午前",
+      "morningSub": "6:00 - 12:00",
+      "afternoon": "午後",
+      "afternoonSub": "12:00 - 18:00",
+      "evening": "夜",
+      "eveningSub": "18:00 - 0:00"
+    },
+    "timeRange": {
+      "last30": "直近30日",
+      "last60": "直近60日",
+      "last90": "直近90日"
+    },
+    "stats": {
+      "downloadRate": "ダウンロード成功率",
+      "uploadCadence": "アップロード頻度",
+      "avgFileSize": "平均ファイルサイズ",
+      "successOver30d": "30日間の成功率",
+      "noDownloads": "ダウンロードなし",
+      "videosPerWeek": "週あたりの動画数（平均）",
+      "perVideo": "動画あたり"
+    },
+    "heatmap": {
+      "title": "最適アップロード曜日・時間帯",
+      "less": "少ない",
+      "more": "多い",
+      "peak": "ピーク",
+      "noData": "データなし",
+      "failedToLoad": "読み込み失敗",
+      "loading": "読み込み中…"
+    },
+    "trends": {
+      "title": "30日間のトレンド",
+      "successRate": "成功率",
+      "storageGrowth": "ストレージ増加",
+      "failedDownloads": "失敗したダウンロード",
+      "failedBadge": "{{pct}}% 失敗"
+    },
+    "tooltip": {
+      "avgUploadTime": "平均アップロード時間：",
+      "avgUploads": "平均アップロード数：",
+      "videosPerWeek": "動画/週"
+    }
+  },
+  "selectedSubscriptionView": {
+    "emptyState": {
+      "title": "スケジュール",
+      "description": "予定されたチャンネルはまだありません。ホームページからチャンネルを追加するとここに表示されます。"
+    },
+    "channelNav": {
+      "header": "チャンネル"
+    },
+    "stats": {
+      "downloads": "ダウンロード",
+      "storage": "ストレージ",
+      "created": "作成日",
+      "lastChecked": "最終確認"
+    },
+    "selectChannel": "リストからチャンネルを選択してください。",
+    "tabs": {
+      "downloads": "ダウンロード",
+      "analytics": "分析",
+      "activity-log": "アクティビティログ",
+      "settings": "設定"
+    }
+  },
+  "settingsTab": {
+    "channelInfo": "チャンネル情報",
+    "downloadBehavior": "ダウンロード設定",
+    "noChannelSelected": "チャンネルが選択されていません。",
+    "channelNameRequired": "チャンネル名は必須です。",
+    "daysToCheck": "確認する曜日：",
+    "toast": {
+      "saved": "設定を保存しました",
+      "savedDesc": "サブスクリプションの設定が更新されました。",
+      "failed": "保存に失敗しました",
+      "failedDesc": "保存中にエラーが発生しました。もう一度お試しください。"
+    }
+  }
+}

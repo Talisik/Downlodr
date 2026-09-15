@@ -1,0 +1,35 @@
+{
+  "sections": {
+    "status": "狀態",
+    "categories": "分類",
+    "tags": "標籤"
+  },
+  "status": {
+    "all": "全部",
+    "fetchingMetadata": "擷取中繼資料",
+    "startDownload": "開始下載",
+    "queued": "排隊中",
+    "downloading": "下載中",
+    "paused": "已暫停",
+    "initializing": "初始化中",
+    "failed": "失敗",
+    "finished": "已完成"
+  },
+  "subscriptions": "訂閱",
+  "categories": {
+    "all": "全部",
+    "uncategorized": "未分類"
+  },
+  "tags": {
+    "all": "全部",
+    "untagged": "未標記"
+  },
+  "collapse": "收合側邊欄",
+  "expand": "展開側邊欄",
+  "toast": {
+    "categorized": "下載已分類",
+    "categorizedDesc": "設定為「{{category}}」",
+    "tagged": "下載已標記",
+    "taggedDesc": "已標記為「{{tag}}」"
+  }
+}

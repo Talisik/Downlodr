@@ -1,0 +1,409 @@
+{
+  "nav": {
+    "home": "Início",
+    "subscription": "Assinatura",
+    "subscriptions": "Assinaturas",
+    "scheduled": "Agendado",
+    "schedule": "Agendamento",
+    "history": "Histórico",
+    "playground": "Área de testes"
+  },
+  "sections": {
+    "status": "Status",
+    "categories": "Categorias"
+  },
+  "statusFilter": {
+    "all": "Todos",
+    "active": "Ativo",
+    "paused": "Pausado",
+    "needs-attention": "Precisa de atenção",
+    "error": "Com erro"
+  },
+  "categoryFilter": {
+    "all": "Todos",
+    "youtube": "Youtube",
+    "afda": "Artigos"
+  },
+  "collapse": "Recolher barra lateral",
+  "expand": "Expandir barra lateral",
+  "subscriptionPage": {
+    "columns": {
+      "subscription": "Assinatura",
+      "status": "Status",
+      "checked": "Verificado",
+      "downloads": "Downloads",
+      "source": "Fonte",
+      "storage": "Tamanho"
+    },
+    "emptyState": {
+      "altText": "Sem assinaturas",
+      "title": "Nenhuma assinatura para o filtro \"{{filter}}\"",
+      "description": "Assine canais do YouTube, listas de reprodução ou feeds RSS e o Subscription baixará automaticamente novos conteúdos conforme sua programação — mesmo quando o Downlodr estiver fechado."
+    },
+    "status": {
+      "active": "Ativo",
+      "paused": "Pausado",
+      "error": "Erro"
+    },
+    "ago": "atrás",
+    "source": {
+      "youtube": "Youtube"
+    },
+    "confirmDelete": {
+      "title": "Excluir assinatura {{name}}?",
+      "message": "Isso removerá toda a assinatura e suas informações de agendamento. Esta ação não pode ser desfeita.",
+      "confirmLabel": "Excluir"
+    }
+  },
+  "historyPage": {
+    "columns": {
+      "title": "Título",
+      "subscription": "Assinatura",
+      "size": "Tamanho",
+      "speed": "Velocidade",
+      "status": "Status",
+      "date": "Data de adição",
+      "actions": "Ações"
+    },
+    "emptyState": {
+      "altText": "Sem histórico",
+      "title": "Ainda não há histórico",
+      "description": "Seus downloads e atividades serão exibidos aqui. Assine um canal para começar a baixar."
+    },
+    "status": {
+      "completed": "Concluído",
+      "downloading": "Em andamento",
+      "queued": "Na fila",
+      "failed": "Falhou"
+    },
+    "menu": {
+      "viewFile": "Ver arquivo",
+      "delete": "Excluir"
+    },
+    "confirmDelete": {
+      "title": "Excluir download {{name}}?",
+      "message": "Isso removerá o arquivo baixado do seu dispositivo. Esta ação não pode ser desfeita.",
+      "confirmLabel": "Excluir"
+    }
+  },
+  "scheduledPage": {
+    "columns": {
+      "channel": "Canal",
+      "type": "Tipo",
+      "schedule": "Agendamento",
+      "lastrun": "Última execução",
+      "nextrun": "Próxima execução",
+      "source": "Fonte",
+      "progress": "Progresso",
+      "status": "Status"
+    },
+    "emptyState": {
+      "altText": "Sem agendamento",
+      "title": "Nenhum agendamento para o filtro \"{{filter}}\"",
+      "description": "Assine canais do YouTube, listas de reprodução ou feeds RSS e o Subscription baixará automaticamente novos conteúdos conforme sua programação — mesmo quando o Downlodr estiver fechado."
+    },
+    "type": {
+      "recurring": "Recorrente",
+      "oneTime": "Única vez"
+    },
+    "status": {
+      "downloading": "Baixando",
+      "failed": "Falhou",
+      "running": "Executando",
+      "missed": "Perdido",
+      "pending": "Pendente",
+      "active": "Ativo",
+      "paused": "Pausado",
+      "error": "Erro"
+    },
+    "source": {
+      "youtube": "Youtube"
+    },
+    "ago": "atrás",
+    "confirmDelete": {
+      "title": "Excluir assinatura {{name}}?",
+      "message": "Isso removerá toda a assinatura e suas informações de agendamento. Esta ação não pode ser desfeita.",
+      "confirmLabel": "Excluir"
+    }
+  },
+  "taskbar": {
+    "sort": {
+      "label": "Ordenar",
+      "nameAZ": "Nome A → Z",
+      "nameZA": "Nome Z → A",
+      "newestFirst": "Mais recente primeiro",
+      "oldestFirst": "Mais antigo primeiro",
+      "mostDownloads": "Mais downloads",
+      "fewestDownloads": "Menos downloads"
+    },
+    "stats": {
+      "today": "hoje",
+      "thisWeek": "esta semana",
+      "used": "usado",
+      "nextCheckIn": "Próxima verificação em"
+    },
+    "search": {
+      "placeholder": "Pesquisar...",
+      "open": "Pesquisar",
+      "close": "Fechar pesquisa"
+    },
+    "subscribe": "Assinar",
+    "bulk": {
+      "downloadsSelected_one": "{{count}} download selecionado",
+      "downloadsSelected_other": "{{count}} downloads selecionados",
+      "deleteSelectedDownloads": "Excluir downloads selecionados",
+      "pauseSelectedSubscriptions": "Pausar assinaturas selecionadas",
+      "resumeSelectedSubscriptions": "Retomar assinaturas selecionadas",
+      "editSubscription": "Editar assinatura",
+      "deleteSelectedSubscriptions": "Excluir assinaturas selecionadas",
+      "pause": "Pausar",
+      "resume": "Retomar",
+      "edit": "Editar",
+      "delete": "Excluir",
+      "clearSelection": "Limpar seleção"
+    },
+    "confirmDelete": {
+      "singleDownloadTitle": "Excluir \"{{name}}\"?",
+      "multiDownloadTitle": "Excluir {{count}} downloads?",
+      "downloadMessage": "Isso removerá todos os downloads selecionados do seu dispositivo. Esta ação não pode ser desfeita.",
+      "singleSubscriptionTitle": "Excluir assinatura {{name}}?",
+      "multiSubscriptionTitle": "Excluir {{count}} assinaturas?",
+      "subscriptionMessage": "Isso removerá todas as assinaturas selecionadas e suas informações de agendamento. Esta ação não pode ser desfeita.",
+      "confirmLabel": "Excluir"
+    }
+  },
+  "scanningModal": {
+    "title": "Inscrever-se em uma fonte",
+    "cancel": "Cancelar",
+    "runInBackground": "Executar em segundo plano",
+    "channelScanned": "Canal analisado!",
+    "scanningChannel": "Analisando canal",
+    "analyzingArticle": "Analisando artigo",
+    "readyToSubscribe": "Pronto para se inscrever",
+    "discoveringSections": "Descobrindo seções",
+    "youtubeMsg0": "Verificando frequência de upload",
+    "youtubeMsg1": "Analisando com que frequência este canal publica",
+    "youtubeMsg2": "Lendo o padrão de upload do canal",
+    "youtubeMsg3": "Obtendo histórico de uploads",
+    "scanningChannelToast": "Analisando canal...",
+    "viewProgress": "Ver progresso"
+  },
+  "subscribeModal": {
+    "title": "Inscrever-se em uma fonte",
+    "cancel": "Cancelar",
+    "subscribe": "Inscrever-se",
+    "channelNameLabel": "Nome do canal",
+    "sourceUrlLabel": "URL da fonte",
+    "whatCanSubscribe": "No que posso me inscrever?",
+    "supportedSources": "Fontes compatíveis",
+    "youtubeChannels": "Canais do YouTube",
+    "articleWebsites": "Sites de artigos como: GMA, CNN, BBC, etc.",
+    "basicConfig": "CONFIGURAÇÃO BÁSICA",
+    "checkFrequency": "Frequência de verificação",
+    "auto": "Automático",
+    "manual": "Manual",
+    "toast": {
+      "queued": "Inscrição na fila",
+      "queuedDesc": "Sua inscrição foi adicionada à fila e será configurada em breve."
+    },
+    "errors": {
+      "invalidUrl": "Por favor insira uma URL válida (ex. https://www.youtube.com/@canal).",
+      "unsupportedProtocol": "Apenas URLs com http e https são suportadas.",
+      "unsupportedPlatform": "Plataforma não suportada. Atualmente apenas canais e playlists do YouTube são suportados.",
+      "videoLink": "Links de vídeos do YouTube não são suportados. Por favor insira a URL de um canal do YouTube (ex. https://www.youtube.com/@canal).",
+      "shortsLink": "Links do YouTube Shorts não são suportados. Por favor insira a URL de um canal do YouTube (ex. https://www.youtube.com/@canal).",
+      "alreadySubscribed": "Você já está inscrito neste canal. Você pode gerenciá-lo na aba do Subscription.",
+      "bridgeUnavailable": "A ponte do Subscription está indisponível. Por favor reinicie o aplicativo.",
+      "analyzeFailedGeneric": "Não foi possível analisar o canal — veja a notificação acima.",
+      "noVideosShorts": "Nenhum vídeo encontrado na aba Vídeos deste canal. Se ele só publica Shorts, tente adicionar \"/shorts\" à URL (ex. https://www.youtube.com/@canal/shorts).",
+      "noVideos": "Nenhum vídeo encontrado para este canal. Verifique a URL e tente novamente.",
+      "analyzeFailed": "Falha ao analisar o canal. Por favor tente novamente."
+    },
+    "channelInfo": {
+      "channelType": "Canal do {{siteType}}",
+      "channelFallback": "Canal",
+      "subscriberCount": "{{formatted}} inscritos",
+      "videoCount": "{{count}} vídeos",
+      "downloadLast": "Baixar os últimos",
+      "videosLabel": "vídeos",
+      "scrapeAllLabel": "Todos ({{count}})",
+      "ramWarning": "Baixar mais de 3 vídeos pode consumir muita RAM."
+    },
+    "autoDetect": {
+      "basedOn": "Baseado nos últimos {{count}} vídeos do histórico de publicação",
+      "usingFrequency": "Usando a frequência sugerida —",
+      "confidence": "{{percent}}% de confiança"
+    },
+    "advancedOptions": {
+      "title": "Opções avançadas",
+      "description": "Configurações adicionais podem ser adicionadas aqui.",
+      "showButton": "Mostrar opções avançadas"
+    },
+    "manualFrequency": {
+      "daysToCheck": "Dias de verificação:",
+      "checkAt": "Verificar às:",
+      "timezone": "Fuso horário:",
+      "schedulePrefix": "O Subscription verificará a cada",
+      "scheduleMid": "dias às",
+      "qualityPreset": "Qualidade predefinida",
+      "saveTo": "Salvar em:",
+      "saveToPlaceholder": "Escolha um local para salvar",
+      "browseFolderTooltip": "Procurar pasta",
+      "days": {
+        "mon": "Seg",
+        "tue": "Ter",
+        "wed": "Qua",
+        "thu": "Qui",
+        "fri": "Sex",
+        "sat": "Sáb",
+        "sun": "Dom"
+      },
+      "quality": {
+        "lowest": "Qualidade mais baixa",
+        "low": "Qualidade baixa",
+        "best": "Melhor qualidade"
+      }
+    }
+  },
+  "contextMenu": {
+    "edit": "Editar",
+    "pause": "Pausar",
+    "resume": "Retomar",
+    "delete": "Excluir"
+  },
+  "editModal": {
+    "title": "Editar assinatura",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "channelName": "Nome do canal",
+    "channelNameRequired": "O nome do canal é obrigatório.",
+    "channelUrl": "URL do canal",
+    "statusLabel": "Status",
+    "recurring": "Recorrente",
+    "scheduleDays": "Dias agendados",
+    "downloadQuality": "Qualidade de download",
+    "saveLocation": "Local de salvamento",
+    "lookbackPeriod": "Período de retenção",
+    "days": {
+      "mon": "Seg",
+      "tue": "Ter",
+      "wed": "Qua",
+      "thu": "Qui",
+      "fri": "Sex",
+      "sat": "Sáb",
+      "sun": "Dom"
+    },
+    "quality": {
+      "lowest": "Qualidade mais baixa",
+      "low": "Qualidade baixa",
+      "best": "Melhor qualidade"
+    },
+    "status": {
+      "active": "Ativo",
+      "paused": "Pausado",
+      "error": "Erro",
+      "needsAttention": "Precisa de atenção"
+    }
+  },
+  "activityLog": {
+    "showingResults": "Mostrando resultados de atividade",
+    "noActivity": "Sem atividade ainda.",
+    "filters": {
+      "all": "Tudo",
+      "downloads": "Downloads",
+      "checks": "Verificações",
+      "errors": "Erros"
+    }
+  },
+  "analytics": {
+    "days": {
+      "monday": "Segunda",
+      "tuesday": "Terça",
+      "wednesday": "Quarta",
+      "thursday": "Quinta",
+      "friday": "Sexta",
+      "saturday": "Sábado",
+      "sunday": "Domingo"
+    },
+    "timeBands": {
+      "earlyMorning": "Madrugada",
+      "earlyMorningSub": "0:00 - 6:00",
+      "morning": "Manhã",
+      "morningSub": "6:00 - 12:00",
+      "afternoon": "Tarde",
+      "afternoonSub": "12:00 - 18:00",
+      "evening": "Noite",
+      "eveningSub": "18:00 - 0:00"
+    },
+    "timeRange": {
+      "last30": "Últimos 30 dias",
+      "last60": "Últimos 60 dias",
+      "last90": "Últimos 90 dias"
+    },
+    "stats": {
+      "downloadRate": "Taxa de download",
+      "uploadCadence": "Cadência de upload",
+      "avgFileSize": "Tamanho médio",
+      "successOver30d": "sucesso em 30 dias",
+      "noDownloads": "Sem downloads ainda",
+      "videosPerWeek": "Vídeos por semana (méd.)",
+      "perVideo": "por vídeo"
+    },
+    "heatmap": {
+      "title": "Melhor dia + hora de upload",
+      "less": "Menos",
+      "more": "Mais",
+      "peak": "Pico",
+      "noData": "Sem dados ainda",
+      "failedToLoad": "Falha ao carregar",
+      "loading": "Carregando…"
+    },
+    "trends": {
+      "title": "Tendências em 30 dias",
+      "successRate": "Taxa de sucesso",
+      "storageGrowth": "Crescimento de armazenamento",
+      "failedDownloads": "Downloads com falha",
+      "failedBadge": "{{pct}}% falhou"
+    },
+    "tooltip": {
+      "avgUploadTime": "Hora média de upload:",
+      "avgUploads": "Uploads médios:",
+      "videosPerWeek": "vídeos/semana"
+    }
+  },
+  "selectedSubscriptionView": {
+    "emptyState": {
+      "title": "Programação",
+      "description": "Ainda não há canais programados. Adicione um canal na página inicial para ver as entradas aqui."
+    },
+    "channelNav": {
+      "header": "Canal"
+    },
+    "stats": {
+      "downloads": "Downloads",
+      "storage": "Armazenamento",
+      "created": "Criado",
+      "lastChecked": "Última verificação"
+    },
+    "selectChannel": "Selecione um canal da lista.",
+    "tabs": {
+      "downloads": "Downloads",
+      "analytics": "Análises",
+      "activity-log": "Registro de atividade",
+      "settings": "Configurações"
+    }
+  },
+  "settingsTab": {
+    "channelInfo": "Informações do canal",
+    "downloadBehavior": "Comportamento de download",
+    "noChannelSelected": "Nenhum canal selecionado.",
+    "channelNameRequired": "O nome do canal é obrigatório.",
+    "daysToCheck": "Dias para verificar:",
+    "toast": {
+      "saved": "Configurações salvas",
+      "savedDesc": "As configurações da sua assinatura foram atualizadas.",
+      "failed": "Falha ao salvar",
+      "failedDesc": "Algo deu errado ao salvar. Por favor, tente novamente."
+    }
+  }
+}

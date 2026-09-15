@@ -1,0 +1,8 @@
+{
+  "title": "附加選項",
+  "subtitle": "下載時同時取得字幕和縮圖。",
+  "getClosedCaptions": "取得字幕",
+  "getThumbnail": "取得縮圖",
+  "disclaimer": "請注意，並非所有網站都提供字幕和縮圖。",
+  "selected": "已選擇 {{count}} 個"
+}

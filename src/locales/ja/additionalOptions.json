@@ -1,0 +1,8 @@
+{
+  "title": "追加オプション",
+  "subtitle": "ダウンロードと一緒に字幕とサムネイルを取得します。",
+  "getClosedCaptions": "字幕を取得",
+  "getThumbnail": "サムネイルを取得",
+  "disclaimer": "字幕とサムネイルはすべてのウェブサイトで利用できるわけではありません。",
+  "selected": "{{count}} 件選択中"
+}

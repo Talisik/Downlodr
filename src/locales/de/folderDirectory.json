@@ -1,0 +1,10 @@
+{
+  "title": "Datei speichern in",
+  "subtitle": "Wählen Sie einen Speicherort für Ihre Datei.",
+  "placeholder": "Download-Zielordner",
+  "folderTooltip": "Ordner",
+  "toast": {
+    "errorTitle": "Fehler",
+    "errorDesc": "Verzeichnis konnte nicht ausgewählt werden"
+  }
+}

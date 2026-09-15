@@ -1,0 +1,35 @@
+{
+  "title": "ダウンロードログ",
+  "status": "ステータス",
+  "progress": "進行状況",
+  "noLogs": "このダウンロードのログはありません。",
+  "tooltip": {
+    "copyActive": "ダウンロード中はコピーできません",
+    "copy": "ログをコピー",
+    "saveActive": "ダウンロード中は保存できません",
+    "save": "ログをダウンロード",
+    "errorReportActive": "ダウンロード中はエラーレポートを送信できません",
+    "errorReportSending": "エラーレポートを送信中...",
+    "errorReportSent": "エラーレポートが正常に送信されました",
+    "errorReportFailed": "送信に失敗しました: {{error}}",
+    "errorReport": "アプリ改善のためエラーレポートを送信",
+    "close": "ログを閉じる"
+  },
+  "toast": {
+    "copyFailedTitle": "コピー失敗",
+    "copyFailedDesc": "アクティビティログをクリップボードにコピーできませんでした",
+    "logsSavedTitle": "ダウンロードログを保存しました",
+    "logsSavedDesc": "ログをダウンロードフォルダに保存しました",
+    "logsSavedPathDesc": "{{path}} にログを保存しました",
+    "logsFailedTitle": "ダウンロードログの保存に失敗",
+    "logsFailedPathDesc": "{{path}} へのログ保存に失敗しました",
+    "logsFailedDesc": "ログの保存に失敗しました",
+    "activityCopiedTitle": "アクティビティログをコピーしました",
+    "activityCopiedDesc": "アクティビティログをクリップボードにコピーしました",
+    "activityCopyFailedTitle": "アクティビティログのコピー失敗",
+    "activityCopyFailedDesc": "アクティビティログのコピーに失敗しました",
+    "errorReportSentTitle": "エラーレポートを送信しました",
+    "errorReportSentDesc": "エラー情報をアプリ改善のために送信しました",
+    "errorReportFailedTitle": "エラーレポートの送信に失敗"
+  }
+}

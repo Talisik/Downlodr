@@ -1,0 +1,35 @@
+{
+  "sections": {
+    "status": "상태",
+    "categories": "카테고리",
+    "tags": "태그"
+  },
+  "status": {
+    "all": "전체",
+    "fetchingMetadata": "메타데이터 가져오는 중",
+    "startDownload": "다운로드 시작",
+    "queued": "대기 중",
+    "downloading": "다운로드 중",
+    "paused": "일시정지됨",
+    "initializing": "초기화 중",
+    "failed": "실패",
+    "finished": "완료"
+  },
+  "subscriptions": "구독",
+  "categories": {
+    "all": "전체",
+    "uncategorized": "미분류"
+  },
+  "tags": {
+    "all": "전체",
+    "untagged": "태그 없음"
+  },
+  "collapse": "사이드바 접기",
+  "expand": "사이드바 펼치기",
+  "toast": {
+    "categorized": "다운로드 분류됨",
+    "categorizedDesc": "\"{{category}}\"(으)로 설정됨",
+    "tagged": "다운로드 태그됨",
+    "taggedDesc": "\"{{tag}}\"(으)로 태그됨"
+  }
+}

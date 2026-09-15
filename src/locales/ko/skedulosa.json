@@ -1,0 +1,409 @@
+{
+  "nav": {
+    "home": "홈",
+    "subscription": "구독",
+    "subscriptions": "구독 목록",
+    "scheduled": "예약됨",
+    "schedule": "예약",
+    "history": "기록",
+    "playground": "플레이그라운드"
+  },
+  "sections": {
+    "status": "상태",
+    "categories": "카테고리"
+  },
+  "statusFilter": {
+    "all": "전체",
+    "active": "활성",
+    "paused": "일시정지됨",
+    "needs-attention": "주의 필요",
+    "error": "오류 있음"
+  },
+  "categoryFilter": {
+    "all": "전체",
+    "youtube": "Youtube",
+    "afda": "기사"
+  },
+  "collapse": "사이드바 접기",
+  "expand": "사이드바 펼치기",
+  "subscriptionPage": {
+    "columns": {
+      "subscription": "구독",
+      "status": "상태",
+      "checked": "확인됨",
+      "downloads": "다운로드",
+      "source": "출처",
+      "storage": "크기"
+    },
+    "emptyState": {
+      "altText": "구독 없음",
+      "title": "\"{{filter}}\" 필터에 해당하는 구독이 없습니다",
+      "description": "YouTube 채널, 재생목록 또는 RSS 피드를 구독하면 Downlodr가 닫혀 있을 때도 Skedulosa가 일정에 따라 새 콘텐츠를 자동으로 다운로드합니다."
+    },
+    "status": {
+      "active": "활성",
+      "paused": "일시정지됨",
+      "error": "오류"
+    },
+    "ago": "전",
+    "source": {
+      "youtube": "Youtube"
+    },
+    "confirmDelete": {
+      "title": "{{name}} 구독을 삭제하시겠습니까?",
+      "message": "구독 전체와 예약 정보가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+      "confirmLabel": "삭제"
+    }
+  },
+  "historyPage": {
+    "columns": {
+      "title": "제목",
+      "subscription": "구독",
+      "size": "크기",
+      "speed": "속도",
+      "status": "상태",
+      "date": "추가된 날짜",
+      "actions": "작업"
+    },
+    "emptyState": {
+      "altText": "기록 없음",
+      "title": "아직 기록이 없습니다",
+      "description": "다운로드 및 활동이 여기에 표시됩니다. 채널을 구독하여 다운로드를 시작하세요."
+    },
+    "status": {
+      "completed": "완료",
+      "downloading": "진행 중",
+      "queued": "대기 중",
+      "failed": "실패"
+    },
+    "menu": {
+      "viewFile": "파일 보기",
+      "delete": "삭제"
+    },
+    "confirmDelete": {
+      "title": "{{name}} 다운로드를 삭제하시겠습니까?",
+      "message": "다운로드된 파일이 기기에서 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+      "confirmLabel": "삭제"
+    }
+  },
+  "scheduledPage": {
+    "columns": {
+      "channel": "채널",
+      "type": "유형",
+      "schedule": "예약",
+      "lastrun": "마지막 실행",
+      "nextrun": "다음 실행",
+      "source": "출처",
+      "progress": "진행 상황",
+      "status": "상태"
+    },
+    "emptyState": {
+      "altText": "예약 없음",
+      "title": "\"{{filter}}\" 필터에 해당하는 예약이 없습니다",
+      "description": "YouTube 채널, 재생목록 또는 RSS 피드를 구독하면 Downlodr가 닫혀 있을 때도 Skedulosa가 일정에 따라 새 콘텐츠를 자동으로 다운로드합니다."
+    },
+    "type": {
+      "recurring": "반복",
+      "oneTime": "1회성"
+    },
+    "status": {
+      "downloading": "다운로드 중",
+      "failed": "실패",
+      "running": "실행 중",
+      "missed": "누락됨",
+      "pending": "대기 중",
+      "active": "활성",
+      "paused": "일시정지됨",
+      "error": "오류"
+    },
+    "source": {
+      "youtube": "Youtube"
+    },
+    "ago": "전",
+    "confirmDelete": {
+      "title": "{{name}} 구독을 삭제하시겠습니까?",
+      "message": "구독 전체와 예약 정보가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+      "confirmLabel": "삭제"
+    }
+  },
+  "taskbar": {
+    "sort": {
+      "label": "정렬",
+      "nameAZ": "이름 A → Z",
+      "nameZA": "이름 Z → A",
+      "newestFirst": "최신순",
+      "oldestFirst": "오래된순",
+      "mostDownloads": "다운로드 많은 순",
+      "fewestDownloads": "다운로드 적은 순"
+    },
+    "stats": {
+      "today": "오늘",
+      "thisWeek": "이번 주",
+      "used": "사용됨",
+      "nextCheckIn": "다음 확인까지"
+    },
+    "search": {
+      "placeholder": "검색...",
+      "open": "검색",
+      "close": "검색 닫기"
+    },
+    "subscribe": "구독",
+    "bulk": {
+      "downloadsSelected_one": "{{count}}개 다운로드 선택됨",
+      "downloadsSelected_other": "{{count}}개 다운로드 선택됨",
+      "deleteSelectedDownloads": "선택한 다운로드 삭제",
+      "pauseSelectedSubscriptions": "선택한 구독 일시정지",
+      "resumeSelectedSubscriptions": "선택한 구독 재개",
+      "editSubscription": "구독 편집",
+      "deleteSelectedSubscriptions": "선택한 구독 삭제",
+      "pause": "일시정지",
+      "resume": "재개",
+      "edit": "편집",
+      "delete": "삭제",
+      "clearSelection": "선택 해제"
+    },
+    "confirmDelete": {
+      "singleDownloadTitle": "\"{{name}}\"을(를) 삭제하시겠습니까?",
+      "multiDownloadTitle": "다운로드 {{count}}개를 삭제하시겠습니까?",
+      "downloadMessage": "선택한 다운로드가 모두 기기에서 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+      "singleSubscriptionTitle": "{{name}} 구독을 삭제하시겠습니까?",
+      "multiSubscriptionTitle": "구독 {{count}}개를 삭제하시겠습니까?",
+      "subscriptionMessage": "선택한 구독이 모두 예약 정보와 함께 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+      "confirmLabel": "삭제"
+    }
+  },
+  "scanningModal": {
+    "title": "소스 구독",
+    "cancel": "취소",
+    "runInBackground": "백그라운드에서 실행",
+    "channelScanned": "채널 분석 완료!",
+    "scanningChannel": "채널 스캔 중",
+    "analyzingArticle": "게시글 분석 중",
+    "readyToSubscribe": "구독 준비 완료",
+    "discoveringSections": "섹션 탐색 중",
+    "youtubeMsg0": "업로드 빈도 확인 중",
+    "youtubeMsg1": "채널 게시 빈도 분석 중",
+    "youtubeMsg2": "채널 업로드 패턴 파악 중",
+    "youtubeMsg3": "업로드 기록 불러오는 중",
+    "scanningChannelToast": "채널 스캔 중...",
+    "viewProgress": "진행 상황 보기"
+  },
+  "subscribeModal": {
+    "title": "소스 구독",
+    "cancel": "취소",
+    "subscribe": "구독",
+    "channelNameLabel": "채널 이름",
+    "sourceUrlLabel": "소스 URL",
+    "whatCanSubscribe": "무엇을 구독할 수 있나요?",
+    "supportedSources": "지원되는 소스",
+    "youtubeChannels": "YouTube 채널",
+    "articleWebsites": "기사 웹사이트 예: GMA, CNN, BBC 등",
+    "basicConfig": "기본 설정",
+    "checkFrequency": "확인 빈도",
+    "auto": "자동",
+    "manual": "수동",
+    "toast": {
+      "queued": "구독 대기열에 추가됨",
+      "queuedDesc": "구독이 대기열에 추가되었으며 곧 설정됩니다."
+    },
+    "errors": {
+      "invalidUrl": "올바른 URL을 입력하세요 (예: https://www.youtube.com/@채널).",
+      "unsupportedProtocol": "http 및 https URL만 지원됩니다.",
+      "unsupportedPlatform": "지원되지 않는 플랫폼입니다. 현재 YouTube 채널과 재생목록만 지원됩니다.",
+      "videoLink": "YouTube 동영상 링크는 지원되지 않습니다. YouTube 채널 URL을 입력하세요 (예: https://www.youtube.com/@채널).",
+      "shortsLink": "YouTube Shorts 링크는 지원되지 않습니다. YouTube 채널 URL을 입력하세요 (예: https://www.youtube.com/@채널).",
+      "alreadySubscribed": "이미 구독 중인 채널입니다. Subscription 탭에서 관리할 수 있습니다.",
+      "bridgeUnavailable": "Subscription 브리지를 사용할 수 없습니다. 앱을 다시 시작하세요.",
+      "analyzeFailedGeneric": "채널을 분석할 수 없습니다 — 위의 알림을 확인하세요.",
+      "noVideosShorts": "이 채널의 동영상 탭에서 동영상을 찾을 수 없습니다. Shorts만 게시하는 경우 URL에 \"/shorts\"를 추가해 보세요 (예: https://www.youtube.com/@채널/shorts).",
+      "noVideos": "이 채널에서 동영상을 찾을 수 없습니다. URL을 확인하고 다시 시도하세요.",
+      "analyzeFailed": "채널 분석에 실패했습니다. 다시 시도해 주세요."
+    },
+    "channelInfo": {
+      "channelType": "{{siteType}} 채널",
+      "channelFallback": "채널",
+      "subscriberCount": "구독자 {{formatted}}명",
+      "videoCount": "동영상 {{count}}개",
+      "downloadLast": "최근",
+      "videosLabel": "개의 동영상 다운로드",
+      "scrapeAllLabel": "전체 ({{count}})",
+      "ramWarning": "3개 이상의 동영상을 다운로드하면 RAM을 많이 사용할 수 있습니다."
+    },
+    "autoDetect": {
+      "basedOn": "게시 기록에서 최근 {{count}}개 동영상을 기준으로",
+      "usingFrequency": "제안된 빈도 사용 —",
+      "confidence": "신뢰도 {{percent}}%"
+    },
+    "advancedOptions": {
+      "title": "고급 옵션",
+      "description": "여기에 추가 설정을 추가할 수 있습니다.",
+      "showButton": "고급 옵션 표시"
+    },
+    "manualFrequency": {
+      "daysToCheck": "확인할 요일:",
+      "checkAt": "확인 시각:",
+      "timezone": "시간대:",
+      "schedulePrefix": "Skedulosa가 매주",
+      "scheduleMid": "마다",
+      "qualityPreset": "화질 설정",
+      "saveTo": "저장 위치:",
+      "saveToPlaceholder": "저장할 위치 선택",
+      "browseFolderTooltip": "폴더 찾아보기",
+      "days": {
+        "mon": "월",
+        "tue": "화",
+        "wed": "수",
+        "thu": "목",
+        "fri": "금",
+        "sat": "토",
+        "sun": "일"
+      },
+      "quality": {
+        "lowest": "최저 화질",
+        "low": "낮은 화질",
+        "best": "최고 화질"
+      }
+    }
+  },
+  "contextMenu": {
+    "edit": "편집",
+    "pause": "일시정지",
+    "resume": "재개",
+    "delete": "삭제"
+  },
+  "editModal": {
+    "title": "구독 편집",
+    "cancel": "취소",
+    "save": "저장",
+    "channelName": "채널 이름",
+    "channelNameRequired": "채널 이름은 필수입니다.",
+    "channelUrl": "채널 URL",
+    "statusLabel": "상태",
+    "recurring": "반복",
+    "scheduleDays": "예약 요일",
+    "downloadQuality": "다운로드 품질",
+    "saveLocation": "저장 위치",
+    "lookbackPeriod": "보존 기간",
+    "days": {
+      "mon": "월",
+      "tue": "화",
+      "wed": "수",
+      "thu": "목",
+      "fri": "금",
+      "sat": "토",
+      "sun": "일"
+    },
+    "quality": {
+      "lowest": "최저 품질",
+      "low": "낮은 품질",
+      "best": "최고 품질"
+    },
+    "status": {
+      "active": "활성",
+      "paused": "일시정지",
+      "error": "오류",
+      "needsAttention": "주의 필요"
+    }
+  },
+  "activityLog": {
+    "showingResults": "활동 결과 표시 중",
+    "noActivity": "아직 활동이 없습니다.",
+    "filters": {
+      "all": "전체",
+      "downloads": "다운로드",
+      "checks": "확인",
+      "errors": "오류"
+    }
+  },
+  "analytics": {
+    "days": {
+      "monday": "월요일",
+      "tuesday": "화요일",
+      "wednesday": "수요일",
+      "thursday": "목요일",
+      "friday": "금요일",
+      "saturday": "토요일",
+      "sunday": "일요일"
+    },
+    "timeBands": {
+      "earlyMorning": "새벽",
+      "earlyMorningSub": "오전 12:00 - 6:00",
+      "morning": "오전",
+      "morningSub": "오전 6:00 - 12:00",
+      "afternoon": "오후",
+      "afternoonSub": "오후 12:00 - 6:00",
+      "evening": "저녁",
+      "eveningSub": "오후 6:00 - 12:00"
+    },
+    "timeRange": {
+      "last30": "최근 30일",
+      "last60": "최근 60일",
+      "last90": "최근 90일"
+    },
+    "stats": {
+      "downloadRate": "다운로드 성공률",
+      "uploadCadence": "업로드 주기",
+      "avgFileSize": "평균 파일 크기",
+      "successOver30d": "30일 성공률",
+      "noDownloads": "다운로드 없음",
+      "videosPerWeek": "주당 영상 수 (평균)",
+      "perVideo": "영상당"
+    },
+    "heatmap": {
+      "title": "최적 업로드 요일 + 시간",
+      "less": "적음",
+      "more": "많음",
+      "peak": "최고",
+      "noData": "데이터 없음",
+      "failedToLoad": "불러오기 실패",
+      "loading": "불러오는 중…"
+    },
+    "trends": {
+      "title": "30일 트렌드",
+      "successRate": "성공률",
+      "storageGrowth": "저장소 증가",
+      "failedDownloads": "실패한 다운로드",
+      "failedBadge": "{{pct}}% 실패"
+    },
+    "tooltip": {
+      "avgUploadTime": "평균 업로드 시간:",
+      "avgUploads": "평균 업로드:",
+      "videosPerWeek": "영상/주"
+    }
+  },
+  "selectedSubscriptionView": {
+    "emptyState": {
+      "title": "예약",
+      "description": "아직 예약된 채널이 없습니다. 홈 페이지에서 채널을 추가하면 여기에 표시됩니다."
+    },
+    "channelNav": {
+      "header": "채널"
+    },
+    "stats": {
+      "downloads": "다운로드",
+      "storage": "저장소",
+      "created": "생성됨",
+      "lastChecked": "마지막 확인"
+    },
+    "selectChannel": "목록에서 채널을 선택하세요.",
+    "tabs": {
+      "downloads": "다운로드",
+      "analytics": "분석",
+      "activity-log": "활동 로그",
+      "settings": "설정"
+    }
+  },
+  "settingsTab": {
+    "channelInfo": "채널 정보",
+    "downloadBehavior": "다운로드 동작",
+    "noChannelSelected": "채널이 선택되지 않았습니다.",
+    "channelNameRequired": "채널 이름은 필수입니다.",
+    "daysToCheck": "확인할 요일:",
+    "toast": {
+      "saved": "설정 저장됨",
+      "savedDesc": "구독 설정이 업데이트되었습니다.",
+      "failed": "저장 실패",
+      "failedDesc": "저장 중 오류가 발생했습니다. 다시 시도해 주세요."
+    }
+  }
+}

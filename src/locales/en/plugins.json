@@ -1,0 +1,102 @@
+{
+  "nav": {
+    "plugins": "Plugins"
+  },
+  "card": {
+    "install": "Install",
+    "uninstall": "Uninstall",
+    "update": "Update"
+  },
+  "pluginButtons": {
+    "details": "Details",
+    "remove": "Remove",
+    "moreDetails": "More Details",
+    "checkForUpdates": "Check for Updates",
+    "updating": "Updating...",
+    "install": "Install",
+    "installing": "Installing...",
+    "version": "Version {{version}}",
+    "unknownSize": "Unknown"
+  },
+  "pluginDescriptions": {
+    "cc-to-markdown": "Convert video captions into markdown documents.",
+    "cc-to-markdown-downlodr": "Convert video captions into markdown documents.",
+    "format-converter": "Converts videos to different formats using customizable quality and settings.",
+    "format-converter-downlodr": "Converts videos to different formats using customizable quality and settings.",
+    "metadata-exporter": "View and edit video metadata with powerful batch processing tools.",
+    "metadata-exporter-downlodr": "View and edit video metadata with powerful batch processing tools.",
+    "fall-back-plugin": "View and edit video metadata with powerful batch processing tools."
+  },
+  "pluginNames": {
+    "cc-to-markdown": "CC to Markdown",
+    "cc-to-markdown-downlodr": "CC to Markdown",
+    "format-converter": "Format Converter",
+    "format-converter-downlodr": "Format Converter",
+    "metadata-exporter": "Metadata Exporter",
+    "metadata-exporter-downlodr": "Metadata Exporter",
+    "fall-back-plugin": "Fall Back Plugin"
+  },
+  "githubPlugin": {
+    "noDescription": "No description available",
+    "pluginFrom": "Plugin from {{releaseName}}"
+  },
+  "page": {
+    "tabs": {
+      "installed": "Installed Plugins",
+      "browse": "Browse Plugins"
+    },
+    "tooltip": {
+      "refresh": "Refresh Featured Plugins"
+    },
+    "search": {
+      "placeholder": "Search",
+      "noResults": "No plugins found"
+    },
+    "noPluginsAlt": "No plugins available",
+    "thisPlugin": "this plugin",
+    "installed": {
+      "loading": "Loading plugins...",
+      "emptyTitle": "You haven't installed any plugins",
+      "addPlugin": "Add Plugin"
+    },
+    "browse": {
+      "loading": "Loading plugins from GitHub...",
+      "emptyTitle": "No plugins found. Try refreshing the list.",
+      "refreshButton": "Refresh Plugins"
+    },
+    "confirmUninstall": {
+      "title": "Remove Plugin",
+      "message": "Are you sure you want to remove \"{{name}}\"? This action cannot be undone."
+    },
+    "toast": {
+      "loadFailed": "Failed to Load Plugins",
+      "loadFailedDesc": "Using fallback plugin data",
+      "refreshed": "Plugins Refreshed",
+      "refreshedGithub": "Plugin data updated from GitHub release",
+      "refreshedFallback": "Using fallback data due to GitHub API issues",
+      "refreshFailed": "Refresh Failed",
+      "refreshFailedDesc": "Could not refresh plugin data",
+      "installSuccess": "Success",
+      "installSuccessDesc": "Plugin was installed successfully",
+      "alreadyInstalled": "Plugin Already Installed",
+      "alreadyInstalledDesc": "This plugin is already installed",
+      "invalidDir": "Invalid Plugin Directory",
+      "invalidDirDesc": "The selected directory does not contain a valid plugin structure",
+      "installFailed": "Installation Failed",
+      "installFailedDefault": "An unexpected error occurred while installing the plugin",
+      "removed": "Plugin Removed",
+      "removedDesc": "{{name}} has been successfully removed",
+      "removeFailed": "Failed to Remove Plugin",
+      "removeFailedDesc": "Could not remove {{name}}. Please try again.",
+      "removeError": "Error",
+      "removeErrorDesc": "An error occurred while removing {{name}}",
+      "noUpdates": "No Updates Available",
+      "noUpdatesDesc": "{{name}} is already up to date (v{{version}})",
+      "updateCheckFailed": "Update Check Failed",
+      "updateSuccess": "Update Successful",
+      "updateSuccessDesc": "{{name}} has been updated successfully",
+      "updateFailed": "Update Failed",
+      "updateFailedDesc": "Failed to update {{name}}"
+    }
+  }
+}

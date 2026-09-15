@@ -1,0 +1,35 @@
+{
+  "sections": {
+    "status": "Status",
+    "categories": "Kategorien",
+    "tags": "Tags"
+  },
+  "status": {
+    "all": "Alle",
+    "fetchingMetadata": "Metadaten abrufen",
+    "startDownload": "Download starten",
+    "queued": "In der Warteschlange",
+    "downloading": "Wird heruntergeladen",
+    "paused": "Pausiert",
+    "initializing": "Wird initialisiert",
+    "failed": "Fehlgeschlagen",
+    "finished": "Abgeschlossen"
+  },
+  "subscriptions": "Abonnements",
+  "categories": {
+    "all": "Alle",
+    "uncategorized": "Nicht kategorisiert"
+  },
+  "tags": {
+    "all": "Alle",
+    "untagged": "Ohne Tag"
+  },
+  "collapse": "Seitenleiste einklappen",
+  "expand": "Seitenleiste ausklappen",
+  "toast": {
+    "categorized": "Download kategorisiert",
+    "categorizedDesc": "Auf \"{{category}}\" gesetzt",
+    "tagged": "Download mit Tag versehen",
+    "taggedDesc": "Mit \"{{tag}}\" markiert"
+  }
+}
