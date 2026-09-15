@@ -1,0 +1,399 @@
+/**
+ * Checks if content is an M3U playlist by looking for the header
+ * @param content The file content to check
+ * @returns boolean indicating if it's an M3U playlist
+ */
+
+// TypeScript interfaces for caption data
+interface CaptionInfo {
+  ext: string;
+  url: string;
+  name?: string;
+}
+
+type VideoInfo = CaptionInfo[] & {
+  id?: string;
+  title?: string;
+  name?: string;
+};
+
+function isM3UPlaylist(content: string): boolean {
+  return content.trim().startsWith('#EXTM3U');
+}
+
+interface Json3Seg {
+  utf8?: string;
+}
+
+interface Json3Event {
+  tStartMs?: number;
+  dDurationMs?: number;
+  segs?: Json3Seg[];
+}
+
+function formatSrtTimestamp(ms: number): string {
+  const totalMs = Math.max(0, Math.round(ms));
+  const hours = Math.floor(totalMs / 3600000);
+  const minutes = Math.floor((totalMs % 3600000) / 60000);
+  const seconds = Math.floor((totalMs % 60000) / 1000);
+  const millis = totalMs % 1000;
+  return `${hours.toString().padStart(2, '0')}:${minutes
+    .toString()
+    .padStart(2, '0')}:${seconds.toString().padStart(2, '0')},${millis
+    .toString()
+    .padStart(3, '0')}`;
+}
+
+/**
+ * Converts YouTube's json3 timed-text format into standard SRT.
+ * json3 events without segs are position/style-only markers, not cues.
+ */
+function convertJson3ToSrt(jsonContent: string): string | null {
+  let parsed: { events?: Json3Event[] };
+  try {
+    parsed = JSON.parse(jsonContent);
+  } catch {
+    return null;
+  }
+
+  if (!parsed.events || parsed.events.length === 0) return null;
+
+  let cueIndex = 0;
+  const blocks: string[] = [];
+
+  for (const event of parsed.events) {
+    if (event.tStartMs === undefined || !event.segs || event.segs.length === 0)
+      continue;
+
+    const text = event.segs
+      .map((seg) => seg.utf8 ?? '')
+      .join('')
+      .replace(/\n+$/, '')
+      .trim();
+    if (!text) continue;
+
+    const startMs = event.tStartMs;
+    const endMs = startMs + (event.dDurationMs ?? 2000);
+
+    cueIndex += 1;
+    blocks.push(
+      `${cueIndex}\n${formatSrtTimestamp(startMs)} --> ${formatSrtTimestamp(
+        endMs,
+      )}\n${text}\n`,
+    );
+  }
+
+  return blocks.length > 0 ? blocks.join('\n') : null;
+}
+
+// Find the VTT format (preferred) or fallback to others in order of preference
+const formatPreference = [
+  'srt',
+  'vtt',
+  'ttml',
+  'srv3',
+  'srv2',
+  'srv1',
+  'json3',
+];
+
+function selectCaption(captionsData: CaptionInfo[]): CaptionInfo | undefined {
+  if (!captionsData || captionsData.length === 0) return undefined;
+
+  // Normalize helpers
+  const includesWord = (text: string, words: string[]) =>
+    words.some((w) => text.toLowerCase().includes(w.toLowerCase()));
+
+  let selectedCaption: CaptionInfo | undefined;
+
+  // 1. Look for "original" variations
+  for (const format of formatPreference) {
+    console.log(captionsData);
+    selectedCaption = captionsData.find(
+      (caption) =>
+        caption.ext === format &&
+        includesWord(caption.name.toLowerCase(), [
+          'original',
+          'orig',
+          '(original)',
+          '(orig)',
+        ]),
+    );
+    if (selectedCaption) return selectedCaption;
+  }
+
+  // 2. Look for English/en variations
+  for (const format of formatPreference) {
+    selectedCaption = captionsData.find(
+      (caption) =>
+        caption.ext === format && includesWord(caption.name, ['english', 'en']),
+    );
+    if (selectedCaption) return selectedCaption;
+  }
+
+  // 3. Fallback: just take the first caption available by format preference
+  for (const format of formatPreference) {
+    selectedCaption = captionsData.find((caption) => caption.ext === format);
+    if (selectedCaption) return selectedCaption;
+  }
+
+  // 4. If still nothing, return undefined
+  return undefined;
+}
+
+/**
+ * Extracts YouTube timedtext URLs from M3U playlist content
+ * @param m3uContent The M3U playlist content
+ * @returns Array of YouTube timedtext URLs found
+ */
+function extractYouTubeTimedtextUrls(m3uContent: string): string[] {
+  const lines = m3uContent.split('\n');
+  const timedtextUrls: string[] = [];
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (trimmedLine.includes('youtube.com/api/timedtext')) {
+      timedtextUrls.push(trimmedLine);
+    }
+  }
+
+  return timedtextUrls;
+}
+
+/**
+ * Downloads content from a YouTube timedtext URL and ensures VTT format
+ * @param timedtextUrl The YouTube timedtext API URL
+ * @returns Promise<string | null> The VTT content or null if failed
+ */
+async function downloadTimedtextContent(
+  timedtextUrl: string,
+): Promise<string | null> {
+  try {
+    // Ensure the URL requests VTT format by modifying the fmt parameter
+    const url = new URL(timedtextUrl);
+    url.searchParams.set('fmt', 'vtt');
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      return null;
+    }
+
+    const content = await response.text();
+
+    // Basic validation - VTT files should start with "WEBVTT"
+    if (!content.trim().startsWith('WEBVTT')) {
+      return null;
+    }
+
+    return content;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Processes M3U playlist file to extract and download actual caption content
+ * @param filePath Path to the downloaded M3U file
+ * @returns Promise<boolean> True if successfully processed and replaced, false otherwise
+ */
+async function processM3UPlaylist(filePath: string): Promise<boolean> {
+  try {
+    // Read the M3U file content
+    const fileResult = await window.plugins.readFileContents({
+      filePath: filePath,
+      pluginId: 'captionsHelper',
+    });
+
+    if (!fileResult.success || !fileResult.data) {
+      return false;
+    }
+
+    const fileContent = fileResult.data;
+
+    // Check if it's actually an M3U playlist
+    if (!isM3UPlaylist(fileContent)) {
+      return false;
+    }
+
+    // Extract YouTube timedtext URLs
+    const timedtextUrls = extractYouTubeTimedtextUrls(fileContent);
+    if (timedtextUrls.length === 0) {
+      return false;
+    }
+
+    // Download content from the first timedtext URL
+    const actualContent = await downloadTimedtextContent(timedtextUrls[0]);
+    if (!actualContent) {
+      return false;
+    }
+
+    // Replace the M3U file with the actual VTT content
+    const writeResult = await window.plugins.writeFile({
+      customPath: filePath,
+      content: actualContent,
+      overwrite: true,
+      pluginId: 'captionsHelper',
+      fileName: '', // Not used when customPath is provided
+    });
+
+    if (!writeResult.success) {
+      return false;
+    }
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Reads a downloaded json3 caption file, converts it to SRT, writes the SRT
+ * alongside it, and removes the original json3 file.
+ * @returns Path to the new .srt file, or null if conversion failed (original file is kept)
+ */
+async function convertJson3FileToSrt(
+  json3Path: string,
+): Promise<string | null> {
+  try {
+    const fileResult = await window.plugins.readFileContents({
+      filePath: json3Path,
+      pluginId: 'captionsHelper',
+    });
+    if (!fileResult.success || !fileResult.data) return null;
+
+    const srtContent = convertJson3ToSrt(fileResult.data);
+    if (!srtContent) return null;
+
+    const srtPath = json3Path.replace(/\.json3$/, '.srt');
+    const writeResult = await window.plugins.writeFile({
+      customPath: srtPath,
+      content: srtContent,
+      overwrite: true,
+      pluginId: 'captionsHelper',
+      fileName: '',
+    });
+    if (!writeResult.success) return null;
+
+    await window.downlodrFunctions.deleteFile(json3Path);
+    return srtPath;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Attempts to download English automatic captions from video metadata
+ * @param videoInfo The video info object returned from ytdlp.getInfo
+ * @param outputPath path to save the captions file (defaults to same location as video with .en.vtt extension)
+ * @param fileName file name to save the captions file (defaults to video if no name is available)
+ * @returns Promise<string> Path to the downloaded captions file or undefined if not available
+ */
+
+export async function downloadEnglishCaptions(
+  videoInfo: VideoInfo | CaptionInfo,
+  outputPath: string,
+  fileName: string,
+): Promise<string | undefined> {
+  try {
+    console.log(videoInfo);
+    // Check if automatic captions exist
+    if (!videoInfo) {
+      return undefined;
+    }
+
+    let selectedCaption: CaptionInfo | undefined;
+
+    // If videoInfo is already a pre-selected CaptionInfo object (has url + ext but is not an array),
+    // use it directly — the caller already ran selectOptimalCaption.
+    if (
+      !Array.isArray(videoInfo) &&
+      typeof videoInfo === 'object' &&
+      'url' in videoInfo &&
+      'ext' in videoInfo
+    ) {
+      selectedCaption = videoInfo as CaptionInfo;
+    } else {
+      const captionsData = videoInfo as CaptionInfo[];
+      if (!captionsData || captionsData.length === 0) {
+        return undefined;
+      }
+      selectedCaption = selectCaption(captionsData);
+    }
+
+    if (!selectedCaption) {
+      return undefined;
+    }
+
+    // Remove file extension from fileName if it exists
+    const fileNameWithoutExt = fileName
+      ? fileName.replace(/\.[^/.]+$/, '')
+      : '';
+
+    // Use fileName if provided, otherwise fallback to video title/ID
+    const videoId = (videoInfo as VideoInfo).id || 'video';
+    const videoTitle = fileNameWithoutExt || (videoInfo as VideoInfo).title || videoId;
+    const sanitizedTitle = videoTitle.replace(/[\\ñ'/:*?"<>|]/g, '_');
+
+    // Generate output path if not provided
+    if (!outputPath) {
+      outputPath = `${sanitizedTitle}.${selectedCaption.ext}`;
+    } else {
+      outputPath = await window.downlodrFunctions.joinDownloadPath(
+        outputPath,
+        `${sanitizedTitle}.${selectedCaption.ext}`,
+      );
+    }
+
+    // Download the captions
+    const downloadResult = await window.downlodrFunctions.downloadFile(
+      selectedCaption.url,
+      outputPath,
+    );
+
+    if (!downloadResult.success) {
+      return undefined;
+    }
+
+    // Validate the downloaded content
+    const fileSize = await window.downlodrFunctions.getFileSize(outputPath);
+    if (!fileSize || fileSize < 10) {
+      // Less than 10 bytes is likely empty/invalid
+      await window.downlodrFunctions.deleteFile(outputPath);
+      return undefined;
+    }
+
+    // NEW: Process M3U playlist if detected
+    const wasProcessed = await processM3UPlaylist(outputPath);
+    if (wasProcessed) {
+      // Re-validate the file size after processing
+      const newFileSize = await window.downlodrFunctions.getFileSize(
+        outputPath,
+      );
+      if (!newFileSize || newFileSize < 10) {
+        await window.downlodrFunctions.deleteFile(outputPath);
+        return undefined;
+      }
+    } else {
+      console.log(
+        'File was not an M3U playlist or processing failed, keeping original file',
+      );
+    }
+
+    // Additional content validation for VTT files
+    if (selectedCaption.ext === 'vtt') {
+      // -_-
+    }
+
+    // json3 is YouTube's raw timed-text format, not a readable subtitle file —
+    // convert it to SRT so it opens like every other caption track.
+    if (selectedCaption.ext === 'json3') {
+      const converted = await convertJson3FileToSrt(outputPath);
+      if (converted) {
+        return converted;
+      }
+    }
+
+    return outputPath;
+  } catch (error) {
+    return undefined;
+  }
+}
