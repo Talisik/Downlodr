@@ -1,0 +1,19 @@
+<!-- Downlodr chat mascot, resting pose (no raised arm — that layer is
+     downlodr_mascot_arm.svg, which ChatFab fades in and waves on hover).
+
+     The source art painted the disc twice: a #3A3A3A rect under an embedded
+     240x240 PNG that was itself opaque flat #3A3A3A. The PNG has been dropped
+     so the disc is a single vector fill in the Downlodr primary orange
+     (tailwind theme `primary`, #F45513) — recoloring the rect alone did
+     nothing while the opaque bitmap sat on top of it. -->
+<svg width="422" height="407" viewBox="0 0 422 407" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#discClip)">
+<rect width="422" height="407" rx="203.5" fill="#F45513"/>
+<path d="M300.37 242.012L335.55 334.02L355.395 394.456C264.469 439.197 141.913 435.95 92 428.733C112.206 370.282 100.419 215.552 92 145.494C110.762 147.659 128.683 165.64 135.298 174.359C165.326 151.267 206.743 149.704 223.697 151.809C222.254 133.768 233.92 112.418 239.934 103.999L300.37 242.012ZM240.836 260.954C239.275 254.767 230.32 253.443 220.256 255.981C210.191 258.52 202.292 264.689 203.853 270.877C205.414 277.064 215.844 280.928 225.908 278.39C235.972 275.851 242.396 267.142 240.836 260.954ZM186.765 241.635C184.956 233.872 179.162 228.587 173.825 229.831C168.489 231.075 165.629 238.376 167.438 246.139C169.247 253.901 175.039 259.186 180.376 257.942C185.713 256.699 188.573 249.398 186.765 241.635ZM249.907 223.595C248.098 215.832 242.305 210.546 236.968 211.79C231.631 213.034 228.771 220.335 230.58 228.098C232.389 235.86 238.182 241.146 243.519 239.902C248.855 238.659 251.716 231.357 249.907 223.595Z" fill="white"/>
+</g>
+<defs>
+<clipPath id="discClip">
+<rect width="422" height="407" rx="203.5" fill="white"/>
+</clipPath>
+</defs>
+</svg>
