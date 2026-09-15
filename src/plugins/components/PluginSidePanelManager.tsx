@@ -1,5 +1,9 @@
-import { usePluginStore } from '@/Store/pluginStore';
-import { PluginSidePanelOptions, PluginSidePanelResult } from '@/plugins/types';
+import {
+  PluginSidePanelOptions,
+  PluginSidePanelResult,
+} from '@/plugins/schema/types';
+import { usePluginStore } from '@/plugins/store/pluginStore';
+import { AnimatePresence, motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
 import PluginSidePanelExtension from './PluginSidePanelExtension';
 
@@ -102,20 +106,34 @@ const PluginSidePanelManager: React.FC = () => {
   }, []);
 
   return (
-    <>
-      {currentRequest && (
-        <PluginSidePanelExtension
-          isOpen={isOpen}
-          onClose={handleClose}
-          options={currentRequest.options}
-          onAction={(result) => {
-            currentRequest.resolve(result);
-            setCurrentRequest(null);
-            updateIsOpenPluginSidebar(false);
-          }}
-        />
-      )}
-    </>
+    <div className="h-full">
+      <AnimatePresence>
+        {currentRequest && (
+          <motion.div
+            key="plugin-side-panel"
+            className="h-full"
+            initial={{ x: '100%', opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: '100%', opacity: 0 }}
+            transition={{
+              x: { duration: 0.28, ease: [0, 0.55, 0.45, 1] },
+              opacity: { duration: 0.2, ease: 'easeInOut' },
+            }}
+          >
+            <PluginSidePanelExtension
+              isOpen={isOpen}
+              onClose={handleClose}
+              options={currentRequest.options}
+              onAction={(result) => {
+                currentRequest.resolve(result);
+                setCurrentRequest(null);
+                updateIsOpenPluginSidebar(false);
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 

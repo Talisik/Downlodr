@@ -1,4 +1,4 @@
-import { PluginModalOptions, PluginModalResult } from '@/plugins/types';
+import { PluginModalOptions, PluginModalResult } from '@/plugins/schema/types';
 import React, { useCallback, useState } from 'react';
 import PluginModalExtension from './PluginModalExtension';
 

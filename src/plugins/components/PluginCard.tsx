@@ -1,12 +1,13 @@
-import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
-import { usePluginStore } from '@/Store/pluginStore';
-import { getFirstParagraph } from '@/Utils/Data/stringHelpers';
-import { renderIcon } from '@/Utils/Icons/iconHelpers';
+import { Button } from '@/core-app/components/shadcn/components/ui/button';
+import { getFirstParagraph } from '@/core-app/utils/stringHelper';
+import { PluginInfo } from '@/plugins/schema/types';
+import { usePluginStore } from '@/plugins/store/pluginStore';
+import { renderIcon } from '@/plugins/utils/pluginIconHelper';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LuDownload, LuFiles, LuUsers } from 'react-icons/lu';
 import { RxUpdate } from 'react-icons/rx';
 import { NavLink } from 'react-router-dom';
-import { PluginInfo } from '../types';
 
 interface PluginCardProps {
   plugin: PluginInfo;
@@ -28,6 +29,7 @@ const PluginCard = ({
   onCheckUpdates,
   isInstalling,
 }: PluginCardProps) => {
+  const { t } = useTranslation('plugins');
   const { plugins } = usePluginStore();
   const [fileSize, setFileSize] = useState<string>('...');
 
@@ -62,7 +64,7 @@ const PluginCard = ({
         }
       } catch (error) {
         console.error('Failed to get file size:', error);
-        setFileSize('Unknown');
+        setFileSize(t('pluginButtons.unknownSize'));
       }
     };
 
@@ -70,12 +72,12 @@ const PluginCard = ({
   }, [plugin.id]);
 
   return (
-    <div className="w-sm bg-titleBar dark:bg-darkMode rounded-md p-4 shadow-md h-50 flex flex-col drop-shadow-sm hover:drop-shadow-lg transition-all duration-300">
+    <div className="w-sm bg-titleBar dark:bg-darkModeTable rounded-md p-4 shadow-md h-50 flex flex-col drop-shadow-sm hover:drop-shadow-lg transition-all duration-300">
       {/* Header section */}
       <div className="flex items-center mb-3">
-        <span className="inline-flex items-center justify-center mr-2 flex-shrink-0">
-          {renderIcon(plugin.icon, 'md', plugin.name)}
-        </span>
+        <div className="inline-flex items-center justify-center mr-3 flex-shrink-0 w-12 h-12 rounded-xl bg-gray-100 dark:bg-darkModeCompliment border border-gray-200 dark:border-darkModeHover overflow-hidden shadow-sm">
+          {renderIcon(plugin.icon, 'lg', plugin.name)}
+        </div>
         <div className="flex flex-col">
           <h3 className="text-lg text-[14px] font-semibold truncate">
             {plugin.name}
@@ -105,7 +107,7 @@ const PluginCard = ({
           {fileSize}
         </p>
         <p className="text-xs text-gray-500 dark:text-gray-400 truncate flex items-center">
-          Version {plugin.version}
+          {t('pluginButtons.version', { version: plugin.version })}
         </p>
       </div>
 
@@ -119,7 +121,7 @@ const PluginCard = ({
                   variant="outline"
                   className="text-xs font-semibold dark:border-darkModeCompliment border-2 px-2 py-0 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown hover:text-primary dark:hover:text-primary"
                 >
-                  Details
+                  {t('pluginButtons.details')}
                 </Button>
               </NavLink>
               <Button
@@ -127,7 +129,7 @@ const PluginCard = ({
                 className="text-xs font-semibold border-2 px-2 py-0 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown dark:border-darkModeCompliment hover:text-primary dark:hover:text-primary"
                 onClick={onClickButton}
               >
-                Remove
+                {t('pluginButtons.remove')}
               </Button>
             </div>
             <div className="flex items-center gap-2 self-end sm:self-auto">
@@ -135,7 +137,7 @@ const PluginCard = ({
                 <input
                   type="checkbox"
                   className="sr-only peer"
-                  checked={enabledPlugins[plugin.id] || false}
+                  checked={enabledPlugins?.[plugin.id] || false}
                   onChange={onClickToggle}
                 />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500"></div>
@@ -151,10 +153,10 @@ const PluginCard = ({
               className="text-xs w-full border-2 px-2 py-0 dark:hover:bg-darkModeDropdown dark:bg-darkModeDropdown dark:border-darkModeCompliment hover:text-primary dark:hover:text-primary"
               icon={<LuFiles />}
               onClick={() => {
-                window.downlodrFunctions.openExternalLink(plugin.downlodrLink);
+                window.downlodrFunctions.openExternalLink(plugin.downlodrLink ?? '');
               }}
             >
-              More Details
+              {t('pluginButtons.moreDetails')}
             </Button>
 
             {isPluginInstalled ? (
@@ -165,7 +167,7 @@ const PluginCard = ({
                 onClick={onCheckUpdates}
                 disabled={isInstalling}
               >
-                {isInstalling ? 'Updating...' : 'Check for Updates'}
+                {isInstalling ? t('pluginButtons.updating') : t('pluginButtons.checkForUpdates')}
               </Button>
             ) : (
               <Button
@@ -175,7 +177,7 @@ const PluginCard = ({
                 onClick={onInstall}
                 disabled={isInstalling}
               >
-                {isInstalling ? 'Installing...' : 'Install'}
+                {isInstalling ? t('pluginButtons.installing') : t('pluginButtons.install')}
               </Button>
             )}
           </div>

@@ -1,12 +1,12 @@
-import { Button } from '@/Components/SubComponents/shadcn/components/ui/button';
+import { Button } from '@/core-app/components/shadcn/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/Components/SubComponents/shadcn/components/ui/dialog';
-import { PluginModalOptions, PluginModalResult } from '@/plugins/types';
+} from '@/core-app/components/shadcn/components/ui/dialog';
+import { PluginModalOptions, PluginModalResult } from '@/plugins/schema/types';
 import React from 'react';
 
 // Import UI components
