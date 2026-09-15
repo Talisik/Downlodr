@@ -3,22 +3,29 @@
   RequestExecutionLevel admin
 !macroend
 
+!macro customInstall
+  DetailPrint "Closing any running instances of ${PRODUCT_NAME}..."
+  nsExec::ExecToLog 'taskkill /F /IM "${PRODUCT_NAME}.exe" /T'
+  Sleep 1500
+!macroend
+
+!macro customUnInstall
+  DetailPrint "Closing any running instances of ${PRODUCT_NAME}..."
+  nsExec::ExecToLog 'taskkill /F /IM "${PRODUCT_NAME}.exe" /T'
+  Sleep 1500
+!macroend
+
 !macro customInstallMode
   ; Overrides the default NSIS macro for handling install modes.
   ; Forces NSIS into the per-user installation mode.
-  
+
   ; This sets the variable that forces the install mode.
   StrCpy $isForceCurrentInstall "1"
   StrCpy $isForceMachineInstall "0"
-  
-  ; The following definitions are optional, but customize the text 
+
+  ; The following definitions are optional, but customize the text
   ; of the install mode page to match the per-user-only behavior.
   !define MUI_INSTALLMODE_TITLE "Choose Installation Options"
   !define MUI_INSTALLMODE_INSTALL_TEXT "Please confirm to install this software just for you."
   !define MUI_INSTALLMODE_INSTALLED "just for me"
-!macroend
-
-!macro customUnInstall
-  DetailPrint "Stopping background process..."
-  nsExec::ExecToStack 'taskkill /F /IM "Downlodr.exe" /T'
 !macroend

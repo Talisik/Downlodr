@@ -1,0 +1,318 @@
+diff --git a/node_modules/yt-dlp-helper/dist/index.cjs b/node_modules/yt-dlp-helper/dist/index.cjs
+index 9e93d04..4c40c0d 100644
+--- a/node_modules/yt-dlp-helper/dist/index.cjs
++++ b/node_modules/yt-dlp-helper/dist/index.cjs
+@@ -615,6 +615,12 @@ function getDefaultMetadataOptionsForUrl(url) {
+ }
+ function getMetadataArgs(options) {
+   const args = [];
++  if (options == null ? void 0 : options.noPlaylist) {
++    args.push("--no-playlist");
++  }
++  if (options == null ? void 0 : options.cookies) {
++    args.push("--cookies", options.cookies);
++  }
+   if (options == null ? void 0 : options.cookiesFromBrowser) {
+     args.push("--cookies-from-browser", options.cookiesFromBrowser);
+   }
+@@ -631,9 +637,14 @@ function getArgs({
+   audioQuality,
+   remuxVideo,
+   limitRate,
+-  cookiesFromBrowser
++  cookies,
++  cookiesFromBrowser,
++  noPlaylist
+ }) {
+   const args = [url, ...BASE_ARGS];
++  if (noPlaylist) {
++    args.push("--no-playlist");
++  }
+   if (output) {
+     args.push("-o", output);
+   }
+@@ -652,6 +663,9 @@ function getArgs({
+   if (limitRate) {
+     args.push("-r", limitRate);
+   }
++  if (cookies) {
++    args.push("--cookies", cookies);
++  }
+   if (cookiesFromBrowser) {
+     args.push("--cookies-from-browser", cookiesFromBrowser);
+   }
+@@ -948,10 +962,34 @@ function getInfo(url, options, ytdlpDownloadDestination) {
+         data: JSON.parse(data || "")
+       };
+     } catch (e) {
+-      return { ok: false };
+     }
++    return parseDumpJson(data);
+   });
+ }
++function parseDumpJson(data) {
++  const entries = [];
++  for (const line of (data || "").split("\n")) {
++    const trimmed = line.trim();
++    if (!trimmed.startsWith("{")) continue;
++    try {
++      entries.push(JSON.parse(trimmed));
++    } catch (e) {
++      return { ok: false };
++    }
++  }
++  if (entries.length === 1) {
++    return { ok: true, data: entries[0] };
++  }
++  if (entries.length > 1) {
++    return {
++      ok: false,
++      isPlaylist: true,
++      entryCount: entries.length,
++      data: entries[0]
++    };
++  }
++  return { ok: false };
++}
+ function manualDownloadLatestYTDLP() {
+   return __async(this, arguments, function* ({
+     filePath,
+@@ -1009,13 +1047,14 @@ function getPlaylistInfo(_0) {
+       ytdlp: false,
+       ffmpeg: true
+     },
++    cookies,
+     cookiesFromBrowser,
+     userAgent
+   }) {
+     ytdlpDownloadDestination = getYTDLPFilePath(ytdlpDownloadDestination);
+     yield linuxPatch(ytdlpDownloadDestination);
+     const defaultOpts = getDefaultMetadataOptionsForUrl(url);
+-    const appOpts = cookiesFromBrowser != null || userAgent != null ? { cookiesFromBrowser, userAgent } : void 0;
++    const appOpts = cookies != null || cookiesFromBrowser != null || userAgent != null ? { cookies, cookiesFromBrowser, userAgent } : void 0;
+     const effectiveOptions = defaultOpts != null ? __spreadValues(__spreadValues({}, defaultOpts), appOpts) : appOpts;
+     const metadataArgs = getMetadataArgs(effectiveOptions);
+     const terminal = yield invokeInternal({
+diff --git a/node_modules/yt-dlp-helper/dist/index.js b/node_modules/yt-dlp-helper/dist/index.js
+index ea38751..1bc50ac 100644
+--- a/node_modules/yt-dlp-helper/dist/index.js
++++ b/node_modules/yt-dlp-helper/dist/index.js
+@@ -568,6 +568,12 @@ function getDefaultMetadataOptionsForUrl(url) {
+ }
+ function getMetadataArgs(options) {
+   const args = [];
++  if (options == null ? void 0 : options.noPlaylist) {
++    args.push("--no-playlist");
++  }
++  if (options == null ? void 0 : options.cookies) {
++    args.push("--cookies", options.cookies);
++  }
+   if (options == null ? void 0 : options.cookiesFromBrowser) {
+     args.push("--cookies-from-browser", options.cookiesFromBrowser);
+   }
+@@ -584,9 +590,14 @@ function getArgs({
+   audioQuality,
+   remuxVideo,
+   limitRate,
+-  cookiesFromBrowser
++  cookies,
++  cookiesFromBrowser,
++  noPlaylist
+ }) {
+   const args = [url, ...BASE_ARGS];
++  if (noPlaylist) {
++    args.push("--no-playlist");
++  }
+   if (output) {
+     args.push("-o", output);
+   }
+@@ -605,6 +616,9 @@ function getArgs({
+   if (limitRate) {
+     args.push("-r", limitRate);
+   }
++  if (cookies) {
++    args.push("--cookies", cookies);
++  }
+   if (cookiesFromBrowser) {
+     args.push("--cookies-from-browser", cookiesFromBrowser);
+   }
+@@ -901,10 +915,34 @@ function getInfo(url, options, ytdlpDownloadDestination) {
+         data: JSON.parse(data || "")
+       };
+     } catch (e) {
+-      return { ok: false };
+     }
++    return parseDumpJson(data);
+   });
+ }
++function parseDumpJson(data) {
++  const entries = [];
++  for (const line of (data || "").split("\n")) {
++    const trimmed = line.trim();
++    if (!trimmed.startsWith("{")) continue;
++    try {
++      entries.push(JSON.parse(trimmed));
++    } catch (e) {
++      return { ok: false };
++    }
++  }
++  if (entries.length === 1) {
++    return { ok: true, data: entries[0] };
++  }
++  if (entries.length > 1) {
++    return {
++      ok: false,
++      isPlaylist: true,
++      entryCount: entries.length,
++      data: entries[0]
++    };
++  }
++  return { ok: false };
++}
+ function manualDownloadLatestYTDLP() {
+   return __async(this, arguments, function* ({
+     filePath,
+@@ -962,13 +1000,14 @@ function getPlaylistInfo(_0) {
+       ytdlp: false,
+       ffmpeg: true
+     },
++    cookies,
+     cookiesFromBrowser,
+     userAgent
+   }) {
+     ytdlpDownloadDestination = getYTDLPFilePath(ytdlpDownloadDestination);
+     yield linuxPatch(ytdlpDownloadDestination);
+     const defaultOpts = getDefaultMetadataOptionsForUrl(url);
+-    const appOpts = cookiesFromBrowser != null || userAgent != null ? { cookiesFromBrowser, userAgent } : void 0;
++    const appOpts = cookies != null || cookiesFromBrowser != null || userAgent != null ? { cookies, cookiesFromBrowser, userAgent } : void 0;
+     const effectiveOptions = defaultOpts != null ? __spreadValues(__spreadValues({}, defaultOpts), appOpts) : appOpts;
+     const metadataArgs = getMetadataArgs(effectiveOptions);
+     const terminal = yield invokeInternal({
+diff --git a/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts b/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts
+index 5e77e76..2a30380 100644
+--- a/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts
++++ b/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts
+@@ -40,10 +40,36 @@ export interface Args {
+      * e.g. "50K" or "4.2M"
+      */
+     limitRate?: string;
++    /**
++     * Path to a Netscape-format cookie jar to authenticate the download with.
++     * Passed to yt-dlp as --cookies.
++     *
++     * This is the download half of the pair. Metadata is a separate yt-dlp
++     * invocation, so an authenticated flow sets MetadataOptions.cookies too;
++     * setting only one of them enumerates formats as one identity and fetches
++     * bytes as another.
++     *
++     * yt-dlp merges the jar with --cookies-from-browser when both are given,
++     * so callers that mean "use this file only" should leave
++     * cookiesFromBrowser unset.
++     *
++     * yt-dlp may rewrite the file it is handed, and concurrent downloads
++     * sharing one path can corrupt it, so give each invocation its own copy.
++     */
++    cookies?: string;
+     /**
+      * The cookies from the browser to be used for the download.
+      */
+     cookiesFromBrowser?: string;
++    /**
++     * Download only the video the URL points at, never the playlist or series
++     * it belongs to. Passed to yt-dlp as --no-playlist.
++     *
++     * Needed for extractors that resolve a single-item URL to its whole
++     * container (e.g. viu:ott returns every episode of a series for a
++     * /vod/{episode_id}/ URL).
++     */
++    noPlaylist?: boolean;
+ }
+ /**
+  * Options for metadata fetch operations (getInfo, getPlaylistInfo).
+@@ -51,6 +77,21 @@ export interface Args {
+  * YouTube "made for kids" or other restricted content).
+  */
+ export interface MetadataOptions {
++    /**
++     * Path to a Netscape-format cookie jar for the metadata lookup.
++     * Passed to yt-dlp as --cookies.
++     *
++     * Metadata and download are separate yt-dlp invocations, so an
++     * authenticated download needs the jar on both: without it here, formats
++     * are enumerated anonymously and the download is handed format ids the
++     * logged-out session never offered.
++     *
++     * yt-dlp merges the jar with --cookies-from-browser when both are given,
++     * so callers that mean "use this file only" should leave
++     * cookiesFromBrowser unset. Note getInfo/getPlaylistInfo auto-select a
++     * browser for TikTok/YouTube when no options are passed at all.
++     */
++    cookies?: string;
+     /**
+      * Browser to extract cookies from (e.g. "chrome", "firefox").
+      * Passed to yt-dlp as --cookies-from-browser.
+@@ -61,4 +102,17 @@ export interface MetadataOptions {
+      * Passed to yt-dlp as --user-agent.
+      */
+     userAgent?: string;
++    /**
++     * Describe only the video the URL points at, never the playlist or series
++     * it belongs to. Passed to yt-dlp as --no-playlist.
++     *
++     * Set this on getInfo for any single-video lookup. --dump-json emits one
++     * JSON object per entry, so a URL that resolves to a container (a bilibili
++     * multi-part video, a viu:ott series) produces N concatenated objects that
++     * JSON.parse rejects, and getInfo degrades to { ok: false }.
++     *
++     * Has no effect on URLs that are genuinely a playlist or series with no
++     * single video attached — those must go through getPlaylistInfo.
++     */
++    noPlaylist?: boolean;
+ }
+diff --git a/node_modules/yt-dlp-helper/dist/yt-dlp-helper.d.ts b/node_modules/yt-dlp-helper/dist/yt-dlp-helper.d.ts
+index 5ecc5d5..b6a4379 100644
+--- a/node_modules/yt-dlp-helper/dist/yt-dlp-helper.d.ts
++++ b/node_modules/yt-dlp-helper/dist/yt-dlp-helper.d.ts
+@@ -24,12 +24,22 @@ import { Args, MetadataOptions } from "./interfaces/args.js";
+  *   Defaults to the platform-specific binary in the current working directory, falling back
+  *   to `yt-dlp` on PATH.
+  *
+- * @returns {Promise<{ok: boolean, data: any}>} - A promise that resolves with an object
+- * indicating whether the operation was successful and the video information.
++ * @returns {Promise<{ok: boolean, data?: any, isPlaylist?: boolean, entryCount?: number}>} -
++ * A promise that resolves with an object indicating whether the operation was
++ * successful and the video information.
++ *
++ * `--dump-json` emits one JSON object per entry, so a URL whose extractor
++ * resolves to a container yields N concatenated objects rather than one.
++ * When that happens the result is `ok: false` with `isPlaylist: true` and
++ * `entryCount` set, and `data` holding the first entry — enough for a caller
++ * to report what the URL actually is and route it to getPlaylistInfo.
++ * `ok: false` with no `isPlaylist` remains an ordinary failure.
+  */
+ export declare function getInfo(url: string, options?: MetadataOptions, ytdlpDownloadDestination?: string): Promise<{
+     ok: boolean;
+     data?: any;
++    isPlaylist?: boolean;
++    entryCount?: number;
+ }>;
+ /**
+  * Manually downloads the latest yt-dlp.exe from the official GitHub repository.
+@@ -80,7 +90,7 @@ export declare function getLatestYTDLPVersionFromGitHub(): Promise<{
+  *
+  * @returns {Promise<{ok: boolean, data: any}>} - A promise resolving to an object indicating success and the retrieved playlist data or failure.
+  */
+-export declare function getPlaylistInfo({ url, ytdlpDownloadDestination, ffmpegDownloadDestination, downloadBinary, cookiesFromBrowser, userAgent, }: {
++export declare function getPlaylistInfo({ url, ytdlpDownloadDestination, ffmpegDownloadDestination, downloadBinary, cookies, cookiesFromBrowser, userAgent, }: {
+     url: string;
+     ytdlpDownloadDestination?: string;
+     ffmpegDownloadDestination?: string;
+@@ -88,6 +98,8 @@ export declare function getPlaylistInfo({ url, ytdlpDownloadDestination, ffmpegD
+         ytdlp: boolean;
+         ffmpeg: boolean;
+     };
++    /** Netscape cookie jar path, passed to yt-dlp as --cookies. */
++    cookies?: string;
+     cookiesFromBrowser?: string;
+     userAgent?: string;
+ }): Promise<{

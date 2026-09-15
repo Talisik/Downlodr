@@ -1,0 +1,26 @@
+{
+  "name": "downlodr-mcp",
+  "version": "1.0.0",
+  "description": "MCP server that bridges Claude to the Downlodr Electron app",
+  "main": "dist/index.js",
+  "bin": {
+    "downlodr-mcp": "dist/index.js",
+    "downlodr": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc --noEmit && node build.mjs",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "commander": "^15.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.0",
+    "esbuild": "^0.21.5",
+    "typescript": "~5.6.0"
+  }
+}
