@@ -1,0 +1,238 @@
+import { Step } from 'react-joyride';
+import { OnboardingFeature } from '../types/onboardingTypes';
+
+export const TOUR_STEPS: Partial<Record<OnboardingFeature, Step[]>> = {
+  [OnboardingFeature.VideoDownload]: [
+    {
+      target: 'body',
+      title: 'Save any video',
+      content: "Downlodr works with YouTube, TikTok, Instagram and 1,800+ other sites. Let's grab your first one.",
+      placement: 'center',
+      disableBeacon: true,
+    },
+    {
+      target: '#taskbar-input-field',
+      title: '1. Paste a link',
+      content: 'Copy a video URL from your browser and paste it right here.',
+      placement: 'bottom',
+      disableBeacon: true,
+    },
+    {
+      target: '#demo-download-btn',
+      title: '2. Hit download',
+      content: 'Click the download arrow — Downlodr reads the video and its available formats.',
+      placement: 'left',
+      disableBeacon: true,
+      data: { requiresInteraction: true },
+    },
+    {
+      target: '#demo-settings-btn',
+      title: 'Grab extras too',
+      content: 'Before it downloads, optionally pull the closed captions and a thumbnail alongside the video.',
+      placement: 'left',
+      disableBeacon: true,
+    },
+    {
+      target: '#demo-format-cell',
+      title: 'Pick quality & format',
+      content: 'Every download lets you choose the resolution and file type — right up to the best the source offers.',
+      placement: 'left',
+      disableBeacon: true,
+    },
+    {
+      target: '#demo-download-row',
+      title: 'Watch it land',
+      content: 'Your download shows up here with live progress and speed. When it finishes, the file is one click away.',
+      placement: 'top',
+      disableBeacon: true,
+    },
+    {
+      target: '#demo-nav-sidebar',
+      title: 'Find anything fast',
+      content: 'Jump between All, Downloading and Finished from the sidebar at any time.',
+      placement: 'right',
+      disableBeacon: true,
+    },
+    {
+      target: '#onboarding-pill',
+      title: 'Explore more features',
+      content: 'Use these dots to jump between features, or exit when you\'re ready.',
+      placement: 'top',
+      disableBeacon: true,
+    },
+  ],
+
+  [OnboardingFeature.YtChannel]: [
+    {
+      target: 'body',
+      title: 'Never miss an upload',
+      content: "Downlodr watches channels, playlists and RSS feeds and downloads new videos for you automatically — even when the app is closed.",
+      placement: 'center',
+      disableBeacon: true,
+    },
+    {
+      target: '#demo-subscriptions-nav',
+      title: 'Open Subscriptions',
+      content: "This is your Subscriptions hub. Channels and playlists you've added live here, each running on its own schedule.",
+      placement: 'bottom',
+      disableBeacon: true,
+    },
+    {
+      target: '#demo-subscribe-btn',
+      title: 'Add a subscription',
+      content: 'Click Subscribe to add a YouTube channel or playlist. Downlodr will check it on a schedule and grab new uploads automatically.',
+      placement: 'left',
+      disableBeacon: true,
+      data: { requiresInteraction: true },
+    },
+    {
+      target: '#demo-modal-url-input',
+      title: 'Paste a channel URL',
+      content: "Click the field and we'll paste a demo URL. Downlodr analyses the channel and detects its upload cadence.",
+      placement: 'bottom',
+      disableBeacon: true,
+      data: { requiresAnalyzed: true },
+    },
+    {
+      target: '#demo-channel-card',
+      title: 'Downlodr analysed the channel',
+      content: "It pulls the channel's details, detects how often it uploads, and lets you choose how many recent videos to grab right away.",
+      placement: 'bottom',
+      disableBeacon: true,
+    },
+    {
+      target: '#demo-subscribe-confirm',
+      title: 'Set the schedule & subscribe',
+      content: "Keep Auto-detect or switch to Manual to pick your own days and times — then hit Subscribe to activate.",
+      placement: 'top',
+      disableBeacon: true,
+      data: { requiresInteraction: true },
+    },
+    {
+      target: '#demo-new-sub-row',
+      title: 'Your subscription is live',
+      content: "The channel is now in your Subscriptions list. Downlodr checks on schedule and auto-downloads every new upload — no action needed.",
+      placement: 'top',
+      disableBeacon: true,
+    },
+    {
+      target: '#onboarding-pill',
+      title: 'Explore more features',
+      content: 'Use these dots to jump between features, or exit when you\'re ready.',
+      placement: 'top',
+      disableBeacon: true,
+    },
+  ],
+
+  [OnboardingFeature.AfdaSingle]: [
+    {
+      target: 'body',
+      content: "Downlodr isn't just for video — paste any article link and it downloads the page, then opens it in a clean built-in reader.",
+      placement: 'center',
+      disableBeacon: true,
+    },
+    {
+      target: '#taskbar-input-field',
+      content: "Paste any article URL here — exactly like a video link. We've pre-filled one for you.",
+      placement: 'bottom',
+      disableBeacon: true,
+    },
+    {
+      target: '#demo-download-btn',
+      content: 'Click the download icon to fetch the article.',
+      placement: 'bottom',
+      disableBeacon: true,
+      data: { requiresInteraction: true },
+    },
+    {
+      target: 'body',
+      content: "The article is saved and ready to read. Full text, author, date and source — all in one place, no browser needed.",
+      placement: 'center',
+      disableBeacon: true,
+      data: { requiresAnalyzed: true },
+    },
+    {
+      target: '#onboarding-pill',
+      content: "Explore other features using these dots, or exit when you're ready.",
+      placement: 'top',
+      disableBeacon: true,
+    },
+  ],
+
+  [OnboardingFeature.AfdaSubscription]: [
+    {
+      target: 'body',
+      content: "Downlodr can watch article websites and download new posts automatically — so your reading list stays fresh without any effort.",
+      placement: 'center',
+      disableBeacon: true,
+    },
+    {
+      target: '#demo-afda-add-btn',
+      content: "Click 'Add Website' to subscribe to a news site or blog.",
+      placement: 'left',
+      disableBeacon: true,
+      data: { requiresInteraction: true },
+    },
+    {
+      target: '#demo-modal-url-input',
+      content: "Paste a website URL — Downlodr will analyse it and identify which site it belongs to.",
+      placement: 'bottom',
+      disableBeacon: true,
+      data: { requiresAnalyzed: true },
+    },
+    {
+      target: '#demo-subscribe-confirm',
+      content: "Downlodr found the site. Click Subscribe to choose which sections to follow.",
+      placement: 'top',
+      disableBeacon: true,
+      data: { requiresInteraction: true },
+    },
+    {
+      target: '#demo-afda-sections-modal',
+      content: "Pick which sections to follow and click Subscribe. Click Next here when you're done.",
+      placement: 'left',
+      disableBeacon: true,
+    },
+    {
+      target: '#demo-afda-sub-row',
+      content: "Your subscription is live. Downlodr checks on schedule and downloads new articles automatically — no action needed.",
+      placement: 'top',
+      disableBeacon: true,
+    },
+    {
+      target: '#onboarding-pill',
+      title: 'Explore more features',
+      content: 'Use these dots to jump between features, or exit when you\'re ready.',
+      placement: 'top',
+      disableBeacon: true,
+    },
+  ],
+
+  [OnboardingFeature.SmartOrganize]: [
+    {
+      target: 'body',
+      content: "Smart Organize reads your downloads and sorts them into categories automatically — using local AI. Nothing ever leaves your computer.",
+      placement: 'center',
+      disableBeacon: true,
+    },
+    {
+      target: '#so-run-btn',
+      content: "Click 'Run Smart Organize' to analyze your library. It runs entirely on-device — no uploads, no internet required.",
+      placement: 'bottom',
+      disableBeacon: true,
+      data: { requiresInteraction: true },
+    },
+    {
+      target: '#so-results',
+      content: "Smart Organize found categories based on your content. Each video is matched to the topic it belongs to — review and apply them to your real library.",
+      placement: 'top',
+      disableBeacon: true,
+    },
+    {
+      target: '#onboarding-pill',
+      content: "Explore other features using these dots, or exit when you're ready.",
+      placement: 'top',
+      disableBeacon: true,
+    },
+  ],
+};
