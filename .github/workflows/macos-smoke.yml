@@ -1,0 +1,165 @@
+name: macOS Build Smoke Test
+
+# Secret-free dry run of the macOS build. Exercises everything the production
+# workflow does EXCEPT the keychain import, codesigning, DMG creation and
+# notarization -- i.e. every step that does not need an Apple secret.
+#
+# Triggered on push to the integration branch so it runs without the workflow
+# file needing to exist on the default branch (a workflow_dispatch-only file on
+# a feature branch never appears in the Actions UI).
+
+on:
+  push:
+    branches:
+      - feat/bulk-category-macos
+  workflow_dispatch:
+    inputs:
+      target_arch:
+        description: "Architecture to package"
+        required: true
+        type: choice
+        default: arm64
+        options:
+          - arm64
+          - intel
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package-unsigned:
+    runs-on: macos-14
+    timeout-minutes: 60
+    env:
+      # forge.config.ts gates osxSign on APPLE_IDENTITY && !SKIP_CODE_SIGNING.
+      # No secrets are set here, but this makes the unsigned path explicit and
+      # also short-circuits the postPackage binary signing.
+      SKIP_CODE_SIGNING: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Runner facts
+        run: |
+          echo "uname -m        : $(uname -m)"
+          echo "macOS           : $(sw_vers -productVersion)"
+          echo "Xcode CLT       : $(xcodebuild -version 2>/dev/null | head -1 || echo 'n/a')"
+          echo "free disk       : $(df -h / | awk 'NR==2{print $4}')"
+          printf 'create-dmg      : '
+          if [ -x /opt/homebrew/bin/create-dmg ]; then
+            /opt/homebrew/bin/create-dmg --version 2>&1 | head -1
+          else
+            echo "NOT INSTALLED (build scripts will fall back to hdiutil)"
+          fi
+          printf 'Rosetta 2       : '
+          if /usr/bin/pgrep -q oahd 2>/dev/null || [ -f /Library/Apple/usr/libexec/oah/libRosettaRuntime ]; then
+            echo "present"
+          else
+            echo "NOT PRESENT (x64 binaries cannot execute on this runner)"
+          fi
+
+      # The single most likely cause of a silent production failure:
+      # scripts/verify-binaries.sh runs `./binaries/ffmpeg-x64 -version` and
+      # exits 1 if it cannot execute. On an arm64 runner without Rosetta 2 that
+      # aborts build:dmg before packaging ever starts.
+      - name: Can the x64 static binaries execute here?
+        continue-on-error: true
+        run: |
+          chmod +x binaries/* || true
+          for b in binaries/ffmpeg-arm64 binaries/ffmpeg-x64 binaries/ffprobe-x64; do
+            printf '%-26s ' "$b"
+            if ./"$b" -version >/dev/null 2>&1; then
+              echo "RUNS -- $(./"$b" -version 2>&1 | head -1)"
+            else
+              echo "CANNOT EXECUTE"
+            fi
+          done
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --network-timeout 100000 --network-concurrency 1
+
+      - name: Build downlodr-mcp bundle
+        run: yarn mcp:setup
+
+      - name: Ensure scripts are executable
+        run: chmod +x ./scripts/*.sh
+
+      - name: Refresh static FFmpeg (8.0+)
+        continue-on-error: true
+        run: bash ./download-static-ffmpeg.sh
+
+      - name: Fetch Whisper model
+        run: bash ./scripts/download-whisper-model.sh
+
+      # Reported, not enforced: this is exactly the gate that would abort the
+      # real build, so we want to see its verdict without hiding later failures.
+      - name: Verify binaries (report only)
+        continue-on-error: true
+        run: bash ./scripts/verify-binaries.sh
+
+      - name: Package unsigned app
+        run: |
+          if [ "${{ github.event.inputs.target_arch }}" = "intel" ]; then
+            ARCH=x64
+          else
+            ARCH=arm64
+          fi
+          echo "Packaging for $ARCH"
+          npx electron-forge package --arch="$ARCH"
+
+      - name: Inspect the packaged app
+        run: |
+          set -e
+          APP_PATH=$(find out -maxdepth 3 -name "*.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle produced under out/"
+            ls -la out/ || true
+            exit 1
+          fi
+          echo "App bundle: $APP_PATH ($(du -sh "$APP_PATH" | cut -f1))"
+          RES="$APP_PATH/Contents/Resources"
+
+          echo ""
+          echo "--- Resources ---"
+          ls -lh "$RES" | head -40
+
+          echo ""
+          echo "--- required payload ---"
+          missing=0
+          for f in ggml-small.bin ffmpeg-arm64 ffmpeg-x64 yt-dlp yt-dlp_macos; do
+            printf '%-20s ' "$f"
+            if [ -e "$RES/$f" ]; then
+              echo "present ($(du -h "$RES/$f" | cut -f1))"
+            else
+              echo "MISSING"
+              missing=1
+            fi
+          done
+
+          echo ""
+          echo "--- app.asar size (should NOT contain the mac statics) ---"
+          if [ -f "$RES/app.asar" ]; then
+            ASAR_MB=$(( $(stat -f%z "$RES/app.asar") / 1048576 ))
+            echo "app.asar: ${ASAR_MB}MB"
+            if [ "$ASAR_MB" -gt 400 ]; then
+              echo "app.asar is suspiciously large -- binaries/ may be leaking into it"
+              missing=1
+            fi
+          fi
+
+          echo ""
+          if [ "$missing" -ne 0 ]; then
+            echo "Smoke test FAILED: packaged app is missing required payload."
+            exit 1
+          fi
+          echo "Smoke test passed: unsigned app packaged with full payload."
