@@ -65,12 +65,6 @@ jobs:
       - name: Install dependencies
         run: yarn install --network-timeout 100000 --network-concurrency 1
 
-      # forge.config.ts's prePackage hook rebuilds downlodr-mcp and throws if
-      # that build fails. downlodr-mcp/node_modules is not committed, so without
-      # this step `npm run build` there has no tsc/esbuild and packaging aborts.
-      - name: Build downlodr-mcp bundle
-        run: yarn mcp:setup
-
       - name: Import Apple certificate
         run: |
           CERT_PATH="$RUNNER_TEMP/macos-cert.p12"
@@ -149,12 +143,6 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --network-timeout 100000 --network-concurrency 1
-
-      # forge.config.ts's prePackage hook rebuilds downlodr-mcp and throws if
-      # that build fails. downlodr-mcp/node_modules is not committed, so without
-      # this step `npm run build` there has no tsc/esbuild and packaging aborts.
-      - name: Build downlodr-mcp bundle
-        run: yarn mcp:setup
 
       - name: Import Apple certificate
         run: |

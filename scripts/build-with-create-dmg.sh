@@ -99,8 +99,16 @@ echo "✅ Previous builds cleaned"
 echo ""
 
 # Step 2: Build the app (package only, no makers to avoid DMG permission issues)
-echo "🔧 Step 2: Building application..."
-yarn electron-forge package
+#
+# --arch=arm64 is stated rather than inherited. This used to be a bare
+# `electron-forge package`, which targets whatever process.arch happens to be —
+# correct on an Apple Silicon runner, but only by coincidence. If runs-on ever
+# moved to an Intel image, or GitHub retargeted the macos-14 label, the job
+# named "Build ARM64 production DMG" would quietly emit an x64 build under an
+# Apple Silicon filename, and nothing would catch it. The Intel script has
+# always passed --arch=x64; this makes the pair symmetric.
+echo "🔧 Step 2: Building application (Apple Silicon / arm64)..."
+yarn electron-forge package --arch=arm64
 echo "✅ Application packaged"
 echo ""
 
@@ -127,9 +135,14 @@ echo "📦 Step 4: Creating professional DMG with create-dmg..."
 # Create out/make directory
 mkdir -p out/make
 
-# Define DMG name with version and timestamp
+# Define DMG name with version, architecture, and timestamp.
+#
+# The architecture is spelled out to mirror the Intel script's
+# "-intel-x64-" segment. This DMG used to be the only unlabelled one, so in a
+# release carrying both, the Intel build announced itself and the Apple
+# Silicon build looked like the generic download — exactly backwards.
 APP_VERSION=$(node -p "require('./package.json').version")
-DMG_NAME="Downlodr-${APP_VERSION}-$(date +%Y%m%d-%H%M%S).dmg"
+DMG_NAME="Downlodr-${APP_VERSION}-apple-silicon-arm64-$(date +%Y%m%d-%H%M%S).dmg"
 DMG_PATH="out/make/$DMG_NAME"
 
 # Create a clean temporary directory with only the app bundle

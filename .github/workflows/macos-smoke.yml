@@ -82,8 +82,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "yarn"
+
+      - name: Force HTTPS for git dependencies
+        # yarn.lock records a "resolved" URL per dependency. Regenerating it on
+        # a machine whose git rewrites https:// GitHub URLs to ssh:// bakes
+        # ssh://git@github.com/... into the lockfile, and a CI runner has no SSH
+        # key -- yarn then dies with "Permission denied (publickey)" during
+        # install. Every git dependency here is a public repo, so rewrite back.
+        run: |
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          git config --global --add url."https://github.com/".insteadOf "git@github.com:"
 
       - name: Install dependencies
         run: yarn install --network-timeout 100000 --network-concurrency 1
@@ -163,3 +173,89 @@ jobs:
             exit 1
           fi
           echo "Smoke test passed: unsigned app packaged with full payload."
+
+      # Zip with ditto, NOT with upload-artifact's own zipping. A .app bundle
+      # contains symlinks (Contents/Frameworks/...) and executable permission
+      # bits, and actions/upload-artifact preserves neither -- an .app uploaded
+      # as a directory arrives on the tester's Mac as a broken bundle that will
+      # not launch. ditto -c -k --keepParent writes the same archive format
+      # Finder's "Compress" produces, which unpacks back into a working app.
+      #
+      # Runs before the launch step on purpose: if the app crashes on startup,
+      # the artifact is already uploaded and can be debugged on a real Mac.
+      - name: Archive the app for download
+        run: |
+          set -uo pipefail
+
+          APP_PATH="$(find out -maxdepth 3 -type d -name '*.app' -print -quit)"
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle to archive"
+            exit 1
+          fi
+
+          ZIP="$RUNNER_TEMP/Downlodr-macos-arm64-unsigned.zip"
+          echo "Archiving $APP_PATH"
+          ditto -c -k --keepParent "$APP_PATH" "$ZIP"
+          ls -lh "$ZIP"
+
+      - name: Upload the app
+        uses: actions/upload-artifact@v4
+        with:
+          name: Downlodr-macos-arm64-unsigned-${{ github.run_number }}
+          path: ${{ runner.temp }}/Downlodr-macos-arm64-unsigned.zip
+          retention-days: 7
+          if-no-files-found: error
+
+      # Does it actually start? Packaging proves the payload is in place; it
+      # says nothing about whether the app survives its own startup path
+      # (native module load, DB open, IPC registration). The runner has a GUI
+      # session, so an Electron app can really launch here. The bundle is not
+      # quarantined (nothing downloaded it), so Gatekeeper does not block an
+      # unsigned launch from the build directory.
+      - name: Launch the packaged app
+        run: |
+          set -uo pipefail
+
+          APP_PATH="$(find out -maxdepth 3 -type d -name '*.app' -print -quit)"
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle produced under out/"
+            find out -maxdepth 3 -print 2>/dev/null || true
+            exit 1
+          fi
+
+          BIN="$APP_PATH/Contents/MacOS/Downlodr"
+          LOG="$RUNNER_TEMP/downlodr-app.log"
+
+          if [ ! -x "$BIN" ]; then
+            echo "No executable at $BIN"
+            ls -la "$APP_PATH/Contents/MacOS" || true
+            exit 1
+          fi
+
+          echo "Launching $BIN"
+          ELECTRON_ENABLE_LOGGING=1 "$BIN" > "$LOG" 2>&1 &
+          PID=$!
+
+          # 30s is well past first-paint for this app; anything fatal in the
+          # startup path (missing native module, DB failure) aborts far sooner.
+          sleep 30
+
+          if kill -0 "$PID" 2>/dev/null; then
+            echo ""
+            echo "App still alive after 30s (pid $PID) — it started cleanly."
+            kill "$PID" 2>/dev/null || true
+            wait "$PID" 2>/dev/null || true
+            RESULT=0
+          else
+            wait "$PID"
+            CODE=$?
+            echo ""
+            echo "App exited on its own in under 30s (exit code $CODE)."
+            RESULT=1
+          fi
+
+          echo ""
+          echo "--- app stdout/stderr ---"
+          cat "$LOG" 2>/dev/null || echo "(no output captured)"
+
+          exit "$RESULT"

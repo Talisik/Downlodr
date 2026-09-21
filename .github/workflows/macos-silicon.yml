@@ -1,0 +1,123 @@
+name: macOS Apple Silicon Build (merged)
+
+# Standalone Apple Silicon build for the merged feat/bulk-category-macos line.
+#
+# Deliberately separate from macos-build.yml, which is left byte-identical to
+# feature/macos-build-stable so the established pipeline is untouched. This one
+# carries the three changes the merged branch requires:
+#
+#   * Node 22          — @testing-library/jest-dom (from feat/bulk-category)
+#                        declares engines.node >=22; stable has no such dep.
+#   * HTTPS rewrite    — yarn.lock pins three git deps over ssh://, and a
+#                        runner has no SSH key. Without this, yarn install
+#                        dies with "Permission denied (publickey)".
+#   * yarn mcp:setup   — the merged forge.config.ts rebuilds downlodr-mcp in
+#                        prePackage and throws if it fails; that package's
+#                        node_modules is not committed.
+#
+# arm64 only, and no release job: this cannot publish anything. Artifacts are
+# downloaded from the run itself.
+
+on:
+  # Runs on push to the integration branch. A workflow_dispatch-only file on a
+  # non-default branch never appears in the Actions UI and `gh workflow run`
+  # 404s on it, because GitHub registers dispatchable workflows from the
+  # default branch. The push trigger sidesteps that entirely.
+  push:
+    branches:
+      - feat/bulk-category-macos
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-silicon-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-apple-silicon:
+    runs-on: macos-14
+    timeout-minutes: 90
+    env:
+      APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+      APPLE_INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CSC_NAME: ${{ secrets.APPLE_IDENTITY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        run: |
+          missing=0
+          for var in APPLE_IDENTITY APPLE_INSTALLER_IDENTITY APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID KEYCHAIN_PASSWORD MACOS_CERTIFICATE MACOS_CERTIFICATE_PWD; do
+            if [ -z "${!var}" ]; then
+              echo "Missing required secret/env: $var"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "yarn"
+
+      - name: Force HTTPS for git dependencies
+        run: |
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          git config --global --add url."https://github.com/".insteadOf "git@github.com:"
+
+      - name: Install dependencies
+        run: yarn install --network-timeout 100000 --network-concurrency 1
+
+      - name: Build downlodr-mcp bundle
+        run: yarn mcp:setup
+
+      - name: Import Apple certificate
+        run: |
+          CERT_PATH="$RUNNER_TEMP/macos-cert.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$MACOS_CERTIFICATE_PWD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Ensure scripts are executable
+        run: chmod +x ./scripts/*.sh
+
+      - name: Refresh static FFmpeg (8.0+)
+        continue-on-error: true
+        run: bash ./download-static-ffmpeg.sh
+
+      - name: Fetch Whisper model
+        run: bash ./scripts/download-whisper-model.sh
+
+      - name: Build Apple Silicon DMG
+        run: yarn build:dmg
+
+      - name: Upload Apple Silicon artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: downlodr-macos-apple-silicon-${{ github.run_number }}
+          path: |
+            out/make/**/*.dmg
+            out/make/**/*.pkg
+          if-no-files-found: error
+          retention-days: 30
