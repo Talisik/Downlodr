@@ -1,10 +1,111 @@
+import { MakerPKG } from '@electron-forge/maker-pkg';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import MakerNSIS from '@felixrieseberg/electron-forge-maker-nsis';
+import { spawn } from 'child_process';
+import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
+
+// electron-forge loads this config from the project root, so process.cwd() is
+// the project root in BOTH CommonJS and ES module scopes. We avoid __dirname,
+// which is undefined when this file is evaluated as an ES module on the CI
+// runner (newer Node reparses it as ESM), silently breaking signing/resource
+// paths.
+const projectRoot = process.cwd();
+
+// Platform-conditional extra resources. A missing extraResource path fails
+// packaging outright, so each platform lists only the binaries it ships.
+// - darwin: committed mac yt-dlp + static ffmpeg (arm64/x64), all tracked in
+//   git. ffprobe-arm64 is not tracked (no arm64 static build is published);
+//   Apple Silicon falls back to the x64 ffprobe under Rosetta 2. The ffprobe
+//   entries are existsSync-gated so packaging does not fail while one is
+//   missing, and get picked up automatically once added to binaries/.
+//   ggml-small.bin is fetched at build time by scripts/download-whisper-model.sh
+//   (wired into both the local build scripts and macos-build.yml) and is listed
+//   unconditionally — a missing Whisper model must fail packaging loudly rather
+//   than silently ship a build where transcription is permanently broken.
+//   ggml-silero-v5.1.2.bin (VAD) has no mac fetch step yet, so it is gated.
+// - win32: the Windows binaries, all fetched at build time by scripts/binaries.mjs.
+const darwinFfprobeResources = [
+  './binaries/ffprobe-arm64',
+  './binaries/ffprobe-x64',
+].filter(existsSync);
+
+const darwinVadResource = ['./ggml-silero-v5.1.2.bin'].filter(existsSync);
+
+const extraResource =
+  process.platform === 'darwin'
+    ? [
+        './src/assets/logo',
+        './yt-dlp_macos',
+        './binaries/ffmpeg-arm64',
+        './binaries/ffmpeg-x64',
+        ...darwinFfprobeResources,
+        './ggml-small.bin',
+        ...darwinVadResource,
+      ]
+    : [
+        './src/assets/logo',
+        './ffmpeg.exe',
+        './ggml-small.bin',
+        './ggml-silero-v5.1.2.bin',
+        './ffprobe.exe',
+      ];
+
+// Helper: sign a bundled binary with hardened runtime + optional entitlements.
+// Never fatal — a signing failure is reported and the build continues, matching
+// the behaviour of scripts/fix-binary-signing.sh, which re-signs everything
+// before notarization anyway.
+async function signBinaryWithEntitlements(
+  binaryPath: string,
+  binaryName: string,
+  entitlementsPath?: string,
+): Promise<void> {
+  try {
+    console.log(`   🔐 Signing ${binaryName}: ${binaryPath}`);
+
+    const codesignArgs = [
+      '--sign',
+      process.env.APPLE_IDENTITY!,
+      '--force',
+      '--options',
+      'runtime',
+      '--deep',
+      '--strict',
+    ];
+    if (entitlementsPath) {
+      codesignArgs.push('--entitlements', entitlementsPath);
+    }
+    codesignArgs.push(binaryPath);
+
+    await new Promise((resolve, reject) => {
+      const signProcess = spawn('codesign', codesignArgs);
+      let stderr = '';
+      signProcess.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+      signProcess.on('close', (code) => {
+        if (code === 0) {
+          console.log(`   ✅ Signed ${binaryName}`);
+          resolve(undefined);
+        } else {
+          reject(
+            new Error(`codesign failed with exit code ${code}: ${stderr}`),
+          );
+        }
+      });
+      signProcess.on('error', reject);
+    });
+  } catch (signError) {
+    console.warn(
+      `   ⚠️  Failed to sign ${binaryName} (continuing):`,
+      (signError as Error).message,
+    );
+  }
+}
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -19,16 +120,29 @@ const config: ForgeConfig = {
       // cannot read a path living inside app.asar at all.
       unpack: '**/{better-sqlite3,downlodr-mcp}/**',
     },
-    icon: './src/assets/logo/downlodr_icon.png',
+    // No extension → electron-packager picks downlodr_icon.icns (mac) /
+    // downlodr_icon.ico (win) from the same basename.
+    icon: './src/assets/logo/downlodr_icon',
     name: 'Downlodr',
     executableName: 'Downlodr',
-    extraResource: [
-      './src/assets/logo',
-      './ffmpeg.exe',
-      './ggml-small.bin',
-      './ggml-silero-v5.1.2.bin',
-      './ffprobe.exe',
-    ],
+    extraResource,
+    // macOS code signing — applied on macOS when a signing identity is
+    // available. Notarization is NOT done here: scripts/fix-binary-signing.sh
+    // re-signs every nested binary first, and the build scripts then submit the
+    // finished DMG to notarytool.
+    osxSign:
+      process.env.APPLE_IDENTITY && !process.env.SKIP_CODE_SIGNING
+        ? ({
+            identity: process.env.APPLE_IDENTITY,
+            'hardened-runtime': true,
+            'gatekeeper-assess': false,
+            entitlements: path.join(projectRoot, 'entitlements.plist'),
+            'entitlements-inherit': path.join(projectRoot, 'entitlements.plist'),
+            'signature-flags': 'library',
+            'pre-embed-provisioning-profile': false,
+          } as any)
+        : undefined,
+    osxNotarize: undefined,
     ignore: (filePath: string) => {
       if (!filePath) return false;
 
@@ -104,6 +218,12 @@ const config: ForgeConfig = {
       // and must keep shipping. Do not widen this to all paths.
       if (/^\/(ffmpeg|ffprobe)\.exe$/.test(filePath)) return true;
       if (/^\/yt-dlp(\.exe|_macos)$/.test(filePath)) return true;
+      // binaries/ holds the extensionless mac ffmpeg/ffprobe static builds
+      // (~200MB). They ship via extraResource, so without this they would ALSO
+      // be swept into app.asar — the same duplication the .exe rules above fix.
+      // The root-anchored catch-all below cannot match them (they sit one level
+      // down and have no extension).
+      if (/^\/binaries($|\/)/.test(filePath)) return true;
       if (
         /\.(bin|exe|dll|node|pdb)$/i.test(filePath) &&
         /^\/[^/]+$/.test(filePath)
@@ -155,6 +275,19 @@ const config: ForgeConfig = {
   rebuildConfig: {},
 
   makers: [
+    // NOTE: macOS DMGs are produced by Homebrew create-dmg in
+    // scripts/build-with-create-dmg*.sh (the CI release path), not by a forge
+    // maker. MakerDMG is intentionally omitted to keep the @electron-forge tree
+    // at a single coherent 7.6.0 version (see "resolutions" in package.json).
+
+    // macOS PKG installer — needs a "Developer ID Installer" certificate.
+    new MakerPKG({
+      identity:
+        process.env.APPLE_INSTALLER_IDENTITY ||
+        process.env.APPLE_IDENTITY ||
+        null,
+    }),
+
     new MakerNSIS({
       async getAppBuilderConfig() {
         return {
@@ -188,7 +321,7 @@ const config: ForgeConfig = {
       // forgot to rebuild after touching downlodr-mcp/src) would silently
       // ship a broken CLI in every packaged build, same as the bug this
       // whole flow was fixed for.
-      const downlodrMcpDir = path.resolve(__dirname, 'downlodr-mcp');
+      const downlodrMcpDir = path.resolve(projectRoot, 'downlodr-mcp');
       try {
         const { execSync } = await import('child_process');
         execSync('npm run build', { cwd: downlodrMcpDir, stdio: 'inherit' });
@@ -207,7 +340,21 @@ const config: ForgeConfig = {
       // in English testing — but CJK segments carry no leading space, so every
       // cue loses the first byte of a multi-byte character. That shipped once
       // already because this check only compared the major version.
-      const ffmpegPath = path.resolve(__dirname, 'ffmpeg.exe');
+      //
+      // On darwin the check runs against the committed static build for the
+      // host arch. Neither committed mac binary is configured with
+      // --enable-whisper today, so the whisper assertion below is a warning
+      // there rather than a hard failure — making it fatal would block every
+      // macOS build outright. See the warning text for what that costs.
+      const isDarwin = process.platform === 'darwin';
+      const ffmpegPath = isDarwin
+        ? path.resolve(
+            projectRoot,
+            process.arch === 'arm64'
+              ? 'binaries/ffmpeg-arm64'
+              : 'binaries/ffmpeg-x64',
+          )
+        : path.resolve(projectRoot, 'ffmpeg.exe');
       let versionOutput: string | undefined;
       try {
         const { execSync } = await import('child_process');
@@ -240,20 +387,111 @@ const config: ForgeConfig = {
           );
         }
         if (!/enable-whisper/.test(versionOutput)) {
-          throw new Error(
-            `The bundled FFmpeg ${version} was built without --enable-whisper, so transcription cannot work.`,
-          );
+          const message = `The bundled FFmpeg ${version} was built without --enable-whisper, so transcription cannot work.`;
+          if (isDarwin) {
+            console.warn(
+              `⚠ ${message} Shipping anyway — transcription will fail at runtime on macOS ("No such filter: 'whisper'"). Replace binaries/ffmpeg-${process.arch === 'arm64' ? 'arm64' : 'x64'} with a whisper-enabled static build to fix.`,
+            );
+          } else {
+            throw new Error(message);
+          }
+        } else {
+          console.log(`✓ FFmpeg ${version} (whisper enabled) verified`);
         }
-        console.log(`✓ FFmpeg ${version} (whisper enabled) verified`);
       }
     },
 
     postPackage: async (forgeConfig, packageResult) => {
+      // electron-packager's outputPath is the directory CONTAINING the .app
+      // bundle (e.g. out/Downlodr-darwin-arm64), not the bundle itself — the
+      // real Resources dir is <outputPath>/<Name>.app/Contents/Resources.
+      // Joining 'Resources' straight onto outputPath silently no-ops every
+      // copy below, which is how packaged macOS builds once shipped with no
+      // yt-dlp in Resources at all.
+      async function resolveMacResourcesPath(
+        outputPath: string,
+      ): Promise<string | null> {
+        const entries = await fs.readdir(outputPath).catch(() => []);
+        const appDir = entries.find((entry) => entry.endsWith('.app'));
+        if (!appDir) return null;
+        return path.join(outputPath, appDir, 'Contents', 'Resources');
+      }
+
+      const signingEnabled = Boolean(
+        process.env.APPLE_IDENTITY && !process.env.SKIP_CODE_SIGNING,
+      );
+
       for (const outputPath of packageResult.outputPaths) {
-        // Copy yt-dlp.exe next to the executable
+        // ----- macOS: bundle + sign yt-dlp and the FFmpeg binaries -----
+        if (process.platform === 'darwin') {
+          const resourcesPath = await resolveMacResourcesPath(outputPath);
+          if (!resourcesPath) {
+            console.warn(
+              `⚠️  Could not locate an .app bundle under ${outputPath} — skipping mac binary bundling`,
+            );
+            continue;
+          }
+
+          const sourceBinaryPath = path.resolve(projectRoot, 'yt-dlp_macos');
+          if (existsSync(sourceBinaryPath)) {
+            // Shipped under both names: getBundledBinaryPath() looks for
+            // 'yt-dlp', while some call sites still resolve 'yt-dlp_macos'.
+            for (const name of ['yt-dlp', 'yt-dlp_macos']) {
+              const destPath = path.join(resourcesPath, name);
+              try {
+                await fs.copyFile(sourceBinaryPath, destPath);
+                await fs.chmod(destPath, 0o755);
+                console.log(`✓ Copied + chmod ${destPath}`);
+                if (signingEnabled) {
+                  await signBinaryWithEntitlements(
+                    destPath,
+                    'yt-dlp',
+                    path.join(projectRoot, 'yt-dlp-entitlements.plist'),
+                  );
+                }
+              } catch (copyError) {
+                console.warn(
+                  `   ⚠️  Failed to copy to ${destPath}:`,
+                  (copyError as Error).message,
+                );
+              }
+            }
+          } else {
+            console.warn(
+              `⚠️  yt-dlp_macos not found at ${sourceBinaryPath} — the packaged app will have no downloader.`,
+            );
+          }
+
+          // Sign the bundled FFmpeg/ffprobe static builds. They arrive via
+          // extraResource, so they are unsigned until this runs.
+          if (signingEnabled) {
+            for (const name of [
+              'ffmpeg-arm64',
+              'ffmpeg-x64',
+              'ffprobe-arm64',
+              'ffprobe-x64',
+            ]) {
+              const candidate = path.join(resourcesPath, name);
+              if (!existsSync(candidate)) continue;
+              try {
+                await fs.chmod(candidate, 0o755);
+                await signBinaryWithEntitlements(candidate, name);
+              } catch (ffmpegError) {
+                console.warn(
+                  `   ⚠️  Failed to process ${name}:`,
+                  (ffmpegError as Error).message,
+                );
+              }
+            }
+          }
+
+          continue;
+        }
+
+        // ----- Windows: copy yt-dlp.exe next to the executable -----
         try {
           await fs.copyFile(
-            path.resolve(__dirname, 'yt-dlp.exe'),
+            path.resolve(projectRoot, 'yt-dlp.exe'),
             path.join(outputPath, 'yt-dlp.exe'),
           );
           console.log(`✓ Copied yt-dlp.exe to ${outputPath}`);
