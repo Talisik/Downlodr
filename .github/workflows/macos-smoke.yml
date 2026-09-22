@@ -4,19 +4,12 @@ name: macOS Build Smoke Test
 # workflow does EXCEPT the keychain import, codesigning, DMG creation and
 # notarization -- i.e. every step that does not need an Apple secret.
 #
-# Manual only — this does not run on ordinary pushes.
-#
-# GitHub only lists a workflow_dispatch workflow in the Actions UI when the
-# file exists on the DEFAULT branch, so a dispatch-only file on a feature
-# branch is unrunnable. Until this lands on main, trigger it by pushing a
-# throwaway tag:
-#
-#     git tag preflight-1 && git push origin preflight-1
-#
-# Re-run later with a fresh tag name (preflight-2, ...), and delete old ones
-# with `git push origin :refs/tags/preflight-1`. Once the file is on main the
-# workflow_dispatch entry below works from the Actions UI and this tag dance
-# can be dropped.
+# Runs on every push to the integration branch. That is deliberate rather
+# than dispatch-only: GitHub lists a workflow_dispatch workflow in the Actions
+# UI only when the file exists on the DEFAULT branch, so a dispatch-only file
+# on a feature branch cannot be triggered at all. The workflow_dispatch entry
+# below therefore only becomes usable once this file reaches main — at which
+# point the push trigger can be dropped if the per-push runs get noisy.
 
 on:
   push:
@@ -238,6 +231,11 @@ jobs:
           ELECTRON_ENABLE_LOGGING=1 "$BIN" --preflight > "$LOG" 2>&1 &
           PID=$!
           ( sleep 300; kill -9 "$PID" 2>/dev/null ) & WATCHDOG=$!
+          # Drop the watchdog from the job table before killing it, so bash
+          # does not print "Terminated: 15" into the log for a subshell we
+          # ended on purpose — it reads like a failure in an otherwise
+          # passing step.
+          disown "$WATCHDOG" 2>/dev/null || true
           wait "$PID"; RESULT=$?
           kill "$WATCHDOG" 2>/dev/null || true
 
@@ -245,9 +243,13 @@ jobs:
           cat "$LOG" 2>/dev/null || echo "(no output captured)"
           echo ""
 
-          # The `metadata WARN` line is deliberately NOT fatal — it depends on
-          # the network and on YouTube not blocking the runner, so it reports
-          # without deciding the build. Only the binary probes gate this step.
+          # EXPECTED: the `metadata WARN` line is effectively always yellow
+          # here. YouTube bot-walls GitHub's datacenter IPs ("Sign in to
+          # confirm you're not a bot"), so the live fetch cannot pass on a
+          # runner regardless of whether the build is good. It is kept for the
+          # case where this workflow is run somewhere with a residential IP,
+          # and because the exact error text is worth seeing. It never gates
+          # the step — only the binary probes above decide the exit code.
           if [ "$RESULT" -ne 0 ]; then
             echo "Preflight FAILED: the packaged app cannot reach one or more binaries."
           else
