@@ -5,7 +5,7 @@ import type { ForgeConfig } from '@electron-forge/shared-types';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import MakerNSIS from '@felixrieseberg/electron-forge-maker-nsis';
 import { spawn } from 'child_process';
-import { existsSync } from 'fs';
+import { constants as fsConstants, existsSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -435,43 +435,47 @@ const config: ForgeConfig = {
       for (const outputPath of packageResult.outputPaths) {
         // ----- macOS: bundle + sign yt-dlp and the FFmpeg binaries -----
         if (process.platform === 'darwin') {
+          // Every failure below is fatal. An app shipped without yt-dlp in
+          // Contents/Resources cannot fetch metadata or download anything,
+          // and the runtime cannot recover it — the only signal used to be a
+          // warning buried in the build log, so broken DMGs shipped silently.
           const resourcesPath = await resolveMacResourcesPath(outputPath);
           if (!resourcesPath) {
-            console.warn(
-              `⚠️  Could not locate an .app bundle under ${outputPath} — skipping mac binary bundling`,
+            throw new Error(
+              `Could not locate an .app bundle under ${outputPath} — no mac binaries were bundled.`,
             );
-            continue;
           }
 
           const sourceBinaryPath = path.resolve(projectRoot, 'yt-dlp_macos');
-          if (existsSync(sourceBinaryPath)) {
-            // Shipped under both names: getBundledBinaryPath() looks for
-            // 'yt-dlp', while some call sites still resolve 'yt-dlp_macos'.
-            for (const name of ['yt-dlp', 'yt-dlp_macos']) {
-              const destPath = path.join(resourcesPath, name);
-              try {
-                await fs.copyFile(sourceBinaryPath, destPath);
-                await fs.chmod(destPath, 0o755);
-                console.log(`✓ Copied + chmod ${destPath}`);
-                if (signingEnabled) {
-                  await signBinaryWithEntitlements(
-                    destPath,
-                    'yt-dlp',
-                    path.join(projectRoot, 'yt-dlp-entitlements.plist'),
-                  );
-                }
-              } catch (copyError) {
-                console.warn(
-                  `   ⚠️  Failed to copy to ${destPath}:`,
-                  (copyError as Error).message,
-                );
-              }
-            }
-          } else {
-            console.warn(
-              `⚠️  yt-dlp_macos not found at ${sourceBinaryPath} — the packaged app will have no downloader.`,
+          if (!existsSync(sourceBinaryPath)) {
+            throw new Error(
+              `yt-dlp_macos not found at ${sourceBinaryPath} — the packaged app would have no downloader.`,
             );
           }
+
+          // Shipped under both names: ytdlpHandler.ts resolves the
+          // platform-suffixed 'yt-dlp_macos', while older call sites and
+          // external tooling still look for a bare 'yt-dlp'.
+          for (const name of ['yt-dlp', 'yt-dlp_macos']) {
+            const destPath = path.join(resourcesPath, name);
+            await fs.copyFile(sourceBinaryPath, destPath);
+            await fs.chmod(destPath, 0o755);
+            console.log(`✓ Copied + chmod ${destPath}`);
+            if (signingEnabled) {
+              await signBinaryWithEntitlements(
+                destPath,
+                'yt-dlp',
+                path.join(projectRoot, 'yt-dlp-entitlements.plist'),
+              );
+            }
+          }
+
+          // The app spawns this in place under the hardened runtime, so a
+          // missing or non-executable file here is a shipped-broken build.
+          await fs.access(
+            path.join(resourcesPath, 'yt-dlp_macos'),
+            fsConstants.X_OK,
+          );
 
           // Sign the bundled FFmpeg/ffprobe static builds. They arrive via
           // extraResource, so they are unsigned until this runs.
@@ -500,6 +504,9 @@ const config: ForgeConfig = {
         }
 
         // ----- Windows: copy yt-dlp.exe next to the executable -----
+        // Fatal for the same reason as the darwin branch above: this is the
+        // only copy of yt-dlp the installer ships, and ytdlpHandler.ts
+        // resolves it relative to the executable.
         try {
           await fs.copyFile(
             path.resolve(projectRoot, 'yt-dlp.exe'),
@@ -508,6 +515,7 @@ const config: ForgeConfig = {
           console.log(`✓ Copied yt-dlp.exe to ${outputPath}`);
         } catch (error) {
           console.error(`Failed to copy yt-dlp.exe for ${outputPath}:`, error);
+          throw error;
         }
       }
     },

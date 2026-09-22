@@ -55,8 +55,71 @@ const YTDLP_BINARY_NAME =
     ? 'yt-dlp_macos'
     : 'yt-dlp_linux';
 
+/**
+ * Where forge.config.ts ships the binary in a packaged build, most-preferred
+ * first. darwin gets it copied (and codesigned) into Contents/Resources;
+ * win32 gets it dropped next to the executable by the postPackage hook.
+ * app.getPath('exe') on darwin resolves to Contents/MacOS/Downlodr, hence
+ * checking resourcesPath first.
+ */
+function ytdlpBundleCandidates(): string[] {
+  const exeAdjacent = path.join(
+    path.dirname(app.getPath('exe')),
+    YTDLP_BINARY_NAME,
+  );
+  return process.resourcesPath
+    ? [path.join(process.resourcesPath, YTDLP_BINARY_NAME), exeAdjacent]
+    : [exeAdjacent];
+}
+
+/**
+ * The binary every YTDLP.* call must be pointed at explicitly.
+ *
+ * yt-dlp-helper defaults to `./yt-dlp_macos` (or `./yt-dlp.exe`) **relative
+ * to process.cwd()** when handed no path. A packaged .app launched from
+ * Finder or the Dock has cwd `/`, so every call spawned a path that does not
+ * exist: getYTDLPVersion() returned null — which renders as a blank version
+ * in the About modal — and metadata, playlist and download calls all failed
+ * with a generic error. Windows only ever worked by accident, because
+ * launching from the installed shortcut happens to set cwd to the install
+ * directory, which is exactly where the postPackage hook drops yt-dlp.exe.
+ *
+ * On darwin the bundled copy is additionally spawned *in place*: yt-dlp_macos
+ * is a PyInstaller bundle that only starts under the hardened runtime with
+ * the entitlements forge.config.ts signs it with, and it is sealed into the
+ * .app's signature and covered by its notarization ticket. A copy run from
+ * outside the bundle is evaluated standalone by Gatekeeper instead.
+ */
+function getYtdlpBinaryPath(): string {
+  if (app.isPackaged) {
+    const bundled = ytdlpBundleCandidates().find((candidate) =>
+      existsSync(candidate),
+    );
+    if (bundled) return bundled;
+    // Nothing bundled — a broken build. Point at a writable location the
+    // updater can populate rather than a cwd-relative name whose meaning
+    // depends on how the app happened to be launched.
+    return path.join(app.getPath('userData'), YTDLP_BINARY_NAME);
+  }
+  const devPath = path.join(app.getAppPath(), YTDLP_BINARY_NAME);
+  return existsSync(devPath) ? devPath : YTDLP_BINARY_NAME;
+}
+
+/**
+ * Whether the resolved binary may be overwritten in place.
+ *
+ * False on packaged macOS: the binary lives inside the signed .app, and
+ * writing there invalidates the bundle signature and leaves the app unable
+ * to launch. macOS picks up a new yt-dlp with the next app release — which
+ * is what actually happened before this change too, since the old
+ * cwd-relative update target never resolved to the bundled binary anyway.
+ */
+function canSelfUpdateYtdlp(): boolean {
+  return !(app.isPackaged && process.platform === 'darwin');
+}
+
 async function downloadYtdlpUpdateSafely(version: string): Promise<void> {
-  const targetPath = path.resolve(process.cwd(), YTDLP_BINARY_NAME);
+  const targetPath = getYtdlpBinaryPath();
   const tempPath = `${targetPath}.download`;
   const oldPath = `${targetPath}.old`;
   await unlink(oldPath).catch(() => undefined);
@@ -103,11 +166,15 @@ async function swapInNewBinary(
 
 export async function runYtdlpCheckAndUpdate(): Promise<void> {
   try {
-    await unlink(path.resolve(process.cwd(), `${YTDLP_BINARY_NAME}.old`)).catch(
-      () => undefined,
-    );
+    const ytdlpPath = getYtdlpBinaryPath();
 
-    const currentVersion = await YTDLP.getYTDLPVersion();
+    // Nothing below may write to the binary on packaged macOS — it sits
+    // inside the signed .app. See canSelfUpdateYtdlp().
+    if (!canSelfUpdateYtdlp()) return;
+
+    await unlink(`${ytdlpPath}.old`).catch(() => undefined);
+
+    const currentVersion = await YTDLP.getYTDLPVersion(ytdlpPath);
 
     let latestVersion = getCachedVersion();
 
@@ -125,7 +192,7 @@ export async function runYtdlpCheckAndUpdate(): Promise<void> {
     }
 
     if (!currentVersion) {
-      await withBusyRetry(() => YTDLP.downloadYTDLP());
+      await withBusyRetry(() => YTDLP.downloadYTDLP({ filePath: ytdlpPath }));
       return;
     }
 
@@ -139,6 +206,23 @@ export async function runYtdlpCheckAndUpdate(): Promise<void> {
 
 export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   YTDLP.Config.log = true;
+
+  // The single binary every YTDLP.* call below is pointed at. Passing this
+  // explicitly is what keeps the helper off its cwd-relative default — see
+  // getYtdlpBinaryPath().
+  const ytdlpPath = getYtdlpBinaryPath();
+  if (app.isPackaged && !existsSync(ytdlpPath)) {
+    // A build that shipped without yt-dlp cannot fetch metadata or download
+    // anything. Name it once, loudly, at startup: the per-call failures that
+    // follow are generic ("No info returned from YTDLP.getInfo") because the
+    // helper swallows spawn errors, so without this there is nothing anywhere
+    // that says the binary is simply missing.
+    console.error(
+      `[ytdlp] no binary at ${ytdlpPath} — checked ${ytdlpBundleCandidates().join(
+        ', ',
+      )}. This build shipped without a downloader; metadata and downloads cannot work.`,
+    );
+  }
 
   const activeControllerIds = new Set<string>();
   const cancelledControllerIds = new Set<string>();
@@ -342,6 +426,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
         const info = await YTDLP.getPlaylistInfo({
           url,
           ...(await resolveCookiesForCall(url)),
+          ytdlpDownloadDestination: ytdlpPath,
         });
         return hydratePlaylistEntries(info);
       } catch (error) {
@@ -374,10 +459,14 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   async function fetchInfoOnce(url: string, allowDiagnostic = true) {
     try {
       await paceHost(url);
-      const info = await YTDLP.getInfo(url, {
-        ...(await resolveCookiesForCall(url)),
-        noPlaylist: true,
-      });
+      const info = await YTDLP.getInfo(
+        url,
+        {
+          ...(await resolveCookiesForCall(url)),
+          noPlaylist: true,
+        },
+        ytdlpPath,
+      );
       if (!info?.ok) {
         if (info?.isPlaylist) {
           throw new Error(
@@ -394,6 +483,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
         await paceHost(url);
         const diagnostic = await YTDLP.invoke({
           args: ['--no-warnings', '--simulate', url],
+          ytdlpDownloadDestination: ytdlpPath,
         }).catch(() => null);
         if (diagnostic?.data) noteTransient(url, diagnostic.data);
         if (diagnostic?.data && /Unsupported URL/i.test(diagnostic.data)) {
@@ -453,7 +543,16 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
 
   ipcMain.handle('ytdlp:getCurrentVersion', async () => {
     try {
-      const version = await YTDLP.getYTDLPVersion();
+      const version = await YTDLP.getYTDLPVersion(ytdlpPath);
+      // getYTDLPVersion() returns null for *any* spawn that produced no
+      // output — a missing binary, or one the OS refused to start. Reporting
+      // that as a success is why the About modal rendered an empty version
+      // with nothing anywhere explaining it.
+      if (!version) {
+        const error = `yt-dlp at ${ytdlpPath} did not report a version — it is missing, not executable, or was terminated on launch.`;
+        console.error('[ytdlp] version probe failed:', error);
+        return { success: false, error, version: null };
+      }
       return { success: true, version };
     } catch (error) {
       console.error('Error getting current YT-DLP version:', error);
@@ -511,7 +610,20 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
 
   ipcMain.handle('ytdlp:checkAndUpdate', async () => {
     try {
-      const currentVersion = await YTDLP.getYTDLPVersion();
+      // Updating writes over the resolved binary, which on packaged macOS
+      // lives inside the signed .app — see canSelfUpdateYtdlp().
+      if (!canSelfUpdateYtdlp()) {
+        return {
+          success: true,
+          action: 'bundled',
+          message:
+            'yt-dlp ships inside the app on macOS and updates with it — no separate update is available.',
+          currentVersion: await YTDLP.getYTDLPVersion(ytdlpPath),
+          latestVersion: getCachedVersion(),
+        };
+      }
+
+      const currentVersion = await YTDLP.getYTDLPVersion(ytdlpPath);
 
       let latestVersion = getCachedVersion();
       let latestResponse;
@@ -549,7 +661,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
       }
 
       if (!currentVersion) {
-        await YTDLP.downloadYTDLP();
+        await YTDLP.downloadYTDLP({ filePath: ytdlpPath });
         return {
           success: true,
           action: 'downloaded',
@@ -593,6 +705,17 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
 
   ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
     try {
+      // Without an explicit destination this defaults to ytdlpPath below,
+      // which on packaged macOS is inside the signed .app — a write there
+      // invalidates the bundle signature. See canSelfUpdateYtdlp().
+      if (!canSelfUpdateYtdlp() && !options.filePath?.trim()) {
+        return {
+          success: false,
+          error:
+            'yt-dlp ships inside the app on macOS and cannot be replaced at runtime; update the app instead.',
+        };
+      }
+
       const downloadOptions: DownloadOptions = {
         forceDownload: options.forceDownload || false,
       };
@@ -604,12 +727,19 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
           !path.extname(filePath) ||
           path.extname(filePath).toLowerCase() !== '.exe'
         ) {
-          const defaultFilename =
-            process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
-          downloadOptions.filePath = path.join(filePath, defaultFilename);
+          // YTDLP_BINARY_NAME, not a bare 'yt-dlp': the helper looks for
+          // the platform-suffixed name (yt-dlp_macos / yt-dlp_linux), so
+          // writing an unsuffixed file here produced one it never finds.
+          downloadOptions.filePath = path.join(filePath, YTDLP_BINARY_NAME);
         } else {
           downloadOptions.filePath = filePath;
         }
+      }
+
+      // No caller-supplied path — target the resolved binary rather than
+      // letting the helper fall back to its cwd-relative default.
+      if (!downloadOptions.filePath) {
+        downloadOptions.filePath = ytdlpPath;
       }
 
       if (
@@ -774,14 +904,13 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
     );
   }
 
+  // getDirectUrl/downloadPreview spawn yt-dlp themselves rather than going
+  // through yt-dlp-helper, but must resolve the same binary. This used to
+  // duplicate the lookup and searched for an unsuffixed 'yt-dlp' on darwin,
+  // which only worked because forge.config.ts happens to drop the binary
+  // under both names.
   function resolveYtdlpBinaryPath(): string {
-    const binaryName = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
-    if (app.isPackaged && process.resourcesPath) {
-      const bundled = path.join(process.resourcesPath, binaryName);
-      return existsSync(bundled) ? bundled : binaryName;
-    }
-    const devPath = path.join(app.getAppPath(), binaryName);
-    return existsSync(devPath) ? devPath : binaryName;
+    return ytdlpPath;
   }
 
   ipcMain.handle('ytdlp:getDirectUrl', async (_e, url: string) => {
@@ -1043,6 +1172,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
     let spawned: YTDLP.Terminal | null = null;
     try {
       const controller = await YTDLP.download({
+        ytdlpDownloadDestination: ytdlpPath,
         args: {
           url: args.url,
           output: args.outputFilepath,
