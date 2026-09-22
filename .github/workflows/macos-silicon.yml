@@ -25,7 +25,7 @@ on:
   # default branch. The push trigger sidesteps that entirely.
   push:
     branches:
-      - feat/bulk-category-macos-2
+      - feat/bulk-category-macos
   workflow_dispatch:
 
 permissions:

@@ -14,7 +14,7 @@ name: macOS Build Smoke Test
 on:
   push:
     branches:
-      - feat/bulk-category-macos
+      - feat/bulk-category-macos-2
   workflow_dispatch:
     inputs:
       target_arch:
