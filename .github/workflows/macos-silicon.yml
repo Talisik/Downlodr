@@ -1,4 +1,4 @@
-name: macOS Apple Silicon Build (merged)
+name: macOS Apple Silicon Build
 
 # Standalone Apple Silicon build for the merged feat/bulk-category-macos line.
 #
@@ -25,7 +25,7 @@ on:
   # default branch. The push trigger sidesteps that entirely.
   push:
     branches:
-      - feat/bulk-category-macos
+      - feat/bulk-category-macos-2
   workflow_dispatch:
 
 permissions:

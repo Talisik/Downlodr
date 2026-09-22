@@ -16,6 +16,11 @@ import {
 import { hydratePlaylistEntries } from './playlistEntryMetadata';
 import { notifyTrayDownloadComplete } from './trayHandler';
 import { isYtdlpUpgrade } from './ytdlpVersion';
+import {
+  getYtdlpBinaryPath,
+  ytdlpBundleCandidates,
+} from './bundledBinariesEnv';
+import { ytdlpBinaryName } from './bundledBinaries';
 import { spawn } from 'child_process';
 
 const PROGRESS_THROTTLE_MS = 150;
@@ -48,62 +53,12 @@ async function withBusyRetry<T>(
   }
 }
 
-const YTDLP_BINARY_NAME =
-  process.platform === 'win32'
-    ? 'yt-dlp.exe'
-    : process.platform === 'darwin'
-    ? 'yt-dlp_macos'
-    : 'yt-dlp_linux';
-
 /**
- * Where forge.config.ts ships the binary in a packaged build, most-preferred
- * first. darwin gets it copied (and codesigned) into Contents/Resources;
- * win32 gets it dropped next to the executable by the postPackage hook.
- * app.getPath('exe') on darwin resolves to Contents/MacOS/Downlodr, hence
- * checking resourcesPath first.
+ * yt-dlp binary resolution lives in bundledBinaries.ts, shared with
+ * skedulosaHandler.ts so the two cannot drift apart again. See that module for
+ * why a cwd-relative name is never acceptable here.
  */
-function ytdlpBundleCandidates(): string[] {
-  const exeAdjacent = path.join(
-    path.dirname(app.getPath('exe')),
-    YTDLP_BINARY_NAME,
-  );
-  return process.resourcesPath
-    ? [path.join(process.resourcesPath, YTDLP_BINARY_NAME), exeAdjacent]
-    : [exeAdjacent];
-}
-
-/**
- * The binary every YTDLP.* call must be pointed at explicitly.
- *
- * yt-dlp-helper defaults to `./yt-dlp_macos` (or `./yt-dlp.exe`) **relative
- * to process.cwd()** when handed no path. A packaged .app launched from
- * Finder or the Dock has cwd `/`, so every call spawned a path that does not
- * exist: getYTDLPVersion() returned null — which renders as a blank version
- * in the About modal — and metadata, playlist and download calls all failed
- * with a generic error. Windows only ever worked by accident, because
- * launching from the installed shortcut happens to set cwd to the install
- * directory, which is exactly where the postPackage hook drops yt-dlp.exe.
- *
- * On darwin the bundled copy is additionally spawned *in place*: yt-dlp_macos
- * is a PyInstaller bundle that only starts under the hardened runtime with
- * the entitlements forge.config.ts signs it with, and it is sealed into the
- * .app's signature and covered by its notarization ticket. A copy run from
- * outside the bundle is evaluated standalone by Gatekeeper instead.
- */
-function getYtdlpBinaryPath(): string {
-  if (app.isPackaged) {
-    const bundled = ytdlpBundleCandidates().find((candidate) =>
-      existsSync(candidate),
-    );
-    if (bundled) return bundled;
-    // Nothing bundled — a broken build. Point at a writable location the
-    // updater can populate rather than a cwd-relative name whose meaning
-    // depends on how the app happened to be launched.
-    return path.join(app.getPath('userData'), YTDLP_BINARY_NAME);
-  }
-  const devPath = path.join(app.getAppPath(), YTDLP_BINARY_NAME);
-  return existsSync(devPath) ? devPath : YTDLP_BINARY_NAME;
-}
+const YTDLP_BINARY_NAME = ytdlpBinaryName(process.platform);
 
 /**
  * Whether the resolved binary may be overwritten in place.

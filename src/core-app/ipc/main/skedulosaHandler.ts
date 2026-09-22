@@ -1,32 +1,13 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { existsSync } from 'fs';
 import path from 'path';
 import Database from 'better-sqlite3';
 import { pathToFileURL } from 'url';
+import { getYtdlpBinaryPath } from './bundledBinariesEnv';
 import {
   registerSkedulosaServices,
   registerBridgeHandler,
   registerRendererSender,
 } from './mcpBridgeServer';
-
-function resolveYtDlpPath(): string {
-  const binaryName = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
-
-  if (app.isPackaged) {
-    const nextToExe = path.join(path.dirname(process.execPath), binaryName);
-    if (existsSync(nextToExe)) return nextToExe;
-
-    if (process.resourcesPath) {
-      const inResources = path.join(process.resourcesPath, binaryName);
-      if (existsSync(inResources)) return inResources;
-    }
-  } else {
-    const devPath = path.join(app.getAppPath(), binaryName);
-    if (existsSync(devPath)) return devPath;
-  }
-
-  return binaryName;
-}
 
 export const skedulosaHandler = async (
   mainWindow: BrowserWindow,
@@ -47,7 +28,7 @@ export const skedulosaHandler = async (
     registerVideoNemesisIpcHandlers = mod.registerVideoNemesisIpcHandlers;
   }
 
-  const ytDlpPath = resolveYtDlpPath();
+  const ytDlpPath = getYtdlpBinaryPath();
   const dbPath = path.join(app.getPath('userData'), 'skedulosa.db');
 
   registerSkedulosaServices({ dbPath });

@@ -16,6 +16,7 @@ import { autoDownloadUpdate } from './core-app/ipc/main/appInfoHandler'; // used
 import { setLastClipboardText } from './core-app/ipc/main/clipboardHandler';
 import { registerMainIpcHandlers } from './core-app/ipc/main/registerHandlers';
 import { getRunInBackgroundSetting } from './core-app/ipc/main/trayHandler';
+import { ensureBundledFfmpegOnPath } from './core-app/ipc/main/bundledBinariesEnv';
 import { setupExtendr } from './extension/utils/extensionLoader';
 import {
   startMcpBridgeServer,
@@ -163,6 +164,11 @@ process.on('unhandledRejection', (reason) => {
 
 // once the app opens
 app.on('ready', async () => {
+  // Must run before anything can reach yt-dlp: the helper reads PATH to decide
+  // whether to pass --ffmpeg-location, and otherwise tries to download its own
+  // ffmpeg into process.cwd() (`/` for a .app opened from Finder).
+  ensureBundledFfmpegOnPath();
+
   // Install the Claude Code Agent Skills bundle into <repoRoot>/.claude/skills so
   // the embedded chat agent discovers the downlodr-* skills. Idempotent +
   // version-stamped; runs once at startup before any chat window/spawn. (The
