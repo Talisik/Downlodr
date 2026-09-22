@@ -75,7 +75,21 @@ const createWindow = async () => {
   mainWindow = new BrowserWindow({
     width: 1500,
     height: 680,
-    frame: false,
+    // macOS keeps its real traffic lights; every other platform is frameless
+    // and draws its own controls in TitleBar.tsx. `frame: false` would remove
+    // the traffic lights too, leaving a mac window with no way to close it
+    // except our custom buttons — so darwin gets `titleBarStyle` instead.
+    //
+    // 'hidden' rather than 'hiddenInset': the title bar is 32px tall (h-8 in
+    // the layouts), and hiddenInset's default offset is tuned for Apple's
+    // taller bar, which leaves the lights sitting low. Position them
+    // explicitly instead — 12px circles centred in 32px is y = 10.
+    ...(process.platform === 'darwin'
+      ? {
+          titleBarStyle: 'hidden' as const,
+          trafficLightPosition: { x: 12, y: 10 },
+        }
+      : { frame: false }),
     autoHideMenuBar: true,
     minWidth: 1200,
     minHeight: 600,
