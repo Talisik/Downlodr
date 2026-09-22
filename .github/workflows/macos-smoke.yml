@@ -4,14 +4,24 @@ name: macOS Build Smoke Test
 # workflow does EXCEPT the keychain import, codesigning, DMG creation and
 # notarization -- i.e. every step that does not need an Apple secret.
 #
-# Triggered on push to the integration branch so it runs without the workflow
-# file needing to exist on the default branch (a workflow_dispatch-only file on
-# a feature branch never appears in the Actions UI).
+# Manual only — this does not run on ordinary pushes.
+#
+# GitHub only lists a workflow_dispatch workflow in the Actions UI when the
+# file exists on the DEFAULT branch, so a dispatch-only file on a feature
+# branch is unrunnable. Until this lands on main, trigger it by pushing a
+# throwaway tag:
+#
+#     git tag preflight-1 && git push origin preflight-1
+#
+# Re-run later with a fresh tag name (preflight-2, ...), and delete old ones
+# with `git push origin :refs/tags/preflight-1`. Once the file is on main the
+# workflow_dispatch entry below works from the Actions UI and this tag dance
+# can be dropped.
 
 on:
   push:
-    branches:
-      - feat/bulk-category-macos
+    tags:
+      - "preflight-*"
   workflow_dispatch:
     inputs:
       target_arch:
@@ -205,6 +215,45 @@ jobs:
           path: ${{ runner.temp }}/Downlodr-macos-arm64-unsigned.zip
           retention-days: 7
           if-no-files-found: error
+
+      # Can the app REACH its binaries? The payload check above proves the
+      # files are in Resources; it says nothing about whether the app's own
+      # path resolution finds them. Those are different questions, and the
+      # gap between them is where the cwd-relative spawn bug lived: yt-dlp
+      # sat in Resources the whole time while every call spawned `/yt-dlp_macos`.
+      #
+      # `--preflight` runs the real resolver, spawns each binary, prints what
+      # it found and exits 0/1 — before any window or database is opened.
+      - name: Preflight — can the app reach yt-dlp and FFmpeg?
+        run: |
+          set -uo pipefail
+
+          APP_PATH="$(find out -maxdepth 3 -type d -name '*.app' -print -quit)"
+          BIN="$APP_PATH/Contents/MacOS/Downlodr"
+          LOG="$RUNNER_TEMP/downlodr-preflight.log"
+
+          # 5 min: the version probes take seconds, but the live metadata
+          # fetch has its own 60s timeout and the runner can be slow to start
+          # Electron cold.
+          ELECTRON_ENABLE_LOGGING=1 "$BIN" --preflight > "$LOG" 2>&1 &
+          PID=$!
+          ( sleep 300; kill -9 "$PID" 2>/dev/null ) & WATCHDOG=$!
+          wait "$PID"; RESULT=$?
+          kill "$WATCHDOG" 2>/dev/null || true
+
+          echo "--- preflight output ---"
+          cat "$LOG" 2>/dev/null || echo "(no output captured)"
+          echo ""
+
+          # The `metadata WARN` line is deliberately NOT fatal — it depends on
+          # the network and on YouTube not blocking the runner, so it reports
+          # without deciding the build. Only the binary probes gate this step.
+          if [ "$RESULT" -ne 0 ]; then
+            echo "Preflight FAILED: the packaged app cannot reach one or more binaries."
+          else
+            echo "Preflight passed: every binary is reachable from the packaged app."
+          fi
+          exit "$RESULT"
 
       # Does it actually start? Packaging proves the payload is in place; it
       # says nothing about whether the app survives its own startup path

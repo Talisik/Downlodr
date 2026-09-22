@@ -16,7 +16,12 @@ import { autoDownloadUpdate } from './core-app/ipc/main/appInfoHandler'; // used
 import { setLastClipboardText } from './core-app/ipc/main/clipboardHandler';
 import { registerMainIpcHandlers } from './core-app/ipc/main/registerHandlers';
 import { getRunInBackgroundSetting } from './core-app/ipc/main/trayHandler';
-import { ensureBundledFfmpegOnPath } from './core-app/ipc/main/bundledBinariesEnv';
+import {
+  ensureBundledFfmpegOnPath,
+  getBundledFfmpegPaths,
+  getYtdlpBinaryPath,
+} from './core-app/ipc/main/bundledBinariesEnv';
+import { formatReport, runPreflight } from './core-app/ipc/main/preflight';
 import { setupExtendr } from './extension/utils/extensionLoader';
 import {
   startMcpBridgeServer,
@@ -162,12 +167,68 @@ process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason);
 });
 
+// A stable, long-lived public video. Only used by `--preflight`, never at
+// normal startup.
+const PREFLIGHT_METADATA_URL = 'https://www.youtube.com/watch?v=s3ok84NeMdU';
+
+/**
+ * The binaries to probe, resolved exactly the way the running app resolves
+ * them — that is the point of the check. Falling back to the bare name when
+ * nothing is bundled keeps the probe honest: yt-dlp would find that same
+ * PATH copy, so reporting a miss would be wrong.
+ */
+function preflightPaths() {
+  const { ffmpeg, ffprobe } = getBundledFfmpegPaths();
+  return {
+    ytdlpPath: getYtdlpBinaryPath(),
+    ffmpegPath: ffmpeg ?? 'ffmpeg',
+    ffprobePath: ffprobe ?? 'ffprobe',
+  };
+}
+
+async function runPreflightAndExit(): Promise<void> {
+  try {
+    const report = await runPreflight({
+      ...preflightPaths(),
+      metadataUrl: PREFLIGHT_METADATA_URL,
+    });
+    console.log(formatReport(report));
+    app.exit(report.ok ? 0 : 1);
+  } catch (error) {
+    console.error('[preflight] the check itself failed:', error);
+    app.exit(1);
+  }
+}
+
+async function logStartupPreflight(): Promise<void> {
+  try {
+    console.log(formatReport(await runPreflight(preflightPaths())));
+  } catch (error) {
+    console.error('[preflight]', error);
+  }
+}
+
 // once the app opens
 app.on('ready', async () => {
   // Must run before anything can reach yt-dlp: the helper reads PATH to decide
   // whether to pass --ffmpeg-location, and otherwise tries to download its own
   // ffmpeg into process.cwd() (`/` for a .app opened from Finder).
   ensureBundledFfmpegOnPath();
+
+  // `--preflight` turns the app into a one-shot binary check and exits. It
+  // runs here, before any window, database or IPC handler exists, so CI can
+  // launch a packaged .app on a headless runner and read the result off the
+  // exit code. Nothing below this block runs in that mode.
+  if (process.argv.includes('--preflight')) {
+    await runPreflightAndExit();
+    return;
+  }
+
+  // Normal startup: probe in the background and log one summary line. Costs
+  // nothing and means a user's log says whether the binaries were reachable,
+  // instead of leaving a blank version and a generic download error as the
+  // only symptoms.
+  void logStartupPreflight();
 
   // Install the Claude Code Agent Skills bundle into <repoRoot>/.claude/skills so
   // the embedded chat agent discovers the downlodr-* skills. Idempotent +
