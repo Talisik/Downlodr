@@ -4,8 +4,10 @@ import {
   formatReport,
   parseVersion,
   probeFailureReason,
+  runPreflight,
   type ProbeResult,
   type SpawnOutcome,
+  type Spawner,
 } from './preflight';
 
 function outcome(overrides: Partial<SpawnOutcome> = {}): SpawnOutcome {
@@ -62,6 +64,82 @@ describe('parseVersion', () => {
   it('returns null when there is no version to find', () => {
     expect(parseVersion('yt-dlp', '')).toBeNull();
     expect(parseVersion('ffmpeg', 'command not found')).toBeNull();
+  });
+
+  it('reads the whisper build’s version from its ffmpeg banner', () => {
+    expect(
+      parseVersion(
+        'ffmpeg-whisper',
+        'ffmpeg version 9.0.1-downlodr-whisper1.9.4 Copyright (c) 2000-2026',
+      ),
+    ).toBe('9.0.1-downlodr-whisper1.9.4');
+  });
+});
+
+describe('runPreflight whisper probe', () => {
+  const WHISPER = '/App.app/Contents/Resources/ffmpeg-whisper-arm64';
+
+  /** Answers every spawn with a banner; the whisper binary gets `whisperBanner`. */
+  function spawner(whisperBanner: string): Spawner {
+    return async (command) =>
+      outcome({
+        stdout:
+          command === WHISPER
+            ? whisperBanner
+            : command.includes('yt-dlp')
+            ? '2026.08.19\n'
+            : `${
+                command.includes('ffprobe') ? 'ffprobe' : 'ffmpeg'
+              } version 6.0\n`,
+      });
+  }
+
+  const paths = {
+    ytdlpPath: '/App.app/Contents/Resources/yt-dlp_macos',
+    ffmpegPath: '/App.app/Contents/Resources/ffmpeg-arm64',
+    ffprobePath: '/App.app/Contents/Resources/ffprobe-x64',
+  };
+
+  it('passes when the whisper build was configured with --enable-whisper', async () => {
+    const report = await runPreflight({
+      ...paths,
+      whisperFfmpegPath: WHISPER,
+      spawner: spawner(
+        'ffmpeg version 9.0.1-downlodr-whisper1.9.4\nconfiguration: --enable-whisper\n',
+      ),
+    });
+    expect(report.ok).toBe(true);
+    expect(report.binaries.map((b) => b.name)).toContain('ffmpeg-whisper');
+  });
+
+  it('fails when the binary runs but has no whisper filter', async () => {
+    // The exact state every mac build shipped in: ffmpeg runs fine, and
+    // transcription dies later with "No such filter: 'whisper'".
+    const report = await runPreflight({
+      ...paths,
+      whisperFfmpegPath: WHISPER,
+      spawner: spawner('ffmpeg version 6.0\nconfiguration: --enable-gpl\n'),
+    });
+    const whisper = report.binaries.find((b) => b.name === 'ffmpeg-whisper');
+    expect(whisper?.ok).toBe(false);
+    expect(whisper?.error).toMatch(/--enable-whisper/);
+    expect(report.ok).toBe(false);
+  });
+
+  it('fails when no whisper build is bundled at all', async () => {
+    const report = await runPreflight({
+      ...paths,
+      whisperFfmpegPath: null,
+      spawner: spawner(''),
+    });
+    expect(report.binaries.find((b) => b.name === 'ffmpeg-whisper')?.ok).toBe(
+      false,
+    );
+  });
+
+  it('skips the probe when the caller does not ask for it', async () => {
+    const report = await runPreflight({ ...paths, spawner: spawner('') });
+    expect(report.binaries.map((b) => b.name)).not.toContain('ffmpeg-whisper');
   });
 });
 

@@ -28,6 +28,10 @@ const projectRoot = process.cwd();
 //   unconditionally — a missing Whisper model must fail packaging loudly rather
 //   than silently ship a build where transcription is permanently broken.
 //   ggml-silero-v5.1.2.bin (VAD) has no mac fetch step yet, so it is gated.
+//   ffmpeg-whisper-arm64/x64 are the transcription-only builds (the general
+//   statics above lack --enable-whisper), fetched by `yarn binaries:setup`
+//   from github.com/MMDH05/ffmpeg-build. Listed unconditionally for the same
+//   reason as the model: missing, transcription is dead on arrival.
 // - win32: the Windows binaries, all fetched at build time by scripts/binaries.mjs.
 const darwinFfprobeResources = [
   './binaries/ffprobe-arm64',
@@ -44,6 +48,8 @@ const extraResource =
         './binaries/ffmpeg-arm64',
         './binaries/ffmpeg-x64',
         ...darwinFfprobeResources,
+        './binaries/ffmpeg-whisper-arm64',
+        './binaries/ffmpeg-whisper-x64',
         './ggml-small.bin',
         ...darwinVadResource,
       ]
@@ -341,18 +347,18 @@ const config: ForgeConfig = {
       // cue loses the first byte of a multi-byte character. That shipped once
       // already because this check only compared the major version.
       //
-      // On darwin the check runs against the committed static build for the
-      // host arch. Neither committed mac binary is configured with
-      // --enable-whisper today, so the whisper assertion below is a warning
-      // there rather than a hard failure — making it fatal would block every
-      // macOS build outright. See the warning text for what that costs.
+      // On darwin the check runs against the ffmpeg-whisper build for the
+      // host arch — the one transcription actually uses. The general statics
+      // (binaries/ffmpeg-arm64 is 6.0) are for downloads only and have no
+      // whisper filter, so checking them here would only ever warn. It used
+      // to, and every mac build shipped with transcription dead.
       const isDarwin = process.platform === 'darwin';
       const ffmpegPath = isDarwin
         ? path.resolve(
             projectRoot,
             process.arch === 'arm64'
-              ? 'binaries/ffmpeg-arm64'
-              : 'binaries/ffmpeg-x64',
+              ? 'binaries/ffmpeg-whisper-arm64'
+              : 'binaries/ffmpeg-whisper-x64',
           )
         : path.resolve(projectRoot, 'ffmpeg.exe');
       let versionOutput: string | undefined;
@@ -382,33 +388,16 @@ const config: ForgeConfig = {
         const version = `${major}.${minor}.${patch}`;
         const tooOld = major < 8 || (major === 8 && minor === 0 && patch < 1);
         if (tooOld) {
-          const message = `FFmpeg ${version} is too old — 8.0.1+ is required (8.0.0 corrupts the first character of every transcript cue).`;
-          if (isDarwin) {
-            // The committed mac statics are older than the Windows floor
-            // (binaries/ffmpeg-arm64 is 6.0.0), and the whisper filter does not
-            // exist at all before 7.1. Downloading, merging and converting all
-            // work on 6.x, so this is a transcription-only defect and blocking
-            // every macOS build over it would be worse than shipping it. The
-            // mac build line has always shipped this way.
-            console.warn(
-              `⚠ ${message} Shipping anyway — transcription will not work in this macOS build.`,
-            );
-          } else {
-            throw new Error(message);
-          }
+          throw new Error(
+            `FFmpeg ${version} is too old — 8.0.1+ is required (8.0.0 corrupts the first character of every transcript cue).`,
+          );
         }
         if (!/enable-whisper/.test(versionOutput)) {
-          const message = `The bundled FFmpeg ${version} was built without --enable-whisper, so transcription cannot work.`;
-          if (isDarwin) {
-            console.warn(
-              `⚠ ${message} Shipping anyway — transcription will fail at runtime on macOS ("No such filter: 'whisper'"). Replace binaries/ffmpeg-${process.arch === 'arm64' ? 'arm64' : 'x64'} with a whisper-enabled static build to fix.`,
-            );
-          } else {
-            throw new Error(message);
-          }
-        } else {
-          console.log(`✓ FFmpeg ${version} (whisper enabled) verified`);
+          throw new Error(
+            `The bundled FFmpeg ${version} at ${ffmpegPath} was built without --enable-whisper, so transcription cannot work.`,
+          );
         }
+        console.log(`✓ FFmpeg ${version} (whisper enabled) verified`);
       }
     },
 
@@ -477,26 +466,30 @@ const config: ForgeConfig = {
             fsConstants.X_OK,
           );
 
-          // Sign the bundled FFmpeg/ffprobe static builds. They arrive via
-          // extraResource, so they are unsigned until this runs.
-          if (signingEnabled) {
-            for (const name of [
-              'ffmpeg-arm64',
-              'ffmpeg-x64',
-              'ffprobe-arm64',
-              'ffprobe-x64',
-            ]) {
-              const candidate = path.join(resourcesPath, name);
-              if (!existsSync(candidate)) continue;
-              try {
-                await fs.chmod(candidate, 0o755);
+          // chmod + sign the bundled FFmpeg/ffprobe static builds. They arrive
+          // via extraResource, so they are unsigned until this runs. The chmod
+          // is unconditional: unsigned builds (the smoke workflow) must be able
+          // to execute them too.
+          for (const name of [
+            'ffmpeg-arm64',
+            'ffmpeg-x64',
+            'ffprobe-arm64',
+            'ffprobe-x64',
+            'ffmpeg-whisper-arm64',
+            'ffmpeg-whisper-x64',
+          ]) {
+            const candidate = path.join(resourcesPath, name);
+            if (!existsSync(candidate)) continue;
+            try {
+              await fs.chmod(candidate, 0o755);
+              if (signingEnabled) {
                 await signBinaryWithEntitlements(candidate, name);
-              } catch (ffmpegError) {
-                console.warn(
-                  `   ⚠️  Failed to process ${name}:`,
-                  (ffmpegError as Error).message,
-                );
               }
+            } catch (ffmpegError) {
+              console.warn(
+                `   ⚠️  Failed to process ${name}:`,
+                (ffmpegError as Error).message,
+              );
             }
           }
 

@@ -43,6 +43,22 @@
       "files": [
         "ggml-silero-v5.1.2.bin"
       ]
+    },
+    "ffmpeg-whisper-arm64": {
+      "url": "https://github.com/MMDH05/ffmpeg-build/releases/download/v9.0.1-w1.9.4-r1/ffmpeg-whisper-arm64",
+      "sha256": "a271ca9bc02ceacc907e1a0a675c9612d591b7101d743a5a5df29fbdf631a817",
+      "files": [
+        "binaries/ffmpeg-whisper-arm64"
+      ],
+      "platform": "darwin"
+    },
+    "ffmpeg-whisper-x64": {
+      "url": "https://github.com/MMDH05/ffmpeg-build/releases/download/v9.0.1-w1.9.4-r1/ffmpeg-whisper-x64",
+      "sha256": "97f32a69b3607162a1069c04cb8ad002dcdfee0f5cb5a25c5a0d209631cedc07",
+      "files": [
+        "binaries/ffmpeg-whisper-x64"
+      ],
+      "platform": "darwin"
     }
   },
   "scripts": {

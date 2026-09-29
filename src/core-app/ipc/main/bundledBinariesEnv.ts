@@ -11,6 +11,7 @@ import {
   planFfmpegPathEntry,
   prependToPath,
   resolveBundledFfmpeg,
+  resolveWhisperFfmpeg,
   resolveYtdlpPath,
   ytdlpBinaryName,
   type BinaryEnv,
@@ -84,6 +85,11 @@ export function ensureBundledFfmpegOnPath(): string | null {
   console.log(`[ffmpeg] using bundled binaries via ${plan.dir}`);
   ffmpegPathDir = plan.dir;
   return plan.dir;
+}
+
+/** The bundled FFmpeg with the whisper filter, or null when absent. */
+export function getWhisperFfmpegPath(): string | null {
+  return resolveWhisperFfmpeg(electronBinaryEnv());
 }
 
 /** Absolute paths to the bundled FFmpeg binaries, or null when absent. */

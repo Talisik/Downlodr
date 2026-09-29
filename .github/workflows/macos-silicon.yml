@@ -109,6 +109,11 @@ jobs:
       - name: Fetch Whisper model
         run: bash ./scripts/download-whisper-model.sh
 
+      # binaries/ffmpeg-arm64/-x64 have no whisper filter; transcription uses
+      # these separate builds (package.json downlodrBinaries, darwin entries).
+      - name: Fetch whisper-enabled FFmpeg
+        run: yarn binaries:setup
+
       - name: Build Apple Silicon DMG
         run: yarn build:dmg
 

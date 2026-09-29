@@ -7,6 +7,7 @@ import fs, { existsSync } from 'fs';
 import os from 'os';
 import path from 'path';
 import { getBundledBinaryPath } from './appInfoHandler';
+import { getWhisperFfmpegPath } from './bundledBinariesEnv';
 /**
  * Handles the behavior of the base app such as closing, minimizing, maximizing, etc.
  * @param mainWindow - The main window of the base app
@@ -285,22 +286,23 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
     const isDev = process.env.NODE_ENV === 'development';
     const isPackaged = app.isPackaged;
 
-    // Production mode: use bundled FFmpeg from resources or app directory
-    if (isPackaged) {
-      // First try the bundled FFmpeg from process.resourcesPath
-      const bundledFFmpeg = getBundledBinaryPath('ffmpeg.exe');
-      if (bundledFFmpeg) {
-        // Validate it has Whisper support
-        const check = await checkFFmpegWhisperSupport(bundledFFmpeg);
-        if (check.hasWhisper) {
-          return bundledFFmpeg;
-        } else {
-          console.warn(
-            `Bundled FFmpeg at ${bundledFFmpeg} does not have Whisper support: ${check.error}`,
-          );
-        }
+    // The bundled whisper build first, in dev and packaged builds alike. On
+    // darwin this is the separate transcription-only static — the general
+    // ffmpeg-arm64/x64 have no whisper filter, and the ffmpeg.exe lookups
+    // below never matched on a Mac at all.
+    const bundledFFmpeg = getWhisperFfmpegPath();
+    if (bundledFFmpeg) {
+      const check = await checkFFmpegWhisperSupport(bundledFFmpeg);
+      if (check.hasWhisper) {
+        return bundledFFmpeg;
       }
+      console.warn(
+        `Bundled FFmpeg at ${bundledFFmpeg} does not have Whisper support: ${check.error}`,
+      );
+    }
 
+    // Production mode: fall back to other locations beside the app
+    if (isPackaged) {
       // If bundled FFmpeg not found or doesn't have Whisper, check other locations
       const possiblePaths = [];
 
@@ -335,7 +337,9 @@ export const transcriptHandler = (mainWindow: BrowserWindow) => {
 
       // If bundled FFmpeg not found or doesn't have Whisper, throw error
       throw new Error(
-        'Bundled FFmpeg not found or does not have Whisper support. Please ensure ffmpeg.exe (8.0+) is included in the app bundle.',
+        process.platform === 'darwin'
+          ? 'Bundled FFmpeg not found or does not have Whisper support. Please ensure ffmpeg-whisper-arm64/x64 are included in the app bundle.'
+          : 'Bundled FFmpeg not found or does not have Whisper support. Please ensure ffmpeg.exe (8.0+) is included in the app bundle.',
       );
     }
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   planFfmpegPathEntry,
   resolveBundledFfmpeg,
+  resolveWhisperFfmpeg,
   resolveYtdlpPath,
   ytdlpBinaryName,
   type BinaryEnv,
@@ -157,6 +158,72 @@ describe('resolveBundledFfmpeg', () => {
       ffmpeg: null,
       ffprobe: null,
     });
+  });
+});
+
+describe('resolveWhisperFfmpeg', () => {
+  const resources = '/App.app/Contents/Resources';
+
+  it('picks the arm64 whisper build on Apple Silicon, not the general static', () => {
+    // binaries/ffmpeg-arm64 is built without --enable-whisper, so handing it
+    // to the transcriber fails with "No such filter: 'whisper'".
+    const whisper = path.join(resources, 'ffmpeg-whisper-arm64');
+    expect(
+      resolveWhisperFfmpeg(
+        env({ present: [path.join(resources, 'ffmpeg-arm64'), whisper] }),
+      ),
+    ).toBe(whisper);
+  });
+
+  it('picks the x64 whisper build on Intel', () => {
+    const whisper = path.join(resources, 'ffmpeg-whisper-x64');
+    expect(
+      resolveWhisperFfmpeg(
+        env({
+          arch: 'x64',
+          present: [path.join(resources, 'ffmpeg-whisper-arm64'), whisper],
+        }),
+      ),
+    ).toBe(whisper);
+  });
+
+  it('falls back to the x64 whisper build under Rosetta 2 on Apple Silicon', () => {
+    const whisper = path.join(resources, 'ffmpeg-whisper-x64');
+    expect(resolveWhisperFfmpeg(env({ present: [whisper] }))).toBe(whisper);
+  });
+
+  it('never substitutes the general mac statics when no whisper build is bundled', () => {
+    expect(
+      resolveWhisperFfmpeg(
+        env({
+          present: [
+            path.join(resources, 'ffmpeg-arm64'),
+            path.join(resources, 'ffmpeg-x64'),
+          ],
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it('uses the one full ffmpeg.exe on win32, which already has whisper', () => {
+    const winResources = 'C:/Program Files/Downlodr/resources';
+    const ffmpeg = path.join(winResources, 'ffmpeg.exe');
+    expect(
+      resolveWhisperFfmpeg(
+        env({
+          platform: 'win32',
+          resourcesPath: winResources,
+          present: [ffmpeg],
+        }),
+      ),
+    ).toBe(ffmpeg);
+  });
+
+  it('resolves from binaries/ in darwin development, where binaries:setup fetches it', () => {
+    const whisper = path.join('/repo', 'binaries', 'ffmpeg-whisper-arm64');
+    expect(
+      resolveWhisperFfmpeg(env({ isPackaged: false, present: [whisper] })),
+    ).toBe(whisper);
   });
 });
 

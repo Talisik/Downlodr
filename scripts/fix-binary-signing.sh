@@ -79,6 +79,8 @@ FFMPEG_BINARIES=(
     "$RESOURCES_PATH/ffmpeg-arm64"
     "$RESOURCES_PATH/ffmpeg-x64" 
     "$RESOURCES_PATH/ffmpeg"
+    "$RESOURCES_PATH/ffmpeg-whisper-arm64"
+    "$RESOURCES_PATH/ffmpeg-whisper-x64"
 )
 
 echo "🔍 Checking FFmpeg binaries..."

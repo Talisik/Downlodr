@@ -19,6 +19,7 @@ import { getRunInBackgroundSetting } from './core-app/ipc/main/trayHandler';
 import {
   ensureBundledFfmpegOnPath,
   getBundledFfmpegPaths,
+  getWhisperFfmpegPath,
   getYtdlpBinaryPath,
 } from './core-app/ipc/main/bundledBinariesEnv';
 import { formatReport, runPreflight } from './core-app/ipc/main/preflight';
@@ -197,6 +198,9 @@ function preflightPaths() {
     ytdlpPath: getYtdlpBinaryPath(),
     ffmpegPath: ffmpeg ?? 'ffmpeg',
     ffprobePath: ffprobe ?? 'ffprobe',
+    // No bare-name fallback: transcription never uses a PATH ffmpeg when
+    // packaged, so a miss here is a real miss.
+    whisperFfmpegPath: getWhisperFfmpegPath(),
   };
 }
 

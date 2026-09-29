@@ -14,11 +14,18 @@
  * 'whisper'" rather than at install time. 8.0.0 additionally corrupts every
  * subtitle cue it writes, hence the minVersion gate here and in forge.config.ts.
  *
+ * Each spec is for one platform, named by its optional "platform" field; one
+ * without it is a Windows asset, which is all this script fetched originally.
+ * The darwin specs are the transcription-only ffmpeg-whisper builds from
+ * github.com/MMDH05/ffmpeg-build — no public mac ffmpeg has --enable-whisper,
+ * and the committed binaries/ffmpeg-arm64/-x64 statics lack it too.
+ *
  * Usage: node scripts/binaries.mjs <check|setup> [--force]
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
+  chmodSync,
   copyFileSync,
   createWriteStream,
   existsSync,
@@ -153,7 +160,12 @@ async function install(name, spec) {
       for (const [file, src] of found) copyFileSync(src, path.join(ROOT, file));
     } else {
       // Single unarchived file — spec.files holds the one name to install as.
-      copyFileSync(artifact, path.join(ROOT, spec.files[0]));
+      const dest = path.join(ROOT, spec.files[0]);
+      mkdirSync(path.dirname(dest), { recursive: true });
+      copyFileSync(artifact, dest);
+      // A downloaded file is not executable; the mac binaries must be, both to
+      // run in dev and because extraResource copies the mode into the .app.
+      if (process.platform !== 'win32') chmodSync(dest, 0o755);
     }
 
     for (const file of spec.files) {
@@ -248,12 +260,15 @@ function check(specs) {
 }
 
 async function main() {
-  const specs = loadSpecs();
   const cmd = process.argv[2];
+  const specs = Object.fromEntries(
+    Object.entries(loadSpecs()).filter(
+      ([, spec]) => (spec.platform ?? 'win32') === process.platform,
+    ),
+  );
 
-  // Every asset here is a Windows build; there is nothing to fetch elsewhere.
-  if (process.platform !== 'win32') {
-    log(`not Windows (${process.platform}) — skipping`);
+  if (Object.keys(specs).length === 0) {
+    log(`no binaries declared for ${process.platform} — skipping`);
     return 0;
   }
   if (cmd === 'check') return check(specs);

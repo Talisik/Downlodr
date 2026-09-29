@@ -98,6 +98,18 @@ function ffmpegSearchDirs(env: BinaryEnv): string[] {
   return [env.appPath, path.join(env.appPath, 'binaries')];
 }
 
+/** First of `names` present in any search dir, trying names in order. */
+function locateBundled(env: BinaryEnv, names: string[]): string | null {
+  const dirs = ffmpegSearchDirs(env);
+  for (const name of names) {
+    for (const dir of dirs) {
+      const candidate = path.join(dir, name);
+      if (env.exists(candidate)) return candidate;
+    }
+  }
+  return null;
+}
+
 /**
  * Absolute paths to the bundled ffmpeg/ffprobe, or null when this build does
  * not ship one. Never guesses a bare name: a PATH fallback silently resolves
@@ -108,18 +120,33 @@ export function resolveBundledFfmpeg(env: BinaryEnv): {
   ffmpeg: string | null;
   ffprobe: string | null;
 } {
-  const dirs = ffmpegSearchDirs(env);
-  const locate = (component: 'ffmpeg' | 'ffprobe'): string | null => {
-    for (const name of ffmpegBundleNames(env, component)) {
-      for (const dir of dirs) {
-        const candidate = path.join(dir, name);
-        if (env.exists(candidate)) return candidate;
-      }
-    }
-    return null;
+  return {
+    ffmpeg: locateBundled(env, ffmpegBundleNames(env, 'ffmpeg')),
+    ffprobe: locateBundled(env, ffmpegBundleNames(env, 'ffprobe')),
   };
+}
 
-  return { ffmpeg: locate('ffmpeg'), ffprobe: locate('ffprobe') };
+/**
+ * The bundled ffmpeg that has the whisper filter, or null when none ships.
+ *
+ * win32 ships one ffmpeg — gyan's full build — which does everything. The mac
+ * general-purpose statics (binaries/ffmpeg-arm64, -x64) are built without
+ * `--enable-whisper`, and no public mac build has it, so darwin ships a
+ * separate transcription-only build from github.com/MMDH05/ffmpeg-build,
+ * fetched by `yarn binaries:setup`. Deliberately never falls back to the
+ * general statics: they would only fail later with "No such filter: 'whisper'".
+ */
+export function resolveWhisperFfmpeg(env: BinaryEnv): string | null {
+  if (env.platform !== 'darwin') {
+    return locateBundled(env, ffmpegBundleNames(env, 'ffmpeg'));
+  }
+  // Same Rosetta 2 fallback as the general statics.
+  return locateBundled(
+    env,
+    env.arch === 'arm64'
+      ? ['ffmpeg-whisper-arm64', 'ffmpeg-whisper-x64']
+      : ['ffmpeg-whisper-x64'],
+  );
 }
 
 export interface FfmpegPathPlan {

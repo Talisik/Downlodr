@@ -72,6 +72,16 @@ else
 fi
 echo ""
 
+# The committed binaries/ffmpeg-arm64/-x64 have no whisper filter, so
+# transcription uses the separate ffmpeg-whisper builds (package.json
+# downlodrBinaries). forge.config.ts fails packaging without them.
+echo "🎙️  Fetching whisper-enabled FFmpeg..."
+if ! node ./scripts/binaries.mjs setup; then
+    echo "❌ ffmpeg-whisper fetch failed. Transcription would be broken in this build."
+    exit 1
+fi
+echo ""
+
 # Step 1: Clean previous builds
 echo "🧹 Step 1: Cleaning previous builds..."
 rm -rf out/

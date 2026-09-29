@@ -20,7 +20,11 @@
 
 import { spawn } from 'child_process';
 
-export type BinaryName = 'yt-dlp' | 'ffmpeg' | 'ffprobe';
+/**
+ * 'ffmpeg-whisper' is the ffmpeg transcription runs — the same file as
+ * 'ffmpeg' on win32, a separate build on darwin (see resolveWhisperFfmpeg).
+ */
+export type BinaryName = 'yt-dlp' | 'ffmpeg' | 'ffprobe' | 'ffmpeg-whisper';
 
 /** Raw result of one spawn, before it is interpreted. */
 export interface SpawnOutcome {
@@ -75,7 +79,8 @@ export function parseVersion(name: BinaryName, output: string): string | null {
   // ffmpeg/ffprobe print a banner whose first token after "version" is what we
   // want. Which stream it lands on varies by build, so callers concatenate
   // stdout and stderr and let this find it anywhere in the text.
-  const match = output.match(new RegExp(`${name} version (\\S+)`));
+  const banner = name === 'ffmpeg-whisper' ? 'ffmpeg' : name;
+  const match = output.match(new RegExp(`${banner} version (\\S+)`));
   return match ? match[1] : null;
 }
 
@@ -127,7 +132,7 @@ export function formatReport(report: PreflightReport): string {
     const version = probe.version ?? '—';
     const where = probe.path ?? '<none>';
     const detail = probe.error ? `  ${probe.error}` : '';
-    return `[preflight] ${probe.name.padEnd(8)} ${status} ${version.padEnd(
+    return `[preflight] ${probe.name.padEnd(14)} ${status} ${version.padEnd(
       14,
     )} ${where} (${probe.durationMs}ms)${detail}`;
   });
@@ -242,18 +247,27 @@ async function probeBinary(
   const args = name === 'yt-dlp' ? ['--version'] : ['-version'];
   const outcome = await spawner(binaryPath, args, VERSION_TIMEOUT_MS);
   const failure = probeFailureReason(outcome);
-  const version = failure
-    ? null
-    : parseVersion(name, `${outcome.stdout}\n${outcome.stderr}`);
+  const output = `${outcome.stdout}\n${outcome.stderr}`;
+  const version = failure ? null : parseVersion(name, output);
+  // A whisper-less ffmpeg runs perfectly and only fails once a transcription
+  // asks for the filter, so for this probe "it runs" is not enough.
+  const noWhisper =
+    name === 'ffmpeg-whisper' &&
+    version !== null &&
+    !output.includes('--enable-whisper');
 
   return {
     name,
     path: binaryPath,
-    ok: failure === null && version !== null,
+    ok: failure === null && version !== null && !noWhisper,
     version,
     error:
       failure ??
-      (version === null ? 'ran but reported no parseable version' : null),
+      (version === null
+        ? 'ran but reported no parseable version'
+        : noWhisper
+        ? 'built without --enable-whisper — transcription cannot work'
+        : null),
     durationMs: outcome.durationMs,
   };
 }
@@ -292,6 +306,8 @@ export interface PreflightOptions {
   ytdlpPath: string | null;
   ffmpegPath: string | null;
   ffprobePath: string | null;
+  /** The ffmpeg transcription uses. Omit to skip; null probes as not found. */
+  whisperFfmpegPath?: string | null;
   /** Fetch metadata for this URL as a live end-to-end check; null to skip. */
   metadataUrl?: string | null;
   spawner?: Spawner;
@@ -301,6 +317,7 @@ export async function runPreflight({
   ytdlpPath,
   ffmpegPath,
   ffprobePath,
+  whisperFfmpegPath,
   metadataUrl = null,
   spawner = spawnCapture,
 }: PreflightOptions): Promise<PreflightReport> {
@@ -308,6 +325,9 @@ export async function runPreflight({
     probeBinary('yt-dlp', ytdlpPath, spawner),
     probeBinary('ffmpeg', ffmpegPath, spawner),
     probeBinary('ffprobe', ffprobePath, spawner),
+    ...(whisperFfmpegPath !== undefined
+      ? [probeBinary('ffmpeg-whisper', whisperFfmpegPath, spawner)]
+      : []),
   ]);
 
   // Only worth attempting once yt-dlp itself answered — otherwise the fetch
