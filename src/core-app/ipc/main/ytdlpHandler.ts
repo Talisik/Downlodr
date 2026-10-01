@@ -13,10 +13,19 @@ import {
   markGitHubApiCall,
   setCachedVersion,
 } from './githubHandler';
+import { toExtractorUrl } from './extractorUrl';
+import { isBlockedBySite } from './ytdlpSiteBlock';
+import { runExclusiveYtdlpUpdate, waitForYtdlpUpdate } from './ytdlpUpdateGate';
+import { isOnline } from './appBehaviorHandler';
+import {
+  finalizeFinishedRecording,
+  remuxMpegTsRecording,
+} from './liveRecordingRemux';
 import { hydratePlaylistEntries } from './playlistEntryMetadata';
 import { notifyTrayDownloadComplete } from './trayHandler';
 import { isYtdlpUpgrade } from './ytdlpVersion';
 import {
+  getBundledFfmpegPaths,
   getYtdlpBinaryPath,
   ytdlpBundleCandidates,
 } from './bundledBinariesEnv';
@@ -119,6 +128,36 @@ async function swapInNewBinary(
   }
 }
 
+/** Tells every window how a yt-dlp self-update is going (for the toast). */
+function broadcastYtdlpUpdateStatus(status: {
+  state: 'updating' | 'updated' | 'failed';
+  version: string | null;
+}): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send('ytdlp:update-status', status);
+  }
+}
+
+/**
+ * Runs the actual download/swap of a yt-dlp update: holds new yt-dlp work
+ * until it's done (see ytdlpUpdateGate) and reports progress to the UI.
+ * Only this phase is gated — the version check before it is quick and
+ * usually ends in "already up to date".
+ */
+async function runVisibleYtdlpUpdate(
+  version: string | null,
+  update: () => Promise<unknown>,
+): Promise<void> {
+  broadcastYtdlpUpdateStatus({ state: 'updating', version });
+  try {
+    await runExclusiveYtdlpUpdate(update);
+    broadcastYtdlpUpdateStatus({ state: 'updated', version });
+  } catch (error) {
+    broadcastYtdlpUpdateStatus({ state: 'failed', version });
+    throw error;
+  }
+}
+
 export async function runYtdlpCheckAndUpdate(): Promise<void> {
   try {
     const ytdlpPath = getYtdlpBinaryPath();
@@ -128,6 +167,13 @@ export async function runYtdlpCheckAndUpdate(): Promise<void> {
     if (!canSelfUpdateYtdlp()) return;
 
     await unlink(`${ytdlpPath}.old`).catch(() => undefined);
+
+    // Offline: nothing to check against, and the GitHub/download calls would
+    // only fail (or hang) — skip until the next launch.
+    if (!(await isOnline())) {
+      console.log('[ytdlp startup] offline — skipping yt-dlp update check');
+      return;
+    }
 
     const currentVersion = await YTDLP.getYTDLPVersion(ytdlpPath);
 
@@ -147,12 +193,17 @@ export async function runYtdlpCheckAndUpdate(): Promise<void> {
     }
 
     if (!currentVersion) {
-      await withBusyRetry(() => YTDLP.downloadYTDLP({ filePath: ytdlpPath }));
+      await runVisibleYtdlpUpdate(latestVersion ?? null, () =>
+        withBusyRetry(() => YTDLP.downloadYTDLP({ filePath: ytdlpPath })),
+      );
       return;
     }
 
     if (latestVersion && isYtdlpUpgrade(currentVersion, latestVersion)) {
-      await downloadYtdlpUpdateSafely(latestVersion);
+      const target = latestVersion;
+      await runVisibleYtdlpUpdate(target, () =>
+        downloadYtdlpUpdateSafely(target),
+      );
     }
   } catch (error) {
     console.error('[ytdlp startup] check-and-update failed:', error);
@@ -183,6 +234,9 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   const cancelledControllerIds = new Set<string>();
   const controllerOwner = new Map<string, string>();
   const cancelledDownloadIds = new Set<string>();
+  // Controllers stopped via "Finish recording" rather than Stop: their exit
+  // is a success whenever a recording exists (see handleProcessCompletion).
+  const finishingControllerIds = new Set<string>();
   const cancelledPreviewRequests = new Set<string>();
   const activeDirectUrlProcs = new Set<ReturnType<typeof spawn>>();
 
@@ -377,6 +431,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
         if (!url) {
           throw new Error('Playlist URL is required');
         }
+        await waitForYtdlpUpdate();
         await paceHost(url);
         const info = await YTDLP.getPlaylistInfo({
           url,
@@ -391,10 +446,12 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
     },
   );
 
-  ipcMain.handle('ytdlp:info', async (e, url) => {
-    if (!url) {
+  ipcMain.handle('ytdlp:info', async (e, rawUrl) => {
+    if (!rawUrl) {
       throw new Error('Video URL is required');
     }
+    const url = toExtractorUrl(String(rawUrl));
+    await waitForYtdlpUpdate();
     return coalesce(infoInFlight, String(url), async () => {
       const info = await retryTransient(
         'ytdlp:info',
@@ -480,6 +537,15 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
         if (diagnostic?.data && /page needs to be reloaded/i.test(diagnostic.data)) {
           throw new Error(
             'EXTRACTION_BLOCKED: YouTube is currently blocking this video from being extracted (a known, ongoing yt-dlp limitation, not fixed by signing in). Try again later, or check for a yt-dlp update.',
+          );
+        }
+        // The site refused the request itself (Cloudflare challenge, CAPTCHA,
+        // 403). Checked after the YouTube-specific cases above so their more
+        // precise messages win. Not transient for this purpose — retrying
+        // immediately hits the same wall.
+        if (diagnostic?.data && isBlockedBySite(diagnostic.data)) {
+          throw new Error(
+            'BLOCKED_BY_SITE: The website blocked the request (bot protection or access denied).',
           );
         }
         if (diagnostic?.data && isKnownTransientHost(url)) {
@@ -868,7 +934,9 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
     return ytdlpPath;
   }
 
-  ipcMain.handle('ytdlp:getDirectUrl', async (_e, url: string) => {
+  ipcMain.handle('ytdlp:getDirectUrl', async (_e, rawUrl: string) => {
+    const url = toExtractorUrl(rawUrl);
+    await waitForYtdlpUpdate();
     return coalesce(directUrlInFlight, url, () =>
       retryTransient('ytdlp:getDirectUrl', url, () => spawnDirectUrl(url)),
     );
@@ -965,7 +1033,9 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
 
   ipcMain.handle(
     'ytdlp:downloadPreview',
-    async (_e, requestId: string, url: string) => {
+    async (_e, requestId: string, rawUrl: string) => {
+      const url = toExtractorUrl(rawUrl);
+      await waitForYtdlpUpdate();
       await previewTempDirSwept;
       await cancelPreviewDownload(requestId);
       cancelledPreviewRequests.delete(requestId);
@@ -983,10 +1053,24 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
           `${sanitizePreviewRequestId(requestId)}-${Date.now()}.mp4`,
         );
         return new Promise<string>((resolve, reject) => {
+          // The renderer plays the result back through getVideoBlob, whose
+          // buffer path tops out just under 2GB (readFileSync limit) — prefer
+          // a format known to fit, and hard-abort anything that would exceed
+          // the limit rather than downloading a file playback can't consume.
+          // YouTube no longer serves any single file with both video and
+          // audio (every format is video-only or audio-only), so after the
+          // single-file choices fall back to a video + audio pair merged into
+          // mp4 — H.264 first, since every Chromium build plays it. 720p while
+          // the video stream stays under 400MB (the preview is downloaded and
+          // held in memory before it plays); 360p for anything longer.
           const proc = spawn(binaryPath, [
             '--no-warnings',
             '-f',
-            'best[ext=mp4][filesize<1.9G]/best[ext=mp4][filesize_approx<1.9G]/best[ext=mp4]',
+            'best[ext=mp4][filesize<1.9G]/best[ext=mp4][filesize_approx<1.9G]/best[ext=mp4]' +
+              '/bv*[height<=720][vcodec^=avc1][filesize<400M]+ba[ext=m4a]' +
+              '/bv*[height<=360][vcodec^=avc1]+ba[ext=m4a]/bv*[height<=360]+ba',
+            '--merge-output-format',
+            'mp4',
             '--max-filesize',
             '1.9G',
             '-o',
@@ -1047,6 +1131,15 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
     return killControllerById(id);
   });
 
+  // Same graceful stop as kill-controller, but marks the exit as a finished
+  // live recording rather than a cancelled download.
+  ipcMain.handle('ytdlp:finishRecording', async (_, id: string) => {
+    finishingControllerIds.add(id);
+    const stopped = await killControllerById(id);
+    if (!stopped) finishingControllerIds.delete(id);
+    return stopped;
+  });
+
   type YtdlpDownloadArgs = Parameters<typeof YTDLP.download>[0]['args'];
   type DownloadRequestArgs = {
     url: string;
@@ -1067,7 +1160,9 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
 
   const GENERIC_DOWNLOAD_ATTEMPTS = 2;
 
-  ipcMain.handle('ytdlp:download', async (e, id, args) => {
+  ipcMain.handle('ytdlp:download', async (e, id, rawArgs) => {
+    const args = { ...rawArgs, url: toExtractorUrl(rawArgs.url) };
+    await waitForYtdlpUpdate();
     const isRetryable = isRetryableHost(args.url);
     const maxAttempts = isRetryable
       ? DOWNLOAD_RETRY_ATTEMPTS
@@ -1197,23 +1292,54 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
           const completionMessage = `Process '${controller.id}' ${eventType} with code: ${code}, signal: ${signal}`;
           completeLog += `\n${completionMessage}`;
 
-          const sendCompletion = () => {
+          const sendCompletion = (exitCode: number = code) => {
             e.sender.send(`ytdlp:download:status:${id}`, {
               type: 'completion',
               data: {
                 log: completionMessage,
                 completeLog: completeLog,
-                exitCode: code,
+                exitCode,
                 signal: signal,
                 controllerId: controller.id,
               },
             });
-            if (code === 0) {
+            if (exitCode === 0) {
               sendTrayNotificationOnce();
             }
           };
+          // Not getBundledBinaryPath('ffmpeg'): on darwin the static build
+          // lives at binaries/ffmpeg-<arch>.
+          const ffmpegPath = getBundledFfmpegPaths().ffmpeg;
+          // "Finish recording": the exit was our own Ctrl+C, so its code says
+          // nothing about the result — yt-dlp usually exits 0 but can exit 1.
+          // Judge by whether a recording exists, and never hand this exit to
+          // either retry path (ours below, or the renderer's live retry):
+          // restarting spawns a process the finish never reaches, and the row
+          // sits on "Finishing…" forever.
+          if (finishingControllerIds.delete(controller.id)) {
+            void finalizeFinishedRecording(args.outputFilepath, ffmpegPath)
+              .catch(() => false)
+              .then((recorded) => {
+                if (recorded && code !== 0) {
+                  completeLog += `\nRecording finished by user (yt-dlp exited ${code}); keeping the recorded file.`;
+                }
+                finalExitCode = recorded ? 0 : code;
+                setTimeout(() => sendCompletion(finalExitCode ?? code), 100);
+              });
+            return;
+          }
           if (code !== 0 && (canRetryTransient || canRetryGeneric)) {
             deferredCompletion = sendCompletion;
+            return;
+          }
+          if (code === 0) {
+            // A stopped live recording is left as MPEG-TS inside a .mp4,
+            // which the in-app player can't open — fix the container before
+            // the renderer marks the download playable. A no-op (one small
+            // header read) for every other download.
+            void remuxMpegTsRecording(args.outputFilepath, ffmpegPath).finally(
+              () => setTimeout(sendCompletion, 100),
+            );
             return;
           }
           setTimeout(sendCompletion, 100);

@@ -14,7 +14,7 @@ import {
  * @returns void
  */
 
-async function isOnline(timeout = 5000): Promise<boolean> {
+export async function isOnline(timeout = 5000): Promise<boolean> {
   return new Promise((resolve) => {
     const timeoutHandle = setTimeout(() => {
       resolve(false);

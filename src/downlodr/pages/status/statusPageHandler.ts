@@ -661,7 +661,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
       duration: 5000,
     });
 
-    window.ytdlp.killController(cid).catch(() => {
+    window.ytdlp.finishRecording(cid).catch(() => {
       useDownloadStore.setState((state) => ({
         downloading: state.downloading.map((d) =>
           d.id === downloadId ? { ...d, isFinishingRecording: false } : d,

@@ -67,6 +67,7 @@ import GlobalScanningModal from './skedulosa/components/GlobalScanningModal';
 import GlobalAfdaMapperListener from '@/afda/components/GlobalAfdaMapperListener';
 import GlobalPlaylistRedirectListener from '@/downlodr/components/playlist/GlobalPlaylistRedirectListener';
 import GlobalAddonDownloadToast from '@/core-app/components/GlobalAddonDownloadToast';
+import GlobalYtdlpUpdateToast from '@/core-app/components/GlobalYtdlpUpdateToast';
 import CategoryPage from './smart-organize/base/pages/CategoryPage';
 import TagPage from './smart-organize/base/pages/TagPage';
 import OrganizationLayout from './smart-organize/components/layout/OrganizationLayout';
@@ -410,6 +411,7 @@ const App = () => {
           <GlobalAfdaMapperListener />
           <GlobalPlaylistRedirectListener />
           <GlobalAddonDownloadToast />
+          <GlobalYtdlpUpdateToast />
         </Router>
         <Toaster />
         {/* App-level so the share gate can open the login modal from

@@ -244,9 +244,14 @@ export function createLifecycleActions(set: SetState, get: GetState) {
             // error. Status stays 'downloading' — only the log is updated
             // so the error is still visible in the download's activity log.
             // See docs/superpowers/specs/2026-07-30-live-download-auto-retry-design.md
+            // Never for a recording the user asked to finish: its non-zero
+            // exit is our own Ctrl+C, and restarting spawns a fresh process
+            // the finish never reaches, leaving the row stuck on
+            // "Finishing…".
             if (
               exitCode !== 0 &&
               downloading.isLive &&
+              !downloading.isFinishingRecording &&
               (downloading.liveRetryCount || 0) < MAX_LIVE_RETRIES
             ) {
               scheduleRetryFor = {

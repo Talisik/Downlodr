@@ -42,6 +42,7 @@ import { useTranslation } from 'react-i18next';
 import { VscPlayCircle } from 'react-icons/vsc';
 import { FiPlayCircle } from 'react-icons/fi';
 import { TbClockCheck, TbClockCancel } from 'react-icons/tb';
+import { playbackErrorDetail } from '@/downlodr/utils/playbackErrorDetail';
 
 type PlayerState = 'loading' | 'ready' | 'buffering' | 'error';
 
@@ -248,6 +249,9 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
   onSelectDownload,
 }) => {
   const [playerState, setPlayerState] = useState<PlayerState>('loading');
+  // Short reason shown under the error message, so a failed preview or play
+  // says why instead of only "Could not load video stream".
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [isWaveSurferReady, setIsWaveSurferReady] = useState(false);
   const [directUrl, setDirectUrl] = useState<string | null>(null);
   const [captionBlobUrl, setCaptionBlobUrl] = useState<string | null>(null);
@@ -634,6 +638,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
           );
           previewRequestIdRef.current = null;
           if (gen !== generationRef.current) return;
+          setErrorDetail(playbackErrorDetail(err));
           setPlayerState('error');
         });
     },
@@ -646,6 +651,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
     const gen = generationRef.current;
     usedPreviewFallbackRef.current = false;
     releasePreviewResources();
+    setErrorDetail(null);
     setPlayerState('loading');
     setIsWaveSurferReady(false);
     setDirectUrl(null);
@@ -664,9 +670,25 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
       .catch((err) => {
         console.error('[VideoPlayerPanel] resolveVideoSource failed:', err);
         if (gen !== generationRef.current) return;
+        // No direct URL for an online video — typically YouTube, which no
+        // longer offers any single file with both video and audio. The
+        // preview download can merge the two, so try it once before failing.
+        if (videoUrl && status !== 'finished' && !usedPreviewFallbackRef.current) {
+          usedPreviewFallbackRef.current = true;
+          attemptPreviewFallback(gen);
+          return;
+        }
+        setErrorDetail(playbackErrorDetail(err));
         setPlayerState('error');
       });
-  }, [videoUrl, status, location, downloadName, releasePreviewResources]);
+  }, [
+    videoUrl,
+    status,
+    location,
+    downloadName,
+    releasePreviewResources,
+    attemptPreviewFallback,
+  ]);
 
   useEffect(() => {
     if (!isOpen || (!videoUrl && !location)) return;
@@ -1546,6 +1568,11 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                       <p className="text-white text-sm">
                         {t('videoPlayer.error.couldNotLoadStream')}
                       </p>
+                      {errorDetail && (
+                        <p className="text-gray-400 text-xs text-center max-w-[80%] break-words">
+                          {errorDetail}
+                        </p>
+                      )}
                       <button
                         onClick={handleRetry}
                         className="px-4 py-1.5 bg-primary text-white text-sm rounded-md hover:opacity-90"
@@ -1749,6 +1776,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                             attemptPreviewFallback(generationRef.current);
                             return;
                           }
+                          setErrorDetail(playbackErrorDetail(err?.message));
                           setPlayerState('error');
                         }}
                         onPlay={() => setIsVideoPlaying(true)}

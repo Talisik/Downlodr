@@ -462,6 +462,7 @@ export function createDownloadActions(set: SetState, get: GetState) {
           const isExtractionBlocked = errorMessage.includes(
             'EXTRACTION_BLOCKED',
           );
+          const isBlockedBySite = errorMessage.includes('BLOCKED_BY_SITE');
           const playlistEntryCount = errorMessage.match(
             /PLAYLIST_URL:(\d+)?:/,
           )?.[1];
@@ -556,12 +557,24 @@ export function createDownloadActions(set: SetState, get: GetState) {
                 "This is a known yt-dlp limitation, not an account issue. Try again later, or check for a yt-dlp update.",
               duration: 8000,
             });
-          } else {
+          } else if (isBlockedBySite) {
             toast({
               variant: 'destructive',
-              title: `Could not find video metadata`,
-              description: 'Please enter a valid video URL',
-              duration: 5000,
+              title: 'Website Blocked the Request',
+              description:
+                "This site refused Downlodr's request (bot protection or access denied). The link may still be fine — try again later, or open it in your browser.",
+              duration: 8000,
+            });
+          } else {
+            // Unknown failure. Don't blame the link: most often it's a page
+            // with no video on it, such as an article from a site that isn't
+            // on the article-site list.
+            toast({
+              variant: 'destructive',
+              title: 'No Video Found',
+              description:
+                "Downlodr couldn't find a video at this link. If it's an article, the site may not be recognised as a news or blog site yet.",
+              duration: 8000,
             });
           }
           // Access the method correctly
@@ -588,6 +601,8 @@ export function createDownloadActions(set: SetState, get: GetState) {
                       ? 'Age-restricted; sign in required'
                       : isExtractionBlocked
                       ? 'YouTube is blocking extraction (known yt-dlp limitation)'
+                      : isBlockedBySite
+                      ? 'The site blocked the request (bot protection)'
                       : 'Failed to fetch video information',
                   }
                 : download,
@@ -608,7 +623,9 @@ export function createDownloadActions(set: SetState, get: GetState) {
                     ? 'age_restricted'
                     : isExtractionBlocked
                       ? 'extraction_blocked'
-                      : !hasInternetConnection
+                      : isBlockedBySite
+                        ? 'blocked_by_site'
+                        : !hasInternetConnection
                         ? 'no_internet'
                         : 'unknown_metadata_error';
 

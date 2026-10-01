@@ -13,6 +13,23 @@ contextBridge.exposeInMainWorld('ytdlpFunctionsBridge', {
 
   killController: (id: any) => ipcRenderer.invoke('kill-controller', id),
 
+  // Startup yt-dlp self-update progress; returns an unsubscribe function.
+  onUpdateStatus: (
+    callback: (status: {
+      state: 'updating' | 'updated' | 'failed';
+      version: string | null;
+    }) => void,
+  ) => {
+    const handler = (_event: unknown, status: any) => callback(status);
+    ipcRenderer.on('ytdlp:update-status', handler);
+    return () => {
+      ipcRenderer.removeListener('ytdlp:update-status', handler);
+    };
+  },
+
+  finishRecording: (id: string) =>
+    ipcRenderer.invoke('ytdlp:finishRecording', id),
+
   stop: async (id: any) => {
     return await ipcRenderer.invoke('ytdlp:stop', id);
   },

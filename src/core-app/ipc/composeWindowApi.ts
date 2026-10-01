@@ -65,6 +65,8 @@ export function initComposedWindowApi(): void {
       selectDownloadDirectory: ytdlpBridge.selectDownloadDirectory,
       download: ytdlpBridge.download,
       killController: ytdlpBridge.killController,
+      onUpdateStatus: ytdlpBridge.onUpdateStatus,
+      finishRecording: ytdlpBridge.finishRecording,
       stop: ytdlpBridge.stop,
       downloadYTDLP: ytdlpBridge.downloadYTDLP,
       getCurrentVersion: ytdlpBridge.getCurrentVersion,

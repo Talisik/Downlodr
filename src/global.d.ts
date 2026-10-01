@@ -224,6 +224,13 @@ declare global {
       getPlaylistInfo: (url: string) => Promise<PlaylistInfoResponse>;
       getInfo: (url: string) => Promise<GetInfoResponse>;
       killController: (id: string) => Promise<unknown>;
+      onUpdateStatus: (
+        callback: (status: {
+          state: 'updating' | 'updated' | 'failed';
+          version: string | null;
+        }) => void,
+      ) => () => void;
+      finishRecording: (controllerId: string) => Promise<unknown>;
       stop: (id: string) => Promise<boolean>;
       selectDownloadDirectory: () => Promise<string>;
       downloadYTDLP: (options?: {
@@ -422,6 +429,13 @@ declare global {
         progressCallback: (result: YtdlpDownloadStatus) => void,
       ) => string;
       killController: (controllerId: string) => Promise<unknown>;
+      onUpdateStatus: (
+        callback: (status: {
+          state: 'updating' | 'updated' | 'failed';
+          version: string | null;
+        }) => void,
+      ) => () => void;
+      finishRecording: (controllerId: string) => Promise<unknown>;
       stop: (id: string) => Promise<boolean>;
       downloadYTDLP: (options?: { filePath?: string; version?: string; platform?: string; forceDownload?: boolean }) => Promise<{ success: boolean; error?: string }>;
       getCurrentVersion: () => Promise<{ success: boolean; version?: string; error?: string }>;
