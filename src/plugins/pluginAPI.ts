@@ -1332,5 +1332,53 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
         return '/'; // Default to Unix-style separator
       }
     },
+
+    startConvertFile: async (options: {
+      inputPath: string;
+      outputPath: string;
+      format: string;
+    }): Promise<{ jobId: string }> => {
+      const result = (await window.downlodrFunctions.invokeMainProcess(
+        'format:startConvert',
+        options,
+      )) as { jobId: string };
+      return result;
+    },
+
+    cancelConvertFile: async (jobId: string): Promise<boolean> => {
+      return (await window.downlodrFunctions.invokeMainProcess(
+        'format:cancelConvert',
+        jobId,
+      )) as boolean;
+    },
+
+    pauseConvertFile: async (
+      jobId: string,
+    ): Promise<{ success: boolean; error?: string }> => {
+      return (await window.downlodrFunctions.invokeMainProcess(
+        'format:pauseConvert',
+        jobId,
+      )) as { success: boolean; error?: string };
+    },
+
+    resumeConvertFile: async (
+      jobId: string,
+    ): Promise<{ success: boolean; error?: string }> => {
+      return (await window.downlodrFunctions.invokeMainProcess(
+        'format:resumeConvert',
+        jobId,
+      )) as { success: boolean; error?: string };
+    },
+
+    onConvertFileComplete: (
+      callback: (data: {
+        jobId: string;
+        success: boolean;
+        outputPath?: string;
+        error?: string;
+      }) => void,
+    ): (() => void) => {
+      return window.downlodrFunctions.onFormatConvertComplete(callback);
+    },
   };
 }
