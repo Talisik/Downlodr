@@ -391,9 +391,14 @@ const AdvancedSettingsModal: React.FC<AdvancedSettingsModalProps> = ({
                   }}
                   className={RADIO}
                 />
-                <span className={AUTH_LABEL}>
+                <span className={`${AUTH_LABEL} min-w-0`}>
                   {t('advanced.cookieAuth.liveTitle')}
                 </span>
+                {/* Display only: steers users to the method that keeps
+                    cookies fresh (and the only one that works for YouTube). */}
+                <Badge variant="success" className="shrink-0 whitespace-nowrap">
+                  {t('advanced.cookieAuth.recommended')}
+                </Badge>
               </div>
               <div className={AUTH_DESC}>
                 {t('advanced.cookieAuth.liveDesc')}
