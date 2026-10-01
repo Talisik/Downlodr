@@ -53,6 +53,7 @@ import { usePluginStore } from '@/plugins/store/pluginStore';
 import ActivityTracker from '@/downlodr/components/download/log/ActivityTracker';
 import DownloadLogs from '@/downlodr/components/download/log/DownloadLogs';
 import PluginSidePanelManager from '@/plugins/components/PluginSidePanelManager';
+import SearchPendingOverlay from '@/downlodr/components/table/SearchPendingOverlay';
 import React, {
   useCallback,
   useEffect,
@@ -1010,7 +1011,8 @@ const StatusSpecificDownloads = () => {
           </div>
         ) : (
           <div className="flex flex-1 min-h-0 overflow-hidden gap-2 -mr-2">
-            <div className="flex-1 min-w-0 overflow-hidden flex flex-col min-h-0 gap-2">
+            <div className="relative flex-1 min-w-0 overflow-hidden flex flex-col min-h-0 gap-2">
+              <SearchPendingOverlay />
               <StatusPageTable
                 allDownloads={allDownloads}
                 searchQuery={searchQuery}

@@ -18,6 +18,7 @@ import ColumnHeaderContextMenu from '@/downlodr/components/contextMenu/ColumnHea
 import DownloadContextMenu from '@/downlodr/components/contextMenu/DownloadContextMenu';
 import { useResizableColumns } from '@/downlodr/components/download/resizableColumns/useResizableColumns';
 import Toolbar from '@/downlodr/components/base/Toolbar';
+import SearchPendingOverlay from '@/downlodr/components/table/SearchPendingOverlay';
 import VideoPlayerPanel from '@/downlodr/components/panel/VideoPlayerPanel';
 import { DownloadItem } from '@/downlodr/schema/componentSchema';
 import type { ChapterInfo } from '@/downlodr/store/download/types';
@@ -1237,7 +1238,8 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
       )}
 
       <div className="flex flex-1 min-h-0 overflow-hidden gap-2 -mr-2">
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <div className="relative flex-1 flex flex-col overflow-hidden min-w-0">
+              <SearchPendingOverlay />
               <div
                 ref={scrollContainerRef}
                 className={`${

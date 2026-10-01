@@ -93,6 +93,9 @@ interface TaskbarDownloadStore {
   searchState: SearchState;
   setSearchState: (state: Partial<SearchState>) => void;
   clearSearch: () => void;
+  /** A title search typed in the taskbar input is waiting out its debounce. */
+  isSearchPending: boolean;
+  setIsSearchPending: (value: boolean) => void;
   activeButton: string | null;
   setActiveButton: (button: string | null) => void;
   pendingInputUrl: string | null;
@@ -135,6 +138,9 @@ export const useTaskbarDownloadStore = create<TaskbarDownloadStore>((set) => ({
         searchResults: [] as SearchableDownload[],
       },
     }),
+
+  isSearchPending: false,
+  setIsSearchPending: (value) => set({ isSearchPending: value }),
 
   activeButton: null,
   setActiveButton: (button) => set({ activeButton: button }),

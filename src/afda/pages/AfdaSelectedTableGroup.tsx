@@ -29,6 +29,7 @@ import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
 import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore';
 import TaskbarInputField from '@/downlodr/components/base/InputField/TaskbarInputField';
 import RemoveModal from '@/downlodr/components/modal/custom/RemoveModal';
+import SearchPendingOverlay from '@/downlodr/components/table/SearchPendingOverlay';
 import { useWindowSize } from '@/downlodr/pages/status/statusPageHooks';
 import { StatusPageTableHeader } from '@/downlodr/pages/status/StatusPageTableHeader';
 import type { DisplayColumn } from '@/downlodr/pages/status/statusPageTypes';
@@ -904,7 +905,8 @@ const AfdaSelectedTableGroup: React.FC = () => {
 
             {/* Table + Pagination */}
             <div className="flex-1 flex flex-col overflow-hidden min-w-0 border-t-2 dark:border-darkModeTableBorder">
-              <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+              <div className="relative flex-1 flex flex-col overflow-hidden min-w-0">
+                <SearchPendingOverlay />
                 <div
                   ref={scrollContainerRef}
                   className="flex-1 overflow-auto min-w-0"

@@ -15,19 +15,26 @@ import { useSettingStore } from '@/core-app/store/settingsStore';
 import { cleanRawLink } from '@/core-app/utils/urlValidation';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import { processFileName } from '@/downlodr/utils/download/filterName';
+import { matchesDownloadSearch } from '@/downlodr/utils/download/matchesDownloadSearch';
 import {
   mapArticleToSearchable,
   SearchableDownload,
   useTaskbarDownloadStore,
 } from '@/downlodr/store/taskbarDownloadStore';
 import { usePlaylistSelectionStore } from '@/downlodr/store/playlistSelectionStore';
+import { Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
 import { useDropdownAnimation } from '@/core-app/hooks/animation/useDropdownAnimation';
+import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
 import AdditionalOptions from './AdditionalOptions';
 import FolderDirectory from './FolderDirectory';
+
+// Roughly how many characters fit in the input before the text scrolls out
+// of view; longer entries get a hover tooltip with the full text.
+const INPUT_TOOLTIP_MIN_CHARS = 57;
 
 const TaskbarInputField = () => {
   const { t } = useTranslation('downlodr');
@@ -110,7 +117,19 @@ const TaskbarInputField = () => {
   const [validationTimer, setValidationTimer] = useState<NodeJS.Timeout | null>(
     null,
   );
-  const [, setIsValidatingUrl] = useState<boolean>(false);
+  const [isValidatingUrl, setIsValidatingUrl] = useState<boolean>(false);
+  const setIsSearchPending = useTaskbarDownloadStore(
+    (s) => s.setIsSearchPending,
+  );
+  // Tell the page a title search is on its way so it can show a loader —
+  // derived here, from the one place that knows, rather than set on every
+  // path that starts or skips the debounce.
+  useEffect(() => {
+    setIsSearchPending(
+      isValidatingUrl && !/^https?:\/\//.test(videoUrl.trim()),
+    );
+  }, [isValidatingUrl, videoUrl, setIsSearchPending]);
+  useEffect(() => () => setIsSearchPending(false), [setIsSearchPending]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const shouldAutoDownload = useRef(false);
@@ -203,16 +222,7 @@ const TaskbarInputField = () => {
 
     // Perform search with multiple criteria
     const searchResults: SearchableDownload[] = uniqueDownloads.filter(
-      (download) => {
-        const query = searchQuery.toLowerCase();
-        return (
-          download.name.toLowerCase().includes(query) ||
-          download.extractorKey?.toLowerCase().includes(query) ||
-          download.status.toLowerCase().includes(query) ||
-          download.tags?.some((tag) => tag.toLowerCase().includes(query)) ||
-          download.category?.some((cat) => cat.toLowerCase().includes(query))
-        );
-      },
+      (download) => matchesDownloadSearch(download, searchQuery),
     );
 
     // Update search state
@@ -325,6 +335,7 @@ const TaskbarInputField = () => {
 
     // Skip validation for empty URLs
     if (!url.trim()) {
+      setIsValidatingUrl(false);
       setActiveButton(null);
       if (!fromChromeExtension) clearSearch();
       return;
@@ -363,7 +374,13 @@ const TaskbarInputField = () => {
     }
 
     if (!isUrlInput) {
-      // Non-URL input should trigger search
+      // Non-URL input should trigger search — now, so the pending debounce
+      // (and its spinner) is moot.
+      if (validationTimer) {
+        clearTimeout(validationTimer);
+        setValidationTimer(null);
+      }
+      setIsValidatingUrl(false);
       setSearchState({
         ...searchState,
         isSearchActive: true,
@@ -385,6 +402,7 @@ const TaskbarInputField = () => {
         clearTimeout(validationTimer);
         setValidationTimer(null);
       }
+      setIsValidatingUrl(false);
       validateUrl(trimmedUrl);
     } else {
       // Invalid URL format - treat as search
@@ -407,6 +425,7 @@ const TaskbarInputField = () => {
   // Cleans up states of download modal variable
   const resetModal = () => {
     setVideoUrl('');
+    setIsValidatingUrl(false);
     setIsValidUrl(false);
     setIsArticle(false);
     setDownloadFolder(settings.defaultLocation);
@@ -710,99 +729,113 @@ const TaskbarInputField = () => {
       id="taskbar-input-field"
       className="flex-shrink flex-grow-0 w-full max-w-[538px] min-w-[200px] relative ml-2"
     >
-      <Input
-        ref={inputRef}
-        maxLength={searchState.isSearchActive ? 50 : undefined}
-        placeholder={t('taskbarInput.placeholder')}
-        className="text-xs py-4 pr-10"
-        leftIcons={[
-          {
-            icon: (
-              <Copy className="text-darkModeHover dark:text-darkModeLight" />
-            ),
-            onClick: () => {
-              navigator.clipboard
-                .writeText(videoUrl)
-                .then(() => {
-                  toast({
-                    title: t('taskbarInput.toast.copiedTitle'),
-                    description: t('taskbarInput.toast.copiedDesc'),
-                    duration: 5000,
+      {/* Past ~57 characters the text runs out of visible room in the
+          input, so hovering shows the whole thing. */}
+      <TooltipWrapper
+        content={videoUrl.length > INPUT_TOOLTIP_MIN_CHARS ? videoUrl : null}
+        side="bottom"
+        contentClassname="break-words"
+      >
+        <Input
+          ref={inputRef}
+          maxLength={searchState.isSearchActive ? 200 : undefined}
+          placeholder={t('taskbarInput.placeholder')}
+          className="text-xs py-4 pr-10"
+          leftIcons={[
+            {
+              icon: (
+                <Copy className="text-darkModeHover dark:text-darkModeLight" />
+              ),
+              onClick: () => {
+                navigator.clipboard
+                  .writeText(videoUrl)
+                  .then(() => {
+                    toast({
+                      title: t('taskbarInput.toast.copiedTitle'),
+                      description: t('taskbarInput.toast.copiedDesc'),
+                      duration: 5000,
+                    });
+                  })
+                  .catch(() => {
+                    toast({
+                      variant: 'destructive',
+                      title: t('taskbarInput.toast.copyFailedTitle'),
+                      description: t('taskbarInput.toast.copyFailedDesc'),
+                      duration: 5000,
+                    });
                   });
-                })
-                .catch(() => {
-                  toast({
-                    variant: 'destructive',
-                    title: t('taskbarInput.toast.copyFailedTitle'),
-                    description: t('taskbarInput.toast.copyFailedDesc'),
-                    duration: 5000,
-                  });
-                });
+              },
+              disabled: !videoUrl.trim(),
+              tooltip: videoUrl.trim() && t('taskbarInput.tooltip.copy'),
             },
-            disabled: !videoUrl.trim(),
-            tooltip: videoUrl.trim() && t('taskbarInput.tooltip.copy'),
-          },
-        ]}
-        rightIcons={[
-          {
-            icon: (
-              <Settings
-                className={cn(
-                  'text-darkModeHover dark:text-darkModeLight',
-                  activeButton === 'settings' && 'text-primary',
-                )}
-              />
-            ),
-            onClick: () => {
-              setActiveButton(activeButton === 'settings' ? null : 'settings');
-              setIsAdditionalOptionsOpen(
-                activeButton === 'settings' ? false : true,
-              );
+          ]}
+          rightIcons={[
+            {
+              icon: (
+                <Settings
+                  className={cn(
+                    'text-darkModeHover dark:text-darkModeLight',
+                    activeButton === 'settings' && 'text-primary',
+                  )}
+                />
+              ),
+              onClick: () => {
+                setActiveButton(activeButton === 'settings' ? null : 'settings');
+                setIsAdditionalOptionsOpen(
+                  activeButton === 'settings' ? false : true,
+                );
+              },
+              tooltip: t('taskbarInput.tooltip.settings'),
             },
-            tooltip: t('taskbarInput.tooltip.settings'),
-          },
-          {
-            icon: (
-              <FolderIcon
-                className={cn(
-                  'text-darkModeHover dark:text-darkModeLight',
-                  activeButton === 'folder' && 'text-primary',
-                )}
-              />
-            ),
-            onClick: () => {
-              setActiveButton(activeButton === 'folder' ? null : 'folder');
+            {
+              icon: (
+                <FolderIcon
+                  className={cn(
+                    'text-darkModeHover dark:text-darkModeLight',
+                    activeButton === 'folder' && 'text-primary',
+                  )}
+                />
+              ),
+              onClick: () => {
+                setActiveButton(activeButton === 'folder' ? null : 'folder');
+              },
+              tooltip: downloadFolder,
             },
-            tooltip: downloadFolder,
-          },
-        ]}
-        actionIcon={{
-          icon: (
-            <Download
-              className={cn(
-                'text-darkModeHover',
-                (isValidUrl || isArticle) && 'text-primary',
-              )}
-            />
-          ),
-          onClick: handleDownload,
-          tooltip: isArticle
-            ? t('taskbarInput.tooltip.openArticle')
-            : t('taskbarInput.tooltip.download'),
-          disabled: !isValidUrl && !isArticle,
-        }}
-        value={videoUrl}
-        onChange={(e) => handleUrl(e.target.value)}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          window.downlodrFunctions.showInputContextMenu();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            handleKeyDown();
-          }
-        }}
-      />
+          ]}
+          actionIcon={{
+            // Both a pasted link and a title search wait out the same
+            // debounce before anything happens; spin in place of the download
+            // icon meanwhile so the input doesn't look unresponsive.
+            icon:
+              isValidatingUrl ? (
+                <Loader2 className="animate-spin text-primary" />
+              ) : (
+                <Download
+                  className={cn(
+                    'text-darkModeHover',
+                    (isValidUrl || isArticle) && 'text-primary',
+                  )}
+                />
+              ),
+            onClick: handleDownload,
+            tooltip: isArticle
+              ? t('taskbarInput.tooltip.openArticle')
+              : t('taskbarInput.tooltip.download'),
+            disabled: !isValidUrl && !isArticle,
+          }}
+          value={videoUrl}
+          onChange={(e) => handleUrl(e.target.value)}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            window.downlodrFunctions.showInputContextMenu();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleKeyDown();
+            }
+          }}
+        />
+      </TooltipWrapper>
 
       {additionalOptionsMounted && (
         <div ref={additionalOptionsRef} className="relative z-[100]">

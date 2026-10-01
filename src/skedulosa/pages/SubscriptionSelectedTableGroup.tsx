@@ -12,6 +12,7 @@ import SidePanels from '@/downlodr/components/panels/SidePanels';
 import { useSidePanels } from '@/downlodr/hooks/useSidePanels';
 import BulkTranscriptModal from '@/downlodr/components/modal/custom/BulkTranscriptModal';
 import RemoveModal from '@/downlodr/components/modal/custom/RemoveModal';
+import SearchPendingOverlay from '@/downlodr/components/table/SearchPendingOverlay';
 import RenameModal from '@/downlodr/components/modal/custom/RenameModal';
 import StopModal from '@/downlodr/components/modal/custom/StopModal';
 import VideoPlayerPanel from '@/downlodr/components/panel/VideoPlayerPanel';
@@ -1225,7 +1226,8 @@ const SubscriptionSelectedTableGroup: React.FC = () => {
 
                   {/* Table + Pagination */}
                   <div className="flex-1 flex flex-col overflow-hidden min-w-0 border-t-2 dark:border-darkModeTableBorder">
-                    <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+                    <div className="relative flex-1 flex flex-col overflow-hidden min-w-0">
+                      <SearchPendingOverlay />
                       <div
                         ref={scrollContainerRef}
                         className="flex-1 overflow-auto min-w-0"
