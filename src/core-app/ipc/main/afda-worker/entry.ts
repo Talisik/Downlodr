@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { pathToFileURL } from 'url';
 import { FakeWindow } from './fakeWindow';
+import { declineHeadfulRetryOnMac } from './headfulConsent';
 import type { AfdaWorkerInbound, AfdaWorkerOutbound } from './protocol';
 
 function post(msg: AfdaWorkerOutbound): void {
@@ -35,7 +36,8 @@ async function initAfda(init: Extract<AfdaWorkerInbound, { type: 'init' }>): Pro
     SocialSchedulerService: any,
     registerIpcHandlers: any,
     buildHydratedWebsites: any,
-    closeBrowserFn: any;
+    closeBrowserFn: any,
+    setHeadfulConsentHandler: any;
 
   if (init.addonPath) {
     const indexUrl = pathToFileURL(path.join(init.addonPath, 'dist', 'index.js')).href;
@@ -56,6 +58,7 @@ async function initAfda(init: Extract<AfdaWorkerInbound, { type: 'init' }>): Pro
     registerIpcHandlers = mod.registerIpcHandlers;
     buildHydratedWebsites = mod.buildHydratedWebsites;
     closeBrowserFn = mod.closeBrowser;
+    setHeadfulConsentHandler = mod.setHeadfulConsentHandler;
   } else if (process.env.NODE_ENV !== 'production') {
     const modules = await Promise.all([
       import('@/afda/backend/afda-backend__hidden/src/storage'),
@@ -91,9 +94,12 @@ async function initAfda(init: Extract<AfdaWorkerInbound, { type: 'init' }>): Pro
       { SocialSchedulerService },
       { registerIpcHandlers },
       { buildHydratedWebsites },
-      { closeBrowser: closeBrowserFn },
+      { closeBrowser: closeBrowserFn, setHeadfulConsentHandler },
     ] = modules as any[];
   }
+
+  // No visible Chrome window on macOS — see headfulConsent.ts.
+  declineHeadfulRetryOnMac(setHeadfulConsentHandler);
 
   const initialMax = 1;
   const storage = new StorageService(init.dbPath);
