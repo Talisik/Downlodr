@@ -17,6 +17,7 @@ import {
   aggregateGroupSize,
   getGroupLastUpdated,
   getGroupVideoCount,
+  subStatusColor,
 } from '@/skedulosa/utils/skedulosaGroupUtils';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
 import React, { useCallback, useMemo } from 'react';
@@ -55,19 +56,6 @@ export interface SkedulosaTableGroupProps {
   onViewEmbed: (download: SearchableDownload) => void;
   pendingCount?: number;
 }
-
-const subStatusColor = (status: string): string => {
-  switch (status) {
-    case 'Active':
-      return 'text-green-500';
-    case 'Paused':
-      return 'text-yellow-500';
-    case 'Error':
-      return 'text-red-500';
-    default:
-      return 'text-gray-500';
-  }
-};
 
 const SkedulosaTableGroup = React.memo(
   ({

@@ -290,6 +290,27 @@ const SectionRow = ({
 
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
+
+/** What to tell the user when a website doesn't answer at all. */
+function unreachableSiteMessage(
+  reason: 'invalid' | 'not_found' | 'refused' | 'timeout' | 'other',
+  online: boolean,
+): string {
+  if (!online) {
+    return "You're offline. Check your internet connection, then try again.";
+  }
+  switch (reason) {
+    case 'invalid':
+      return 'This is not a valid website address.';
+    case 'not_found':
+      return "This website doesn't exist or can't be found. Check the address and try again.";
+    case 'timeout':
+      return "This website didn't respond. It may be down — try again later.";
+    default:
+      return "Couldn't connect to this website. Check the address or try again later.";
+  }
+}
+
 const AfdaAddWebsiteModal = ({
   isOpen,
   onClose,
@@ -481,26 +502,53 @@ const AfdaAddWebsiteModal = ({
     setSelectedSections(new Set());
     setSectionIntervals({});
 
-    startChannelAnalysis(url, false);
+    // Mark before starting: the "another scan is running" check must never
+    // mistake this modal's own scan for someone else's.
     analysisStarted.current = true;
+    startChannelAnalysis(url, false);
 
-    // Completion arrives via mapper:complete/mapper:error, handled app-wide by
-    // GlobalAfdaMapperListener (this modal unmounts if the user navigates away
-    // mid-analysis) and consumed from afdaMapperStore by the effect below.
-    bridge.mapper
-      .run({
-        website_url: url,
-        fqdn,
-        website_name: fqdn,
-        website_category: 'News',
-      })
-      .catch((err: unknown) => {
+    void (async () => {
+      // The mapper never reports an unreachable site as an error — for a
+      // domain that doesn't exist it "finds" the homepage as a section, and
+      // the site gets added but can never be scraped. Check it answers first.
+      const reach = await window.downlodrFunctions
+        .checkSiteReachable(url)
+        .catch(() => ({ reachable: true as const }));
+      // Cancelled (or superseded) while checking — don't start the mapper.
+      const { analyzingStatus, analyzingChannel } =
+        useSkedulosaStore.getState();
+      if (analyzingStatus !== 'analyzing' || analyzingChannel?.url !== url) {
+        return;
+      }
+      if (!reach.reachable) {
+        const reason = 'reason' in reach ? reach.reason : 'other';
         analysisStarted.current = false;
         finishChannelAnalysis();
-        setBridgeError(
-          err instanceof Error ? err.message : 'Failed to start mapper',
-        );
-      });
+        const online = await window.downlodrFunctions
+          .checkInternetConnection()
+          .catch(() => true);
+        setBridgeError(unreachableSiteMessage(reason, online));
+        return;
+      }
+
+      // Completion arrives via mapper:complete/mapper:error, handled app-wide
+      // by GlobalAfdaMapperListener (this modal unmounts if the user navigates
+      // away mid-analysis) and consumed from afdaMapperStore by the effect below.
+      bridge.mapper
+        .run({
+          website_url: url,
+          fqdn,
+          website_name: fqdn,
+          website_category: 'News',
+        })
+        .catch((err: unknown) => {
+          analysisStarted.current = false;
+          finishChannelAnalysis();
+          setBridgeError(
+            err instanceof Error ? err.message : 'Failed to start mapper',
+          );
+        });
+    })();
   }, [isOpen, initialUrl, retryKey, setBridgeError]);
 
   // ── Consume mapper results stashed by GlobalAfdaMapperListener ─────────────

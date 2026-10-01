@@ -50,6 +50,7 @@ export function initComposedWindowApi(): void {
       getPathSeparator: fileInfo.getPathSeparator,
       getBundledBinaryPath: appInfo.getBundledBinaryPath,
       checkInternetConnection: browserFn.checkInternetConnection,
+      checkSiteReachable: browserFn.checkSiteReachable,
       ffmpegWhisperTranscribe: transcribe.ffmpegWhisperTranscribe,
       onFFmpegProgress: transcribe.onFFmpegProgress,
       selectVideoFile: fileFn.selectVideoFile,

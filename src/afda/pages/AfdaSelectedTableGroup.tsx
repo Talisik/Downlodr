@@ -11,6 +11,11 @@ import {
 import { useAfdaStore } from '@/afda/store/afdaStore';
 import { usePluginStore } from '@/plugins/store/pluginStore';
 import { useAfdaWebsitesStore } from '@/afda/store/afdaWebsitesStore';
+import { useAfdaWebsiteDisplay } from '@/afda/store/afdaWebsiteMetaCache';
+import {
+  AfdaWebsiteLoadingIcon,
+  AfdaWebsiteLoadingName,
+} from '@/afda/components/AfdaWebsiteLoading';
 import { useAfdaSubscriptionsStore } from '@/afda/store/afdaSubscriptionsStore';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import {
@@ -87,6 +92,12 @@ const AfdaSelectedTableGroup: React.FC = () => {
   const website = useAfdaWebsitesStore((s) =>
     s.websites.find((w) => w.id === websiteId),
   );
+  // Name/url/kind with a cached fallback while the AFDA worker is starting.
+  const websiteDisplay = useAfdaWebsiteDisplay(websiteId);
+  // Placeholder only until the worker has loaded; after that an unknown id is
+  // shown as-is rather than "Loading..." forever.
+  const websitesLoaded = useAfdaWebsitesStore((s) => s.loaded);
+  const isResolving = !websiteDisplay && !websitesLoaded;
   const getAfdaSubscription = useAfdaSubscriptionsStore(
     (s) => s.getAfdaSubscription,
   );
@@ -254,9 +265,9 @@ const AfdaSelectedTableGroup: React.FC = () => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const websiteName = website?.name ?? websiteId ?? '';
-  const faviconUrl = getFaviconUrl(website?.url ?? '');
-  const isSocial = website?.kind === 'social';
+  const websiteName = websiteDisplay?.name ?? websiteId ?? '';
+  const faviconUrl = getFaviconUrl(websiteDisplay?.url ?? '');
+  const isSocial = websiteDisplay?.kind === 'social';
   const itemNoun = isSocial ? 'post' : 'article';
 
   // Save Location / File Naming Format from the Settings tab (AfdaSettings.tsx)
@@ -770,13 +781,13 @@ const AfdaSelectedTableGroup: React.FC = () => {
           </button>
           <span>/</span>
           <span
-            title={websiteName}
+            title={isResolving ? undefined : websiteName}
             className={cn(
               'text-gray-700 dark:text-gray-300 font-bold',
               breadcrumbNameClass,
             )}
           >
-            {websiteName}
+            {isResolving ? <AfdaWebsiteLoadingName /> : websiteName}
           </span>
           <div className="ml-auto flex items-center gap-2">
             <TooltipWrapper
@@ -861,7 +872,9 @@ const AfdaSelectedTableGroup: React.FC = () => {
           <div className="flex flex-col overflow-hidden flex-1 min-w-0">
             {/* Header */}
             <div className="flex items-center gap-4 pb-2 flex-shrink-0">
-              {faviconUrl ? (
+              {isResolving ? (
+                <AfdaWebsiteLoadingIcon className="w-9 h-9" />
+              ) : faviconUrl ? (
                 <img
                   src={faviconUrl}
                   className="w-9 h-9 rounded-full object-contain flex-shrink-0"
@@ -880,7 +893,7 @@ const AfdaSelectedTableGroup: React.FC = () => {
                     Sub
                   </span>
                   <span className="font-extrabold text-gray-800 dark:text-gray-100 text-sm">
-                    {websiteName}
+                    {isResolving ? <AfdaWebsiteLoadingName /> : websiteName}
                   </span>
                 </div>
                 <div className="flex gap-1.5 items-center">

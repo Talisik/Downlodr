@@ -107,6 +107,11 @@ const STATUS_MAP: Record<string, string> = {
   idle: 'Active',
 };
 
+/** Subscription-style status label (Active / Paused / Error) for a website. */
+export function websiteStatusLabel(status: string): string {
+  return STATUS_MAP[status] ?? 'Active';
+}
+
 const DAY_NUM_TO_ABBREV: Record<number, string> = {
   0: 'sun', 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat',
 };
@@ -149,7 +154,7 @@ export function websiteToScheduledChannel(website: Website): ScheduledChannel {
     channelName: website.name,
     channelUrl: website.url,
     schedule: scheduleEntries,
-    status: STATUS_MAP[website.status] ?? 'Active',
+    status: websiteStatusLabel(website.status),
     category: 'afda-website',
     id: website.id,
     downloads: [],
@@ -166,6 +171,14 @@ export function websiteToScheduledChannel(website: Website): ScheduledChannel {
 
 interface AfdaWebsitesStore {
   websites: WebsiteListItem[];
+  /**
+   * True once a full load from the AFDA worker has succeeded, so `websites` is
+   * authoritative: an id still missing from it is genuinely unknown, not just
+   * not-loaded-yet. Stays false for the whole session if the worker never
+   * starts (outdated add-on / repeated crash).
+   */
+  loaded: boolean;
+  setLoaded: () => void;
   /** Replace only the article-website rows; preserve any social rows. */
   hydrate: (websites: WebsiteListItem[]) => void;
   /** Replace only the social rows; preserve any article-website rows. */
@@ -177,6 +190,8 @@ interface AfdaWebsitesStore {
 
 export const useAfdaWebsitesStore = create<AfdaWebsitesStore>((set) => ({
   websites: [],
+  loaded: false,
+  setLoaded: () => set({ loaded: true }),
 
   // Hydration of article websites must not drop social rows (they come from a
   // separate backend call), so merge by kind rather than blindly replacing.

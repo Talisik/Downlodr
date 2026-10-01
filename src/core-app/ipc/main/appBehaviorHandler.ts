@@ -3,6 +3,7 @@
 import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import https from 'https';
 import { setLastClipboardText } from './clipboardHandler';
+import { checkSiteReachable } from './siteReachability';
 import {
   getRunInBackgroundSetting,
   resetTrayIcon,
@@ -93,6 +94,11 @@ export const appBehaviorHandler = (mainWindow: BrowserWindow) => {
   // support functions
   ipcMain.handle('check-internet-connection', async () => {
     return await isOnline();
+  });
+
+  // Does this website answer at all? (AFDA Add Website, before the mapper.)
+  ipcMain.handle('check-site-reachable', async (_event, url: string) => {
+    return checkSiteReachable(String(url ?? ''));
   });
 
   ipcMain.on('show-input-context-menu', (event) => {

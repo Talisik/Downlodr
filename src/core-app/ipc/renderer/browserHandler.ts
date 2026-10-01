@@ -7,4 +7,6 @@ contextBridge.exposeInMainWorld('browserFunctionsBridge', {
     ipcRenderer.invoke('get-thumbnail-data-url', path),
   checkInternetConnection: () =>
     ipcRenderer.invoke('check-internet-connection'),
+  checkSiteReachable: (url: string) =>
+    ipcRenderer.invoke('check-site-reachable', url),
 });

@@ -31,10 +31,16 @@ import {
   TbSortDescendingLetters,
 } from 'react-icons/tb';
 import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
-import SkedulosaEditModal from '../SkedulosaEditModal';
+import SubscriptionEditModal, {
+  type SubscriptionEditTarget,
+} from '../SubscriptionEditModal';
 import ConfirmModal from '@/core-app/components/modal/custom/ConfirmModal';
-import { useAfdaWebsitesStore } from '@/afda/store/afdaWebsitesStore';
+import {
+  useAfdaWebsitesStore,
+  websiteStatusLabel,
+} from '@/afda/store/afdaWebsitesStore';
 import { deleteAfdaWebsite } from '@/afda/utils/deleteAfdaWebsite';
+import { setAfdaWebsitePaused } from '@/afda/utils/setAfdaWebsitePaused';
 import { FaPlus } from 'react-icons/fa6';
 
 type SkedulosaTableTaskbarProps = {
@@ -67,7 +73,8 @@ const SkedulosaTableTaskbar = ({
   const [bulkSubDeleteConfirm, setBulkSubDeleteConfirm] = useState(false);
   const [bulkHistoryDeleteConfirm, setBulkHistoryDeleteConfirm] =
     useState(false);
-  const [editModalId, setEditModalId] = useState<string | null>(null);
+  const [editTarget, setEditTarget] =
+    useState<SubscriptionEditTarget | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -101,6 +108,38 @@ const SkedulosaTableTaskbar = ({
   );
   const afdaWebsites = useAfdaWebsitesStore((s) => s.websites);
   const removeWebsite = useAfdaWebsitesStore((s) => s.removeWebsite);
+  const updateWebsite = useAfdaWebsitesStore((s) => s.updateWebsite);
+
+  // Selection holds bare ids, so split AFDA websites out the same way the
+  // bulk delete below does — the Skedulosa bulk actions skip ids they don't
+  // own, which left AFDA rows untouched.
+  const selectedAfdaWebsites = afdaWebsites.filter((w) =>
+    selectedChannelIds.includes(w.id),
+  );
+  const selectedRegularIds = selectedChannelIds.filter(
+    (id) => !selectedAfdaWebsites.some((w) => w.id === id),
+  );
+
+  const selectionStatus = (id: string) => {
+    const website = selectedAfdaWebsites.find((w) => w.id === id);
+    return website
+      ? websiteStatusLabel(website.status)
+      : subscriptions.find((s) => s.id === id)?.status;
+  };
+
+  const handleBulkSetPaused = async (paused: boolean) => {
+    await Promise.all([
+      selectedRegularIds.length > 0
+        ? (paused ? bulkPauseSubscriptions : bulkResumeSubscriptions)(
+            selectedRegularIds,
+          ).catch(console.error)
+        : Promise.resolve(),
+      ...selectedAfdaWebsites.map((w) =>
+        setAfdaWebsitePaused(w, paused, updateWebsite),
+      ),
+    ]);
+    clearSelection();
+  };
 
   // Tick every 60s so "Next check in" stays current without live polling
   const [now, setNow] = useState(() => new Date());
@@ -233,14 +272,9 @@ const SkedulosaTableTaskbar = ({
               side="bottom"
             >
               <button
-                onClick={() =>
-                  bulkPauseSubscriptions(selectedChannelIds).catch(
-                    console.error,
-                  )
-                }
+                onClick={() => handleBulkSetPaused(true)}
                 disabled={selectedChannelIds.every(
-                  (id) =>
-                    subscriptions.find((s) => s.id === id)?.status === 'Paused',
+                  (id) => selectionStatus(id) === 'Paused',
                 )}
                 className="flex items-center gap-1 px-3 py-1 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -253,14 +287,9 @@ const SkedulosaTableTaskbar = ({
               side="bottom"
             >
               <button
-                onClick={() =>
-                  bulkResumeSubscriptions(selectedChannelIds).catch(
-                    console.error,
-                  )
-                }
+                onClick={() => handleBulkSetPaused(false)}
                 disabled={selectedChannelIds.every(
-                  (id) =>
-                    subscriptions.find((s) => s.id === id)?.status === 'Active',
+                  (id) => selectionStatus(id) === 'Active',
                 )}
                 className="flex items-center gap-1 px-3 py-1 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -274,7 +303,17 @@ const SkedulosaTableTaskbar = ({
                 side="bottom"
               >
                 <button
-                  onClick={() => setEditModalId(selectedChannelIds[0])}
+                  onClick={() => {
+                    // Selection holds bare ids, so classify the same way the
+                    // bulk delete below does.
+                    const id = selectedChannelIds[0];
+                    setEditTarget({
+                      id,
+                      category: afdaWebsites.some((w) => w.id === id)
+                        ? 'afda-website'
+                        : '',
+                    });
+                  }}
                   className="flex items-center gap-1 px-3 py-1 rounded-md transition-colors"
                 >
                   <FiEdit size={13} />
@@ -494,11 +533,10 @@ const SkedulosaTableTaskbar = ({
         message={t('taskbar.confirmDelete.subscriptionMessage')}
       />
 
-      {editModalId && (
-        <SkedulosaEditModal
-          isOpen={true}
-          onClose={() => setEditModalId(null)}
-          subscriptionId={editModalId}
+      {editTarget && (
+        <SubscriptionEditModal
+          target={editTarget}
+          onClose={() => setEditTarget(null)}
         />
       )}
     </>

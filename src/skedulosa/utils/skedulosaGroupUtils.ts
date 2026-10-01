@@ -40,6 +40,20 @@ export function aggregateGroupSize(downloads: SearchableDownload[]): number {
   );
 }
 
+/** Text colour for a subscription status label (Active / Paused / Error). */
+export function subStatusColor(status: string): string {
+  switch (status) {
+    case 'Active':
+      return 'text-green-500';
+    case 'Paused':
+      return 'text-yellow-500';
+    case 'Error':
+      return 'text-red-500';
+    default:
+      return 'text-gray-500';
+  }
+}
+
 /** Number of downloads in the group. */
 export function getGroupVideoCount(downloads: SearchableDownload[]): number {
   return downloads.length;

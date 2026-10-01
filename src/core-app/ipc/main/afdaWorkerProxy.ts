@@ -270,6 +270,9 @@ function handleWorkerMessage(
     console.log(`[AFDA worker] ready with ${msg.channels.length} channels`);
     if (!mainWindow.isDestroyed()) {
       mainWindow.webContents.send('boot:status', 'Article services ready');
+      // The worker boots independently of Phase 2, so addons:services-ready
+      // can fire before it's up — renderer loads that raced ahead retry here.
+      mainWindow.webContents.send('afda:ready');
     }
     return;
   }

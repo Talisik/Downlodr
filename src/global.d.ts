@@ -217,6 +217,13 @@ declare global {
       openExternalLink: (link: string) => Promise<void>;
       getThumbnailDataUrl: (path: string) => Promise<string | null>;
       checkInternetConnection: () => Promise<boolean>;
+      checkSiteReachable: (url: string) => Promise<
+        | { reachable: true }
+        | {
+            reachable: false;
+            reason: 'invalid' | 'not_found' | 'refused' | 'timeout' | 'other';
+          }
+      >;
     };
 
     /** YT-DLP: info, download, stop, version (downlodrHandler) */
@@ -376,6 +383,13 @@ declare global {
     /** Single namespace for app + file + browser + transcript (use bridges or this) */
     downlodrFunctions: {
       closeApp: () => void;
+      checkSiteReachable: (url: string) => Promise<
+        | { reachable: true }
+        | {
+            reachable: false;
+            reason: 'invalid' | 'not_found' | 'refused' | 'timeout' | 'other';
+          }
+      >;
       minimizeApp: () => void;
       maximizeApp: () => void;
       openExternalLink: (link: string) => Promise<void>;

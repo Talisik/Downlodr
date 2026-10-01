@@ -185,6 +185,11 @@ contextBridge.exposeInMainWorld('afdaBridge', {
       ipcRenderer.on('store:hydrate', wrapped);
       return () => ipcRenderer.removeListener('store:hydrate', wrapped);
     },
+    ready: (cb: () => void) => {
+      const wrapped = () => cb();
+      ipcRenderer.on('afda:ready', wrapped);
+      return () => ipcRenderer.removeListener('afda:ready', wrapped);
+    },
   },
 
   // Categorized access
