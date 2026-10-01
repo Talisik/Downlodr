@@ -195,6 +195,13 @@ declare global {
       joinDownloadPath: (downloadPath: string, fileName: string) => Promise<string>;
       validatePath: (folderPath: string) => Promise<boolean>;
       fileExists: (path: string) => Promise<boolean>;
+      diagnoseMissingFile: (path: string) => Promise<{
+        checkedPath: string;
+        accessError: string | null;
+        dirExists: boolean;
+        similarEntries: string[];
+        dirEntryCount: number;
+      }>;
       getFileSize: (path: string) => Promise<number | null>;
       getDirectorySize: (path: string) => Promise<number>;
       getFreeDiskSpace: (path: string) => Promise<number | null>;
@@ -407,6 +414,13 @@ declare global {
       validatePath: (folderPath: string) => Promise<boolean>;
       openFolder: (folderPath: string, filePath: string) => Promise<{ success: boolean; error?: string }>;
       fileExists: (path: string) => Promise<boolean>;
+      diagnoseMissingFile: (path: string) => Promise<{
+        checkedPath: string;
+        accessError: string | null;
+        dirExists: boolean;
+        similarEntries: string[];
+        dirEntryCount: number;
+      }>;
       getFileSize: (path: string) => Promise<number | null>;
       getDirectorySize: (path: string) => Promise<number>;
       getFreeDiskSpace: (path: string) => Promise<number | null>;

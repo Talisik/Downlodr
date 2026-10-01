@@ -4,6 +4,7 @@ import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import fs, { existsSync } from 'fs';
 import os from 'os';
 import path from 'path';
+import { diagnoseMissingFile } from './fileDiagnostics';
 
 export const fileHandler = (mainWindow: BrowserWindow) => {
   ipcMain.handle('joinDownloadPath', async (event, downloadPath, fileName) => {
@@ -202,6 +203,11 @@ export const fileHandler = (mainWindow: BrowserWindow) => {
       return false;
     }
   });
+
+  // Why a file the app expects isn't there (see fileDiagnostics).
+  ipcMain.handle('diagnose-missing-file', async (_event, filePath: string) =>
+    diagnoseMissingFile(String(filePath ?? '')),
+  );
 
   ipcMain.handle('openVideo', async (event, filePath) => {
     shell.openPath(filePath);

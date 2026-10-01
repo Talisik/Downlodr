@@ -38,6 +38,7 @@ export function initComposedWindowApi(): void {
       validatePath: fileInfo.validatePath,
       openFolder: fileFn.openFolder,
       fileExists: fileInfo.fileExists,
+      diagnoseMissingFile: fileInfo.diagnoseMissingFile,
       getFileSize: fileInfo.getFileSize,
       getDirectorySize: fileInfo.getDirectorySize,
       getFreeDiskSpace: fileInfo.getFreeDiskSpace,

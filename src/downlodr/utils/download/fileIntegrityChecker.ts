@@ -8,6 +8,10 @@ import { useDownloadStore } from '@/downlodr/store/downloadStore';
 
 const CONCURRENCY_LIMIT = 8;
 
+type FinishedDownload = ReturnType<
+  typeof useDownloadStore.getState
+>['finishedDownloads'][number];
+
 async function checkOne(
   location: string,
   fileName: string,
@@ -67,4 +71,37 @@ export async function runFileIntegrityCheck(): Promise<void> {
     );
 
   setFileMissingFlags(updates);
+
+  // Diagnostic: finished downloads have been flagged missing on macOS while
+  // their files still play. Log what was checked and what's actually in the
+  // folder for each newly flagged row, so the mismatch shows in DevTools.
+  const newlyMissing = finishedDownloads.filter(
+    (download, i) => !existsResults[i] && !download.fileMissing,
+  );
+  await Promise.all(newlyMissing.map(logMissingFileDiagnosis));
+}
+
+async function logMissingFileDiagnosis(
+  download: FinishedDownload,
+): Promise<void> {
+  const fileName = download.downloadName || download.name;
+  try {
+    const fullPath = await window.downlodrFunctions.joinDownloadPath(
+      download.location,
+      fileName,
+    );
+    const diagnosis =
+      await window.downlodrFunctions.diagnoseMissingFile?.(fullPath);
+    console.warn('[file-integrity] flagged as missing:', {
+      id: download.id,
+      location: download.location,
+      downloadName: download.downloadName,
+      name: download.name,
+      ext: download.ext,
+      audioExt: download.audioExt,
+      ...diagnosis,
+    });
+  } catch (err) {
+    console.warn('[file-integrity] could not diagnose', download.id, err);
+  }
 }

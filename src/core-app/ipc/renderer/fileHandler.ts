@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld('fileInfoBridge', {
     ipcRenderer.invoke('validatePath', folderPath),
 
   fileExists: (path: string) => ipcRenderer.invoke('file-exists', path),
+  diagnoseMissingFile: (path: string) =>
+    ipcRenderer.invoke('diagnose-missing-file', path),
   getFileSize: (path: string) => ipcRenderer.invoke('get-file-size', path),
   getDirectorySize: (path: string) =>
     ipcRenderer.invoke('get-directory-size', path),
