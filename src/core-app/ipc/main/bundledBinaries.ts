@@ -83,9 +83,9 @@ function ffmpegBundleNames(
   if (env.platform === 'win32') return [`${component}.exe`];
   if (env.platform !== 'darwin') return [component];
 
-  // Apple Silicon prefers its native static but runs the x64 one under
-  // Rosetta 2, which is the only option for ffprobe — no arm64 ffprobe static
-  // is published, so binaries/ffprobe-arm64 does not exist.
+  // Apple Silicon prefers its native static and falls back to the x64 one
+  // under Rosetta 2. ffprobe-arm64 comes from github.com/MMDH05/ffmpeg-build
+  // via `yarn binaries:setup`; a checkout that hasn't run it gets the x64 one.
   return env.arch === 'arm64'
     ? [`${component}-arm64`, `${component}-x64`]
     : [`${component}-x64`];

@@ -45,18 +45,26 @@
       ]
     },
     "ffmpeg-whisper-arm64": {
-      "url": "https://github.com/MMDH05/ffmpeg-build/releases/download/v9.0.1-w1.9.4-r1/ffmpeg-whisper-arm64",
-      "sha256": "a271ca9bc02ceacc907e1a0a675c9612d591b7101d743a5a5df29fbdf631a817",
+      "url": "https://github.com/MMDH05/ffmpeg-build/releases/download/v9.0.1-w1.9.4-r2/ffmpeg-whisper-arm64",
+      "sha256": "98b72daff31372bcaf87b5054934f3faafe304bb316d90dee95f22b3ef67c2f9",
       "files": [
         "binaries/ffmpeg-whisper-arm64"
       ],
       "platform": "darwin"
     },
     "ffmpeg-whisper-x64": {
-      "url": "https://github.com/MMDH05/ffmpeg-build/releases/download/v9.0.1-w1.9.4-r1/ffmpeg-whisper-x64",
-      "sha256": "97f32a69b3607162a1069c04cb8ad002dcdfee0f5cb5a25c5a0d209631cedc07",
+      "url": "https://github.com/MMDH05/ffmpeg-build/releases/download/v9.0.1-w1.9.4-r2/ffmpeg-whisper-x64",
+      "sha256": "c3c87aba346a1805ae31664efa0fd4ece2efb92ef8c495c22c172a095fe39be2",
       "files": [
         "binaries/ffmpeg-whisper-x64"
+      ],
+      "platform": "darwin"
+    },
+    "ffprobe-arm64": {
+      "url": "https://github.com/MMDH05/ffmpeg-build/releases/download/v9.0.1-w1.9.4-r2/ffprobe-arm64",
+      "sha256": "ed4482a07bb3b8189e6069465b1357bbecd600ac01b5e05f1322abb3592ae429",
+      "files": [
+        "binaries/ffprobe-arm64"
       ],
       "platform": "darwin"
     }

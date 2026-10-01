@@ -154,7 +154,7 @@ jobs:
           echo ""
           echo "--- required payload ---"
           missing=0
-          for f in ggml-small.bin ffmpeg-arm64 ffmpeg-x64 ffmpeg-whisper-arm64 ffmpeg-whisper-x64 yt-dlp yt-dlp_macos; do
+          for f in ggml-small.bin ffmpeg-arm64 ffmpeg-x64 ffprobe-arm64 ffmpeg-whisper-arm64 ffmpeg-whisper-x64 yt-dlp yt-dlp_macos; do
             printf '%-20s ' "$f"
             if [ -e "$RES/$f" ]; then
               echo "present ($(du -h "$RES/$f" | cut -f1))"

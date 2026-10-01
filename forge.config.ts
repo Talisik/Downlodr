@@ -19,8 +19,9 @@ const projectRoot = process.cwd();
 // Platform-conditional extra resources. A missing extraResource path fails
 // packaging outright, so each platform lists only the binaries it ships.
 // - darwin: committed mac yt-dlp + static ffmpeg (arm64/x64), all tracked in
-//   git. ffprobe-arm64 is not tracked (no arm64 static build is published);
-//   Apple Silicon falls back to the x64 ffprobe under Rosetta 2. The ffprobe
+//   git. ffprobe-arm64 is not tracked: `yarn binaries:setup` fetches it from
+//   github.com/MMDH05/ffmpeg-build; without it Apple Silicon falls back to
+//   the x64 ffprobe under Rosetta 2. The ffprobe
 //   entries are existsSync-gated so packaging does not fail while one is
 //   missing, and get picked up automatically once added to binaries/.
 //   ggml-small.bin is fetched at build time by scripts/download-whisper-model.sh

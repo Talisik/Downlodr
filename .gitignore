@@ -173,6 +173,8 @@ src/auto-tag/docs/
 /whisper-cli/
 # macOS transcription ffmpeg (fetched via yarn binaries:setup, not in git)
 /binaries/ffmpeg-whisper-*
+# Apple Silicon ffprobe (fetched via yarn binaries:setup, not in git)
+/binaries/ffprobe-arm64
 .gitignore
 
 # Local MCP client config — carries the per-launch bridge bearer token
