@@ -38,7 +38,10 @@ import {
   resolveRowSelection,
 } from '@/downlodr/pages/status/statusPageUtils';
 import { StatusPageModals } from '@/downlodr/pages/status/StatusPageModals';
-import { deletePerDownloadFolder } from '@/downlodr/utils/download/downloadFolder';
+import {
+  deletePerDownloadFolder,
+  isPerDownloadFolder,
+} from '@/downlodr/utils/download/downloadFolder';
 import { redownloadTranscript } from '@/downlodr/utils/transcription/ffmpegWhisperTranscriber';
 import SidePanels from '@/downlodr/components/panels/SidePanels';
 import { useSidePanels } from '@/downlodr/hooks/useSidePanels';
@@ -363,17 +366,26 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
 
   const handleSelectPage = useCallback(
     (pageIds: string[], allPageSelected: boolean) => {
+      let newSelected: string[];
       if (allPageSelected) {
-        setSelectedRowIds(
-          globalSelectedRowIds.filter((id) => !pageIds.includes(id)),
+        newSelected = globalSelectedRowIds.filter(
+          (id) => !pageIds.includes(id),
         );
       } else {
         const existing = new Set(globalSelectedRowIds);
         pageIds.forEach((id) => existing.add(id));
-        setSelectedRowIds(Array.from(existing));
+        newSelected = Array.from(existing);
       }
+      setSelectedRowIds(newSelected);
+      // setSelectedRowIds alone only adds placeholder entries with no
+      // location/status, and the Toolbar's bulk Remove/Stop skip any entry
+      // without a location — so select-all then Remove did nothing. Build
+      // the full payload, as a single checkbox click does.
+      buildSelectionPayload(newSelected).then((data) =>
+        useSelectedDownloadStore.getState().setSelectedDownloads(data),
+      );
     },
-    [globalSelectedRowIds, setSelectedRowIds],
+    [globalSelectedRowIds, setSelectedRowIds, buildSelectionPayload],
   );
 
   // ── column header context menu ────────────────────────────────────────────
@@ -538,6 +550,7 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
         isCreateFolder: false,
         tags: current.tags,
         category: current.category,
+        favorited: current.favorited,
       });
       deleteDownloading(downloadId);
       useSelectedDownloadStore.getState().clearAllSelections();
@@ -629,6 +642,7 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
         isCreateFolder: false,
         tags: current.tags,
         category: current.category,
+        favorited: current.favorited,
       });
       deleteDownload(downloadId);
     },
@@ -903,7 +917,11 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
       }
 
       try {
-        if (deleteFolder) {
+        // "Also delete folder" only ever removes the folder this download
+        // owns — `downloadLocation` can be a shared directory (the main
+        // download folder, a plugin's FormatConverter/ output). When the guard
+        // declines, fall through to deleting just the file.
+        if (deleteFolder && isPerDownloadFolder(downloadLocation, dl.name)) {
           const folderExists = await window.downlodrFunctions.fileExists(
             downloadLocation,
           );
@@ -941,9 +959,20 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
           if (dl.status !== 'finished') {
             await deletePerDownloadFolder(dl);
           }
+          // `downloadLocation` is the directory the file sits in — trashing
+          // it here would take the whole folder with it, which is exactly
+          // what the user opted out of. Delete only the file itself.
+          const fileName = dl.downloadName || dl.name;
+          if (fileName) {
+            const fullFilePath =
+              await window.downlodrFunctions.joinDownloadPath(
+                downloadLocation,
+                fileName,
+              );
+            await window.downlodrFunctions.deleteFile(fullFilePath);
+          }
           // Whether or not the file itself was on disk, the user asked to
           // delete this download, so the log always goes away.
-          await window.downlodrFunctions.deleteFile(downloadLocation);
           deleteDownload(downloadId);
           toast({
             variant: 'success',

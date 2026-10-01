@@ -43,6 +43,8 @@ export interface AddDownloadPayload {
   thumnailsLocation?: string;
   tags?: string[];
   category?: string[];
+  /** Carried over when a download is re-added (resume/retry). */
+  favorited?: boolean;
 }
 
 /** Payload for retryDownload (caption/thumbnail paths required) */
@@ -76,6 +78,8 @@ export interface RetryDownloadPayload {
   isCreateFolder: boolean;
   tags?: string[];
   category?: string[];
+  /** Carried over when a download is re-added (resume/retry). */
+  favorited?: boolean;
 }
 
 /** Options for setDownload (metadata fetch + queue) */
@@ -141,6 +145,7 @@ export interface AddQueuePayload {
   tags?: string[];
   category?: string[];
   isLive?: boolean;
+  favorited?: boolean;
 }
 
 /** Payload for updateDownloadStatus */

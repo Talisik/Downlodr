@@ -628,7 +628,7 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
               <td
                 key={column.id}
                 style={{ width: column.width }}
-                className="pl-2 py-2 dark:text-gray-200 flex justify-center items-center"
+                className="pl-2 py-2 dark:text-gray-200 flex justify-center items-center text-center"
               >
                 {[
                   'downloading',

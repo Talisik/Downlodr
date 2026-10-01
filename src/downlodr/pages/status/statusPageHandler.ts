@@ -271,6 +271,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
         isCreateFolder: false,
         tags: currentDownload.tags,
         category: currentDownload.category,
+        favorited: currentDownload.favorited,
       });
       deleteDownload(downloadId);
       setSelectedRowIds([]);
@@ -357,6 +358,7 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
           isCreateFolder: false,
           tags: currentDownload.tags,
           category: currentDownload.category,
+          favorited: currentDownload.favorited,
         });
         deleteDownloading(downloadId);
         depsRef.current.setSelectedRowIds([]);

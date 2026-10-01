@@ -67,6 +67,7 @@ export function createQueueActions(set: SetState, get: GetState) {
           tags,
           category,
           isLive,
+          favorited,
         } = payload;
         console.log('[Queue] addQueue called with payload:', payload);
         const queueId = uuidv4();
@@ -111,6 +112,7 @@ export function createQueueActions(set: SetState, get: GetState) {
               tags: tags ?? [],
               category: category ?? [],
               isLive: isLive ?? false,
+              favorited: favorited ?? false,
               elapsed: 0,
               controllerId: undefined,
               log: '',

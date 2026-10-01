@@ -19,6 +19,7 @@ import { NavLink, useMatch, useResolvedPath } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDownloadStore } from '../../store/downloadStore';
 import CategoryContextMenu from '../contextMenu/CategoryContextMenu';
+import RenameModal from '../modal/custom/RenameModal';
 import TagContextMenu from '../contextMenu/TagContextMenu';
 import ShareButton from '@/downlodr/components/download/ShareButton';
 
@@ -30,6 +31,9 @@ import { LuNewspaper, LuPanelLeftClose, LuPanelLeftOpen } from 'react-icons/lu';
 import { useNavAnimation } from '@/downlodr/hooks/useNavAnimation';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
+
+/** Character cap for a tag name. */
+const TAG_NAME_MAX_LENGTH = 120;
 
 type NavItemProps = {
   to: string;
@@ -196,6 +200,9 @@ const Navigation = ({
   } | null>(null);
   const renameTag = useDownloadStore((state) => state.renameTag);
   const deleteTag = useDownloadStore((state) => state.deleteTag);
+
+  // Tag the rename modal is open for, or null when it is closed.
+  const [renameTagTarget, setRenameTagTarget] = useState<string | null>(null);
 
   const handleCategoryRightClick = (
     e: React.MouseEvent,
@@ -717,16 +724,24 @@ const Navigation = ({
           position={{ x: tagContextMenu.x, y: tagContextMenu.y }}
           tagName={tagContextMenu.tag}
           onClose={() => setTagContextMenu(null)}
-          onRename={(oldName, newName) => {
-            renameTag(oldName, newName);
-            setTagContextMenu(null);
-          }}
-          onDelete={(tag) => {
-            deleteTag(tag);
-            setTagContextMenu(null);
-          }}
+          onRequestRename={setRenameTagTarget}
+          onDelete={deleteTag}
         />
       )}
+
+      {/* Owned here, not by TagContextMenu: the menu unmounts on any outside
+          mousedown, which would take a modal it rendered down with it. */}
+      <RenameModal
+        isOpen={renameTagTarget !== null}
+        onClose={() => setRenameTagTarget(null)}
+        onRename={(newName) => {
+          if (renameTagTarget) renameTag(renameTagTarget, newName);
+        }}
+        currentName={renameTagTarget ?? ''}
+        title="Rename Tag"
+        successTitle="Tag Renamed"
+        maxLength={TAG_NAME_MAX_LENGTH}
+      />
     </nav>
   );
 };

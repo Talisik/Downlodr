@@ -2440,9 +2440,14 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                     {location && (
                       <>
                         <Separator className="flex-shrink-0" />
-                        <div className="text-xs text-primary dark:text-gray-500 truncate flex items-center gap-1 flex-shrink-0">
+                        {/* The ellipsis has to live on the span: text-overflow
+                            on a flex container doesn't reach a child element,
+                            so the path was clipped mid-character instead. */}
+                        <div className="text-xs text-primary dark:text-gray-500 flex items-center gap-1 flex-shrink-0 min-w-0 w-full overflow-hidden">
                           <FcFolder className="flex-shrink-0" />
-                          <span title={location}>{location}</span>
+                          <span className="truncate min-w-0" title={location}>
+                            {location}
+                          </span>
                         </div>
                       </>
                     )}

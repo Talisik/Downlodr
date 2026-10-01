@@ -30,6 +30,7 @@ import { useSettingStore } from '@/core-app/store/settingsStore';
 import BulkTagCategoryMenu from '@/downlodr/components/base/BulkTagCategoryMenu';
 import TaskBarInputField from '@/downlodr/components/base/InputField/TaskbarInputField';
 import BulkTranscriptModal from '@/downlodr/components/modal/custom/BulkTranscriptModal';
+import { findCaptionlessDownloads } from '@/downlodr/utils/transcription/captionEligibility';
 import RemoveModal from '@/downlodr/components/modal/custom/RemoveModal';
 import StopModal from '@/downlodr/components/modal/custom/StopModal';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
@@ -38,7 +39,7 @@ import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import { deletePerDownloadFolder } from '@/downlodr/utils/download/downloadFolder';
 import { maybeShowFormatHint } from '@/downlodr/utils/formatHint';
 import PluginToolbarExtension from '@/plugins/components/PluginTaskBarExtension';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LuTrash } from 'react-icons/lu';
 import { enqueueTranscript } from '@/downlodr/utils/transcription/transcriptQueue';
 import { FaRegClosedCaptioning } from 'react-icons/fa';
@@ -122,34 +123,28 @@ const Toolbar: React.FC<ToolbarProps> = ({
     ),
   );
 
-  // Helper: mirrors TranscrptButton invalid-location check
-  const isTranscriptMissing = (
-    transcriptLocation: string | undefined,
-    autoCaptionLocation: string | undefined,
-  ): boolean => {
-    const resolvedLocation =
-      typeof transcriptLocation === 'string'
-        ? transcriptLocation
-        : autoCaptionLocation;
-    const isValid =
-      !!resolvedLocation &&
-      resolvedLocation.trim() !== '' &&
-      resolvedLocation !== 'iu' &&
-      resolvedLocation !== 'fu';
-    return !isValid;
-  };
-
-  // Eligible = finished, no valid transcript, not currently transcribing
-  const eligibleSelectedDownloads = selectedDownloads
-    .map((selected) => finishedDownloads.find((fd) => fd.id === selected.id))
-    .filter(
-      (fd): fd is (typeof finishedDownloads)[0] =>
-        fd !== undefined &&
-        fd.status === 'finished' &&
-        fd.transcriptionStatus !== 'transcribing' &&
-        fd.transcriptionStatus !== 'queued' &&
-        isTranscriptMissing(fd.transcriptLocation, fd.autoCaptionLocation),
-    );
+  // Eligible = finished, no caption file on disk, not already transcribing.
+  // Checked against the disk like the per-row button (see captionEligibility),
+  // so it has to be async state rather than a render-time filter.
+  const [eligibleSelectedDownloads, setEligibleSelectedDownloads] = useState<
+    (typeof finishedDownloads)[number][]
+  >([]);
+  useEffect(() => {
+    let cancelled = false;
+    const candidates = selectedDownloads
+      .map((selected) => finishedDownloads.find((fd) => fd.id === selected.id))
+      .filter(
+        (fd): fd is (typeof finishedDownloads)[number] => fd !== undefined,
+      );
+    findCaptionlessDownloads(candidates, (p) =>
+      window.downlodrFunctions.fileExists(p),
+    ).then((eligible) => {
+      if (!cancelled) setEligibleSelectedDownloads(eligible);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDownloads, finishedDownloads]);
 
   const handleStopSelected = async () => {
     if (selectedDownloads.length === 0) {

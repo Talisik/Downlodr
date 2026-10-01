@@ -32,7 +32,7 @@ const AccordionSection: React.FC<AccordionSectionProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
-  const chevronRef = useRef<SVGSVGElement>(null);
+  const chevronRef = useRef<HTMLSpanElement>(null);
 
   const toggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -61,11 +61,15 @@ const AccordionSection: React.FC<AccordionSectionProps> = ({
         className="w-full px-4 py-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-darkModeHover/50 transition-colors"
       >
         <span className="text-md dark:text-gray-300">{title}</span>
-        <IoChevronDownOutline
+        {/* react-icons components don't forward refs, so the rotation
+            animates this wrapper instead of the icon itself. */}
+        <span
           ref={chevronRef}
-          className="dark:text-gray-300"
+          className="inline-flex dark:text-gray-300"
           style={{ transformOrigin: 'center' }}
-        />
+        >
+          <IoChevronDownOutline />
+        </span>
       </button>
       <div
         ref={contentRef}

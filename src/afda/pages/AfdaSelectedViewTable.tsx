@@ -17,7 +17,7 @@ import { getFaviconUrl } from '@/afda/utils/faviconUrl';
 import { formatRelativeTime } from '@/downlodr/pages/status/statusPageUtils';
 import ConfirmModal from '@/core-app/components/modal/custom/ConfirmModal';
 import { RiBookShelfLine } from 'react-icons/ri';
-import { formatWordDate, formatNumericDate } from './utils/afdaUtils';
+import { formatShortWordDate, formatNumericDate } from './utils/afdaUtils';
 import StatCard from '@/afda/components/StatCard';
 import { IoDocumentTextOutline } from 'react-icons/io5';
 import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
@@ -362,7 +362,7 @@ const AfdaSelectedViewTable = () => {
               }
             />
             <StatCard
-              value={formatWordDate(createdStr)}
+              value={formatShortWordDate(createdStr)}
               smallValue={formatNumericDate(createdStr)}
               label="Created"
               icon={<LuCalendarCheck2 size={22} className="text-primary" />}

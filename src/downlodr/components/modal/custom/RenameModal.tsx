@@ -7,6 +7,11 @@ interface RenameModalProps {
   onClose: () => void;
   onRename: (newName: string) => void;
   currentName: string;
+  /** Heading and toast wording. Defaults to the download rename copy. */
+  title?: string;
+  successTitle?: string;
+  /** Character cap for the new name. Defaults to 30. */
+  maxLength?: number;
 }
 
 const RenameModal: React.FC<RenameModalProps> = ({
@@ -14,6 +19,9 @@ const RenameModal: React.FC<RenameModalProps> = ({
   onClose,
   onRename,
   currentName,
+  title = 'Rename Download',
+  successTitle = 'File Renamed',
+  maxLength = 30,
 }) => {
   const [newName, setNewName] = useState(currentName);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,7 +37,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
   }, [isOpen, currentName]);
 
   const trimmedName = newName.trim();
-  const isValid = trimmedName.length > 0 && trimmedName.length <= 30;
+  const isValid = trimmedName.length > 0 && trimmedName.length <= maxLength;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +47,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
 
     toast({
       variant: 'success',
-      title: 'File Renamed',
+      title: successTitle,
       description: `Successfully renamed to ${trimmedName}`,
       duration: 5000,
     });
@@ -51,7 +59,7 @@ const RenameModal: React.FC<RenameModalProps> = ({
     <BaseModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Rename Download"
+      title={title}
       width="max-w-sm"
       footer={
         <div className="flex justify-end space-x-3">
@@ -80,12 +88,12 @@ const RenameModal: React.FC<RenameModalProps> = ({
           type="text"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          maxLength={30}
+          maxLength={maxLength}
           className="w-full p-2 border rounded mb-1 dark:bg-darkMode dark:border-inputDarkModeBorder outline-none dark:text-gray-200"
         />
 
         <div className="text-xs text-gray-500 dark:text-gray-400">
-          {newName.length}/30 characters
+          {newName.length}/{maxLength} characters
         </div>
       </form>
     </BaseModal>

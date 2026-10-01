@@ -118,14 +118,14 @@ export function createDownloadActions(set: SetState, get: GetState) {
         channelName, timeLeft, DateAdded, uploadDate, progress, location, status, ext,
         formatId, audioExt, audioFormatId, extractorKey, limitRate,
         automaticCaption, thumbnails, getTranscript, getThumbnail, duration,
-        isCreateFolder, tags, category,
+        isCreateFolder, tags, category, favorited,
       } = payload;
       get().addQueue({
         subscriptionId, videoUrl, name, downloadName, displayName, size, speed,
         channelName, timeLeft, DateAdded, uploadDate, progress, location, status, ext,
         formatId, audioExt, audioFormatId, extractorKey, limitRate,
         automaticCaption, thumbnails, getTranscript, getThumbnail, duration,
-        isCreateFolder, tags, category,
+        isCreateFolder, tags, category, favorited,
       });
     },
 
@@ -163,7 +163,7 @@ export function createDownloadActions(set: SetState, get: GetState) {
         timeLeft, DateAdded, uploadDate, progress, location, status, ext, formatId,
         audioExt, audioFormatId, extractorKey, limitRate, automaticCaption,
         thumbnails, getTranscript, getThumbnail, duration, isCreateFolder,
-        tags, category,
+        tags, category, favorited,
       } = payload;
 
       // Delete the old subfolder before queueing so the controller starts fresh
@@ -181,7 +181,7 @@ export function createDownloadActions(set: SetState, get: GetState) {
         timeLeft, DateAdded, uploadDate, progress, location, status, ext, formatId,
         audioExt, audioFormatId, extractorKey, limitRate, automaticCaption,
         thumbnails, getTranscript, getThumbnail, duration, isCreateFolder,
-        tags, category,
+        tags, category, favorited,
       });
     },
 

@@ -11,7 +11,9 @@ import type {
 export const formatRelativeTime = (dateString: string): string => {
   const date = new Date(dateString);
   const now = new Date();
-  const diffInMilliseconds = now.getTime() - date.getTime();
+  // Clamp so a slightly-future date (clock skew, publish-time timezones) reads
+  // as "0 m ago" instead of a negative count.
+  const diffInMilliseconds = Math.max(0, now.getTime() - date.getTime());
   const diffInMinutes = Math.floor(diffInMilliseconds / (1000 * 60));
   const diffInHours = Math.floor(diffInMinutes / 60);
   const diffInDays = Math.floor(diffInHours / 24);
@@ -19,15 +21,18 @@ export const formatRelativeTime = (dateString: string): string => {
   const diffInMonths = Math.floor(diffInDays / 30);
   const diffInYears = Math.floor(diffInDays / 365);
 
+  // Pick each unit by the same day threshold its count is derived from.
+  // Branching on diffInWeeks/diffInMonths instead let 28–29 days fall through
+  // to "0 mos ago" and 360–364 days to "0 yrs ago".
   if (diffInMinutes < 60) {
     return i18n.t('downlodr:timeAgo.minutes', { count: diffInMinutes });
   } else if (diffInHours < 24) {
     return i18n.t('downlodr:timeAgo.hour', { count: diffInHours });
   } else if (diffInDays < 7) {
     return i18n.t('downlodr:timeAgo.day', { count: diffInDays });
-  } else if (diffInWeeks < 4) {
+  } else if (diffInDays < 30) {
     return i18n.t('downlodr:timeAgo.week', { count: diffInWeeks });
-  } else if (diffInMonths < 12) {
+  } else if (diffInDays < 365) {
     return i18n.t('downlodr:timeAgo.month', { count: diffInMonths });
   } else {
     return i18n.t('downlodr:timeAgo.year', { count: diffInYears });
