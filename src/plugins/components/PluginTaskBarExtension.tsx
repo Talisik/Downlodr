@@ -8,6 +8,35 @@ import useDownloadStore from '@/downlodr/store/downloadStore';
 import { TaskBarItem } from '@/plugins/schema/types';
 import React, { useEffect, useState } from 'react';
 import { usePluginState } from '../hook/usePluginState';
+import { looksLikeImageSource } from '../utils/pluginIconHelper';
+
+
+const PlaceholderIcon: React.FC<{ sizeClass: string }> = ({ sizeClass }) => (
+  <div
+    className={`${sizeClass} bg-gray-300 dark:bg-gray-600 rounded-sm flex items-center justify-center`}
+  >
+    <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
+      P
+    </span>
+  </div>
+);
+
+/** A plugin's image icon, falling back to the placeholder if it can't load. */
+const PluginImageIcon: React.FC<{ src: string; sizeClass: string }> = ({
+  src,
+  sizeClass,
+}) => {
+  const [failed, setFailed] = React.useState(false);
+  if (failed) return <PlaceholderIcon sizeClass={sizeClass} />;
+  return (
+    <img
+      src={src}
+      alt=""
+      className={`${sizeClass} object-contain rounded-sm`}
+      onError={() => setFailed(true)}
+    />
+  );
+};
 
 const PluginTaskBarExtension: React.FC = () => {
   const [taskBarItems, setTaskBarItems] = useState<TaskBarItem[]>([]);
@@ -113,18 +142,13 @@ const PluginTaskBarExtension: React.FC = () => {
           className={`${sizeClass} flex items-center justify-center rounded-sm [&>svg]:w-full [&>svg]:h-full`}
         />
       );
+    } else if (typeof icon === 'string' && looksLikeImageSource(icon)) {
+      // An image path or URL — load it rather than printing the path as text.
+      return <PluginImageIcon src={icon} sizeClass={sizeClass} />;
     } else if (icon) {
       return <span>{icon}</span>;
     } else {
-      return (
-        <div
-          className={`${sizeClass} bg-gray-300 dark:bg-gray-600 rounded-sm flex items-center justify-center`}
-        >
-          <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
-            P
-          </span>
-        </div>
-      );
+      return <PlaceholderIcon sizeClass={sizeClass} />;
     }
   };
 

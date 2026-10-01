@@ -10,6 +10,7 @@ import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import { FaExternalLinkAlt } from 'react-icons/fa';
 import { IoIosArrowForward, IoMdArrowBack } from 'react-icons/io';
+import { renderIcon } from '@/plugins/utils/pluginIconHelper';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface PluginInfo {
@@ -154,42 +155,6 @@ const PluginDetails = () => {
     navigate(-1);
   };
 
-  // Helper function to check if string is SVG
-  const isSvgString = (str: string): boolean => {
-    if (typeof str !== 'string') return false;
-    const trimmed = str.trim();
-    return trimmed.startsWith('<svg') && trimmed.endsWith('</svg>');
-  };
-
-  // Render icon helper function
-  const renderIcon = (
-    icon: string | React.ReactElement | null | undefined,
-    size: 'sm' | 'md' = 'sm',
-  ) => {
-    const sizeClass = size === 'md' ? 'w-6 h-6' : 'w-5 h-5';
-
-    if (typeof icon === 'string' && isSvgString(icon)) {
-      return (
-        <div
-          dangerouslySetInnerHTML={{ __html: icon }}
-          className={`${sizeClass} flex items-center justify-center rounded-sm [&>svg]:w-full [&>svg]:h-full`}
-        />
-      );
-    } else if (icon) {
-      return <span>{icon}</span>;
-    } else {
-      return (
-        <div
-          className={`${sizeClass} bg-gray-300 dark:bg-gray-600 rounded-sm flex items-center justify-center`}
-        >
-          <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
-            P
-          </span>
-        </div>
-      );
-    }
-  };
-
   // If no plugin data was passed, show a message
   if (!plugin) {
     return (
@@ -210,8 +175,8 @@ const PluginDetails = () => {
           >
             <IoMdArrowBack size={18} />
           </button>
-          <span className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0">
-            {renderIcon(plugin.icon)}
+          <span className="inline-flex items-center justify-center w-12 h-12 flex-shrink-0">
+            {renderIcon(plugin.icon, 'lg', plugin.name)}
           </span>
           <h3 className="text-lg font-medium">{plugin.name}</h3>
         </div>

@@ -1,5 +1,16 @@
 import { isSvgString } from '@/core-app/utils/stringHelper';
 
+/**
+ * True when a plugin icon string is an image to load (data URL, http(s) URL,
+ * bundled asset path, or a file name with an image extension) rather than an
+ * icon name or emoji to show as text.
+ */
+export const looksLikeImageSource = (value: string): boolean =>
+  /^data:image\//i.test(value) ||
+  /^https?:\/\//i.test(value) ||
+  /^\.{0,2}\//.test(value) ||
+  /\.(png|jpe?g|gif|webp|svg|ico|bmp|avif)(\?.*)?$/i.test(value);
+
 export const renderIcon = (
   icon: unknown,
   size: 'sm' | 'md' | 'lg' = 'sm',
