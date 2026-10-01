@@ -14,16 +14,8 @@ import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore
 import ColumnHeaderContextMenu from '@/downlodr/components/contextMenu/ColumnHeaderContextMenu';
 import DownloadContextMenu from '@/downlodr/components/contextMenu/DownloadContextMenu';
 import ArticleContextMenu from '@/afda/components/contextMenu/ArticleContextMenu';
-import {
-  fetchArticle,
-  isArticleModel,
-} from '@/afda/backend/dummy/dummyArticleService';
-import {
-  generateArticleDocx,
-  generateArticleHtml,
-  normalizeArticleRow,
-  sanitizeFilename,
-} from '@/afda/utils/articleDocxGenerator';
+import ArticleLogs from '@/afda/components/log/ArticleLogs';
+import { downloadArticle } from '@/afda/utils/downloadArticle';
 import { useResizableColumns } from '@/downlodr/components/download/resizableColumns/useResizableColumns';
 import ExpandedDownloadDetails from '@/downlodr/components/table/ExpandedDownloadDetail';
 import VideoPlayerPanel from '@/downlodr/components/panel/VideoPlayerPanel';
@@ -127,90 +119,6 @@ const StatusSpecificDownloads = () => {
     (s) => s.toggleArticleFavorite,
   );
   const deleteDownload = useDownloadStore((state) => state.deleteDownload);
-
-  const handleArticleDownload = useCallback(
-    async (articleId: string) => {
-      const d = articleDownloads.find((a) => a.id === articleId);
-      if (!d || d.status !== 'for_download') return;
-      updateArticleDownload(d.id, { status: 'loading' });
-      try {
-        let articleModel;
-        const numericId = parseInt(d.id.replace('afda-article-', ''), 10);
-        const isSubscriptionArticle =
-          !isNaN(numericId) && d.id.startsWith('afda-article-');
-        if (isSubscriptionArticle) {
-          const bridge = (
-            window as unknown as {
-              afdaBridge?: {
-                articles: {
-                  get: (p: {
-                    article_id: number;
-                  }) => Promise<Record<string, unknown> | null>;
-                };
-              };
-            }
-          ).afdaBridge;
-          if (!bridge) throw new Error('Bridge unavailable');
-          const row = await bridge.articles.get({ article_id: numericId });
-          if (!row) throw new Error('Article not found');
-          articleModel = normalizeArticleRow(row);
-        } else {
-          const result = await fetchArticle(d.url);
-          if (!isArticleModel(result)) {
-            throw new Error(
-              result.article_error_status ?? 'Failed to fetch article',
-            );
-          }
-          articleModel = result;
-        }
-        const currentFormat = d.format ?? 'docx';
-        const downloadFolder =
-          await window.downlodrFunctions.getDownloadFolder();
-        const filename = sanitizeFilename(articleModel.article_title);
-        let buffer: number[];
-        let ext: string;
-        if (currentFormat === 'pdf') {
-          const html = generateArticleHtml(articleModel);
-          const pdfResult = await window.downlodrFunctions.htmlToPdf(html);
-          if (!pdfResult.success || !pdfResult.data)
-            throw new Error(pdfResult.error ?? 'PDF generation failed');
-          buffer = pdfResult.data;
-          ext = 'pdf';
-        } else {
-          const bytes = await generateArticleDocx(articleModel);
-          buffer = Array.from(bytes);
-          ext = 'docx';
-        }
-        const filePath = await window.downlodrFunctions.joinDownloadPath(
-          downloadFolder,
-          `${filename}.${ext}`,
-        );
-        const saveResult = await window.downlodrFunctions.saveBufferToFile(
-          buffer,
-          filePath,
-        );
-        if (!saveResult.success)
-          throw new Error(saveResult.error ?? 'Failed to save file');
-        const fileSize =
-          (await window.downlodrFunctions.getFileSize(filePath)) ?? 0;
-        updateArticleDownload(d.id, {
-          status: 'finished',
-          title: articleModel.article_title ?? '',
-          filePath,
-          fileSize,
-          articleData: articleModel,
-          thumbnailDataUrl:
-            articleModel.article_images?.[0]?.url ?? d.thumbnailDataUrl ?? null,
-        });
-      } catch (err) {
-        updateArticleDownload(d.id, {
-          status: 'for_download',
-          errorMessage: err instanceof Error ? err.message : 'Download failed',
-        });
-      }
-    },
-    [articleDownloads, updateArticleDownload],
-  );
 
   // Sorting state
   const [sortColumn, setSortColumn] = useState<string>('dateAdded');
@@ -1132,14 +1040,24 @@ const StatusSpecificDownloads = () => {
                 className="overflow-hidden flex-shrink-0 flex flex-col"
               >
                 <div ref={downloadLogsRef} className="flex-1 min-h-0">
-                  <DownloadLogs
-                    isOpen={showLogModal}
-                    onClose={() => {
-                      setShowLogModal(false);
-                      setLogModalDownloadId('');
-                    }}
-                    downloadId={logModalDownloadId}
-                  />
+                  {articleDownloads.some((a) => a.id === logModalDownloadId) ? (
+                    <ArticleLogs
+                      articleId={logModalDownloadId}
+                      onClose={() => {
+                        setShowLogModal(false);
+                        setLogModalDownloadId('');
+                      }}
+                    />
+                  ) : (
+                    <DownloadLogs
+                      isOpen={showLogModal}
+                      onClose={() => {
+                        setShowLogModal(false);
+                        setLogModalDownloadId('');
+                      }}
+                      downloadId={logModalDownloadId}
+                    />
+                  )}
                 </div>
               </div>
             )}
@@ -1192,7 +1110,8 @@ const StatusSpecificDownloads = () => {
                     errorMessage: undefined,
                   })
                 }
-                onDownload={handleArticleDownload}
+                onDownload={downloadArticle}
+                onShowLog={statusHandlers.handleShowLog}
                 onToggleFavorite={toggleArticleFavorite}
                 isFavorited={!!article.favorited}
                 onAddTag={addArticleTag}

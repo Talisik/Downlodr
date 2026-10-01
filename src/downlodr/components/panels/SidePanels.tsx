@@ -1,3 +1,5 @@
+import ArticleLogs from '@/afda/components/log/ArticleLogs';
+import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import ActivityTracker from '@/downlodr/components/download/log/ActivityTracker';
 import DownloadLogs from '@/downlodr/components/download/log/DownloadLogs';
 import type { SidePanelsState } from '@/downlodr/hooks/useSidePanels';
@@ -21,6 +23,16 @@ const SidePanels: React.FC<SidePanelsState> = ({
   setLogModalDownloadId,
   logModalDownloadId,
 }) => {
+  // Article rows share the log panel with videos; their ids are UUIDs too, so
+  // tell them apart by which store holds the id.
+  const isArticleLog = useArticleDownloadStore((s) =>
+    s.articleDownloads.some((a) => a.id === logModalDownloadId),
+  );
+  const closeLogs = () => {
+    setShowLogModal(false);
+    setLogModalDownloadId('');
+  };
+
   return (
     <>
       <div
@@ -53,14 +65,15 @@ const SidePanels: React.FC<SidePanelsState> = ({
           className="overflow-hidden flex-shrink-0 flex flex-col"
         >
           <div ref={downloadLogsRef} className="flex-1 min-h-0">
-            <DownloadLogs
-              isOpen={showLogModal}
-              onClose={() => {
-                setShowLogModal(false);
-                setLogModalDownloadId('');
-              }}
-              downloadId={logModalDownloadId}
-            />
+            {isArticleLog ? (
+              <ArticleLogs articleId={logModalDownloadId} onClose={closeLogs} />
+            ) : (
+              <DownloadLogs
+                isOpen={showLogModal}
+                onClose={closeLogs}
+                downloadId={logModalDownloadId}
+              />
+            )}
           </div>
         </div>
       )}

@@ -20,6 +20,14 @@ import {
   normalizeArticleRow,
   sanitizeFilename,
 } from '@/afda/utils/articleDocxGenerator';
+import {
+  failArticleDownload,
+  logArticleFetched,
+  logArticleStep,
+  resolveArticleDownloadFolder,
+  saveArticleFile,
+} from '@/afda/utils/downloadArticle';
+import { mapArticleError } from '@/afda/utils/articleErrorMap';
 import { Separator } from '@radix-ui/react-separator';
 import React, { useCallback, useState } from 'react';
 import {
@@ -158,10 +166,14 @@ export const ArticleDownloadTableRow: React.FC<
           }
           articleModel = result;
         }
+        logArticleFetched(download.id, articleModel);
         const currentFormat = download.format ?? 'docx';
-        const downloadFolder =
-          await window.downlodrFunctions.getDownloadFolder();
+        const downloadFolder = await resolveArticleDownloadFolder();
         const filename = sanitizeFilename(articleModel.article_title);
+        logArticleStep(
+          download.id,
+          `Generating ${currentFormat.toUpperCase()} in ${downloadFolder}`,
+        );
 
         let buffer: number[];
         let ext: string;
@@ -180,19 +192,12 @@ export const ArticleDownloadTableRow: React.FC<
           ext = 'docx';
         }
 
-        const filePath = await window.downlodrFunctions.joinDownloadPath(
+        const filePath = await saveArticleFile(
           downloadFolder,
-          `${filename}.${ext}`,
-        );
-
-        const saveResult = await window.downlodrFunctions.saveBufferToFile(
+          filename,
+          ext,
           buffer,
-          filePath,
         );
-
-        if (!saveResult.success) {
-          throw new Error(saveResult.error ?? 'Failed to save file');
-        }
 
         const fileSize =
           (await window.downlodrFunctions.getFileSize(filePath)) ?? 0;
@@ -209,10 +214,7 @@ export const ArticleDownloadTableRow: React.FC<
             null,
         });
       } catch (err) {
-        updateArticleDownload(download.id, {
-          status: 'for_download',
-          errorMessage: err instanceof Error ? err.message : 'Download failed',
-        });
+        failArticleDownload(download.id, err);
       } finally {
         setIsDownloading(false);
       }
@@ -376,7 +378,7 @@ export const ArticleDownloadTableRow: React.FC<
                   )}
                   {download.status === 'failed' && (
                     <TooltipWrapper
-                      content={download.errorMessage ?? 'Failed'}
+                      content={mapArticleError(download.errorMessage).title}
                       side="bottom"
                     >
                       <span className="text-red-500 text-lg">✕</span>

@@ -14,6 +14,7 @@ import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import type { ArticleDownload } from '@/afda/store/articleDownloadStore';
 import { BiSortAZ, BiSortZA } from 'react-icons/bi';
 import ArticleContextMenu from '@/afda/components/contextMenu/ArticleContextMenu';
+import { downloadArticle } from '@/afda/utils/downloadArticle';
 
 interface ArticleRow {
   id: number;
@@ -641,6 +642,7 @@ const AfdaDownloads = ({ website }: AfdaDownloadsProps) => {
             const a = allArticleDownloads.find((d) => d.id === id);
             if (a) handleSelectStoreArticle(a.id, a.url, a.title);
           }}
+          onDownload={downloadArticle}
           onOpenInBrowser={(url) => window.open(url, '_blank')}
           onOpenFolder={(filePath) => {
             (window as any).downlodrFunctions?.openFolder?.(filePath);

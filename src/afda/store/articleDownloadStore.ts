@@ -1,8 +1,21 @@
 import type { ArticleModel } from '@/afda/backend/schema/articleSchema';
+import { mapArticleError } from '@/afda/utils/articleErrorMap';
 import { createIndexedDBStorageWithMigration } from '@/core-app/utils/indexedDBStorage';
 import { createDebouncedStorage } from '@/downlodr/store/download/storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+
+export type ArticleLogLevel = 'info' | 'success' | 'warn' | 'error';
+
+export interface ArticleLogEntry {
+  /** ISO timestamp. */
+  at: string;
+  level: ArticleLogLevel;
+  message: string;
+}
+
+// Retries append to the same log, so cap it to keep the persisted row small.
+export const MAX_ARTICLE_LOG_ENTRIES = 200;
 
 export interface ArticleDownload {
   id: string;
@@ -22,6 +35,8 @@ export interface ArticleDownload {
   tags: string[];
   category: string[];
   favorited?: boolean;
+  /** Timeline shown in the article log panel; absent until a download runs. */
+  log?: ArticleLogEntry[];
 }
 
 export interface AfdaArticleInput {
@@ -50,6 +65,11 @@ interface ArticleDownloadStore {
   ) => void;
   addAfdaArticlesBatch: (articles: AfdaArticleInput[]) => void;
   updateArticleDownload: (id: string, patch: Partial<ArticleDownload>) => void;
+  appendArticleLog: (
+    id: string,
+    level: ArticleLogLevel,
+    message: string,
+  ) => void;
   removeArticleDownload: (id: string) => void;
   addArticleTag: (id: string, tag: string) => void;
   removeArticleTag: (id: string, tag: string) => void;
@@ -58,17 +78,107 @@ interface ArticleDownloadStore {
   toggleArticleFavorite: (id: string) => void;
 }
 
+const withLogEntries = (
+  log: ArticleLogEntry[] | undefined,
+  entries: ArticleLogEntry[],
+): ArticleLogEntry[] =>
+  [...(log ?? []), ...entries].slice(-MAX_ARTICLE_LOG_ENTRIES);
+
+const describeSource = (d: ArticleDownload): string =>
+  d.id.startsWith('social-post-')
+    ? 'social post'
+    : d.id.startsWith('afda-article-')
+    ? 'AFDA subscription'
+    : 'pasted URL';
+
+const formatBytes = (bytes: number): string =>
+  bytes < 1024
+    ? `${bytes} B`
+    : bytes < 1024 * 1024
+    ? `${(bytes / 1024).toFixed(1)} KB`
+    : `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+
+/** Log lines for a status transition; empty when the status didn't change. */
+export const describeStatusChange = (
+  prev: ArticleDownload,
+  next: ArticleDownload,
+): ArticleLogEntry[] => {
+  if (prev.status === next.status) return [];
+  const at = new Date().toISOString();
+
+  switch (next.status) {
+    case 'loading': {
+      const attempt =
+        (prev.log ?? []).filter((e) => e.message.startsWith('Download started'))
+          .length + 1;
+      return [
+        {
+          at,
+          level: 'info',
+          message: `Download started${
+            attempt > 1 ? ` (attempt ${attempt})` : ''
+          } — ${next.format.toUpperCase()} from ${describeSource(next)}: ${
+            next.url
+          }`,
+        },
+      ];
+    }
+    case 'finished': {
+      const started = [...(prev.log ?? [])]
+        .reverse()
+        .find((e) => e.message.startsWith('Download started'));
+      const seconds = started
+        ? ((Date.parse(at) - Date.parse(started.at)) / 1000).toFixed(1)
+        : null;
+      return [
+        {
+          at,
+          level: 'success',
+          message: `Saved to ${next.filePath ?? '(unknown path)'}${
+            next.fileSize != null ? ` (${formatBytes(next.fileSize)})` : ''
+          }`,
+        },
+        {
+          at,
+          level: 'success',
+          message: `Download finished${seconds ? ` in ${seconds}s` : ''}`,
+        },
+      ];
+    }
+    case 'failed': {
+      const info = mapArticleError(next.errorMessage);
+      const entries: ArticleLogEntry[] = [
+        {
+          at,
+          level: 'error',
+          message: `ERROR [${info.code}]: ${info.title} — ${info.hint}`,
+        },
+      ];
+      if (next.errorMessage)
+        entries.push({
+          at,
+          level: 'error',
+          message: `Details: ${next.errorMessage}`,
+        });
+      return entries;
+    }
+    case 'for_download':
+      return prev.status === 'failed'
+        ? [{ at, level: 'info', message: 'Reset for retry' }]
+        : [];
+  }
+};
+
 export const useArticleDownloadStore = create<ArticleDownloadStore>()(
   persist(
     (set) => ({
       articleDownloads: [],
 
+      // No URL dedupe on purpose: pasting the same article again adds another
+      // row. The old "already pending" guard dropped the paste silently while
+      // the taskbar input cleared, so it looked like nothing happened.
       addArticleDownload: (id, url) =>
         set((state) => {
-          const alreadyPending = state.articleDownloads.some(
-            (d) => d.url === url && d.status !== 'finished',
-          );
-          if (alreadyPending) return state;
           return {
             articleDownloads: [
               {
@@ -151,10 +261,32 @@ export const useArticleDownloadStore = create<ArticleDownloadStore>()(
           return { articleDownloads: [...newItems, ...state.articleDownloads] };
         }),
 
+      // Status changes are logged here rather than in each download path:
+      // there are several copies of the download pipeline (row button, context
+      // menu, bulk download), and all of them report through this action.
       updateArticleDownload: (id, patch) =>
         set((state) => ({
+          articleDownloads: state.articleDownloads.map((d) => {
+            if (d.id !== id) return d;
+            const next = { ...d, ...patch };
+            const entries = describeStatusChange(d, next);
+            return entries.length > 0
+              ? { ...next, log: withLogEntries(d.log, entries) }
+              : next;
+          }),
+        })),
+
+      appendArticleLog: (id, level, message) =>
+        set((state) => ({
           articleDownloads: state.articleDownloads.map((d) =>
-            d.id === id ? { ...d, ...patch } : d,
+            d.id === id
+              ? {
+                  ...d,
+                  log: withLogEntries(d.log, [
+                    { at: new Date().toISOString(), level, message },
+                  ]),
+                }
+              : d,
           ),
         })),
 

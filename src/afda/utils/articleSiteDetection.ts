@@ -153,6 +153,12 @@ export const ARTICLE_SITE_DOMAINS = [
   'excelsior.com.mx',
   'eltiempo.com',
 
+  // ── Blog platforms ────────────────────────────────────────────────────────
+  // Subdomains (writer.substack.com, name.medium.com) match via isArticleSiteUrl.
+  // Publications on their own domains are not covered.
+  'medium.com',
+  'substack.com',
+
   // ── Technology ────────────────────────────────────────────────────────────
   'techcrunch.com',
   'theverge.com',

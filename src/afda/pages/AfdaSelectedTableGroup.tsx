@@ -20,6 +20,12 @@ import {
   generateArticleHtml,
   normalizeArticleRow,
 } from '@/afda/utils/articleDocxGenerator';
+import {
+  failArticleDownload,
+  logArticleFetched,
+  logArticleStep,
+  saveArticleFile,
+} from '@/afda/utils/downloadArticle';
 import { getFaviconUrl } from '@/afda/utils/faviconUrl';
 import { Play } from '@/assets/icon';
 import { Button } from '@/core-app/components/shadcn/components/ui/button';
@@ -414,10 +420,15 @@ const AfdaSelectedTableGroup: React.FC = () => {
           }
           articleModel = result;
         }
+        logArticleFetched(d.id, articleModel);
         const currentFormat = d.format ?? 'docx';
         const { downloadFolder, filename } = await resolveDownloadDestination(
           articleModel.article_title,
           d.DateAdded,
+        );
+        logArticleStep(
+          d.id,
+          `Generating ${currentFormat.toUpperCase()} in ${downloadFolder}`,
         );
         let buffer: number[];
         let ext: string;
@@ -434,17 +445,12 @@ const AfdaSelectedTableGroup: React.FC = () => {
           buffer = Array.from(bytes);
           ext = 'docx';
         }
-        const filePath = await window.downlodrFunctions.joinDownloadPath(
+        const filePath = await saveArticleFile(
           downloadFolder,
-          `${filename}.${ext}`,
-        );
-        const saveResult = await window.downlodrFunctions.saveBufferToFile(
+          filename,
+          ext,
           buffer,
-          filePath,
         );
-        if (!saveResult.success) {
-          throw new Error(saveResult.error ?? 'Failed to save file');
-        }
         const fileSize =
           (await window.downlodrFunctions.getFileSize(filePath)) ?? 0;
         updateArticleDownload(d.id, {
@@ -457,10 +463,7 @@ const AfdaSelectedTableGroup: React.FC = () => {
             articleModel.article_images?.[0]?.url ?? d.thumbnailDataUrl ?? null,
         });
       } catch (err) {
-        updateArticleDownload(d.id, {
-          status: 'for_download',
-          errorMessage: err instanceof Error ? err.message : 'Download failed',
-        });
+        failArticleDownload(d.id, err);
       }
     },
     [
@@ -563,10 +566,15 @@ const AfdaSelectedTableGroup: React.FC = () => {
           articleModel = result;
         }
 
+        logArticleFetched(d.id, articleModel);
         const currentFormat = d.format ?? 'docx';
         const { downloadFolder, filename } = await resolveDownloadDestination(
           articleModel.article_title,
           d.DateAdded,
+        );
+        logArticleStep(
+          d.id,
+          `Generating ${currentFormat.toUpperCase()} in ${downloadFolder}`,
         );
 
         let buffer: number[];
@@ -586,17 +594,12 @@ const AfdaSelectedTableGroup: React.FC = () => {
           ext = 'docx';
         }
 
-        const filePath = await window.downlodrFunctions.joinDownloadPath(
+        const filePath = await saveArticleFile(
           downloadFolder,
-          `${filename}.${ext}`,
-        );
-        const saveResult = await window.downlodrFunctions.saveBufferToFile(
+          filename,
+          ext,
           buffer,
-          filePath,
         );
-        if (!saveResult.success) {
-          throw new Error(saveResult.error ?? 'Failed to save file');
-        }
 
         const fileSize =
           (await window.downlodrFunctions.getFileSize(filePath)) ?? 0;
@@ -611,10 +614,7 @@ const AfdaSelectedTableGroup: React.FC = () => {
             articleModel.article_images?.[0]?.url ?? d.thumbnailDataUrl ?? null,
         });
       } catch (err) {
-        updateArticleDownload(d.id, {
-          status: 'for_download',
-          errorMessage: err instanceof Error ? err.message : 'Download failed',
-        });
+        failArticleDownload(d.id, err);
       }
     }
   }, [
@@ -1023,6 +1023,7 @@ const AfdaSelectedTableGroup: React.FC = () => {
                 onRemove={handleContextRemove}
                 onRetry={handleRetry}
                 onDownload={handleContextDownload}
+                onShowLog={sidePanels.openLog}
                 onToggleFavorite={handleToggleFavorite}
                 isFavorited={!!activeContextArticle.favorited}
                 onAddTag={(articleId, tag) => addArticleTag(articleId, tag)}

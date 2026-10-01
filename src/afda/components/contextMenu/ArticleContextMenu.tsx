@@ -6,6 +6,7 @@ import { BsArrowCounterclockwise } from 'react-icons/bs';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import { GoPlus } from 'react-icons/go';
 import { IoMdDownload } from 'react-icons/io';
+import { IoCodeSlashSharp } from 'react-icons/io5';
 import { LiaTagsSolid } from 'react-icons/lia';
 import { LuEye, LuExternalLink, LuFolderOpen, LuTrash } from 'react-icons/lu';
 
@@ -19,6 +20,8 @@ interface ArticleContextMenuProps {
   onRemove: (articleId: string) => void;
   onRetry: (articleId: string) => void;
   onDownload: (articleId: string) => void;
+  /** Opens the log side panel; the option is hidden where no panel exists. */
+  onShowLog?: (articleId: string) => void;
   onToggleFavorite: (articleId: string) => void;
   isFavorited: boolean;
   onAddTag: (articleId: string, tag: string) => void;
@@ -41,6 +44,7 @@ const ArticleContextMenu: React.FC<ArticleContextMenuProps> = ({
   onRemove,
   onRetry,
   onDownload,
+  onShowLog,
   onToggleFavorite,
   isFavorited,
   onAddTag,
@@ -284,6 +288,17 @@ const ArticleContextMenu: React.FC<ArticleContextMenuProps> = ({
       />
     );
 
+    const showLogOption = onShowLog ? (
+      <ContextMenuItem
+        icon={<IoCodeSlashSharp size={16} />}
+        label="Show Log"
+        onClick={() => {
+          onShowLog(article.id);
+          onClose();
+        }}
+      />
+    ) : null;
+
     if (article.status === 'finished') {
       return (
         <>
@@ -294,6 +309,7 @@ const ArticleContextMenu: React.FC<ArticleContextMenuProps> = ({
           {favoritesOption}
           {tagsOption}
           {categoriesOption}
+          {showLogOption}
         </>
       );
     }
@@ -304,6 +320,7 @@ const ArticleContextMenu: React.FC<ArticleContextMenuProps> = ({
           {removeOption}
           {retryOption}
           {openInBrowserOption}
+          {showLogOption}
         </>
       );
     }
@@ -314,12 +331,18 @@ const ArticleContextMenu: React.FC<ArticleContextMenuProps> = ({
           {removeOption}
           {downloadOption}
           {openInBrowserOption}
+          {showLogOption}
         </>
       );
     }
 
     // loading
-    return <>{removeOption}</>;
+    return (
+      <>
+        {removeOption}
+        {showLogOption}
+      </>
+    );
   };
 
   return (
