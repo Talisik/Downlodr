@@ -47,7 +47,7 @@ const NavItem: React.FC<NavItemProps> = ({
   label,
   icon,
   collapsed,
-  activeClass = 'bg-titleBar dark:bg-[#3D3D3D]',
+  activeClass = 'bg-[#E4E5E1] dark:bg-[#3D3D3D]',
   hoverClass = 'hover:bg-titleBar dark:hover:bg-[#474747]',
 }) => {
   const resolved = useResolvedPath(to);
@@ -91,7 +91,7 @@ const FilterNavItem: React.FC<FilterNavItemProps> = ({
     <button
       onClick={onSelect}
       className={`flex flex-nowrap items-center h-7 w-full rounded dark:text-gray-200 hover:bg-titleBar dark:hover:bg-darkModeCompliment${
-        isActive ? ' bg-titleBar dark:bg-[#3D3D3D]' : ''
+        isActive ? ' bg-[#E4E5E1] dark:bg-[#3D3D3D]' : ''
       }`}
     >
       <span className="flex items-center justify-center w-[46px] flex-shrink-0">

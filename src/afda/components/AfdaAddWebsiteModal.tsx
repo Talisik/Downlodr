@@ -1,4 +1,5 @@
 import BaseModal from '@/downlodr/components/modal/BaseModal';
+import { notifyScanInProgress } from '@/skedulosa/utils/notifyScanInProgress';
 import {
   getMissingAddonMessage,
   isMissingHandlerError,
@@ -391,6 +392,23 @@ const AfdaAddWebsiteModal = ({
       handleClose();
     }
   }, [analyzingStatus, handleClose]);
+
+  // Asked to open while a different scan is running (analysisStarted is only
+  // true for a scan this modal started): the modal can't show until that scan
+  // ends, and would otherwise pop up by itself later. Say why and back out.
+  // Only checked at the moment the modal is opened, against the status right
+  // then. Re-checking on every status change misfired at the end of this
+  // modal's own scan: 'done' comes before 'idle', and the done handler above
+  // has already cleared analysisStarted, so its own finishing scan looked
+  // like someone else's.
+  useEffect(() => {
+    if (!isOpen || analysisStarted.current) return;
+    if (useSkedulosaStore.getState().analyzingStatus !== 'idle') {
+      notifyScanInProgress();
+      handleClose();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // ── Auto-run mapper whenever the modal opens with a URL ────────────────────
 

@@ -190,7 +190,9 @@
     "youtubeMsg2": "Reading the channel's upload pattern",
     "youtubeMsg3": "Pulling upload history",
     "scanningChannelToast": "Scanning channel...",
-    "viewProgress": "View Progress"
+    "viewProgress": "View Progress",
+    "busyTitle": "A scan is already running",
+    "busyDesc": "Only one source can be scanned at a time. Wait for the current scan to finish, then add the next one."
   },
   "subscribeModal": {
     "title": "Subscribe to a source",
@@ -222,6 +224,10 @@
       "noVideosShorts": "No videos found on this channel's Videos tab. If it only posts Shorts, try adding \"/shorts\" to the URL (e.g. https://www.youtube.com/@channel/shorts).",
       "noVideos": "No videos found for this channel. Check the URL and try again.",
       "analyzeFailed": "Failed to analyze the channel. Please try again."
+    },
+    "shortsOnly": {
+      "title": "This channel only posts Shorts",
+      "description": "This channel only has short-form videos, which are not supported."
     },
     "channelInfo": {
       "channelType": "{{siteType}} Channel",

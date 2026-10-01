@@ -1,4 +1,5 @@
 import { ToggleGroup } from '@/core-app/components/shadcn/components/ui/toggle-group';
+import { useToast } from '@/core-app/components/shadcn/hooks/use-toast';
 import BaseModal from '@/downlodr/components/modal/BaseModal';
 import type {
   ScheduleDay,
@@ -52,6 +53,7 @@ const SkedulosaEditModal = ({
   subscriptionId,
 }: SkedulosaEditModalProps) => {
   const { t } = useTranslation('skedulosa');
+  const { toast } = useToast();
 
   const DAYS_OPTIONS = [
     { label: t('editModal.days.mon'), value: 'mon' },
@@ -78,6 +80,9 @@ const SkedulosaEditModal = ({
 
   const getSubscription = useSkedulosaStore((s) => s.getSubscription);
   const updateSubscription = useSkedulosaStore((s) => s.updateSubscription);
+  const subscriptionExists = useSkedulosaStore((s) =>
+    s.subscriptions.some((sub) => sub.id === subscriptionId),
+  );
 
   const [channelName, setChannelName] = useState('');
   const [channelUrl, setChannelUrl] = useState('');
@@ -198,14 +203,35 @@ const SkedulosaEditModal = ({
       }
 
       if (toolkitCalls.length > 0) {
-        await Promise.all(toolkitCalls).catch((err) =>
-          console.error('[SkedulosaEditModal] Toolkit update failed:', err),
-        );
+        try {
+          await Promise.all(toolkitCalls);
+        } catch (err) {
+          // Keep the modal open so the user can retry — the toolkit is what
+          // the scraper reads, so a silent failure here means the change
+          // never actually takes effect.
+          console.error('[SkedulosaEditModal] Toolkit update failed:', err);
+          toast({
+            variant: 'destructive',
+            title: t('settingsTab.toast.failed'),
+            description: t('settingsTab.toast.failedDesc'),
+            duration: 5000,
+          });
+          return;
+        }
       }
     }
 
+    toast({
+      title: t('settingsTab.toast.saved'),
+      description: t('settingsTab.toast.savedDesc'),
+      duration: 5000,
+    });
     onClose();
   };
+
+  // Unknown id (e.g. an AFDA website id routed here by mistake): the seed effect
+  // bails, so rendering would show a blank form that looks like wiped details.
+  if (!subscriptionExists) return null;
 
   return (
     <BaseModal

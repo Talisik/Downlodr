@@ -10,6 +10,7 @@
  */
 import { useSettingStore } from '@/core-app/store/settingsStore';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
+import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
 import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
 import { useEffect, useRef } from 'react';
 
@@ -68,6 +69,10 @@ export function useSkedulosaDownloadBridge() {
       const { settings } = useSettingStore.getState();
       const { setDownload } = useDownloadStore.getState();
       const { subscriptions } = useSkedulosaStore.getState();
+      // Follow the taskbar input's thumbnail choice, like manual and
+      // clipboard downloads. Transcripts stay off on purpose: a subscription
+      // run can queue dozens of videos, and transcribing each is too heavy.
+      const { getThumbnail } = useTaskbarDownloadStore.getState();
 
       const location = settings.defaultLocation;
       console.log(
@@ -200,7 +205,7 @@ export function useSkedulosaDownloadBridge() {
             limitRate,
             {
               getTranscript: false,
-              getThumbnail: true,
+              getThumbnail,
             },
             subscription?.id,
           );

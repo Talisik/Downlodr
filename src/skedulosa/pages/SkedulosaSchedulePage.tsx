@@ -18,7 +18,9 @@ import { HiChevronUpDown } from 'react-icons/hi2';
 import SkedulosaContextMenu, {
   type ContextMenuPosition,
 } from '@/skedulosa/components/SkedulosaContextMenu';
-import SkedulosaEditModal from '@/skedulosa/components/SkedulosaEditModal';
+import SubscriptionEditModal, {
+  type SubscriptionEditTarget,
+} from '@/skedulosa/components/SubscriptionEditModal';
 import SkedulosaSubscribeModal from '@/skedulosa/components/SkedulosaSubscribeModal';
 import {
   formatNextRun,
@@ -116,7 +118,8 @@ const SkedulosaSchedulePage = () => {
     channelId: string;
     category: string;
   } | null>(null);
-  const [editModalId, setEditModalId] = useState<string | null>(null);
+  const [editTarget, setEditTarget] =
+    useState<SubscriptionEditTarget | null>(null);
   const [isSubscribeModalOpen, setIsSubscribeModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{
     channelId: string;
@@ -708,17 +711,21 @@ const SkedulosaSchedulePage = () => {
           position={contextMenu.position}
           subscriptionId={contextMenu.channelId}
           category={contextMenu.category}
-          onEdit={() => setEditModalId(contextMenu.channelId)}
+          onEdit={() =>
+            setEditTarget({
+              id: contextMenu.channelId,
+              category: contextMenu.category,
+            })
+          }
           onDelete={() => handleDelete(contextMenu.channelId, contextMenu.category)}
           onClose={() => setContextMenu(null)}
         />
       )}
 
-      {editModalId && (
-        <SkedulosaEditModal
-          isOpen={true}
-          onClose={() => setEditModalId(null)}
-          subscriptionId={editModalId}
+      {editTarget && (
+        <SubscriptionEditModal
+          target={editTarget}
+          onClose={() => setEditTarget(null)}
         />
       )}
 

@@ -9,6 +9,11 @@ import {
 } from '@/core-app/utils/missingAddonError';
 import { useSettingStore } from '@/core-app/store/settingsStore';
 import BaseModal from '@/downlodr/components/modal/BaseModal';
+import { notifyScanInProgress } from '@/skedulosa/utils/notifyScanInProgress';
+import {
+  isNoVideosTabError,
+  notifyShortsOnlyChannel,
+} from '@/skedulosa/utils/shortsChannel';
 import {
   useSkedulosaStore,
   type ScheduleDay,
@@ -17,6 +22,10 @@ import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
 import { useSubscriptionQueue } from '@/skedulosa/context/SubscriptionQueueContext';
 import type { QueuedSubscriptionData } from '@/skedulosa/types/subscriptionQueue';
 import { generateDummySubscription } from '@/skedulosa/utils/generateDummySubscription';
+import {
+  isSameChannelUrl,
+  YOUTUBE_CHANNEL_TAB_SUFFIXES,
+} from '@/skedulosa/utils/channelUrl';
 import {
   Tooltip,
   TooltipContent,
@@ -40,15 +49,6 @@ const isYouTubeUrl = (url: string): boolean =>
       return false;
     }
   });
-
-const YOUTUBE_CHANNEL_TAB_SUFFIXES = [
-  '/featured',
-  '/videos',
-  '/streams',
-  '/playlists',
-  '/community',
-  '/about',
-];
 
 /** Strips a trailing channel-tab segment (e.g. /featured) so we're left with the canonical channel URL. */
 const stripYouTubeChannelTab = (url: string): string => {
@@ -671,8 +671,8 @@ const SkedulosaSubscribeModal = ({
       return;
     }
     // Check for duplicate subscription
-    const isDuplicate = existingSubscriptions.some(
-      (sub) => sub.sourceUrl.trim().toLowerCase() === url.toLowerCase(),
+    const isDuplicate = existingSubscriptions.some((sub) =>
+      isSameChannelUrl(sub.sourceUrl, url),
     );
     if (isDuplicate) {
       setUrlError(t('subscribeModal.errors.alreadySubscribed'));
@@ -742,7 +742,16 @@ const SkedulosaSubscribeModal = ({
           url,
         )) as ChannelAnalysisResult;
         if (analysisGeneration.current !== gen) return;
-        if (result.error) {
+        const isShortsCandidate =
+          url.toLowerCase().includes('youtube') && !url.includes('/shorts');
+        if (result.error && isShortsCandidate && isNoVideosTabError(result.error)) {
+          // Shorts-only channel: say so, instead of the generic "could not
+          // analyze" error toast.
+          setChannelAnalysis(result);
+          setIsValidUrl(false);
+          notifyShortsOnlyChannel();
+          setUrlError(t('subscribeModal.errors.noVideosShorts'));
+        } else if (result.error) {
           setChannelAnalysis(result);
           setIsValidUrl(false);
           showSkedulosaError(result.error);
@@ -750,8 +759,7 @@ const SkedulosaSubscribeModal = ({
         } else if (result.videoCount === 0) {
           setChannelAnalysis(result);
           setIsValidUrl(false);
-          const isShortsCandidate =
-            url.toLowerCase().includes('youtube') && !url.includes('/shorts');
+          if (isShortsCandidate) notifyShortsOnlyChannel();
           setUrlError(
             isShortsCandidate
               ? t('subscribeModal.errors.noVideosShorts')
@@ -777,6 +785,13 @@ const SkedulosaSubscribeModal = ({
         if (isMissingHandlerError(rawMessage)) {
           openAddonManager('skedulosa');
           setUrlError(getMissingAddonMessage('skedulosa'));
+        } else if (
+          isNoVideosTabError(rawMessage) &&
+          url.toLowerCase().includes('youtube') &&
+          !url.includes('/shorts')
+        ) {
+          notifyShortsOnlyChannel();
+          setUrlError(t('subscribeModal.errors.noVideosShorts'));
         } else {
           setUrlError(
             err instanceof Error
@@ -807,6 +822,24 @@ const SkedulosaSubscribeModal = ({
       handleClose();
     }
   }, [analyzingStatus]);
+
+  // Asked to open while a different scan is running (analysisStarted is only
+  // true for a scan this modal started): the modal can't show until that scan
+  // ends, and would otherwise pop up by itself later. Say why and back out.
+  // handleClose is declared further down, so it stays out of the deps like
+  // the effect above.
+  // Only checked at the moment the modal is opened, against the status right
+  // then. Re-checking on every status change misfired at the end of this
+  // modal's own scan: 'done' comes before 'idle', and the done handler above
+  // has already cleared analysisStarted, so its own finishing scan looked
+  // like someone else's.
+  useEffect(() => {
+    if (!isOpen || analysisStarted.current) return;
+    if (useSkedulosaStore.getState().analyzingStatus !== 'idle') {
+      notifyScanInProgress();
+      handleClose();
+    }
+  }, [isOpen]);
 
   // Reset auto-subscribe guard each time the modal opens
   useEffect(() => {
