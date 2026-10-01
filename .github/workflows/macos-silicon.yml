@@ -1,6 +1,7 @@
 name: macOS Apple Silicon Build
 
-# Standalone Apple Silicon build for the merged feat/bulk-category-macos line.
+# Standalone Apple Silicon build for the fix/bug-fix branch (the merged
+# feat/bulk-category-macos line plus the QA fixes).
 #
 # Deliberately separate from macos-build.yml, which is left byte-identical to
 # feature/macos-build-stable so the established pipeline is untouched. This one
@@ -25,7 +26,7 @@ on:
   # default branch. The push trigger sidesteps that entirely.
   push:
     branches:
-      - feat/bulk-category-macos
+      - fix/bug-fix
   workflow_dispatch:
 
 permissions:
