@@ -27,6 +27,17 @@ export const cleanRawLink = (url: string): string => {
   return url;
 };
 
+/**
+ * True for a YouTube channel page (@handle, /c/, /user/, /channel/, with or
+ * without a tab like /videos). yt-dlp can't download these as one video, so
+ * callers route them to Subscriptions instead of the download queue. Same
+ * pattern the taskbar input uses, plus the m. mobile host.
+ */
+export const isYouTubeChannelUrl = (url: string): boolean =>
+  /^https?:\/\/(?:www\.|m\.)?youtube\.com\/(?:@[\w.-]+|c\/[\w.-]+|user\/[\w.-]+|channel\/[\w-]+)(?:\/[^?]*)?(?:\?.*)?$/.test(
+    url,
+  );
+
 export const isYouTubeLink = (
   url: string,
 ): 'playlist' | 'video' | 'invalid' => {

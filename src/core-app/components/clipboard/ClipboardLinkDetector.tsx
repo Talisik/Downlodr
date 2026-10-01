@@ -1,11 +1,14 @@
 import { useToast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { useSettingStore } from '@/core-app/store/settingsStore';
+import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import {
   cleanRawLink,
   extractUrlFromText,
 } from '@/core-app/utils/urlValidation';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { getClipboardDownloadOptions } from './clipboardDownloadOptions';
+import { clipboardLinkRoute } from './clipboardLinkRoute';
 
 /**
  * ClipboardLinkDetector component
@@ -17,11 +20,6 @@ const ClipboardLinkDetector: React.FC = () => {
   const { toast } = useToast();
   const { setDownload } = useDownloadStore();
   const { settings, isDownloadModalOpen } = useSettingStore();
-  const [downloadFolder] = useState<string>(settings.defaultLocation);
-  const maxDownload =
-    settings.defaultDownloadSpeed === 0
-      ? ''
-      : `${settings.defaultDownloadSpeed}${settings.defaultDownloadSpeedBit}`;
 
   // Processing state management
   const isProcessing = useRef<boolean>(false);
@@ -87,11 +85,43 @@ const ClipboardLinkDetector: React.FC = () => {
             const cleanedUrl = cleanRawLink(url);
             url = cleanedUrl;
           }
-          // Trigger download
-          setDownload(url, downloadFolder, maxDownload, {
-            getTranscript: false,
-            getThumbnail: true,
-          });
+          // Run the same checks as the taskbar input before queuing anything.
+          const route = clipboardLinkRoute(url);
+          // A channel page isn't one video — yt-dlp would try to pull the
+          // whole channel. Point to Subscriptions instead, like the input bar.
+          if (route === 'channel') {
+            toast({
+              title: 'Channel Link Detected',
+              description:
+                "Channel links can't be downloaded as a single video. Subscribe to the channel from Subscriptions instead.",
+              duration: 5000,
+            });
+            return;
+          }
+          // Article sites go to the article list, the way the input bar
+          // handles them, not down the video path.
+          if (route === 'article') {
+            useArticleDownloadStore
+              .getState()
+              .addArticleDownload(crypto.randomUUID(), url.trim());
+            toast({
+              title: 'Copied Article Detected',
+              description: (
+                <div className="max-w-xs">
+                  <div className="truncate text-sm">{url}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Article will be added to the download list
+                  </div>
+                </div>
+              ),
+              duration: 5000,
+              variant: 'default',
+            });
+            return;
+          }
+          // Trigger download with the input's current choices
+          const { folder, limitRate, options } = getClipboardDownloadOptions();
+          setDownload(url, folder, limitRate, options);
 
           // Show toast notification
           toast({
@@ -118,8 +148,6 @@ const ClipboardLinkDetector: React.FC = () => {
       settings.enableClipboardMonitoring,
       isDownloadModalOpen,
       setDownload,
-      downloadFolder,
-      maxDownload,
       toast,
       isWindowFocused, // Use cached state instead of function
     ],
