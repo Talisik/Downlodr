@@ -52,7 +52,7 @@ const GlobalScanningModal = () => {
           <ToastAction
             altText="View Progress"
             onClick={() => setAnalyzingDismissed(false)}
-            className="shrink-0 rounded-md px-3 py-4 text-sm font-medium text-white bg-white/20 hover:bg-white/30 border-0 ring-0 focus:ring-0"
+            className="shrink-0 h-4 rounded-md px-3 py-4 text-sm font-medium text-white bg-white/20 hover:bg-white/30 border-0 ring-0 focus:ring-0"
           >
             {t('scanningModal.viewProgress')}
           </ToastAction>

@@ -27,6 +27,15 @@ function ToastIcon({ variant }: { variant?: string }) {
   }
 }
 
+// Radix pauses every toast's timer while focus is inside the toast viewport,
+// and when a focused toast closes (its X was clicked) it moves focus onto the
+// viewport itself — so with toasts stacked, the rest never time out until the
+// user clicks elsewhere. Drop that focus once the toast has closed.
+function releaseViewportFocus() {
+  const active = document.activeElement as HTMLElement | null;
+  if (active?.closest('[data-toast-viewport]')) active.blur();
+}
+
 function AnimatedToast({ children }: { children: React.ReactNode }) {
   const { toastRef } = useToastAnimation();
 
@@ -44,11 +53,19 @@ export function Toaster() {
         description,
         action,
         variant,
+        onOpenChange,
         ...props
       }) {
         return (
           <AnimatedToast key={id}>
-            <Toast variant={variant} {...props}>
+            <Toast
+              variant={variant}
+              {...props}
+              onOpenChange={(open) => {
+                onOpenChange?.(open);
+                if (!open) releaseViewportFocus();
+              }}
+            >
               <ToastIcon variant={variant} />
               <div className="flex-1 min-w-0">
                 {title && (
@@ -61,8 +78,13 @@ export function Toaster() {
                     {description}
                   </ToastDescription>
                 )}
+                {/* Actions sit under the text, right-aligned — except on
+                    progress toasts, which keep theirs beside the title. */}
+                {action && variant !== 'progress' && (
+                  <div className="mt-2 flex justify-end">{action}</div>
+                )}
               </div>
-              {action}
+              {variant === 'progress' && action}
               <ToastClose />
             </Toast>
           </AnimatedToast>

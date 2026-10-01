@@ -7,6 +7,8 @@ import type {
 } from '@/core-app/components/shadcn/components/ui/toast';
 
 const TOAST_LIMIT = 10;
+/** How many toasts of the same variant can stack before the oldest goes. */
+const MAX_TOASTS_PER_VARIANT = 2;
 const TOAST_REMOVE_DELAY = 1000000;
 
 const VARIANT_PRIORITY = {
@@ -87,9 +89,15 @@ export const reducer = (state: State, action: Action): State => {
     case 'ADD_TOAST': {
       const rawVariant = action.toast.variant ?? 'default';
       const incomingVariant = rawVariant as ToastVariant;
-      const filtered = state.toasts.filter(
-        (t) => (t.variant ?? 'default') !== incomingVariant,
-      );
+      // Up to MAX_TOASTS_PER_VARIANT of one type stay on screen; the oldest
+      // of that type goes when a new one arrives. Other types are untouched.
+      // state.toasts is newest-first within a type, so keep the first few.
+      let keptOfVariant = 0;
+      const filtered = state.toasts.filter((t) => {
+        if ((t.variant ?? 'default') !== incomingVariant) return true;
+        keptOfVariant += 1;
+        return keptOfVariant < MAX_TOASTS_PER_VARIANT;
+      });
       const merged = [action.toast, ...filtered];
       const sorted = merged.sort(
         (a, b) =>
