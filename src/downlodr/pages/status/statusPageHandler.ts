@@ -248,6 +248,8 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
         timeLeft: currentDownload.timeLeft ?? '',
         DateAdded: new Date().toISOString(),
         uploadDate: currentDownload.uploadDate,
+        nativeCategory: currentDownload.nativeCategory,
+        thumbnailUrl: currentDownload.thumbnailUrl,
         progress: 0,
         location: currentDownload.location ?? '',
         status: 'downloading',

@@ -82,6 +82,8 @@ async function queueForDownload(
     timeLeft: row.timeLeft ?? '',
     DateAdded: new Date().toISOString(),
     uploadDate: row.uploadDate,
+    nativeCategory: row.nativeCategory,
+    thumbnailUrl: row.thumbnailUrl,
     progress: 0,
     location: row.location ?? '',
     status: 'queued',
@@ -115,14 +117,14 @@ export function createDownloadActions(set: SetState, get: GetState) {
       if (!payload.location || !payload.downloadName) return;
       const {
         subscriptionId, videoUrl, name, downloadName, displayName, size, speed,
-        channelName, timeLeft, DateAdded, uploadDate, progress, location, status, ext,
+        channelName, timeLeft, DateAdded, uploadDate, nativeCategory, thumbnailUrl, progress, location, status, ext,
         formatId, audioExt, audioFormatId, extractorKey, limitRate,
         automaticCaption, thumbnails, getTranscript, getThumbnail, duration,
         isCreateFolder, tags, category, favorited,
       } = payload;
       get().addQueue({
         subscriptionId, videoUrl, name, downloadName, displayName, size, speed,
-        channelName, timeLeft, DateAdded, uploadDate, progress, location, status, ext,
+        channelName, timeLeft, DateAdded, uploadDate, nativeCategory, thumbnailUrl, progress, location, status, ext,
         formatId, audioExt, audioFormatId, extractorKey, limitRate,
         automaticCaption, thumbnails, getTranscript, getThumbnail, duration,
         isCreateFolder, tags, category, favorited,
@@ -160,7 +162,7 @@ export function createDownloadActions(set: SetState, get: GetState) {
       if (!payload.location || !payload.downloadName) return;
       const {
         videoUrl, name, downloadName, displayName, size, speed, channelName,
-        timeLeft, DateAdded, uploadDate, progress, location, status, ext, formatId,
+        timeLeft, DateAdded, uploadDate, nativeCategory, thumbnailUrl, progress, location, status, ext, formatId,
         audioExt, audioFormatId, extractorKey, limitRate, automaticCaption,
         thumbnails, getTranscript, getThumbnail, duration, isCreateFolder,
         tags, category, favorited,
@@ -178,7 +180,7 @@ export function createDownloadActions(set: SetState, get: GetState) {
 
       get().addQueue({
         videoUrl, name, downloadName, displayName, size, speed, channelName,
-        timeLeft, DateAdded, uploadDate, progress, location, status, ext, formatId,
+        timeLeft, DateAdded, uploadDate, nativeCategory, thumbnailUrl, progress, location, status, ext, formatId,
         audioExt, audioFormatId, extractorKey, limitRate, automaticCaption,
         thumbnails, getTranscript, getThumbnail, duration, isCreateFolder,
         tags, category, favorited,
@@ -348,6 +350,10 @@ export function createDownloadActions(set: SetState, get: GetState) {
                     isLive: info.data?.is_live || false,
                     elapsed: info.data?.elapsed ?? undefined,
                     uploadDate,
+                    thumbnailUrl:
+                      info.data?.thumbnail ||
+                      info.data?.thumbnails?.at(-1)?.url ||
+                      undefined,
                     location: location,
                     automaticCaption: caption,
                     thumbnails: thumbnail,

@@ -184,6 +184,9 @@ export interface AddDownload {
   duration: number;
   description?: string;
   chapters?: { start_time: number; end_time: number; title: string }[];
+  uploadDate?: string;
+  nativeCategory?: string;
+  thumbnailUrl?: string;
   autoCaptionLocation?: string;
   thumnailsLocation?: string;
   transcriptLocation?: string;

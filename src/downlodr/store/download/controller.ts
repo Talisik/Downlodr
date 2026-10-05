@@ -324,6 +324,8 @@ export class DownloadController {
           timeLeft: download.timeLeft,
           DateAdded: download.DateAdded,
           uploadDate: download.uploadDate,
+          nativeCategory: download.nativeCategory,
+          thumbnailUrl: download.thumbnailUrl,
           channelName: download.channelName,
           progress: download.progress,
           location: zustandLocation,

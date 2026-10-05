@@ -24,6 +24,8 @@ export interface AddDownloadPayload {
   timeLeft: string;
   DateAdded: string;
   uploadDate?: string;
+  nativeCategory?: string;
+  thumbnailUrl?: string;
   progress: number;
   location: string;
   status: string;
@@ -59,6 +61,8 @@ export interface RetryDownloadPayload {
   timeLeft: string;
   DateAdded: string;
   uploadDate?: string;
+  nativeCategory?: string;
+  thumbnailUrl?: string;
   progress: number;
   location: string;
   status: string;
@@ -122,6 +126,8 @@ export interface AddQueuePayload {
   timeLeft: string;
   DateAdded: string;
   uploadDate?: string;
+  nativeCategory?: string;
+  thumbnailUrl?: string;
   progress: number;
   location: string;
   status: string;

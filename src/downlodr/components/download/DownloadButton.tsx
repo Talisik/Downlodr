@@ -90,6 +90,8 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
       timeLeft: download.timeLeft ?? '',
       DateAdded: new Date().toISOString(),
       uploadDate: download.uploadDate,
+      nativeCategory: download.nativeCategory,
+      thumbnailUrl: download.thumbnailUrl,
       progress: download.progress ?? 0,
       location: download.location ?? download.location ?? '',
       status: 'queued',

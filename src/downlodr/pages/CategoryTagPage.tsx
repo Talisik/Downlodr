@@ -621,6 +621,8 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
         timeLeft: current.timeLeft ?? '',
         DateAdded: new Date().toISOString(),
         uploadDate: current.uploadDate,
+        nativeCategory: current.nativeCategory,
+        thumbnailUrl: current.thumbnailUrl,
         progress: 0,
         location: current.location ?? '',
         status: 'downloading',

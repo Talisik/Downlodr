@@ -104,6 +104,8 @@ export function createPauseResumeActions(get: GetState) {
       timeLeft: str(row.timeLeft),
       DateAdded: new Date().toISOString(),
       uploadDate: row.uploadDate as string | undefined,
+      nativeCategory: row.nativeCategory as string | undefined,
+      thumbnailUrl: row.thumbnailUrl as string | undefined,
       progress: (row.progress as number) ?? 0,
       location: str(row.location),
       status: 'downloading',

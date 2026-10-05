@@ -40,6 +40,7 @@ export interface BaseDownload {
   musicArtist?: string; // auto-tag: yt-dlp artist (music route)
   musicTrack?: string; // auto-tag: yt-dlp track (music route)
   musicAlbum?: string; // auto-tag: yt-dlp album (music route)
+  thumbnailUrl?: string; // Source thumbnail URL, kept even when getThumbnail is off (unlike `thumbnails`)
   category: string[]; // Categories associated with the download
   extractorKey: string; // Key for the extractor used
   formatId: string; // ID of the selected format

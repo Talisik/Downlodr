@@ -121,6 +121,36 @@ interface DownloadContextMenuProps {
   ) => void;
 }
 
+/**
+ * The yt-dlp fields the store kept when the download was added, handed to
+ * plugins so they have something to fall back on when a fresh metadata fetch
+ * fails (e.g. Metadata Exporter on a finished download). Only a subset of the
+ * info survives — channel ID, view counts, tags and the like are not stored.
+ */
+const buildDownloadTimeMetadata = (download?: BaseDownload) => {
+  if (!download) return undefined;
+  return {
+    title: download.displayName || download.name,
+    description: download.description,
+    channel: download.channelName,
+    duration: download.duration,
+    uploadDate: download.uploadDate,
+    categories: download.nativeCategory ? [download.nativeCategory] : [],
+    thumbnail:
+      download.thumbnailUrl ||
+      (typeof download.thumbnails === 'string' && download.thumbnails !== '—'
+        ? download.thumbnails
+        : undefined),
+    ext: download.ext,
+    extractorKey: download.extractorKey,
+    chapters: download.chapters,
+    musicArtist: download.musicArtist,
+    musicTrack: download.musicTrack,
+    musicAlbum: download.musicAlbum,
+    capturedAt: download.DateAdded,
+  };
+};
+
 const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   download,
   position,
@@ -481,6 +511,8 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       timeLeft: download.timeLeft ?? '',
       DateAdded: new Date().toISOString(),
       uploadDate: download.uploadDate,
+      nativeCategory: download.nativeCategory,
+      thumbnailUrl: download.thumbnailUrl,
       progress: download.progress ?? 0,
       location: download.location ?? download.location ?? '',
       status: 'queued',
@@ -857,6 +889,9 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                     ?.thumbnails,
                   automaticCaption: allDownloads.find((d) => d.id === download.id)
                     ?.automaticCaption,
+                  downloadTimeMetadata: buildDownloadTimeMetadata(
+                    allDownloads.find((d) => d.id === download.id),
+                  ),
                   osType: await window.downlodrFunctions.getOSType(),
                   seperatorType: window.downlodrFunctions.getPathSeparator(),
                 };
@@ -1152,6 +1187,9 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                     ?.thumbnails,
                   automaticCaption: allDownloads.find((d) => d.id === download.id)
                     ?.automaticCaption,
+                  downloadTimeMetadata: buildDownloadTimeMetadata(
+                    allDownloads.find((d) => d.id === download.id),
+                  ),
                 };
 
                 if (

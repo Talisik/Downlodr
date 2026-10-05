@@ -319,6 +319,8 @@ const TaskBar: React.FC<TaskBarProps> = ({ className }) => {
         timeLeft: downloadInfo.timeLeft ?? '',
         DateAdded: new Date().toISOString(),
         uploadDate: downloadInfo.uploadDate,
+        nativeCategory: downloadInfo.nativeCategory,
+        thumbnailUrl: downloadInfo.thumbnailUrl,
         progress: downloadInfo.progress ?? 0,
         location: downloadInfo.location ?? selectedDownload.location ?? '',
         status: 'queued',

@@ -570,6 +570,8 @@ const TaskbarInputField = () => {
         timeLeft: download.timeLeft ?? '',
         DateAdded: new Date().toISOString(),
         uploadDate: download.uploadDate,
+        nativeCategory: download.nativeCategory,
+        thumbnailUrl: download.thumbnailUrl,
         progress: 0,
         location: download.location ?? '',
         status: 'queued',
