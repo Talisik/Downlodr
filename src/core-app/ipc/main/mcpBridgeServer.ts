@@ -29,6 +29,11 @@ import {
   takeDetachedApproval,
 } from './detachedApproval';
 import { resolveCookiesForCall } from './cookieAuth/state';
+import {
+  cookieCliArgs,
+  hasCookies,
+  retryInfoWithoutCookies,
+} from './cookieFallback';
 import os from 'os';
 import { getUserDataPath, getAppVersion } from '../../utils/platformPaths';
 import { hydratePlaylistEntries } from './playlistEntryMetadata';
@@ -923,10 +928,29 @@ async function handleRequest(
       // noPlaylist: same reason as the ytdlp:info handler — /downloads/playlist
       // is the container endpoint, so this one must stay a single-video lookup
       // or --dump-json's per-entry output breaks getInfo's JSON.parse.
-      const info = await YTDLP.getInfo(videoUrl, {
-        ...(await resolveCookiesForCall(videoUrl)),
+      const cookies = await resolveCookiesForCall(videoUrl);
+      let info = await YTDLP.getInfo(videoUrl, {
+        ...cookies,
         noPlaylist: true,
       });
+      // Same recovery as the ytdlp:info handler — see cookieFallback.ts.
+      if (!info?.ok && hasCookies(cookies)) {
+        const diagnostic = await YTDLP.invoke({
+          args: [
+            '--no-warnings',
+            '--simulate',
+            ...cookieCliArgs(cookies),
+            videoUrl,
+          ],
+        }).catch(() => null);
+        info =
+          (await retryInfoWithoutCookies({
+            cookies,
+            diagnosticLog: diagnostic?.data,
+            retry: (noCookies) =>
+              YTDLP.getInfo(videoUrl, { ...noCookies, noPlaylist: true }),
+          })) ?? info;
+      }
       // A bare `{ ok: false }` told the caller nothing — getInfo has no error
       // field, so yt-dlp's own reason never arrives — and an agent handed it
       // guessed at the cause out loud. Say what can actually be said.

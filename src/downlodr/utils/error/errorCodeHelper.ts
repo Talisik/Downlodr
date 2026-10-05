@@ -775,12 +775,13 @@ const ERROR_CODE_MAP: Record<string, ErrorCodeInfo> = {
     code: 'EXTRACTION_BLOCKED_RELOAD',
     title: 'YouTube Is Blocking This Video',
     description:
-      "YouTube's \"PO token\" anti-bot requirement is currently blocking extraction for this video — a known, ongoing yt-dlp limitation, not an authentication problem. Signing in does not fix this.",
+      'YouTube refused to return this video. If signed-in browser cookies were in use, Downlodr already retried without them.',
     category: 'ytdlp',
     severity: 'medium',
     canRetry: true,
     suggestions: [
       'Try again later',
+      'Set Advanced Settings → Authentication to None and retry',
       'Check for a newer yt-dlp release',
     ],
   },
@@ -856,10 +857,11 @@ export function parseErrorCodeFromLog(
   ) {
     return 'age_restricted';
   }
-  // YouTube's "PO token" anti-bot requirement — an ongoing, unresolved
-  // arms race between yt-dlp and YouTube, unrelated to cookies or
-  // authentication. Distinct from youtube_bot_detection below: that one is
-  // fixed by a different network; this one currently has no user-side fix.
+  // YouTube rejecting a signed-in session: with account cookies yt-dlp only
+  // uses clients that need a JS runtime, which Downlodr doesn't ship. The
+  // main process retries without cookies (cookieFallback.ts), so this only
+  // surfaces when that retry failed too. Distinct from youtube_bot_detection
+  // below, which is fixed by a different network.
   if (logMessage.includes('The page needs to be reloaded')) {
     return 'extraction_blocked_reload';
   }

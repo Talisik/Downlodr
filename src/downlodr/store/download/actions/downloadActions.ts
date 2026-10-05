@@ -548,13 +548,14 @@ export function createDownloadActions(set: SetState, get: GetState) {
               duration: 8000,
             });
           } else if (isExtractionBlocked) {
-            // A known, ongoing yt-dlp-vs-YouTube extraction limitation — not
-            // an authentication problem, so no cookie setup fixes it.
+            // YouTube refused the video. When signed-in cookies were the
+            // cause, the main process already retried without them (see
+            // cookieFallback.ts), so only the cookie-independent case lands here.
             toast({
               variant: 'destructive',
               title: 'YouTube Is Blocking This Video',
               description:
-                "This is a known yt-dlp limitation, not an account issue. Try again later, or check for a yt-dlp update.",
+                'YouTube refused to return this video. Try again later, or check for a yt-dlp update.',
               duration: 8000,
             });
           } else if (isBlockedBySite) {

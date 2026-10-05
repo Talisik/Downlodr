@@ -7,6 +7,15 @@ import * as YTDLP from 'yt-dlp-helper';
 import { DownloadOptions } from '../../../downlodr/schema/ytdlpSchema';
 import { resolveCookiesForCall } from './cookieAuth/state';
 import {
+  cookieCliArgs,
+  hasCookies,
+  isCookieSessionRejected,
+  NO_COOKIES,
+  retryInfoWithoutCookies,
+  shouldRetryDownloadWithoutCookies,
+  type CookieOptions,
+} from './cookieFallback';
+import {
   canMakeGitHubApiCall,
   getCachedVersion,
   getGitHubApiCooldownRemainingSeconds,
@@ -471,10 +480,11 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   async function fetchInfoOnce(url: string, allowDiagnostic = true) {
     try {
       await paceHost(url);
+      const cookies = await resolveCookiesForCall(url);
       const info = await YTDLP.getInfo(
         url,
         {
-          ...(await resolveCookiesForCall(url)),
+          ...cookies,
           noPlaylist: true,
         },
         ytdlpPath,
@@ -493,11 +503,29 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
           );
         }
         await paceHost(url);
+        // Same cookies as the lookup above: a cookie-less diagnostic can pass
+        // where the real call failed, and then misreports why.
         const diagnostic = await YTDLP.invoke({
-          args: ['--no-warnings', '--simulate', url],
+          args: ['--no-warnings', '--simulate', ...cookieCliArgs(cookies), url],
           ytdlpDownloadDestination: ytdlpPath,
         }).catch(() => null);
         if (diagnostic?.data) noteTransient(url, diagnostic.data);
+        const withoutCookies = await retryInfoWithoutCookies({
+          cookies,
+          diagnosticLog: diagnostic?.data,
+          retry: async (noCookies) => {
+            console.log(
+              `[ytdlp] ytdlp:info: YouTube rejected the signed-in session; retrying without cookies`,
+            );
+            await paceHost(url);
+            return YTDLP.getInfo(
+              url,
+              { ...noCookies, noPlaylist: true },
+              ytdlpPath,
+            );
+          },
+        });
+        if (withoutCookies) return withoutCookies;
         if (diagnostic?.data && /Unsupported URL/i.test(diagnostic.data)) {
           throw new Error(
             'UNSUPPORTED_SITE: This website is not supported by yt-dlp, the tool Downlodr uses to fetch videos.',
@@ -521,11 +549,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
           ) ||
             /Sign in to confirm your age/i.test(diagnostic.data))
         ) {
-          const resolved = await resolveCookiesForCall(url);
-          const cookiesConfigured = Boolean(
-            resolved.cookiesFromBrowser || resolved.cookies,
-          );
-          if (cookiesConfigured) {
+          if (hasCookies(cookies)) {
             throw new Error(
               "AGE_RESTRICTED_UNVERIFIED: This video is age-restricted, and the signed-in Google account hasn't completed age verification. Verify your age at myaccount.google.com, or try a different signed-in browser.",
             );
@@ -534,9 +558,11 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
             'AGE_RESTRICTED: This video is age-restricted. Sign in to YouTube in Firefox or Brave, then enable it under Advanced Settings → Authentication.',
           );
         }
-        if (diagnostic?.data && /page needs to be reloaded/i.test(diagnostic.data)) {
+        // Reached only when the cookie-less retry above also failed, or no
+        // cookies were sent in the first place.
+        if (diagnostic?.data && isCookieSessionRejected(diagnostic.data)) {
           throw new Error(
-            'EXTRACTION_BLOCKED: YouTube is currently blocking this video from being extracted (a known, ongoing yt-dlp limitation, not fixed by signing in). Try again later, or check for a yt-dlp update.',
+            'EXTRACTION_BLOCKED: YouTube refused to return this video. Try again later, or check for a yt-dlp update.',
           );
         }
         // The site refused the request itself (Cloudflare challenge, CAPTCHA,
@@ -1154,6 +1180,8 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   type DownloadAttemptResult = {
     retry: boolean;
     transient?: boolean;
+    /** Retry without cookies — see cookieFallback.ts. */
+    dropCookies?: boolean;
     succeeded?: boolean;
     value?: { downloadId: unknown; controllerId: string };
   };
@@ -1170,15 +1198,26 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
     const downloadKey = String(id);
     cancelledDownloadIds.delete(downloadKey);
     let lastValue: DownloadAttemptResult['value'];
+    let cookies = await resolveCookiesForCall(args.url);
     try {
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         await paceHost(args.url);
-        const result = await runDownloadAttempt(e, id, args, {
+        const result = await runDownloadAttempt(e, id, args, cookies, {
           canRetryTransient:
             isRetryable && attempt < maxAttempts && !isCircuitOpen(args.url),
           canRetryGeneric: attempt === 1 && attempt < maxAttempts,
         });
         lastValue = result.value ?? lastValue;
+        if (result.dropCookies) {
+          // A different request, not a repeat of the failed one, so it does
+          // not use up an attempt. Happens at most once: cookies are now off.
+          console.log(
+            `[ytdlp] ytdlp:download: YouTube rejected the signed-in session; retrying without cookies`,
+          );
+          cookies = NO_COOKIES;
+          attempt -= 1;
+          continue;
+        }
         if (!result.retry) {
           if (isRetryable && result.succeeded) noteExtractionSuccess(args.url);
           return result.value;
@@ -1211,6 +1250,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
     e: IpcMainInvokeEvent,
     id: unknown,
     args: DownloadRequestArgs,
+    cookies: CookieOptions,
     {
       canRetryTransient,
       canRetryGeneric,
@@ -1219,6 +1259,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
       canRetryGeneric: boolean;
     },
   ): Promise<DownloadAttemptResult> {
+    const canRetryWithoutCookies = hasCookies(cookies);
     let spawned: YTDLP.Terminal | null = null;
     try {
       const controller = await YTDLP.download({
@@ -1231,7 +1272,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
           audioFormat: args.audioExt,
           audioQuality: args.audioFormatId,
           limitRate: args.limitRate,
-          ...(await resolveCookiesForCall(args.url)),
+          ...cookies,
           noPlaylist: true,
         },
       });
@@ -1328,7 +1369,10 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
               });
             return;
           }
-          if (code !== 0 && (canRetryTransient || canRetryGeneric)) {
+          if (
+            code !== 0 &&
+            (canRetryTransient || canRetryGeneric || canRetryWithoutCookies)
+          ) {
             deferredCompletion = sendCompletion;
             return;
           }
@@ -1395,6 +1439,15 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
         const wasCancelled =
           cancelledControllerIds.has(controller.id) ||
           cancelledDownloadIds.has(String(id));
+        if (
+          shouldRetryDownloadWithoutCookies({
+            cookies,
+            log: completeLog,
+            cancelled: wasCancelled,
+          })
+        ) {
+          return { retry: true, dropCookies: true };
+        }
         const transient = isTransientErrorText(completeLog);
         const shouldRetry =
           !wasCancelled &&
