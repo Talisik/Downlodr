@@ -57,6 +57,7 @@
       "warning": "Os cookies dão ao Downlodr o mesmo acesso a um site que ter feito login. Não use uma conta que você lamentaria perder — sites realmente banem contas por downloads automatizados.",
       "liveTitle": "Cookies do navegador — Firefox / Brave",
       "liveDesc": "O Downlodr lê os cookies do seu navegador a cada download, então eles nunca ficam desatualizados. Você precisa estar conectado ao site nesse navegador. Funciona enquanto o navegador permanecer aberto.",
+      "braveKeychainNote": "O macOS pedirá sua senha de login quando o Downlodr ler os cookies do Brave (o aviso aparece como “security”). Escolha “Permitir sempre” para que ele não se repita.",
       "importTitle": "Cookies do navegador — Chrome / Edge (importação necessária)",
       "importDesc": "Chrome e Edge bloqueiam seu arquivo de cookies enquanto estão em execução, então o Downlodr precisa importar uma cópia. Faça login primeiro, feche completamente o navegador e clique em Importar — você pode reabri-lo depois e deixá-lo aberto. A cópia não se atualiza sozinha: quando os downloads começarem a falhar com erros de login, feche o navegador e clique em Importar novamente.",
       "importButton": "Importar",

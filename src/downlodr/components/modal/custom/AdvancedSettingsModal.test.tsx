@@ -67,3 +67,58 @@ describe('AdvancedSettingsModal — Recommended label on browser cookies', () =>
     ).toContain('advanced.cookieAuth.fileTitle');
   });
 });
+
+describe('AdvancedSettingsModal — Brave keychain note', () => {
+  const NOTE = 'advanced.cookieAuth.braveKeychainNote';
+
+  // IS_MAC is read once at module load, so each case re-imports the modal
+  // (and the store it reads) under the user agent it needs.
+  const renderOn = async (
+    userAgent: string,
+    mode: 'live' | 'none',
+    browser: string | null,
+  ) => {
+    vi.resetModules();
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(userAgent);
+    const { default: Modal } = await import(
+      '@/downlodr/components/modal/custom/AdvancedSettingsModal'
+    );
+    const { useSettingStore: store } = await import(
+      '@/core-app/store/settingsStore'
+    );
+    store.setState((s) => ({
+      settings: { ...s.settings, cookieAuthMode: mode, cookieAuthBrowser: browser },
+    }));
+    render(<Modal isOpen onClose={() => undefined} />);
+  };
+
+  const MAC = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)';
+  const WINDOWS = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)';
+
+  beforeEach(() => {
+    (window as unknown as { cookieAuthBridge: unknown }).cookieAuthBridge = {
+      getState: vi.fn().mockResolvedValue({ detected: [] }),
+      setMode: vi.fn().mockResolvedValue(undefined),
+      siteLogin: { list: vi.fn().mockResolvedValue([]) },
+    };
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  it('shows on macOS when Brave is the selected browser', async () => {
+    await renderOn(MAC, 'live', 'brave');
+    expect(screen.getByText(NOTE)).toBeTruthy();
+  });
+
+  it.each([
+    ['Firefox on macOS', MAC, 'live', 'firefox'],
+    ['Brave on Windows', WINDOWS, 'live', 'brave'],
+    ['browser cookies off', MAC, 'none', null],
+  ] as const)('stays hidden for %s', async (_case, ua, mode, browser) => {
+    await renderOn(ua, mode, browser);
+    expect(screen.queryByText(NOTE)).toBeNull();
+  });
+});

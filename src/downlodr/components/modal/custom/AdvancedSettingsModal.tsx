@@ -62,6 +62,9 @@ const LIVE_BROWSER_LABELS: Record<string, string> = {
   brave: 'Brave',
 };
 
+// Only macOS gates a Chromium browser's cookie key behind the keychain.
+const IS_MAC = navigator.userAgent.includes('Macintosh');
+
 const IMPORT_BROWSER_LABELS: Record<string, string> = {
   chrome: 'Chrome',
   edge: 'Edge',
@@ -403,6 +406,13 @@ const AdvancedSettingsModal: React.FC<AdvancedSettingsModalProps> = ({
               <div className={AUTH_DESC}>
                 {t('advanced.cookieAuth.liveDesc')}
               </div>
+              {IS_MAC &&
+                cookieAuthMode === 'live' &&
+                cookieAuthBrowser === 'brave' && (
+                  <div className="ml-6 mt-1 text-xs text-amber-700 dark:text-amber-400">
+                    {t('advanced.cookieAuth.braveKeychainNote')}
+                  </div>
+                )}
               {cookieAuthMode === 'live' && (
                 <div className="ml-6 mt-2 flex flex-wrap gap-2">
                   {liveBrowsers.map((b) => (

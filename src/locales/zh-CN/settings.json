@@ -57,6 +57,7 @@
       "warning": "使用 Cookie 后，Downlodr 将获得与登录该网站相同的访问权限。请勿使用不能承受丢失风险的账号 — 部分网站确实会因自动化下载而封禁账号。",
       "liveTitle": "浏览器 Cookie — Firefox / Brave",
       "liveDesc": "Downlodr 会在每次下载时从您的浏览器读取 Cookie，因此永远不会过期。您必须在该浏览器中登录该网站。仅在浏览器保持打开状态时有效。",
+      "braveKeychainNote": "Downlodr 读取 Brave 的 Cookie 时，macOS 会要求输入您的登录密码（提示中显示为“security”）。选择“始终允许”可避免重复提示。",
       "importTitle": "浏览器 Cookie — Chrome / Edge（需要导入）",
       "importDesc": "Chrome 和 Edge 在运行期间会锁定其 Cookie 文件，因此 Downlodr 必须导入一份副本。请先登录，然后完全关闭浏览器，再点击“导入”——之后您可以重新打开浏览器并保持打开状态。副本不会自动更新：当下载开始因登录错误而失败时，请关闭浏览器并点击“重新导入”。",
       "importButton": "导入",

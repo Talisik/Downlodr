@@ -57,6 +57,7 @@
       "warning": "Cookies give Downlodr the same access to a site as being signed in. Don't use an account you'd mind losing — sites do ban accounts for automated downloading.",
       "liveTitle": "Browser cookies — Firefox / Brave",
       "liveDesc": "Downlodr reads cookies from your browser each time you download, so they never go out of date. You must be signed in to the site in that browser. Works while the browser stays open.",
+      "braveKeychainNote": "macOS will ask for your login password when Downlodr reads Brave's cookies (the prompt appears as “security”). Choose Always Allow to stop it repeating.",
       "importTitle": "Browser cookies — Chrome / Edge (import required)",
       "importDesc": "Chrome and Edge lock their cookie file while running, so Downlodr has to import a copy. Sign in first, fully close the browser, then click Import — you can reopen it afterward and leave it open. The copy does not update itself: when downloads start failing with sign-in errors, close the browser and click Re-import.",
       "importButton": "Import",
