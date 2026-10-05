@@ -362,7 +362,9 @@ const Navigation = ({
             : '[&::-webkit-scrollbar-thumb]:bg-transparent'
         }`}
       >
-        <div className="py-2 px-3 mt-2 flex flex-col gap-2 pb-8">
+        {/* pb-20 keeps the last section clear of the fixed collapse toggle
+            (bottom-4 + mb-4 + 40px button) once the list is scrolled down. */}
+        <div className="py-2 px-3 mt-2 flex flex-col gap-2 pb-20">
           {/* Status Section */}
           <div>
             <div
