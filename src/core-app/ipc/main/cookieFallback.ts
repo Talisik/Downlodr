@@ -5,8 +5,10 @@
  * need a JavaScript runtime to solve YouTube's challenge, and Downlodr ships
  * none. YouTube then answers every request with "The page needs to be
  * reloaded." Without cookies yt-dlp falls back to a client that needs no JS
- * runtime, so the same video downloads fine — only sign-in-gated videos
- * (age-restricted, members-only) still need the cookies.
+ * runtime, so the same video downloads fine. Sign-in-gated videos
+ * (age-restricted, members-only) fail either way, so single-video YouTube
+ * calls skip cookies up front (cookiesForVideo). The retry below stays for
+ * when cookiesForVideo is dropped.
  *
  * Pure and import-free so it can run under vitest; ytdlpHandler.ts and
  * mcpBridgeServer.ts load electron at module scope and cannot.
@@ -40,6 +42,31 @@ export function cookieCliArgs(cookies: CookieOptions): string[] {
     args.push('--cookies-from-browser', cookies.cookiesFromBrowser);
   }
   return args;
+}
+
+const YOUTUBE_HOST = /(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$/i;
+
+export function isYouTubeUrl(url: string): boolean {
+  try {
+    return YOUTUBE_HOST.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Cookies for a single-video lookup or download. YouTube gets none: without
+ * a JS runtime the cookies can't unlock sign-in-gated videos anyway, and
+ * sending them only costs a rejected first attempt plus, on macOS with a
+ * Chromium browser selected, a keychain prompt. Playlist lookups keep the
+ * cookies — listing a private playlist reads the page, not the player.
+ * Drop this once Downlodr bundles a JS runtime for yt-dlp.
+ */
+export function cookiesForVideo(
+  url: string,
+  cookies: CookieOptions,
+): CookieOptions {
+  return isYouTubeUrl(url) ? NO_COOKIES : cookies;
 }
 
 export function isCookieSessionRejected(ytdlpOutput: string): boolean {

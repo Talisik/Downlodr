@@ -749,14 +749,11 @@ const ERROR_CODE_MAP: Record<string, ErrorCodeInfo> = {
     code: 'AGE_RESTRICTED',
     title: 'Age-Restricted Video',
     description:
-      "This video is age-restricted. yt-dlp needs a signed-in session to access it.",
+      "This video is age-restricted. Downlodr can't download age-restricted YouTube videos yet.",
     category: 'ytdlp',
     severity: 'medium',
-    canRetry: true,
-    suggestions: [
-      'Sign in to YouTube in Firefox or Brave',
-      'Enable cookie authentication in Advanced Settings → Authentication',
-    ],
+    canRetry: false,
+    suggestions: ['Watch it on YouTube while signed in to an age-verified account'],
   },
   age_restricted_unverified: {
     code: 'AGE_RESTRICTED_UNVERIFIED',

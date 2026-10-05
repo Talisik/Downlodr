@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   cookieCliArgs,
+  cookiesForVideo,
   hasCookies,
   isCookieSessionRejected,
+  isYouTubeUrl,
   NO_COOKIES,
   retryInfoWithoutCookies,
   shouldRetryDownloadWithoutCookies,
@@ -135,5 +137,39 @@ describe('shouldRetryDownloadWithoutCookies', () => {
         cancelled: true,
       }),
     ).toBe(false);
+  });
+});
+
+describe('isYouTubeUrl', () => {
+  it.each([
+    ['https://www.youtube.com/watch?v=abc', true],
+    ['https://youtube.com/shorts/abc', true],
+    ['https://m.youtube.com/watch?v=abc', true],
+    ['https://music.youtube.com/watch?v=abc', true],
+    ['https://youtu.be/abc', true],
+    ['https://www.youtube-nocookie.com/embed/abc', true],
+    ['https://notyoutube.com/watch?v=abc', false],
+    ['https://youtube.com.evil.example/watch', false],
+    ['https://vimeo.com/123', false],
+    ['not a url', false],
+  ])('%s -> %s', (url, expected) => {
+    expect(isYouTubeUrl(url)).toBe(expected);
+  });
+});
+
+describe('cookiesForVideo', () => {
+  const live = { cookiesFromBrowser: 'brave' };
+  const jar = { cookies: '/jars/custom.txt', cookiesFromBrowser: '' };
+
+  it('sends no cookies to YouTube, whatever is configured', () => {
+    expect(cookiesForVideo('https://www.youtube.com/watch?v=abc', live)).toBe(
+      NO_COOKIES,
+    );
+    expect(cookiesForVideo('https://youtu.be/abc', jar)).toBe(NO_COOKIES);
+  });
+
+  it('leaves other sites untouched', () => {
+    expect(cookiesForVideo('https://vimeo.com/123', live)).toBe(live);
+    expect(cookiesForVideo('https://x.com/a/status/1', jar)).toBe(jar);
   });
 });

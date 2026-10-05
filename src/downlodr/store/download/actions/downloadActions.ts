@@ -550,7 +550,7 @@ export function createDownloadActions(set: SetState, get: GetState) {
               variant: 'destructive',
               title: 'Age-Restricted Video',
               description:
-                'Sign in to YouTube in Firefox or Brave, then enable it under Advanced Settings → Authentication.',
+                "Downlodr can't download age-restricted YouTube videos yet.",
               duration: 8000,
             });
           } else if (isExtractionBlocked) {
@@ -605,7 +605,7 @@ export function createDownloadActions(set: SetState, get: GetState) {
                       : isAgeRestrictedUnverified
                       ? "Age-restricted; signed-in account isn't age-verified"
                       : isAgeRestricted
-                      ? 'Age-restricted; sign in required'
+                      ? "Age-restricted; can't download yet"
                       : isExtractionBlocked
                       ? 'YouTube is blocking extraction (known yt-dlp limitation)'
                       : isBlockedBySite

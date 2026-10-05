@@ -8,6 +8,7 @@ import { DownloadOptions } from '../../../downlodr/schema/ytdlpSchema';
 import { resolveCookiesForCall } from './cookieAuth/state';
 import {
   cookieCliArgs,
+  cookiesForVideo,
   hasCookies,
   isCookieSessionRejected,
   NO_COOKIES,
@@ -480,7 +481,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   async function fetchInfoOnce(url: string, allowDiagnostic = true) {
     try {
       await paceHost(url);
-      const cookies = await resolveCookiesForCall(url);
+      const cookies = cookiesForVideo(url, await resolveCookiesForCall(url));
       const info = await YTDLP.getInfo(
         url,
         {
@@ -555,7 +556,7 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
             );
           }
           throw new Error(
-            'AGE_RESTRICTED: This video is age-restricted. Sign in to YouTube in Firefox or Brave, then enable it under Advanced Settings → Authentication.',
+            "AGE_RESTRICTED: This video is age-restricted. Downlodr can't download age-restricted YouTube videos yet.",
           );
         }
         // Reached only when the cookie-less retry above also failed, or no
@@ -1198,7 +1199,10 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
     const downloadKey = String(id);
     cancelledDownloadIds.delete(downloadKey);
     let lastValue: DownloadAttemptResult['value'];
-    let cookies = await resolveCookiesForCall(args.url);
+    let cookies = cookiesForVideo(
+      args.url,
+      await resolveCookiesForCall(args.url),
+    );
     try {
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         await paceHost(args.url);

@@ -31,6 +31,7 @@ import {
 import { resolveCookiesForCall } from './cookieAuth/state';
 import {
   cookieCliArgs,
+  cookiesForVideo,
   hasCookies,
   retryInfoWithoutCookies,
 } from './cookieFallback';
@@ -928,7 +929,10 @@ async function handleRequest(
       // noPlaylist: same reason as the ytdlp:info handler — /downloads/playlist
       // is the container endpoint, so this one must stay a single-video lookup
       // or --dump-json's per-entry output breaks getInfo's JSON.parse.
-      const cookies = await resolveCookiesForCall(videoUrl);
+      const cookies = cookiesForVideo(
+        videoUrl,
+        await resolveCookiesForCall(videoUrl),
+      );
       let info = await YTDLP.getInfo(videoUrl, {
         ...cookies,
         noPlaylist: true,
