@@ -39,7 +39,8 @@ export async function resolveCookiesForCall(targetUrl: string): Promise<{
         const exists = await stat(siteLogin.jarPath)
           .then((st) => st.isFile() && st.size > 0)
           .catch(() => false);
-        if (exists) return { cookies: siteLogin.jarPath };
+        if (exists)
+          return { cookies: siteLogin.jarPath, cookiesFromBrowser: '' };
       }
     } catch {
     }
@@ -50,7 +51,7 @@ export async function resolveCookiesForCall(targetUrl: string): Promise<{
   if (currentMode === 'file') {
     const exists = await customJarExists();
     if (!exists) return suppress;
-    return { cookies: customJarPath() };
+    return { cookies: customJarPath(), cookiesFromBrowser: '' };
   }
 
   if (!currentBrowser) return suppress;
@@ -61,5 +62,5 @@ export async function resolveCookiesForCall(targetUrl: string): Promise<{
 
   const exists = await jarExistsFor(currentBrowser);
   if (!exists) return suppress;
-  return { cookies: jarPathFor(currentBrowser) };
+  return { cookies: jarPathFor(currentBrowser), cookiesFromBrowser: '' };
 }
