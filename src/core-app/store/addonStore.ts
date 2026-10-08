@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 
 export type PackName =
   | 'afda-backend'
@@ -107,8 +108,16 @@ export const useAddonStore = create<AddonStore>((set) => ({
 
     bridge.on.complete(({ pack, success, error }) => {
       const key = PACK_STORE_KEY[pack];
-      if (!success)
+      if (!success) {
         console.error(`[addonStore] download failed for ${pack}:`, error);
+        if (error !== 'Cancelled') {
+          toast({
+            variant: 'destructive',
+            title: "Couldn't download add-on",
+            description: error ?? 'An unknown error occurred.',
+          });
+        }
+      }
       set((s) => ({
         needsRestart: success ? true : s.needsRestart,
         [key]: success
