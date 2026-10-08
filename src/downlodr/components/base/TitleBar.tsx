@@ -79,7 +79,7 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
         >
           {/* Title — on macOS this starts after the traffic-light gutter so
               the logo is not sitting underneath the native buttons. */}
-          <div className="text-sm flex-1 drag-area">{getLogoSrc()}</div>
+          <div className="text-sm flex-1 drag-area"></div>
 
           {/* Buttons */}
           <div className="flex space-x-4 no-drag">
@@ -87,7 +87,7 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
 
             {/*Dark Mode/Light Mode */}
             <ModeToggle />
-
+            {getLogoSrc()}
             {/* Window controls are ours to draw on Windows and Linux only.
                 macOS renders real traffic lights top-left instead, which
                 also get the hover glyphs, the fullscreen behaviour on green
