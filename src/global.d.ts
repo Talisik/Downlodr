@@ -129,7 +129,8 @@ declare global {
       closeApp: () => void;
       onMaximizeChange: (callback: (isMaximized: boolean) => void) => void;
       offMaximizeChange: () => void;
-      onFormatConvertComplete: (callback: (data: { jobId: string; success: boolean; outputPath?: string; error?: string }) => void) => () => void;
+      onFormatConvertComplete: (callback: (data: { jobId: string; success: boolean; outputPath?: string; size?: number; error?: string }) => void) => () => void;
+      onFormatConvertProgress: (callback: (data: { jobId: string; percent: number; speed: string; timeLeft: string }) => void) => () => void;
     };
 
     /** App/device info (baseAppHandler) */
@@ -446,7 +447,8 @@ declare global {
       selectVideoFile: () => Promise<string | null>;
       saveBufferToFile: (data: number[], filePath: string) => Promise<{ success: boolean; error?: string }>;
       htmlToPdf: (htmlContent: string) => Promise<{ success: boolean; data?: number[]; error?: string }>;
-      onFormatConvertComplete: (callback: (data: { jobId: string; success: boolean; outputPath?: string; error?: string }) => void) => () => void;
+      onFormatConvertComplete: (callback: (data: { jobId: string; success: boolean; outputPath?: string; size?: number; error?: string }) => void) => () => void;
+      onFormatConvertProgress: (callback: (data: { jobId: string; percent: number; speed: string; timeLeft: string }) => void) => () => void;
     };
 
     /** YT-DLP API (use ytdlpFunctionsBridge or this) */

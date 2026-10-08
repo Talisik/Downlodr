@@ -14,9 +14,14 @@
 import { BrowserWindow, ipcMain } from 'electron';
 import { ChildProcess, spawn } from 'child_process';
 import { existsSync } from 'fs';
-import { mkdir } from 'fs/promises';
+import { mkdir, stat, unlink } from 'fs/promises';
 import path from 'path';
 import { ensureBundledFfmpegOnPath } from './bundledBinariesEnv';
+import {
+  computeConversionProgress,
+  parseFfmpegDuration,
+  parseLatestFfmpegStatus,
+} from './formatConversionProgress';
 
 interface ConvertFileOptions {
   inputPath: string;
@@ -28,6 +33,29 @@ interface ConvertFileOptions {
 interface ConvertJob {
   proc: ChildProcess;
   paused: boolean;
+  /** Set when the user (Stop/Remove) asked for the kill, as opposed to the OS. */
+  cancelRequested: boolean;
+}
+
+/** How often a running job reports progress to the renderer. */
+const PROGRESS_INTERVAL_MS = 500;
+
+// Module-level so the yt-dlp `kill-controller` handler can reach conversions
+// too: a conversion's download-list row carries its jobId as controllerId,
+// and every Stop/Remove path in the renderer goes through killController.
+const activeJobs = new Map<string, ConvertJob>();
+
+/**
+ * Kills a running conversion at the user's request. Returns false when no
+ * such job is running (unknown id or already finished), true otherwise.
+ * SIGKILL also ends a SIGSTOP-paused process, so this works on paused jobs.
+ */
+export function cancelConversionJob(jobId: string): boolean {
+  const job = activeJobs.get(jobId);
+  if (!job) return false;
+  job.cancelRequested = true;
+  job.proc.kill('SIGKILL');
+  return true;
 }
 
 const AUDIO_FORMATS = new Set(['mp3', 'm4a', 'aac', 'wav', 'flac', 'ogg']);
@@ -92,14 +120,28 @@ function buildFfmpegArgs(
   return args;
 }
 
+type ConvertCompletePayload = {
+  jobId: string;
+  success: boolean;
+  outputPath?: string;
+  /** Size of the verified output file, on success. */
+  size?: number;
+  error?: string;
+};
+
 export const formatConversionHandler = (mainWindow: BrowserWindow) => {
-  const activeJobs = new Map<string, ConvertJob>();
+  const sendToRenderer = (channel: string, payload: unknown) => {
+    if (!mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(channel, payload);
+    }
+  };
 
   // Starts the ffmpeg process and returns immediately with a jobId once
-  // it's spawned -- does NOT wait for the conversion to finish. Completion
-  // is reported asynchronously via the 'format:convertComplete' event so
-  // the renderer can track multiple concurrent jobs (batch conversion) and
-  // cancel/pause any of them by jobId while they're still running.
+  // it's spawned -- does NOT wait for the conversion to finish. Progress is
+  // streamed via 'format:convertProgress' and completion is reported via
+  // 'format:convertComplete', so the renderer can drive a download-list row
+  // and track multiple concurrent jobs (batch conversion), cancelling or
+  // pausing any of them by jobId while they're still running.
   ipcMain.handle(
     'format:startConvert',
     async (_event, options: ConvertFileOptions) => {
@@ -114,58 +156,116 @@ export const formatConversionHandler = (mainWindow: BrowserWindow) => {
 
       // Same PATH staging yt-dlp downloads use, so the bare `ffmpeg` below
       // resolves to the bundled build (binaries/ffmpeg-<arch> on darwin).
-      ensureBundledFfmpegOnPath();
+      const ffmpegDir = ensureBundledFfmpegOnPath();
       await mkdir(path.dirname(outputPath), { recursive: true }).catch(
         () => undefined,
       );
+      const inputSize = await stat(inputPath)
+        .then((s) => s.size)
+        .catch(() => 0);
 
       const jobId = `convert-${Date.now()}-${Math.random()
         .toString(36)
         .slice(2)}`;
       const args = buildFfmpegArgs(inputPath, outputPath, format);
+      console.log(
+        `[convert] ${jobId} ffmpeg (${ffmpegDir ?? 'from PATH'}) ${args
+          .map((a) => JSON.stringify(a))
+          .join(' ')}`,
+      );
       const proc = spawn('ffmpeg', args, {
         stdio: ['ignore', 'ignore', 'pipe'],
       });
 
-      activeJobs.set(jobId, { proc, paused: false });
+      const job: ConvertJob = { proc, paused: false, cancelRequested: false };
+      activeJobs.set(jobId, job);
 
       let stderrTail = '';
+      let durationSec: number | null = null;
+      let headerText = '';
+      let lastProgressAt = 0;
       proc.stderr?.on('data', (chunk: Buffer) => {
-        stderrTail += chunk.toString();
+        const text = chunk.toString();
+        stderrTail += text;
         if (stderrTail.length > 4000) stderrTail = stderrTail.slice(-4000);
+
+        // The input's Duration line comes once, in the header, before any
+        // status line -- stop collecting once it's found (or clearly absent).
+        if (durationSec === null && headerText.length < 64 * 1024) {
+          headerText += text;
+          durationSec = parseFfmpegDuration(headerText);
+        }
+
+        const now = Date.now();
+        if (!durationSec || now - lastProgressAt < PROGRESS_INTERVAL_MS) {
+          return;
+        }
+        const status = parseLatestFfmpegStatus(stderrTail);
+        if (!status) return;
+        lastProgressAt = now;
+        sendToRenderer('format:convertProgress', {
+          jobId,
+          ...computeConversionProgress({ status, durationSec, inputSize }),
+        });
       });
 
-      const send = (payload: {
-        jobId: string;
-        success: boolean;
-        outputPath?: string;
-        error?: string;
-      }) => {
-        if (!mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('format:convertComplete', payload);
-        }
+      let settled = false;
+      const complete = (payload: ConvertCompletePayload) => {
+        if (settled) return;
+        settled = true;
+        activeJobs.delete(jobId);
+        console.log(
+          `[convert] ${jobId} ${
+            payload.success ? 'finished' : `failed: ${payload.error}`
+          }`,
+        );
+        sendToRenderer('format:convertComplete', payload);
       };
 
       proc.once('error', (err) => {
-        activeJobs.delete(jobId);
-        send({ jobId, success: false, error: err.message });
+        complete({ jobId, success: false, error: err.message });
       });
 
-      proc.once('close', (code, signal) => {
-        activeJobs.delete(jobId);
-        if (signal === 'SIGKILL' || signal === 'SIGTERM') {
-          send({ jobId, success: false, error: 'CANCELLED' });
+      proc.once('close', async (code, signal) => {
+        if (job.cancelRequested) {
+          // The user stopped it: the half-written output is garbage.
+          await unlink(outputPath).catch(() => undefined);
+          complete({ jobId, success: false, error: 'CANCELLED' });
           return;
         }
-        if (code === 0) {
-          send({ jobId, success: true, outputPath });
-        } else {
-          send({
+        if (signal) {
+          // Nobody in the app asked for this kill. On macOS a SIGKILL here
+          // is typically the system refusing to run the binary (code
+          // signature / Gatekeeper), which must not read as a user cancel.
+          await unlink(outputPath).catch(() => undefined);
+          complete({
+            jobId,
+            success: false,
+            error: `ffmpeg was terminated by the system (${signal})`,
+          });
+          return;
+        }
+        if (code !== 0) {
+          complete({
             jobId,
             success: false,
             error:
               stderrTail.trim().slice(-500) ||
               `ffmpeg exited with code ${code}`,
+          });
+          return;
+        }
+        // Exit 0 is not proof enough: only report success for a real file.
+        const size = await stat(outputPath)
+          .then((s) => s.size)
+          .catch(() => 0);
+        if (size > 0) {
+          complete({ jobId, success: true, outputPath, size });
+        } else {
+          complete({
+            jobId,
+            success: false,
+            error: `ffmpeg exited without writing ${outputPath}`,
           });
         }
       });
@@ -175,10 +275,7 @@ export const formatConversionHandler = (mainWindow: BrowserWindow) => {
   );
 
   ipcMain.handle('format:cancelConvert', async (_event, jobId: string) => {
-    const job = activeJobs.get(jobId);
-    if (!job) return false;
-    job.proc.kill('SIGKILL');
-    return true;
+    return cancelConversionJob(jobId);
   });
 
   ipcMain.handle('format:pauseConvert', async (_event, jobId: string) => {
@@ -215,6 +312,7 @@ export const formatConversionHandler = (mainWindow: BrowserWindow) => {
   // orphaned ffmpeg process outlives the window.
   return () => {
     for (const job of activeJobs.values()) {
+      job.cancelRequested = true;
       job.proc.kill('SIGKILL');
     }
     activeJobs.clear();

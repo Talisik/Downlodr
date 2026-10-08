@@ -125,8 +125,12 @@ export class DownloadController {
     // Get current settings
     const maxConcurrentDownloads =
       useSettingStore.getState().settings.maxDownloadNum;
+    // Format Converter rows are local ffmpeg jobs, not network downloads, so
+    // they don't take a slot from the concurrent-download limit.
     const currentActiveDownloads = downloading.filter(
-      (d) => d.status === 'downloading' || d.status === 'initializing',
+      (d) =>
+        !d.conversion &&
+        (d.status === 'downloading' || d.status === 'initializing'),
     ).length;
 
     // Token Bucket Algorithm: Check if we have available "tokens" (slots)

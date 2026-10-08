@@ -44,6 +44,11 @@ import {
   isPerDownloadFolder,
 } from '@/downlodr/utils/download/downloadFolder';
 import { redownloadTranscript } from '@/downlodr/utils/transcription/ffmpegWhisperTranscriber';
+import i18n from '@/core-app/i18n';
+import {
+  handleConversionPauseToggle,
+  handleConversionRetry,
+} from '@/downlodr/utils/download/conversionRowActions';
 import SidePanels from '@/downlodr/components/panels/SidePanels';
 import { useSidePanels } from '@/downlodr/hooks/useSidePanels';
 import EmptySearch from '@/assets/icon/EmptySearch';
@@ -55,6 +60,10 @@ import React, {
   useState,
 } from 'react';
 import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
+
+// This page has no useTranslation; the shared conversion toasts use the
+// same 'downlodr' keys as the Downloads page.
+const tDownlodr = (key: string) => i18n.t(`downlodr:${key}`);
 
 interface CategoryTagPageProps {
   downloads: BaseDownload[];
@@ -498,6 +507,12 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
     } = useDownloadStore.getState();
     const current = downloading.find((d) => d.id === downloadId);
 
+    // Conversions pause in place; see conversionRowActions.
+    if (await handleConversionPauseToggle(downloadId, tDownlodr)) {
+      setContextMenu(null);
+      return;
+    }
+
     if (current?.status === 'paused') {
       const isM4aDownload = current.ext === 'm4a' || current.audioExt === 'm4a';
 
@@ -609,6 +624,14 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
         | SearchableDownload
         | undefined;
       if (!current) return;
+      // A failed conversion re-runs ffmpeg instead of re-downloading.
+      const isConversion = useDownloadStore
+        .getState()
+        .failedDownloads.some((d) => d.id === downloadId && d.conversion);
+      if (isConversion) {
+        void handleConversionRetry(downloadId, tDownlodr);
+        return;
+      }
       const { retryDownload, deleteDownload } = useDownloadStore.getState();
       retryDownload({
         videoUrl: current.videoUrl ?? '',

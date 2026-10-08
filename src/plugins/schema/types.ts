@@ -173,6 +173,8 @@ export interface UtilityAPI {
     inputPath: string;
     outputPath: string;
     format: string;
+    /** Id of the download being converted; used to copy its metadata onto the new row. */
+    sourceId?: string;
   }) => Promise<{ jobId: string }>;
   /** Kills the ffmpeg process for `jobId`. Returns false if not found/already finished. */
   cancelConvertFile: (jobId: string) => Promise<boolean>;

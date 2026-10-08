@@ -8,6 +8,18 @@ import type {
   CaptionSource,
   ThumbnailSource,
 } from '@/downlodr/store/download/downloadPayloads';
+import {
+  pauseConversionJob,
+  resumeConversionJob,
+} from '@/downlodr/store/download/conversionJobs';
+import {
+  cancelConversionByJobId,
+  findConversionRowByJobId,
+  isConversionRow,
+  pauseConversionRow,
+  resumeConversionRow,
+  startConversion,
+} from '@/downlodr/store/download/conversionRows';
 import { usePluginStore } from '@/plugins/store/pluginStore';
 import {
   DownloadAPI,
@@ -449,6 +461,16 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
           return false;
         }
 
+        // A conversion row is an ffmpeg job: SIGSTOP/SIGCONT it in place
+        // rather than killing it and re-queueing a yt-dlp download.
+        if (isConversionRow(currentDownload)) {
+          const result =
+            currentDownload.status === 'paused'
+              ? await resumeConversionRow(currentDownload.id)
+              : await pauseConversionRow(currentDownload.id);
+          return result.success;
+        }
+
         // If already paused, handle resume with M4A cleanup
         if (currentDownload.status === 'paused') {
           // Check if this is an m4a download and handle existing partial file
@@ -648,6 +670,10 @@ function createDownloadAPI(pluginId: string): DownloadAPI {
         if (!currentDownload) {
           console.warn('No download found to resume');
           return false;
+        }
+
+        if (isConversionRow(currentDownload)) {
+          return (await resumeConversionRow(currentDownload.id)).success;
         }
 
         // If the download is already paused, resume it
@@ -1333,41 +1359,36 @@ function createUtilityAPI(pluginId: string): UtilityAPI {
       }
     },
 
+    // Conversions get a row in the download list (progress, status bar,
+    // then Finished) the way yt-dlp downloads do -- see conversionRows.ts.
+    // The job controls below act on that row so it stays in sync whether
+    // the user drives the job from the list or from the plugin's buttons.
     startConvertFile: async (options: {
       inputPath: string;
       outputPath: string;
       format: string;
+      sourceId?: string;
     }): Promise<{ jobId: string }> => {
-      const result = (await window.downlodrFunctions.invokeMainProcess(
-        'format:startConvert',
-        options,
-      )) as { jobId: string };
-      return result;
+      const { jobId } = await startConversion(options);
+      return { jobId };
     },
 
     cancelConvertFile: async (jobId: string): Promise<boolean> => {
-      return (await window.downlodrFunctions.invokeMainProcess(
-        'format:cancelConvert',
-        jobId,
-      )) as boolean;
+      return cancelConversionByJobId(jobId);
     },
 
     pauseConvertFile: async (
       jobId: string,
     ): Promise<{ success: boolean; error?: string }> => {
-      return (await window.downlodrFunctions.invokeMainProcess(
-        'format:pauseConvert',
-        jobId,
-      )) as { success: boolean; error?: string };
+      const row = findConversionRowByJobId(jobId);
+      return row ? pauseConversionRow(row.id) : pauseConversionJob(jobId);
     },
 
     resumeConvertFile: async (
       jobId: string,
     ): Promise<{ success: boolean; error?: string }> => {
-      return (await window.downlodrFunctions.invokeMainProcess(
-        'format:resumeConvert',
-        jobId,
-      )) as { success: boolean; error?: string };
+      const row = findConversionRowByJobId(jobId);
+      return row ? resumeConversionRow(row.id) : resumeConversionJob(jobId);
     },
 
     onConvertFileComplete: (

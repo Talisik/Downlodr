@@ -15,6 +15,15 @@ export interface ChapterInfo {
   title: string;
 }
 
+// The local ffmpeg job behind a conversion row (see BaseDownload.conversion)
+export interface ConversionInfo {
+  jobId: string;
+  inputPath: string;
+  outputPath: string;
+  format: string;
+  sourceId?: string; // Download the file was converted from, when known
+}
+
 // Base interface for all download types
 export interface BaseDownload {
   subscriptionId?: string;
@@ -75,6 +84,12 @@ export interface BaseDownload {
   fileMissing?: boolean; // Set by the background file integrity checker when the on-disk file can't be found
 
   favorited?: boolean; // Whether the user has favorited this download
+
+  // Set on rows created by a local format conversion (Format Converter
+  // plugin). Such a row is driven by an ffmpeg job, not yt-dlp: its
+  // controllerId is the jobId, and pause/resume/retry go through
+  // conversionRows.ts instead of re-queueing a download.
+  conversion?: ConversionInfo;
 }
 
 // Interface for downloads that are currently being processed

@@ -10,6 +10,11 @@
  * Lives in the store, with no React or plugin-registry dependency, so the chat
  * bridge can call it from any page.
  */
+import {
+  isConversionRow,
+  pauseConversionJob,
+  resumeConversionJob,
+} from '../conversionJobs';
 import type { AddQueuePayload } from '../downloadPayloads';
 import type { DownloadStatus, Downloading } from '../types';
 
@@ -45,6 +50,15 @@ export function createPauseResumeActions(get: GetState) {
     if (row.status === 'paused') {
       return { error: 'That download is already paused.' };
     }
+    // A conversion row is an ffmpeg job, paused in place (SIGSTOP).
+    if (isConversionRow(row) && row.conversion) {
+      const result = await pauseConversionJob(row.conversion.jobId);
+      if (!result.success) {
+        return { error: result.error || 'Failed to pause the conversion.' };
+      }
+      get().updateDownloadStatus(downloadId, 'paused');
+      return { ok: true };
+    }
     const controllerId = str(row.controllerId);
     // '---' is the placeholder a row carries until yt-dlp actually spawns.
     if (!controllerId || controllerId === '---') {
@@ -72,6 +86,16 @@ export function createPauseResumeActions(get: GetState) {
     if (!row) return { error: `No active download with id ${downloadId}.` };
     if (row.status !== 'paused')
       return { error: 'That download is not paused.' };
+
+    // Resume a conversion's own ffmpeg; re-queueing would re-download.
+    if (isConversionRow(row) && row.conversion) {
+      const result = await resumeConversionJob(row.conversion.jobId);
+      if (!result.success) {
+        return { error: result.error || 'Failed to resume the conversion.' };
+      }
+      get().updateDownloadStatus(downloadId, 'downloading');
+      return { ok: true };
+    }
 
     // Resuming an m4a onto its own partial file corrupts the output: yt-dlp
     // appends rather than resuming cleanly for this container. Drop the

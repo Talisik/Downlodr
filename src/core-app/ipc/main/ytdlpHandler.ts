@@ -40,6 +40,7 @@ import {
   ytdlpBundleCandidates,
 } from './bundledBinariesEnv';
 import { ytdlpBinaryName } from './bundledBinaries';
+import { cancelConversionJob } from './formatConversionHandler';
 import { spawn } from 'child_process';
 
 const PROGRESS_THROTTLE_MS = 150;
@@ -875,6 +876,10 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function killControllerById(id: any) {
     try {
+      // A Format Converter row carries its ffmpeg jobId as controllerId, so
+      // the list's Stop/Remove actions land here for conversions too.
+      if (typeof id === 'string' && cancelConversionJob(id)) return true;
+
       const controller = YTDLP.getTerminalFromID(id);
 
       if (controller) {

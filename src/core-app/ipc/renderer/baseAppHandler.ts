@@ -54,6 +54,26 @@ contextBridge.exposeInMainWorld('appBehaviorBridge', {
     ipcRenderer.on('format:convertComplete', wrapped);
     return () => ipcRenderer.removeListener('format:convertComplete', wrapped);
   },
+  onFormatConvertProgress: (
+    callback: (data: {
+      jobId: string;
+      percent: number;
+      speed: string;
+      timeLeft: string;
+    }) => void,
+  ) => {
+    const wrapped = (_event: unknown, data: unknown) =>
+      callback(
+        data as {
+          jobId: string;
+          percent: number;
+          speed: string;
+          timeLeft: string;
+        },
+      );
+    ipcRenderer.on('format:convertProgress', wrapped);
+    return () => ipcRenderer.removeListener('format:convertProgress', wrapped);
+  },
 });
 
 contextBridge.exposeInMainWorld('appInfoBridge', {

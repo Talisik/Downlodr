@@ -8,6 +8,10 @@ import { DownloadItem } from '@/downlodr/schema/componentSchema';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import type { SearchableDownload } from '@/downlodr/store/taskbarDownloadStore';
 import {
+  handleConversionPauseToggle,
+  handleConversionRetry,
+} from '@/downlodr/utils/download/conversionRowActions';
+import {
   deletePerDownloadFolder,
   isPerDownloadFolder,
 } from '@/downlodr/utils/download/downloadFolder';
@@ -236,6 +240,18 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
       const currentDownload = allDownloads.find((d) => d.id === downloadId);
       if (!currentDownload) return;
 
+      // A failed conversion re-runs ffmpeg on the local file; retryDownload
+      // would re-download the source video instead.
+      const isConversion = useDownloadStore
+        .getState()
+        .failedDownloads.some((d) => d.id === downloadId && d.conversion);
+      if (isConversion) {
+        void handleConversionRetry(downloadId, tRef.current);
+        setSelectedRowIds([]);
+        setSelectedDownloads([]);
+        return;
+      }
+
       const { retryDownload } = useDownloadStore.getState();
       retryDownload({
         videoUrl: currentDownload.videoUrl ?? '',
@@ -299,6 +315,11 @@ export function useStatusPageHandlers(deps: StatusPageHandlerDeps) {
         updateDownloadStatus,
       } = useDownloadStore.getState();
       const currentDownload = downloading.find((d) => d.id === downloadId);
+
+      if (await handleConversionPauseToggle(downloadId, tRef.current)) {
+        closeContextMenu(setContextMenu);
+        return;
+      }
 
       if (currentDownload?.status === 'paused') {
         const isM4aDownload =

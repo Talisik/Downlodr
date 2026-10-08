@@ -58,6 +58,7 @@ export function initComposedWindowApi(): void {
       saveBufferToFile: fileFn.saveBufferToFile,
       htmlToPdf: fileFn.htmlToPdf,
       onFormatConvertComplete: appBehavior.onFormatConvertComplete,
+      onFormatConvertProgress: appBehavior.onFormatConvertProgress,
     };
   }
 
