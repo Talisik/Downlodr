@@ -52,7 +52,13 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   }, []);
 
   // Adjust downlodr logo used depending on the light/dark mode
-  const logoStyle = { height: '24px', width: 'auto' };
+  // pointer-events: none so the <img> doesn't start an HTML image drag and
+  // steal the mouse from the window drag region it sits in.
+  const logoStyle: React.CSSProperties = {
+    height: '24px',
+    width: 'auto',
+    pointerEvents: 'none',
+  };
 
   const getLogoSrc = () => {
     if (theme === 'system') {
@@ -77,9 +83,12 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
             IS_MAC ? TRAFFIC_LIGHT_GUTTER : 'px-2'
           }`}
         >
-          {/* Title — on macOS this starts after the traffic-light gutter so
-              the logo is not sitting underneath the native buttons. */}
-          <div className="text-sm flex-1 drag-area"></div>
+          {/* Logo + drag handle — self-stretch gives it the bar's full height
+              so the whole strip is draggable, not just the logo. On macOS it
+              starts after the traffic-light gutter. */}
+          <div className="text-sm flex-1 self-stretch flex items-center drag-area">
+            {getLogoSrc()}
+          </div>
 
           {/* Buttons */}
           <div className="flex space-x-4 no-drag">
@@ -87,7 +96,6 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
 
             {/*Dark Mode/Light Mode */}
             <ModeToggle />
-            {getLogoSrc()}
             {/* Window controls are ours to draw on Windows and Linux only.
                 macOS renders real traffic lights top-left instead, which
                 also get the hover glyphs, the fullscreen behaviour on green
