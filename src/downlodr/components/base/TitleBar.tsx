@@ -75,58 +75,63 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
     );
   };
 
+  const windowButtonClass =
+    'rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1';
+
   return (
     <>
-      <div className={className}>
+      <div className={`flex flex-col ${className ?? ''}`}>
+        {/* Window controls are ours to draw on Windows and Linux only.
+            macOS renders real traffic lights top-left instead, which
+            also get the hover glyphs, the fullscreen behaviour on green
+            and the accessibility affordances that an imitation cannot.
+            They sit on their own row above the logo; the empty space
+            around them is still a drag handle. */}
+        {!IS_MAC && (
+          <div className="flex justify-end items-center gap-2 h-6 px-2 drag-area">
+            <div className="flex items-center gap-2 no-drag">
+              {/* Minimize Button */}
+              <button
+                className={windowButtonClass}
+                onClick={() => window.downlodrFunctions?.minimizeApp()}
+              >
+                <IoMdRemove size={16} />
+              </button>
+
+              {/* Maximize Button with dynamic icon */}
+              <button
+                className={windowButtonClass}
+                onClick={() => window.downlodrFunctions?.maximizeApp()}
+              >
+                {isMaximized ? <PiBrowsers size={16} /> : <RxBox size={14} />}
+              </button>
+
+              {/* Close Button */}
+              <button
+                className={windowButtonClass}
+                onClick={() => window.downlodrFunctions?.closeApp()}
+              >
+                <IoMdClose size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
         <div
-          className={`flex justify-between items-center h-full ${
+          className={`flex justify-between items-center h-8 ${
             IS_MAC ? TRAFFIC_LIGHT_GUTTER : 'px-2'
           }`}
         >
-          {/* Logo + drag handle — self-stretch gives it the bar's full height
+          {/* Logo + drag handle — self-stretch gives it the row's full height
               so the whole strip is draggable, not just the logo. On macOS it
               starts after the traffic-light gutter. */}
           <div className="text-sm flex-1 self-stretch flex items-center drag-area">
             {getLogoSrc()}
           </div>
 
-          {/* Buttons */}
-          <div className="flex space-x-4 no-drag">
-            {/* Help Button */}
-
-            {/*Dark Mode/Light Mode */}
+          {/*Dark Mode/Light Mode — in line with the logo */}
+          <div className="flex items-center no-drag">
             <ModeToggle />
-            {/* Window controls are ours to draw on Windows and Linux only.
-                macOS renders real traffic lights top-left instead, which
-                also get the hover glyphs, the fullscreen behaviour on green
-                and the accessibility affordances that an imitation cannot. */}
-            {!IS_MAC && (
-              <>
-                {/* Minimize Button */}
-                <button
-                  className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
-                  onClick={() => window.downlodrFunctions?.minimizeApp()}
-                >
-                  <IoMdRemove size={16} />
-                </button>
-
-                {/* Maximize Button with dynamic icon */}
-                <button
-                  className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
-                  onClick={() => window.downlodrFunctions?.maximizeApp()}
-                >
-                  {isMaximized ? <PiBrowsers size={16} /> : <RxBox size={14} />}
-                </button>
-
-                {/* Close Button */}
-                <button
-                  className="rounded-md hover:bg-gray-100 dark:hover:bg-darkModeCompliment hover:opacity-100 p-1 m-2"
-                  onClick={() => window.downlodrFunctions?.closeApp()}
-                >
-                  <IoMdClose size={16} />
-                </button>
-              </>
-            )}
           </div>
         </div>
       </div>

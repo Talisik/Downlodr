@@ -89,7 +89,7 @@ const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
 
   return (
     <div className="h-screen flex flex-col bg-[#F9F9F9] dark:bg-darkMode text-gray-900 dark:text-gray-100 p-4 pt-3 gap-2">
-      <TitleBar className="h-8 bg-[#F9F9F9] dark:bg-darkMode" />
+      <TitleBar className="bg-[#F9F9F9] dark:bg-darkMode" />
       <TaskBar className="rounded-md w-full px-6 py-2 pl-[8px] bg-white dark:bg-darkModeTable" />
       <div className="flex flex-1 overflow-hidden h-[calc(100vh-120px)] gap-4">
         {!NO_TOOLBAR_FEATURES.includes(active) && (

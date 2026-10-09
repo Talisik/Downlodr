@@ -86,7 +86,7 @@ const MainLayout = () => {
   return (
     <ErrorBoundary>
       <div className="h-screen flex flex-col bg-[#F9F9F9] dark:bg-darkMode text-gray-900 dark:text-gray-100 p-4 pt-3 gap-2">
-        <TitleBar className="h-8 bg-[#F9F9F9] dark:bg-darkMode" />
+        <TitleBar className="bg-[#F9F9F9] dark:bg-darkMode" />
         {/*<DropdownBar className="h-11 pl-4 bg-nav-main dark:bg-darkMode border-b-2 border-gray-200 dark:border-darkModeCompliment" />*/}
         <TaskBar className="rounded-md w-full px-6 py-2 pl-[8px] bg-white dark:bg-darkModeTable" />
         <div

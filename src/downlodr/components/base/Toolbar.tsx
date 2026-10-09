@@ -845,36 +845,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   </TooltipWrapper>
                 </div>
               )}
-              {/*
-              {taskBarButtonsVisibility.stopAll && (
-                <div className="">
-                  <TooltipWrapper
-                    content={
-                      !hasDownloadingStatus
-                        ? t('toolbar.tooltip.stopAllDisabled')
-                        : t('toolbar.tooltip.stopAll')
-                    }
-                    side="bottom"
-                  >
-                    <div>
-                      <Button
-                        variant="transparent"
-                        size="icon"
-                        className={cn(
-                          'rounded-md h-7 flex items-center justify-center p-[2px] bg-[#f9f9f9] dark:bg-transparent hover:bg-gray-100 dark:hover:bg-darkModeHover',
-                          hasDownloadingStatus
-                            ? 'dark:text-gray-100'
-                            : 'cursor-not-allowed text-gray-800 dark:text-gray-400',
-                        )}
-                        onClick={() => handleStopAll()}
-                        disabled={!hasDownloadingStatus}
-                        icon={<StopAll className="w-[16px] h-[16px]" />}
-                      />
-                    </div>
-                  </TooltipWrapper>
-                </div>
-              )}
-                 */}
               {(location.pathname.includes('/status/') ||
                 location.pathname.includes('/tags/') ||
                 location.pathname.includes('/category/')) && (
@@ -984,28 +954,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
           count={eligibleSelectedDownloads.length}
         />
       </div>
-      {/* {searchState.isSearchActive && searchState.searchQuery && (
-        <div className="flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
-          <div className="ml-2 flex flex-row gap-2 justify-center items-center">
-            <span>Filters:</span>
-            <span className="flex items-center gap-1 bg-lightOrangeTag/40 dark:bg-red-900/20 text-orange-500 dark:text-red-400 rounded-full px-2 py-0.5">
-              Search: &ldquo;{searchState.searchQuery}&rdquo;
-              <button
-                onClick={clearSearch}
-                className="ml-0.5 hover:text-red-800 dark:hover:text-red-200"
-                aria-label="Clear search"
-              >
-                <HiXMark className="w-3 h-3" />
-              </button>
-            </span>
-          </div>
-
-          <div className='mr-2'>
-            {searchState.searchResults.length}{' '}
-            {searchState.searchResults.length === 1 ? 'item' : 'items'}
-          </div>
-        </div>
-      )} */}
     </>
   );
 };

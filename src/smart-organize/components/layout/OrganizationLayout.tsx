@@ -53,7 +53,7 @@ const CourseLayout = () => {
   return (
     <ErrorBoundary>
       <div className="h-screen flex flex-col bg-[#F9F9F9] dark:bg-darkMode text-gray-900 dark:text-gray-100 p-4 pt-3 gap-2">
-        <TitleBar className="h-8 bg-[#F9F9F9] dark:bg-darkMode" />
+        <TitleBar className="bg-[#F9F9F9] dark:bg-darkMode" />
         <div className="flex flex-1 overflow-hidden h-[calc(100vh-120px)] gap-2">
           <main className="flex-1 overflow-auto bg-white dark:bg-darkMode rounded-md">
             <Outlet />
