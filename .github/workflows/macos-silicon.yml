@@ -28,7 +28,7 @@ on:
   # default branch. The push trigger sidesteps that entirely.
   push:
     branches:
-      - fix/bug-fix
+      - fix/bug-fix-2
   workflow_dispatch:
 
 permissions:
