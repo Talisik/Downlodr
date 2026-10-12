@@ -1,5 +1,5 @@
 diff --git a/node_modules/yt-dlp-helper/dist/index.cjs b/node_modules/yt-dlp-helper/dist/index.cjs
-index 9e93d04..4c40c0d 100644
+index 9b9a4d7..f203b7c 100644
 --- a/node_modules/yt-dlp-helper/dist/index.cjs
 +++ b/node_modules/yt-dlp-helper/dist/index.cjs
 @@ -615,6 +615,12 @@ function getDefaultMetadataOptionsForUrl(url) {
@@ -77,7 +77,7 @@ index 9e93d04..4c40c0d 100644
  function manualDownloadLatestYTDLP() {
    return __async(this, arguments, function* ({
      filePath,
-@@ -1009,13 +1047,14 @@ function getPlaylistInfo(_0) {
+@@ -1009,58 +1047,52 @@ function getPlaylistInfo(_0) {
        ytdlp: false,
        ffmpeg: true
      },
@@ -93,8 +93,77 @@ index 9e93d04..4c40c0d 100644
      const effectiveOptions = defaultOpts != null ? __spreadValues(__spreadValues({}, defaultOpts), appOpts) : appOpts;
      const metadataArgs = getMetadataArgs(effectiveOptions);
      const terminal = yield invokeInternal({
+       ytdlpDownloadDestination,
+       ffmpegDownloadDestination,
+-      args: [...metadataArgs, "--flat-playlist", "-J", url],
++      args: [...metadataArgs, "--no-warnings", "--flat-playlist", "-J", url],
+       downloadBinary
+     });
+     if (!terminal)
+       return {
+         ok: false
+       };
+-    let value = {
+-      ok: false
+-    };
+-    try {
+-      for (var iter = __forAwait(terminal.listen()), more, temp, error; more = !(temp = yield iter.next()).done; more = false) {
+-        const text = temp.value;
+-        try {
+-          const data = JSON.parse(text);
+-          if (!data) {
+-            continue;
+-          }
+-          value = {
+-            ok: true,
+-            data
+-          };
+-          break;
+-        } catch (e) {
+-        }
+-      }
+-    } catch (temp) {
+-      error = [temp];
+-    } finally {
+-      try {
+-        more && (temp = iter.return) && (yield temp.call(iter));
+-      } finally {
+-        if (error)
+-          throw error[0];
+-      }
++    // -J prints the whole playlist as one JSON line, which for a long list
++    // (a YouTube Mix is ~300KB) arrives over several stdout chunks. Parsing
++    // each chunk on its own never succeeds, so collect everything first.
++    let output = "";
++    const iter = terminal.listen();
++    while (true) {
++      const next = yield iter.next();
++      if (next.done) break;
++      output += next.value;
+     }
+-    terminal.kill();
+-    return value;
++    return parsePlaylistJson(output);
+   });
+ }
++function parsePlaylistJson(output) {
++  const lines = (output || "").split("\n");
++  for (let i = lines.length - 1; i >= 0; i--) {
++    const trimmed = lines[i].trim();
++    if (!trimmed.startsWith("{")) continue;
++    try {
++      const data = JSON.parse(trimmed);
++      if (data) return { ok: true, data };
++    } catch (e) {
++    }
++  }
++  return { ok: false };
++}
+ function downloadValueSelector(text) {
+   const alreadyDownloaded = ALREADY_DOWNLOADED_RE.exec(text);
+   if (alreadyDownloaded != null) {
 diff --git a/node_modules/yt-dlp-helper/dist/index.js b/node_modules/yt-dlp-helper/dist/index.js
-index ea38751..1bc50ac 100644
+index 9260e08..f463a6d 100644
 --- a/node_modules/yt-dlp-helper/dist/index.js
 +++ b/node_modules/yt-dlp-helper/dist/index.js
 @@ -568,6 +568,12 @@ function getDefaultMetadataOptionsForUrl(url) {
@@ -172,7 +241,7 @@ index ea38751..1bc50ac 100644
  function manualDownloadLatestYTDLP() {
    return __async(this, arguments, function* ({
      filePath,
-@@ -962,13 +1000,14 @@ function getPlaylistInfo(_0) {
+@@ -962,58 +1000,52 @@ function getPlaylistInfo(_0) {
        ytdlp: false,
        ffmpeg: true
      },
@@ -188,6 +257,75 @@ index ea38751..1bc50ac 100644
      const effectiveOptions = defaultOpts != null ? __spreadValues(__spreadValues({}, defaultOpts), appOpts) : appOpts;
      const metadataArgs = getMetadataArgs(effectiveOptions);
      const terminal = yield invokeInternal({
+       ytdlpDownloadDestination,
+       ffmpegDownloadDestination,
+-      args: [...metadataArgs, "--flat-playlist", "-J", url],
++      args: [...metadataArgs, "--no-warnings", "--flat-playlist", "-J", url],
+       downloadBinary
+     });
+     if (!terminal)
+       return {
+         ok: false
+       };
+-    let value = {
+-      ok: false
+-    };
+-    try {
+-      for (var iter = __forAwait(terminal.listen()), more, temp, error; more = !(temp = yield iter.next()).done; more = false) {
+-        const text = temp.value;
+-        try {
+-          const data = JSON.parse(text);
+-          if (!data) {
+-            continue;
+-          }
+-          value = {
+-            ok: true,
+-            data
+-          };
+-          break;
+-        } catch (e) {
+-        }
+-      }
+-    } catch (temp) {
+-      error = [temp];
+-    } finally {
+-      try {
+-        more && (temp = iter.return) && (yield temp.call(iter));
+-      } finally {
+-        if (error)
+-          throw error[0];
+-      }
++    // -J prints the whole playlist as one JSON line, which for a long list
++    // (a YouTube Mix is ~300KB) arrives over several stdout chunks. Parsing
++    // each chunk on its own never succeeds, so collect everything first.
++    let output = "";
++    const iter = terminal.listen();
++    while (true) {
++      const next = yield iter.next();
++      if (next.done) break;
++      output += next.value;
+     }
+-    terminal.kill();
+-    return value;
++    return parsePlaylistJson(output);
+   });
+ }
++function parsePlaylistJson(output) {
++  const lines = (output || "").split("\n");
++  for (let i = lines.length - 1; i >= 0; i--) {
++    const trimmed = lines[i].trim();
++    if (!trimmed.startsWith("{")) continue;
++    try {
++      const data = JSON.parse(trimmed);
++      if (data) return { ok: true, data };
++    } catch (e) {
++    }
++  }
++  return { ok: false };
++}
+ function downloadValueSelector(text) {
+   const alreadyDownloaded = ALREADY_DOWNLOADED_RE.exec(text);
+   if (alreadyDownloaded != null) {
 diff --git a/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts b/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts
 index 5e77e76..2a30380 100644
 --- a/node_modules/yt-dlp-helper/dist/interfaces/args.d.ts
