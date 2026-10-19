@@ -193,4 +193,5 @@ export interface AddDownload {
   tags?: string[];
   category?: string[];
   isLive?: boolean; // Whether the source is a live stream currently being recorded
+  favorited?: boolean; // Whether the user has favorited this download
 }

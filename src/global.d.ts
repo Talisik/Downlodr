@@ -4,87 +4,22 @@
  * These match the IPC renderer bridges exposed in src/core-app/ipc/renderer/.
  * Use the bridge names (e.g. window.fileInfoBridge) or the composed API
  * (e.g. window.downlodrFunctions) once the preload wires them.
+ *
+ * The `Window` bridges are split by module under src/types/global/ — each file
+ * merges into `interface Window` on its own:
+ *   app.d.ts            window, device info, clipboard, updates, telemetry, add-ons, boot
+ *   files.d.ts          filesystem and browser helpers
+ *   downloads.d.ts      yt-dlp, cookie auth, transcription, browser extension
+ *   plugins.d.ts        plugin bridges and plugin UI managers
+ *   composed.d.ts       legacy composed namespaces (downlodrFunctions, ytdlp, …)
+ *   skedulosa.d.ts      Skedulosa subscriptions / scraper
+ *   afda.d.ts           AFDA article scraping
+ *   chat.d.ts           chat / local LLM
+ *   smart-organize.d.ts Smart Organize and auto-tagging
+ *   account.d.ts        accounts and share links
+ *   shared.d.ts         response types used by several of the above
  */
-import type {
-  FormatSelectorResult,
-  MenuItem,
-  MenuItemRegistration,
-  PluginInfo,
-  PluginManifest,
-  PluginModalOptions,
-  PluginSidePanelOptions,
-  PluginSidePanelResult,
-  SaveDialogOptions,
-  SaveDialogResult,
-  TaskBarItem,
-  TaskBarItemRegistration,
-  UpdateInfo,
-  WriteFileOptions,
-  WriteFileResult,
-} from './plugins/schema/types';
-import type {
-  SmartOrganizeDownloadInput,
-  SmartOrganizeHandlerResult,
-  SmartOrganizeProgress,
-} from './smart-organize/schema/smartOrganizeTypes';
-
-// --- Shared response types (from main process handlers) ---
-export interface AppInfo {
-  app_name: string;
-  app_platform: string;
-  electron_version: string;
-  app_arch: string;
-}
-
-export interface BrowserInfo {
-  browser_name: string;
-  browser_version: string;
-  browser_arch: string;
-}
-
-export interface DeviceInfo {
-  user_name: string;
-  host_name: string;
-  host_id: string;
-  host_type: string;
-  host_arch: string;
-  os_type: string;
-  os_description: string;
-  os_name: string;
-  os_version: string;
-  cpu_model: string;
-  cpu_cores: number;
-  cpu_threads: number;
-  memory_total_gb: number;
-  memory_available_gb: number;
-}
-
-export type GetInfoResponse = Record<string, unknown> | null;
-
-// --- YT-DLP download status (passed to progress callback) ---
-export interface YtdlpDownloadStatus {
-  type?: string;
-  downloadId?: string;
-  controllerId?: string;
-  data?: { status?: string; [key: string]: unknown };
-  [key: string]: unknown;
-}
-
-// --- YT-DLP playlist info (getPlaylistInfo response) ---
-export interface PlaylistInfoEntry {
-  id: string;
-  url: string;
-  title: string;
-  thumbnails: { url: string }[];
-  channel: string;
-}
-
-export interface PlaylistInfoResponse {
-  data: {
-    title: string;
-    entries: PlaylistInfoEntry[];
-  };
-}
+export * from './types/global/shared';
 
 declare global {
   const __TELEMETRY_ENDPOINT__: string;
@@ -929,6 +864,3 @@ declare global {
     };
   }
 }
-
-export { };
-

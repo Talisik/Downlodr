@@ -595,6 +595,7 @@ const TaskbarInputField = () => {
         transcriptLocation: download.transcriptLocation,
         tags: download.tags,
         category: download.category,
+        favorited: download.favorited ?? false,
       });
 
       removeFromForDownloads(download.id);

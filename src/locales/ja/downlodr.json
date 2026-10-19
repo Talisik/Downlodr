@@ -198,7 +198,8 @@
       "addNewCategory": "新しいカテゴリを追加...",
       "maxChars": "最大{{max}}文字",
       "noTags": "タグがまだありません",
-      "noCategories": "カテゴリがまだありません"
+      "noCategories": "カテゴリがまだありません",
+      "appliesToSelected": "選択中の{{count}}件に適用"
     },
     "toast": {
       "noDownloadsSelectedTitle": "ダウンロードが選択されていません",
@@ -246,14 +247,17 @@
       "duplicateTagDesc": "タグ「{{value}}」は既に存在します。",
       "duplicateCategoryTitle": "カテゴリの重複",
       "duplicateCategoryDesc": "カテゴリ「{{value}}」は既に存在します。",
-      "bulkTagAppliedTitle": "タグを適用しました",
-      "bulkTagAppliedDesc": "タグ「{{value}}」を{{count}}件のダウンロードに追加しました。",
-      "bulkTagRemovedTitle": "タグを削除しました",
-      "bulkTagRemovedDesc": "タグ「{{value}}」を{{count}}件のダウンロードから削除しました。",
-      "bulkCategoryAppliedTitle": "カテゴリを適用しました",
-      "bulkCategoryAppliedDesc": "カテゴリ「{{value}}」を{{count}}件のダウンロードに追加しました。",
-      "bulkCategoryRemovedTitle": "カテゴリを削除しました",
-      "bulkCategoryRemovedDesc": "カテゴリ「{{value}}」を{{count}}件のダウンロードから削除しました。"
+      "bulkTagAppliedTitle_other": "タグを{{count}}件のダウンロードに適用しました",
+      "bulkTagAppliedDesc_other": "「{{value}}」を選択中の{{count}}件に追加しました。",
+      "bulkTagRemovedTitle_other": "タグを{{count}}件のダウンロードから削除しました",
+      "bulkTagRemovedDesc_other": "「{{value}}」を選択中の{{count}}件から削除しました。",
+      "bulkCategoryAppliedTitle_other": "カテゴリを{{count}}件のダウンロードに適用しました",
+      "bulkCategoryAppliedDesc_other": "「{{value}}」を選択中の{{count}}件に設定しました。",
+      "bulkCategoryRemovedTitle_other": "カテゴリを{{count}}件のダウンロードから削除しました",
+      "bulkCategoryRemovedDesc_other": "「{{value}}」を選択中の{{count}}件から削除しました。",
+      "bulkAlreadyHadDesc_other": "{{count}}件は設定済みでした。",
+      "articlesStartedTitle": "記事を保存中",
+      "articlesStartedDesc_other": "{{count}} 件の記事を保存しています。"
     },
     "settingsButton": "設定",
     "deleteLabel": "削除",
@@ -569,6 +573,29 @@
     "transcription": {
       "failed": "文字起こし失敗",
       "failedDesc": "文字起こしを作成できませんでした"
+    }
+  },
+  "bulkFormat": {
+    "title": "ダウンロード画質を選択",
+    "selectQuality": "選択したすべての動画の画質",
+    "videoCount_other": "動画 {{count}} 件",
+    "subscriptionsAsUsual_other": "登録チャンネルの動画 {{count}} 件は現在の形式のまま",
+    "articlesAsUsual_other": "記事 {{count}} 件は通常どおりダウンロード",
+    "adjustedCount_other": "{{count}} 件の動画は別の画質になります。",
+    "show": "表示",
+    "hide": "非表示",
+    "cancel": "キャンセル",
+    "download": "ダウンロード",
+    "tier": {
+      "360": "360p 以下",
+      "480": "480p",
+      "720": "720p",
+      "1080": "1080p",
+      "1440": "1440p",
+      "2160": "2160p (4K)",
+      "best": "最高画質",
+      "audio": "音声のみ",
+      "mp3": "音声のみ (MP3)"
     }
   }
 }

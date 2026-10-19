@@ -179,21 +179,9 @@ const config: ForgeConfig = {
 
       // Exclude entire src/ tree — Vite compiled everything into .vite/build/.
       // Backend add-ons (afda, skedulosa) are downloaded separately by the add-on manager.
-      // Exceptions: src/chat/docs and src/chat/claude-skills are plain files read
-      // at runtime via fs (task docs + the Agent Skills bundle the embedded chat
-      // installs into .claude/skills/) — Vite never touches them, so excluding
-      // them here silently strips the embedded AI chat of both its docs and its
-      // skills in every packaged build.
-      //
-      // The two parent dirs must be un-ignored explicitly: packager feeds this
-      // function to fs-extra's copy `filter`, which does NOT recurse into a
-      // directory it excluded — returning true for '/src' prunes the whole
-      // subtree and the exception below never gets tested at all.
-      if (filePath === '/src' || filePath === '/src/chat') return false;
-      if (/^\/src\/chat\/(docs|claude-skills)(\/|$)/.test(filePath)) {
-        return false;
-      }
-      if (filePath.startsWith('/src/')) return true;
+      // No carve-outs: the embedded chat's runtime-read files (src/chat/docs and
+      // src/chat/claude-skills) went away with the feature itself.
+      if (filePath === '/src' || filePath.startsWith('/src/')) return true;
 
       // Exclude dev/test artifacts that land in the project root
       if (/\.(mp4|mkv|avi|mov|webm|mp3|wav|flac)$/i.test(filePath)) return true;

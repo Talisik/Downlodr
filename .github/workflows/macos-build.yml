@@ -95,6 +95,12 @@ jobs:
       - name: Fetch whisper-enabled FFmpeg
         run: yarn binaries:setup
 
+      - name: Inject add-on download URLs
+        env:
+          ADDONS_DOWNLOAD_URLS: ${{ secrets.ADDONS_DOWNLOAD_URLS }}
+        shell: bash
+        run: node scripts/inject-addon-urls.mjs
+
       - name: Build ARM64 production DMG
         run: yarn build:dmg
 
@@ -178,6 +184,12 @@ jobs:
       # these separate builds (package.json downlodrBinaries, darwin entries).
       - name: Fetch whisper-enabled FFmpeg
         run: yarn binaries:setup
+
+      - name: Inject add-on download URLs
+        env:
+          ADDONS_DOWNLOAD_URLS: ${{ secrets.ADDONS_DOWNLOAD_URLS }}
+        shell: bash
+        run: node scripts/inject-addon-urls.mjs
 
       - name: Build Intel production DMG
         run: yarn build:intel

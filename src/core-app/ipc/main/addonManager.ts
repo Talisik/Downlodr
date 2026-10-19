@@ -7,6 +7,10 @@ import yauzl from 'yauzl';
 
 export type PackName = 'afda-backend' | 'video-nemesis-toolkit' | 'smart-organize-backend';
 
+// How often download progress is forwarded to the renderer (ms).
+// HTTP response 'data' events can fire hundreds of times per second for a
+// large pack, and each send is a synchronous main->renderer IPC call, so
+// this must be throttled to avoid flooding the renderer and causing lag.
 const PROGRESS_THROTTLE_MS = 150;
 
 export type AddonStatus =
@@ -14,6 +18,15 @@ export type AddonStatus =
   | { status: 'ready'; path: string }
   | { status: 'outdated'; installedVersion: string; path: string };
 
+/**
+ * Compares two semver-ish versions, returning <0, 0 or >0 like a sort
+ * comparator. Only the numeric release segments are considered — a prerelease
+ * or build suffix (`1.2.0-beta.1`, `1.2.0+abc`) compares equal to its release,
+ * which is what we want here: a prerelease pack shouldn't nag as outdated.
+ *
+ * Returns null if either side isn't parseable, so callers can decline to judge
+ * rather than guess.
+ */
 function compareVersions(a: string, b: string): number | null {
   const parse = (v: string): number[] | null => {
     if (typeof v !== 'string') return null;
@@ -35,9 +48,14 @@ function compareVersions(a: string, b: string): number | null {
   return 0;
 }
 
+// Maps pack → a function that destroys its current HTTP request
 const activeDownloads = new Map<PackName, () => void>();
+// Tracks packs that were explicitly cancelled (so realDownload's catch doesn't re-send complete)
 const cancelledPacks = new Set<PackName>();
 
+// The window add-on progress is reported to. Always the main window: the
+// renderer that owns addonStore and GlobalAddonDownloadToast lives there, and
+// the chat can be a separate popped-out window that would swallow the events.
 let addonMainWindow: BrowserWindow | null = null;
 
 export function registerAddonMainWindow(win: BrowserWindow | null): void {
@@ -48,15 +66,31 @@ export function isAddonDownloading(packName: PackName): boolean {
   return activeDownloads.has(packName);
 }
 
+/**
+ * The one way to start an add-on download. Every caller funnels through here
+ * so the re-entry guard cannot be bypassed: realDownload rm -rf's its
+ * destination directory at entry, so a second concurrent call for the same
+ * pack deletes what the first is still extracting into.
+ *
+ * activeDownloads is cleared in realDownload's `finally`, so the guard
+ * releases itself on success, failure and cancellation alike.
+ */
 export function startAddonDownload(packName: PackName): { started: boolean } {
   if (activeDownloads.has(packName)) return { started: false };
   if (!addonMainWindow || addonMainWindow.isDestroyed())
     return { started: false };
+  // Claim the slot synchronously. realDownload sets it too, but only after
+  // its first await, which would leave a window where a second call slips past.
   activeDownloads.set(packName, () => {});
   realDownload(packName, addonMainWindow)
     .catch((err) =>
       console.error('[addonManager] realDownload error:', err),
     )
+    // realDownload frees the slot in its own `finally`, but its early return
+    // for a pack missing from addons.config.json happens before that try block
+    // is entered — without this the slot would stay claimed for the rest of
+    // the session and that pack could never be downloaded again. Deleting
+    // twice is harmless.
     .finally(() => activeDownloads.delete(packName));
   return { started: true };
 }
@@ -90,6 +124,11 @@ function markPendingDelete(packName: PackName): void {
   writePendingDeletes([...pending]);
 }
 
+/**
+ * Removes any addon directories that failed to delete last session (e.g. their
+ * native module DLL was still locked by the running process on Windows). Must
+ * run before any addon module is loaded, so the files are no longer in use.
+ */
 export async function applyPendingDeletes(): Promise<void> {
   const pending = readPendingDeletes();
   if (pending.length === 0) return;
@@ -98,6 +137,7 @@ export async function applyPendingDeletes(): Promise<void> {
   for (const packName of pending) {
     const addonPath = path.join(app.getPath('userData'), 'downlodr-add-ons', packName);
     try {
+      // rm with force ignores missing paths, so no existsSync guard needed
       await fs.promises.rm(addonPath, { recursive: true, force: true });
     } catch (err) {
       console.error(`[addonManager] deferred delete failed for ${packName}:`, err);
@@ -128,6 +168,9 @@ export function detectAddon(packName: PackName): AddonStatus {
     return { status: 'not-installed', path: null };
   }
 
+  // addons.config.json is the single source of truth: the same entry carries
+  // the version and the downloadUrl, so bumping a pack is one edit and the two
+  // can't drift apart.
   const expected = loadAddonsConfig()[packName]?.version;
   const comparison =
     expected === undefined ? null : compareVersions(version, expected);
@@ -135,6 +178,10 @@ export function detectAddon(packName: PackName): AddonStatus {
     `[detectAddon] ${packName} — installed: ${version}, expected: ${expected}`,
   );
 
+  // Only an installed version strictly *older* than the config is outdated.
+  // An unknown or unparseable version is left alone rather than flagged, so a
+  // pack that runs ahead of the config never nags for an update that would
+  // re-install the exact same build.
   if (comparison !== null && comparison < 0) {
     return { status: 'outdated', installedVersion: version, path: addonPath };
   }
@@ -142,6 +189,14 @@ export function detectAddon(packName: PackName): AddonStatus {
   return { status: 'ready', path: addonPath };
 }
 
+/**
+ * Returns the base directory for a pack, checked in priority order:
+ *  1. userData/downlodr-add-ons/<pack>        (downloaded add-on)
+ *  2. app.asar.unpacked/src/.../              (full packaged build)
+ *  3. app.getAppPath()/src/.../               (dev environment)
+ *
+ * Returns the first path that contains a package.json, or the dev path as fallback.
+ */
 export function resolveAddonPath(packName: PackName): string {
   const SRC_SUBPATHS: Record<PackName, string> = {
     'afda-backend': path.join('src', 'afda', 'backend', 'afda-backend'),
@@ -150,6 +205,7 @@ export function resolveAddonPath(packName: PackName): string {
   };
   const srcSubpath = SRC_SUBPATHS[packName];
 
+  // Priority 1: userData downloaded pack
   const userDataPack = path.join(
     app.getPath('userData'),
     'downlodr-add-ons',
@@ -158,6 +214,7 @@ export function resolveAddonPath(packName: PackName): string {
   if (fs.existsSync(path.join(userDataPack, 'package.json')))
     return userDataPack;
 
+  // Priority 2: app.asar.unpacked (packaged full build)
   if (process.resourcesPath) {
     const unpackedPack = path.join(
       process.resourcesPath,
@@ -168,6 +225,7 @@ export function resolveAddonPath(packName: PackName): string {
       return unpackedPack;
   }
 
+  // Priority 3: dev environment
   return path.join(app.getAppPath(), srcSubpath);
 }
 
@@ -269,6 +327,7 @@ function downloadToFile(
           reject(err);
         });
       });
+      // Register the cancel function for the most recent request (updated on each redirect hop)
       onRequestReady(() => req.destroy(new Error('Cancelled')));
       req.on('error', (err) => {
         fs.unlink(destPath, () => {});
@@ -287,6 +346,7 @@ function extractZip(zipPath: string, destDir: string): Promise<void> {
       zipfile.readEntry();
 
       zipfile.on('entry', (entry) => {
+        // Skip .asar files — Electron intercepts fs writes to these paths
         if (entry.fileName.endsWith('.asar')) {
           zipfile.readEntry();
           return;
@@ -316,6 +376,8 @@ function extractZip(zipPath: string, destDir: string): Promise<void> {
 }
 
 function patchNativeBinaries(destDir: string): void {
+  // Native .node binaries in the pack may be compiled for a different Electron/Node version.
+  // Replace them with the app's own binaries which are already compiled for the correct ABI.
   const appRoot = app.isPackaged
     ? path.join(process.resourcesPath, 'app.asar.unpacked')
     : app.getAppPath();
@@ -348,6 +410,7 @@ function normalizeExtractedDir(destDir: string): void {
     return;
   }
 
+  // Zip had a wrapping folder — find it and hoist its contents up one level
   const entries = fs.readdirSync(destDir);
   for (const entry of entries) {
     const subDir = path.join(destDir, entry);
@@ -378,11 +441,11 @@ async function realDownload(
 ): Promise<void> {
   const config = loadAddonsConfig();
   const packConfig = config[packName];
-  if (!packConfig?.downloadUrl) {
+  if (!packConfig) {
     mainWindow.webContents.send('addon:complete', {
       pack: packName,
       success: false,
-      error: `No download URL configured for ${packName} in addons.config.json`,
+      error: `No config found for ${packName}`,
     });
     return;
   }
@@ -396,6 +459,7 @@ async function realDownload(
   if (fs.existsSync(destDir))
     fs.rmSync(destDir, { recursive: true, force: true });
 
+  // Placeholder; updated to the real cancel fn as soon as the first request is created
   activeDownloads.set(packName, () => {});
 
   try {
@@ -429,19 +493,22 @@ async function realDownload(
     cancelledPacks.delete(packName);
   } catch (err) {
     if (cancelledPacks.has(packName)) {
+      // Cancel handler already sent addon:complete — just clean up partial files
       cancelledPacks.delete(packName);
-      try { fs.unlinkSync(tempZip); } catch { }
-      try { fs.rmSync(destDir, { recursive: true, force: true }); } catch { }
+      try { fs.unlinkSync(tempZip); } catch { /* already gone */ }
+      try { fs.rmSync(destDir, { recursive: true, force: true }); } catch { /* partial */ }
       return;
     }
     console.error(`[addonManager] download failed for ${packName}:`, err);
     try {
       fs.unlinkSync(tempZip);
     } catch {
+      /* already gone */
     }
     try {
       fs.rmSync(destDir, { recursive: true, force: true });
     } catch {
+      /* partial extraction */
     }
     mainWindow.webContents.send('addon:complete', {
       pack: packName,
@@ -485,6 +552,9 @@ export function addonManagerHandler(mainWindow: BrowserWindow): () => void {
         return { success: true };
       } catch (err) {
         console.error(`[addonManager] delete failed for ${pack}:`, err);
+        // Most likely cause on Windows: the addon's native module is still
+        // loaded in this process and has a file lock on it. Defer the actual
+        // removal to next launch, before the addon is loaded again.
         markPendingDelete(pack);
         return { success: false, deferred: true, error: String(err) };
       }

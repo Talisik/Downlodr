@@ -111,6 +111,7 @@ const FormatSelectorModal: React.FC<FormatSelectorModalProps> = ({
       tags: download.tags,
       category: download.category,
       isLive: download.isLive,
+      favorited: download.favorited ?? false,
     });
 
     removeFromForDownloads(download.id);

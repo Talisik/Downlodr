@@ -37,9 +37,18 @@ import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
 import { DownloadItem } from '@/downlodr/schema/componentSchema';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import { deletePerDownloadFolder } from '@/downlodr/utils/download/downloadFolder';
-import { maybeShowFormatHint } from '@/downlodr/utils/formatHint';
+import BulkFormatModal, {
+  type BulkFormatVideo,
+} from '@/downlodr/components/modal/custom/BulkFormatModal';
+import {
+  resolveBulkFormat,
+  type BulkFormatTier,
+} from '@/downlodr/utils/download/bulkFormat';
+import { downloadArticle } from '@/afda/utils/downloadArticle';
+import { useSkedulosaStore } from '@/skedulosa/store/skedulosaStore';
+import type { FormatOption } from '@/downlodr/schema/metadataSchema';
 import PluginToolbarExtension from '@/plugins/components/PluginTaskBarExtension';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { LuTrash } from 'react-icons/lu';
 import { enqueueTranscript } from '@/downlodr/utils/transcription/transcriptQueue';
 import { FaRegClosedCaptioning } from 'react-icons/fa';
@@ -68,6 +77,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const removeArticleDownload = useArticleDownloadStore(
     (s) => s.removeArticleDownload,
   );
+  const articleDownloads = useArticleDownloadStore((s) => s.articleDownloads);
+  const subscriptions = useSkedulosaStore((s) => s.subscriptions);
   const setSelectedRowIds = useSelectedDownloadStore(
     (state) => state.setSelectedRowIds,
   );
@@ -91,12 +102,60 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
   const [showBulkTranscriptConfirmation, setShowBulkTranscriptConfirmation] =
     useState(false);
+  const [showBulkFormat, setShowBulkFormat] = useState(false);
 
-  // Check if any selected downloads are in "to download" status (for Start button)
-  const hasForDownloadStatus = selectedDownloads.some((download) =>
-    forDownloads.some(
-      (fd) => fd.id === download.id && fd.status === 'to download',
-    ),
+  // What Start would act on, split three ways. Only standalone videos take the
+  // bulk format tier; subscription videos (grouped under their subscription in
+  // the table — same rule as StatusPageTable) keep their stored format, and
+  // articles are saved through the normal article pipeline.
+  const startable = useMemo(() => {
+    const subscriptionIds = new Set(subscriptions.map((s) => s.id));
+    const seen = new Set<string>();
+    const standalone: typeof selectedDownloads = [];
+    const subscription: typeof selectedDownloads = [];
+    const articleIds: string[] = [];
+    for (const selected of selectedDownloads) {
+      if (seen.has(selected.id)) continue;
+      seen.add(selected.id);
+      const article = articleDownloads.find((a) => a.id === selected.id);
+      if (article) {
+        if (article.status === 'for_download') articleIds.push(article.id);
+        continue;
+      }
+      const fd = forDownloads.find((f) => f.id === selected.id);
+      if (fd?.status !== 'to download') continue;
+      if (fd.subscriptionId && subscriptionIds.has(fd.subscriptionId)) {
+        subscription.push(selected);
+      } else {
+        standalone.push(selected);
+      }
+    }
+    return { standalone, subscription, articleIds };
+  }, [selectedDownloads, forDownloads, articleDownloads, subscriptions]);
+
+  // Check if any selected downloads can be started (for Start button)
+  const hasForDownloadStatus =
+    startable.standalone.length > 0 ||
+    startable.subscription.length > 0 ||
+    startable.articleIds.length > 0;
+
+  const bulkFormatVideos: BulkFormatVideo[] = useMemo(
+    () =>
+      startable.standalone.map((selected) => {
+        const fd = forDownloads.find((f) => f.id === selected.id);
+        return {
+          id: selected.id,
+          title: fd?.displayName ?? fd?.name ?? selected.download?.name ?? '',
+          formats: fd?.formats as FormatOption[] | undefined,
+          stored: {
+            ext: fd?.ext ?? '',
+            formatId: fd?.formatId ?? '',
+            audioExt: fd?.audioExt ?? '',
+            audioFormatId: fd?.audioFormatId ?? '',
+          },
+        };
+      }),
+    [startable, forDownloads],
   );
 
   // Check if any selected downloads are in "downloading" or "initializing" status (for Stop button)
@@ -355,28 +414,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
       return;
     }
 
-    // One-time hint: consumes this click without starting any downloads.
-    if (maybeShowFormatHint()) return;
-
-    // get the functions and lists from store
-    const { forDownloads, removeFromForDownloads, addQueue } =
-      useDownloadStore.getState();
-
-    // Filter selected downloads to only include those in forDownloads and remove duplicates
-    const validDownloads = selectedDownloads.filter((download) =>
-      forDownloads.some((fd) => fd.id === download.id),
-    );
-    const uniqueDownloads = [...new Set(validDownloads.map((d) => d.id))]
-      .map((id) => validDownloads.find((d) => d.id === id))
-      .filter(
-        (d): d is (typeof validDownloads)[0] =>
-          d !== undefined && d.status === 'to download',
-      );
-
-    // Clear selections immediately after filtering
-    clearAllSelections();
-
-    if (uniqueDownloads.length === 0) {
+    if (!hasForDownloadStatus) {
+      clearAllSelections();
       toast({
         variant: 'destructive',
         title: t('toolbar.toast.noValidDownloadsTitle'),
@@ -386,6 +425,25 @@ const Toolbar: React.FC<ToolbarProps> = ({
       return;
     }
 
+    // Standalone videos need a quality tier first; selection is kept until
+    // the modal confirms so Cancel leaves it untouched.
+    if (startable.standalone.length > 0) {
+      setShowBulkFormat(true);
+      return;
+    }
+    runStart('best');
+  };
+
+  const runStart = (tier: BulkFormatTier) => {
+    const { standalone, subscription, articleIds } = startable;
+    const standaloneIds = new Set(standalone.map((d) => d.id));
+
+    // get the functions and lists from store
+    const { forDownloads, removeFromForDownloads, addQueue } =
+      useDownloadStore.getState();
+
+    clearAllSelections();
+
     // Enqueue oldest-added first so the queue actually behaves FIFO.
     // `selectedDownloads` follows the order rows were selected in, which for
     // select-all is the *rendered* order — and the table defaults to
@@ -394,7 +452,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     // (which correctly pulls queuedDownloads[0]) started the last-added video
     // first and the queue looked LIFO. Sorting by DateAdded here decouples
     // enqueue order from however the user has the table sorted.
-    const queueOrder = [...uniqueDownloads].sort((a, b) => {
+    const queueOrder = [...standalone, ...subscription].sort((a, b) => {
       const timeA = new Date(a.download?.DateAdded ?? 0).getTime() || 0;
       const timeB = new Date(b.download?.DateAdded ?? 0).getTime() || 0;
       return timeA - timeB;
@@ -404,14 +462,36 @@ const Toolbar: React.FC<ToolbarProps> = ({
     queueOrder.forEach((selectedDownload) => {
       const downloadInfo = selectedDownload.download;
       const processedName = downloadInfo.name.replace(/[\\/:*?"<>|]/g, '_');
+      const record = forDownloads.find((fd) => fd.id === selectedDownload.id);
+
+      // Standalone videos take the tier picked in the modal; subscription
+      // videos keep the format already stored on the row.
+      const format = standaloneIds.has(selectedDownload.id)
+        ? resolveBulkFormat(
+            tier,
+            record?.formats as FormatOption[] | undefined,
+            {
+              ext: record?.ext ?? downloadInfo.ext,
+              formatId: record?.formatId ?? downloadInfo.formatId,
+              audioExt: record?.audioExt ?? downloadInfo.audioExt,
+              audioFormatId:
+                record?.audioFormatId ?? downloadInfo.audioFormatId,
+            },
+          )
+        : {
+            ext: downloadInfo.ext,
+            formatId: downloadInfo.formatId,
+            audioExt: downloadInfo.audioExt,
+            audioFormatId: downloadInfo.audioFormatId,
+          };
 
       addQueue({
         subscriptionId: downloadInfo.subscriptionId,
         videoUrl: selectedDownload.videoUrl ?? downloadInfo.videoUrl ?? '',
-        name: `${processedName}.${downloadInfo.ext}`,
-        downloadName: `${processedName}.${downloadInfo.ext}`,
+        name: `${processedName}.${format.ext}`,
+        downloadName: `${processedName}.${format.ext}`,
         displayName:
-          downloadInfo.displayName ?? `${processedName}.${downloadInfo.ext}`,
+          downloadInfo.displayName ?? `${processedName}.${format.ext}`,
         size: downloadInfo.size,
         speed: downloadInfo.speed,
         channelName: downloadInfo.channelName ?? '',
@@ -423,10 +503,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
         progress: downloadInfo.progress ?? 0,
         location: downloadInfo.location ?? selectedDownload.location ?? '',
         status: 'queued',
-        ext: downloadInfo.ext,
-        formatId: downloadInfo.formatId,
-        audioExt: downloadInfo.audioExt,
-        audioFormatId: downloadInfo.audioFormatId,
+        ext: format.ext,
+        formatId: format.formatId,
+        audioExt: format.audioExt,
+        audioFormatId: format.audioFormatId,
         extractorKey: downloadInfo.extractorKey,
         limitRate:
           settings.defaultDownloadSpeed === 0
@@ -441,18 +521,40 @@ const Toolbar: React.FC<ToolbarProps> = ({
         tags: downloadInfo.tags,
         category: downloadInfo.category,
         isLive: downloadInfo.isLive ?? false,
+        // Read from the live store row, not the selection snapshot — the user
+        // can favorite a row after selecting it.
+        favorited:
+          forDownloads.find((fd) => fd.id === selectedDownload.id)?.favorited ??
+          false,
       });
       removeFromForDownloads(selectedDownload.id);
     });
 
     // Show toast notification
-    toast({
-      title: t('toolbar.toast.addedToQueueTitle'),
-      description: t('toolbar.toast.addedToQueueDesc', {
-        count: uniqueDownloads.length,
-      }),
-      duration: 5000,
-    });
+    if (queueOrder.length > 0) {
+      toast({
+        title: t('toolbar.toast.addedToQueueTitle'),
+        description: t('toolbar.toast.addedToQueueDesc', {
+          count: queueOrder.length,
+        }),
+        duration: 5000,
+      });
+    }
+
+    if (articleIds.length > 0) {
+      toast({
+        title: t('toolbar.toast.articlesStartedTitle'),
+        description: t('toolbar.toast.articlesStartedDesc', {
+          count: articleIds.length,
+        }),
+        duration: 5000,
+      });
+      // One at a time, like the AFDA table's bulk download. downloadArticle
+      // reports its own failures and skips anything no longer for_download.
+      void (async () => {
+        for (const id of articleIds) await downloadArticle(id);
+      })();
+    }
   };
 
   const handleRemoveSelected = async (deleteFolder?: boolean) => {
@@ -952,6 +1054,14 @@ const Toolbar: React.FC<ToolbarProps> = ({
           onClose={() => setShowBulkTranscriptConfirmation(false)}
           onConfirm={runBatchTranscript}
           count={eligibleSelectedDownloads.length}
+        />
+        <BulkFormatModal
+          isOpen={showBulkFormat}
+          onClose={() => setShowBulkFormat(false)}
+          onConfirm={runStart}
+          videos={bulkFormatVideos}
+          subscriptionCount={startable.subscription.length}
+          articleCount={startable.articleIds.length}
         />
       </div>
     </>

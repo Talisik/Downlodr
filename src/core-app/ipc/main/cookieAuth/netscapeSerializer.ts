@@ -1,5 +1,14 @@
+// src/core-app/ipc/main/cookieAuth/netscapeSerializer.ts
 import type { Cookie } from 'electron';
 
+/**
+ * Serializes Electron session cookies (from session.cookies.get()) into
+ * Netscape cookie-jar text, the format yt-dlp's --cookies flag reads.
+ * This is necessary because this is Downlodr's own embedded Chromium
+ * session, not a real installed browser — yt-dlp's --cookies-from-browser
+ * importers have no way to see it, so extraction has to go through
+ * Electron's own cookies API and be hand-serialized.
+ */
 export function serializeCookiesToNetscapeJar(cookies: Cookie[]): string {
   const lines = [
     '# Netscape HTTP Cookie File',

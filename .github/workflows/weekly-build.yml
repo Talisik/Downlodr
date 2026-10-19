@@ -65,6 +65,12 @@ jobs:
           }
         shell: pwsh
       
+      - name: Inject add-on download URLs
+        env:
+          ADDONS_DOWNLOAD_URLS: ${{ secrets.ADDONS_DOWNLOAD_URLS }}
+        shell: bash
+        run: node scripts/inject-addon-urls.mjs
+
       - name: Build Electron app
         run: yarn make
         env:

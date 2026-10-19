@@ -28,6 +28,9 @@ import {
   saveArticleFile,
 } from '@/afda/utils/downloadArticle';
 import { mapArticleError } from '@/afda/utils/articleErrorMap';
+import ArticleFormatSelector, {
+  type ArticleFormat,
+} from '@/afda/components/ArticleFormatSelector';
 import { Separator } from '@radix-ui/react-separator';
 import React, { useCallback, useState } from 'react';
 import {
@@ -115,11 +118,8 @@ export const ArticleDownloadTableRow: React.FC<
   };
 
   const handleFormatChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      e.stopPropagation();
-      updateArticleDownload(download.id, {
-        format: e.target.value as 'docx' | 'pdf',
-      });
+    (format: ArticleFormat) => {
+      updateArticleDownload(download.id, { format });
     },
     [download.id, updateArticleDownload],
   );
@@ -411,15 +411,12 @@ export const ArticleDownloadTableRow: React.FC<
                 className="p-2 text-center align-middle"
               >
                 {download.status === 'for_download' ? (
-                  <select
-                    value={download.format ?? 'docx'}
-                    onChange={handleFormatChange}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-xs border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer"
-                  >
-                    <option value="docx">docx</option>
-                    <option value="pdf">pdf</option>
-                  </select>
+                  <div className="w-full" onClick={(e) => e.stopPropagation()}>
+                    <ArticleFormatSelector
+                      value={download.format ?? 'docx'}
+                      onChange={handleFormatChange}
+                    />
+                  </div>
                 ) : (
                   <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                     {download.format ?? download.ext ?? 'docx'}

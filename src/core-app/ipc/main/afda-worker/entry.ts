@@ -17,6 +17,16 @@ let services: Record<string, any> = {};
 let buildHydratedWebsitesFn: ((storage: any) => unknown) | null = null;
 
 async function initAfda(init: Extract<AfdaWorkerInbound, { type: 'init' }>): Promise<void> {
+  // global.__electronPaths is already populated by this point — see the
+  // worker build's own output.banner (vite.afda-worker.config.ts), which
+  // reads it from env vars utilityProcess.fork() passes at process start,
+  // synchronously, before any bundled module code runs. Rollup's CJS output
+  // hoists every externalized require() (better-sqlite3, afda-backend deps)
+  // into one preamble at the top of the emitted chunk, ahead of ANY internal
+  // module code — including this function, which only runs once an 'init'
+  // message arrives, long after that preamble already executed. A
+  // setElectronPaths() call here would be exactly as late as the one Task 1
+  // proved doesn't work in main.ts's body — see task-1-report.md.
 
   const fakeWindow = new FakeWindow(init.initialWindowState, post);
 

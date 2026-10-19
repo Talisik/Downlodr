@@ -13,10 +13,7 @@ import {
 
 class OpenTelemetryLogs {
   constructor() {
-    // Empty unless VITE_OTEL_LOGS_ENDPOINT is set at build time — no logs
-    // leave the machine by default.
-    this.endpoint =
-      typeof __OTEL_LOGS_ENDPOINT__ !== 'undefined' ? __OTEL_LOGS_ENDPOINT__ : '';
+    this.endpoint = '';
     this.serviceName = 'downlodr-electron-desktop-app';
     this.serviceVersion = '1.0.0';
     this.logger = null;
@@ -25,10 +22,6 @@ class OpenTelemetryLogs {
   }
 
   initialize() {
-    if (!this.endpoint) {
-      console.log('OpenTelemetry Logs disabled: no endpoint configured');
-      return false;
-    }
     try {
       // Create resource
       const resource = resourceFromAttributes({

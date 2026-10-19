@@ -14,6 +14,7 @@ import {
 } from '../utils';
 import { mergeTierResult } from '@/auto-tag/merge';
 import type { TagResult } from '@/auto-tag/types';
+import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
   
 
 /** Zustand setter: accepts partial state or updater function */
@@ -270,7 +271,9 @@ export function createTagsCategoriesActions(set: SetState, get: GetState) {
         });
       },
 
-      renameCategory: (oldName: string, newName: string) =>
+      renameCategory: (oldName: string, newName: string) => {
+        // Articles live in their own store; keep them in step.
+        useArticleDownloadStore.getState().renameArticleCategory(oldName, newName);
         set((state) => {
           const updateDownloads = <T extends BaseDownload>(
             downloads: T[],
@@ -293,9 +296,12 @@ export function createTagsCategoriesActions(set: SetState, get: GetState) {
             forDownloads: updateDownloads(state.forDownloads),
             queuedDownloads: updateDownloads(state.queuedDownloads),
           };
-        }),
+        });
+      },
 
-      deleteCategory: (category: string) =>
+      deleteCategory: (category: string) => {
+        // Articles live in their own store; keep them in step.
+        useArticleDownloadStore.getState().deleteArticleCategory(category);
         set((state) => {
           const updateDownloads = <T extends BaseDownload>(
             downloads: T[],
@@ -316,9 +322,12 @@ export function createTagsCategoriesActions(set: SetState, get: GetState) {
             forDownloads: updateDownloads(state.forDownloads),
             queuedDownloads: updateDownloads(state.queuedDownloads),
           };
-        }),
+        });
+      },
 
-      renameTag: (oldName: string, newName: string) =>
+      renameTag: (oldName: string, newName: string) => {
+        // Articles live in their own store; keep them in step.
+        useArticleDownloadStore.getState().renameArticleTag(oldName, newName);
         set((state) => {
           const updateDownloads = <T extends BaseDownload>(
             downloads: T[],
@@ -341,9 +350,12 @@ export function createTagsCategoriesActions(set: SetState, get: GetState) {
             forDownloads: updateDownloads(state.forDownloads),
             queuedDownloads: updateDownloads(state.queuedDownloads),
           };
-        }),
+        });
+      },
 
-      deleteTag: (tag: string) =>
+      deleteTag: (tag: string) => {
+        // Articles live in their own store; keep them in step.
+        useArticleDownloadStore.getState().deleteArticleTag(tag);
         set((state) => {
           const updateDownloads = <T extends BaseDownload>(
             downloads: T[],
@@ -362,6 +374,7 @@ export function createTagsCategoriesActions(set: SetState, get: GetState) {
             forDownloads: updateDownloads(state.forDownloads),
             queuedDownloads: updateDownloads(state.queuedDownloads),
           };
-        }),
+        });
+      },
   }
 }

@@ -1,3 +1,7 @@
+// src/core-app/ipc/main/cookieAuth/handler.ts
+/* IPC surface for cookie authentication: browser detection, live/import/file
+ * mode selection, one-shot Chrome/Edge jar import, user-supplied cookies.txt
+ * import, and in-app per-site login. */
 import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { importCookies, importFile, type ImportResult } from './jarImport';
 import { openSiteLoginWindow } from './siteLoginWindow';

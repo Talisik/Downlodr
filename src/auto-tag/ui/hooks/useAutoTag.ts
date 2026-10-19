@@ -1,3 +1,11 @@
+/**
+ * useAutoTag — renderer hook to run auto-tagging and apply the results.
+ *
+ * Gathers eligible downloads (finished + history) from the store, sends their
+ * metadata (and transcript path, if any) to the main-process tagger, then merges
+ * the returned tags back into the store via applyAutoTags.
+ */
+
 import { useCallback, useState } from 'react';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 
@@ -6,6 +14,7 @@ export type AutoTagState = 'idle' | 'running' | 'done' | 'error';
 export interface UseAutoTagReturn {
   state: AutoTagState;
   error: string | null;
+  /** Tag the given download ids, or all eligible downloads when omitted. */
   tagDownloads: (ids?: string[]) => Promise<void>;
 }
 

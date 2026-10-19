@@ -11,9 +11,7 @@ CLAUDE.md
 corrections.txt
 .claude/
 docs/public-release-scrub.md
-docs/superpowers/
-task-plan/
-lint-output.txt
+tests/
 
 # Maven
 target/
@@ -150,6 +148,7 @@ typings/
 
 # Electron-Forge
 out/
+build/
 
 # newSrc
 newSrc/
@@ -162,7 +161,6 @@ extensions/yt-dlp-extension
 
 # auto-tag local eval harness (do not commit)
 src/auto-tag/.temp/
-src/auto-tag/docs/
 
 # local git worktrees (do not commit)
 /.worktrees/

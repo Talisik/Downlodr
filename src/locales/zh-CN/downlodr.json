@@ -198,7 +198,8 @@
       "addNewCategory": "添加新分类...",
       "maxChars": "最多 {{max}} 个字符",
       "noTags": "暂无标签",
-      "noCategories": "暂无分类"
+      "noCategories": "暂无分类",
+      "appliesToSelected": "应用于已选的 {{count}} 项"
     },
     "toast": {
       "noDownloadsSelectedTitle": "未选择下载",
@@ -246,14 +247,17 @@
       "duplicateTagDesc": "标签“{{value}}”已存在。",
       "duplicateCategoryTitle": "分类重复",
       "duplicateCategoryDesc": "分类“{{value}}”已存在。",
-      "bulkTagAppliedTitle": "已应用标签",
-      "bulkTagAppliedDesc": "已将标签“{{value}}”添加到 {{count}} 个下载。",
-      "bulkTagRemovedTitle": "已移除标签",
-      "bulkTagRemovedDesc": "已从 {{count}} 个下载中移除标签“{{value}}”。",
-      "bulkCategoryAppliedTitle": "已应用分类",
-      "bulkCategoryAppliedDesc": "已将分类“{{value}}”添加到 {{count}} 个下载。",
-      "bulkCategoryRemovedTitle": "已移除分类",
-      "bulkCategoryRemovedDesc": "已从 {{count}} 个下载中移除分类“{{value}}”。"
+      "bulkTagAppliedTitle_other": "已将标签应用到 {{count}} 个下载",
+      "bulkTagAppliedDesc_other": "已将“{{value}}”添加到所选的 {{count}} 个下载。",
+      "bulkTagRemovedTitle_other": "已从 {{count}} 个下载移除标签",
+      "bulkTagRemovedDesc_other": "已从所选的 {{count}} 个下载中移除“{{value}}”。",
+      "bulkCategoryAppliedTitle_other": "已将分类应用到 {{count}} 个下载",
+      "bulkCategoryAppliedDesc_other": "已为所选的 {{count}} 个下载设置“{{value}}”。",
+      "bulkCategoryRemovedTitle_other": "已从 {{count}} 个下载移除分类",
+      "bulkCategoryRemovedDesc_other": "已从所选的 {{count}} 个下载中移除“{{value}}”。",
+      "bulkAlreadyHadDesc_other": "其中 {{count}} 个已有该项。",
+      "articlesStartedTitle": "正在保存文章",
+      "articlesStartedDesc_other": "正在保存 {{count}} 篇文章。"
     },
     "settingsButton": "设置",
     "deleteLabel": "删除",
@@ -310,8 +314,7 @@
     "missingFolder": "找不到文件夹",
     "missingFolderDesc": "下载文件夹尚不存在",
     "error": "错误"
-  }
-,
+  },
   "dropdownBar": {
     "menus": {
       "file": "文件",
@@ -347,8 +350,7 @@
       "updateCheckFailedDesc": "无法检查更新，请稍后重试。",
       "retry": "重试"
     }
-  }
-,
+  },
   "helpModal": {
     "title": "帮助指南",
     "tabs": {
@@ -571,6 +573,29 @@
     "transcription": {
       "failed": "转录失败",
       "failedDesc": "无法创建转录"
+    }
+  },
+  "bulkFormat": {
+    "title": "选择下载画质",
+    "selectQuality": "所有已选视频的画质",
+    "videoCount_other": "{{count}} 个视频",
+    "subscriptionsAsUsual_other": "{{count}} 个订阅视频保持原格式",
+    "articlesAsUsual_other": "{{count}} 篇文章照常下载",
+    "adjustedCount_other": "{{count}} 个视频将使用其他画质。",
+    "show": "显示",
+    "hide": "隐藏",
+    "cancel": "取消",
+    "download": "下载",
+    "tier": {
+      "360": "360p 及以下",
+      "480": "480p",
+      "720": "720p",
+      "1080": "1080p",
+      "1440": "1440p",
+      "2160": "2160p (4K)",
+      "best": "最佳画质",
+      "audio": "仅音频",
+      "mp3": "仅音频 (MP3)"
     }
   }
 }

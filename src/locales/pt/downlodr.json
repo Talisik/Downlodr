@@ -198,7 +198,8 @@
       "addNewCategory": "Adicionar nova categoria...",
       "maxChars": "Máx. {{max}} caracteres",
       "noTags": "Ainda não há tags",
-      "noCategories": "Ainda não há categorias"
+      "noCategories": "Ainda não há categorias",
+      "appliesToSelected": "Aplica-se a {{count}} selecionados"
     },
     "toast": {
       "noDownloadsSelectedTitle": "Nenhum download selecionado",
@@ -246,14 +247,27 @@
       "duplicateTagDesc": "A tag \"{{value}}\" já existe.",
       "duplicateCategoryTitle": "Categoria duplicada",
       "duplicateCategoryDesc": "A categoria \"{{value}}\" já existe.",
-      "bulkTagAppliedTitle": "Tag aplicada",
-      "bulkTagAppliedDesc": "Tag \"{{value}}\" adicionada a {{count}} download(s).",
-      "bulkTagRemovedTitle": "Tag removida",
-      "bulkTagRemovedDesc": "Tag \"{{value}}\" removida de {{count}} download(s).",
-      "bulkCategoryAppliedTitle": "Categoria aplicada",
-      "bulkCategoryAppliedDesc": "Categoria \"{{value}}\" adicionada a {{count}} download(s).",
-      "bulkCategoryRemovedTitle": "Categoria removida",
-      "bulkCategoryRemovedDesc": "Categoria \"{{value}}\" removida de {{count}} download(s)."
+      "bulkTagAppliedTitle_one": "Tag aplicada a 1 download",
+      "bulkTagAppliedTitle_other": "Tag aplicada a {{count}} downloads",
+      "bulkTagAppliedDesc_one": "\"{{value}}\" foi adicionada a 1 download selecionado.",
+      "bulkTagAppliedDesc_other": "\"{{value}}\" foi adicionada a {{count}} downloads selecionados.",
+      "bulkTagRemovedTitle_one": "Tag removida de 1 download",
+      "bulkTagRemovedTitle_other": "Tag removida de {{count}} downloads",
+      "bulkTagRemovedDesc_one": "\"{{value}}\" foi removida de 1 download selecionado.",
+      "bulkTagRemovedDesc_other": "\"{{value}}\" foi removida de {{count}} downloads selecionados.",
+      "bulkCategoryAppliedTitle_one": "Categoria aplicada a 1 download",
+      "bulkCategoryAppliedTitle_other": "Categoria aplicada a {{count}} downloads",
+      "bulkCategoryAppliedDesc_one": "\"{{value}}\" foi definida em 1 download selecionado.",
+      "bulkCategoryAppliedDesc_other": "\"{{value}}\" foi definida em {{count}} downloads selecionados.",
+      "bulkCategoryRemovedTitle_one": "Categoria removida de 1 download",
+      "bulkCategoryRemovedTitle_other": "Categoria removida de {{count}} downloads",
+      "bulkCategoryRemovedDesc_one": "\"{{value}}\" foi removida de 1 download selecionado.",
+      "bulkCategoryRemovedDesc_other": "\"{{value}}\" foi removida de {{count}} downloads selecionados.",
+      "bulkAlreadyHadDesc_one": "1 já a tinha.",
+      "bulkAlreadyHadDesc_other": "{{count}} já a tinham.",
+      "articlesStartedTitle": "Salvando artigos",
+      "articlesStartedDesc_one": "{{count}} artigo está sendo salvo.",
+      "articlesStartedDesc_other": "{{count}} artigos estão sendo salvos."
     },
     "settingsButton": "Configurações",
     "deleteLabel": "Excluir",
@@ -569,6 +583,33 @@
     "transcription": {
       "failed": "Transcrição falhou",
       "failedDesc": "Não foi possível criar a transcrição"
+    }
+  },
+  "bulkFormat": {
+    "title": "Escolher qualidade do download",
+    "selectQuality": "Qualidade para todos os vídeos selecionados",
+    "videoCount_one": "{{count}} vídeo",
+    "videoCount_other": "{{count}} vídeos",
+    "subscriptionsAsUsual_one": "{{count}} vídeo de inscrição mantém seu formato",
+    "subscriptionsAsUsual_other": "{{count}} vídeos de inscrição mantêm seu formato",
+    "articlesAsUsual_one": "{{count}} artigo é baixado normalmente",
+    "articlesAsUsual_other": "{{count}} artigos são baixados normalmente",
+    "adjustedCount_one": "{{count}} vídeo usará uma qualidade diferente.",
+    "adjustedCount_other": "{{count}} vídeos usarão uma qualidade diferente.",
+    "show": "Mostrar",
+    "hide": "Ocultar",
+    "cancel": "Cancelar",
+    "download": "Baixar",
+    "tier": {
+      "360": "360p ou menos",
+      "480": "480p",
+      "720": "720p",
+      "1080": "1080p",
+      "1440": "1440p",
+      "2160": "2160p (4K)",
+      "best": "Melhor disponível",
+      "audio": "Somente áudio",
+      "mp3": "Somente áudio (MP3)"
     }
   }
 }

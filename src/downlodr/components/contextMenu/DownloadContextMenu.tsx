@@ -36,6 +36,7 @@ import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore';
 import { BaseDownload, useDownloadStore } from '@/downlodr/store/downloadStore';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
+import { useBulkTagCategory } from '@/downlodr/hooks/useBulkTagCategory';
 import { processFileName } from '@/downlodr/utils/download/filterName';
 import { usePluginState } from '@/plugins/hook/usePluginState';
 import { MenuItem } from '@/plugins/schema/types';
@@ -223,6 +224,21 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       ),
     [availableCategories, articleDownloads],
   );
+  // Right-clicking a row that is part of a multi-row selection applies tags and
+  // categories to the whole selection (file-manager style). Right-clicking an
+  // unselected row keeps acting on that row alone.
+  const selectedRowIds = useSelectedDownloadStore(
+    (state) => state.selectedRowIds,
+  );
+  const isBulk =
+    selectedRowIds.length > 1 && selectedRowIds.includes(download.id);
+  const bulkTags = useBulkTagCategory('tag');
+  const bulkCategories = useBulkTagCategory('category');
+  const tagValues = isBulk ? bulkTags.availableValues : mergedAvailableTags;
+  const categoryValues = isBulk
+    ? bulkCategories.availableValues
+    : mergedAvailableCategories;
+
   const [pluginMenuItems, setPluginMenuItems] = useState<MenuItem[]>([]);
   const enabledPlugins = usePluginState();
 
@@ -337,20 +353,20 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
   // Recalculate tag submenu position when available tags change
   useEffect(() => {
     if (showTagMenu) {
-      recalculateSubmenuPosition(tagButtonRef, mergedAvailableTags.length, 'tag');
+      recalculateSubmenuPosition(tagButtonRef, tagValues.length, 'tag');
     }
-  }, [mergedAvailableTags.length, showTagMenu]);
+  }, [tagValues.length, showTagMenu]);
 
   // Recalculate category submenu position when available categories change
   useEffect(() => {
     if (showCategoryMenu) {
       recalculateSubmenuPosition(
         categoryButtonRef,
-        mergedAvailableCategories.length,
+        categoryValues.length,
         'category',
       );
     }
-  }, [mergedAvailableCategories.length, showCategoryMenu]);
+  }, [categoryValues.length, showCategoryMenu]);
 
   // Recalculate plugin submenu position when plugin items change
   useEffect(() => {
@@ -434,7 +450,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
 
     // Calculate position for submenu
     if (newShowTagMenu) {
-      recalculateSubmenuPosition(tagButtonRef, mergedAvailableTags.length, 'tag');
+      recalculateSubmenuPosition(tagButtonRef, tagValues.length, 'tag');
     }
   };
 
@@ -451,7 +467,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     if (newShowCategoryMenu) {
       recalculateSubmenuPosition(
         categoryButtonRef,
-        mergedAvailableCategories.length,
+        categoryValues.length,
         'category',
       );
     }
@@ -534,6 +550,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
       tags: download.tags,
       category: download.category,
       isLive: download.isLive,
+      favorited: download.favorited ?? false,
     });
     // Remove from forDownloads
     removeFromForDownloads(download.id || '');
@@ -823,6 +840,40 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
     );
   };
 
+  // Tells the user the submenu acts on the whole selection, not just this row
+  const renderBulkHeader = () => (
+    <div className="px-3 pt-1 text-xs text-gray-500 dark:text-gray-400">
+      {t('toolbar.bulkMenu.appliesToSelected', {
+        count: selectedRowIds.length,
+      })}
+    </div>
+  );
+
+  // Tri-state list for bulk mode: ✓ all selected have it, – some do, blank none do
+  const renderBulkItems = (bulk: ReturnType<typeof useBulkTagCategory>) =>
+    bulk.availableValues.map((value) => {
+      const state = bulk.getSelectionState(value);
+      return (
+        <button
+          key={value}
+          className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
+          onClick={(e) => {
+            e.stopPropagation();
+            bulk.toggleValue(value);
+          }}
+        >
+          <span
+            className={`w-3 flex-shrink-0 dark:text-gray-200 ${
+              state === 'some' ? 'text-gray-400 dark:text-gray-500' : ''
+            }`}
+          >
+            {state === 'all' ? '✓' : state === 'some' ? '–' : ''}
+          </span>
+          <span>{value}</span>
+        </button>
+      );
+    });
+
   const renderPluginMenuItems = () => {
     if (!pluginMenuItems || pluginMenuItems.length === 0) return null;
 
@@ -959,6 +1010,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          {isBulk && renderBulkHeader()}
           <div className="m-2 px-3 py-2 flex flex-row border rounded dark:border-gray-700">
             <GoPlus size={22} className="ml-[-10px] mr-2 dark:text-gray-200" />
             <div className="flex-1">
@@ -967,6 +1019,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                 placeholder="Add new tag..."
                 maxLength={120}
                 onKeyDown={(e) => {
+                  if (isBulk) {
+                    bulkTags.handleCreateKeyDown(e);
+                    return;
+                  }
                   const target = e.target as HTMLInputElement;
                   if (
                     e.key === 'Enter' &&
@@ -1008,25 +1064,27 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           </div>
           <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider dark:border-gray-700" />
           <div className="max-h-48 overflow-y-auto">
-            {mergedAvailableTags.map((tag) => (
-              <button
-                key={tag}
-                className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (currentTags.includes(tag)) {
-                    onRemoveTag(download.id || '', tag);
-                  } else {
-                    onAddTag(download.id || '', tag);
-                  }
-                }}
-              >
-                <span className="dark:text-gray-200">
-                  {currentTags.includes(tag) ? '✓' : ''}
-                </span>
-                <span>{tag}</span>
-              </button>
-            ))}
+            {isBulk
+              ? renderBulkItems(bulkTags)
+              : mergedAvailableTags.map((tag) => (
+                  <button
+                    key={tag}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (currentTags.includes(tag)) {
+                        onRemoveTag(download.id || '', tag);
+                      } else {
+                        onAddTag(download.id || '', tag);
+                      }
+                    }}
+                  >
+                    <span className="dark:text-gray-200">
+                      {currentTags.includes(tag) ? '✓' : ''}
+                    </span>
+                    <span>{tag}</span>
+                  </button>
+                ))}
           </div>
         </div>
       )}
@@ -1043,6 +1101,7 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          {isBulk && renderBulkHeader()}
           <div className="m-2 px-3 py-2 flex flex-row border rounded dark:border-gray-700">
             <GoPlus size={22} className="ml-[-10px] mr-2 dark:text-gray-200" />
             <div className="flex-1">
@@ -1051,6 +1110,10 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
                 placeholder="Add new category..."
                 maxLength={120}
                 onKeyDown={(e) => {
+                  if (isBulk) {
+                    bulkCategories.handleCreateKeyDown(e);
+                    return;
+                  }
                   const target = e.target as HTMLInputElement;
                   if (
                     e.key === 'Enter' &&
@@ -1094,28 +1157,30 @@ const DownloadContextMenu: React.FC<DownloadContextMenuProps> = ({
           </div>
           <hr className="solid mt-2 mb-1 mx-2 w-[calc(100%-20px)] border-t-2 border-divider dark:border-gray-700" />
           <div className="max-h-48 overflow-y-auto">
-            {mergedAvailableCategories.map((category) => (
-              <button
-                key={category}
-                className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (currentCategories.includes(category)) {
-                    onRemoveCategory(download.id, category);
-                  } else {
-                    if (currentCategories.length > 0) {
-                      onRemoveCategory(download.id, currentCategories[0]);
-                    }
-                    onAddCategory(download.id, category);
-                  }
-                }}
-              >
-                <span className="dark:text-gray-200">
-                  {currentCategories.includes(category) ? '✓' : ''}
-                </span>
-                <span>{category}</span>
-              </button>
-            ))}
+            {isBulk
+              ? renderBulkItems(bulkCategories)
+              : mergedAvailableCategories.map((category) => (
+                  <button
+                    key={category}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (currentCategories.includes(category)) {
+                        onRemoveCategory(download.id, category);
+                      } else {
+                        if (currentCategories.length > 0) {
+                          onRemoveCategory(download.id, currentCategories[0]);
+                        }
+                        onAddCategory(download.id, category);
+                      }
+                    }}
+                  >
+                    <span className="dark:text-gray-200">
+                      {currentCategories.includes(category) ? '✓' : ''}
+                    </span>
+                    <span>{category}</span>
+                  </button>
+                ))}
           </div>
         </div>
       )}

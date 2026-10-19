@@ -297,3 +297,47 @@ export function useWindowSize(): {
 
   return { windowWidth, windowHeight };
 }
+
+export interface StablePaginationOptions {
+  /** Number of paginated items — rows and collapsed groups alike. */
+  totalItems: number;
+  pageSize: number;
+  /**
+   * Identifies *what the user is looking at* — status page, search, sort,
+   * type filters. It must not change when content merely arrives: paging is
+   * reset on this key, and keying it off the item count is what used to yank
+   * the user back to page 1 every time a subscription scrape added rows.
+   */
+  viewKey: string;
+}
+
+/**
+ * Paging that survives background updates. The page only resets when the user
+ * changes the view or the page size; new or removed rows leave the current
+ * page alone, except to slide back in when the list shrinks past the end.
+ */
+export function useStablePagination({
+  totalItems,
+  pageSize,
+  viewKey,
+}: StablePaginationOptions): {
+  currentPage: number;
+  setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
+  totalPages: number;
+} {
+  const [currentPage, setCurrentPage] = useState(0);
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [viewKey, pageSize]);
+
+  // Rows can vanish under the user (delete, status change, filter), stranding
+  // the view past the end — land on the last real page rather than an empty one.
+  useEffect(() => {
+    if (totalPages === 0) return;
+    setCurrentPage((page) => (page > totalPages - 1 ? totalPages - 1 : page));
+  }, [totalPages]);
+
+  return { currentPage, setCurrentPage, totalPages };
+}

@@ -198,7 +198,8 @@
       "addNewCategory": "Añadir nueva categoría...",
       "maxChars": "Máx. {{max}} caracteres",
       "noTags": "Aún no hay etiquetas",
-      "noCategories": "Aún no hay categorías"
+      "noCategories": "Aún no hay categorías",
+      "appliesToSelected": "Se aplica a {{count}} seleccionados"
     },
     "toast": {
       "noDownloadsSelectedTitle": "Sin descargas seleccionadas",
@@ -246,14 +247,27 @@
       "duplicateTagDesc": "La etiqueta \"{{value}}\" ya existe.",
       "duplicateCategoryTitle": "Categoría duplicada",
       "duplicateCategoryDesc": "La categoría \"{{value}}\" ya existe.",
-      "bulkTagAppliedTitle": "Etiqueta aplicada",
-      "bulkTagAppliedDesc": "Etiqueta \"{{value}}\" añadida a {{count}} descarga(s).",
-      "bulkTagRemovedTitle": "Etiqueta eliminada",
-      "bulkTagRemovedDesc": "Etiqueta \"{{value}}\" eliminada de {{count}} descarga(s).",
-      "bulkCategoryAppliedTitle": "Categoría aplicada",
-      "bulkCategoryAppliedDesc": "Categoría \"{{value}}\" añadida a {{count}} descarga(s).",
-      "bulkCategoryRemovedTitle": "Categoría eliminada",
-      "bulkCategoryRemovedDesc": "Categoría \"{{value}}\" eliminada de {{count}} descarga(s)."
+      "bulkTagAppliedTitle_one": "Etiqueta aplicada a 1 descarga",
+      "bulkTagAppliedTitle_other": "Etiqueta aplicada a {{count}} descargas",
+      "bulkTagAppliedDesc_one": "\"{{value}}\" se añadió a 1 descarga seleccionada.",
+      "bulkTagAppliedDesc_other": "\"{{value}}\" se añadió a {{count}} descargas seleccionadas.",
+      "bulkTagRemovedTitle_one": "Etiqueta eliminada de 1 descarga",
+      "bulkTagRemovedTitle_other": "Etiqueta eliminada de {{count}} descargas",
+      "bulkTagRemovedDesc_one": "\"{{value}}\" se eliminó de 1 descarga seleccionada.",
+      "bulkTagRemovedDesc_other": "\"{{value}}\" se eliminó de {{count}} descargas seleccionadas.",
+      "bulkCategoryAppliedTitle_one": "Categoría aplicada a 1 descarga",
+      "bulkCategoryAppliedTitle_other": "Categoría aplicada a {{count}} descargas",
+      "bulkCategoryAppliedDesc_one": "\"{{value}}\" se asignó a 1 descarga seleccionada.",
+      "bulkCategoryAppliedDesc_other": "\"{{value}}\" se asignó a {{count}} descargas seleccionadas.",
+      "bulkCategoryRemovedTitle_one": "Categoría eliminada de 1 descarga",
+      "bulkCategoryRemovedTitle_other": "Categoría eliminada de {{count}} descargas",
+      "bulkCategoryRemovedDesc_one": "\"{{value}}\" se eliminó de 1 descarga seleccionada.",
+      "bulkCategoryRemovedDesc_other": "\"{{value}}\" se eliminó de {{count}} descargas seleccionadas.",
+      "bulkAlreadyHadDesc_one": "1 ya la tenía.",
+      "bulkAlreadyHadDesc_other": "{{count}} ya la tenían.",
+      "articlesStartedTitle": "Guardando artículos",
+      "articlesStartedDesc_one": "Se está guardando {{count}} artículo.",
+      "articlesStartedDesc_other": "Se están guardando {{count}} artículos."
     },
     "settingsButton": "Configuración",
     "deleteLabel": "Eliminar",
@@ -569,6 +583,33 @@
     "transcription": {
       "failed": "Transcripción fallida",
       "failedDesc": "No se pudo crear la transcripción"
+    }
+  },
+  "bulkFormat": {
+    "title": "Elegir calidad de descarga",
+    "selectQuality": "Calidad para todos los videos seleccionados",
+    "videoCount_one": "{{count}} video",
+    "videoCount_other": "{{count}} videos",
+    "subscriptionsAsUsual_one": "{{count}} video de suscripción mantiene su formato",
+    "subscriptionsAsUsual_other": "{{count}} videos de suscripción mantienen su formato",
+    "articlesAsUsual_one": "{{count}} artículo se descarga como siempre",
+    "articlesAsUsual_other": "{{count}} artículos se descargan como siempre",
+    "adjustedCount_one": "{{count}} video usará una calidad diferente.",
+    "adjustedCount_other": "{{count}} videos usarán una calidad diferente.",
+    "show": "Mostrar",
+    "hide": "Ocultar",
+    "cancel": "Cancelar",
+    "download": "Descargar",
+    "tier": {
+      "360": "360p o menos",
+      "480": "480p",
+      "720": "720p",
+      "1080": "1080p",
+      "1440": "1440p",
+      "2160": "2160p (4K)",
+      "best": "Mejor disponible",
+      "audio": "Solo audio",
+      "mp3": "Solo audio (MP3)"
     }
   }
 }

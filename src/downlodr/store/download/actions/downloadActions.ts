@@ -107,6 +107,7 @@ async function queueForDownload(
     tags: row.tags,
     category: row.category,
     isLive: row.isLive ?? false,
+    favorited: row.favorited ?? false,
   });
   get().removeFromForDownloads(row.id);
 }

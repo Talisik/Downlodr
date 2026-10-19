@@ -17,12 +17,10 @@ export function useSummarizeVideo(baseUrl?: string): UseSummarizeVideoReturn {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Use provided baseUrl or the build-time VITE_SUMMARY_API_ENDPOINT
+  // Use provided baseUrl or default to the API endpoint
   const apiUrl =
     baseUrl ||
-    (typeof __SUMMARY_API_ENDPOINT__ !== 'undefined'
-      ? __SUMMARY_API_ENDPOINT__
-      : '');
+    '';
 
   const summarize = useCallback(
     async (videoData: SummarizeRequest): Promise<void> => {
@@ -38,12 +36,6 @@ export function useSummarizeVideo(baseUrl?: string): UseSummarizeVideoReturn {
         if (!videoData.id || !videoData.title || !videoData.transcript) {
           throw new Error(
             'Missing required fields: id, title, and transcript are required',
-          );
-        }
-
-        if (!apiUrl) {
-          throw new Error(
-            'Summarization service is not configured (set VITE_SUMMARY_API_ENDPOINT)',
           );
         }
 

@@ -37,12 +37,6 @@ export default defineConfig(({ mode }) => {
       __TELEMETRY_SCHEMA_URL__: JSON.stringify(
         env.VITE_TELEMETRY_SCHEMA_URL || 'https://opentelemetry.io/schemas/1.9.0',
       ),
-      // Empty by default: otel-logs.js and useSummarizeVideo.ts stay disabled
-      // unless these are set in .env.
-      __OTEL_LOGS_ENDPOINT__: JSON.stringify(env.VITE_OTEL_LOGS_ENDPOINT || ''),
-      __SUMMARY_API_ENDPOINT__: JSON.stringify(
-        env.VITE_SUMMARY_API_ENDPOINT || '',
-      ),
       // __SHARE_API_ENDPOINT__/__SHARE_API_KEY__ are intentionally NOT
       // injected here — the share-record request runs in the main process
       // (shareHandler.ts) to avoid renderer-side CORS, so only

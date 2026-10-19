@@ -4,6 +4,7 @@ import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import fs, { existsSync } from 'fs';
 import os from 'os';
 import path from 'path';
+import { withNetworkRetry } from '../../utils/networkRetry';
 import { diagnoseMissingFile } from './fileDiagnostics';
 
 export const fileHandler = (mainWindow: BrowserWindow) => {
@@ -24,14 +25,28 @@ export const fileHandler = (mainWindow: BrowserWindow) => {
       try {
         const dir = path.dirname(outputPath);
         await fs.promises.mkdir(dir, { recursive: true });
-        const response = await fetch(url, { redirect: 'follow' });
-        if (!response.ok) {
+        // Node's fetch gives up on a TCP connect after 10s ("fetch failed"),
+        // which slow networks hit on GitHub release assets — retry those.
+        // A stalled transfer otherwise waits out undici's 300s body timeout,
+        // so each attempt is capped; the body is read inside the retry so a
+        // stall retries too.
+        const { response, buffer } = await withNetworkRetry(async () => {
+          const response = await fetch(url, {
+            redirect: 'follow',
+            signal: AbortSignal.timeout(60_000),
+          });
+          if (!response.ok) return { response, buffer: null };
+          return {
+            response,
+            buffer: Buffer.from(await response.arrayBuffer()),
+          };
+        });
+        if (!buffer) {
           return {
             success: false,
             error: `HTTP ${response.status}: ${response.statusText}`,
           };
         }
-        const buffer = Buffer.from(await response.arrayBuffer());
         await fs.promises.writeFile(outputPath, buffer);
         return { success: true, path: outputPath };
       } catch (err) {

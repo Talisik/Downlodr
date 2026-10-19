@@ -3,6 +3,7 @@
  * Subscription downloads are grouped into SkedulosaTableGroup accordions;
  * non-subscription downloads render as StatusPageTableRow (unchanged).
  */
+import PaginationControls from '@/core-app/components/PaginationControls';
 import ArticleSidePanelManager from '@/afda/components/ArticleSidePanelManager';
 import { ArticleDownloadTableRow } from '@/afda/components/ArticleDownloadTableRow';
 import AfdaTableGroup from '@/afda/components/AfdaTableGroup';
@@ -24,7 +25,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import { StatusPageTableHeader } from './StatusPageTableHeader';
 import { getMetadataFetchProgress } from './statusPageUtils';
 import type { DisplayColumn, SelectableRow } from './statusPageTypes';
@@ -32,7 +32,7 @@ import type { DisplayColumn, SelectableRow } from './statusPageTypes';
 import Toolbar from '@/downlodr/components/base/Toolbar';
 import SkedulosaTableGroup from '@/skedulosa/components/SkedulosaTableGroup';
 import { StatusPageTableRow } from './StatusPageTableRow';
-import { useWindowSize } from './statusPageHooks';
+import { useStablePagination, useWindowSize } from './statusPageHooks';
 
 /** Selection keys for collapsed group rows, which have no download id of their own. */
 const subscriptionRowKey = (subscriptionId: string) =>
@@ -82,6 +82,8 @@ export interface StatusPageTableProps {
   onClosePluginSidebar: () => void;
   onViewEmbed: (download: SearchableDownload) => void;
   isPanelOpen?: boolean;
+  /** The status page being viewed; changing it is what resets paging. */
+  viewKey?: string;
 }
 
 export const StatusPageTable: React.FC<StatusPageTableProps> = ({
@@ -121,11 +123,10 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
   onClosePluginSidebar,
   onViewEmbed,
   isPanelOpen,
+  viewKey = '',
 }) => {
   const clearSearch = useTaskbarDownloadStore((s) => s.clearSearch);
   const isArticlePanelOpen = useAfdaStore((s) => s.isOpen);
-  // Read straight from the store: the chat panel lives in the layout, outside
-  // this page's tree, so there is no prop to thread it through.
   const subscriptions = useSkedulosaStore((s) => s.subscriptions);
   const scrapingChannels = useSkedulosaStore((s) => s.scrapingChannels);
   const [pendingCountBySubId, setPendingCountBySubId] = useState<
@@ -135,15 +136,11 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const activeTypeFilters = useTaskbarDownloadStore((s) => s.activeTypeFilters);
+
   const { windowHeight } = useWindowSize();
   const PAGE_SIZE = windowHeight >= 1000 ? 20 : windowHeight >= 800 ? 15 : 10;
-  const [currentPage, setCurrentPage] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // Reset to first page when the downloads list changes (e.g. navigating status pages)
-  useEffect(() => {
-    setCurrentPage(0);
-  }, [allDownloads.length, PAGE_SIZE]);
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
@@ -246,7 +243,33 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
     return items;
   }, [allDownloads, subscriptions]);
 
-  const totalPages = Math.ceil(allVirtualItems.length / PAGE_SIZE);
+  // Everything the user can deliberately change about the view. Downloads
+  // arriving in the background are *not* in here, so a subscription update
+  // refreshes the rows without moving the user off the page they are reading.
+  const paginationViewKey = useMemo(
+    () =>
+      [
+        viewKey,
+        isSearchActive ? `search:${searchQuery ?? ''}` : 'search:off',
+        `sort:${sortColumn}:${sortDirection}`,
+        `filters:${[...activeTypeFilters].sort().join(',')}`,
+      ].join('|'),
+    [
+      viewKey,
+      isSearchActive,
+      searchQuery,
+      sortColumn,
+      sortDirection,
+      activeTypeFilters,
+    ],
+  );
+
+  const { currentPage, setCurrentPage, totalPages } = useStablePagination({
+    totalItems: allVirtualItems.length,
+    pageSize: PAGE_SIZE,
+    viewKey: paginationViewKey,
+  });
+
   const pageStart = currentPage * PAGE_SIZE + 1;
   const pageEnd = Math.min(
     (currentPage + 1) * PAGE_SIZE,
@@ -322,8 +345,8 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
   const ARTICLE_PANEL_COLUMNS = ['name'];
   const EYE_COLUMN: DisplayColumn = { id: 'eye', width: 40 };
 
-  // Every side panel — logs, activity, plugin, AI chat, article — narrows the
-  // table the same way: keep a few columns, expose the rest via the eye column.
+  // Every side panel — logs, activity, plugin, article — narrows the table the
+  // same way: keep a few columns, expose the rest via the eye column.
   const isAnySidePanelOpen = isPanelOpen || isArticlePanelOpen;
 
   const keptColumnIds = isArticlePanelOpen
@@ -566,25 +589,11 @@ export const StatusPageTable: React.FC<StatusPageTableProps> = ({
             </table>
           </div>
           {totalPages > 1 && (
-            <div className="flex-shrink-0 flex items-center justify-center gap-1 px-4 py-1.5 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-darkModeTable">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 0}
-                className="p-1 rounded-md text-gray-500 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-darkModeTableBorder transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <LuChevronLeft size={14} />
-              </button>
-              <span className="text-xs text-gray-400 dark:text-gray-500 min-w-[80px] text-center">
-                Page {currentPage + 1} of {totalPages}
-              </span>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage >= totalPages - 1}
-                className="p-1 rounded-md text-gray-500 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-darkModeTableBorder transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <LuChevronRight size={14} />
-              </button>
-            </div>
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
           )}
           {isSearchActive && allDownloads.length === 0 && searchQuery && (
             <div className="flex-1 flex flex-col items-center justify-center gap-3">

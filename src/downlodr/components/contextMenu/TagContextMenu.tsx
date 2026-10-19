@@ -8,7 +8,7 @@
  *   @param tagName - The name of the tag being acted upon.
  *   @param onClose - A function to call when the menu should be closed.
  *   @param onRequestRename - Asks the owner to open the rename modal for this tag.
- *   @param onDelete - Asks the owner to delete this tag.
+ *   @param onDelete - Asks the owner to confirm and delete this tag.
  *
  * @returns JSX.Element - The rendered context menu component.
  */
@@ -23,7 +23,7 @@ interface TagContextMenuProps {
   tagName: string; // Name of the tag
   onClose: () => void; // Function to close the menu
   onRequestRename: (tagName: string) => void; // Ask the owner to open the rename modal
-  onDelete: (tag: string) => void; // Ask the owner to delete the tag
+  onDelete: (tag: string) => void; // Ask the owner to confirm the delete
 }
 
 const MENU_ITEM_CLASS =

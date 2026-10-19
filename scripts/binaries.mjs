@@ -14,8 +14,10 @@
  * 'whisper'" rather than at install time. 8.0.0 additionally corrupts every
  * subtitle cue it writes, hence the minVersion gate here and in forge.config.ts.
  *
- * Each spec is for one platform, named by its optional "platform" field; one
- * without it is a Windows asset, which is all this script fetched originally.
+ * Each spec names its platform(s) in an optional "platform" field — a string
+ * or an array; one without it is a Windows asset, which is all this script
+ * fetched originally. The whisper models are platform-neutral, so they list
+ * both.
  * The darwin specs are the transcription-only ffmpeg-whisper builds from
  * github.com/MMDH05/ffmpeg-build — no public mac ffmpeg has --enable-whisper,
  * and the committed binaries/ffmpeg-arm64/-x64 statics lack it too.
@@ -263,7 +265,7 @@ async function main() {
   const cmd = process.argv[2];
   const specs = Object.fromEntries(
     Object.entries(loadSpecs()).filter(
-      ([, spec]) => (spec.platform ?? 'win32') === process.platform,
+      ([, spec]) => [spec.platform ?? 'win32'].flat().includes(process.platform),
     ),
   );
 

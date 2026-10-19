@@ -12,6 +12,7 @@ import {
   formatFileSize,
   formatRelativeTime,
 } from '@/downlodr/pages/status/statusPageUtils';
+import SubscriptionFavoriteButton from '@/downlodr/components/download/SubscriptionFavoriteButton';
 import { getExtractorIcon } from '@/downlodr/utils/icons/iconMapper';
 import {
   aggregateGroupSize,
@@ -272,7 +273,20 @@ const SkedulosaTableGroup = React.memo(
                 </td>
               );
             case 'action':
-              return <td key={column.id} style={{ width: column.width }} />;
+              return (
+                <td
+                  key={column.id}
+                  style={{ width: column.width }}
+                  className="p-2 dark:text-gray-200 text-center"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    <SubscriptionFavoriteButton
+                      kind="skedulosa"
+                      id={subscriptionId}
+                    />
+                  </div>
+                </td>
+              );
             case 'eye':
               return (
                 <td

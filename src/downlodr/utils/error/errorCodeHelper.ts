@@ -735,7 +735,8 @@ const ERROR_CODE_MAP: Record<string, ErrorCodeInfo> = {
   youtube_bot_detection: {
     code: 'YOUTUBE_BOT_DETECTION',
     title: 'YouTube Blocked Your Network',
-    description: "YouTube doesn't recognize your network right now. Try a different connection",
+    description:
+      "YouTube doesn't recognize your network right now. Try a different connection",
     category: 'ytdlp',
     severity: 'high',
     canRetry: false,
@@ -776,6 +777,16 @@ const ERROR_CODE_MAP: Record<string, ErrorCodeInfo> = {
     category: 'ytdlp',
     severity: 'medium',
     canRetry: true,
+    suggestions: ['Try again later', 'Check for a newer yt-dlp release'],
+  },
+  drm_protected: {
+    code: 'DRM_PROTECTED',
+    title: 'DRM-Protected Video',
+    description:
+      'This video is protected by DRM (copy protection), so it cannot be downloaded.',
+    category: 'ytdlp',
+    severity: 'medium',
+    canRetry: false,
     suggestions: [
       'Try again later',
       'Set Advanced Settings → Authentication to None and retry',
@@ -836,6 +847,15 @@ export function getErrorCodeInfo(errorCode: number | string): ErrorCodeInfo {
 export function parseErrorCodeFromLog(
   logMessage: string,
 ): number | string | null {
+  // DRM is a hard stop with no user-side fix, so it wins over everything
+  // else, including the "exited with code: 1" trailer that would otherwise
+  // map it to a generic permission/network error. yt-dlp words it as
+  // "This format is DRM protected" (encryption found in the HLS manifest at
+  // download time) or "This video is DRM protected" (every format flagged
+  // during extraction).
+  if (/(?:format|video) is DRM protected/i.test(logMessage)) {
+    return 'drm_protected';
+  }
   // Age-restriction messages must be checked before the bot-detection check
   // below — "Sign in to confirm your age" also matches
   // `includes('Sign in to confirm')`, and would otherwise be wrongly

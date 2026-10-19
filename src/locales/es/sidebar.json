@@ -31,5 +31,11 @@
     "categorizedDesc": "Establecido en \"{{category}}\"",
     "tagged": "Descarga etiquetada",
     "taggedDesc": "Etiquetado con \"{{tag}}\""
+  },
+  "confirmDelete": {
+    "categoryTitle": "¿Eliminar la categoría \"{{name}}\"?",
+    "tagTitle": "¿Eliminar la etiqueta \"{{name}}\"?",
+    "message": "Se quitará de todas las descargas y artículos. Las descargas en sí no se eliminan.",
+    "confirmLabel": "Eliminar"
   }
 }

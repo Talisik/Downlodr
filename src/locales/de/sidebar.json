@@ -31,5 +31,11 @@
     "categorizedDesc": "Auf \"{{category}}\" gesetzt",
     "tagged": "Download mit Tag versehen",
     "taggedDesc": "Mit \"{{tag}}\" markiert"
+  },
+  "confirmDelete": {
+    "categoryTitle": "Kategorie \"{{name}}\" löschen?",
+    "tagTitle": "Tag \"{{name}}\" löschen?",
+    "message": "Sie wird von allen Downloads und Artikeln entfernt. Die Downloads selbst werden nicht gelöscht.",
+    "confirmLabel": "Löschen"
   }
 }

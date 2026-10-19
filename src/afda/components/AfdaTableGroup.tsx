@@ -8,6 +8,7 @@ import {
   websiteStatusLabel,
 } from '@/afda/store/afdaWebsitesStore';
 import { getFaviconUrl } from '@/afda/utils/faviconUrl';
+import SubscriptionFavoriteButton from '@/downlodr/components/download/SubscriptionFavoriteButton';
 import type { DisplayColumn } from '@/downlodr/pages/status/statusPageTypes';
 import { formatRelativeTime } from '@/downlodr/pages/status/statusPageUtils';
 import type { ArticleSearchableDownload } from '@/downlodr/store/taskbarDownloadStore';
@@ -257,7 +258,18 @@ const AfdaTableGroup = React.memo(
                   </div>
                 </td>
               );
-
+            case 'action':
+              return (
+                <td
+                  key={column.id}
+                  style={{ width: column.width }}
+                  className="p-2 dark:text-gray-200 text-center"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    <SubscriptionFavoriteButton kind="afda" id={websiteId} />
+                  </div>
+                </td>
+              );
             case 'eye':
               return (
                 <td

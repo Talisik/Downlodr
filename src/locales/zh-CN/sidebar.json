@@ -31,5 +31,11 @@
     "categorizedDesc": "设置为「{{category}}」",
     "tagged": "下载已标记",
     "taggedDesc": "已标记为「{{tag}}」"
+  },
+  "confirmDelete": {
+    "categoryTitle": "删除分类“{{name}}”？",
+    "tagTitle": "删除标签“{{name}}”？",
+    "message": "它将从所有下载和文章中移除。下载内容本身不会被删除。",
+    "confirmLabel": "删除"
   }
 }

@@ -31,5 +31,11 @@
     "categorizedDesc": "Definido como \"{{category}}\"",
     "tagged": "Download marcado",
     "taggedDesc": "Marcado com \"{{tag}}\""
+  },
+  "confirmDelete": {
+    "categoryTitle": "Excluir a categoria \"{{name}}\"?",
+    "tagTitle": "Excluir a tag \"{{name}}\"?",
+    "message": "Ela será removida de todos os downloads e artigos. Os downloads em si não são excluídos.",
+    "confirmLabel": "Excluir"
   }
 }

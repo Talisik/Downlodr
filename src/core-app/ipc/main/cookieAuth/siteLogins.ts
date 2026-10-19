@@ -1,3 +1,4 @@
+// src/core-app/ipc/main/cookieAuth/siteLogins.ts
 import { app, session } from 'electron';
 import { mkdir, readFile, unlink, writeFile } from 'fs/promises';
 import path from 'path';
@@ -5,6 +6,7 @@ import path from 'path';
 export interface SiteLogin {
   domain: string;
   jarPath: string;
+  /** The URL originally pasted to start this login — reused for "Re-login". */
   loginUrl: string;
   lastLoginAt: number;
 }
@@ -88,6 +90,8 @@ export async function removeSiteLogin(domain: string): Promise<{ ok: boolean }> 
   try {
     await session.fromPartition(partitionNameFor(domain)).clearStorageData();
   } catch {
+    // Best-effort — the partition may never have been touched this session,
+    // in which case there's nothing to clear.
   }
   return { ok: true };
 }

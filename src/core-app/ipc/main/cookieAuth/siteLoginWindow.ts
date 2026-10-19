@@ -1,3 +1,4 @@
+// src/core-app/ipc/main/cookieAuth/siteLoginWindow.ts
 import { BaseWindow, BrowserWindow, WebContentsView, ipcMain, session } from 'electron';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
@@ -45,6 +46,10 @@ function topBarHtml(domain: string): string {
 </body></html>`;
 }
 
+// Only one login window at a time — a scope decision, not a spec
+// requirement (see the plan's Global Constraints). Simplifies IPC channel
+// ownership: the top-bar channel below is process-global, safe only because
+// exactly one window can be listening to it at once.
 let activeWindow: BaseWindow | null = null;
 
 export async function openSiteLoginWindow(
@@ -105,6 +110,11 @@ export async function openSiteLoginWindow(
   });
 
   content.webContents.setWindowOpenHandler(() => {
+    // Deny popups outright rather than let Electron spawn an untracked
+    // window outside this feature's Done/Cancel lifecycle. Sites whose
+    // login flow requires a popup (rather than a same-window redirect)
+    // won't complete via this tier yet — a known, documented limitation,
+    // not a silent failure.
     return { action: 'deny' };
   });
 
@@ -157,6 +167,9 @@ export async function openSiteLoginWindow(
       }
     });
 
+    // Covers both the user closing via the OS window controls and the
+    // programmatic close() from finish() itself — finish()'s `settled` guard
+    // makes the second call here a no-op.
     win.on('closed', () => finish({ ok: false }));
   });
 }

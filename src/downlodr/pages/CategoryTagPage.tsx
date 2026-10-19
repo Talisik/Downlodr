@@ -7,10 +7,12 @@
  * @param CategoryTagPageProps
  *   @param downloads - Pre-filtered array of downloads to display.
  *   @param categoryId - Optional label shown as a badge when a category filter is active.
+ *   @param subscriptionGroups - Subscription group rows pinned above the downloads (Favorites).
  *
  * @returns JSX.Element
  */
 
+import PaginationControls from '@/core-app/components/PaginationControls';
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
 import { useMainStore } from '@/core-app/store/mainStore';
 import { useSelectedDownloadStore } from '@/core-app/store/selectedDownloadStore';
@@ -52,6 +54,15 @@ import {
 import SidePanels from '@/downlodr/components/panels/SidePanels';
 import { useSidePanels } from '@/downlodr/hooks/useSidePanels';
 import EmptySearch from '@/assets/icon/EmptySearch';
+import AfdaTableGroup from '@/afda/components/AfdaTableGroup';
+import ArticleSidePanelManager from '@/afda/components/ArticleSidePanelManager';
+import { ArticleDownloadTableRow } from '@/afda/components/ArticleDownloadTableRow';
+import ArticleContextMenu from '@/afda/components/contextMenu/ArticleContextMenu';
+import { useAfdaStore } from '@/afda/store/afdaStore';
+import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
+import { downloadArticle } from '@/afda/utils/downloadArticle';
+import SkedulosaTableGroup from '@/skedulosa/components/SkedulosaTableGroup';
+import type { ArticleSearchableDownload } from '@/downlodr/store/taskbarDownloadStore';
 import React, {
   useCallback,
   useEffect,
@@ -59,7 +70,17 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
+
+/** A collapsed subscription row: the subscription plus the downloads it owns. */
+export type SubscriptionGroupRow =
+  | { kind: 'skedulosa'; id: string; downloads: SearchableDownload[] }
+  | { kind: 'afda'; id: string; downloads: ArticleSearchableDownload[] };
+
+// Articles reach this page mapped through mapArticleToSearchable, which tags
+// them with `type: 'article'`; they live in useArticleDownloadStore, not
+// useDownloadStore, so they need their own row, menu, and store actions.
+const isArticle = (download: object): boolean =>
+  (download as { type?: string }).type === 'article';
 
 // This page has no useTranslation; the shared conversion toasts use the
 // same 'downlodr' keys as the Downloads page.
@@ -68,11 +89,13 @@ const tDownlodr = (key: string) => i18n.t(`downlodr:${key}`);
 interface CategoryTagPageProps {
   downloads: BaseDownload[];
   categoryId?: string;
+  subscriptionGroups?: SubscriptionGroupRow[];
 }
 
 const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
   downloads,
   categoryId,
+  subscriptionGroups = [],
 }) => {
   const [windowWidth] = useState(window.innerWidth);
   const { windowHeight } = useWindowSize();
@@ -115,6 +138,47 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
   const addCategory = useDownloadStore((s) => s.addCategory);
   const removeCategory = useDownloadStore((s) => s.removeCategory);
   const renameDownload = useDownloadStore((s) => s.renameDownload);
+
+  const articleDownloads = useArticleDownloadStore((s) => s.articleDownloads);
+  const updateArticleDownload = useArticleDownloadStore(
+    (s) => s.updateArticleDownload,
+  );
+  const removeArticleDownload = useArticleDownloadStore(
+    (s) => s.removeArticleDownload,
+  );
+  const addArticleTag = useArticleDownloadStore((s) => s.addArticleTag);
+  const removeArticleTag = useArticleDownloadStore((s) => s.removeArticleTag);
+  const addArticleCategory = useArticleDownloadStore(
+    (s) => s.addArticleCategory,
+  );
+  const removeArticleCategory = useArticleDownloadStore(
+    (s) => s.removeArticleCategory,
+  );
+  const toggleArticleFavorite = useArticleDownloadStore(
+    (s) => s.toggleArticleFavorite,
+  );
+  const fetchAndOpen = useAfdaStore((s) => s.fetchAndOpen);
+  const isArticlePanelOpen = useAfdaStore((s) => s.isOpen);
+  // Same merge the sidebar uses, so the menu offers every tag/category
+  // whichever store it was first created in.
+  const allAvailableTags = useMemo(
+    () => [
+      ...new Set([
+        ...availableTags,
+        ...articleDownloads.flatMap((a) => a.tags ?? []),
+      ]),
+    ],
+    [availableTags, articleDownloads],
+  );
+  const allAvailableCategories = useMemo(
+    () => [
+      ...new Set([
+        ...availableCategories,
+        ...articleDownloads.flatMap((a) => a.category ?? []),
+      ]),
+    ],
+    [availableCategories, articleDownloads],
+  );
 
   const uniqueDownloads = useMemo(() => {
     const deduped = [
@@ -244,6 +308,32 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
     );
   }, [columns, visibleColumns]);
 
+  // The article panel is 600px wide, so — as on the Status page — the table
+  // keeps only the name column and exposes the rest via the eye column.
+  const hiddenColumnIds = useMemo(
+    () =>
+      isArticlePanelOpen
+        ? displayColumns.filter((c) => c.id !== 'name').map((c) => c.id)
+        : [],
+    [displayColumns, isArticlePanelOpen],
+  );
+  const effectiveDisplayColumns = useMemo<DisplayColumn[]>(
+    () =>
+      isArticlePanelOpen
+        ? [
+            ...displayColumns.filter((c) => c.id === 'name'),
+            { id: 'eye', width: 40 },
+          ]
+        : displayColumns,
+    [displayColumns, isArticlePanelOpen],
+  );
+
+  // The article panel and the video player share the right edge; only one
+  // may be open at a time.
+  useEffect(() => {
+    if (isArticlePanelOpen) closeVideoPlayer();
+  }, [isArticlePanelOpen, closeVideoPlayer]);
+
   const sortedDownloads = useMemo(() => {
     const sortable = [...uniqueDownloads];
     if (sortConfig.key !== null) {
@@ -312,20 +402,28 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
   useEffect(() => {
     const currentIds = useSelectedDownloadStore.getState().selectedRowIds;
     if (currentIds.length === 0) return;
-    const visibleIds = new Set(downloads.map((d) => d.id));
+    const visibleIds = new Set([
+      ...downloads.map((d) => d.id),
+      ...subscriptionGroups.flatMap((g) => g.downloads.map((d) => d.id)),
+    ]);
     const still = currentIds.filter((id) => visibleIds.has(id));
     if (still.length !== currentIds.length) {
       setSelectedRowIds(still);
     }
-  }, [downloads]);
+  }, [downloads, subscriptionGroups]);
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
+  // Article rows carry their own thumbnailDataUrl.
+  const videoDownloads = useMemo(
+    () => uniqueDownloads.filter((d) => !isArticle(d)),
+    [uniqueDownloads],
+  );
   const { thumbnailDataUrls } = useThumbnails(
-    uniqueDownloads as unknown as SearchableDownload[],
+    videoDownloads as unknown as SearchableDownload[],
   );
 
   // ── selection ────────────────────────────────────────────────────────────
@@ -333,7 +431,11 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
   const buildSelectionPayload = useCallback(
     async (ids: string[]) => {
       const promises = ids.map(async (id) => {
-        const dl = sortedDownloads.find((d) => d.id === id);
+        const dl =
+          sortedDownloads.find((d) => d.id === id) ??
+          (subscriptionGroups
+            .flatMap((g) => g.downloads)
+            .find((d) => d.id === id) as unknown as BaseDownload | undefined);
         return {
           id,
           controllerId: dl?.controllerId,
@@ -351,7 +453,7 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
       });
       return Promise.all(promises);
     },
-    [sortedDownloads],
+    [sortedDownloads, subscriptionGroups],
   );
 
   const handleRowClick = (downloadId: string) => {
@@ -368,6 +470,21 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
       selectionAnchorRef.current,
     );
     selectionAnchorRef.current = downloadId;
+    useSelectedDownloadStore.getState().setSelectedRowIds(newSelected);
+    buildSelectionPayload(newSelected).then((data) =>
+      useSelectedDownloadStore.getState().setSelectedDownloads(data),
+    );
+  };
+
+  // A subscription group counts as one row: its checkbox selects or clears
+  // every download inside it.
+  const handleGroupCheckboxChange = (group: SubscriptionGroupRow) => {
+    const ids = group.downloads.map((d) => d.id);
+    const allSelected =
+      ids.length > 0 && ids.every((id) => globalSelectedRowIds.includes(id));
+    const newSelected = allSelected
+      ? globalSelectedRowIds.filter((id) => !ids.includes(id))
+      : Array.from(new Set([...globalSelectedRowIds, ...ids]));
     useSelectedDownloadStore.getState().setSelectedRowIds(newSelected);
     buildSelectionPayload(newSelected).then((data) =>
       useSelectedDownloadStore.getState().setSelectedDownloads(data),
@@ -1241,6 +1358,7 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
   };
 
   const handleViewEmbed = (download: SearchableDownload) => {
+    useAfdaStore.getState().close();
     setVideoPlayerState(buildVideoPlayerState(download));
   };
 
@@ -1275,7 +1393,7 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
               >
                 <table className="w-full">
                   <StatusPageTableHeader
-                    displayColumns={displayColumns}
+                    displayColumns={effectiveDisplayColumns}
                     columns={columns}
                     selectedRowIds={globalSelectedRowIds}
                     pageRowIds={visiblePageIds}
@@ -1307,15 +1425,86 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
                     cancelDrag={cancelDrag}
                   />
                   <tbody>
-                    {pageItems.map((download, index) => (
+                    {/* Subscription groups sit above the downloads on the
+                        first page; they aren't searchable by download title. */}
+                    {currentPage === 0 &&
+                      !isSearchActive &&
+                      subscriptionGroups.map((group) =>
+                        group.kind === 'afda' ? (
+                          <AfdaTableGroup
+                            key={`afda-group-${group.id}`}
+                            websiteId={group.id}
+                            downloads={group.downloads}
+                            displayColumns={effectiveDisplayColumns}
+                            selectedRowIds={globalSelectedRowIds}
+                            selectedDownloadId={selectedDownloadId}
+                            onRowClick={handleRowClick}
+                            onGroupCheckboxChange={() =>
+                              handleGroupCheckboxChange(group)
+                            }
+                            onClosePluginSidebar={() => {}}
+                          />
+                        ) : (
+                          <SkedulosaTableGroup
+                            key={`group-${group.id}`}
+                            subscriptionId={group.id}
+                            downloads={group.downloads}
+                            displayColumns={effectiveDisplayColumns}
+                            thumbnailDataUrls={thumbnailDataUrls}
+                            selectedRowIds={globalSelectedRowIds}
+                            selectedDownloadId={selectedDownloadId}
+                            onContextMenu={handleContextMenu}
+                            onRowClick={handleRowClick}
+                            onViewFile={handleViewFile}
+                            onViewDownload={handleViewDownload}
+                            onViewFolder={handleViewFolder}
+                            onRetry={handleRetry}
+                            onPause={handlePause}
+                            onRedownloadTranscript={handleRedownloadTranscript}
+                            onFormatSelect={() => {}}
+                            onClosePluginSidebar={() => {}}
+                            onGroupCheckboxChange={() =>
+                              handleGroupCheckboxChange(group)
+                            }
+                            onViewEmbed={handleViewEmbed}
+                          />
+                        ),
+                      )}
+                    {pageItems.map((download, index) =>
+                      isArticle(download) ? (
+                        <ArticleDownloadTableRow
+                          key={download.id}
+                          download={
+                            download as unknown as ArticleSearchableDownload
+                          }
+                          displayColumns={effectiveDisplayColumns}
+                          isChecked={globalSelectedRowIds.includes(download.id)}
+                          isSelectedDownload={
+                            selectedDownloadId === download.id
+                          }
+                          index={index}
+                          hiddenColumnIds={hiddenColumnIds}
+                          onCheckboxChange={(shiftKey) =>
+                            handleCheckboxChange(download.id, shiftKey)
+                          }
+                          onRowClick={() => handleRowClick(download.id)}
+                          onContextMenu={(e) =>
+                            handleContextMenu(
+                              e,
+                              download as unknown as SearchableDownload,
+                            )
+                          }
+                        />
+                      ) : (
                       <StatusPageTableRow
                         key={download.id}
                         download={download as unknown as SearchableDownload}
-                        displayColumns={displayColumns}
+                        displayColumns={effectiveDisplayColumns}
                         thumbnailDataUrls={thumbnailDataUrls}
                         isChecked={globalSelectedRowIds.includes(download.id)}
                         isSelectedDownload={selectedDownloadId === download.id}
                         index={index}
+                        hiddenColumnIds={hiddenColumnIds}
                         handlers={{
                           onContextMenu: handleContextMenu,
                           onRowClick: () => handleRowClick(download.id),
@@ -1333,7 +1522,8 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
                           onViewEmbed: handleViewEmbed,
                         }}
                       />
-                    ))}
+                      ),
+                    )}
                   </tbody>
                 </table>
 
@@ -1366,28 +1556,15 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
               </div>
 
               {totalPages > 1 && (
-                <div className="flex-shrink-0 flex items-center justify-center gap-1 px-4 py-1.5 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-darkModeTable">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 0}
-                    className="p-1 rounded-md text-gray-500 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-darkModeTableBorder transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <LuChevronLeft size={14} />
-                  </button>
-                  <span className="text-xs text-gray-400 dark:text-gray-500 min-w-[80px] text-center">
-                    Page {currentPage + 1} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage >= totalPages - 1}
-                    className="p-1 rounded-md text-gray-500 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-darkModeTableBorder transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <LuChevronRight size={14} />
-                  </button>
-                </div>
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
               )}
         </div>
         <SidePanels {...sidePanels} />
+        <ArticleSidePanelManager />
 
         {videoPlayerState.isOpen && (
           <VideoPlayerPanel
@@ -1423,6 +1600,57 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
 
       {contextMenu?.downloadId &&
         (() => {
+          const article = articleDownloads.find(
+            (a) => a.id === contextMenu.downloadId,
+          );
+          if (article) {
+            return (
+              <ArticleContextMenu
+                article={article}
+                position={{ x: contextMenu.x, y: contextMenu.y }}
+                onClose={() => setContextMenu(null)}
+                onViewArticle={(articleId) => {
+                  const a = articleDownloads.find((x) => x.id === articleId);
+                  if (a?.url) fetchAndOpen(a.url);
+                }}
+                onOpenInBrowser={(url) =>
+                  window.downlodrFunctions.openExternalLink(url)
+                }
+                onOpenFolder={(filePath) =>
+                  window.downlodrFunctions.openFolder(filePath, filePath)
+                }
+                onRemove={(articleId) => {
+                  const a = articleDownloads.find((x) => x.id === articleId);
+                  if (a?.filePath) {
+                    window.downlodrFunctions
+                      .deleteFile(a.filePath)
+                      .catch(() => {});
+                  }
+                  removeArticleDownload(articleId);
+                  setContextMenu(null);
+                }}
+                onRetry={(articleId) =>
+                  updateArticleDownload(articleId, {
+                    status: 'for_download',
+                    errorMessage: undefined,
+                  })
+                }
+                onDownload={downloadArticle}
+                onShowLog={handleShowLog}
+                onToggleFavorite={toggleArticleFavorite}
+                isFavorited={!!article.favorited}
+                onAddTag={addArticleTag}
+                onRemoveTag={removeArticleTag}
+                currentTags={article.tags ?? []}
+                availableTags={allAvailableTags}
+                onAddCategory={addArticleCategory}
+                onRemoveCategory={removeArticleCategory}
+                currentCategories={article.category ?? []}
+                availableCategories={allAvailableCategories}
+              />
+            );
+          }
+
           const dl = downloads.find((d) => d.id === contextMenu.downloadId) as
             | BaseDownload
             | undefined;
@@ -1457,6 +1685,7 @@ const CategoryTagPage: React.FC<CategoryTagPageProps> = ({
                   (d) => d.id === contextMenu.downloadId,
                 );
                 if (!target) return;
+                useAfdaStore.getState().close();
                 setVideoPlayerState(
                   buildVideoPlayerState(
                     target as unknown as SearchableDownload,

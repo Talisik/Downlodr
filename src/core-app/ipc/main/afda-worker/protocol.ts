@@ -1,7 +1,20 @@
+// src/core-app/ipc/main/afda-worker/protocol.ts
+
+/**
+ * Message protocol between the main process (afdaWorkerProxy.ts) and the
+ * AFDA utilityProcess worker (entry.ts). Type-only module — no Electron or
+ * Node imports, safe to import from both sides.
+ */
+
 export interface AfdaWorkerInitMessage {
   type: 'init';
   dbPath: string;
   addonPath?: string;
+  // isPackaged/resourcesPath/appPath are intentionally NOT here: the worker
+  // needs those before this message could possibly arrive (Rollup's hoisted
+  // external-require preamble runs before any message-handler code), so
+  // they're passed as env vars at fork time instead (see afdaWorkerProxy.ts,
+  // Task 3, and vite.afda-worker.config.ts's banner, Task 2 Step 5).
   initialWindowState: {
     isDestroyed: boolean;
     isMinimized: boolean;

@@ -126,6 +126,12 @@ jobs:
       - name: Fetch whisper-enabled FFmpeg
         run: yarn binaries:setup
 
+      - name: Inject add-on download URLs
+        env:
+          ADDONS_DOWNLOAD_URLS: ${{ secrets.ADDONS_DOWNLOAD_URLS }}
+        shell: bash
+        run: node scripts/inject-addon-urls.mjs
+
       - name: Build ${{ matrix.label }} DMG
         run: yarn ${{ matrix.script }}
 

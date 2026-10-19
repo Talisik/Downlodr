@@ -76,6 +76,11 @@ interface ArticleDownloadStore {
   addArticleCategory: (id: string, category: string) => void;
   removeArticleCategory: (id: string, category: string) => void;
   toggleArticleFavorite: (id: string) => void;
+  /** Global tag/category rename and delete, applied to every article. */
+  renameArticleTag: (oldName: string, newName: string) => void;
+  deleteArticleTag: (tag: string) => void;
+  renameArticleCategory: (oldName: string, newName: string) => void;
+  deleteArticleCategory: (category: string) => void;
 }
 
 const withLogEntries = (
@@ -338,6 +343,56 @@ export const useArticleDownloadStore = create<ArticleDownloadStore>()(
         set((state) => ({
           articleDownloads: state.articleDownloads.map((d) =>
             d.id === id ? { ...d, favorited: !d.favorited } : d,
+          ),
+        })),
+
+      renameArticleTag: (oldName, newName) =>
+        set((state) => ({
+          articleDownloads: state.articleDownloads.map((d) =>
+            (d.tags ?? []).includes(oldName)
+              ? {
+                  ...d,
+                  tags: [
+                    ...new Set(
+                      d.tags.map((t) => (t === oldName ? newName : t)),
+                    ),
+                  ],
+                }
+              : d,
+          ),
+        })),
+
+      deleteArticleTag: (tag) =>
+        set((state) => ({
+          articleDownloads: state.articleDownloads.map((d) =>
+            (d.tags ?? []).includes(tag)
+              ? { ...d, tags: d.tags.filter((t) => t !== tag) }
+              : d,
+          ),
+        })),
+
+      renameArticleCategory: (oldName, newName) =>
+        set((state) => ({
+          articleDownloads: state.articleDownloads.map((d) =>
+            (d.category ?? []).includes(oldName)
+              ? {
+                  ...d,
+                  category: [
+                    ...new Set(
+                      d.category.map((c) => (c === oldName ? newName : c)),
+                    ),
+                  ],
+                }
+              : d,
+          ),
+        })),
+
+      deleteArticleCategory: (category) =>
+        set((state) => ({
+          articleDownloads: state.articleDownloads.map((d) =>
+            (d.category ?? []).includes(category)
+              ? { ...d, category: d.category.filter((c) => c !== category) }
+              : d,
           ),
         })),
     }),

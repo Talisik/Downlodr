@@ -8,14 +8,13 @@
  *   @param position - An object containing the x and y coordinates for positioning the menu.
  *   @param categoryName - The name of the category being acted upon.
  *   @param onClose - A function to call when the menu should be closed.
- *   @param onRename - A function that takes the old and new category names to handle renaming.
- *   @param onDelete - A function that takes the category name to handle deletion.
+ *   @param onRequestRename - Asks the owner to open the rename modal for this category.
+ *   @param onDelete - Asks the owner to confirm and delete this category.
  *   @param onShare - Optional. Takes the category name to share it and the videos inside it.
  *
  * @returns JSX.Element - The rendered context menu component.
  */
 
-import React, { useState } from 'react';
 import { MdDelete, MdEdit, MdShare } from 'react-icons/md';
 
 import BaseContextMenu from './BaseContextMenu';
@@ -25,103 +24,10 @@ interface CategoryContextMenuProps {
   position: { x: number; y: number }; // Position of the context menu
   categoryName: string; // Name of the category
   onClose: () => void; // Function to close the menu
-  onRename: (oldName: string, newName: string) => void; // Function to rename the category
-  onDelete: (category: string) => void; // Function to delete the category
+  onRequestRename: (categoryName: string) => void; // Ask the owner to open the rename modal
+  onDelete: (category: string) => void; // Ask the owner to confirm the delete
   onShare?: (category: string) => void; // Function to share the category and its videos
 }
-
-interface RenameModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onRename: (newName: string) => void;
-  currentName: string;
-}
-
-const RenameModal: React.FC<RenameModalProps> = ({
-  isOpen,
-  onClose,
-  onRename,
-  currentName,
-}) => {
-  const [newName, setNewName] = useState(currentName);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log(
-      'Form submitted with:',
-      newName,
-      'length:',
-      newName.length,
-      'trimmed length:',
-      newName.trim().length,
-    );
-    if (newName.trim() && newName.trim().length <= 15) {
-      onRename(newName.trim());
-      onClose();
-    }
-  };
-
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      onClick={(e) => {
-        // Only close if clicking the overlay background
-        if (e.target === e.currentTarget) {
-          onClose();
-          e.stopPropagation();
-        }
-      }}
-    >
-      <div
-        className="bg-white dark:bg-darkModeDropdown rounded-lg border border-darkModeCompliment p-6 max-w-sm w-full mx-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-[15px] font-medium mb-3 dark:text-gray-200">
-          Rename Category
-        </h3>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            maxLength={15}
-            className="w-full p-2 border rounded mb-1 dark:bg-darkMode dark:border-inputDarkModeBorder outline-none dark:text-gray-200"
-            autoFocus
-            onClick={(e) => e.stopPropagation()}
-          />
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-            {newName.length}/15 characters
-          </div>
-          <div className="flex justify-end space-x-3 bg-[#FEF9F4] dark:bg-darkMode -mx-6 -mb-6 px-4 py-3 rounded-b-lg border-t border-[#D9D9D9] dark:border-darkModeCompliment">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
-              className="px-4 py-1 border rounded-md hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-darkModeHover dark:text-gray-200"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              onClick={(e) => {
-                console.log('Save button clicked');
-                e.stopPropagation();
-              }}
-              className="px-4 py-1 bg-primary text-white rounded disabled:opacity-50 hover:opacity-90 dark:hover:opacity-75"
-              disabled={!newName.trim() || newName.trim().length > 15}
-            >
-              Save
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
 
 const MENU_ITEM_CLASS =
   'text-xs w-full text-left px-1.5 py-2 hover:bg-gray-100 dark:hover:bg-darkModeHover flex items-center gap-2 dark:text-gray-200';
@@ -130,51 +36,42 @@ const MENU_ITEM_CLASS =
 export default function CategoryContextMenu({
   position,
   onClose,
-  onRename,
+  onRequestRename,
   onDelete,
   onShare,
   categoryName,
 }: CategoryContextMenuProps) {
-  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
-
-  const handleRename = (newName: string) => {
-    onRename(categoryName, newName);
-    setIsRenameModalOpen(false);
-    onClose();
-  };
-
+  // The rename modal is deliberately NOT rendered here. This menu is unmounted
+  // by its owner the moment anything outside it is clicked, which would take a
+  // child modal down with it before Save could ever be pressed. Rename is a
+  // request to the owner, which renders the modal as a sibling — the same shape
+  // DownloadContextMenu uses for its (working) rename.
   return (
-    <>
-      <BaseContextMenu
-        position={position}
-        onClose={onClose}
-        dataAttribute="data-category-context-menu"
+    <BaseContextMenu
+      position={position}
+      onClose={onClose}
+      dataAttribute="data-category-context-menu"
+    >
+      <button
+        onClick={() => {
+          onRequestRename(categoryName);
+          onClose();
+        }}
+        className={MENU_ITEM_CLASS}
       >
-        <button
-          onClick={() => setIsRenameModalOpen(true)}
-          className={MENU_ITEM_CLASS}
-        >
-          <MdEdit className="text-gray-600 dark:text-gray-400" />
-          <span>Rename</span>
-        </button>
-        <button
-          onClick={() => {
-            onDelete(categoryName);
-            onClose();
-          }}
-          className={`${MENU_ITEM_CLASS} text-red-600 dark:text-red-400`}
-        >
-          <MdDelete />
-          <span>Delete</span>
-        </button>
-      </BaseContextMenu>
-
-      <RenameModal
-        isOpen={isRenameModalOpen}
-        onClose={() => setIsRenameModalOpen(false)}
-        onRename={handleRename}
-        currentName={categoryName}
-      />
-    </>
+        <MdEdit className="text-gray-600 dark:text-gray-400" />
+        <span>Rename</span>
+      </button>
+      <button
+        onClick={() => {
+          onDelete(categoryName);
+          onClose();
+        }}
+        className={`${MENU_ITEM_CLASS} text-red-600 dark:text-red-400`}
+      >
+        <MdDelete />
+        <span>Delete</span>
+      </button>
+    </BaseContextMenu>
   );
 }

@@ -638,7 +638,7 @@ export const StatusPageTableRow: React.FC<StatusPageTableRowProps> = ({
                   'failed',
                   'initializing',
                 ].includes(download.status) ? (
-                  <div className="w-full">
+                  <div className="w-full items-center justify-center flex">
                     <SpeedGraph
                       key={`speed-graph-${download.id}`}
                       currentSpeed={download.speed}

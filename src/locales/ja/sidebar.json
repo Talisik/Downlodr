@@ -31,5 +31,11 @@
     "categorizedDesc": "「{{category}}」に設定しました",
     "tagged": "ダウンロードにタグを付けました",
     "taggedDesc": "「{{tag}}」でタグ付けしました"
+  },
+  "confirmDelete": {
+    "categoryTitle": "カテゴリ「{{name}}」を削除しますか？",
+    "tagTitle": "タグ「{{name}}」を削除しますか？",
+    "message": "すべてのダウンロードと記事から削除されます。ダウンロード自体は削除されません。",
+    "confirmLabel": "削除"
   }
 }

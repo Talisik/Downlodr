@@ -205,7 +205,8 @@
       "addNewCategory": "Add new category...",
       "maxChars": "Max {{max}} characters",
       "noTags": "No tags yet",
-      "noCategories": "No categories yet"
+      "noCategories": "No categories yet",
+      "appliesToSelected": "Applies to {{count}} selected"
     },
     "toast": {
       "noDownloadsSelectedTitle": "No Downloads Selected",
@@ -255,14 +256,27 @@
       "duplicateTagDesc": "Tag \"{{value}}\" already exists.",
       "duplicateCategoryTitle": "Duplicate Category",
       "duplicateCategoryDesc": "Category \"{{value}}\" already exists.",
-      "bulkTagAppliedTitle": "Tag Applied",
-      "bulkTagAppliedDesc": "Tag \"{{value}}\" added to {{count}} download(s).",
-      "bulkTagRemovedTitle": "Tag Removed",
-      "bulkTagRemovedDesc": "Tag \"{{value}}\" removed from {{count}} download(s).",
-      "bulkCategoryAppliedTitle": "Category Applied",
-      "bulkCategoryAppliedDesc": "Category \"{{value}}\" added to {{count}} download(s).",
-      "bulkCategoryRemovedTitle": "Category Removed",
-      "bulkCategoryRemovedDesc": "Category \"{{value}}\" removed from {{count}} download(s)."
+      "bulkTagAppliedTitle_one": "Tag Applied to 1 Download",
+      "bulkTagAppliedTitle_other": "Tag Applied to {{count}} Downloads",
+      "bulkTagAppliedDesc_one": "\"{{value}}\" was added to 1 selected download.",
+      "bulkTagAppliedDesc_other": "\"{{value}}\" was added to {{count}} selected downloads.",
+      "bulkTagRemovedTitle_one": "Tag Removed from 1 Download",
+      "bulkTagRemovedTitle_other": "Tag Removed from {{count}} Downloads",
+      "bulkTagRemovedDesc_one": "\"{{value}}\" was removed from 1 selected download.",
+      "bulkTagRemovedDesc_other": "\"{{value}}\" was removed from {{count}} selected downloads.",
+      "bulkCategoryAppliedTitle_one": "Category Applied to 1 Download",
+      "bulkCategoryAppliedTitle_other": "Category Applied to {{count}} Downloads",
+      "bulkCategoryAppliedDesc_one": "\"{{value}}\" was set on 1 selected download.",
+      "bulkCategoryAppliedDesc_other": "\"{{value}}\" was set on {{count}} selected downloads.",
+      "bulkCategoryRemovedTitle_one": "Category Removed from 1 Download",
+      "bulkCategoryRemovedTitle_other": "Category Removed from {{count}} Downloads",
+      "bulkCategoryRemovedDesc_one": "\"{{value}}\" was removed from 1 selected download.",
+      "bulkCategoryRemovedDesc_other": "\"{{value}}\" was removed from {{count}} selected downloads.",
+      "bulkAlreadyHadDesc_one": "1 already had it.",
+      "bulkAlreadyHadDesc_other": "{{count}} already had it.",
+      "articlesStartedTitle": "Saving Articles",
+      "articlesStartedDesc_one": "{{count}} article is being saved.",
+      "articlesStartedDesc_other": "{{count}} articles are being saved."
     },
     "settingsButton": "Settings",
     "deleteLabel": "Delete",
@@ -636,6 +650,33 @@
     "transcription": {
       "failed": "Transcription failed",
       "failedDesc": "Could not create transcript"
+    }
+  },
+  "bulkFormat": {
+    "title": "Choose Download Quality",
+    "selectQuality": "Quality for all selected videos",
+    "videoCount_one": "{{count}} video download",
+    "videoCount_other": "{{count}} video downloads",
+    "subscriptionsAsUsual_one": "{{count}} subscription video keeps its format",
+    "subscriptionsAsUsual_other": "{{count}} subscription videos keep their format",
+    "articlesAsUsual_one": "{{count}} article download",
+    "articlesAsUsual_other": "{{count}} articles downloads ",
+    "adjustedCount_one": "{{count}} video will use a different quality.",
+    "adjustedCount_other": "{{count}} videos will use a different quality.",
+    "show": "Show",
+    "hide": "Hide",
+    "cancel": "Cancel",
+    "download": "Download",
+    "tier": {
+      "360": "360p and lower",
+      "480": "480p",
+      "720": "720p",
+      "1080": "1080p",
+      "1440": "1440p",
+      "2160": "2160p (4K)",
+      "best": "Best available",
+      "audio": "Audio only",
+      "mp3": "Audio only (MP3)"
     }
   }
 }

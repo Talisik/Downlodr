@@ -19,8 +19,9 @@ import { NavLink, useMatch, useResolvedPath } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDownloadStore } from '../../store/downloadStore';
 import CategoryContextMenu from '../contextMenu/CategoryContextMenu';
-import RenameModal from '../modal/custom/RenameModal';
 import TagContextMenu from '../contextMenu/TagContextMenu';
+import RenameModal from '../modal/custom/RenameModal';
+import ConfirmModal from '@/core-app/components/modal/custom/ConfirmModal';
 import ShareButton from '@/downlodr/components/download/ShareButton';
 
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
@@ -31,6 +32,9 @@ import { LuNewspaper, LuPanelLeftClose, LuPanelLeftOpen } from 'react-icons/lu';
 import { useNavAnimation } from '@/downlodr/hooks/useNavAnimation';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
+
+/** Character cap for a category name. */
+const CATEGORY_NAME_MAX_LENGTH = 15;
 
 /** Character cap for a tag name. */
 const TAG_NAME_MAX_LENGTH = 120;
@@ -155,6 +159,11 @@ const Navigation = ({
   const renameCategory = useDownloadStore((state) => state.renameCategory);
   const deleteCategory = useDownloadStore((state) => state.deleteCategory);
 
+  // Category the rename modal is open for, or null when it is closed.
+  const [renameCategoryTarget, setRenameCategoryTarget] = useState<
+    string | null
+  >(null);
+
   // Category whose share dialog is open, with the source URLs it will share.
   const [shareCategory, setShareCategory] = useState<{
     name: string;
@@ -203,6 +212,12 @@ const Navigation = ({
 
   // Tag the rename modal is open for, or null when it is closed.
   const [renameTagTarget, setRenameTagTarget] = useState<string | null>(null);
+
+  // Category or tag awaiting delete confirmation, or null when none is.
+  const [deleteTarget, setDeleteTarget] = useState<{
+    kind: 'category' | 'tag';
+    name: string;
+  } | null>(null);
 
   const handleCategoryRightClick = (
     e: React.MouseEvent,
@@ -707,11 +722,29 @@ const Navigation = ({
           position={{ x: contextMenu.x, y: contextMenu.y }}
           categoryName={contextMenu.category}
           onClose={() => setContextMenu(null)}
-          onRename={renameCategory}
-          onDelete={deleteCategory}
+          onRequestRename={setRenameCategoryTarget}
+          onDelete={(category) =>
+            setDeleteTarget({ kind: 'category', name: category })
+          }
           onShare={handleShareCategory}
         />
       )}
+
+      {/* Owned here, not by the context menu: the click-outside effect above
+          nulls `contextMenu` on every click that isn't inside the menu, so a
+          modal rendered under the menu would be unmounted on its first click. */}
+      <RenameModal
+        isOpen={renameCategoryTarget !== null}
+        onClose={() => setRenameCategoryTarget(null)}
+        onRename={(newName) => {
+          if (renameCategoryTarget)
+            renameCategory(renameCategoryTarget, newName);
+        }}
+        currentName={renameCategoryTarget ?? ''}
+        title="Rename Category"
+        successTitle="Category Renamed"
+        maxLength={CATEGORY_NAME_MAX_LENGTH}
+      />
 
       {shareCategory && (
         <ShareButton
@@ -727,12 +760,11 @@ const Navigation = ({
           tagName={tagContextMenu.tag}
           onClose={() => setTagContextMenu(null)}
           onRequestRename={setRenameTagTarget}
-          onDelete={deleteTag}
+          onDelete={(tag) => setDeleteTarget({ kind: 'tag', name: tag })}
         />
       )}
 
-      {/* Owned here, not by TagContextMenu: the menu unmounts on any outside
-          mousedown, which would take a modal it rendered down with it. */}
+      {/* Owned here for the same reason as the category RenameModal above. */}
       <RenameModal
         isOpen={renameTagTarget !== null}
         onClose={() => setRenameTagTarget(null)}
@@ -743,6 +775,26 @@ const Navigation = ({
         title="Rename Tag"
         successTitle="Tag Renamed"
         maxLength={TAG_NAME_MAX_LENGTH}
+      />
+
+      {/* Owned here for the same reason as RenameModal above. */}
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget?.kind === 'category')
+            deleteCategory(deleteTarget.name);
+          else if (deleteTarget?.kind === 'tag') deleteTag(deleteTarget.name);
+          setDeleteTarget(null);
+        }}
+        title={t(
+          deleteTarget?.kind === 'tag'
+            ? 'confirmDelete.tagTitle'
+            : 'confirmDelete.categoryTitle',
+          { name: deleteTarget?.name ?? '' },
+        )}
+        message={t('confirmDelete.message')}
+        confirmLabel={t('confirmDelete.confirmLabel')}
       />
     </nav>
   );

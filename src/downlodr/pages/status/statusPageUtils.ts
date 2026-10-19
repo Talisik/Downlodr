@@ -127,6 +127,7 @@ export interface SortableDownloadItem {
   DateAdded: string;
   uploadDate?: string;
   extractorKey?: string;
+  favorited?: boolean;
 }
 
 /** Sort downloads by column and direction */
@@ -170,6 +171,19 @@ export function sortDownloadsByColumn<T extends SortableDownloadItem>(
         const uploadA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
         const uploadB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
         return sortDirection === 'asc' ? uploadA - uploadB : uploadB - uploadA;
+      }
+      // The action column holds the favorite toggle, so sorting it groups
+      // favorited items apart from the rest (desc = favorites first).
+      case 'action': {
+        const favA = a.favorited ? 1 : 0;
+        const favB = b.favorited ? 1 : 0;
+        if (favA !== favB) {
+          return sortDirection === 'asc' ? favA - favB : favB - favA;
+        }
+        // Keep a stable, predictable order inside each group.
+        return (
+          new Date(b.DateAdded).getTime() - new Date(a.DateAdded).getTime()
+        );
       }
       case 'source':
       case 'transcript': {

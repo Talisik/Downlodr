@@ -198,7 +198,8 @@
       "addNewCategory": "新增分類...",
       "maxChars": "最多 {{max}} 個字元",
       "noTags": "尚無標籤",
-      "noCategories": "尚無分類"
+      "noCategories": "尚無分類",
+      "appliesToSelected": "套用至已選的 {{count}} 項"
     },
     "toast": {
       "noDownloadsSelectedTitle": "未選擇下載",
@@ -246,14 +247,17 @@
       "duplicateTagDesc": "標籤「{{value}}」已存在。",
       "duplicateCategoryTitle": "分類重複",
       "duplicateCategoryDesc": "分類「{{value}}」已存在。",
-      "bulkTagAppliedTitle": "已套用標籤",
-      "bulkTagAppliedDesc": "已將標籤「{{value}}」加入 {{count}} 個下載。",
-      "bulkTagRemovedTitle": "已移除標籤",
-      "bulkTagRemovedDesc": "已從 {{count}} 個下載移除標籤「{{value}}」。",
-      "bulkCategoryAppliedTitle": "已套用分類",
-      "bulkCategoryAppliedDesc": "已將分類「{{value}}」加入 {{count}} 個下載。",
-      "bulkCategoryRemovedTitle": "已移除分類",
-      "bulkCategoryRemovedDesc": "已從 {{count}} 個下載移除分類「{{value}}」。"
+      "bulkTagAppliedTitle_other": "已將標籤套用至 {{count}} 個下載",
+      "bulkTagAppliedDesc_other": "已將「{{value}}」加入所選的 {{count}} 個下載。",
+      "bulkTagRemovedTitle_other": "已從 {{count}} 個下載移除標籤",
+      "bulkTagRemovedDesc_other": "已從所選的 {{count}} 個下載移除「{{value}}」。",
+      "bulkCategoryAppliedTitle_other": "已將分類套用至 {{count}} 個下載",
+      "bulkCategoryAppliedDesc_other": "已為所選的 {{count}} 個下載設定「{{value}}」。",
+      "bulkCategoryRemovedTitle_other": "已從 {{count}} 個下載移除分類",
+      "bulkCategoryRemovedDesc_other": "已從所選的 {{count}} 個下載移除「{{value}}」。",
+      "bulkAlreadyHadDesc_other": "其中 {{count}} 個已有該項目。",
+      "articlesStartedTitle": "正在儲存文章",
+      "articlesStartedDesc_other": "正在儲存 {{count}} 篇文章。"
     },
     "settingsButton": "設定",
     "deleteLabel": "刪除",
@@ -310,8 +314,7 @@
     "missingFolder": "找不到資料夾",
     "missingFolderDesc": "下載資料夾尚不存在",
     "error": "錯誤"
-  }
-,
+  },
   "dropdownBar": {
     "menus": {
       "file": "檔案",
@@ -347,8 +350,7 @@
       "updateCheckFailedDesc": "無法檢查更新，請稍後重試。",
       "retry": "重試"
     }
-  }
-,
+  },
   "helpModal": {
     "title": "說明指南",
     "tabs": {
@@ -571,6 +573,29 @@
     "transcription": {
       "failed": "轉錄失敗",
       "failedDesc": "無法建立轉錄"
+    }
+  },
+  "bulkFormat": {
+    "title": "選擇下載畫質",
+    "selectQuality": "所有已選影片的畫質",
+    "videoCount_other": "{{count}} 部影片",
+    "subscriptionsAsUsual_other": "{{count}} 部訂閱影片保留原格式",
+    "articlesAsUsual_other": "{{count}} 篇文章照常下載",
+    "adjustedCount_other": "{{count}} 部影片將使用其他畫質。",
+    "show": "顯示",
+    "hide": "隱藏",
+    "cancel": "取消",
+    "download": "下載",
+    "tier": {
+      "360": "360p 及以下",
+      "480": "480p",
+      "720": "720p",
+      "1080": "1080p",
+      "1440": "1440p",
+      "2160": "2160p (4K)",
+      "best": "最佳畫質",
+      "audio": "僅音訊",
+      "mp3": "僅音訊 (MP3)"
     }
   }
 }

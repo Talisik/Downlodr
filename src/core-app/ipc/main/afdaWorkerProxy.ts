@@ -1,3 +1,12 @@
+// src/core-app/ipc/main/afdaWorkerProxy.ts
+
+/**
+ * Main-process proxy for the AFDA utilityProcess worker (afda-worker/entry.ts).
+ * Forks the worker, forwards renderer IPC calls to it, relays its push events
+ * back to the renderer, keeps the worker's FakeWindow state in sync with the
+ * real BrowserWindow, and handles crash/timeout/shutdown.
+ */
+
 import { BrowserWindow, ipcMain, utilityProcess } from 'electron';
 import path from 'node:path';
 import { getElectronPaths } from './electronPaths';
@@ -63,6 +72,13 @@ export async function callAfdaService<T = unknown>(
   return runPendingCall<T>(callId, payload);
 }
 
+// Hand our callService/isReady pair to mcpBridgeServer.ts via its
+// registration callback rather than mcpBridgeServer.ts statically importing
+// these two functions — avoids a real circular ES module dependency (this
+// module already imports registerBridgeHandler from mcpBridgeServer.ts).
+// Safe to call at module-eval time: callAfdaService/isAfdaWorkerReady are
+// stable function references that don't depend on the worker being spawned
+// yet — they just check `ready` / reject when it's false at call time.
 registerAfdaServiceProxy({
   callService: callAfdaService,
   isReady: isAfdaWorkerReady,
@@ -97,6 +113,7 @@ function runPendingCall<T>(
   });
 }
 
+/** Call one of the worker's registered IPC channels from main. */
 function invokeWorkerChannel<T = unknown>(
   channel: string,
   payload: unknown,
@@ -111,6 +128,9 @@ function invokeWorkerChannel<T = unknown>(
   });
 }
 
+// Backing calls for the zero-article auto-heal. Reads go straight to the
+// storage service; writes go through the IPC channels so they pick up
+// websites:update's patch normalisation and the engine's own job handling.
 const autoHealDeps: AutoHealDeps = {
   getJobUrls: (jobId) =>
     callAfdaService<ClassifiedUrl[]>('storage', 'getArticleUrlsForJob', [
@@ -162,6 +182,14 @@ function spawnWorker(
   ready = false;
   const entryPath = path.join(__dirname, 'entry.js');
   const paths = getElectronPaths();
+  // These three env vars are read by vite.afda-worker.config.ts's
+  // output.banner to populate global.__electronPaths inside the worker,
+  // BEFORE any of its bundled code (including the hoisted better-sqlite3/
+  // afda-backend external-require preamble) runs. This is the worker
+  // equivalent of vite.main.config.ts's require('electron')-based banner —
+  // env vars are available synchronously at process start; a postMessage
+  // after fork is not early enough (see Task 1's report and Task 2 Step 3's
+  // comment in entry.ts for why).
   child = utilityProcess.fork(entryPath, [], {
     serviceName: 'afda-worker',
     stdio: 'pipe',
@@ -268,6 +296,10 @@ function handleWorkerMessage(
       }
     }
     console.log(`[AFDA worker] ready with ${msg.channels.length} channels`);
+    // Feed the existing boot-splash-status mechanism (see index.html /
+    // bootStatusHandler.ts) so the splash text reflects real AFDA readiness
+    // if it's still on screen when this fires. A no-op once the splash has
+    // already hidden — the renderer just ignores boot:status pushes then.
     if (!mainWindow.isDestroyed()) {
       mainWindow.webContents.send('boot:status', 'Article services ready');
       // The worker boots independently of Phase 2, so addons:services-ready
@@ -291,6 +323,10 @@ function handleWorkerMessage(
     if (!mainWindow.isDestroyed()) {
       mainWindow.webContents.send(msg.channel, msg.payload);
     }
+    // Every scrape reports here regardless of what started it — the add-website
+    // modal, the CLI bridge, the chat tools or the scheduler — so this is the
+    // one place that can catch a run which finished "successfully" having saved
+    // no articles. Fire-and-forget: healing must not delay the push above.
     if (msg.channel === 'scrape:job_update' && msg.payload) {
       void handleScrapeJobUpdate(
         msg.payload as ScrapeJobUpdate,

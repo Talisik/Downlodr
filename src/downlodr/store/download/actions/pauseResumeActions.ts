@@ -147,6 +147,7 @@ export function createPauseResumeActions(get: GetState) {
       isCreateFolder: false,
       tags: (row.tags as string[]) ?? [],
       category: (row.category as string[]) ?? [],
+      favorited: Boolean(row.favorited),
     } as AddQueuePayload);
 
     get().deleteDownloading(downloadId);

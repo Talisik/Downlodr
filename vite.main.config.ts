@@ -190,8 +190,6 @@ export default defineConfig(({ mode }) => {
         env.VITE_SHARE_API_ENDPOINT || 'https://downlodr.com/api/share',
       ),
       __SHARE_API_KEY__: JSON.stringify(env.VITE_SHARE_API_KEY || ''),
-      // otel-logs.js is also imported by main-process handlers.
-      __OTEL_LOGS_ENDPOINT__: JSON.stringify(env.VITE_OTEL_LOGS_ENDPOINT || ''),
     },
     resolve: {
       alias: {

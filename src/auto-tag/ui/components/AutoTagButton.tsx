@@ -1,3 +1,10 @@
+/**
+ * AutoTagButton — triggers auto-tagging for selected (or all eligible) downloads.
+ *
+ * Drop this into a toolbar/context menu. When `selectedIds` is provided it tags
+ * just those; otherwise it tags all finished + history downloads.
+ */
+
 import React from 'react';
 import { useAutoTag } from '../hooks/useAutoTag';
 

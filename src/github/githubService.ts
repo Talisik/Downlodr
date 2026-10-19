@@ -4,6 +4,7 @@
  */
 
 import { GET } from '../core-app/client/httpClient';
+import { withNetworkRetry } from '../core-app/utils/networkRetry';
 
 // Interface for GitHub release response
 export interface GitHubRelease {
@@ -41,11 +42,15 @@ export async function fetchLatestRelease(
   owner: string,
   repo: string,
 ): Promise<GitHubRelease> {
-  const response = await GET<GitHubRelease>(
-    `https://api.github.com/repos/${owner}/${repo}/releases/latest`,
-    {
-      timeout: 10000,
-    },
+  // Plugin installs start here. On slow networks the GitHub handshake alone
+  // can pass 10s, so allow longer and retry timeouts/dropped connections.
+  const response = await withNetworkRetry(() =>
+    GET<GitHubRelease>(
+      `https://api.github.com/repos/${owner}/${repo}/releases/latest`,
+      {
+        timeout: 20000,
+      },
+    ),
   );
   return response.data;
 }

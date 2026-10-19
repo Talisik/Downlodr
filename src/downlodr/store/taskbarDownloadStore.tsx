@@ -81,6 +81,24 @@ interface SearchState {
 
 export type TypeFilter = 'videos' | 'subscriptions' | 'articles';
 
+// The Toolbar's type chips: no chip selected shows everything; otherwise an
+// item shows if any selected chip matches it. Articles take precedence over
+// subscriptions, so AFDA-website articles follow the Articles chip.
+export const matchesTypeFilters = (
+  download: SearchableDownload,
+  filters: Set<TypeFilter>,
+): boolean => {
+  if (filters.size === 0) return true;
+  const isArticle = (download as { type?: string }).type === 'article';
+  const isSubscription = !isArticle && !!download.subscriptionId;
+  const isVideo = !isArticle && !isSubscription;
+  return (
+    (filters.has('articles') && isArticle) ||
+    (filters.has('subscriptions') && isSubscription) ||
+    (filters.has('videos') && isVideo)
+  );
+};
+
 interface TaskbarDownloadStore {
   getTranscript: boolean;
   setGetTranscript: (value: boolean) => void;

@@ -31,5 +31,11 @@
     "categorizedDesc": "\"{{category}}\"(으)로 설정됨",
     "tagged": "다운로드 태그됨",
     "taggedDesc": "\"{{tag}}\"(으)로 태그됨"
+  },
+  "confirmDelete": {
+    "categoryTitle": "\"{{name}}\" 카테고리를 삭제할까요?",
+    "tagTitle": "\"{{name}}\" 태그를 삭제할까요?",
+    "message": "모든 다운로드와 기사에서 제거됩니다. 다운로드 자체는 삭제되지 않습니다.",
+    "confirmLabel": "삭제"
   }
 }

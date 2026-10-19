@@ -1,4 +1,11 @@
-/** Main-process IPC handler for auto-tagging. */
+/**
+ * tagHandler.ts  (main process IPC)
+ *
+ * Registers the auto-tag IPC handler. One channel, request/response:
+ *   auto-tag:run  (handle) — tag a batch of downloads, returns TagResult[]
+ *
+ * Returns a cleanup function that removes the handler.
+ */
 
 import { ipcMain } from 'electron';
 import { runAutoTag, type TagJobInput } from '../../service/tagService';

@@ -33,5 +33,11 @@
     "taggedDesc": "Tagged with \"{{tag}}\"",
     "shareEmpty": "Nothing to share",
     "shareEmptyDesc": "\"{{category}}\" has no videos in it."
+  },
+  "confirmDelete": {
+    "categoryTitle": "Delete category \"{{name}}\"?",
+    "tagTitle": "Delete tag \"{{name}}\"?",
+    "message": "It will be removed from every download and article. The downloads themselves are not deleted.",
+    "confirmLabel": "Delete"
   }
 }

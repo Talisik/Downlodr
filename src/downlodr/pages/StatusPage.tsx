@@ -63,6 +63,7 @@ import type {
 } from '../store/taskbarDownloadStore';
 import {
   mapArticleToSearchable,
+  matchesTypeFilters,
   useTaskbarDownloadStore,
 } from '../store/taskbarDownloadStore';
 
@@ -303,19 +304,9 @@ const StatusSpecificDownloads = () => {
           )
       : allItems;
 
-    if (activeTypeFilters.size === 0) {
-      return sortDownloadsByColumn(byStatus, sortColumn, sortDirection);
-    }
-    const byType = byStatus.filter((d) => {
-      const isArticle = (d as { type?: string }).type === 'article';
-      const isSubscription = !isArticle && !!d.subscriptionId;
-      const isVideo = !isArticle && !isSubscription;
-      return (
-        (activeTypeFilters.has('articles') && isArticle) ||
-        (activeTypeFilters.has('subscriptions') && isSubscription) ||
-        (activeTypeFilters.has('videos') && isVideo)
-      );
-    });
+    const byType = byStatus.filter((d) =>
+      matchesTypeFilters(d, activeTypeFilters),
+    );
     return sortDownloadsByColumn(byType, sortColumn, sortDirection);
   }, [
     forDownloads,
@@ -923,6 +914,7 @@ const StatusSpecificDownloads = () => {
               <SearchPendingOverlay />
               <StatusPageTable
                 allDownloads={allDownloads}
+                viewKey={currentStatus}
                 searchQuery={searchQuery}
                 isSearchActive={isSearchActive}
                 displayColumns={displayColumns}

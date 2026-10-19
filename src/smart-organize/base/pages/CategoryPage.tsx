@@ -6,8 +6,13 @@
  */
 import CategoryTagPage from '@/downlodr/pages/CategoryTagPage';
 import useDownloadStore from '@/downlodr/store/downloadStore';
+import {
+  mapArticleToSearchable,
+  matchesTypeFilters,
+  useTaskbarDownloadStore,
+} from '@/downlodr/store/taskbarDownloadStore';
 import { useArticleDownloadStore } from '@/afda/store/articleDownloadStore';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 
 const CategoryPage: React.FC = () => {
@@ -19,6 +24,14 @@ const CategoryPage: React.FC = () => {
   const forDownloads = useDownloadStore((state) => state.forDownloads);
   const queuedDownloads = useDownloadStore((state) => state.queuedDownloads);
   const articleDownloads = useArticleDownloadStore((s) => s.articleDownloads);
+  const activeTypeFilters = useTaskbarDownloadStore((s) => s.activeTypeFilters);
+  const clearTypeFilters = useTaskbarDownloadStore((s) => s.clearTypeFilters);
+
+  // The chips live in a shared store; reset them when switching pages rather
+  // than inheriting whatever the previous view had selected.
+  useEffect(() => {
+    clearTypeFilters();
+  }, [categoryId, clearTypeFilters]);
 
   const downloads = useMemo(() => {
     const allDownloads = [
@@ -28,33 +41,13 @@ const CategoryPage: React.FC = () => {
       ...queuedDownloads,
     ];
 
-    const articlesMapped = articleDownloads.map((a) => ({
-      id: a.id,
-      videoUrl: a.url,
-      name: a.title || a.url,
-      downloadName: a.title || a.url,
-      displayName: a.title || undefined,
-      channelName: '',
-      size: a.fileSize ?? 0,
-      speed: '',
-      timeLeft: '',
-      DateAdded: a.dateAdded,
-      progress: a.status === 'finished' ? 100 : a.status === 'failed' ? 0 : 50,
-      location: a.filePath ?? '',
-      status: a.status === 'loading' ? 'downloading' : a.status,
-      ext: a.format ?? 'docx',
-      tags: a.tags ?? [],
-      category: a.category ?? [],
-      extractorKey: 'Article',
-      formatId: '',
-      audioExt: '',
-      audioFormatId: '',
-      isLive: false as const,
-      automaticCaption: null,
-      thumbnails: null,
-    }));
+    // mapArticleToSearchable carries `type: 'article'`, which CategoryTagPage
+    // needs to render these as article rows instead of video rows.
+    const articlesMapped = articleDownloads.map(mapArticleToSearchable);
 
-    const combined = [...allDownloads, ...articlesMapped];
+    const combined = [...allDownloads, ...articlesMapped].filter((download) =>
+      matchesTypeFilters(download, activeTypeFilters),
+    );
 
     if (categoryId === 'all') {
       return combined;
@@ -72,6 +65,7 @@ const CategoryPage: React.FC = () => {
     );
   }, [
     categoryId,
+    activeTypeFilters,
     downloading,
     finishedDownloads,
     forDownloads,

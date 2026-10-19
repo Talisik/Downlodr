@@ -193,14 +193,14 @@ echo "   🔧 Creating professional DMG with create-dmg (using Full Disk Access)
     # Try create-dmg with Full Disk Access (no sudo needed)
     if /opt/homebrew/bin/create-dmg \
         --volname "Downlodr ${APP_VERSION}" \
-        --volicon "src/Assets/Logo/downlodr_icon.icns" \
+        --volicon "src/assets/logo/downlodr_icon.icns" \
         --window-pos 200 120 \
         --window-size 660 400 \
         --icon-size 128 \
         --icon "$APP_BUNDLE_NAME" 180 200 \
         --hide-extension "$APP_BUNDLE_NAME" \
         --app-drop-link 480 200 \
-        --background "src/Assets/DMG/dmg-background.png" \
+        --background "src/assets/dmg/dmg-background.png" \
         --text-size 16 \
         --no-internet-enable \
         "$DMG_PATH" \

@@ -118,6 +118,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
       tags: download.tags,
       category: download.category,
       isLive: download.isLive ?? false,
+      favorited: download.favorited ?? false,
     });
 
     // Remove from forDownloads

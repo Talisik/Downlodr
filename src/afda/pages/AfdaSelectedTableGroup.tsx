@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
+import PaginationControls from '@/core-app/components/PaginationControls';
 import { ArticleDownloadTableRow } from '@/afda/components/ArticleDownloadTableRow';
 import ArticleContextMenu from '@/afda/components/contextMenu/ArticleContextMenu';
 import ArticleSidePanelManager from '@/afda/components/ArticleSidePanelManager';
@@ -59,8 +60,6 @@ import React, {
 } from 'react';
 import { FaArrowLeft } from 'react-icons/fa6';
 import {
-  LuChevronLeft,
-  LuChevronRight,
   LuFileSpreadsheet,
   LuNewspaper,
   LuTrash,
@@ -992,25 +991,11 @@ const AfdaSelectedTableGroup: React.FC = () => {
                   </table>
                 </div>
                 {totalPages > 1 && (
-                  <div className="flex-shrink-0 flex items-center justify-center gap-1 px-4 py-1.5 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-darkModeTable">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 0}
-                      className="p-1 rounded-md text-gray-500 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-darkModeTableBorder transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <LuChevronLeft size={14} />
-                    </button>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 min-w-[80px] text-center">
-                      Page {currentPage + 1} of {totalPages}
-                    </span>
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage >= totalPages - 1}
-                      className="p-1 rounded-md text-gray-500 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-darkModeTableBorder transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <LuChevronRight size={14} />
-                    </button>
-                  </div>
+                  <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
                 )}
               </div>
             </div>

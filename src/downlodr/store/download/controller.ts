@@ -343,6 +343,7 @@ export class DownloadController {
           controllerId: '---',
           tags: download.tags || [],
           category: download.category || [],
+          favorited: download.favorited ?? false,
           extractorKey: download.extractorKey,
           audioExt: download.audioExt,
           audioFormatId: download.audioFormatId,
