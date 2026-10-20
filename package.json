@@ -88,7 +88,6 @@
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
     "build:dmg": "./scripts/build-with-create-dmg.sh",
-    "build:intel": "./scripts/build-with-create-dmg-intel.sh",
     "build:quick": "./scripts/build-and-package.sh",
     "test:dmg": "./scripts/test-create-dmg.sh",
     "test": "vitest run",

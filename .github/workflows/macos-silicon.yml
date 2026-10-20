@@ -1,6 +1,6 @@
 name: macOS Branch Build
 
-# Standalone macOS build (Apple Silicon + Intel) for the fix/bug-fix branch
+# Standalone macOS build (Apple Silicon) for the fix/bug-fix branch
 # (the merged feat/bulk-category-macos line plus the QA fixes).
 #
 # Deliberately separate from macos-build.yml, which is left byte-identical to
@@ -16,9 +16,7 @@ name: macOS Branch Build
 #                        prePackage and throws if it fails; that package's
 #                        node_modules is not committed.
 #
-# Builds both architectures: an arm64-only DMG shows a crossed-out icon ("not
-# supported on this Mac") on Intel Macs. The x64 leg cross-builds on the arm64
-# runner, as macos-build.yml's build-intel job does. No release job: this
+# Builds Apple Silicon only. No release job: this
 # cannot publish anything. Artifacts are downloaded from the run itself.
 
 on:
@@ -48,8 +46,6 @@ jobs:
         include:
           - label: apple-silicon
             script: build:dmg
-          - label: intel
-            script: build:intel
     timeout-minutes: 90
     env:
       APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
