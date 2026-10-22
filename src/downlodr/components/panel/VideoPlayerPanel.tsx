@@ -1359,14 +1359,6 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                                             ),
                                         },
                                         {
-                                          icon: <LuShare2 size={13} />,
-                                          label: t(
-                                            'videoPlayer.menu.shareVideo',
-                                          ),
-                                          action: () =>
-                                            setShareDownloadId(d.id),
-                                        },
-                                        {
                                           icon: <LuCaptions size={13} />,
                                           label: t(
                                             'videoPlayer.menu.generateCaption',

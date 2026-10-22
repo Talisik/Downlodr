@@ -15,6 +15,7 @@ on:
   push:
     branches:
       - fix/bug-fix-2
+      - review/port-mac-main-version
   workflow_dispatch:
     inputs:
       target_arch:
