@@ -10,9 +10,11 @@ on:
         default: arm64
         options:
           - arm64
-  push:
-    tags:
-      - "v*"
+  # Tag-triggered builds temporarily disabled: macos-silicon.yml is the active
+  # build flow. Uncomment to re-enable build + release on `v*` tags.
+  # push:
+  #   tags:
+  #     - "v*"
 
 permissions:
   contents: write
