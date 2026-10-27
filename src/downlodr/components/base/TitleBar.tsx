@@ -32,11 +32,17 @@ interface TitleBarProps {
 const IS_MAC = navigator.userAgent.includes('Macintosh');
 
 /**
- * Left padding reserved for the native traffic lights: 12px inset + three
- * 12px circles + two 8px gaps ≈ 64px, rounded up for breathing room. Keep in
- * step with trafficLightPosition in main.ts.
+ * Heights of the controls row and the logo row. On macOS the controls row is
+ * empty space for the native traffic lights, which end at 22px
+ * (trafficLightPosition y: 10 in main.ts + 12px circles) — keep in step. The
+ * logo row is tightened there too so the logo sits just under them.
+ *
+ * Elsewhere the controls get a 4px top margin: flush against the window's top
+ * edge they sit inside the OS resize border, which swallows their clicks.
  */
-const TRAFFIC_LIGHT_GUTTER = 'pl-[76px] pr-2';
+const CONTROLS_ROW_HEIGHT = IS_MAC ? 'h-[22px]' : 'h-7';
+const CONTROLS_MARGIN = IS_MAC ? '' : 'mt-1';
+const LOGO_ROW_HEIGHT = IS_MAC ? 'h-7' : 'h-8';
 
 const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
   const { theme } = useTheme();
@@ -85,53 +91,54 @@ const TitleBar: React.FC<TitleBarProps> = ({ className }) => {
             macOS renders real traffic lights top-left instead, which
             also get the hover glyphs, the fullscreen behaviour on green
             and the accessibility affordances that an imitation cannot.
-            They sit on their own row above the logo; the empty space
-            around them is still a drag handle. */}
-        {!IS_MAC && (
-          <div className="flex justify-end items-center gap-2 h-6 px-2 drag-area">
-            <div className="flex items-center gap-2 no-drag">
-              {/* Minimize Button */}
-              <button
-                className={windowButtonClass}
-                onClick={() => window.downlodrFunctions?.minimizeApp()}
-              >
-                <IoMdRemove size={16} />
-              </button>
+            Either way they sit on their own row above the logo, with the
+            theme toggle at its right end; on macOS the rest of that row is
+            left clear for the traffic lights, and the empty space is still
+            a drag handle. */}
+        <div
+          className={`flex justify-end items-center gap-2 ${CONTROLS_ROW_HEIGHT} px-2 drag-area`}
+        >
+          <div className={`flex items-center gap-2 no-drag ${CONTROLS_MARGIN}`}>
+            {/* Dark Mode/Light Mode — in line with the window controls */}
+            <ModeToggle />
 
-              {/* Maximize Button with dynamic icon */}
-              <button
-                className={windowButtonClass}
-                onClick={() => window.downlodrFunctions?.maximizeApp()}
-              >
-                {isMaximized ? <PiBrowsers size={16} /> : <RxBox size={14} />}
-              </button>
+            {!IS_MAC && (
+              <div className="flex items-center gap-1 ml-2">
+                {/* Minimize Button */}
+                <button
+                  className={windowButtonClass}
+                  onClick={() => window.downlodrFunctions?.minimizeApp()}
+                >
+                  <IoMdRemove size={16} />
+                </button>
 
-              {/* Close Button */}
-              <button
-                className={windowButtonClass}
-                onClick={() => window.downlodrFunctions?.closeApp()}
-              >
-                <IoMdClose size={16} />
-              </button>
-            </div>
+                {/* Maximize Button with dynamic icon */}
+                <button
+                  className={windowButtonClass}
+                  onClick={() => window.downlodrFunctions?.maximizeApp()}
+                >
+                  {isMaximized ? <PiBrowsers size={16} /> : <RxBox size={14} />}
+                </button>
+
+                {/* Close Button */}
+                <button
+                  className={windowButtonClass}
+                  onClick={() => window.downlodrFunctions?.closeApp()}
+                >
+                  <IoMdClose size={16} />
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         <div
-          className={`flex justify-between items-center h-8 ${
-            IS_MAC ? TRAFFIC_LIGHT_GUTTER : 'px-2'
-          }`}
+          className={`flex justify-between items-center ${LOGO_ROW_HEIGHT} px-2`}
         >
           {/* Logo + drag handle — self-stretch gives it the row's full height
-              so the whole strip is draggable, not just the logo. On macOS it
-              starts after the traffic-light gutter. */}
+              so the whole strip is draggable, not just the logo. */}
           <div className="text-sm flex-1 self-stretch flex items-center drag-area">
             {getLogoSrc()}
-          </div>
-
-          {/*Dark Mode/Light Mode — in line with the logo */}
-          <div className="flex items-center no-drag">
-            <ModeToggle />
           </div>
         </div>
       </div>

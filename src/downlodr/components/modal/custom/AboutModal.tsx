@@ -25,32 +25,41 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
   const [ytdlpVersion, setYtdlpVersion] = useState<string | null>(null);
 
   useEffect(() => {
-    const getVersion = async () => {
-      if (window.updateAPI) {
-        try {
-          const currentVersion = await window.updateAPI.getCurrentVersion();
-          if (currentVersion) {
-            setAppVersion(currentVersion);
-          }
-        } catch (error) {
-          console.error('Error getting version:', error);
-        }
-      }
+    if (!window.updateAPI) return;
+    window.updateAPI
+      .getCurrentVersion()
+      .then((currentVersion) => {
+        if (currentVersion) setAppVersion(currentVersion);
+      })
+      .catch((error) => console.error('Error getting version:', error));
+  }, []);
 
-      if (window.ytdlp) {
-        try {
-          const result = await window.ytdlp.getCurrentVersion();
-          if (result?.success && result.version) {
-            setYtdlpVersion(result.version);
-          }
-        } catch {
-          // silently omit if unavailable
+  // Re-read on every open, and live while open: the modal stays mounted, so
+  // a version read once at mount kept showing the old yt-dlp after the
+  // startup self-update replaced it.
+  useEffect(() => {
+    if (!isOpen || !window.ytdlp) return;
+    let cancelled = false;
+    const refreshYtdlpVersion = async () => {
+      try {
+        const result = await window.ytdlp.getCurrentVersion();
+        if (!cancelled && result?.success && result.version) {
+          setYtdlpVersion(result.version);
         }
+      } catch {
+        // silently omit if unavailable
       }
     };
 
-    getVersion();
-  }, []);
+    void refreshYtdlpVersion();
+    const unsubscribe = window.ytdlp.onUpdateStatus?.((status) => {
+      if (status.state === 'updated') void refreshYtdlpVersion();
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [isOpen]);
 
   const handleLink = async () => {
     await window.downlodrFunctions.openExternalLink('https://downlodr.com/');

@@ -581,9 +581,9 @@
     "videoCount_other": "동영상 {{count}}개",
     "subscriptionsAsUsual_other": "구독 동영상 {{count}}개는 기존 형식 유지",
     "articlesAsUsual_other": "기사 {{count}}개는 평소대로 다운로드",
-    "adjustedCount_other": "동영상 {{count}}개는 다른 화질로 다운로드됩니다.",
-    "show": "보기",
-    "hide": "숨기기",
+    "adjustedCount_other": "동영상 {{count}}개는 이 설정을 정확히 지원하지 않아 가장 가까운 형식으로 다운로드됩니다.",
+    "fileType": "파일 형식",
+    "anyFileType": "상관없음",
     "cancel": "취소",
     "download": "다운로드",
     "tier": {

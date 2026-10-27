@@ -434,7 +434,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
     runStart('best');
   };
 
-  const runStart = (tier: BulkFormatTier) => {
+  const runStart = (tier: BulkFormatTier, container?: string) => {
     const { standalone, subscription, articleIds } = startable;
     const standaloneIds = new Set(standalone.map((d) => d.id));
 
@@ -464,8 +464,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
       const processedName = downloadInfo.name.replace(/[\\/:*?"<>|]/g, '_');
       const record = forDownloads.find((fd) => fd.id === selectedDownload.id);
 
-      // Standalone videos take the tier picked in the modal; subscription
-      // videos keep the format already stored on the row.
+      // Standalone videos take the tier (and file type) picked in the modal;
+      // subscription videos keep the format already stored on the row.
       const format = standaloneIds.has(selectedDownload.id)
         ? resolveBulkFormat(
             tier,
@@ -477,6 +477,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
               audioFormatId:
                 record?.audioFormatId ?? downloadInfo.audioFormatId,
             },
+            container,
           )
         : {
             ext: downloadInfo.ext,

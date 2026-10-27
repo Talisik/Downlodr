@@ -581,9 +581,9 @@
     "videoCount_other": "動画 {{count}} 件",
     "subscriptionsAsUsual_other": "登録チャンネルの動画 {{count}} 件は現在の形式のまま",
     "articlesAsUsual_other": "記事 {{count}} 件は通常どおりダウンロード",
-    "adjustedCount_other": "{{count}} 件の動画は別の画質になります。",
-    "show": "表示",
-    "hide": "非表示",
+    "adjustedCount_other": "{{count}} 件の動画はこの設定に完全には対応していないため、最も近い形式になります。",
+    "fileType": "ファイル形式",
+    "anyFileType": "指定なし",
     "cancel": "キャンセル",
     "download": "ダウンロード",
     "tier": {

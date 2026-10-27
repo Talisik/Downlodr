@@ -50,7 +50,10 @@ import {
   sortDownloadsByColumn,
 } from '@/downlodr/pages/status/statusPageUtils';
 import type { ArticleSearchableDownload } from '@/downlodr/store/taskbarDownloadStore';
-import { useTaskbarDownloadStore } from '@/downlodr/store/taskbarDownloadStore';
+import {
+  mapArticleToSearchable,
+  useTaskbarDownloadStore,
+} from '@/downlodr/store/taskbarDownloadStore';
 import React, {
   useCallback,
   useEffect,
@@ -175,45 +178,15 @@ const AfdaSelectedTableGroup: React.FC = () => {
     null,
   );
 
-  const downloads = useMemo((): ArticleSearchableDownload[] => {
-    return articleDownloads
-      .filter((a) => a.subscriptionId === websiteId)
-      .map((a) => ({
-        type: 'article' as const,
-        id: a.id,
-        name: a.title || a.url,
-        displayName: a.title || undefined,
-        status: a.status === 'loading' ? 'downloading' : a.status,
-        size: a.fileSize ?? 0,
-        DateAdded: a.dateAdded,
-        uploadDate: a.published_at ?? undefined,
-        location: a.filePath ?? '',
-        videoUrl: a.url,
-        downloadName: a.title || a.url,
-        channelName: '',
-        extractorKey: 'Article',
-        formatId: '',
-        audioExt: '',
-        audioFormatId: '',
-        ext: a.format ?? 'docx',
-        format: a.format ?? 'docx',
-        speed: '',
-        timeLeft: '',
-        progress:
-          a.status === 'finished' ? 100 : a.status === 'failed' ? 0 : 50,
-        isLive: false,
-        duration: 0,
-        getTranscript: false,
-        getThumbnail: false,
-        tags: [],
-        category: [],
-        automaticCaption: null,
-        thumbnails: null,
-        errorMessage: a.errorMessage,
-        thumbnailDataUrl: a.thumbnailDataUrl,
-        subscriptionId: a.subscriptionId,
-      }));
-  }, [articleDownloads, websiteId]);
+  // The shared mapper, so rows carry `favorited`, tags and categories like
+  // every other article list — the row's favorite button reads them.
+  const downloads = useMemo(
+    (): ArticleSearchableDownload[] =>
+      articleDownloads
+        .filter((a) => a.subscriptionId === websiteId)
+        .map(mapArticleToSearchable),
+    [articleDownloads, websiteId],
+  );
 
   const hasForDownloadStatus = selectedRowIds.some(
     (id) => downloads.find((d) => d.id === id)?.status === 'for_download',

@@ -20,7 +20,11 @@ import { telemetryHandler } from './telemetryHandler';
 import { transcriptHandler } from './transcriptHandler';
 import { trayHandler, TrayHandlerOptions } from './trayHandler';
 import { videoHandler } from './videoHandler';
-import { ytdlpHandler, runYtdlpCheckAndUpdate } from './ytdlpHandler';
+import {
+  ytdlpHandler,
+  retryYtdlpCheckIfDue,
+  runYtdlpCheckAndUpdate,
+} from './ytdlpHandler';
 import { smartOrganizeHandler } from '../../../smart-organize/ipc/main/smartOrganizeHandler';
 import { autoTagHandler } from '../../../auto-tag/ipc/main/tagHandler';
 import { registerSmartOrganizeReady } from './mcpBridgeServer';
@@ -197,6 +201,10 @@ export async function registerMainIpcHandlers(
   setTimeout(() => {
     void runYtdlpCheckAndUpdate();
   }, 5000);
+  // Reopening a window hidden by "run in background" isn't a relaunch, so
+  // the startup check would never run again — retry it here when due.
+  mainWindow.on('show', retryYtdlpCheckIfDue);
+  mainWindow.on('focus', retryYtdlpCheckIfDue);
 
   return {
     cleanup() {

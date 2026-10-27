@@ -26,6 +26,10 @@ export interface BinaryEnv {
   appPath: string;
   userDataPath: string;
   exists: (candidate: string) => boolean;
+  /** File contents, or null when unreadable. Needed only for the yt-dlp copy. */
+  readText?: (file: string) => string | null;
+  /** Size + mtime of a file, or null when absent. Needed only for the yt-dlp copy. */
+  fileStamp?: (file: string) => string | null;
 }
 
 export function ytdlpBinaryName(platform: NodeJS.Platform): string {
@@ -46,14 +50,22 @@ export function ytdlpBinaryName(platform: NodeJS.Platform): string {
  * the installed shortcut happens to set cwd to the install directory, which is
  * exactly where the postPackage hook drops yt-dlp.exe.
  *
- * On darwin the bundled copy is additionally spawned *in place*: yt-dlp_macos
- * is a PyInstaller bundle that only starts under the hardened runtime with the
- * entitlements forge.config.ts signs it with, and it is sealed into the .app's
- * signature and covered by its notarization ticket. A copy run from outside
- * the bundle is evaluated standalone by Gatekeeper instead — which is what
- * canSelfUpdateYtdlp() (ytdlpHandler.ts) exists to prevent.
+ * On packaged darwin a self-updated copy in userData takes precedence over the
+ * bundled one once it has been installed and verified — see
+ * isYtdlpUserCopyActive().
  */
 export function resolveYtdlpPath(env: BinaryEnv): string {
+  if (isYtdlpUserCopyActive(env)) return ytdlpUserCopyPaths(env).binary;
+  return resolveBundledYtdlpPath(env);
+}
+
+/**
+ * The yt-dlp shipped with the app, ignoring any self-updated copy.
+ *
+ * On darwin the bundled copy is spawned *in place*: it is signed with the
+ * entitlements forge.config.ts gives it and sealed into the .app's signature.
+ */
+export function resolveBundledYtdlpPath(env: BinaryEnv): string {
   const name = ytdlpBinaryName(env.platform);
 
   if (env.isPackaged) {
@@ -73,6 +85,68 @@ export function resolveYtdlpPath(env: BinaryEnv): string {
 
   const devPath = path.join(env.appPath, name);
   return env.exists(devPath) ? devPath : name;
+}
+
+/**
+ * Packaged macOS cannot update yt-dlp in place: the bundled binary sits inside
+ * the signed .app, and writing there breaks the bundle signature so the app no
+ * longer launches. Updates go to a copy in userData instead, which the app
+ * runs in preference to the bundled one. Windows keeps updating in place.
+ */
+export function usesYtdlpUserCopy(env: BinaryEnv): boolean {
+  return env.isPackaged && env.platform === 'darwin';
+}
+
+/**
+ * Where the self-updated yt-dlp lives, and its marker. The marker is written
+ * only after the copy has been run successfully, so a half-finished or
+ * unrunnable download is never picked up.
+ */
+export function ytdlpUserCopyPaths(env: BinaryEnv): {
+  binary: string;
+  marker: string;
+} {
+  const binary = path.join(
+    env.userDataPath,
+    'bin',
+    ytdlpBinaryName(env.platform),
+  );
+  return { binary, marker: `${binary}.installed.json` };
+}
+
+export interface YtdlpUserCopyMarker {
+  /** yt-dlp version the copy reported when it was verified. */
+  version: string;
+  /** fileStamp() of the bundled binary at install time. */
+  bundledStamp: string;
+}
+
+/**
+ * Whether the userData copy should be run instead of the bundled binary.
+ *
+ * Requires the marker, and requires the bundled binary to be the same one the
+ * copy was installed over. When the app itself is updated it ships a new
+ * bundled yt-dlp, the stamps differ, and the bundled one takes over again —
+ * so an app update can never be shadowed by an older self-updated copy. If
+ * the bundled one is behind the latest release, the next update check simply
+ * downloads a fresh copy.
+ */
+export function isYtdlpUserCopyActive(env: BinaryEnv): boolean {
+  if (!usesYtdlpUserCopy(env) || !env.readText || !env.fileStamp) return false;
+  const { binary, marker } = ytdlpUserCopyPaths(env);
+  if (!env.exists(binary)) return false;
+
+  const raw = env.readText(marker);
+  if (!raw) return false;
+  let parsed: Partial<YtdlpUserCopyMarker>;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return false;
+  }
+
+  const bundledStamp = env.fileStamp(resolveBundledYtdlpPath(env));
+  return !!bundledStamp && parsed.bundledStamp === bundledStamp;
 }
 
 /** Bundled basenames, most-preferred first. */

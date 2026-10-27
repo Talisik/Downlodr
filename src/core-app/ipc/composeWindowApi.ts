@@ -77,6 +77,7 @@ export function initComposedWindowApi(): void {
       getLatestVersion: ytdlpBridge.getLatestVersion,
       checkAndUpdate: ytdlpBridge.checkAndUpdate,
       getDirectUrl: ytdlpBridge.getDirectUrl,
+      cancelDirectUrl: ytdlpBridge.cancelDirectUrl,
       downloadPreview: ytdlpBridge.downloadPreview,
       cancelPreviewDownload: ytdlpBridge.cancelPreviewDownload,
       releasePreviewFile: ytdlpBridge.releasePreviewFile,

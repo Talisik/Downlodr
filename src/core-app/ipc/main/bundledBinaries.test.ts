@@ -6,6 +6,7 @@ import {
   resolveWhisperFfmpeg,
   resolveYtdlpPath,
   ytdlpBinaryName,
+  ytdlpUserCopyPaths,
   type BinaryEnv,
 } from './bundledBinaries';
 
@@ -91,6 +92,88 @@ describe('resolveYtdlpPath', () => {
         }),
       ),
     ).toBe(exeAdjacent);
+  });
+});
+
+describe('self-updated yt-dlp copy on packaged darwin', () => {
+  const bundled = path.join('/App.app/Contents/Resources', 'yt-dlp_macos');
+  const copy = path.join('/userData', 'bin', 'yt-dlp_macos');
+  const marker = `${copy}.installed.json`;
+
+  /** A packaged mac install with the bundled binary at stamp `stamp`. */
+  function macEnv(opts: {
+    present: string[];
+    markerText?: string | null;
+    stamp?: string | null;
+  }): BinaryEnv {
+    return env({
+      present: opts.present,
+      readText: (file) => (file === marker ? opts.markerText ?? null : null),
+      fileStamp: (file) => (file === bundled ? opts.stamp ?? 'v1' : null),
+    });
+  }
+
+  it('keeps the copy in userData/bin', () => {
+    expect(ytdlpUserCopyPaths(env({})).binary).toBe(copy);
+  });
+
+  it('runs the copy once it is installed over the current bundled binary', () => {
+    const e = macEnv({
+      present: [bundled, copy],
+      markerText: JSON.stringify({ version: '2026.10.20', bundledStamp: 'v1' }),
+    });
+    expect(resolveYtdlpPath(e)).toBe(copy);
+  });
+
+  it('ignores a copy without a marker (interrupted install)', () => {
+    expect(resolveYtdlpPath(macEnv({ present: [bundled, copy] }))).toBe(
+      bundled,
+    );
+  });
+
+  it('ignores a marker whose copy is gone', () => {
+    const e = macEnv({
+      present: [bundled],
+      markerText: JSON.stringify({ version: '2026.10.20', bundledStamp: 'v1' }),
+    });
+    expect(resolveYtdlpPath(e)).toBe(bundled);
+  });
+
+  it('ignores a corrupt marker', () => {
+    const e = macEnv({ present: [bundled, copy], markerText: '{not json' });
+    expect(resolveYtdlpPath(e)).toBe(bundled);
+  });
+
+  it('hands back to the bundled binary after an app update replaced it', () => {
+    const e = macEnv({
+      present: [bundled, copy],
+      markerText: JSON.stringify({ version: '2026.10.20', bundledStamp: 'v1' }),
+      stamp: 'v2',
+    });
+    expect(resolveYtdlpPath(e)).toBe(bundled);
+  });
+
+  it('never uses a copy on win32 or in development', () => {
+    const markerText = JSON.stringify({ version: 'x', bundledStamp: 'v1' });
+    const exeDir = 'C:/Program Files/Downlodr';
+    const win = env({
+      platform: 'win32',
+      exeDir,
+      resourcesPath: `${exeDir}/resources`,
+      present: [path.join(exeDir, 'yt-dlp.exe')],
+      readText: () => markerText,
+      fileStamp: () => 'v1',
+    });
+    expect(resolveYtdlpPath(win)).toBe(path.join(exeDir, 'yt-dlp.exe'));
+
+    const devPath = path.join('/repo', 'yt-dlp_macos');
+    const dev = env({
+      isPackaged: false,
+      present: [devPath, copy],
+      readText: () => markerText,
+      fileStamp: () => 'v1',
+    });
+    expect(resolveYtdlpPath(dev)).toBe(devPath);
   });
 });
 

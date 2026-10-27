@@ -1,7 +1,7 @@
 /**
  * Format picker for the toolbar's bulk Start. Offers quality tiers rather than
- * concrete formats (those differ per video) and previews which videos can't
- * match the chosen tier exactly — see resolveBulkFormat.
+ * concrete formats (those differ per video), plus an optional file type, and
+ * warns how many videos can't match the choice exactly — see resolveBulkFormat.
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,7 @@ import type { FormatOption } from '@/downlodr/schema/metadataSchema';
 import {
   BULK_FORMAT_TIERS,
   resolveBulkFormat,
+  videoContainersOf,
   type BulkFormatTier,
   type StoredFormat,
 } from '@/downlodr/utils/download/bulkFormat';
@@ -24,7 +25,8 @@ export interface BulkFormatVideo {
 interface BulkFormatModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (tier: BulkFormatTier) => void;
+  /** `container` is a lowercase file type ('mp4'), or undefined for any. */
+  onConfirm: (tier: BulkFormatTier, container?: string) => void;
   videos: BulkFormatVideo[];
   subscriptionCount: number;
   articleCount: number;
@@ -40,24 +42,33 @@ const BulkFormatModal: React.FC<BulkFormatModalProps> = ({
 }) => {
   const { t } = useTranslation('downlodr');
   const [tier, setTier] = useState<BulkFormatTier>('best');
-  const [showAdjusted, setShowAdjusted] = useState(false);
+  const [container, setContainer] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (isOpen) {
       setTier('best');
-      setShowAdjusted(false);
+      setContainer(undefined);
     }
   }, [isOpen]);
 
-  const adjusted = useMemo(
+  // Only offer file types at least one selected video actually has.
+  const containers = useMemo(
+    () => videoContainersOf(videos.map((v) => v.formats)),
+    [videos],
+  );
+  const isAudioTier = tier === 'audio' || tier === 'mp3';
+  const activeContainer = isAudioTier ? undefined : container;
+
+  // A tier only names a range, so count the videos whose concrete pick
+  // misses it (or the file type) and warn before they download.
+  const adjustedCount = useMemo(
     () =>
-      videos
-        .map((v) => ({
-          video: v,
-          resolved: resolveBulkFormat(tier, v.formats, v.stored),
-        }))
-        .filter((x) => x.resolved.adjusted !== null),
-    [videos, tier],
+      videos.filter(
+        (v) =>
+          resolveBulkFormat(tier, v.formats, v.stored, activeContainer)
+            .adjusted !== null,
+      ).length,
+    [videos, tier, activeContainer],
   );
 
   return (
@@ -76,7 +87,7 @@ const BulkFormatModal: React.FC<BulkFormatModalProps> = ({
           </button>
           <button
             onClick={() => {
-              onConfirm(tier);
+              onConfirm(tier, activeContainer);
               onClose();
             }}
             className="px-4 py-1 bg-[#F45513] text-white rounded-md hover:bg-black hover:text-white font-medium"
@@ -132,32 +143,34 @@ const BulkFormatModal: React.FC<BulkFormatModalProps> = ({
           </div>
         </div>
 
-        {adjusted.length > 0 && (
-          <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
-            <button
-              onClick={() => setShowAdjusted((s) => !s)}
-              className="w-full text-left font-medium"
-            >
-              {t('bulkFormat.adjustedCount', { count: adjusted.length })}{' '}
-              <span className="underline">
-                {showAdjusted ? t('bulkFormat.hide') : t('bulkFormat.show')}
-              </span>
-            </button>
-            {showAdjusted && (
-              <ul className="mt-2 space-y-1 max-h-40 overflow-y-auto">
-                {adjusted.map(({ video, resolved }) => (
-                  <li key={video.id} className="flex justify-between gap-3">
-                    <span className="truncate" title={video.title}>
-                      {video.title}
-                    </span>
-                    <span className="flex-shrink-0 text-amber-700 dark:text-amber-400">
-                      {resolved.label}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+        {containers.length > 1 && (
+          <div>
+            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              {t('bulkFormat.fileType')}
+            </p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[undefined, ...containers].map((value) => (
+                <button
+                  key={value ?? 'any'}
+                  disabled={isAudioTier}
+                  onClick={() => setContainer(value)}
+                  className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors text-center truncate disabled:opacity-40 disabled:cursor-not-allowed ${
+                    activeContainer === value && !isAudioTier
+                      ? 'bg-green-100 text-green-700 border-green-100'
+                      : 'bg-white dark:bg-darkModeDropdown border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 enabled:hover:border-green-500 enabled:hover:text-green-500'
+                  }`}
+                >
+                  {value ? value.toUpperCase() : t('bulkFormat.anyFileType')}
+                </button>
+              ))}
+            </div>
           </div>
+        )}
+
+        {adjustedCount > 0 && (
+          <p className="rounded-lg bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+            {t('bulkFormat.adjustedCount', { count: adjustedCount })}
+          </p>
         )}
       </div>
     </BaseModal>

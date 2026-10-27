@@ -110,6 +110,7 @@ declare global {
         error?: string;
       }>;
       getDirectUrl: (url: string) => Promise<string>;
+      cancelDirectUrl: (url: string) => Promise<void>;
       downloadPreview: (requestId: string, url: string) => Promise<string>;
       cancelPreviewDownload: (requestId: string) => Promise<void>;
       releasePreviewFile: (tempPath: string) => Promise<void>;

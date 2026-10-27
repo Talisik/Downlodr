@@ -4,7 +4,14 @@
  */
 
 import { app } from 'electron';
-import { existsSync } from 'fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'fs';
 import path from 'path';
 import {
   materializeFfmpegAliases,
@@ -12,9 +19,14 @@ import {
   prependToPath,
   resolveBundledFfmpeg,
   resolveWhisperFfmpeg,
+  isYtdlpUserCopyActive,
+  resolveBundledYtdlpPath,
   resolveYtdlpPath,
+  usesYtdlpUserCopy,
   ytdlpBinaryName,
+  ytdlpUserCopyPaths,
   type BinaryEnv,
+  type YtdlpUserCopyMarker,
 } from './bundledBinaries';
 
 export function electronBinaryEnv(): BinaryEnv {
@@ -27,12 +39,75 @@ export function electronBinaryEnv(): BinaryEnv {
     appPath: app.getAppPath(),
     userDataPath: app.getPath('userData'),
     exists: existsSync,
+    readText: (file) => {
+      try {
+        return readFileSync(file, 'utf8');
+      } catch {
+        return null;
+      }
+    },
+    fileStamp: (file) => {
+      try {
+        const st = statSync(file);
+        return `${st.size}:${Math.trunc(st.mtimeMs)}`;
+      } catch {
+        return null;
+      }
+    },
   };
 }
 
 /** The yt-dlp binary every spawn in the app must be pointed at. */
 export function getYtdlpBinaryPath(): string {
   return resolveYtdlpPath(electronBinaryEnv());
+}
+
+/**
+ * The file a yt-dlp update must be written to: the userData copy on packaged
+ * macOS (never the signed bundle), the resolved binary everywhere else.
+ */
+export function getYtdlpUpdateTarget(): string {
+  const env = electronBinaryEnv();
+  if (!usesYtdlpUserCopy(env)) return resolveYtdlpPath(env);
+  const { binary } = ytdlpUserCopyPaths(env);
+  mkdirSync(path.dirname(binary), { recursive: true });
+  return binary;
+}
+
+/** Whether updates go to the userData copy rather than the binary in use. */
+export function updatesYtdlpUserCopy(): boolean {
+  return usesYtdlpUserCopy(electronBinaryEnv());
+}
+
+/**
+ * Activates a freshly installed and verified userData copy. From here on
+ * getYtdlpBinaryPath() returns it.
+ */
+export function markYtdlpUserCopyInstalled(version: string): void {
+  const env = electronBinaryEnv();
+  const bundledStamp = env.fileStamp?.(resolveBundledYtdlpPath(env));
+  if (!bundledStamp) {
+    throw new Error('cannot stamp the bundled yt-dlp; keeping it in use');
+  }
+  const marker: YtdlpUserCopyMarker = { version, bundledStamp };
+  writeFileSync(ytdlpUserCopyPaths(env).marker, JSON.stringify(marker));
+}
+
+/**
+ * Removes a userData copy that is not in use — one left behind by an app
+ * update (see isYtdlpUserCopyActive) or by an interrupted install. Never
+ * touches an active copy, which running handlers may be spawning.
+ */
+export function discardInactiveYtdlpUserCopy(): void {
+  const env = electronBinaryEnv();
+  if (!usesYtdlpUserCopy(env) || isYtdlpUserCopyActive(env)) return;
+  const { binary, marker } = ytdlpUserCopyPaths(env);
+  for (const file of [marker, binary]) {
+    if (existsSync(file)) {
+      rmSync(file, { force: true });
+      console.log(`[ytdlp] removed unused self-updated copy: ${file}`);
+    }
+  }
 }
 
 /** Where forge ships yt-dlp, for diagnostics when none of them exist. */

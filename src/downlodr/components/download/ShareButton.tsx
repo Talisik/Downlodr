@@ -11,6 +11,11 @@ import { isShareAllowed, promptLogin } from '@/auth/store/authStore';
 import { getTelemetryId } from '@/core-app/store/telemetryStore';
 import TooltipWrapper from '@/core-app/components/wrapper/TooltipWrapper';
 import { recordShare } from '@/downlodr/utils/share/shareApi';
+import {
+  buildCategoryShareLink,
+  buildVideoShareLink,
+  MAX_SHARED_VIDEOS,
+} from '@/downlodr/utils/share/shareLink';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -133,9 +138,8 @@ const ShareButton = ({
   const shareName = category ? category.name : name;
 
   /**
-   * Builds the link. `shareLink.ts` mints a fresh opaque share id per call,
-   * so the URL stays short whatever the category's size — and so re-sharing
-   * the same category yields a new link each time.
+   * Builds the link. `shareLink.ts` encodes the source URLs into the link
+   * itself, so it opens on downlodr.com with no server lookup behind it.
    *
    * Also starts (but does not wait on) a best-effort record of the share to
    * the backend. `recordPromise` is handed back alongside the link so a
@@ -163,21 +167,15 @@ const ShareButton = ({
     }
 
     try {
-      const link = category;
-
-      // Record the list locally BEFORE the backend call, and independently of
-      // whether it succeeds: the local store is the source of truth here, so
-      // a share whose record call fails still belongs in the sidebar. Only
-      // category shares become lists — a single
-      // video isn't a list, and adding one entry per video share would bury
-      // the real lists in the sidebar
+      const link = category
+        ? await buildCategoryShareLink(category.name, category.videoUrls)
+        : await buildVideoShareLink(videoUrl ?? '');
 
       const recordPromise = link
         ? recordShare({
             senderUserId: getTelemetryId() ?? '',
             longUrl: link,
             title: shareName,
-            listId,
           })
         : Promise.resolve(false);
 

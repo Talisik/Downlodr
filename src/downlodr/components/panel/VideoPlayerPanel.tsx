@@ -29,6 +29,7 @@ import {
 import FormatSelectorModal from '@/downlodr/components/download/FormatSelectorModal';
 import { IoMdDownload } from 'react-icons/io';
 import ShareButton from '@/downlodr/components/download/ShareButton';
+import { SHARE_ENABLED } from '@/downlodr/utils/share/shareLink';
 import { redownloadTranscript } from '@/downlodr/utils/transcription/ffmpegWhisperTranscriber';
 import { useDownloadStore } from '@/downlodr/store/downloadStore';
 import { toast } from '@/core-app/components/shadcn/hooks/use-toast';
@@ -252,6 +253,12 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
   // Short reason shown under the error message, so a failed preview or play
   // says why instead of only "Could not load video stream".
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  // True while the current load goes through yt-dlp (direct-URL lookup or
+  // the preview download) rather than a local file. Each video switch spawns
+  // yt-dlp processes that can't be cancelled, so spamming the panel's buttons
+  // piles them up and lags the app — the panel locks until the load settles.
+  const [loadingViaYtdlp, setLoadingViaYtdlp] = useState(false);
+  const isPanelLocked = playerState === 'loading' && loadingViaYtdlp;
   const [isWaveSurferReady, setIsWaveSurferReady] = useState(false);
   const [directUrl, setDirectUrl] = useState<string | null>(null);
   const [captionBlobUrl, setCaptionBlobUrl] = useState<string | null>(null);
@@ -305,6 +312,9 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
   // deleted immediately — no separate temp-file cleanup needed.
   const previewRequestIdRef = useRef<string | null>(null);
   const usedPreviewFallbackRef = useRef(false);
+  // URL whose yt-dlp direct-URL lookup is still running, so closing the
+  // panel (or switching to another video) can kill it.
+  const directUrlRequestRef = useRef<string | null>(null);
   const rafRef = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const transcriptListRef = useRef<HTMLUListElement>(null);
@@ -587,6 +597,21 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
   // shown. The downloaded file itself (once complete) is read into a blob
   // and deleted immediately — see attemptPreviewFallback — so there's no
   // separate temp-file state to release here.
+  const cancelDirectUrlLookup = useCallback(() => {
+    if (directUrlRequestRef.current) {
+      window.ytdlp.cancelDirectUrl(directUrlRequestRef.current);
+      directUrlRequestRef.current = null;
+    }
+  }, []);
+
+  // Closing (or unmounting) kills the lookup. Not done in the fetch effect's
+  // cleanup: that also runs when only `status` changes for the same video,
+  // and cancelling there would respawn yt-dlp for a URL already in flight.
+  useEffect(() => {
+    if (!isOpen) cancelDirectUrlLookup();
+    return cancelDirectUrlLookup;
+  }, [isOpen, cancelDirectUrlLookup]);
+
   const releasePreviewResources = useCallback(() => {
     if (previewRequestIdRef.current) {
       window.ytdlp.cancelPreviewDownload(previewRequestIdRef.current);
@@ -604,6 +629,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
       if (gen !== generationRef.current || !videoUrl) return;
       const requestId = `${panelIdRef.current}-${gen}`;
       previewRequestIdRef.current = requestId;
+      setLoadingViaYtdlp(true);
       setPlayerState('loading');
       window.ytdlp
         .downloadPreview(requestId, videoUrl)
@@ -652,6 +678,13 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
     usedPreviewFallbackRef.current = false;
     releasePreviewResources();
     setErrorDetail(null);
+    const viaYtdlp = !(status === 'finished' && location && downloadName);
+    // A lookup for another video is wasted work now. One for this same video
+    // is left running so the fetch below coalesces onto it in the main
+    // process instead of spawning a second yt-dlp.
+    if (directUrlRequestRef.current !== videoUrl) cancelDirectUrlLookup();
+    if (viaYtdlp && videoUrl) directUrlRequestRef.current = videoUrl;
+    setLoadingViaYtdlp(viaYtdlp);
     setPlayerState('loading');
     setIsWaveSurferReady(false);
     setDirectUrl(null);
@@ -663,6 +696,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
           if (isLocalBlob) URL.revokeObjectURL(url);
           return;
         }
+        directUrlRequestRef.current = null;
         if (isLocalBlob) localBlobRef.current = url;
         setDirectUrl(url);
         setPlayerState('ready');
@@ -670,6 +704,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
       .catch((err) => {
         console.error('[VideoPlayerPanel] resolveVideoSource failed:', err);
         if (gen !== generationRef.current) return;
+        directUrlRequestRef.current = null;
         // No direct URL for an online video — typically YouTube, which no
         // longer offers any single file with both video and audio. The
         // preview download can merge the two, so try it once before failing.
@@ -688,6 +723,7 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
     downloadName,
     releasePreviewResources,
     attemptPreviewFallback,
+    cancelDirectUrlLookup,
   ]);
 
   useEffect(() => {
@@ -1249,13 +1285,21 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
           {allDownloads &&
             allDownloads.filter((d) => !('type' in d && d.type === 'article'))
               .length > 0 && (
-              <div className="h-full w-64 flex-shrink-0 overflow-y-scroll bg-white dark:bg-darkModeTable [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-transparent group-hover:[&::-webkit-scrollbar-thumb]:bg-gray-300 dark:group-hover:[&::-webkit-scrollbar-thumb]:bg-gray-600">
+              <div
+                aria-disabled={isPanelLocked}
+                className={`h-full w-64 flex-shrink-0 overflow-y-scroll ${
+                  // Only the items ignore the pointer, so the wheel still
+                  // reaches this container and the list keeps scrolling.
+                  isPanelLocked ? 'opacity-50 [&>*]:pointer-events-none' : ''
+                } bg-white dark:bg-darkModeTable [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-transparent group-hover:[&::-webkit-scrollbar-thumb]:bg-gray-300 dark:group-hover:[&::-webkit-scrollbar-thumb]:bg-gray-600`}
+              >
                 {allDownloads
                   .filter((d) => !('type' in d && d.type === 'article'))
                   .map((d) => (
                     <div
                       key={d.id}
                       onClick={() =>
+                        !isPanelLocked &&
                         d.status !== 'fetching metadata' &&
                         onSelectDownload?.(d)
                       }
@@ -1358,6 +1402,10 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                                               d.videoUrl,
                                             ),
                                         },
+                                        ...(SHARE_ENABLED
+                                          ? [
+                                            ]
+                                          : []),
                                         {
                                           icon: <LuCaptions size={13} />,
                                           label: t(
@@ -1538,12 +1586,16 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
                       />
                       <div className="text-center animate-pulse">
                         <p className="text-white text-sm font-medium">
-                          {isAudioMode
+                          {isPanelLocked
+                            ? 'Video loading, please don’t click off'
+                            : isAudioMode
                             ? 'Preparing your audio'
                             : 'Preparing your video'}
                         </p>
                         <p className="text-gray-400 text-xs mt-1">
-                          Tuning in. Your track is almost ready to play.
+                          {isPanelLocked
+                            ? 'Fetching the stream — the other controls unlock once it’s ready.'
+                            : 'Tuning in. Your track is almost ready to play.'}
                         </p>
                       </div>
                     </div>
@@ -1935,7 +1987,12 @@ const VideoPlayerPanel: React.FC<VideoPlayerPanelProps> = ({
               </div>
 
               {/* Metadata sidebar — single wrapper, contents swap by activeTab */}
-              <div className="flex self-stretch w-96 flex-shrink-0 overflow-hidden bg-white dark:bg-darkModeTable flex-col">
+              <div
+                aria-disabled={isPanelLocked}
+                className={`flex self-stretch w-96 flex-shrink-0 overflow-hidden bg-white dark:bg-darkModeTable flex-col ${
+                  isPanelLocked ? 'pointer-events-none opacity-50' : ''
+                }`}
+              >
                 {/* === TRANSCRIPT === */}
                 {activeTab === 'transcript' && (
                   <>

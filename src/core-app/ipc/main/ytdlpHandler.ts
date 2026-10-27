@@ -4,7 +4,7 @@
 import type { IpcMainInvokeEvent } from 'electron';
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import { existsSync } from 'fs';
-import { mkdir, readFile, rename, rm, stat, unlink } from 'fs/promises';
+import { chmod, mkdir, readFile, rename, rm, stat, unlink } from 'fs/promises';
 import path from 'path';
 import * as YTDLP from 'yt-dlp-helper';
 import { DownloadOptions } from '../../../downlodr/schema/ytdlpSchema';
@@ -38,8 +38,12 @@ import { hydratePlaylistEntries } from './playlistEntryMetadata';
 import { notifyTrayDownloadComplete } from './trayHandler';
 import { isYtdlpUpgrade } from './ytdlpVersion';
 import {
+  discardInactiveYtdlpUserCopy,
   getBundledFfmpegPaths,
   getYtdlpBinaryPath,
+  getYtdlpUpdateTarget,
+  markYtdlpUserCopyInstalled,
+  updatesYtdlpUserCopy,
   ytdlpBundleCandidates,
 } from './bundledBinariesEnv';
 import { ytdlpBinaryName } from './bundledBinaries';
@@ -102,17 +106,11 @@ async function withBusyRetry<T>(
 const YTDLP_BINARY_NAME = ytdlpBinaryName(process.platform);
 
 /**
- * Whether the resolved binary may be overwritten in place.
- *
- * False on packaged macOS: the binary lives inside the signed .app, and
- * writing there invalidates the bundle signature and leaves the app unable
- * to launch. macOS picks up a new yt-dlp with the next app release — which
- * is what actually happened before this change too, since the old
- * cwd-relative update target never resolved to the bundled binary anyway.
+ * Re-points the running ytdlpHandler at getYtdlpBinaryPath() after an update
+ * switched which binary is in use (the first macOS self-update moves it from
+ * the bundled binary to the userData copy). A no-op until the handler exists.
  */
-function canSelfUpdateYtdlp(): boolean {
-  return !(app.isPackaged && process.platform === 'darwin');
-}
+let refreshHandlerYtdlpPath: () => void = () => undefined;
 
 /**
  * Updates the yt-dlp binary to `version` without writing over the live exe.
@@ -130,7 +128,8 @@ function canSelfUpdateYtdlp(): boolean {
  * live exe is a rename we control and can retry.
  */
 async function downloadYtdlpUpdateSafely(version: string): Promise<void> {
-  const targetPath = getYtdlpBinaryPath();
+  // On packaged macOS this is the userData copy, never the signed bundle.
+  const targetPath = getYtdlpUpdateTarget();
   const tempPath = `${targetPath}.download`;
   const oldPath = `${targetPath}.old`;
   // A leftover .old from a previous update can linger while its lock holder
@@ -146,7 +145,23 @@ async function downloadYtdlpUpdateSafely(version: string): Promise<void> {
     if (downloaded.size === 0) {
       throw new Error('Downloaded yt-dlp binary is empty');
     }
+    // yt-dlp-helper only marks the download executable on Linux.
+    if (process.platform !== 'win32') await chmod(tempPath, 0o755);
+    // A macOS copy only replaces the bundled binary if it actually runs, so a
+    // download macOS refuses to execute leaves the working one in use.
+    const installedVersion = updatesYtdlpUserCopy()
+      ? await YTDLP.getYTDLPVersion(tempPath)
+      : null;
+    if (updatesYtdlpUserCopy() && !installedVersion) {
+      throw new Error(
+        'Downloaded yt-dlp does not run; keeping the current one',
+      );
+    }
     await withBusyRetry(() => swapInNewBinary(tempPath, targetPath, oldPath));
+    if (installedVersion) {
+      markYtdlpUserCopyInstalled(installedVersion);
+      refreshHandlerYtdlpPath();
+    }
     // Best-effort: fails while a process still runs from the moved-aside
     // binary; the unlink at the top of the next update sweeps it then.
     await unlink(oldPath).catch(() => undefined);
@@ -218,59 +233,111 @@ async function runVisibleYtdlpUpdate(
   }
 }
 
+let ytdlpCheckRunning = false;
+/** When the last check started; 0 until the startup check has run. */
+let lastYtdlpCheckAt = 0;
+/** When a check last confirmed yt-dlp is current; 0 if none has. */
+let lastYtdlpCheckSucceededAt = 0;
+/** Minimum gap between retries of a check that didn't complete. */
+const YTDLP_RETRY_INTERVAL_MS = 2 * 60 * 1000;
+/** How long a completed check holds before the app checks again. */
+const YTDLP_RECHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Checks for a newer yt-dlp and installs it. Called once at startup, then by
+ * retryYtdlpCheckIfDue() whenever the window comes back.
+ */
 export async function runYtdlpCheckAndUpdate(): Promise<void> {
+  // A focus during the startup check must not start a second one: two
+  // downloads would race for the same temp file and swap.
+  if (ytdlpCheckRunning) return;
+  ytdlpCheckRunning = true;
+  lastYtdlpCheckAt = Date.now();
   try {
-    const ytdlpPath = getYtdlpBinaryPath();
-
-    // Nothing below may write to the binary on packaged macOS — it sits
-    // inside the signed .app. See canSelfUpdateYtdlp().
-    if (!canSelfUpdateYtdlp()) return;
-
-    await unlink(`${ytdlpPath}.old`).catch(() => undefined);
-
-    // Offline: nothing to check against, and the GitHub/download calls would
-    // only fail (or hang) — skip until the next launch.
-    if (!(await isOnline())) {
-      console.log('[ytdlp startup] offline — skipping yt-dlp update check');
-      return;
-    }
-
-    const currentVersion = await YTDLP.getYTDLPVersion(ytdlpPath);
-
-    let latestVersion = getCachedVersion();
-
-    if (!latestVersion) {
-      if (!canMakeGitHubApiCall()) {
-        return;
-      }
-      markGitHubApiCall();
-      const latestResponse = await YTDLP.getLatestYTDLPVersionFromGitHub();
-      if (!latestResponse.ok || !latestResponse.version) {
-        return;
-      }
-      latestVersion = latestResponse.version;
-      setCachedVersion(latestVersion);
-    }
-
-    if (!currentVersion) {
-      await runVisibleYtdlpUpdate(latestVersion ?? null, () =>
-        withBusyRetry(() => YTDLP.downloadYTDLP({ filePath: ytdlpPath })),
-      );
-      return;
-    }
-
-    // Only ever move forward. A plain inequality check treats a manually
-    // installed nightly (2026.08.17.073947) as "not the latest stable"
-    // and force-downgrades it on every launch.
-    if (latestVersion && isYtdlpUpgrade(currentVersion, latestVersion)) {
-      const target = latestVersion;
-      await runVisibleYtdlpUpdate(target, () =>
-        downloadYtdlpUpdateSafely(target),
-      );
-    }
+    if (await checkAndUpdateYtdlp()) lastYtdlpCheckSucceededAt = Date.now();
   } catch (error) {
     console.error('[ytdlp startup] check-and-update failed:', error);
+  } finally {
+    ytdlpCheckRunning = false;
   }
+}
+
+/**
+ * Runs the check again if the last one never completed — it failed, was
+ * offline, or was rate limited — or if the last success is a day old.
+ *
+ * Closing the window doesn't quit Downlodr while it runs in the background,
+ * so reopening it is not a fresh launch: without this, a failed startup
+ * update was never tried again until the app was fully quit.
+ */
+export function retryYtdlpCheckIfDue(): void {
+  // Leave the first check to its startup timer.
+  if (ytdlpCheckRunning || lastYtdlpCheckAt === 0) return;
+  const now = Date.now();
+  if (now - lastYtdlpCheckAt < YTDLP_RETRY_INTERVAL_MS) return;
+  if (
+    lastYtdlpCheckSucceededAt &&
+    now - lastYtdlpCheckSucceededAt < YTDLP_RECHECK_INTERVAL_MS
+  ) {
+    return;
+  }
+  void runYtdlpCheckAndUpdate();
+}
+
+/** Returns whether yt-dlp is now known to be current. Throws on failure. */
+async function checkAndUpdateYtdlp(): Promise<boolean> {
+  // Packaged macOS: drop a userData copy an app update has superseded,
+  // before anything resolves the binary for this check.
+  discardInactiveYtdlpUserCopy();
+  const ytdlpPath = getYtdlpBinaryPath();
+
+  await unlink(`${getYtdlpUpdateTarget()}.old`).catch(() => undefined);
+
+  // Offline: nothing to check against, and the GitHub/download calls would
+  // only fail (or hang) — skip until the next retry.
+  if (!(await isOnline())) {
+    console.log('[ytdlp startup] offline — skipping yt-dlp update check');
+    return false;
+  }
+
+  const currentVersion = await YTDLP.getYTDLPVersion(ytdlpPath);
+
+  let latestVersion = getCachedVersion();
+
+  if (!latestVersion) {
+    if (!canMakeGitHubApiCall()) {
+      return false;
+    }
+    markGitHubApiCall();
+    const latestResponse = await YTDLP.getLatestYTDLPVersionFromGitHub();
+    if (!latestResponse.ok || !latestResponse.version) {
+      return false;
+    }
+    latestVersion = latestResponse.version;
+    setCachedVersion(latestVersion);
+  }
+
+  if (!currentVersion) {
+    const target = latestVersion;
+    await runVisibleYtdlpUpdate(target ?? null, () =>
+      // macOS must not write over the binary in the signed bundle.
+      updatesYtdlpUserCopy() && target
+        ? downloadYtdlpUpdateSafely(target)
+        : withBusyRetry(() => YTDLP.downloadYTDLP({ filePath: ytdlpPath })),
+    );
+    return true;
+  }
+
+  // Only ever move forward. A plain inequality check treats a manually
+  // installed nightly (2026.08.17.073947) as "not the latest stable"
+  // and force-downgrades it on every launch.
+  if (latestVersion && isYtdlpUpgrade(currentVersion, latestVersion)) {
+    const target = latestVersion;
+    await runVisibleYtdlpUpdate(target, () =>
+      downloadYtdlpUpdateSafely(target),
+    );
+  }
+  return true;
 }
 
 /**
@@ -284,8 +351,12 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
 
   // The single binary every YTDLP.* call below is pointed at. Passing this
   // explicitly is what keeps the helper off its cwd-relative default — see
-  // getYtdlpBinaryPath().
-  const ytdlpPath = getYtdlpBinaryPath();
+  // getYtdlpBinaryPath(). `let` because a macOS self-update can switch it to
+  // the userData copy mid-session.
+  let ytdlpPath = getYtdlpBinaryPath();
+  refreshHandlerYtdlpPath = () => {
+    ytdlpPath = getYtdlpBinaryPath();
+  };
   if (app.isPackaged && !existsSync(ytdlpPath)) {
     // A build that shipped without yt-dlp cannot fetch metadata or download
     // anything. Name it once, loudly, at startup: the per-call failures that
@@ -901,19 +972,6 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   // Check and update YT-DLP
   ipcMain.handle('ytdlp:checkAndUpdate', async () => {
     try {
-      // Updating writes over the resolved binary, which on packaged macOS
-      // lives inside the signed .app — see canSelfUpdateYtdlp().
-      if (!canSelfUpdateYtdlp()) {
-        return {
-          success: true,
-          action: 'bundled',
-          message:
-            'yt-dlp ships inside the app on macOS and updates with it — no separate update is available.',
-          currentVersion: await YTDLP.getYTDLPVersion(ytdlpPath),
-          latestVersion: getCachedVersion(),
-        };
-      }
-
       const currentVersion = await YTDLP.getYTDLPVersion(ytdlpPath);
 
       // Check if we have a cached version first
@@ -957,7 +1015,10 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
       }
 
       if (!currentVersion) {
-        await YTDLP.downloadYTDLP({ filePath: ytdlpPath });
+        // macOS must not write over the binary in the signed bundle.
+        if (updatesYtdlpUserCopy())
+          await downloadYtdlpUpdateSafely(latestVersion);
+        else await YTDLP.downloadYTDLP({ filePath: ytdlpPath });
         return {
           success: true,
           action: 'downloaded',
@@ -1003,13 +1064,14 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
   ipcMain.handle('ytdlp:downloadYTDLP', async (_event, options = {}) => {
     try {
       // Without an explicit destination this defaults to ytdlpPath below,
-      // which on packaged macOS is inside the signed .app — a write there
-      // invalidates the bundle signature. See canSelfUpdateYtdlp().
-      if (!canSelfUpdateYtdlp() && !options.filePath?.trim()) {
+      // which on packaged macOS can be inside the signed .app — a write there
+      // invalidates the bundle signature. Updates there go through
+      // ytdlp:checkAndUpdate, which installs to the userData copy.
+      if (updatesYtdlpUserCopy() && !options.filePath?.trim()) {
         return {
           success: false,
           error:
-            'yt-dlp ships inside the app on macOS and cannot be replaced at runtime; update the app instead.',
+            'On macOS, update yt-dlp with "Check for updates"; it cannot be written into the app bundle.',
         };
       }
 
@@ -1266,15 +1328,49 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
     return ytdlpPath;
   }
 
+  // One entry per URL whose lookup is running, so ytdlp:cancelDirectUrl can
+  // kill it. `cancelled` is checked per retry attempt — between attempts
+  // there is no process to kill, and without the flag the retry loop would
+  // spawn a fresh one after the user had already closed the player.
+  type DirectUrlJob = {
+    cancelled: boolean;
+    proc: ReturnType<typeof spawn> | null;
+  };
+  const directUrlJobs = new Map<string, DirectUrlJob>();
+  const DIRECT_URL_CANCELLED = 'DIRECT_URL_CANCELLED';
+
   ipcMain.handle('ytdlp:getDirectUrl', async (_e, rawUrl: string) => {
     const url = toExtractorUrl(rawUrl);
     await waitForYtdlpUpdate();
-    return coalesce(directUrlInFlight, url, () =>
-      retryTransient('ytdlp:getDirectUrl', url, () => spawnDirectUrl(url)),
-    );
+    return coalesce(directUrlInFlight, url, () => {
+      const job: DirectUrlJob = { cancelled: false, proc: null };
+      directUrlJobs.set(url, job);
+      return retryTransient('ytdlp:getDirectUrl', url, () => {
+        // Not a transient error, so retryTransient rethrows it at once.
+        if (job.cancelled) throw new Error(DIRECT_URL_CANCELLED);
+        return spawnDirectUrl(url, job);
+      }).finally(() => {
+        if (directUrlJobs.get(url) === job) directUrlJobs.delete(url);
+      });
+    });
   });
 
-  function spawnDirectUrl(url: string): Promise<string> {
+  // Kills the lookup for `rawUrl`. Shared by every caller coalesced onto it;
+  // in practice that is only the video panel, which cancels on close.
+  ipcMain.handle('ytdlp:cancelDirectUrl', async (_e, rawUrl: string) => {
+    const url = toExtractorUrl(rawUrl);
+    const job = directUrlJobs.get(url);
+    if (!job) return;
+    job.cancelled = true;
+    job.proc?.kill('SIGKILL');
+    directUrlJobs.delete(url);
+    // Drop it from the coalescing map now rather than when the kill
+    // settles, so reopening the same video straight away spawns a fresh
+    // lookup instead of joining the dying one.
+    directUrlInFlight.delete(url);
+  });
+
+  function spawnDirectUrl(url: string, job?: DirectUrlJob): Promise<string> {
     const binaryPath = resolveYtdlpBinaryPath();
 
     return new Promise<string>((resolve, reject) => {
@@ -1288,12 +1384,20 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
         url,
       ]);
       activeDirectUrlProcs.add(proc);
+      if (job) job.proc = proc;
       let output = '';
       let error = '';
       proc.stdout.on('data', (d) => (output += d.toString()));
       proc.stderr.on('data', (d) => (error += d.toString()));
       proc.on('close', (code) => {
         activeDirectUrlProcs.delete(proc);
+        if (job?.proc === proc) job.proc = null;
+        if (job?.cancelled) {
+          // Killed on purpose — not a site failure, so keep it out of
+          // noteTransient's host bookkeeping.
+          reject(new Error(DIRECT_URL_CANCELLED));
+          return;
+        }
         if (code !== 0) {
           noteTransient(url, error);
           reject(new Error(error.trim()));

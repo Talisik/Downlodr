@@ -105,6 +105,10 @@ contextBridge.exposeInMainWorld('ytdlpFunctionsBridge', {
     return await ipcRenderer.invoke('ytdlp:getDirectUrl', url);
   },
 
+  cancelDirectUrl: async (url: string): Promise<void> => {
+    return await ipcRenderer.invoke('ytdlp:cancelDirectUrl', url);
+  },
+
   downloadPreview: async (requestId: string, url: string): Promise<string> => {
     return await ipcRenderer.invoke('ytdlp:downloadPreview', requestId, url);
   },

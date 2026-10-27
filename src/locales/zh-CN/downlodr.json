@@ -581,9 +581,9 @@
     "videoCount_other": "{{count}} 个视频",
     "subscriptionsAsUsual_other": "{{count}} 个订阅视频保持原格式",
     "articlesAsUsual_other": "{{count}} 篇文章照常下载",
-    "adjustedCount_other": "{{count}} 个视频将使用其他画质。",
-    "show": "显示",
-    "hide": "隐藏",
+    "adjustedCount_other": "{{count}} 个视频不完全支持此选项，将使用最接近的格式。",
+    "fileType": "文件类型",
+    "anyFileType": "任意",
     "cancel": "取消",
     "download": "下载",
     "tier": {
