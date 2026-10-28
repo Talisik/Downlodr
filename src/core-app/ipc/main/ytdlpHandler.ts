@@ -37,6 +37,7 @@ import {
 import { hydratePlaylistEntries } from './playlistEntryMetadata';
 import { notifyTrayDownloadComplete } from './trayHandler';
 import { isYtdlpUpgrade } from './ytdlpVersion';
+import { verifyYtdlpDownload } from './ytdlpChecksum';
 import {
   discardInactiveYtdlpUserCopy,
   getBundledFfmpegPaths,
@@ -145,6 +146,9 @@ async function downloadYtdlpUpdateSafely(version: string): Promise<void> {
     if (downloaded.size === 0) {
       throw new Error('Downloaded yt-dlp binary is empty');
     }
+    // Before anything runs or swaps in the download — the macOS check below
+    // executes it.
+    await verifyYtdlpDownload(tempPath, version, YTDLP_BINARY_NAME);
     // yt-dlp-helper only marks the download executable on Linux.
     if (process.platform !== 'win32') await chmod(tempPath, 0o755);
     // A macOS copy only replaces the bundled binary if it actually runs, so a
@@ -318,12 +322,11 @@ async function checkAndUpdateYtdlp(): Promise<boolean> {
   }
 
   if (!currentVersion) {
+    // Through the checksum-verified path on every platform; it also keeps
+    // macOS off the binary in the signed bundle.
     const target = latestVersion;
-    await runVisibleYtdlpUpdate(target ?? null, () =>
-      // macOS must not write over the binary in the signed bundle.
-      updatesYtdlpUserCopy() && target
-        ? downloadYtdlpUpdateSafely(target)
-        : withBusyRetry(() => YTDLP.downloadYTDLP({ filePath: ytdlpPath })),
+    await runVisibleYtdlpUpdate(target, () =>
+      downloadYtdlpUpdateSafely(target),
     );
     return true;
   }
@@ -1015,10 +1018,9 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
       }
 
       if (!currentVersion) {
-        // macOS must not write over the binary in the signed bundle.
-        if (updatesYtdlpUserCopy())
-          await downloadYtdlpUpdateSafely(latestVersion);
-        else await YTDLP.downloadYTDLP({ filePath: ytdlpPath });
+        // Checksum-verified on every platform; also keeps macOS off the
+        // binary in the signed bundle.
+        await downloadYtdlpUpdateSafely(latestVersion);
         return {
           success: true,
           action: 'downloaded',
@@ -1111,14 +1113,60 @@ export const ytdlpHandler = (_mainWindow: BrowserWindow): (() => void) => {
       ) {
         downloadOptions.version = options.version.trim();
       }
-      // If no version provided or 'latest', let YTDLP use latest
+      // No version, or 'latest': pin it to the latest release ourselves. Left
+      // to the helper it would pick one we couldn't look a checksum up for.
+      if (!downloadOptions.version) {
+        let latest = getCachedVersion();
+        if (!latest) {
+          if (!canMakeGitHubApiCall()) {
+            throw new Error(
+              `Rate limited. Please wait ${getGitHubApiCooldownRemainingSeconds()} seconds before trying again.`,
+            );
+          }
+          markGitHubApiCall();
+          const response = await YTDLP.getLatestYTDLPVersionFromGitHub();
+          if (!response.ok || !response.version) {
+            throw new Error(
+              response.message || 'Failed to get latest yt-dlp version',
+            );
+          }
+          latest = response.version;
+          setCachedVersion(latest);
+        }
+        downloadOptions.version = latest;
+      }
 
       // Handle platform
       if (options.platform && options.platform !== 'auto') {
         downloadOptions.platform = options.platform;
       }
       // If no platform provided or 'auto', let YTDLP auto-detect
-      await YTDLP.downloadYTDLP(downloadOptions);
+
+      // Download beside the destination and only move it into place once its
+      // checksum matches the release's, so a bad download never lands there.
+      const finalPath = downloadOptions.filePath;
+      const version = downloadOptions.version;
+      const tempPath = `${finalPath}.download`;
+      try {
+        await YTDLP.downloadYTDLP({
+          ...downloadOptions,
+          filePath: tempPath,
+          forceDownload: true,
+        });
+        await verifyYtdlpDownload(
+          tempPath,
+          version,
+          ytdlpBinaryName(downloadOptions.platform ?? process.platform),
+        );
+        if (process.platform !== 'win32') await chmod(tempPath, 0o755);
+        await withBusyRetry(() =>
+          swapInNewBinary(tempPath, finalPath, `${finalPath}.old`),
+        );
+        await unlink(`${finalPath}.old`).catch(() => undefined);
+      } catch (error) {
+        await unlink(tempPath).catch(() => undefined);
+        throw error;
+      }
       return { success: true };
     } catch (error) {
       console.error('Error downloading YTDLP:', error);
