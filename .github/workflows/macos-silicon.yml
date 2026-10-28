@@ -1,7 +1,7 @@
 name: macOS Branch Build
 
-# Standalone macOS build (Apple Silicon) for the fix/bug-fix and
-# review/port-mac-main-version branches
+# Standalone macOS build (Apple Silicon) for the fix/bug-fix,
+# review/port-mac-main-version and review/port-2026-10-27 branches
 # (the merged feat/bulk-category-macos line plus the QA fixes).
 #
 # Deliberately separate from macos-build.yml, which is left byte-identical to
@@ -29,6 +29,7 @@ on:
     branches:
       - fix/bug-fix
       - review/port-mac-main-version
+      - review/port-2026-10-27
   workflow_dispatch:
 
 permissions:
